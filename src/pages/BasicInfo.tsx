@@ -60,18 +60,18 @@ const BasicInfo = () => {
               {/* 代收房費匯款帳號 */}
               <div className="space-y-4 pt-4 border-t">
                 <h3 className="font-semibold">代收房費匯款帳號(與丁丁打撥款用)</h3>
-                <div className="grid grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
-                  <div>
-                    <Label className="text-sm text-muted-foreground mb-2 block">銀行/分行名稱</Label>
-                    <p className="text-sm">108 陽信商業銀行 / 1081053 陽信商業銀行羅東分行</p>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label>銀行/分行名稱</Label>
+                    <Input />
                   </div>
-                  <div>
-                    <Label className="text-sm text-muted-foreground mb-2 block">帳戶名稱</Label>
-                    <p className="text-sm">人客多股份有限公司</p>
+                  <div className="space-y-2">
+                    <Label>帳戶名稱</Label>
+                    <Input />
                   </div>
-                  <div>
-                    <Label className="text-sm text-muted-foreground mb-2 block">銀行帳號</Label>
-                    <p className="text-sm">121450000353</p>
+                  <div className="space-y-2">
+                    <Label>銀行帳號</Label>
+                    <Input />
                   </div>
                 </div>
                 <div className="space-y-2">
