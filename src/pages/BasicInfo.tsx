@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Plus, Edit, MapPin, ExternalLink, Info } from "lucide-react";
+import Footer from "@/components/Footer";
 
 const BasicInfo = () => {
   const [activeTab, setActiveTab] = useState("info");
@@ -1407,6 +1408,8 @@ const BasicInfo = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Footer />
     </div>
   );
 };

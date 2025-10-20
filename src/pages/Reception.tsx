@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import Footer from "@/components/Footer";
 
 const Reception = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -232,6 +233,8 @@ const Reception = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Footer />
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import { Hotel, Users, Calendar, DollarSign } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Footer from "@/components/Footer";
 import {
   LineChart,
   Line,
@@ -171,9 +172,7 @@ const Dashboard = () => {
         </CardContent>
       </Card>
 
-      <div className="mt-8 border-t pt-6 text-center text-sm text-muted-foreground">
-        <p>© 2025 人客多 PMS 旅宿管理系統. 版權所有</p>
-      </div>
+      <Footer />
     </div>
   );
 };

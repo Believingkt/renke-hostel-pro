@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import Footer from "@/components/Footer";
 
 const Orders = () => {
   const [date, setDate] = useState("2025/10/19");
@@ -479,6 +480,8 @@ const Orders = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Footer />
     </div>
   );
 };
