@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import logo from "@/assets/logo.jpg";
-import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Sidebar,
   SidebarContent,
@@ -36,12 +35,11 @@ const menuItems = [
 ];
 
 export function AppSidebar() {
-  const { open, setOpen } = useSidebar();
-  const isMobile = useIsMobile();
+  const { open, setOpenMobile, isMobile } = useSidebar();
 
   const handleLinkClick = () => {
     if (isMobile) {
-      setOpen(false);
+      setOpenMobile(false);
     }
   };
 
