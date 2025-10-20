@@ -31,12 +31,18 @@ const revenueData = [
 ];
 
 const bookingData = [
-  { month: "1月", 訂房: 145, 住客: 280 },
-  { month: "2月", 訂房: 168, 住客: 320 },
-  { month: "3月", 訂房: 152, 住客: 295 },
-  { month: "4月", 訂房: 189, 住客: 365 },
-  { month: "5月", 訂房: 176, 住客: 340 },
-  { month: "6月", 訂房: 203, 住客: 395 },
+  { month: "1月", "2025年": 145, "2024年": 130 },
+  { month: "2月", "2025年": 168, "2024年": 155 },
+  { month: "3月", "2025年": 152, "2024年": 140 },
+  { month: "4月", "2025年": 189, "2024年": 172 },
+  { month: "5月", "2025年": 176, "2024年": 165 },
+  { month: "6月", "2025年": 203, "2024年": 188 },
+  { month: "7月", "2025年": 195, "2024年": 180 },
+  { month: "8月", "2025年": 210, "2024年": 195 },
+  { month: "9月", "2025年": 182, "2024年": 170 },
+  { month: "10月", "2025年": 198, "2024年": 185 },
+  { month: "11月", "2025年": 187, "2024年": 175 },
+  { month: "12月", "2025年": 220, "2024年": 200 },
 ];
 
 const recentBookings = [
@@ -118,14 +124,14 @@ const Dashboard = () => {
                 <Legend />
                 <Line 
                   type="monotone" 
-                  dataKey="訂房" 
+                  dataKey="2025年" 
                   stroke="hsl(var(--chart-3))" 
                   strokeWidth={3}
                   dot={{ fill: "hsl(var(--chart-3))", r: 5 }}
                 />
                 <Line 
                   type="monotone" 
-                  dataKey="住客" 
+                  dataKey="2024年" 
                   stroke="hsl(var(--chart-1))" 
                   strokeWidth={3}
                   dot={{ fill: "hsl(var(--chart-1))", r: 5 }}
