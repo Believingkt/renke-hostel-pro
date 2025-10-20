@@ -89,7 +89,7 @@ const Accounts = () => {
           <DialogTrigger asChild>
             <Button className="gap-2 w-full md:w-auto">
               <Plus className="h-4 w-4" />
-              新增
+              新增帳號
             </Button>
           </DialogTrigger>
           <DialogContent>
