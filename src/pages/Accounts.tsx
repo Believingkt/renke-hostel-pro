@@ -33,6 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Trash2 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 
 const Accounts = () => {
   const [open, setOpen] = useState(false);
@@ -80,13 +81,13 @@ const Accounts = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">帳號權限管理</h1>
+    <div className="space-y-4 md:space-y-6 p-4 md:p-0">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">帳號權限管理</h1>
         
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2">
+            <Button className="gap-2 w-full md:w-auto">
               <Plus className="h-4 w-4" />
               新增
             </Button>
@@ -147,34 +148,71 @@ const Accounts = () => {
             擁有者
           </AccordionTrigger>
           <AccordionContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>名稱</TableHead>
-                  <TableHead>帳號</TableHead>
-                  <TableHead>最後登入日期</TableHead>
-                  <TableHead className="w-[100px]">操作</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {owners.map((user, index) => (
-                  <TableRow key={index}>
-                    <TableCell>{user.name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>{user.lastLogin}</TableCell>
-                    <TableCell>
+            {/* Desktop table view */}
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>名稱</TableHead>
+                    <TableHead>帳號</TableHead>
+                    <TableHead>最後登入日期</TableHead>
+                    <TableHead className="w-[100px]">操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {owners.map((user, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{user.name}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>{user.lastLogin}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(user.email, "owner")}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile card view */}
+            <div className="md:hidden space-y-3">
+              {owners.map((user, index) => (
+                <Card key={index}>
+                  <CardContent className="pt-6">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 space-y-2 min-w-0">
+                        <div>
+                          <p className="text-xs text-muted-foreground">名稱</p>
+                          <p className="font-medium">{user.name}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">帳號</p>
+                          <p className="text-sm break-all">{user.email}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">最後登入日期</p>
+                          <p className="text-sm">{user.lastLogin}</p>
+                        </div>
+                      </div>
                       <Button
                         variant="ghost"
                         size="icon"
+                        className="shrink-0"
                         onClick={() => handleDelete(user.email, "owner")}
                       >
-                        <Trash2 className="h-4 w-4 text-destructive" />
+                        <Trash2 className="h-5 w-5 text-destructive" />
                       </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </AccordionContent>
         </AccordionItem>
 
@@ -183,34 +221,71 @@ const Accounts = () => {
             現場營運
           </AccordionTrigger>
           <AccordionContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>名稱</TableHead>
-                  <TableHead>帳號</TableHead>
-                  <TableHead>最後登入日期</TableHead>
-                  <TableHead className="w-[100px]">操作</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {operators.map((user, index) => (
-                  <TableRow key={index}>
-                    <TableCell>{user.name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>{user.lastLogin}</TableCell>
-                    <TableCell>
+            {/* Desktop table view */}
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>名稱</TableHead>
+                    <TableHead>帳號</TableHead>
+                    <TableHead>最後登入日期</TableHead>
+                    <TableHead className="w-[100px]">操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {operators.map((user, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{user.name}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>{user.lastLogin}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(user.email, "operator")}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile card view */}
+            <div className="md:hidden space-y-3">
+              {operators.map((user, index) => (
+                <Card key={index}>
+                  <CardContent className="pt-6">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 space-y-2 min-w-0">
+                        <div>
+                          <p className="text-xs text-muted-foreground">名稱</p>
+                          <p className="font-medium">{user.name}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">帳號</p>
+                          <p className="text-sm break-all">{user.email}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">最後登入日期</p>
+                          <p className="text-sm">{user.lastLogin}</p>
+                        </div>
+                      </div>
                       <Button
                         variant="ghost"
                         size="icon"
+                        className="shrink-0"
                         onClick={() => handleDelete(user.email, "operator")}
                       >
-                        <Trash2 className="h-4 w-4 text-destructive" />
+                        <Trash2 className="h-5 w-5 text-destructive" />
                       </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </AccordionContent>
         </AccordionItem>
       </Accordion>
