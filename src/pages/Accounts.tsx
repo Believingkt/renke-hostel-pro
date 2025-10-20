@@ -1,11 +1,5 @@
 import { useState } from "react";
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import {
   Table,
   TableBody,
   TableCell,
@@ -35,49 +29,76 @@ import {
 import { Plus, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
+interface User {
+  name: string;
+  email: string;
+  lastLogin: string;
+  role: string;
+  roleLabel: string;
+}
+
 const Accounts = () => {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("operator");
-  const owners = [
+
+  const [users, setUsers] = useState<User[]>([
     {
       name: "森山寫照",
       email: "sensan.inn@gmail.com",
       lastLogin: "2025-10-20 08:37",
+      role: "owner",
+      roleLabel: "擁有者",
     },
-  ];
-
-  const operators = [
     {
       name: "yushiuan0315",
       email: "yushiuan0315@gmail.com",
       lastLogin: "2025-06-20 09:44",
+      role: "operator",
+      roleLabel: "現場營運",
     },
     {
       name: "nokimi",
       email: "nokimi@gmail.com",
       lastLogin: "2025-10-15 09:14",
+      role: "operator",
+      roleLabel: "現場營運",
     },
     {
       name: "DOFI",
       email: "dofilab@gmail.com",
       lastLogin: "2025-10-18 10:41",
+      role: "operator",
+      roleLabel: "現場營運",
     },
-  ];
+  ]);
 
   const handleSubmit = () => {
-    // 這裡可以添加提交邏輯
-    console.log({ name, email, role });
+    const roleLabel = role === "owner" ? "擁有者" : "現場營運";
+    const newUser: User = {
+      name,
+      email,
+      lastLogin: new Date().toLocaleString("zh-TW", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      role,
+      roleLabel,
+    };
+    
+    setUsers([...users, newUser]);
     setOpen(false);
     setName("");
     setEmail("");
     setRole("operator");
   };
 
-  const handleDelete = (email: string, role: string) => {
-    // 這裡可以添加刪除邏輯
-    console.log("Delete user:", email, "Role:", role);
+  const handleDelete = (email: string) => {
+    setUsers(users.filter((user) => user.email !== email));
   };
 
   return (
@@ -142,47 +163,58 @@ const Accounts = () => {
         </Dialog>
       </div>
 
-      <Accordion type="multiple" defaultValue={["owner", "operator"]} className="w-full">
-        <AccordionItem value="owner">
-          <AccordionTrigger className="text-lg font-semibold">
-            擁有者
-          </AccordionTrigger>
-          <AccordionContent>
-            {/* Desktop table view */}
-            <div className="hidden md:block">
-              <Table>
-                <TableHeader>
+      <Card>
+        <CardContent className="pt-6">
+          {/* Desktop table view */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>名稱</TableHead>
+                  <TableHead>帳號</TableHead>
+                  <TableHead>角色</TableHead>
+                  <TableHead>最後登入日期</TableHead>
+                  <TableHead className="w-[100px]">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.length === 0 ? (
                   <TableRow>
-                    <TableHead>名稱</TableHead>
-                    <TableHead>帳號</TableHead>
-                    <TableHead>最後登入日期</TableHead>
-                    <TableHead className="w-[100px]">操作</TableHead>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground">
+                      尚無帳號
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {owners.map((user, index) => (
+                ) : (
+                  users.map((user, index) => (
                     <TableRow key={index}>
-                      <TableCell>{user.name}</TableCell>
+                      <TableCell className="font-medium">{user.name}</TableCell>
                       <TableCell>{user.email}</TableCell>
+                      <TableCell>{user.roleLabel}</TableCell>
                       <TableCell>{user.lastLogin}</TableCell>
                       <TableCell>
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDelete(user.email, "owner")}
+                          onClick={() => handleDelete(user.email)}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
 
-            {/* Mobile card view */}
-            <div className="md:hidden space-y-3">
-              {owners.map((user, index) => (
+          {/* Mobile card view */}
+          <div className="md:hidden space-y-3">
+            {users.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                尚無帳號
+              </p>
+            ) : (
+              users.map((user, index) => (
                 <Card key={index}>
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between gap-3">
@@ -196,77 +228,8 @@ const Accounts = () => {
                           <p className="text-sm break-all">{user.email}</p>
                         </div>
                         <div>
-                          <p className="text-xs text-muted-foreground">最後登入日期</p>
-                          <p className="text-sm">{user.lastLogin}</p>
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="shrink-0"
-                        onClick={() => handleDelete(user.email, "owner")}
-                      >
-                        <Trash2 className="h-5 w-5 text-destructive" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-
-        <AccordionItem value="operator">
-          <AccordionTrigger className="text-lg font-semibold">
-            現場營運
-          </AccordionTrigger>
-          <AccordionContent>
-            {/* Desktop table view */}
-            <div className="hidden md:block">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>名稱</TableHead>
-                    <TableHead>帳號</TableHead>
-                    <TableHead>最後登入日期</TableHead>
-                    <TableHead className="w-[100px]">操作</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {operators.map((user, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{user.name}</TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>{user.lastLogin}</TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(user.email, "operator")}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-
-            {/* Mobile card view */}
-            <div className="md:hidden space-y-3">
-              {operators.map((user, index) => (
-                <Card key={index}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 space-y-2 min-w-0">
-                        <div>
-                          <p className="text-xs text-muted-foreground">名稱</p>
-                          <p className="font-medium">{user.name}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">帳號</p>
-                          <p className="text-sm break-all">{user.email}</p>
+                          <p className="text-xs text-muted-foreground">角色</p>
+                          <p className="text-sm">{user.roleLabel}</p>
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">最後登入日期</p>
@@ -277,18 +240,18 @@ const Accounts = () => {
                         variant="ghost"
                         size="icon"
                         className="shrink-0"
-                        onClick={() => handleDelete(user.email, "operator")}
+                        onClick={() => handleDelete(user.email)}
                       >
                         <Trash2 className="h-5 w-5 text-destructive" />
                       </Button>
                     </div>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
