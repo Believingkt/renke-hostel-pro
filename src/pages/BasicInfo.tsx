@@ -14,7 +14,6 @@ import Footer from "@/components/Footer";
 
 const BasicInfo = () => {
   const [activeTab, setActiveTab] = useState("info");
-  const [language, setLanguage] = useState("zh");
 
   return (
     <div className="space-y-6">
@@ -91,32 +90,7 @@ const BasicInfo = () => {
             <CardContent className="space-y-6">
               {/* 旅宿名稱 */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label>旅宿名稱</Label>
-                  <div className="flex gap-2">
-                    <Button
-                      variant={language === "zh" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setLanguage("zh")}
-                    >
-                      中
-                    </Button>
-                    <Button
-                      variant={language === "en" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setLanguage("en")}
-                    >
-                      英
-                    </Button>
-                    <Button
-                      variant={language === "ja" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setLanguage("ja")}
-                    >
-                      日
-                    </Button>
-                  </div>
-                </div>
+                <Label>旅宿名稱</Label>
                 <Input placeholder="森山寫照" />
               </div>
 
@@ -176,31 +150,6 @@ const BasicInfo = () => {
                   <Label>短網址別名</Label>
                   <Info className="h-4 w-4 text-muted-foreground" />
                 </div>
-                <div className="flex gap-2">
-                  <div className="flex gap-2 mb-2">
-                    <Button
-                      variant={language === "zh" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setLanguage("zh")}
-                    >
-                      中
-                    </Button>
-                    <Button
-                      variant={language === "en" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setLanguage("en")}
-                    >
-                      英
-                    </Button>
-                    <Button
-                      variant={language === "ja" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setLanguage("ja")}
-                    >
-                      日
-                    </Button>
-                  </div>
-                </div>
                 <div className="flex items-center gap-2">
                   <Input
                     value="https://www.booking-owlnest.com/"
@@ -223,29 +172,6 @@ const BasicInfo = () => {
                 <div className="space-y-4 p-4 border rounded-lg">
                   <div className="flex justify-between items-center">
                     <Label>標題</Label>
-                    <div className="flex gap-2">
-                      <Button
-                        variant={language === "zh" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setLanguage("zh")}
-                      >
-                        中
-                      </Button>
-                      <Button
-                        variant={language === "en" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setLanguage("en")}
-                      >
-                        英
-                      </Button>
-                      <Button
-                        variant={language === "ja" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setLanguage("ja")}
-                      >
-                        日
-                      </Button>
-                    </div>
                     <Button variant="ghost" size="sm" className="text-red-500">
                       刪除
                     </Button>
@@ -268,29 +194,6 @@ const BasicInfo = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant={language === "zh" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setLanguage("zh")}
-                  >
-                    中
-                  </Button>
-                  <Button
-                    variant={language === "en" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setLanguage("en")}
-                  >
-                    英
-                  </Button>
-                  <Button
-                    variant={language === "ja" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setLanguage("ja")}
-                  >
-                    日
-                  </Button>
-                </div>
                 <Textarea
                   placeholder="自然環抱中的日式私人莊園..."
                   rows={8}
@@ -308,29 +211,6 @@ const BasicInfo = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant={language === "zh" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setLanguage("zh")}
-                  >
-                    中
-                  </Button>
-                  <Button
-                    variant={language === "en" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setLanguage("en")}
-                  >
-                    英
-                  </Button>
-                  <Button
-                    variant={language === "ja" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setLanguage("ja")}
-                  >
-                    日
-                  </Button>
-                </div>
                 <Textarea
                   placeholder="入住時間（Check-in Time）：下午15:00-19:00辦理入住手續。"
                   rows={10}
