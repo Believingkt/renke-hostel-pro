@@ -18,6 +18,8 @@ const Reception = () => {
 
   return (
     <div className="space-y-4 md:space-y-6 px-2 md:px-0">
+      <h1 className="text-2xl md:text-3xl font-bold tracking-tight">櫃檯接待</h1>
+      
       {/* 頂部標籤 */}
       <Tabs defaultValue="today" className="w-full">
         <TabsList>
