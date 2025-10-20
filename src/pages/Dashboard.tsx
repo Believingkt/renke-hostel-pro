@@ -44,7 +44,6 @@ const Dashboard = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">儀表板</h1>
-        <p className="text-muted-foreground">歡迎回到人客多 PMS 管理系統</p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
