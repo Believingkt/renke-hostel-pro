@@ -37,15 +37,15 @@ const BasicInfo = () => {
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label>聯絡人姓名</Label>
-                  <Input placeholder="潘禹璇" />
+                  <Input />
                 </div>
                 <div className="space-y-2">
                   <Label>電子郵件</Label>
-                  <Input type="email" placeholder="sensan.inn@gmail.com" />
+                  <Input type="email" />
                 </div>
                 <div className="space-y-2">
                   <Label>聯絡電話</Label>
-                  <Input placeholder="0903178518" />
+                  <Input />
                 </div>
                 <div className="space-y-2">
                   <Label>傳真號碼</Label>
@@ -76,7 +76,7 @@ const BasicInfo = () => {
                 </div>
                 <div className="space-y-2">
                   <Label>帳戶類別</Label>
-                  <Input placeholder="公司" />
+                  <Input />
                 </div>
               </div>
             </CardContent>
@@ -91,7 +91,7 @@ const BasicInfo = () => {
               {/* 旅宿名稱 */}
               <div className="space-y-2">
                 <Label>旅宿名稱</Label>
-                <Input placeholder="森山寫照" />
+                <Input />
               </div>
 
               <div className="grid grid-cols-2 gap-6">
@@ -106,7 +106,7 @@ const BasicInfo = () => {
                 </div>
                 <div className="space-y-2">
                   <Label>客房總數</Label>
-                  <Input type="number" placeholder="10" />
+                  <Input type="number" />
                 </div>
               </div>
 
@@ -152,11 +152,10 @@ const BasicInfo = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Input
-                    value="https://www.booking-owlnest.com/"
                     className="flex-1"
                     disabled
                   />
-                  <Input placeholder="sensan.inn" className="flex-1" />
+                  <Input className="flex-1" />
                   <Button variant="ghost" size="icon">
                     <ExternalLink className="h-4 w-4" />
                   </Button>
@@ -176,8 +175,8 @@ const BasicInfo = () => {
                       刪除
                     </Button>
                   </div>
-                  <Input placeholder="" />
-                  <Input placeholder="網址需包含https://" />
+                  <Input />
+                  <Input />
                 </div>
                 <Button variant="outline" className="gap-2">
                   <Plus className="h-4 w-4" />
@@ -195,11 +194,10 @@ const BasicInfo = () => {
             <CardContent className="space-y-6">
               <div className="space-y-2">
                 <Textarea
-                  placeholder="自然環抱中的日式私人莊園..."
                   rows={8}
                   className="resize-none"
                 />
-                <div className="text-right text-sm text-muted-foreground">315 / 3000</div>
+                <div className="text-right text-sm text-muted-foreground">0 / 3000</div>
               </div>
             </CardContent>
           </Card>
@@ -212,7 +210,6 @@ const BasicInfo = () => {
             <CardContent className="space-y-6">
               <div className="space-y-2">
                 <Textarea
-                  placeholder="入住時間（Check-in Time）：下午15:00-19:00辦理入住手續。"
                   rows={10}
                   className="resize-none"
                 />
@@ -250,7 +247,6 @@ const BasicInfo = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Input
-                    value="269台灣宜蘭縣冬山鄉大進三路"
                     className="flex-1"
                   />
                   <Button variant="ghost" size="icon">
@@ -283,7 +279,7 @@ const BasicInfo = () => {
               </div>
 
               <div className="space-y-2">
-                <Label>地理位置：24.63684400, 121.71885900</Label>
+                <Label>地理位置：</Label>
               </div>
 
               {/* 照片上傳 */}
@@ -319,7 +315,7 @@ const BasicInfo = () => {
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label>選擇銀行</Label>
-                    <Select defaultValue="108">
+                    <Select>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -330,7 +326,7 @@ const BasicInfo = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>選擇分行</Label>
-                    <Select defaultValue="1081053">
+                    <Select>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -341,11 +337,11 @@ const BasicInfo = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>帳戶名稱</Label>
-                    <Input defaultValue="入客多股份有限公司" />
+                    <Input />
                   </div>
                   <div className="space-y-2">
                     <Label>銀行帳號</Label>
-                    <Input defaultValue="121450000353" />
+                    <Input />
                   </div>
                 </div>
               </div>
@@ -389,7 +385,7 @@ const BasicInfo = () => {
                 <div className="space-y-2">
                   <Label>訂金比例</Label>
                   <div className="flex gap-2">
-                    <Input type="number" defaultValue="30" className="flex-1" />
+                    <Input type="number" className="flex-1" />
                     <div className="w-16 h-10 flex items-center justify-center bg-muted rounded-md">
                       <span className="text-sm">%</span>
                     </div>
@@ -495,9 +491,9 @@ const BasicInfo = () => {
                   <Label className="font-medium">兒童</Label>
                 </div>
                 <div className="flex items-center gap-4 ml-16">
-                  <Input type="number" defaultValue="3" className="w-24" />
+                  <Input type="number" className="w-24" />
                   <span className="text-sm">-</span>
-                  <Input type="number" defaultValue="12" className="w-24" />
+                  <Input type="number" className="w-24" />
                   <span className="text-sm">歲</span>
                 </div>
               </div>

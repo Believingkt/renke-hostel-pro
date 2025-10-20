@@ -355,7 +355,6 @@ const Orders = () => {
                   <Label className="text-sm mb-2 block">搜尋</Label>
                   <div className="relative">
                     <Input
-                      placeholder="請輸入訂單編號、訂購人"
                       className="h-10 pr-20"
                     />
                   </div>
@@ -431,7 +430,6 @@ const Orders = () => {
               {/* 快速搜尋 */}
               <div className="flex justify-end">
                 <Input
-                  placeholder="快速搜尋"
                   className="w-80"
                 />
               </div>
