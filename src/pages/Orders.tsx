@@ -426,8 +426,55 @@ const Orders = () => {
 
         <TabsContent value="reserved">
           <Card>
-            <CardContent className="py-12">
-              <p className="text-center text-muted-foreground">保留單列表功能開發中...</p>
+            <CardContent className="pt-6 space-y-6">
+              {/* 快速搜尋 */}
+              <div className="flex justify-end">
+                <Input
+                  placeholder="快速搜尋"
+                  className="w-80"
+                />
+              </div>
+
+              {/* 保留單表格 */}
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
+                        訂單編號 <span className="ml-1">↕</span>
+                      </th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
+                        保留期限 <span className="ml-1">↕</span>
+                      </th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
+                        訂購日期 <span className="ml-1">↕</span>
+                      </th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
+                        訂單來源 <span className="ml-1">↕</span>
+                      </th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
+                        訂購人 <span className="ml-1">↕</span>
+                      </th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
+                        聯絡電話 <span className="ml-1">↕</span>
+                      </th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
+                        訂單備註 <span className="ml-1">↕</span>
+                      </th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
+                        操作
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td colSpan={8} className="py-12 text-center text-muted-foreground">
+                        暫無資料
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
