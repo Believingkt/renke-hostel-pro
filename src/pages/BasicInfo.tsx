@@ -308,7 +308,7 @@ const BasicInfo = () => {
                 <div className="flex items-center space-x-2">
                   <Checkbox id="same-account" />
                   <Label htmlFor="same-account" className="text-sm">
-                    同收款帳戶資料 (奧丁丁撥款用)
+                    同收款帳戶資料 (撥款用)
                   </Label>
                 </div>
 
