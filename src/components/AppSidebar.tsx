@@ -1,6 +1,6 @@
 import { 
   Home, 
-  Building2, 
+  Building2,
   DoorOpen, 
   DollarSign, 
   Search, 
@@ -11,6 +11,7 @@ import {
   Tag
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import logo from "@/assets/logo.jpg";
 import {
   Sidebar,
   SidebarContent,
@@ -43,9 +44,11 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r">
       <SidebarHeader className="border-b px-6 py-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary">
-            <Building2 className="h-7 w-7 text-primary-foreground" />
-          </div>
+          <img 
+            src={logo} 
+            alt="人客多 Logo" 
+            className="h-12 w-12 rounded-lg object-cover"
+          />
           {open && (
             <div>
               <h2 className="text-2xl font-semibold text-primary">人客多 PMS</h2>
