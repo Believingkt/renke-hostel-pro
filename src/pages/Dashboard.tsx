@@ -92,7 +92,7 @@ const Dashboard = () => {
                 <Tooltip />
                 <Legend />
                 <Bar dataKey="收入" fill="hsl(var(--chart-1))" radius={[8, 8, 0, 0]} />
-                <Bar dataKey="支出" fill="hsl(var(--chart-2))" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="支出" fill="hsl(var(--chart-4))" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
