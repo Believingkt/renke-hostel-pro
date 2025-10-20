@@ -42,14 +42,14 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r">
       <SidebarHeader className="border-b px-6 py-4">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <Building2 className="h-5 w-5 text-primary-foreground" />
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary">
+            <Building2 className="h-7 w-7 text-primary-foreground" />
           </div>
           {open && (
             <div>
-              <h2 className="text-lg font-semibold text-primary">人客多 PMS</h2>
-              <p className="text-xs text-muted-foreground">旅宿管理系統</p>
+              <h2 className="text-2xl font-semibold text-primary">人客多 PMS</h2>
+              <p className="text-sm text-muted-foreground">旅宿管理系統</p>
             </div>
           )}
         </div>
