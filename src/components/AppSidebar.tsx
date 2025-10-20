@@ -1,0 +1,84 @@
+import { 
+  Home, 
+  Building2, 
+  DoorOpen, 
+  DollarSign, 
+  Search, 
+  ClipboardList, 
+  Users, 
+  BarChart3, 
+  Settings,
+  Tag
+} from "lucide-react";
+import { NavLink } from "react-router-dom";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarHeader,
+  useSidebar,
+} from "@/components/ui/sidebar";
+
+const menuItems = [
+  { title: "儀表板", url: "/", icon: Home },
+  { title: "基本資訊", url: "/basic-info", icon: Building2 },
+  { title: "房型管理", url: "/room-types", icon: DoorOpen },
+  { title: "房價庫存設定", url: "/pricing", icon: DollarSign },
+  { title: "空房查詢", url: "/availability", icon: Search },
+  { title: "櫃檯接待", url: "/reception", icon: Users },
+  { title: "訂單查詢", url: "/orders", icon: ClipboardList },
+  { title: "營運報表", url: "/reports", icon: BarChart3 },
+  { title: "帳號權限管理", url: "/accounts", icon: Settings },
+  { title: "KOL折扣代碼", url: "/discount-codes", icon: Tag },
+];
+
+export function AppSidebar() {
+  const { open } = useSidebar();
+
+  return (
+    <Sidebar collapsible="icon" className="border-r">
+      <SidebarHeader className="border-b px-6 py-4">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+            <Building2 className="h-5 w-5 text-primary-foreground" />
+          </div>
+          {open && (
+            <div>
+              <h2 className="text-lg font-semibold text-primary">人客多 PMS</h2>
+              <p className="text-xs text-muted-foreground">旅宿管理系統</p>
+            </div>
+          )}
+        </div>
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>主要功能</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {menuItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink 
+                      to={item.url}
+                      className={({ isActive }) =>
+                        isActive ? "bg-sidebar-accent" : ""
+                      }
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+    </Sidebar>
+  );
+}

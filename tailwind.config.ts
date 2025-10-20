@@ -57,6 +57,23 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        stat: {
+          coral: "hsl(var(--stat-coral))",
+          "coral-light": "hsl(var(--stat-coral-light))",
+          green: "hsl(var(--stat-green))",
+          "green-light": "hsl(var(--stat-green-light))",
+          blue: "hsl(var(--stat-blue))",
+          "blue-light": "hsl(var(--stat-blue-light))",
+          purple: "hsl(var(--stat-purple))",
+          "purple-light": "hsl(var(--stat-purple-light))",
+        },
+        chart: {
+          "1": "hsl(var(--chart-1))",
+          "2": "hsl(var(--chart-2))",
+          "3": "hsl(var(--chart-3))",
+          "4": "hsl(var(--chart-4))",
+          "5": "hsl(var(--chart-5))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
