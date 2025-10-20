@@ -123,7 +123,7 @@ const KolDiscount = () => {
     <div className="space-y-4 md:space-y-6 p-4 md:p-0">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-          KOL折扣代碼設定
+          KOL折扣代碼
         </h1>
 
         <Dialog open={open} onOpenChange={setOpen}>
