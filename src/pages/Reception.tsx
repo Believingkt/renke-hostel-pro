@@ -10,7 +10,7 @@ const Reception = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 px-2 md:px-0">
       {/* 頂部標籤 */}
       <Tabs defaultValue="today" className="w-full">
         <TabsList>
@@ -18,11 +18,11 @@ const Reception = () => {
           <TabsTrigger value="status">房況表</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="today" className="space-y-6">
+        <TabsContent value="today" className="space-y-4 md:space-y-6">
           {/* 統計卡片區 */}
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {/* 今日櫃檯 */}
-            <Card>
+            <Card className="shadow-card hover:shadow-card-hover transition-base">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-lg font-semibold">今日櫃檯</CardTitle>
                 <ArrowRight className="h-5 w-5 text-muted-foreground" />
@@ -50,7 +50,7 @@ const Reception = () => {
             </Card>
 
             {/* 最新訂單 */}
-            <Card>
+            <Card className="shadow-card hover:shadow-card-hover transition-base">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-lg font-semibold">最新訂單</CardTitle>
                 <ArrowRight className="h-5 w-5 text-muted-foreground" />
@@ -78,7 +78,7 @@ const Reception = () => {
             </Card>
 
             {/* 訂單待付 */}
-            <Card>
+            <Card className="shadow-card hover:shadow-card-hover transition-base">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-lg font-semibold">訂單待付</CardTitle>
                 <ArrowRight className="h-5 w-5 text-muted-foreground" />
@@ -107,14 +107,14 @@ const Reception = () => {
           </div>
 
           {/* 今日櫃檯詳細資料 */}
-          <Card>
+          <Card className="shadow-card">
             <CardHeader>
-              <CardTitle>今日櫃檯</CardTitle>
+              <CardTitle className="text-lg md:text-xl">今日櫃檯</CardTitle>
             </CardHeader>
             <CardContent>
               {/* 入住/退房標籤 */}
               <Tabs defaultValue="checkin" className="w-full">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
                   <TabsList>
                     <TabsTrigger value="checkin">
                       入住 <span className="ml-1">🏠</span>
@@ -125,7 +125,7 @@ const Reception = () => {
                   </TabsList>
 
                   {/* 搜尋欄 */}
-                  <div className="relative w-96">
+                  <div className="relative w-full md:w-96">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       value={searchQuery}
@@ -147,7 +147,7 @@ const Reception = () => {
                   </div>
 
                   {/* 表格 */}
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto scrollbar-thin -mx-2 md:mx-0">
                     <table className="w-full">
                       <thead>
                         <tr className="border-b">
@@ -188,8 +188,8 @@ const Reception = () => {
                   </div>
 
                   {/* 表格 */}
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
+                  <div className="overflow-x-auto scrollbar-thin -mx-2 md:mx-0">
+                    <table className="w-full min-w-[600px]">
                       <thead>
                         <tr className="border-b">
                           <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">

@@ -27,7 +27,7 @@ const App = () => (
             <AppSidebar />
             <div className="flex flex-1 flex-col">
               <Header />
-              <main className="flex-1 p-6">
+              <main className="flex-1 p-3 md:p-6 overflow-x-hidden">
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/reception" element={<Reception />} />

@@ -54,12 +54,12 @@ const recentBookings = [
 
 const Dashboard = () => {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">營運報表</h1>
+    <div className="space-y-6 md:space-y-8">
+      <div className="px-2 md:px-0">
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">營運報表</h1>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-4 px-2 md:px-0">
         <StatCard
           title="總房間數"
           value="48"
@@ -90,10 +90,10 @@ const Dashboard = () => {
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
+      <div className="grid gap-4 md:gap-6 lg:grid-cols-2 px-2 md:px-0">
+        <Card className="shadow-card hover:shadow-card-hover transition-base">
           <CardHeader>
-            <CardTitle>營收統計</CardTitle>
+            <CardTitle className="text-lg md:text-xl">營收統計</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -110,9 +110,9 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-card hover:shadow-card-hover transition-base">
           <CardHeader>
-            <CardTitle>訂房趨勢</CardTitle>
+            <CardTitle className="text-lg md:text-xl">訂房趨勢</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -142,12 +142,12 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      <Card>
+      <Card className="shadow-card px-2 md:px-0 mx-2 md:mx-0">
         <CardHeader>
-          <CardTitle>近期訂房</CardTitle>
+          <CardTitle className="text-lg md:text-xl">近期訂房</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto scrollbar-thin -mx-2 md:mx-0">
             <table className="w-full">
               <thead>
                 <tr className="border-b">
