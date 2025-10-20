@@ -57,17 +57,17 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
-            <SidebarMenu className="gap-1.5">
+            <SidebarMenu className="gap-2.5">
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild className="h-12 py-3 text-base">
                     <NavLink 
                       to={item.url}
                       className={({ isActive }) =>
                         isActive ? "bg-sidebar-accent" : ""
                       }
                     >
-                      <item.icon className="h-4 w-4" />
+                      <item.icon className="h-5 w-5" />
                       <span>{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
