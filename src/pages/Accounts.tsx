@@ -32,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 
 const Accounts = () => {
   const [open, setOpen] = useState(false);
@@ -72,6 +72,11 @@ const Accounts = () => {
     setName("");
     setEmail("");
     setRole("operator");
+  };
+
+  const handleDelete = (email: string, role: string) => {
+    // 這裡可以添加刪除邏輯
+    console.log("Delete user:", email, "Role:", role);
   };
 
   return (
@@ -148,6 +153,7 @@ const Accounts = () => {
                   <TableHead>名稱</TableHead>
                   <TableHead>帳號</TableHead>
                   <TableHead>最後登入日期</TableHead>
+                  <TableHead className="w-[100px]">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -156,6 +162,15 @@ const Accounts = () => {
                     <TableCell>{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>{user.lastLogin}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(user.email, "owner")}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -174,6 +189,7 @@ const Accounts = () => {
                   <TableHead>名稱</TableHead>
                   <TableHead>帳號</TableHead>
                   <TableHead>最後登入日期</TableHead>
+                  <TableHead className="w-[100px]">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -182,6 +198,15 @@ const Accounts = () => {
                     <TableCell>{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>{user.lastLogin}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(user.email, "operator")}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
