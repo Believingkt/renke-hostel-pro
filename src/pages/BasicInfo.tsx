@@ -611,7 +611,7 @@ const BasicInfo = () => {
                     </div>
                     <div className="flex items-center space-x-2">
                       <Checkbox id="baby-pool" defaultChecked />
-                      <Label htmlFor="baby-pool" className="text-primary">嬰兒澡盆</Label>
+                      <Label htmlFor="baby-pool" className="text-stat-green">嬰兒澡盆</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Checkbox id="hot-spring" />
@@ -619,7 +619,7 @@ const BasicInfo = () => {
                     </div>
                     <div className="flex items-center space-x-2">
                       <Checkbox id="kids-play-area" defaultChecked />
-                      <Label htmlFor="kids-play-area" className="text-primary">兒童遊戲區</Label>
+                      <Label htmlFor="kids-play-area" className="text-stat-green">兒童遊戲區</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Checkbox id="elevator" />
@@ -703,11 +703,11 @@ const BasicInfo = () => {
                   <div className="space-y-4">
                     <div className="flex items-center space-x-2">
                       <Checkbox id="shuttle" defaultChecked />
-                      <Label htmlFor="shuttle" className="text-primary">交通廳</Label>
+                      <Label htmlFor="shuttle" className="text-stat-green">交通廳</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Checkbox id="public-fridge" defaultChecked />
-                      <Label htmlFor="public-fridge" className="text-primary">公用冰箱</Label>
+                      <Label htmlFor="public-fridge" className="text-stat-green">公用冰箱</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Checkbox id="currency-exchange" />
@@ -727,7 +727,7 @@ const BasicInfo = () => {
                     </div>
                     <div className="flex items-center space-x-2">
                       <Checkbox id="beach" defaultChecked />
-                      <Label htmlFor="beach" className="text-primary">沖沙處</Label>
+                      <Label htmlFor="beach" className="text-stat-green">沖沙處</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Checkbox id="vending-machine" />
@@ -736,7 +736,7 @@ const BasicInfo = () => {
                     <div className="space-y-2">
                       <div className="flex items-center space-x-2">
                         <Checkbox id="luggage-storage" defaultChecked />
-                        <Label htmlFor="luggage-storage" className="text-primary">行李寄放</Label>
+                        <Label htmlFor="luggage-storage" className="text-stat-green">行李寄放</Label>
                       </div>
                       <Select defaultValue="free">
                         <SelectTrigger className="w-full">
@@ -796,7 +796,7 @@ const BasicInfo = () => {
                     <div className="space-y-2">
                       <div className="flex items-center space-x-2">
                         <Checkbox id="pet-friendly" defaultChecked />
-                        <Label htmlFor="pet-friendly" className="text-primary">寵物友善</Label>
+                        <Label htmlFor="pet-friendly" className="text-stat-green">寵物友善</Label>
                       </div>
                       <Select defaultValue="purchase">
                         <SelectTrigger className="w-full">
@@ -830,7 +830,7 @@ const BasicInfo = () => {
                     </div>
                     <div className="flex items-center space-x-2">
                       <Checkbox id="outdoor-pool" defaultChecked />
-                      <Label htmlFor="outdoor-pool" className="text-primary">戶外游泳池</Label>
+                      <Label htmlFor="outdoor-pool" className="text-stat-green">戶外游泳池</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Checkbox id="rotator" />
@@ -862,7 +862,7 @@ const BasicInfo = () => {
                     <div className="space-y-2">
                       <div className="flex items-center space-x-2">
                         <Checkbox id="parking" defaultChecked />
-                        <Label htmlFor="parking" className="text-primary">停車場</Label>
+                        <Label htmlFor="parking" className="text-stat-green">停車場</Label>
                       </div>
                       <Select defaultValue="free">
                         <SelectTrigger className="w-full">
@@ -925,7 +925,7 @@ const BasicInfo = () => {
                   <div className="space-y-4">
                     <div className="flex items-center space-x-2">
                       <Checkbox id="public-wifi" defaultChecked />
-                      <Label htmlFor="public-wifi" className="text-primary">公共區域 WIFI</Label>
+                      <Label htmlFor="public-wifi" className="text-stat-green">公共區域 WIFI</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Checkbox id="baby-bed" />
@@ -941,7 +941,7 @@ const BasicInfo = () => {
                     </div>
                     <div className="flex items-center space-x-2">
                       <Checkbox id="garden" defaultChecked />
-                      <Label htmlFor="garden" className="text-primary">花園</Label>
+                      <Label htmlFor="garden" className="text-stat-green">花園</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Checkbox id="owner-live" />
@@ -988,7 +988,7 @@ const BasicInfo = () => {
                     <div className="space-y-2">
                       <div className="flex items-center space-x-2">
                         <Checkbox id="tesla-charger" defaultChecked />
-                        <Label htmlFor="tesla-charger" className="text-primary">TESLA電動車充電設備</Label>
+                        <Label htmlFor="tesla-charger" className="text-stat-green">TESLA電動車充電設備</Label>
                       </div>
                       <Select defaultValue="free">
                         <SelectTrigger className="w-full">
@@ -1045,19 +1045,19 @@ const BasicInfo = () => {
               <div className="grid grid-cols-4 gap-6">
                 <div className="flex items-center space-x-2">
                   <Checkbox id="restaurant" defaultChecked />
-                  <Label htmlFor="restaurant" className="text-primary">餐廳</Label>
+                  <Label htmlFor="restaurant" className="text-stat-green">餐廳</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox id="coffee" defaultChecked />
-                  <Label htmlFor="coffee" className="text-primary">咖啡</Label>
+                  <Label htmlFor="coffee" className="text-stat-green">咖啡</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox id="public-kitchen" defaultChecked />
-                  <Label htmlFor="public-kitchen" className="text-primary">公用廚房</Label>
+                  <Label htmlFor="public-kitchen" className="text-stat-green">公用廚房</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox id="reservation-service" defaultChecked />
-                  <Label htmlFor="reservation-service" className="text-primary">代客訂餐服務</Label>
+                  <Label htmlFor="reservation-service" className="text-stat-green">代客訂餐服務</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox id="tea-coffee" />
@@ -1065,11 +1065,11 @@ const BasicInfo = () => {
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox id="public-tableware" defaultChecked />
-                  <Label htmlFor="public-tableware" className="text-primary">公用用餐區</Label>
+                  <Label htmlFor="public-tableware" className="text-stat-green">公用用餐區</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox id="child-high-chair" defaultChecked />
-                  <Label htmlFor="child-high-chair" className="text-primary">兒童高腳椅</Label>
+                  <Label htmlFor="child-high-chair" className="text-stat-green">兒童高腳椅</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox id="water-dispenser" />
@@ -1097,7 +1097,7 @@ const BasicInfo = () => {
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox id="kettle" defaultChecked />
-                  <Label htmlFor="kettle" className="text-primary">電熱水壺</Label>
+                  <Label htmlFor="kettle" className="text-stat-green">電熱水壺</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox id="independent-kitchen" />
@@ -1105,19 +1105,19 @@ const BasicInfo = () => {
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox id="outdoor-tableware" defaultChecked />
-                  <Label htmlFor="outdoor-tableware" className="text-primary">戶外用餐區</Label>
+                  <Label htmlFor="outdoor-tableware" className="text-stat-green">戶外用餐區</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox id="kitchen-utensils" defaultChecked />
-                  <Label htmlFor="kitchen-utensils" className="text-primary">廚房用具</Label>
+                  <Label htmlFor="kitchen-utensils" className="text-stat-green">廚房用具</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox id="microwave" defaultChecked />
-                  <Label htmlFor="microwave" className="text-primary">微波爐</Label>
+                  <Label htmlFor="microwave" className="text-stat-green">微波爐</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox id="fridge" defaultChecked />
-                  <Label htmlFor="fridge" className="text-primary">冰箱</Label>
+                  <Label htmlFor="fridge" className="text-stat-green">冰箱</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox id="tea-coffee-bath" />
@@ -1133,7 +1133,7 @@ const BasicInfo = () => {
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox id="free-drink" defaultChecked />
-                  <Label htmlFor="free-drink" className="text-primary">免費迎賓飲料</Label>
+                  <Label htmlFor="free-drink" className="text-stat-green">免費迎賓飲料</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox id="free-tea" />
@@ -1141,11 +1141,11 @@ const BasicInfo = () => {
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox id="drinking-machine" defaultChecked />
-                  <Label htmlFor="drinking-machine" className="text-primary">飲水機</Label>
+                  <Label htmlFor="drinking-machine" className="text-stat-green">飲水機</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox id="cup" defaultChecked />
-                  <Label htmlFor="cup" className="text-primary">杯子</Label>
+                  <Label htmlFor="cup" className="text-stat-green">杯子</Label>
                 </div>
               </div>
             </CardContent>
@@ -1160,19 +1160,19 @@ const BasicInfo = () => {
               <div className="grid grid-cols-4 gap-6">
                 <div className="flex items-center space-x-2">
                   <Checkbox id="monitor" defaultChecked />
-                  <Label htmlFor="monitor" className="text-primary">監視器</Label>
+                  <Label htmlFor="monitor" className="text-stat-green">監視器</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox id="safe-box" defaultChecked />
-                  <Label htmlFor="safe-box" className="text-primary">醫藥箱</Label>
+                  <Label htmlFor="safe-box" className="text-stat-green">醫藥箱</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox id="fire-extinguisher" defaultChecked />
-                  <Label htmlFor="fire-extinguisher" className="text-primary">滅火器</Label>
+                  <Label htmlFor="fire-extinguisher" className="text-stat-green">滅火器</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox id="escape-equipment" defaultChecked />
-                  <Label htmlFor="escape-equipment" className="text-primary">逃生設備</Label>
+                  <Label htmlFor="escape-equipment" className="text-stat-green">逃生設備</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox id="water-sprinkler" />
@@ -1200,7 +1200,7 @@ const BasicInfo = () => {
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <Checkbox id="karaoke" defaultChecked />
-                    <Label htmlFor="karaoke" className="text-primary">卡拉OK</Label>
+                    <Label htmlFor="karaoke" className="text-stat-green">卡拉OK</Label>
                   </div>
                   <Select defaultValue="select">
                     <SelectTrigger className="w-full">
@@ -1223,7 +1223,7 @@ const BasicInfo = () => {
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox id="e-mahjong" defaultChecked />
-                  <Label htmlFor="e-mahjong" className="text-primary">電動麻將桌</Label>
+                  <Label htmlFor="e-mahjong" className="text-stat-green">電動麻將桌</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox id="bike-rental" />
@@ -1242,11 +1242,11 @@ const BasicInfo = () => {
               <div className="grid grid-cols-4 gap-6">
                 <div className="flex items-center space-x-2">
                   <Checkbox id="lang-zh" defaultChecked />
-                  <Label htmlFor="lang-zh" className="text-primary">中文</Label>
+                  <Label htmlFor="lang-zh" className="text-stat-green">中文</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox id="lang-en" defaultChecked />
-                  <Label htmlFor="lang-en" className="text-primary">英文</Label>
+                  <Label htmlFor="lang-en" className="text-stat-green">英文</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox id="lang-ja" />
@@ -1266,7 +1266,7 @@ const BasicInfo = () => {
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox id="lang-hokkien" defaultChecked />
-                  <Label htmlFor="lang-hokkien" className="text-primary">閩南語</Label>
+                  <Label htmlFor="lang-hokkien" className="text-stat-green">閩南語</Label>
                 </div>
               </div>
             </CardContent>
