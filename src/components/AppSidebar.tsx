@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import logo from "@/assets/logo.jpg";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Sidebar,
   SidebarContent,
@@ -35,7 +36,14 @@ const menuItems = [
 ];
 
 export function AppSidebar() {
-  const { open } = useSidebar();
+  const { open, setOpen } = useSidebar();
+  const isMobile = useIsMobile();
+
+  const handleLinkClick = () => {
+    if (isMobile) {
+      setOpen(false);
+    }
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r">
@@ -63,6 +71,7 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild className="h-12 py-3 text-base">
                     <NavLink 
                       to={item.url}
+                      onClick={handleLinkClick}
                       className={({ isActive }) =>
                         isActive ? "bg-sidebar-accent" : ""
                       }
