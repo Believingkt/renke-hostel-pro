@@ -23,7 +23,7 @@ const BasicInfo = () => {
         <TabsList>
           <TabsTrigger value="info">官網旅宿資訊</TabsTrigger>
           <TabsTrigger value="booking">官網訂房資訊</TabsTrigger>
-          <TabsTrigger value="facilities">旅宿設施</TabsTrigger>
+          <TabsTrigger value="facilities">旅宿設施與服務</TabsTrigger>
           <TabsTrigger value="rooms">房型管理</TabsTrigger>
         </TabsList>
 
