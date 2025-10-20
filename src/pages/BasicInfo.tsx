@@ -411,7 +411,6 @@ const BasicInfo = () => {
                       </div>
                       <span className="text-sm text-muted-foreground">(2.5%)</span>
                     </div>
-                    <p className="text-sm text-primary ml-6">(匯款-奧丁丁虛擬帳號 1.0%)</p>
                   </div>
 
                   <div className="flex items-center justify-between">
