@@ -24,12 +24,12 @@ import {
 } from "@/components/ui/sidebar";
 
 const menuItems = [
+  { title: "櫃檯接待", url: "/reception", icon: Users },
   { title: "營運報表", url: "/", icon: BarChart3 },
   { title: "基本資訊", url: "/basic-info", icon: Building2 },
   { title: "房型管理", url: "/room-types", icon: DoorOpen },
   { title: "房價庫存設定", url: "/pricing", icon: DollarSign },
   { title: "空房查詢", url: "/availability", icon: Search },
-  { title: "櫃檯接待", url: "/reception", icon: Users },
   { title: "訂單查詢", url: "/orders", icon: ClipboardList },
   { title: "帳號權限管理", url: "/accounts", icon: Settings },
   { title: "KOL折扣代碼", url: "/discount-codes", icon: Tag },
