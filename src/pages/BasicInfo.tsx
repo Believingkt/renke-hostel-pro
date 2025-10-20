@@ -24,7 +24,6 @@ const BasicInfo = () => {
           <TabsTrigger value="info">官網旅宿資訊</TabsTrigger>
           <TabsTrigger value="booking">官網訂房資訊</TabsTrigger>
           <TabsTrigger value="facilities">旅宿設施</TabsTrigger>
-          <TabsTrigger value="website">旅宿設施與服務</TabsTrigger>
           <TabsTrigger value="rooms">房型管理</TabsTrigger>
         </TabsList>
 
@@ -1271,18 +1270,6 @@ const BasicInfo = () => {
                   <Label htmlFor="lang-hokkien" className="text-stat-green">閩南語</Label>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* 官網旅宿資訊 */}
-        <TabsContent value="website" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>官網旅宿資訊</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">官網旅宿資訊內容</p>
             </CardContent>
           </Card>
         </TabsContent>
