@@ -24,8 +24,8 @@ import {
 } from "@/components/ui/sidebar";
 
 const menuItems = [
-  { title: "櫃檯接待", url: "/reception", icon: Users },
   { title: "營運報表", url: "/", icon: BarChart3 },
+  { title: "櫃檯接待", url: "/reception", icon: Users },
   { title: "基本資訊", url: "/basic-info", icon: Building2 },
   { title: "房價庫存設定", url: "/pricing", icon: DollarSign },
   { title: "空房查詢", url: "/availability", icon: Search },
