@@ -16,12 +16,18 @@ import {
 } from "recharts";
 
 const revenueData = [
-  { month: "1月", 收入: 45000, 支出: 28000 },
-  { month: "2月", 收入: 52000, 支出: 32000 },
-  { month: "3月", 收入: 48000, 支出: 29000 },
-  { month: "4月", 收入: 61000, 支出: 35000 },
-  { month: "5月", 收入: 55000, 支出: 31000 },
-  { month: "6月", 收入: 67000, 支出: 38000 },
+  { month: "1月", "2025年": 45000, "2024年": 38000 },
+  { month: "2月", "2025年": 52000, "2024年": 43000 },
+  { month: "3月", "2025年": 48000, "2024年": 41000 },
+  { month: "4月", "2025年": 61000, "2024年": 52000 },
+  { month: "5月", "2025年": 55000, "2024年": 47000 },
+  { month: "6月", "2025年": 67000, "2024年": 58000 },
+  { month: "7月", "2025年": 59000, "2024年": 51000 },
+  { month: "8月", "2025年": 64000, "2024年": 55000 },
+  { month: "9月", "2025年": 57000, "2024年": 49000 },
+  { month: "10月", "2025年": 62000, "2024年": 53000 },
+  { month: "11月", "2025年": 58000, "2024年": 50000 },
+  { month: "12月", "2025年": 70000, "2024年": 60000 },
 ];
 
 const bookingData = [
@@ -91,8 +97,8 @@ const Dashboard = () => {
                 <YAxis className="text-xs" />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="收入" fill="hsl(var(--chart-1))" radius={[8, 8, 0, 0]} />
-                <Bar dataKey="支出" fill="hsl(var(--chart-4))" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="2025年" fill="hsl(var(--chart-1))" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="2024年" fill="hsl(var(--chart-4))" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
