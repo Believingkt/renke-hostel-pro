@@ -27,8 +27,7 @@ const App = () => (
               <Header />
               <main className="flex-1 p-6">
                 <Routes>
-                  <Route path="/" element={<Reception />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/" element={<Dashboard />} />
                   <Route path="/reception" element={<Reception />} />
                   <Route path="/orders" element={<Orders />} />
                   <Route path="/basic-info" element={<BasicInfo />} />
