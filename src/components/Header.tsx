@@ -32,7 +32,7 @@ export function Header() {
               <AvatarFallback className="text-xs md:text-sm">管理</AvatarFallback>
             </Avatar>
             <div className="hidden lg:block">
-              <p className="text-sm font-medium">您好, 管理員</p>
+              <p className="text-sm font-medium">您好, nokimi</p>
             </div>
           </div>
         </div>
