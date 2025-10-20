@@ -453,16 +453,6 @@ const BasicInfo = () => {
                     <span className="text-sm text-muted-foreground">(2.5%)</span>
                   </div>
                 </div>
-
-                <p className="text-sm text-muted-foreground">*目前尚不提供部分退款</p>
-                <p className="text-sm text-muted-foreground">*目前尚不提供部分退款</p>
-
-                <div className="p-4 bg-muted/50 rounded-lg space-y-2">
-                  <p className="text-sm font-medium">選擇"匯款-奧丁丁虛擬帳號"請注意以下事宜</p>
-                  <p className="text-sm text-muted-foreground">
-                    系統不接受以下付款方式：無摺存款/劃撥/國際匯款/臨櫃匯款。
-                  </p>
-                </div>
               </div>
             </CardContent>
           </Card>
