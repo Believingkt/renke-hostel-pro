@@ -6,9 +6,6 @@ const Pricing = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">房價庫存設定</h1>
-        <p className="text-muted-foreground mt-2">
-          管理房型價格與庫存數量
-        </p>
       </div>
 
       <Tabs defaultValue="basic" className="w-full">
