@@ -59,7 +59,7 @@ const BasicInfo = () => {
 
               {/* 代收房費匯款帳號 */}
               <div className="space-y-4 pt-4 border-t">
-                <h3 className="font-semibold">代收房費匯款帳號(與丁丁打撥款用)</h3>
+                <h3 className="font-semibold">代收房費匯款帳號</h3>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label>銀行/分行名稱</Label>
