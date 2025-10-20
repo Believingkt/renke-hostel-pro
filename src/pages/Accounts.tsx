@@ -42,7 +42,7 @@ const Accounts = () => {
   const [role, setRole] = useState("operator");
   const owners = [
     {
-      name: "森山寧照",
+      name: "森山寫照",
       email: "sensan.inn@gmail.com",
       lastLogin: "2025-10-20 08:37",
     },
