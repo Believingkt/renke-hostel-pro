@@ -6,10 +6,128 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+// 定義所有設施項目
+const facilitiesData = {
+  public: [
+    { id: 'meeting-room', name: '會議室', hasPrice: false },
+    { id: 'business-center', name: '商務中心', hasPrice: false },
+    { id: 'baby-pool', name: '嬰兒澡盆', hasPrice: false },
+    { id: 'hot-spring', name: '溫泉', hasPrice: false },
+    { id: 'kids-play-area', name: '兒童遊戲區', hasPrice: false },
+    { id: 'elevator', name: '電梯', hasPrice: false },
+    { id: 'water-purifier', name: '全棟除氯軟水系統', hasPrice: false },
+    { id: 'zero-food', name: '零食區', hasPrice: false },
+    { id: 'password-lock', name: '密碼鎖進出', hasPrice: false },
+    { id: 'portable-wifi', name: '攜帶式 WIFI 分享器', hasPrice: true },
+    { id: 'car-rental', name: '機車租借', hasPrice: true },
+    { id: 'chademo-charger', name: 'CHAdeMO電動車充電設備', hasPrice: true },
+    { id: 'gas-station', name: '外包油壓按摩', hasPrice: true },
+    { id: 'shuttle', name: '交通廳', hasPrice: false },
+    { id: 'public-fridge', name: '公用冰箱', hasPrice: false },
+    { id: 'currency-exchange', name: '外幣兌換', hasPrice: false },
+    { id: 'gym', name: '健身房', hasPrice: false },
+    { id: 'indoor-pool', name: '室內游泳池', hasPrice: false },
+    { id: 'lift', name: '需上下樓梯', hasPrice: false },
+    { id: 'beach', name: '沖沙處', hasPrice: false },
+    { id: 'vending-machine', name: '自動販賣機', hasPrice: false },
+    { id: 'luggage-storage', name: '行李寄放', hasPrice: true },
+    { id: 'message-cabinet', name: '寄放櫃', hasPrice: true },
+    { id: 'bbq', name: 'BBQ 燒烤設備', hasPrice: true },
+    { id: 'j1772-charger', name: 'J1772電動車充電設備', hasPrice: true },
+    { id: 'pet-friendly', name: '寵物友善', hasPrice: true },
+    { id: 'public-computer', name: '公共電腦', hasPrice: false },
+    { id: 'dehumidifier', name: '變壓器', hasPrice: false },
+    { id: 'travel-ticket', name: '代售旅遊票券', hasPrice: false },
+    { id: 'public-bath', name: '公共浴池', hasPrice: false },
+    { id: 'outdoor-pool', name: '戶外游泳池', hasPrice: false },
+    { id: 'rotator', name: '轉接頭', hasPrice: false },
+    { id: 'wheelchair-repair', name: '輪椅車維修區', hasPrice: false },
+    { id: 'souvenir-shop', name: '販賣商店', hasPrice: false },
+    { id: 'laundry', name: '自助洗衣設備', hasPrice: true },
+    { id: 'parking', name: '停車場', hasPrice: true },
+    { id: 'land-parking', name: '提供場地租借', hasPrice: true },
+    { id: 'ccs1-charger', name: 'CCS1電動車充電設備', hasPrice: true },
+    { id: 'ear-plug', name: '耳塞', hasPrice: true },
+    { id: 'public-wifi', name: '公共區域 WIFI', hasPrice: false },
+    { id: 'baby-bed', name: '嬰兒床', hasPrice: false },
+    { id: 'nursing-cloth', name: '奧斗 / 燙衣板', hasPrice: false },
+    { id: 'rooftop-bath', name: '露天浴池', hasPrice: false },
+    { id: 'garden', name: '花園', hasPrice: false },
+    { id: 'owner-live', name: '與主人同住', hasPrice: false },
+    { id: 'arcade', name: '(醫位外) 公用街浴 / 集中浴間', hasPrice: false },
+    { id: 'no-pet', name: '禁止寵物', hasPrice: false },
+    { id: 'dry-cloth', name: '自助烘衣設備', hasPrice: true },
+    { id: 'airport-shuttle', name: '機場接送', hasPrice: true },
+    { id: 'tesla-charger', name: 'TESLA電動車充電設備', hasPrice: true },
+    { id: 'ccs2-charger', name: 'CCS2電動車充電設備', hasPrice: true },
+    { id: 'port-shuttle', name: '港口接送', hasPrice: true },
+  ],
+  dining: [
+    { id: 'restaurant', name: '餐廳', hasPrice: false },
+    { id: 'coffee', name: '咖啡', hasPrice: false },
+    { id: 'public-kitchen', name: '公用廚房', hasPrice: false },
+    { id: 'reservation-service', name: '代客訂餐服務', hasPrice: false },
+    { id: 'tea-coffee', name: '茶 / 咖啡沖泡設施', hasPrice: false },
+    { id: 'public-tableware', name: '公用用餐區', hasPrice: false },
+    { id: 'child-high-chair', name: '兒童高腳椅', hasPrice: false },
+    { id: 'water-dispenser', name: '氣泡水機', hasPrice: false },
+    { id: 'pancake-machine', name: '膠囊咖啡機', hasPrice: false },
+    { id: 'oven', name: '烤箱', hasPrice: false },
+    { id: 'stove', name: '爐台', hasPrice: false },
+    { id: 'toaster', name: '烤麵包機', hasPrice: false },
+    { id: 'dishwasher', name: '洗碗機', hasPrice: false },
+    { id: 'kettle', name: '電熱水壺', hasPrice: false },
+    { id: 'independent-kitchen', name: '獨立廚房', hasPrice: false },
+    { id: 'outdoor-tableware', name: '戶外用餐區', hasPrice: false },
+    { id: 'kitchen-utensils', name: '廚房用具', hasPrice: false },
+    { id: 'microwave', name: '微波爐', hasPrice: false },
+    { id: 'fridge', name: '冰箱', hasPrice: false },
+    { id: 'tea-coffee-bath', name: '茶 / 咖啡沖泡設備', hasPrice: false },
+    { id: 'coffee-maker', name: '咖啡機', hasPrice: false },
+    { id: 'free-coffee', name: '免費即溶咖啡', hasPrice: false },
+    { id: 'free-drink', name: '免費迎賓飲料', hasPrice: false },
+    { id: 'free-tea', name: '免費茶包', hasPrice: false },
+    { id: 'drinking-machine', name: '飲水機', hasPrice: false },
+    { id: 'cup', name: '杯子', hasPrice: false },
+  ],
+  safety: [
+    { id: 'monitor', name: '監視器', hasPrice: false },
+    { id: 'safe-box', name: '醫藥箱', hasPrice: false },
+    { id: 'fire-extinguisher', name: '滅火器', hasPrice: false },
+    { id: 'escape-equipment', name: '逃生設備', hasPrice: false },
+    { id: 'water-sprinkler', name: '灑水設備', hasPrice: false },
+    { id: 'smoke-detector', name: '煙霧偵測器', hasPrice: false },
+    { id: 'co-detector', name: '一氧化碳偵測器', hasPrice: false },
+  ],
+  entertainment: [
+    { id: 'karaoke', name: '卡拉OK', hasPrice: true },
+    { id: 'board-game', name: '桌遊', hasPrice: false },
+    { id: 'mahjong', name: '麻將桌', hasPrice: false },
+    { id: 'e-mahjong', name: '電動麻將桌', hasPrice: false },
+    { id: 'bike-rental', name: '自行車租借', hasPrice: false },
+  ],
+  language: [
+    { id: 'lang-zh', name: '中文', hasPrice: false },
+    { id: 'lang-en', name: '英文', hasPrice: false },
+    { id: 'lang-ja', name: '日文', hasPrice: false },
+    { id: 'lang-ko', name: '韓文', hasPrice: false },
+    { id: 'lang-cant', name: '粵語', hasPrice: false },
+    { id: 'lang-thai', name: '泰文', hasPrice: false },
+    { id: 'lang-hokkien', name: '閩南語', hasPrice: false },
+  ],
+};
 
 const WebsiteContent = () => {
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("facilities");
+  const [selectedFacilities, setSelectedFacilities] = useState<Record<string, boolean>>({});
+  const [pricingTypes, setPricingTypes] = useState<Record<string, string>>({});
+  const [accommodationId, setAccommodationId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -17,6 +135,113 @@ const WebsiteContent = () => {
       setActiveTab(tab);
     }
   }, [searchParams]);
+
+  // 加載現有設施資料
+  useEffect(() => {
+    const loadFacilities = async () => {
+      try {
+        // 獲取 accommodation ID
+        const { data: infoData } = await supabase
+          .from("accommodation_info")
+          .select("id")
+          .maybeSingle();
+
+        if (infoData) {
+          setAccommodationId(infoData.id);
+
+          // 加載現有設施
+          const { data: facilities } = await supabase
+            .from("accommodation_facilities")
+            .select("*")
+            .eq("accommodation_id", infoData.id)
+            .eq("is_available", true);
+
+          if (facilities) {
+            const selected: Record<string, boolean> = {};
+            const pricing: Record<string, string> = {};
+
+            facilities.forEach(facility => {
+              selected[facility.facility_name] = true;
+              if (facility.pricing_type) {
+                pricing[facility.facility_name] = facility.pricing_type;
+              }
+            });
+
+            setSelectedFacilities(selected);
+            setPricingTypes(pricing);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading facilities:', error);
+        toast.error('載入設施資料失敗');
+      }
+    };
+
+    loadFacilities();
+  }, []);
+
+  const handleCheckboxChange = (facilityId: string, checked: boolean) => {
+    setSelectedFacilities(prev => ({
+      ...prev,
+      [facilityId]: checked
+    }));
+  };
+
+  const handlePricingTypeChange = (facilityId: string, value: string) => {
+    setPricingTypes(prev => ({
+      ...prev,
+      [facilityId]: value
+    }));
+  };
+
+  const handleSave = async () => {
+    if (!accommodationId) {
+      toast.error('找不到旅宿資訊');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // 先刪除所有現有設施
+      await supabase
+        .from("accommodation_facilities")
+        .delete()
+        .eq("accommodation_id", accommodationId);
+
+      // 準備要插入的設施資料
+      const facilitiesToInsert = [];
+      
+      for (const [category, items] of Object.entries(facilitiesData)) {
+        for (const item of items) {
+          if (selectedFacilities[item.id]) {
+            facilitiesToInsert.push({
+              accommodation_id: accommodationId,
+              facility_name: item.name,
+              category: category,
+              pricing_type: item.hasPrice ? (pricingTypes[item.id] || 'free') : 'included',
+              is_available: true
+            });
+          }
+        }
+      }
+
+      // 插入新資料
+      if (facilitiesToInsert.length > 0) {
+        const { error } = await supabase
+          .from("accommodation_facilities")
+          .insert(facilitiesToInsert);
+
+        if (error) throw error;
+      }
+
+      toast.success('設施資料已保存');
+    } catch (error) {
+      console.error('Error saving facilities:', error);
+      toast.error('保存失敗，請稍後再試');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -33,454 +258,44 @@ const WebsiteContent = () => {
           <TabsTrigger value="facilities">設施與服務</TabsTrigger>
         </TabsList>
 
-        {/* 設施與服務 */}
         <TabsContent value="facilities" className="space-y-6">
           {/* 公共區設施與服務 */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                旅宿設施
-              </CardTitle>
+              <CardTitle>旅宿設施</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                <div className="flex items-center justify-between cursor-pointer">
-                  <h3 className="font-semibold">公共區設施與服務</h3>
-                </div>
-                
-                <div className="grid grid-cols-4 gap-6">
-                  {/* Column 1 */}
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="meeting-room" />
-                      <Label htmlFor="meeting-room">會議室</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="business-center" />
-                      <Label htmlFor="business-center">商務中心</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="baby-pool" defaultChecked />
-                      <Label htmlFor="baby-pool" className="text-stat-green">嬰兒澡盆</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="hot-spring" />
-                      <Label htmlFor="hot-spring">溫泉</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="kids-play-area" defaultChecked />
-                      <Label htmlFor="kids-play-area" className="text-stat-green">兒童遊戲區</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="elevator" />
-                      <Label htmlFor="elevator">電梯</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="water-purifier" />
-                      <Label htmlFor="water-purifier">全棟除氯軟水系統</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="zero-food" />
-                      <Label htmlFor="zero-food">零食區</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="password-lock" />
-                      <Label htmlFor="password-lock">密碼鎖進出</Label>
-                    </div>
-                    <div className="space-y-2">
+                <h3 className="font-semibold">公共區設施與服務</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {facilitiesData.public.map((facility) => (
+                    <div key={facility.id} className="space-y-2">
                       <div className="flex items-center space-x-2">
-                        <Checkbox id="portable-wifi" />
-                        <Label htmlFor="portable-wifi">攜帶式 WIFI 分享器</Label>
+                        <Checkbox
+                          id={facility.id}
+                          checked={selectedFacilities[facility.id] || false}
+                          onCheckedChange={(checked) => 
+                            handleCheckboxChange(facility.id, checked as boolean)
+                          }
+                        />
+                        <Label htmlFor={facility.id}>{facility.name}</Label>
                       </div>
-                      <Select defaultValue="free">
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="free">免費提供</SelectItem>
-                          <SelectItem value="paid">需額外付費</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      {facility.hasPrice && selectedFacilities[facility.id] && (
+                        <Select
+                          value={pricingTypes[facility.id] || 'free'}
+                          onValueChange={(value) => handlePricingTypeChange(facility.id, value)}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="free">免費提供</SelectItem>
+                            <SelectItem value="paid">需額外付費</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="car-rental" />
-                        <Label htmlFor="car-rental">機車租借</Label>
-                      </div>
-                      <Select defaultValue="free">
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="free">免費提供</SelectItem>
-                          <SelectItem value="paid">需額外付費</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="chademo-charger" />
-                        <Label htmlFor="chademo-charger">CHAdeMO電動車充電設備</Label>
-                      </div>
-                      <Select defaultValue="free">
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="free">免費提供</SelectItem>
-                          <SelectItem value="paid">需額外付費</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="gas-station" />
-                        <Label htmlFor="gas-station">外包油壓按摩</Label>
-                      </div>
-                      <Select defaultValue="free">
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="free">免費提供</SelectItem>
-                          <SelectItem value="paid">需額外付費</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Column 2 */}
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="shuttle" defaultChecked />
-                      <Label htmlFor="shuttle" className="text-stat-green">交通廳</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="public-fridge" defaultChecked />
-                      <Label htmlFor="public-fridge" className="text-stat-green">公用冰箱</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="currency-exchange" />
-                      <Label htmlFor="currency-exchange">外幣兌換</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="gym" />
-                      <Label htmlFor="gym">健身房</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="indoor-pool" />
-                      <Label htmlFor="indoor-pool">室內游泳池</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="lift" />
-                      <Label htmlFor="lift">需上下樓梯</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="beach" defaultChecked />
-                      <Label htmlFor="beach" className="text-stat-green">沖沙處</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="vending-machine" />
-                      <Label htmlFor="vending-machine">自動販賣機</Label>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="luggage-storage" defaultChecked />
-                        <Label htmlFor="luggage-storage" className="text-stat-green">行李寄放</Label>
-                      </div>
-                      <Select defaultValue="free">
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="free">免費提供</SelectItem>
-                          <SelectItem value="paid">需額外付費</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="message-cabinet" />
-                        <Label htmlFor="message-cabinet">寄放櫃</Label>
-                      </div>
-                      <Select defaultValue="free">
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="free">免費提供</SelectItem>
-                          <SelectItem value="paid">需額外付費</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="bbq" />
-                        <Label htmlFor="bbq">BBQ 燒烤設備</Label>
-                      </div>
-                      <Select defaultValue="free">
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="free">免費提供</SelectItem>
-                          <SelectItem value="paid">需額外付費</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="j1772-charger" />
-                        <Label htmlFor="j1772-charger">J1772電動車充電設備</Label>
-                      </div>
-                      <Select defaultValue="free">
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="free">免費提供</SelectItem>
-                          <SelectItem value="paid">需額外付費</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="pet-friendly" defaultChecked />
-                        <Label htmlFor="pet-friendly" className="text-stat-green">寵物友善</Label>
-                      </div>
-                      <Select defaultValue="purchase">
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="free">免費提供</SelectItem>
-                          <SelectItem value="purchase">需額外購買，現場付費</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Column 3 */}
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="public-computer" />
-                      <Label htmlFor="public-computer">公共電腦</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="dehumidifier" />
-                      <Label htmlFor="dehumidifier">變壓器</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="travel-ticket" />
-                      <Label htmlFor="travel-ticket">代售旅遊票券</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="public-bath" />
-                      <Label htmlFor="public-bath">公共浴池</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="outdoor-pool" defaultChecked />
-                      <Label htmlFor="outdoor-pool" className="text-stat-green">戶外游泳池</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="rotator" />
-                      <Label htmlFor="rotator">轉接頭</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="wheelchair-repair" />
-                      <Label htmlFor="wheelchair-repair">輪椅車維修區</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="souvenir-shop" />
-                      <Label htmlFor="souvenir-shop">販賣商店</Label>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="laundry" />
-                        <Label htmlFor="laundry">自助洗衣設備</Label>
-                      </div>
-                      <Select defaultValue="free">
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="free">免費提供</SelectItem>
-                          <SelectItem value="paid">需額外付費</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="parking" defaultChecked />
-                        <Label htmlFor="parking" className="text-stat-green">停車場</Label>
-                      </div>
-                      <Select defaultValue="free">
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="free">免費提供</SelectItem>
-                          <SelectItem value="paid">需額外付費</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="land-parking" />
-                        <Label htmlFor="land-parking">提供場地租借</Label>
-                      </div>
-                      <Select defaultValue="free">
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="free">免費提供</SelectItem>
-                          <SelectItem value="paid">需額外付費</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="ccs1-charger" />
-                        <Label htmlFor="ccs1-charger">CCS1電動車充電設備</Label>
-                      </div>
-                      <Select defaultValue="free">
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="free">免費提供</SelectItem>
-                          <SelectItem value="paid">需額外付費</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="ear-plug" />
-                        <Label htmlFor="ear-plug">耳塞</Label>
-                      </div>
-                      <Select defaultValue="free">
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="free">免費提供</SelectItem>
-                          <SelectItem value="paid">需額外付費</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Column 4 */}
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="public-wifi" defaultChecked />
-                      <Label htmlFor="public-wifi" className="text-stat-green">公共區域 WIFI</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="baby-bed" />
-                      <Label htmlFor="baby-bed">嬰兒床</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="nursing-cloth" />
-                      <Label htmlFor="nursing-cloth">奧斗 / 燙衣板</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="rooftop-bath" />
-                      <Label htmlFor="rooftop-bath">露天浴池</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="garden" defaultChecked />
-                      <Label htmlFor="garden" className="text-stat-green">花園</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="owner-live" />
-                      <Label htmlFor="owner-live">與主人同住</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="arcade" />
-                      <Label htmlFor="arcade">(醫位外) 公用街浴 / 集中浴間</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="no-pet" />
-                      <Label htmlFor="no-pet">禁止寵物</Label>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="dry-cloth" />
-                        <Label htmlFor="dry-cloth">自助烘衣設備</Label>
-                      </div>
-                      <Select defaultValue="free">
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="free">免費提供</SelectItem>
-                          <SelectItem value="paid">需額外付費</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="airport-shuttle" />
-                        <Label htmlFor="airport-shuttle">機場接送</Label>
-                      </div>
-                      <Select defaultValue="free">
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="free">免費提供</SelectItem>
-                          <SelectItem value="paid">需額外付費</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="tesla-charger" defaultChecked />
-                        <Label htmlFor="tesla-charger" className="text-stat-green">TESLA電動車充電設備</Label>
-                      </div>
-                      <Select defaultValue="free">
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="free">免費提供</SelectItem>
-                          <SelectItem value="paid">需額外付費</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="ccs2-charger" />
-                        <Label htmlFor="ccs2-charger">CCS2電動車充電設備</Label>
-                      </div>
-                      <Select defaultValue="free">
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="free">免費提供</SelectItem>
-                          <SelectItem value="paid">需額外付費</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox id="port-shuttle" />
-                        <Label htmlFor="port-shuttle">港口接送</Label>
-                      </div>
-                      <Select defaultValue="free">
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="free">免費提供</SelectItem>
-                          <SelectItem value="paid">需額外付費</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
             </CardContent>
@@ -492,111 +307,19 @@ const WebsiteContent = () => {
               <CardTitle>餐飲設施</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-4 gap-6">
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="restaurant" defaultChecked />
-                  <Label htmlFor="restaurant" className="text-stat-green">餐廳</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="coffee" defaultChecked />
-                  <Label htmlFor="coffee" className="text-stat-green">咖啡</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="public-kitchen" defaultChecked />
-                  <Label htmlFor="public-kitchen" className="text-stat-green">公用廚房</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="reservation-service" defaultChecked />
-                  <Label htmlFor="reservation-service" className="text-stat-green">代客訂餐服務</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="tea-coffee" />
-                  <Label htmlFor="tea-coffee">茶 / 咖啡沖泡設施</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="public-tableware" defaultChecked />
-                  <Label htmlFor="public-tableware" className="text-stat-green">公用用餐區</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="child-high-chair" defaultChecked />
-                  <Label htmlFor="child-high-chair" className="text-stat-green">兒童高腳椅</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="water-dispenser" />
-                  <Label htmlFor="water-dispenser">氣泡水機</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="pancake-machine" />
-                  <Label htmlFor="pancake-machine">膠囊咖啡機</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="oven" />
-                  <Label htmlFor="oven">烤箱</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="stove" />
-                  <Label htmlFor="stove">爐台</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="toaster" />
-                  <Label htmlFor="toaster">烤麵包機</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="dishwasher" />
-                  <Label htmlFor="dishwasher">洗碗機</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="kettle" defaultChecked />
-                  <Label htmlFor="kettle" className="text-stat-green">電熱水壺</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="independent-kitchen" />
-                  <Label htmlFor="independent-kitchen">獨立廚房</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="outdoor-tableware" defaultChecked />
-                  <Label htmlFor="outdoor-tableware" className="text-stat-green">戶外用餐區</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="kitchen-utensils" defaultChecked />
-                  <Label htmlFor="kitchen-utensils" className="text-stat-green">廚房用具</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="microwave" defaultChecked />
-                  <Label htmlFor="microwave" className="text-stat-green">微波爐</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="fridge" defaultChecked />
-                  <Label htmlFor="fridge" className="text-stat-green">冰箱</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="tea-coffee-bath" />
-                  <Label htmlFor="tea-coffee-bath">茶 / 咖啡沖泡設備</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="coffee-maker" />
-                  <Label htmlFor="coffee-maker">咖啡機</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="free-coffee" />
-                  <Label htmlFor="free-coffee">免費即溶咖啡</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="free-drink" defaultChecked />
-                  <Label htmlFor="free-drink" className="text-stat-green">免費迎賓飲料</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="free-tea" />
-                  <Label htmlFor="free-tea">免費茶包</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="drinking-machine" defaultChecked />
-                  <Label htmlFor="drinking-machine" className="text-stat-green">飲水機</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="cup" defaultChecked />
-                  <Label htmlFor="cup" className="text-stat-green">杯子</Label>
-                </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {facilitiesData.dining.map((facility) => (
+                  <div key={facility.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={facility.id}
+                      checked={selectedFacilities[facility.id] || false}
+                      onCheckedChange={(checked) => 
+                        handleCheckboxChange(facility.id, checked as boolean)
+                      }
+                    />
+                    <Label htmlFor={facility.id}>{facility.name}</Label>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -607,35 +330,19 @@ const WebsiteContent = () => {
               <CardTitle>安全設施</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-4 gap-6">
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="monitor" defaultChecked />
-                  <Label htmlFor="monitor" className="text-stat-green">監視器</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="safe-box" defaultChecked />
-                  <Label htmlFor="safe-box" className="text-stat-green">醫藥箱</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="fire-extinguisher" defaultChecked />
-                  <Label htmlFor="fire-extinguisher" className="text-stat-green">滅火器</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="escape-equipment" defaultChecked />
-                  <Label htmlFor="escape-equipment" className="text-stat-green">逃生設備</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="water-sprinkler" />
-                  <Label htmlFor="water-sprinkler">灑水設備</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="smoke-detector" />
-                  <Label htmlFor="smoke-detector">煙霧偵測器</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="co-detector" />
-                  <Label htmlFor="co-detector">一氧化碳偵測器</Label>
-                </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {facilitiesData.safety.map((facility) => (
+                  <div key={facility.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={facility.id}
+                      checked={selectedFacilities[facility.id] || false}
+                      onCheckedChange={(checked) => 
+                        handleCheckboxChange(facility.id, checked as boolean)
+                      }
+                    />
+                    <Label htmlFor={facility.id}>{facility.name}</Label>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -646,39 +353,36 @@ const WebsiteContent = () => {
               <CardTitle>休閒娛樂設施</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-4 gap-6">
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox id="karaoke" defaultChecked />
-                    <Label htmlFor="karaoke" className="text-stat-green">卡拉OK</Label>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {facilitiesData.entertainment.map((facility) => (
+                  <div key={facility.id} className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id={facility.id}
+                        checked={selectedFacilities[facility.id] || false}
+                        onCheckedChange={(checked) => 
+                          handleCheckboxChange(facility.id, checked as boolean)
+                        }
+                      />
+                      <Label htmlFor={facility.id}>{facility.name}</Label>
+                    </div>
+                    {facility.hasPrice && selectedFacilities[facility.id] && (
+                      <Select
+                        value={pricingTypes[facility.id] || 'free'}
+                        onValueChange={(value) => handlePricingTypeChange(facility.id, value)}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="select">請選擇</SelectItem>
+                          <SelectItem value="free">免費提供</SelectItem>
+                          <SelectItem value="paid">需額外付費</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
-                  <Select defaultValue="select">
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="select">請選擇</SelectItem>
-                      <SelectItem value="free">免費提供</SelectItem>
-                      <SelectItem value="paid">需額外付費</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="board-game" />
-                  <Label htmlFor="board-game">桌遊</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="mahjong" />
-                  <Label htmlFor="mahjong">麻將桌</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="e-mahjong" defaultChecked />
-                  <Label htmlFor="e-mahjong" className="text-stat-green">電動麻將桌</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="bike-rental" />
-                  <Label htmlFor="bike-rental">自行車租借</Label>
-                </div>
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -689,38 +393,28 @@ const WebsiteContent = () => {
               <CardTitle>服務語言</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-4 gap-6">
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="lang-zh" defaultChecked />
-                  <Label htmlFor="lang-zh" className="text-stat-green">中文</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="lang-en" defaultChecked />
-                  <Label htmlFor="lang-en" className="text-stat-green">英文</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="lang-ja" />
-                  <Label htmlFor="lang-ja">日文</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="lang-ko" />
-                  <Label htmlFor="lang-ko">韓文</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="lang-cant" />
-                  <Label htmlFor="lang-cant">粵語</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="lang-thai" />
-                  <Label htmlFor="lang-thai">泰文</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="lang-hokkien" defaultChecked />
-                  <Label htmlFor="lang-hokkien" className="text-stat-green">閩南語</Label>
-                </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {facilitiesData.language.map((facility) => (
+                  <div key={facility.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={facility.id}
+                      checked={selectedFacilities[facility.id] || false}
+                      onCheckedChange={(checked) => 
+                        handleCheckboxChange(facility.id, checked as boolean)
+                      }
+                    />
+                    <Label htmlFor={facility.id}>{facility.name}</Label>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
+
+          <div className="flex justify-end">
+            <Button onClick={handleSave} disabled={isSaving} size="lg">
+              {isSaving ? '保存中...' : '保存設定'}
+            </Button>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

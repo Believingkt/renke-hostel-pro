@@ -4,6 +4,7 @@ import Navigation from "@/components/Navigation";
 import HeroSection from "@/components/HeroSection";
 import AboutSection from "@/components/AboutSection";
 import RoomsSection from "@/components/RoomsSection";
+import FacilitiesSection from "@/components/FacilitiesSection";
 import BookingInfoSection from "@/components/BookingInfoSection";
 import LocationSection from "@/components/LocationSection";
 import ReviewsSection from "@/components/ReviewsSection";
@@ -19,6 +20,7 @@ interface AccommodationData {
   };
   roomTypes: any[];
   bookingSettings: any;
+  facilities: any[];
 }
 
 const Index = () => {
@@ -38,11 +40,12 @@ const Index = () => {
           setData({
             info: infoData,
             roomTypes: [],
-            bookingSettings: null
+            bookingSettings: null,
+            facilities: []
           });
           
           // 继续加载其他数据
-          const [roomTypesRes, bookingSettingsRes] = await Promise.all([
+          const [roomTypesRes, bookingSettingsRes, facilitiesRes] = await Promise.all([
             supabase
               .from("room_types")
               .select("*")
@@ -52,13 +55,19 @@ const Index = () => {
               .from("booking_settings")
               .select("*")
               .eq("accommodation_id", infoData.id)
-              .maybeSingle()
+              .maybeSingle(),
+            supabase
+              .from("accommodation_facilities")
+              .select("*")
+              .eq("accommodation_id", infoData.id)
+              .eq("is_available", true)
           ]);
 
           setData({
             info: infoData,
             roomTypes: roomTypesRes.data || [],
-            bookingSettings: bookingSettingsRes.data
+            bookingSettings: bookingSettingsRes.data,
+            facilities: facilitiesRes.data || []
           });
         }
       } catch (error) {
@@ -87,6 +96,7 @@ const Index = () => {
         <HeroSection accommodationName={data?.info.name || "森山寫造"} />
         <AboutSection description={data?.info.description} />
         <RoomsSection roomTypes={data?.roomTypes || []} />
+        <FacilitiesSection facilities={data?.facilities || []} />
         <BookingInfoSection 
           bookingSettings={data?.bookingSettings}
           checkInNotice={data?.info.check_in_notice}
