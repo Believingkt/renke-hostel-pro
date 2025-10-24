@@ -103,8 +103,8 @@ const Index = () => {
           checkInNotice={data?.info.check_in_notice}
         />
         <LocationSection address={data?.info.address} />
-        <FaqSection />
         <ReviewsSection />
+        <FaqSection />
       </main>
       <Footer 
         accommodationName={data?.info.name}
