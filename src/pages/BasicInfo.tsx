@@ -1,7 +1,4 @@
-import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,29 +11,12 @@ import { Plus, Edit, MapPin, ExternalLink, Info } from "lucide-react";
 
 
 const BasicInfo = () => {
-  const [searchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState("info");
-
-  useEffect(() => {
-    const tab = searchParams.get("tab");
-    if (tab) {
-      setActiveTab(tab);
-    }
-  }, [searchParams]);
-
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold tracking-tight">帳務資訊</h1>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="info">官網旅宿資訊</TabsTrigger>
-        </TabsList>
-
-        {/* 旅館資訊標籤 */}
-        <TabsContent value="info" className="space-y-6">
-          {/* 聯絡人及帳務管理 */}
-          <Card>
+      {/* 聯絡人及帳務管理 */}
+      <Card>
             <CardHeader>
               <CardTitle>聯絡人及帳務管理</CardTitle>
             </CardHeader>
@@ -247,24 +227,8 @@ const BasicInfo = () => {
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* 房型管理 */}
-        <TabsContent value="rooms" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>房型管理</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">房型管理內容</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      
+        </CardContent>
+      </Card>
     </div>
   );
 };

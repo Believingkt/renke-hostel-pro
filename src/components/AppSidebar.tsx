@@ -51,14 +51,7 @@ const menuItems = [
           { title: "交通 & 地圖", url: "/admin/website-content?tab=location" },
         ]
       },
-  { 
-    title: "帳務資訊", 
-    url: "/admin/basic-info", 
-    icon: Building2,
-    subItems: [
-      { title: "官網旅宿資訊", url: "/admin/basic-info?tab=info" },
-    ]
-  },
+  { title: "帳務資訊", url: "/admin/basic-info", icon: Building2 },
   { 
     title: "房型價格庫存", 
     url: "/admin/pricing", 
