@@ -62,14 +62,30 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
           <CarouselContent>
             <CarouselItem>
               <div className="relative h-[500px] md:h-[700px] w-full bg-gradient-to-br from-muted to-muted/50">
-                <img 
-                  src={heroSlide1} 
-                  alt="山景 1"
-                  className="w-full h-full object-cover"
-                  loading="eager"
-                  fetchPriority="high"
-                  decoding="sync"
-                />
+                <picture>
+                  <source 
+                    media="(max-width: 768px)" 
+                    srcSet={heroSlide1}
+                    width="768"
+                    height="500"
+                  />
+                  <source 
+                    media="(min-width: 769px)" 
+                    srcSet={heroSlide1}
+                    width="1920"
+                    height="700"
+                  />
+                  <img 
+                    src={heroSlide1} 
+                    alt="山景 1"
+                    className="w-full h-full object-cover"
+                    loading="eager"
+                    fetchPriority="high"
+                    decoding="sync"
+                    width="1920"
+                    height="700"
+                  />
+                </picture>
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                   <div className="text-center text-white space-y-2 md:space-y-4 max-w-4xl px-4 pb-32 md:pb-56">
                     <h1 className="text-3xl md:text-7xl font-bold animate-fade-in drop-shadow-lg">
@@ -87,25 +103,33 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
             </CarouselItem>
             <CarouselItem>
               <div className="relative h-[500px] md:h-[700px] w-full bg-muted">
-                <img 
-                  src={heroSlide2} 
-                  alt="山景 2"
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                  decoding="async"
-                />
+                <picture>
+                  <img 
+                    src={heroSlide2} 
+                    alt="山景 2"
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                    width="1920"
+                    height="700"
+                  />
+                </picture>
                 <div className="absolute inset-0 bg-black/40" />
               </div>
             </CarouselItem>
             <CarouselItem>
               <div className="relative h-[500px] md:h-[700px] w-full bg-muted">
-                <img 
-                  src={heroSlide3} 
-                  alt="山景 3"
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                  decoding="async"
-                />
+                <picture>
+                  <img 
+                    src={heroSlide3} 
+                    alt="山景 3"
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                    width="1920"
+                    height="700"
+                  />
+                </picture>
                 <div className="absolute inset-0 bg-black/40" />
               </div>
             </CarouselItem>

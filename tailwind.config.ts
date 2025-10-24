@@ -158,6 +158,10 @@ export default {
       backgroundImage: {
         "gradient-hero": "linear-gradient(135deg, hsl(var(--hero-gradient-start)), hsl(var(--hero-gradient-end)))",
       },
+      aspectRatio: {
+        '4/3': '4 / 3',
+        '16/9': '16 / 9',
+      },
     },
   },
   plugins: [require("tailwindcss-animate")],

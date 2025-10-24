@@ -40,13 +40,18 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
             {roomTypes.map((room) => (
               <Card key={room.id} className="overflow-hidden hover:shadow-xl transition-shadow group border rounded-xl bg-card">
                 <div className="aspect-[4/3] overflow-hidden relative bg-muted">
-                  <img 
-                    src={roomImages[room.name] || roomStandard} 
-                    alt={room.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    loading="lazy"
-                    decoding="async"
-                  />
+                  <picture>
+                    <img 
+                      src={roomImages[room.name] || roomStandard} 
+                      alt={room.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      loading="lazy"
+                      decoding="async"
+                      width="800"
+                      height="600"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    />
+                  </picture>
                   <div className="absolute top-4 right-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
                     {room.capacity}人
                   </div>
