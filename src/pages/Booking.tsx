@@ -213,8 +213,8 @@ const Booking = () => {
           </div>
         </Carousel>
 
-        {/* 搜尋卡片 - 疊加在輪播上 */}
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-full max-w-5xl px-4">
+        {/* 搜尋卡片 - 在輪播內部 */}
+        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 w-full max-w-5xl px-4 z-20">
           <Card className="shadow-2xl bg-white border-0 rounded-2xl">
             <CardContent className="p-8">
               <div className="grid md:grid-cols-3 gap-6 mb-6">
@@ -268,7 +268,7 @@ const Booking = () => {
       </section>
 
       {/* 旅宿介紹 */}
-      <section className="py-32">
+      <section className="py-20">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-4xl font-bold text-center mb-4">旅宿介紹</h2>
