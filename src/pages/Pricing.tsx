@@ -44,13 +44,25 @@ const Pricing = () => {
         <TabsContent value="basic" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>價格管理</CardTitle>
+              <CardTitle>基本價格</CardTitle>
               <CardDescription>
                 設定各房型的基本房價
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">價格管理內容</p>
+              <p className="text-muted-foreground">基本價格設定內容</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>專案價格</CardTitle>
+              <CardDescription>
+                設定特殊專案的優惠價格
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">專案價格設定內容</p>
             </CardContent>
           </Card>
         </TabsContent>
