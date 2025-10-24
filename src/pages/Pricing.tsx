@@ -23,7 +23,7 @@ const Pricing = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full max-w-2xl grid-cols-4">
           <TabsTrigger value="rooms">房型管理</TabsTrigger>
-          <TabsTrigger value="basic">基本價格</TabsTrigger>
+          <TabsTrigger value="basic">價格管理</TabsTrigger>
           <TabsTrigger value="project">專案價格</TabsTrigger>
           <TabsTrigger value="inventory">庫存管理</TabsTrigger>
         </TabsList>
@@ -45,13 +45,13 @@ const Pricing = () => {
         <TabsContent value="basic" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>基本價格設定</CardTitle>
+              <CardTitle>價格管理</CardTitle>
               <CardDescription>
                 設定各房型的基本房價
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">基本價格設定內容</p>
+              <p className="text-muted-foreground">價格管理內容</p>
             </CardContent>
           </Card>
         </TabsContent>
