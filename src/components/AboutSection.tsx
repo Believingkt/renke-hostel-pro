@@ -24,8 +24,8 @@ const AboutSection = ({ description = "森山寫造位於寧靜的山區，是�
             ].map((item, index) => (
               <Card key={index} className="hover:shadow-lg transition-shadow border bg-card">
                 <CardContent className="pt-4 md:pt-8 pb-4 md:pb-6 text-center">
-                  <div className="w-14 h-14 md:w-20 md:h-20 mx-auto mb-3 md:mb-6 rounded-full bg-green-50 flex items-center justify-center">
-                    <item.icon className="h-7 w-7 md:h-10 md:w-10 text-green-600" strokeWidth={1.5} />
+                  <div className="w-14 h-14 md:w-20 md:h-20 mx-auto mb-3 md:mb-6 rounded-full bg-primary/10 flex items-center justify-center">
+                    <item.icon className="h-7 w-7 md:h-10 md:w-10 text-primary" strokeWidth={1.5} />
                   </div>
                   <h3 className="font-bold text-base md:text-lg mb-2 md:mb-3 text-foreground">{item.title}</h3>
                   <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">{item.desc}</p>

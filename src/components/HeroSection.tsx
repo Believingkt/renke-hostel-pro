@@ -173,14 +173,14 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
                         <div className="flex items-center gap-3">
                           <button
                             onClick={() => setAdults(Math.max(1, adults - 1))}
-                            className="w-10 h-10 rounded-lg border-2 border-green-600 text-green-600 hover:bg-green-50 transition-colors flex items-center justify-center font-medium"
+                            className="w-10 h-10 rounded-lg border-2 border-primary text-primary hover:bg-primary/10 transition-colors flex items-center justify-center font-medium"
                           >
                             -
                           </button>
                           <span className="w-8 text-center font-medium">{adults}</span>
                           <button
                             onClick={() => setAdults(Math.min(10, adults + 1))}
-                            className="w-10 h-10 rounded-lg border-2 border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center font-medium"
+                            className="w-10 h-10 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium"
                           >
                             +
                           </button>
@@ -196,14 +196,14 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
                         <div className="flex items-center gap-3">
                           <button
                             onClick={() => setChildren(Math.max(0, children - 1))}
-                            className="w-10 h-10 rounded-lg border-2 border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center font-medium"
+                            className="w-10 h-10 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium"
                           >
                             -
                           </button>
                           <span className="w-8 text-center font-medium">{children}</span>
                           <button
                             onClick={() => setChildren(Math.min(10, children + 1))}
-                            className="w-10 h-10 rounded-lg border-2 border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center font-medium"
+                            className="w-10 h-10 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium"
                           >
                             +
                           </button>
@@ -215,7 +215,7 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
               </div>
 
               {/* 搜尋按鈕 */}
-              <Button className="w-full bg-green-600 hover:bg-green-700 text-white text-sm md:text-base h-11 md:h-14 font-medium rounded-lg shadow-md hover:shadow-lg transition-all">
+              <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-sm md:text-base h-11 md:h-14 font-medium rounded-lg shadow-md hover:shadow-lg transition-all">
                 <Search className="mr-2 h-5 w-5" />
                 搜尋空房
               </Button>

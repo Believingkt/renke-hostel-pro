@@ -68,7 +68,7 @@ const RoomsSection = () => {
                     alt={room.name}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
-                  <div className="absolute top-4 right-4 bg-green-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                  <div className="absolute top-4 right-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
                     {room.capacity}人
                   </div>
                 </div>
@@ -100,11 +100,11 @@ const RoomsSection = () => {
                   <div className="flex items-end justify-between pt-4 border-t">
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">起價</p>
-                      <p className="text-2xl font-bold text-green-600">
+                      <p className="text-2xl font-bold text-primary">
                         NT$ {room.base_price.toLocaleString()}
                       </p>
                     </div>
-                    <Button className="bg-green-600 hover:bg-green-700 text-white rounded-lg px-6 h-10 font-medium">
+                    <Button className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg px-6 h-10 font-medium">
                       立即預訂
                     </Button>
                   </div>
