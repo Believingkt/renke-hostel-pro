@@ -1,11 +1,6 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/AppSidebar";
-import { Header } from "@/components/Header";
+import { BackendLayout } from "@/components/BackendLayout";
 import Dashboard from "./pages/Dashboard";
 import Reception from "./pages/Reception";
 import Orders from "./pages/Orders";
@@ -21,42 +16,25 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          {/* 前台訂房網站 - 獨立路由，不使用後台 layout */}
-          <Route path="/booking" element={<Booking />} />
-          
-          {/* PMS 後台管理系統 - 使用 Sidebar layout */}
-          <Route path="/*" element={
-            <SidebarProvider>
-              <div className="flex min-h-screen w-full">
-                <AppSidebar />
-                <div className="flex flex-1 flex-col">
-                  <Header />
-                  <main className="flex-1 p-3 md:p-6 overflow-x-hidden">
-                    <Routes>
-                      <Route path="/" element={<Dashboard />} />
-                      <Route path="/reception" element={<Reception />} />
-                      <Route path="/orders" element={<Orders />} />
-                      <Route path="/basic-info" element={<BasicInfo />} />
-                      <Route path="/pricing" element={<Pricing />} />
-                      <Route path="/accounts" element={<Accounts />} />
-                      <Route path="/discount-codes" element={<KolDiscount />} />
-                      <Route path="/availability" element={<Availability />} />
-                      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                  </main>
-                </div>
-              </div>
-            </SidebarProvider>
-          } />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <BrowserRouter>
+      <Routes>
+        {/* 前台訂房網站 - 獨立路由 */}
+        <Route path="/booking" element={<Booking />} />
+        
+        {/* PMS 後台管理系統 - 使用 BackendLayout */}
+        <Route element={<BackendLayout />}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/reception" element={<Reception />} />
+          <Route path="/orders" element={<Orders />} />
+          <Route path="/basic-info" element={<BasicInfo />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/accounts" element={<Accounts />} />
+          <Route path="/discount-codes" element={<KolDiscount />} />
+          <Route path="/availability" element={<Availability />} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   </QueryClientProvider>
 );
 
