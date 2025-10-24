@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
+import type { CarouselApi } from "@/components/ui/carousel";
 import {
   Carousel,
   CarouselContent,
@@ -76,6 +77,18 @@ const Booking = () => {
   const [checkInDate, setCheckInDate] = useState("");
   const [checkOutDate, setCheckOutDate] = useState("");
   const [guests, setGuests] = useState(2);
+  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
+  const [current, setCurrent] = useState(0);
+
+  useEffect(() => {
+    if (!carouselApi) return;
+
+    setCurrent(carouselApi.selectedScrollSnap());
+
+    carouselApi.on("select", () => {
+      setCurrent(carouselApi.selectedScrollSnap());
+    });
+  }, [carouselApi]);
 
   useEffect(() => {
     fetchAccommodationData();
@@ -154,11 +167,12 @@ const Booking = () => {
           opts={{ loop: true }}
           plugins={[Autoplay({ delay: 5000 })]}
           className="w-full"
+          setApi={setCarouselApi}
         >
           <CarouselContent>
             {[heroSlide1, heroSlide2, heroSlide3].map((img, index) => (
               <CarouselItem key={index}>
-                <div className="relative h-[600px] w-full">
+                <div className="relative h-[500px] md:h-[600px] w-full">
                   <img 
                     src={img} 
                     alt={`山景 ${index + 1}`}
@@ -181,8 +195,22 @@ const Booking = () => {
               </CarouselItem>
             ))}
           </CarouselContent>
-          <CarouselPrevious className="left-4" />
-          <CarouselNext className="right-4" />
+          
+          {/* 輪播指示器（圓點） */}
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+            {[0, 1, 2].map((index) => (
+              <button
+                key={index}
+                onClick={() => carouselApi?.scrollTo(index)}
+                className={`h-2 rounded-full transition-all ${
+                  current === index 
+                    ? "w-8 bg-white" 
+                    : "w-2 bg-white/50 hover:bg-white/75"
+                }`}
+                aria-label={`切換到第 ${index + 1} 張圖片`}
+              />
+            ))}
+          </div>
         </Carousel>
 
         {/* 搜尋卡片 - 疊加在輪播上 */}
