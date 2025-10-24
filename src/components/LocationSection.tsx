@@ -1,29 +1,11 @@
-import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, Car, Bus, Plane } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 
-interface AccommodationInfo {
+interface LocationSectionProps {
   address: string;
 }
 
-const LocationSection = () => {
-  const [accommodationInfo, setAccommodationInfo] = useState<AccommodationInfo | null>(null);
-
-  useEffect(() => {
-    fetchLocationInfo();
-  }, []);
-
-  const fetchLocationInfo = async () => {
-    const { data } = await supabase
-      .from("accommodation_info")
-      .select("address")
-      .single();
-    
-    if (data) {
-      setAccommodationInfo(data);
-    }
-  };
+const LocationSection = ({ address }: LocationSectionProps) => {
 
   return (
     <section id="location" className="py-12 md:py-20 bg-secondary/30">
@@ -50,7 +32,7 @@ const LocationSection = () => {
                 </div>
                 <div className="flex items-start gap-2 mb-2">
                   <MapPin className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                  <p className="text-sm font-medium">{accommodationInfo?.address || "台灣南投縣信義鄉東埔村開高巷123號"}</p>
+                  <p className="text-sm font-medium">{address || "台灣南投縣信義鄉東埔村開高巷123號"}</p>
                 </div>
                 <p className="text-sm text-muted-foreground ml-7">
                   位於風景秀麗的山區，周邊有多處自然景點與步道

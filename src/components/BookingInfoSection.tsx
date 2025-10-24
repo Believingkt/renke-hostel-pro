@@ -1,49 +1,14 @@
-import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Clock, CreditCard, FileText, Info } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 
-interface BookingSettings {
-  check_in_time: string;
-  check_out_time: string;
-  cancellation_policy: string;
-  payment_methods: any;
+interface BookingInfoSectionProps {
+  bookingSettings: any;
+  checkInNotice: string;
 }
 
-interface AccommodationInfo {
-  check_in_notice: string;
-}
-
-const BookingInfoSection = () => {
-  const [bookingSettings, setBookingSettings] = useState<BookingSettings | null>(null);
-  const [accommodationInfo, setAccommodationInfo] = useState<AccommodationInfo | null>(null);
-
-  useEffect(() => {
-    fetchBookingInfo();
-  }, []);
-
-  const fetchBookingInfo = async () => {
-    const { data: infoData } = await supabase
-      .from("accommodation_info")
-      .select("*")
-      .single();
-    
-    if (infoData) {
-      setAccommodationInfo(infoData);
-
-      const { data: settingsData } = await supabase
-        .from("booking_settings")
-        .select("*")
-        .eq("accommodation_id", infoData.id)
-        .single();
-      
-      if (settingsData) {
-        setBookingSettings(settingsData);
-      }
-    }
-  };
+const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSectionProps) => {
 
   return (
     <section id="booking-info" className="py-12 md:py-20">
@@ -106,7 +71,7 @@ const BookingInfoSection = () => {
                 </div>
                 <h3 className="font-semibold text-base md:text-lg mb-3 md:mb-4">重要事項</h3>
                 <div className="space-y-1 text-sm text-muted-foreground">
-                  {accommodationInfo?.check_in_notice?.split('\n').map((line: string, index: number) => (
+                  {checkInNotice?.split('\n').map((line: string, index: number) => (
                     <p key={index}>{line}</p>
                   ))}
                 </div>

@@ -1,13 +1,12 @@
-import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Users } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import roomDeluxe from "@/assets/room-deluxe.jpg";
 import roomSuite from "@/assets/room-suite.jpg";
 import roomStandard from "@/assets/room-standard.jpg";
+import { useState } from "react";
 
 interface RoomType {
   id: string;
@@ -19,38 +18,18 @@ interface RoomType {
   base_price: number;
 }
 
+interface RoomsSectionProps {
+  roomTypes: RoomType[];
+}
+
 const roomImages: Record<string, string> = {
   "豪華和室": roomDeluxe,
   "精緻套房": roomSuite,
   "標準客房": roomStandard,
 };
 
-const RoomsSection = () => {
-  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
+const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
   const [imageLoaded, setImageLoaded] = useState<Record<string, boolean>>({});
-
-  useEffect(() => {
-    fetchRoomTypes();
-  }, []);
-
-  const fetchRoomTypes = async () => {
-    const { data: infoData } = await supabase
-      .from("accommodation_info")
-      .select("id")
-      .single();
-    
-    if (infoData) {
-      const { data: roomsData } = await supabase
-        .from("room_types")
-        .select("*")
-        .eq("accommodation_id", infoData.id)
-        .order("display_order");
-      
-      if (roomsData) {
-        setRoomTypes(roomsData);
-      }
-    }
-  };
 
   return (
     <section id="rooms" className="py-12 md:py-20 bg-secondary/30">

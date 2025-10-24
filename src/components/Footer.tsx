@@ -1,30 +1,12 @@
-import { useEffect, useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { MapPin, Phone, Mail, Mountain, Facebook, Instagram } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 
-interface AccommodationInfo {
-  name: string;
-  address: string;
+interface FooterProps {
+  accommodationName?: string;
+  address?: string;
 }
 
-const Footer = () => {
-  const [accommodationInfo, setAccommodationInfo] = useState<AccommodationInfo | null>(null);
-
-  useEffect(() => {
-    fetchAccommodationInfo();
-  }, []);
-
-  const fetchAccommodationInfo = async () => {
-    const { data } = await supabase
-      .from("accommodation_info")
-      .select("name, address")
-      .single();
-    
-    if (data) {
-      setAccommodationInfo(data);
-    }
-  };
+const Footer = ({ accommodationName, address }: FooterProps) => {
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -42,7 +24,7 @@ const Footer = () => {
             <div>
               <div className="flex items-center gap-2 mb-3 md:mb-4">
                 <Mountain className="h-6 w-6 md:h-8 md:w-8 text-white" />
-                <h3 className="text-xl md:text-2xl font-bold">{accommodationInfo?.name || "森山寫造"}</h3>
+                <h3 className="text-xl md:text-2xl font-bold">{accommodationName || "森山寫造"}</h3>
               </div>
               <p className="text-sm md:text-base text-white/80 mb-4 md:mb-6">山間的寧靜時光</p>
               <div className="flex gap-4">
@@ -88,7 +70,7 @@ const Footer = () => {
               <ul className="space-y-3 md:space-y-4">
                 <li className="flex items-start gap-2 md:gap-3">
                   <MapPin className="h-4 w-4 md:h-5 md:w-5 text-white/80 flex-shrink-0 mt-0.5" />
-                  <span className="text-sm md:text-base text-white/80">{accommodationInfo?.address || "台灣南投縣信義鄉東埔村開高巷123號"}</span>
+                  <span className="text-sm md:text-base text-white/80">{address || "台灣南投縣信義鄉東埔村開高巷123號"}</span>
                 </li>
                 <li className="flex items-center gap-2 md:gap-3">
                   <Phone className="h-4 w-4 md:h-5 md:w-5 text-white/80 flex-shrink-0" />

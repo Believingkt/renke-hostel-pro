@@ -11,26 +11,57 @@ const LocationSection = lazy(() => import("@/components/LocationSection"));
 const ReviewsSection = lazy(() => import("@/components/ReviewsSection"));
 const Footer = lazy(() => import("@/components/Footer"));
 
-interface AccommodationInfo {
-  name: string;
-  description: string;
+interface AccommodationData {
+  info: {
+    id: string;
+    name: string;
+    description: string;
+    address: string;
+    check_in_notice: string;
+  };
+  roomTypes: any[];
+  bookingSettings: any;
 }
 
 const Index = () => {
-  const [accommodationInfo, setAccommodationInfo] = useState<AccommodationInfo | null>(null);
+  const [data, setData] = useState<AccommodationData | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchAccommodationData();
+    fetchAllData();
   }, []);
 
-  const fetchAccommodationData = async () => {
-    const { data } = await supabase
-      .from("accommodation_info")
-      .select("name, description")
-      .maybeSingle();
-    
-    if (data) {
-      setAccommodationInfo(data);
+  const fetchAllData = async () => {
+    try {
+      // 一次性獲取所有必要資料
+      const { data: infoData } = await supabase
+        .from("accommodation_info")
+        .select("id, name, description, address, check_in_notice")
+        .maybeSingle();
+      
+      if (infoData) {
+        // 並行獲取房型和訂房設定
+        const [roomTypesRes, bookingSettingsRes] = await Promise.all([
+          supabase
+            .from("room_types")
+            .select("*")
+            .eq("accommodation_id", infoData.id)
+            .order("display_order"),
+          supabase
+            .from("booking_settings")
+            .select("*")
+            .eq("accommodation_id", infoData.id)
+            .maybeSingle()
+        ]);
+
+        setData({
+          info: infoData,
+          roomTypes: roomTypesRes.data || [],
+          bookingSettings: bookingSettingsRes.data
+        });
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -41,24 +72,41 @@ const Index = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">載入中...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen">
       <Navigation 
-        accommodationName={accommodationInfo?.name} 
+        accommodationName={data?.info.name} 
         onNavigate={scrollToSection} 
       />
       <main>
-        <HeroSection accommodationName={accommodationInfo?.name} />
-        <AboutSection description={accommodationInfo?.description} />
+        <HeroSection accommodationName={data?.info.name} />
+        <AboutSection description={data?.info.description} />
         <Suspense fallback={<div className="py-20 text-center text-muted-foreground">載入中...</div>}>
-          <RoomsSection />
-          <BookingInfoSection />
-          <LocationSection />
+          <RoomsSection roomTypes={data?.roomTypes || []} />
+          <BookingInfoSection 
+            bookingSettings={data?.bookingSettings}
+            checkInNotice={data?.info.check_in_notice}
+          />
+          <LocationSection address={data?.info.address} />
           <ReviewsSection />
         </Suspense>
       </main>
       <Suspense fallback={null}>
-        <Footer />
+        <Footer 
+          accommodationName={data?.info.name}
+          address={data?.info.address}
+        />
       </Suspense>
     </div>
   );
