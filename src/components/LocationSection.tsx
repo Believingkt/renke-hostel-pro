@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin } from "lucide-react";
+import { MapPin, Car, Bus, Plane } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface AccommodationInfo {
@@ -28,27 +28,131 @@ const LocationSection = () => {
   return (
     <section id="location" className="py-12 md:py-20 bg-secondary/30">
       <div className="container mx-auto px-4">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-3 md:mb-4">交通 & 地圖</h2>
           <p className="text-center text-muted-foreground mb-8 md:mb-16 text-base md:text-lg">
             如何前往森山寫造
           </p>
 
-          <Card>
-            <CardContent className="pt-6">
-              <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-primary" />
-                位置資訊
-              </h3>
-              <p className="text-sm mb-6">{accommodationInfo?.address}</p>
-              <p className="text-sm text-muted-foreground mb-4">
-                位於風景秀麗的山區，周邊有多處自然景點與步道
-              </p>
-              <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-                <p className="text-muted-foreground">地圖載入中...</p>
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            {/* 左側 - 位置資訊 */}
+            <Card>
+              <CardContent className="pt-6">
+                <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-primary" />
+                  位置資訊
+                </h3>
+                <div className="aspect-video bg-muted rounded-lg flex items-center justify-center mb-4">
+                  <div className="text-center">
+                    <MapPin className="h-16 w-16 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-muted-foreground">地圖載入中...</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2 mb-2">
+                  <MapPin className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                  <p className="text-sm font-medium">{accommodationInfo?.address || "台灣南投縣信義鄉東埔村開高巷123號"}</p>
+                </div>
+                <p className="text-sm text-muted-foreground ml-7">
+                  位於風景秀麗的山區，周邊有多處自然景點與步道
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* 右側 - 交通方式 */}
+            <div className="space-y-6">
+              {/* 自行開車 */}
+              <Card>
+                <CardContent className="pt-6">
+                  <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                    <Car className="h-5 w-5 text-primary" />
+                    自行開車
+                  </h3>
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">從台北出發：</p>
+                    <p className="text-sm text-muted-foreground">
+                      國道3號 → 名間交流道 → 台16線 → 台21線 → 約3.5小時
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      旅宿提供免費停車場，無需預約
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* 大眾運輸 */}
+              <Card>
+                <CardContent className="pt-6">
+                  <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                    <Bus className="h-5 w-5 text-primary" />
+                    大眾運輸
+                  </h3>
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">高鐵 + 巴士：</p>
+                    <p className="text-sm text-muted-foreground">
+                      高鐵台中站 → 轉乘南投客運 → 東埔站 → 步行約10分鐘
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      建議提前預約接駁服務（需額外付費）
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* 機場接送 */}
+              <Card>
+                <CardContent className="pt-6">
+                  <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                    <Plane className="h-5 w-5 text-primary" />
+                    機場接送
+                  </h3>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      提供台中清泉崗機場接送服務，請提前3天預約
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      接送時間：約2小時
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      費用：NT$ 3,500 / 趟（4人座轎車）
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* 周邊景點 */}
+          <div>
+            <h3 className="text-2xl font-bold mb-6">周邊景點</h3>
+            <div className="grid md:grid-cols-3 gap-6">
+              {/* 東埔溫泉 */}
+              <div>
+                <h4 className="font-semibold text-lg mb-2">東埔溫泉</h4>
+                <p className="text-sm text-muted-foreground mb-1">步行5分鐘</p>
+                <p className="text-sm text-muted-foreground">
+                  著名的碳酸氫鈉泉，有美人湯之稱
+                </p>
               </div>
-            </CardContent>
-          </Card>
+
+              {/* 彩虹瀑布 */}
+              <div>
+                <h4 className="font-semibold text-lg mb-2">彩虹瀑布</h4>
+                <p className="text-sm text-muted-foreground mb-1">開車15分鐘</p>
+                <p className="text-sm text-muted-foreground">
+                  晨光照射時可見彩虹，景色壯觀
+                </p>
+              </div>
+
+              {/* 八通關古道 */}
+              <div>
+                <h4 className="font-semibold text-lg mb-2">八通關古道</h4>
+                <p className="text-sm text-muted-foreground mb-1">開車10分鐘</p>
+                <p className="text-sm text-muted-foreground">
+                  歷史悠久的登山古道，適合健行愛好者
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
