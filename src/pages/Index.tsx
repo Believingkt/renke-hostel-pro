@@ -7,7 +7,7 @@ import RoomsSection from "@/components/RoomsSection";
 import FacilitiesSection from "@/components/FacilitiesSection";
 import BookingInfoSection from "@/components/BookingInfoSection";
 import LocationSection from "@/components/LocationSection";
-
+import FaqSection from "@/components/FaqSection";
 import ReviewsSection from "@/components/ReviewsSection";
 import Footer from "@/components/Footer";
 
@@ -103,7 +103,7 @@ const Index = () => {
           checkInNotice={data?.info.check_in_notice}
         />
         <LocationSection address={data?.info.address} />
-        
+        <FaqSection />
         <ReviewsSection />
       </main>
       <Footer 
