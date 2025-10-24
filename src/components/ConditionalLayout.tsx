@@ -13,7 +13,7 @@ export function ConditionalLayout() {
   const location = useLocation();
   const isFrontendPage = location.pathname === "/";
   const isAdminPage = location.pathname.startsWith("/admin");
-  const isLoginPage = location.pathname === "/login";
+  const isAuthPage = location.pathname === "/auth";
   
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -59,23 +59,23 @@ export function ConditionalLayout() {
     );
   }
 
-  // Redirect to login if trying to access admin without authentication
+  // Redirect to auth if trying to access admin without authentication
   if (isAdminPage && !session && !loading) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/auth" replace />;
   }
 
-  // Redirect to admin if logged in user tries to access login page
-  if (isLoginPage && session) {
+  // Redirect to admin if logged in user tries to access auth page
+  if (isAuthPage && session) {
     return <Navigate to="/admin" replace />;
   }
 
   // 非後台且非登入頁面也不使用 layout
-  if (!isAdminPage && !isLoginPage) {
+  if (!isAdminPage && !isAuthPage) {
     return <Outlet />;
   }
 
   // 登入頁面：不使用 layout
-  if (isLoginPage) {
+  if (isAuthPage) {
     return (
       <TooltipProvider>
         <Toaster />

@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ConditionalLayout } from "@/components/ConditionalLayout";
 import Index from "./pages/Index";
-import Login from "./pages/Login";
+import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Reception from "./pages/Reception";
 import WebsiteContent from "./pages/WebsiteContent";
@@ -23,7 +23,7 @@ const App = () => (
       <Routes>
         <Route element={<ConditionalLayout />}>
           <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
+          <Route path="/auth" element={<Auth />} />
           <Route path="/admin" element={<Dashboard />} />
           <Route path="/admin/reception" element={<Reception />} />
           <Route path="/admin/website-content" element={<WebsiteContent />} />
