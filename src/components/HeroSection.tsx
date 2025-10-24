@@ -54,13 +54,17 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
     <section id="home" className="pt-16 relative">
       <div className="relative">
         <Carousel
-          opts={{ loop: true }}
+          opts={{ 
+            loop: true,
+            duration: 40,
+            align: "start",
+          }}
           plugins={[Autoplay({ delay: 5000, stopOnInteraction: false })]}
           className="w-full"
           setApi={setCarouselApi}
         >
-          <CarouselContent>
-            <CarouselItem>
+          <CarouselContent className="-ml-0">
+            <CarouselItem className="pl-0">
               <div className="relative h-[500px] md:h-[700px] w-full bg-gradient-to-br from-muted to-muted/50">
                 <picture>
                   <source 
@@ -78,15 +82,16 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
                   <img 
                     src={heroSlide1} 
                     alt="山景 1"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transition-opacity duration-700"
                     loading="eager"
                     fetchPriority="high"
                     decoding="sync"
                     width="1920"
                     height="700"
+                    style={{ opacity: current === 0 ? 1 : 0.95 }}
                   />
                 </picture>
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center transition-all duration-700">
                   <div className="text-center text-white space-y-2 md:space-y-4 max-w-4xl px-4 pb-32 md:pb-56">
                     <h1 className="text-3xl md:text-7xl font-bold animate-fade-in drop-shadow-lg">
                       {accommodationName}
@@ -101,36 +106,38 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
                 </div>
               </div>
             </CarouselItem>
-            <CarouselItem>
+            <CarouselItem className="pl-0">
               <div className="relative h-[500px] md:h-[700px] w-full bg-muted">
                 <picture>
                   <img 
                     src={heroSlide2} 
                     alt="山景 2"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transition-opacity duration-700"
                     loading="lazy"
                     decoding="async"
                     width="1920"
                     height="700"
+                    style={{ opacity: current === 1 ? 1 : 0.95 }}
                   />
                 </picture>
-                <div className="absolute inset-0 bg-black/40" />
+                <div className="absolute inset-0 bg-black/40 transition-all duration-700" />
               </div>
             </CarouselItem>
-            <CarouselItem>
+            <CarouselItem className="pl-0">
               <div className="relative h-[500px] md:h-[700px] w-full bg-muted">
                 <picture>
                   <img 
                     src={heroSlide3} 
                     alt="山景 3"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transition-opacity duration-700"
                     loading="lazy"
                     decoding="async"
                     width="1920"
                     height="700"
+                    style={{ opacity: current === 2 ? 1 : 0.95 }}
                   />
                 </picture>
-                <div className="absolute inset-0 bg-black/40" />
+                <div className="absolute inset-0 bg-black/40 transition-all duration-700" />
               </div>
             </CarouselItem>
           </CarouselContent>
@@ -141,10 +148,10 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
               <button
                 key={index}
                 onClick={() => carouselApi?.scrollTo(index)}
-                className={`h-2 rounded-full transition-all ${
+                className={`h-2 rounded-full transition-all duration-500 ${
                   current === index 
-                    ? "w-8 bg-white" 
-                    : "w-2 bg-white/50 hover:bg-white/75"
+                    ? "w-8 bg-white shadow-lg" 
+                    : "w-2 bg-white/50 hover:bg-white/75 hover:w-4"
                 }`}
                 aria-label={`切換到第 ${index + 1} 張圖片`}
               />
