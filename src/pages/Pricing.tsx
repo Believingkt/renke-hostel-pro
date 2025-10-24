@@ -5,11 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 const Pricing = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "basic");
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "rooms");
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab && (tab === "basic" || tab === "project" || tab === "inventory")) {
+    if (tab && (tab === "rooms" || tab === "basic" || tab === "project" || tab === "inventory")) {
       setActiveTab(tab);
     }
   }, [searchParams]);
@@ -21,11 +21,26 @@ const Pricing = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-3">
+        <TabsList className="grid w-full max-w-2xl grid-cols-4">
+          <TabsTrigger value="rooms">房型管理</TabsTrigger>
           <TabsTrigger value="basic">基本價格</TabsTrigger>
           <TabsTrigger value="project">專案價格</TabsTrigger>
           <TabsTrigger value="inventory">庫存管理</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="rooms" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>房型管理</CardTitle>
+              <CardDescription>
+                管理住宿的各種房型資訊
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">房型管理內容</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="basic" className="space-y-4">
           <Card>
