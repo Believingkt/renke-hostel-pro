@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Globe, Plus, Trash2, Edit2, GripVertical } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Globe, Plus, Trash2, Edit2, GripVertical, MapPin } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -140,6 +140,12 @@ interface FaqItem {
   is_published: boolean;
 }
 
+interface NearbyAttraction {
+  name: string;
+  distance: string;
+  description: string;
+}
+
 const WebsiteContent = () => {
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("facilities");
@@ -166,6 +172,15 @@ const WebsiteContent = () => {
     answer: "",
     is_published: true,
   });
+
+  // Location state
+  const [locationDescription, setLocationDescription] = useState("");
+  const [drivingInfo, setDrivingInfo] = useState("");
+  const [publicTransportInfo, setPublicTransportInfo] = useState("");
+  const [airportPickupInfo, setAirportPickupInfo] = useState("");
+  const [nearbyAttractions, setNearbyAttractions] = useState<NearbyAttraction[]>([
+    { name: "", distance: "", description: "" }
+  ]);
 
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -243,6 +258,39 @@ const WebsiteContent = () => {
 
           if (faqData) {
             setFaqs(faqData);
+          }
+
+          // 加載交通與地圖資訊
+          const { data: locationData } = await supabase
+            .from("location_info")
+            .select("*")
+            .eq("accommodation_id", infoData.id)
+            .maybeSingle();
+
+          if (locationData) {
+            setLocationDescription(locationData.location_description || "");
+            setDrivingInfo(locationData.driving_info || "");
+            setPublicTransportInfo(locationData.public_transport_info || "");
+            setAirportPickupInfo(locationData.airport_pickup_info || "");
+            
+            // 安全地處理 nearby_attractions 類型
+            const attractions = locationData.nearby_attractions;
+            if (attractions && Array.isArray(attractions)) {
+              const typedAttractions = attractions as Array<{
+                name?: string;
+                distance?: string;
+                description?: string;
+              }>;
+              setNearbyAttractions(
+                typedAttractions.map(a => ({
+                  name: a.name || "",
+                  distance: a.distance || "",
+                  description: a.description || ""
+                }))
+              );
+            } else {
+              setNearbyAttractions([{ name: "", distance: "", description: "" }]);
+            }
           }
         }
       } catch (error) {
@@ -503,6 +551,76 @@ const WebsiteContent = () => {
     }
   };
 
+  // Location functions
+  const handleSaveLocationInfo = async () => {
+    if (!accommodationId) {
+      toast.error('找不到旅宿資訊');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const { data: existing, error: fetchError } = await supabase
+        .from("location_info")
+        .select("id")
+        .eq("accommodation_id", accommodationId)
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
+
+      const locationData = {
+        accommodation_id: accommodationId,
+        location_description: locationDescription,
+        driving_info: drivingInfo,
+        public_transport_info: publicTransportInfo,
+        airport_pickup_info: airportPickupInfo,
+        nearby_attractions: nearbyAttractions.filter(
+          a => a.name || a.distance || a.description
+        ) as any, // 轉換為 Json 類型
+      };
+
+      if (existing) {
+        const { error } = await supabase
+          .from("location_info")
+          .update(locationData)
+          .eq("id", existing.id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("location_info")
+          .insert([locationData]);
+
+        if (error) throw error;
+      }
+
+      toast.success('交通與地圖資訊已儲存');
+    } catch (error) {
+      console.error('Error saving location info:', error);
+      toast.error('儲存失敗，請稍後再試');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleAddAttraction = () => {
+    setNearbyAttractions([...nearbyAttractions, { name: "", distance: "", description: "" }]);
+  };
+
+  const handleRemoveAttraction = (index: number) => {
+    setNearbyAttractions(nearbyAttractions.filter((_, i) => i !== index));
+  };
+
+  const handleAttractionChange = (
+    index: number,
+    field: keyof NearbyAttraction,
+    value: string
+  ) => {
+    const updated = [...nearbyAttractions];
+    updated[index][field] = value;
+    setNearbyAttractions(updated);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -518,6 +636,7 @@ const WebsiteContent = () => {
           <TabsTrigger value="facilities">設施與服務</TabsTrigger>
           <TabsTrigger value="booking-info">訂房須知</TabsTrigger>
           <TabsTrigger value="faq">常見問題</TabsTrigger>
+          <TabsTrigger value="location">交通 & 地圖</TabsTrigger>
         </TabsList>
 
         <TabsContent value="facilities" className="space-y-6">
@@ -858,6 +977,146 @@ const WebsiteContent = () => {
                   ))
                 )}
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Location Tab */}
+        <TabsContent value="location" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                交通 & 地圖
+              </CardTitle>
+              <CardDescription>
+                管理交通資訊、地圖位置和周邊景點內容
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="location-description">位置資訊描述</Label>
+                <Textarea
+                  id="location-description"
+                  value={locationDescription}
+                  onChange={(e) => setLocationDescription(e.target.value)}
+                  placeholder="位於風景秀麗的山區，周邊有多處自然景點與步道"
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="driving-info">自行開車</Label>
+                <Textarea
+                  id="driving-info"
+                  value={drivingInfo}
+                  onChange={(e) => setDrivingInfo(e.target.value)}
+                  placeholder="從台北出發：國道3號 → 名間交流道 → 台16線 → 台21線 → 約3.5小時&#10;旅宿提供免費停車場，無需預約"
+                  rows={4}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="public-transport-info">大眾運輸</Label>
+                <Textarea
+                  id="public-transport-info"
+                  value={publicTransportInfo}
+                  onChange={(e) => setPublicTransportInfo(e.target.value)}
+                  placeholder="高鐵 + 巴士：高鐵台中站 → 轉乘南投客運 → 東埔站 → 步行約10分鐘&#10;建議提前預約接駁服務（需額外付費）"
+                  rows={4}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="airport-pickup-info">機場接送</Label>
+                <Textarea
+                  id="airport-pickup-info"
+                  value={airportPickupInfo}
+                  onChange={(e) => setAirportPickupInfo(e.target.value)}
+                  placeholder="提供台中清泉崗機場接送服務，請提前3天預約&#10;接送時間：約2小時&#10;費用：NT$ 3,500 / 趟（4人座轎車）"
+                  rows={4}
+                />
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label>周邊景點</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddAttraction}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    新增景點
+                  </Button>
+                </div>
+
+                {nearbyAttractions.map((attraction, index) => (
+                  <Card key={index}>
+                    <CardContent className="pt-4 space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 space-y-3">
+                          <div className="space-y-2">
+                            <Label htmlFor={`attraction-name-${index}`}>景點名稱</Label>
+                            <Input
+                              id={`attraction-name-${index}`}
+                              value={attraction.name}
+                              onChange={(e) =>
+                                handleAttractionChange(index, "name", e.target.value)
+                              }
+                              placeholder="例：東埔溫泉"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor={`attraction-distance-${index}`}>距離</Label>
+                            <Input
+                              id={`attraction-distance-${index}`}
+                              value={attraction.distance}
+                              onChange={(e) =>
+                                handleAttractionChange(index, "distance", e.target.value)
+                              }
+                              placeholder="例：步行5分鐘"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor={`attraction-description-${index}`}>
+                              景點描述
+                            </Label>
+                            <Textarea
+                              id={`attraction-description-${index}`}
+                              value={attraction.description}
+                              onChange={(e) =>
+                                handleAttractionChange(index, "description", e.target.value)
+                              }
+                              placeholder="例：著名的碳酸氫鈉泉，有美人湯之稱"
+                              rows={2}
+                            />
+                          </div>
+                        </div>
+
+                        {nearbyAttractions.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRemoveAttraction(index)}
+                            className="mt-6"
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <Button onClick={handleSaveLocationInfo} className="w-full">
+                保存資訊
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>

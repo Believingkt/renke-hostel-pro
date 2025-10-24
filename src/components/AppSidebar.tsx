@@ -40,16 +40,17 @@ const menuItems = [
       { title: "房況表", url: "/admin/reception?tab=status" },
     ]
   },
-  { 
-    title: "官網內容", 
-    url: "/admin/website-content", 
-    icon: Globe,
-    subItems: [
-      { title: "設施與服務", url: "/admin/website-content?tab=facilities" },
-      { title: "訂房須知", url: "/admin/website-content?tab=booking-info" },
-      { title: "常見問題", url: "/admin/website-content?tab=faq" },
-    ]
-  },
+      {
+        title: "官網內容",
+        url: "/admin/website-content",
+        icon: Globe,
+        subItems: [
+          { title: "設施與服務", url: "/admin/website-content?tab=facilities" },
+          { title: "訂房須知", url: "/admin/website-content?tab=booking-info" },
+          { title: "常見問題", url: "/admin/website-content?tab=faq" },
+          { title: "交通 & 地圖", url: "/admin/website-content?tab=location" },
+        ]
+      },
   { 
     title: "基本資訊", 
     url: "/admin/basic-info", 

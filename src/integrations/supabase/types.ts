@@ -235,6 +235,42 @@ export type Database = {
           },
         ]
       }
+      location_info: {
+        Row: {
+          accommodation_id: string | null
+          airport_pickup_info: string | null
+          created_at: string
+          driving_info: string | null
+          id: string
+          location_description: string | null
+          nearby_attractions: Json | null
+          public_transport_info: string | null
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id?: string | null
+          airport_pickup_info?: string | null
+          created_at?: string
+          driving_info?: string | null
+          id?: string
+          location_description?: string | null
+          nearby_attractions?: Json | null
+          public_transport_info?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string | null
+          airport_pickup_info?: string | null
+          created_at?: string
+          driving_info?: string | null
+          id?: string
+          location_description?: string | null
+          nearby_attractions?: Json | null
+          public_transport_info?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       room_amenities: {
         Row: {
           amenity_icon: string | null
