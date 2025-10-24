@@ -32,7 +32,7 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
   }, [carouselApi]);
 
   return (
-    <section id="home" className="pt-16 relative pb-24 md:pb-28">
+    <section id="home" className="pt-16 relative">
       <div className="relative">
         <Carousel
           opts={{ loop: true }}
@@ -50,7 +50,7 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                    <div className="text-center text-white space-y-4 max-w-4xl px-4 pb-32 md:pb-40">
+                    <div className="text-center text-white space-y-4 max-w-4xl px-4 pb-52 md:pb-56">
                       <h1 className="text-5xl md:text-7xl font-bold animate-fade-in drop-shadow-lg">
                         {accommodationName}
                       </h1>
@@ -84,8 +84,8 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
           </div>
         </Carousel>
 
-        {/* 搜尋卡片 - 在輪播外部底部延伸 */}
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-5xl px-4 z-30">
+        {/* 搜尋卡片 - 位於文字和輪播指示器之間 */}
+        <div className="absolute bottom-[120px] md:bottom-[140px] left-1/2 -translate-x-1/2 w-full max-w-5xl px-4 z-30">
           <Card className="shadow-2xl bg-white/95 backdrop-blur-sm border-0 rounded-2xl">
             <CardContent className="p-6 md:p-8">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
