@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -13,7 +14,15 @@ import { Plus, Edit, MapPin, ExternalLink, Info } from "lucide-react";
 import Footer from "@/components/Footer";
 
 const BasicInfo = () => {
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("info");
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   return (
     <div className="space-y-6">

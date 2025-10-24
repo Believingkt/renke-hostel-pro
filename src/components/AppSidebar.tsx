@@ -39,7 +39,17 @@ const menuItems = [
       { title: "房況表", url: "/reception?tab=status" },
     ]
   },
-  { title: "基本資訊", url: "/basic-info", icon: Building2 },
+  { 
+    title: "基本資訊", 
+    url: "/basic-info", 
+    icon: Building2,
+    subItems: [
+      { title: "官網旅宿資訊", url: "/basic-info?tab=info" },
+      { title: "房型管理", url: "/basic-info?tab=rooms" },
+      { title: "官網訂房資訊", url: "/basic-info?tab=booking" },
+      { title: "旅宿設施與服務", url: "/basic-info?tab=facilities" },
+    ]
+  },
   { 
     title: "房價庫存設定", 
     url: "/pricing", 
