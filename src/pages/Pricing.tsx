@@ -17,7 +17,7 @@ const Pricing = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">房價庫存設定</h1>
+        <h1 className="text-3xl font-bold tracking-tight">房型價格庫存</h1>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
