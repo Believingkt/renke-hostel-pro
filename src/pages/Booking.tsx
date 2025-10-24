@@ -125,23 +125,23 @@ const Booking = () => {
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Mountain className="h-6 w-6 text-[#2F7257]" />
-            <h1 className="text-xl font-bold text-[#2F7257]">{accommodationInfo?.name || "森山寫造"}</h1>
+            <Mountain className="h-6 w-6 text-primary" />
+            <h1 className="text-xl font-bold text-primary">{accommodationInfo?.name || "森山寫造"}</h1>
           </div>
           <nav className="hidden md:flex items-center gap-6">
-            <button onClick={() => scrollToSection("home")} className="text-sm hover:text-[#2F7257] transition-colors">
+            <button onClick={() => scrollToSection("home")} className="text-sm hover:text-primary transition-colors">
               旅宿介紹
             </button>
-            <button onClick={() => scrollToSection("rooms")} className="text-sm hover:text-[#2F7257] transition-colors">
+            <button onClick={() => scrollToSection("rooms")} className="text-sm hover:text-primary transition-colors">
               房型導覽
             </button>
-            <button onClick={() => scrollToSection("booking-info")} className="text-sm hover:text-[#2F7257] transition-colors">
+            <button onClick={() => scrollToSection("booking-info")} className="text-sm hover:text-primary transition-colors">
               訂房須知
             </button>
-            <button onClick={() => scrollToSection("location")} className="text-sm hover:text-[#2F7257] transition-colors">
+            <button onClick={() => scrollToSection("location")} className="text-sm hover:text-primary transition-colors">
               交通 & 地圖
             </button>
-            <Button className="bg-[#2F7257] hover:bg-[#265943]">
+            <Button className="bg-primary hover:bg-primary/90">
               立即訂房
             </Button>
           </nav>
@@ -192,31 +192,29 @@ const Booking = () => {
               <div className="grid md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2 text-base">
-                    <Calendar className="h-4 w-4 text-[#2F7257]" />
+                    <Calendar className="h-4 w-4 text-primary" />
                     入住日期
                   </Label>
                   <Input 
                     type="date" 
                     value={checkInDate}
                     onChange={(e) => setCheckInDate(e.target.value)}
-                    className="border-[#2F7257]/20 focus:border-[#2F7257]"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2 text-base">
-                    <Calendar className="h-4 w-4 text-[#2F7257]" />
+                    <Calendar className="h-4 w-4 text-primary" />
                     退房日期
                   </Label>
                   <Input 
                     type="date" 
                     value={checkOutDate}
                     onChange={(e) => setCheckOutDate(e.target.value)}
-                    className="border-[#2F7257]/20 focus:border-[#2F7257]"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2 text-base">
-                    <Users className="h-4 w-4 text-[#2F7257]" />
+                    <Users className="h-4 w-4 text-primary" />
                     住宿人數
                   </Label>
                   <div className="flex items-center gap-2">
@@ -225,13 +223,12 @@ const Booking = () => {
                       min="1"
                       value={guests}
                       onChange={(e) => setGuests(parseInt(e.target.value))}
-                      className="border-[#2F7257]/20 focus:border-[#2F7257]"
                     />
                     <span className="text-sm text-muted-foreground whitespace-nowrap">位大人</span>
                   </div>
                 </div>
               </div>
-              <Button className="w-full mt-4 bg-[#2F7257] hover:bg-[#265943] text-lg h-12" size="lg">
+              <Button className="w-full mt-4 bg-primary hover:bg-primary/90 text-lg h-12" size="lg">
                 <Search className="mr-2 h-5 w-5" />
                 搜尋空房
               </Button>
@@ -256,9 +253,9 @@ const Booking = () => {
                 { icon: Clock3, title: "全天服務", desc: "24小時貼心服務，隨時為您提供協助與支援" },
                 { icon: Shield, title: "安心保障", desc: "完善的安全設施與衛生標準，讓您住得安心" },
               ].map((item, index) => (
-                <Card key={index} className="hover:shadow-lg transition-shadow border-[#2F7257]/10">
+                <Card key={index} className="hover:shadow-lg transition-shadow">
                   <CardContent className="pt-8 pb-6 text-center">
-                    <item.icon className="h-14 w-14 mx-auto mb-4 text-[#2F7257]" />
+                    <item.icon className="h-14 w-14 mx-auto mb-4 text-primary" />
                     <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
                     <p className="text-sm text-muted-foreground">{item.desc}</p>
                   </CardContent>
@@ -269,7 +266,7 @@ const Booking = () => {
             <div className="grid md:grid-cols-2 gap-8">
               <div>
                 <h3 className="font-semibold text-xl mb-6 flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-[#2F7257]" />
+                  <Sparkles className="h-5 w-5 text-primary" />
                   設施與服務
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
@@ -279,8 +276,8 @@ const Booking = () => {
                     { icon: Clock, text: "24小時櫃台服務" },
                     { icon: Coffee, text: "迎賓茶水服務" },
                   ].map((item, index) => (
-                    <div key={index} className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#2F7257]/5 transition-colors">
-                      <item.icon className="h-5 w-5 text-[#2F7257] flex-shrink-0" />
+                    <div key={index} className="flex items-center gap-3 p-3 rounded-lg hover:bg-primary/5 transition-colors">
+                      <item.icon className="h-5 w-5 text-primary flex-shrink-0" />
                       <span className="text-sm">{item.text}</span>
                     </div>
                   ))}
@@ -292,7 +289,7 @@ const Booking = () => {
       </section>
 
       {/* 房型導覽 */}
-      <section id="rooms" className="py-20 bg-[#2F7257]/5">
+      <section id="rooms" className="py-20 bg-secondary/30">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-4xl font-bold text-center mb-4">房型導覽</h2>
@@ -312,24 +309,24 @@ const Booking = () => {
                   </div>
                   <CardContent className="p-6">
                     <div className="flex items-center gap-2 mb-3">
-                      <Users className="h-4 w-4 text-[#2F7257]" />
+                      <Users className="h-4 w-4 text-primary" />
                       <span className="text-sm text-muted-foreground">{room.capacity}人</span>
                     </div>
                     <h3 className="text-2xl font-semibold mb-2">{room.name}</h3>
-                    <p className="text-sm text-[#2F7257] mb-4">{room.name_en}</p>
+                    <p className="text-sm text-primary mb-4">{room.name_en}</p>
                     <p className="text-sm mb-6 text-muted-foreground">{room.description}</p>
                     
                     <div className="flex flex-wrap gap-2 mb-6">
-                      <Badge variant="secondary" className="bg-[#2F7257]/10 text-[#2F7257] hover:bg-[#2F7257]/20">
+                      <Badge variant="secondary">
                         {room.capacity}人
                       </Badge>
-                      <Badge variant="secondary" className="bg-[#2F7257]/10 text-[#2F7257] hover:bg-[#2F7257]/20">
+                      <Badge variant="secondary">
                         {room.size_sqm}㎡
                       </Badge>
-                      <Badge variant="secondary" className="bg-[#2F7257]/10 text-[#2F7257] hover:bg-[#2F7257]/20">
+                      <Badge variant="secondary">
                         山景陽台
                       </Badge>
-                      <Badge variant="secondary" className="bg-[#2F7257]/10 text-[#2F7257] hover:bg-[#2F7257]/20">
+                      <Badge variant="secondary">
                         免費WiFi
                       </Badge>
                     </div>
@@ -339,11 +336,11 @@ const Booking = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-muted-foreground mb-1">起價</p>
-                        <p className="text-3xl font-bold text-[#2F7257]">
+                        <p className="text-3xl font-bold text-primary">
                           NT$ {room.base_price.toLocaleString()}
                         </p>
                       </div>
-                      <Button className="bg-[#2F7257] hover:bg-[#265943]">
+                      <Button className="bg-primary hover:bg-primary/90">
                         立即預訂
                       </Button>
                     </div>
@@ -365,10 +362,10 @@ const Booking = () => {
             </p>
 
             <div className="grid md:grid-cols-2 gap-6">
-              <Card className="border-[#2F7257]/20">
+              <Card>
                 <CardContent className="pt-6">
                   <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-[#2F7257]" />
+                    <Clock className="h-5 w-5 text-primary" />
                     入住時間
                   </h3>
                   <div className="space-y-2 text-sm">
@@ -378,16 +375,16 @@ const Booking = () => {
                 </CardContent>
               </Card>
 
-              <Card className="border-[#2F7257]/20">
+              <Card>
                 <CardContent className="pt-6">
                   <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                    <CreditCard className="h-5 w-5 text-[#2F7257]" />
+                    <CreditCard className="h-5 w-5 text-primary" />
                     付款方式
                   </h3>
                   <div className="flex flex-wrap gap-2">
                     {Array.isArray(bookingSettings?.payment_methods) 
                       ? bookingSettings.payment_methods.map((method: string, index: number) => (
-                          <Badge key={index} variant="secondary" className="bg-[#2F7257]/10 text-[#2F7257]">
+                          <Badge key={index} variant="secondary">
                             {method}
                           </Badge>
                         ))
@@ -397,14 +394,14 @@ const Booking = () => {
                 </CardContent>
               </Card>
 
-              <Card className="md:col-span-2 border-[#2F7257]/20">
+              <Card className="md:col-span-2">
                 <CardContent className="pt-6">
                   <h3 className="font-semibold text-lg mb-4">取消政策</h3>
                   <p className="text-sm">{bookingSettings?.cancellation_policy}</p>
                 </CardContent>
               </Card>
 
-              <Card className="md:col-span-2 border-[#2F7257]/20">
+              <Card className="md:col-span-2">
                 <CardContent className="pt-6">
                   <h3 className="font-semibold text-lg mb-4">重要事項</h3>
                   <div className="whitespace-pre-wrap text-sm">
@@ -418,7 +415,7 @@ const Booking = () => {
       </section>
 
       {/* 交通 & 地圖 */}
-      <section id="location" className="py-20 bg-[#2F7257]/5">
+      <section id="location" className="py-20 bg-secondary/30">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-4xl font-bold text-center mb-4">交通 & 地圖</h2>
@@ -426,10 +423,10 @@ const Booking = () => {
               多種交通方式輕鬆抵達，讓您的旅程更加便利
             </p>
 
-            <Card className="border-[#2F7257]/20">
+            <Card>
               <CardContent className="pt-6">
                 <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-[#2F7257]" />
+                  <MapPin className="h-5 w-5 text-primary" />
                   位置資訊
                 </h3>
                 <p className="text-sm mb-6">{accommodationInfo?.address}</p>
@@ -446,7 +443,7 @@ const Booking = () => {
       </section>
 
       {/* 頁尾 */}
-      <footer className="bg-[#1a3a2e] text-white py-12">
+      <footer className="bg-foreground text-background py-12">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <h3 className="text-2xl font-semibold mb-6">{accommodationInfo?.name || "森山寫造"}</h3>
