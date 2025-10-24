@@ -128,6 +128,15 @@ const WebsiteContent = () => {
   const [pricingTypes, setPricingTypes] = useState<Record<string, string>>({});
   const [accommodationId, setAccommodationId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // 訂房須知狀態
+  const [bookingInfo, setBookingInfo] = useState({
+    checkInTime: "15:00",
+    checkOutTime: "11:00",
+    paymentMethods: [] as string[],
+    cancellationPolicy: "",
+    checkInNotice: ""
+  });
 
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -136,14 +145,14 @@ const WebsiteContent = () => {
     }
   }, [searchParams]);
 
-  // 加載現有設施資料
+  // 加載現有設施資料和訂房須知
   useEffect(() => {
-    const loadFacilities = async () => {
+    const loadData = async () => {
       try {
-        // 獲取 accommodation ID
+        // 獲取 accommodation ID 和入住須知
         const { data: infoData } = await supabase
           .from("accommodation_info")
-          .select("id")
+          .select("id, check_in_notice")
           .maybeSingle();
 
         if (infoData) {
@@ -170,14 +179,39 @@ const WebsiteContent = () => {
             setSelectedFacilities(selected);
             setPricingTypes(pricing);
           }
+
+          // 加載訂房設定
+          const { data: bookingSettings } = await supabase
+            .from("booking_settings")
+            .select("*")
+            .eq("accommodation_id", infoData.id)
+            .maybeSingle();
+
+          if (bookingSettings) {
+            setBookingInfo({
+              checkInTime: bookingSettings.check_in_time || "15:00",
+              checkOutTime: bookingSettings.check_out_time || "11:00",
+              paymentMethods: Array.isArray(bookingSettings.payment_methods) 
+                ? (bookingSettings.payment_methods as string[])
+                : [],
+              cancellationPolicy: bookingSettings.cancellation_policy || "",
+              checkInNotice: infoData.check_in_notice || ""
+            });
+          } else {
+            // 如果沒有設定，使用預設值但保留入住須知
+            setBookingInfo(prev => ({
+              ...prev,
+              checkInNotice: infoData.check_in_notice || ""
+            }));
+          }
         }
       } catch (error) {
-        console.error('Error loading facilities:', error);
-        toast.error('載入設施資料失敗');
+        console.error('Error loading data:', error);
+        toast.error('載入資料失敗');
       }
     };
 
-    loadFacilities();
+    loadData();
   }, []);
 
   const handleCheckboxChange = (facilityId: string, checked: boolean) => {
@@ -194,7 +228,7 @@ const WebsiteContent = () => {
     }));
   };
 
-  const handleSave = async () => {
+  const handleSaveFacilities = async () => {
     if (!accommodationId) {
       toast.error('找不到旅宿資訊');
       return;
@@ -243,6 +277,57 @@ const WebsiteContent = () => {
     }
   };
 
+  const handleSaveBookingInfo = async () => {
+    if (!accommodationId) {
+      toast.error('找不到旅宿資訊');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // 更新 booking_settings
+      const { error: bookingError } = await supabase
+        .from("booking_settings")
+        .update({
+          check_in_time: bookingInfo.checkInTime,
+          check_out_time: bookingInfo.checkOutTime,
+          payment_methods: bookingInfo.paymentMethods,
+          cancellation_policy: bookingInfo.cancellationPolicy,
+          updated_at: new Date().toISOString()
+        })
+        .eq("accommodation_id", accommodationId);
+
+      if (bookingError) throw bookingError;
+
+      // 更新 accommodation_info 的 check_in_notice
+      const { error: infoError } = await supabase
+        .from("accommodation_info")
+        .update({
+          check_in_notice: bookingInfo.checkInNotice,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", accommodationId);
+
+      if (infoError) throw infoError;
+
+      toast.success('訂房須知已保存');
+    } catch (error) {
+      console.error('Error saving booking info:', error);
+      toast.error('保存失敗，請稍後再試');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handlePaymentMethodToggle = (method: string, checked: boolean) => {
+    setBookingInfo(prev => ({
+      ...prev,
+      paymentMethods: checked
+        ? [...prev.paymentMethods, method]
+        : prev.paymentMethods.filter(m => m !== method)
+    }));
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -256,6 +341,7 @@ const WebsiteContent = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="facilities">設施與服務</TabsTrigger>
+          <TabsTrigger value="booking-info">訂房須知</TabsTrigger>
         </TabsList>
 
         <TabsContent value="facilities" className="space-y-6">
@@ -411,7 +497,7 @@ const WebsiteContent = () => {
           </Card>
 
           <div className="flex justify-end">
-            <Button onClick={handleSave} disabled={isSaving} size="lg">
+            <Button onClick={handleSaveFacilities} disabled={isSaving} size="lg">
               {isSaving ? '保存中...' : '保存設定'}
             </Button>
           </div>
