@@ -215,51 +215,46 @@ const Booking = () => {
 
         {/* 搜尋卡片 - 疊加在輪播上 */}
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-full max-w-5xl px-4">
-          <Card className="shadow-2xl bg-white border-0">
+          <Card className="shadow-2xl bg-white border-0 rounded-2xl">
             <CardContent className="p-8">
               <div className="grid md:grid-cols-3 gap-6 mb-6">
-                <div className="space-y-3">
-                  <Label className="flex items-center gap-2 text-base font-medium text-primary">
-                    <Calendar className="h-5 w-5" />
+                <div className="space-y-1">
+                  <Label className="flex items-center gap-2 text-sm font-normal text-muted-foreground">
+                    <Calendar className="h-4 w-4 text-primary" />
                     入住日期
                   </Label>
-                  <Input 
-                    type="date" 
-                    value={checkInDate}
-                    onChange={(e) => setCheckInDate(e.target.value)}
-                    className="h-12 text-base"
-                    placeholder="選擇日期"
-                  />
+                  <div className="flex items-center h-12 px-3 border rounded-md bg-background">
+                    <span className="text-base text-foreground">選擇日期</span>
+                    <Input 
+                      type="date" 
+                      value={checkInDate}
+                      onChange={(e) => setCheckInDate(e.target.value)}
+                      className="absolute opacity-0 inset-0 cursor-pointer"
+                    />
+                  </div>
                 </div>
-                <div className="space-y-3">
-                  <Label className="flex items-center gap-2 text-base font-medium text-primary">
-                    <Calendar className="h-5 w-5" />
+                <div className="space-y-1">
+                  <Label className="flex items-center gap-2 text-sm font-normal text-muted-foreground">
+                    <Calendar className="h-4 w-4 text-primary" />
                     退房日期
                   </Label>
-                  <Input 
-                    type="date" 
-                    value={checkOutDate}
-                    onChange={(e) => setCheckOutDate(e.target.value)}
-                    className="h-12 text-base"
-                    placeholder="選擇日期"
-                  />
+                  <div className="flex items-center h-12 px-3 border rounded-md bg-background">
+                    <span className="text-base text-foreground">選擇日期</span>
+                    <Input 
+                      type="date" 
+                      value={checkOutDate}
+                      onChange={(e) => setCheckOutDate(e.target.value)}
+                      className="absolute opacity-0 inset-0 cursor-pointer"
+                    />
+                  </div>
                 </div>
-                <div className="space-y-3">
-                  <Label className="flex items-center gap-2 text-base font-medium text-primary">
-                    <Users className="h-5 w-5" />
+                <div className="space-y-1">
+                  <Label className="flex items-center gap-2 text-sm font-normal text-muted-foreground">
+                    <Users className="h-4 w-4 text-primary" />
                     住宿人數
                   </Label>
-                  <div className="relative">
-                    <Input 
-                      type="number" 
-                      min="1"
-                      value={guests}
-                      onChange={(e) => setGuests(parseInt(e.target.value))}
-                      className="h-12 text-base pr-24"
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
-                      位大人
-                    </span>
+                  <div className="flex items-center h-12 px-3 border rounded-md bg-background">
+                    <span className="text-base text-foreground">{guests}位大人 · 1間客房</span>
                   </div>
                 </div>
               </div>
