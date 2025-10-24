@@ -4,6 +4,7 @@ import { ConditionalLayout } from "@/components/ConditionalLayout";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Reception from "./pages/Reception";
+import WebsiteContent from "./pages/WebsiteContent";
 import Orders from "./pages/Orders";
 import BasicInfo from "./pages/BasicInfo";
 import Pricing from "./pages/Pricing";
@@ -22,6 +23,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/admin" element={<Dashboard />} />
           <Route path="/admin/reception" element={<Reception />} />
+          <Route path="/admin/website-content" element={<WebsiteContent />} />
           <Route path="/admin/orders" element={<Orders />} />
           <Route path="/admin/basic-info" element={<BasicInfo />} />
           <Route path="/admin/pricing" element={<Pricing />} />

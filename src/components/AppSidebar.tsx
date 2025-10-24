@@ -8,7 +8,8 @@ import {
   BarChart3, 
   Settings,
   Tag,
-  ChevronDown
+  ChevronDown,
+  Globe
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import logo from "@/assets/logo.jpg";
@@ -39,6 +40,7 @@ const menuItems = [
       { title: "房況表", url: "/admin/reception?tab=status" },
     ]
   },
+  { title: "官網內容", url: "/admin/website-content", icon: Globe },
   { 
     title: "基本資訊", 
     url: "/admin/basic-info", 
