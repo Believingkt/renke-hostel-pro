@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Mountain, Sparkles, Clock3, Shield, Wifi, ParkingCircle, Clock, Coffee } from "lucide-react";
+import { Mountain, Sparkles, Clock3, Shield } from "lucide-react";
 
 interface AboutSectionProps {
   description?: string;
@@ -32,28 +32,6 @@ const AboutSection = ({ description = "森山寫造位於寧靜的山區，是�
                 </CardContent>
               </Card>
             ))}
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6 md:gap-8">
-            <div>
-              <h3 className="font-semibold text-lg md:text-xl mb-4 md:mb-6 flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
-                設施與服務
-              </h3>
-              <div className="grid grid-cols-2 gap-3 md:gap-4">
-                {[
-                  { icon: Wifi, text: "免費無線網路" },
-                  { icon: ParkingCircle, text: "免費停車場" },
-                  { icon: Clock, text: "24小時櫃台服務" },
-                  { icon: Coffee, text: "迎賓茶水服務" },
-                ].map((item, index) => (
-                  <div key={index} className="flex items-center gap-2 md:gap-3 p-2 md:p-3 rounded-lg hover:bg-primary/5 transition-colors">
-                    <item.icon className="h-4 w-4 md:h-5 md:w-5 text-primary flex-shrink-0" />
-                    <span className="text-xs md:text-sm">{item.text}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
         </div>
       </div>
