@@ -42,14 +42,14 @@ const FacilitiesSection = ({ facilities }: FacilitiesSectionProps) => {
           <p className="text-muted-foreground">完善的設施與貼心的服務，讓您的住宿體驗更加舒適</p>
         </div>
 
-        <div className="space-y-8 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
           {Object.entries(groupedFacilities).map(([category, items]) => (
             <Card key={category}>
               <CardContent className="p-6">
-                <h3 className="text-2xl font-semibold mb-6">
+                <h3 className="text-xl font-semibold mb-4">
                   {categoryNames[category] || category}
                 </h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {items.map((facility) => (
                     <div key={facility.id} className="flex items-start gap-2">
                       <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
