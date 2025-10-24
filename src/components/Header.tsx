@@ -21,8 +21,7 @@ export function Header() {
           
           <div className="flex items-center gap-2 md:gap-3">
             <Avatar className="h-8 w-8 md:h-10 md:w-10">
-              <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin" />
-              <AvatarFallback className="text-xs md:text-sm">管理</AvatarFallback>
+              <AvatarFallback className="text-xs md:text-sm bg-primary/10 text-primary">管理</AvatarFallback>
             </Avatar>
             <div className="hidden lg:block">
               <p className="text-sm font-medium">您好, nokimi</p>
