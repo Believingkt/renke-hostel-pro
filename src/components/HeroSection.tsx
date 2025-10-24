@@ -39,6 +39,7 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
   const [children, setChildren] = useState(0);
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
+  const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set([0]));
 
   useEffect(() => {
     if (!carouselApi) return;
@@ -46,8 +47,20 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
     setCurrent(carouselApi.selectedScrollSnap());
 
     carouselApi.on("select", () => {
-      setCurrent(carouselApi.selectedScrollSnap());
+      const index = carouselApi.selectedScrollSnap();
+      setCurrent(index);
+      
+      // 预加载下一张图片
+      const nextIndex = (index + 1) % 3;
+      setLoadedImages(prev => new Set([...prev, index, nextIndex]));
     });
+    
+    // 预加载第二张图片
+    const timer = setTimeout(() => {
+      setLoadedImages(prev => new Set([...prev, 1]));
+    }, 1000);
+    
+    return () => clearTimeout(timer);
   }, [carouselApi]);
 
   return (
@@ -88,7 +101,6 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
                     decoding="sync"
                     width="1920"
                     height="700"
-                    style={{ opacity: current === 0 ? 1 : 0.95 }}
                   />
                 </picture>
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center transition-all duration-700">
@@ -108,18 +120,21 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
             </CarouselItem>
             <CarouselItem className="pl-0">
               <div className="relative h-[500px] md:h-[700px] w-full bg-muted">
-                <picture>
-                  <img 
-                    src={heroSlide2} 
-                    alt="山景 2"
-                    className="w-full h-full object-cover transition-opacity duration-700"
-                    loading="lazy"
-                    decoding="async"
-                    width="1920"
-                    height="700"
-                    style={{ opacity: current === 1 ? 1 : 0.95 }}
-                  />
-                </picture>
+                {loadedImages.has(1) ? (
+                  <picture>
+                    <img 
+                      src={heroSlide2} 
+                      alt="山景 2"
+                      className="w-full h-full object-cover transition-opacity duration-700"
+                      loading="lazy"
+                      decoding="async"
+                      width="1920"
+                      height="700"
+                    />
+                  </picture>
+                ) : (
+                  <div className="w-full h-full bg-muted animate-pulse" />
+                )}
                 <div className="absolute inset-0 bg-black/40 transition-all duration-700 flex items-center justify-center">
                   <div className="text-center text-white space-y-2 md:space-y-4 max-w-4xl px-4 pb-32 md:pb-56">
                     <h1 className="text-3xl md:text-7xl font-bold animate-fade-in drop-shadow-lg">
@@ -137,18 +152,21 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
             </CarouselItem>
             <CarouselItem className="pl-0">
               <div className="relative h-[500px] md:h-[700px] w-full bg-muted">
-                <picture>
-                  <img 
-                    src={heroSlide3} 
-                    alt="山景 3"
-                    className="w-full h-full object-cover transition-opacity duration-700"
-                    loading="lazy"
-                    decoding="async"
-                    width="1920"
-                    height="700"
-                    style={{ opacity: current === 2 ? 1 : 0.95 }}
-                  />
-                </picture>
+                {loadedImages.has(2) ? (
+                  <picture>
+                    <img 
+                      src={heroSlide3} 
+                      alt="山景 3"
+                      className="w-full h-full object-cover transition-opacity duration-700"
+                      loading="lazy"
+                      decoding="async"
+                      width="1920"
+                      height="700"
+                    />
+                  </picture>
+                ) : (
+                  <div className="w-full h-full bg-muted animate-pulse" />
+                )}
                 <div className="absolute inset-0 bg-black/40 transition-all duration-700 flex items-center justify-center">
                   <div className="text-center text-white space-y-2 md:space-y-4 max-w-4xl px-4 pb-32 md:pb-56">
                     <h1 className="text-3xl md:text-7xl font-bold animate-fade-in drop-shadow-lg">
