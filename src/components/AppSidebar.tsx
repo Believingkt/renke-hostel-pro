@@ -61,7 +61,7 @@ const menuItems = [
     ]
   },
   { 
-    title: "房型價格庫存管理", 
+    title: "房型價格庫存", 
     url: "/admin/pricing", 
     icon: DollarSign,
     subItems: [
