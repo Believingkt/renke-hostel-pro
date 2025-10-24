@@ -120,7 +120,19 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
                     style={{ opacity: current === 1 ? 1 : 0.95 }}
                   />
                 </picture>
-                <div className="absolute inset-0 bg-black/40 transition-all duration-700" />
+                <div className="absolute inset-0 bg-black/40 transition-all duration-700 flex items-center justify-center">
+                  <div className="text-center text-white space-y-2 md:space-y-4 max-w-4xl px-4 pb-32 md:pb-56">
+                    <h1 className="text-3xl md:text-7xl font-bold animate-fade-in drop-shadow-lg">
+                      {accommodationName}
+                    </h1>
+                    <p className="text-lg md:text-3xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.2s" }}>
+                      山間的寧靜時光
+                    </p>
+                    <p className="text-base md:text-xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.4s" }}>
+                      體驗日式美學與自然的完美融合
+                    </p>
+                  </div>
+                </div>
               </div>
             </CarouselItem>
             <CarouselItem className="pl-0">
@@ -137,7 +149,19 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
                     style={{ opacity: current === 2 ? 1 : 0.95 }}
                   />
                 </picture>
-                <div className="absolute inset-0 bg-black/40 transition-all duration-700" />
+                <div className="absolute inset-0 bg-black/40 transition-all duration-700 flex items-center justify-center">
+                  <div className="text-center text-white space-y-2 md:space-y-4 max-w-4xl px-4 pb-32 md:pb-56">
+                    <h1 className="text-3xl md:text-7xl font-bold animate-fade-in drop-shadow-lg">
+                      {accommodationName}
+                    </h1>
+                    <p className="text-lg md:text-3xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.2s" }}>
+                      山間的寧靜時光
+                    </p>
+                    <p className="text-base md:text-xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.4s" }}>
+                      體驗日式美學與自然的完美融合
+                    </p>
+                  </div>
+                </div>
               </div>
             </CarouselItem>
           </CarouselContent>
