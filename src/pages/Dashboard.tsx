@@ -1,7 +1,7 @@
 import { Hotel, Users, Calendar, DollarSign } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import Footer from "@/components/Footer";
+
 import {
   LineChart,
   Line,
@@ -184,7 +184,7 @@ const Dashboard = () => {
         </CardContent>
       </Card>
 
-      <Footer />
+      
     </div>
   );
 };
