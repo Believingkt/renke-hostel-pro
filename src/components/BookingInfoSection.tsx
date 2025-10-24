@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Clock, CreditCard } from "lucide-react";
+import { Clock, CreditCard, FileText, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface BookingSettings {
@@ -54,32 +54,30 @@ const BookingInfoSection = () => {
             為確保您有愉快的住宿體驗，請詳閱以下訂房相關資訊
           </p>
 
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <Card>
               <CardContent className="pt-6">
-                <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-primary" />
-                  入住時間
-                </h3>
-                <div className="space-y-2 text-sm">
-                  <p><strong>入住：</strong>{bookingSettings?.check_in_time} 之後</p>
-                  <p><strong>退房：</strong>{bookingSettings?.check_out_time} 之前</p>
+                <div className="flex items-center gap-2 mb-4">
+                  <Clock className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="font-semibold text-lg mb-4">入住時間</h3>
+                <div className="space-y-1 text-sm text-muted-foreground">
+                  <p>入住：{bookingSettings?.check_in_time} 之後</p>
+                  <p>退房：{bookingSettings?.check_out_time} 之前</p>
                 </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardContent className="pt-6">
-                <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                  <CreditCard className="h-5 w-5 text-primary" />
-                  付款方式
-                </h3>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex items-center gap-2 mb-4">
+                  <CreditCard className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="font-semibold text-lg mb-4">付款方式</h3>
+                <div className="space-y-1 text-sm text-muted-foreground">
                   {Array.isArray(bookingSettings?.payment_methods) 
                     ? bookingSettings.payment_methods.map((method: string, index: number) => (
-                        <Badge key={index} variant="secondary">
-                          {method}
-                        </Badge>
+                        <p key={index}>{method}</p>
                       ))
                     : null
                   }
@@ -87,18 +85,30 @@ const BookingInfoSection = () => {
               </CardContent>
             </Card>
 
-            <Card className="md:col-span-2">
+            <Card>
               <CardContent className="pt-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <FileText className="h-6 w-6 text-primary" />
+                </div>
                 <h3 className="font-semibold text-lg mb-4">取消政策</h3>
-                <p className="text-sm">{bookingSettings?.cancellation_policy}</p>
+                <div className="space-y-1 text-sm text-muted-foreground">
+                  {bookingSettings?.cancellation_policy?.split('\n').map((line: string, index: number) => (
+                    <p key={index}>{line}</p>
+                  ))}
+                </div>
               </CardContent>
             </Card>
 
-            <Card className="md:col-span-2">
+            <Card>
               <CardContent className="pt-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Info className="h-6 w-6 text-primary" />
+                </div>
                 <h3 className="font-semibold text-lg mb-4">重要事項</h3>
-                <div className="whitespace-pre-wrap text-sm">
-                  {accommodationInfo?.check_in_notice}
+                <div className="space-y-1 text-sm text-muted-foreground">
+                  {accommodationInfo?.check_in_notice?.split('\n').map((line: string, index: number) => (
+                    <p key={index}>{line}</p>
+                  ))}
                 </div>
               </CardContent>
             </Card>
