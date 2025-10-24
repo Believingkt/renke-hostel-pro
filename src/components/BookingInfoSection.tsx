@@ -46,21 +46,21 @@ const BookingInfoSection = () => {
   };
 
   return (
-    <section id="booking-info" className="py-20">
+    <section id="booking-info" className="py-12 md:py-20">
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-4xl font-bold text-center mb-4">訂房須知</h2>
-          <p className="text-center text-muted-foreground mb-16 text-lg">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-3 md:mb-4">訂房須知</h2>
+          <p className="text-center text-muted-foreground mb-8 md:mb-16 text-base md:text-lg">
             為確保您有愉快的住宿體驗，請詳閱以下訂房相關資訊
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
             <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <Clock className="h-6 w-6 text-primary" />
+              <CardContent className="pt-4 md:pt-6">
+                <div className="flex items-center gap-2 mb-3 md:mb-4">
+                  <Clock className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                 </div>
-                <h3 className="font-semibold text-lg mb-4">入住時間</h3>
+                <h3 className="font-semibold text-base md:text-lg mb-3 md:mb-4">入住時間</h3>
                 <div className="space-y-1 text-sm text-muted-foreground">
                   <p>入住：{bookingSettings?.check_in_time} 之後</p>
                   <p>退房：{bookingSettings?.check_out_time} 之前</p>
@@ -69,11 +69,11 @@ const BookingInfoSection = () => {
             </Card>
 
             <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <CreditCard className="h-6 w-6 text-primary" />
+              <CardContent className="pt-4 md:pt-6">
+                <div className="flex items-center gap-2 mb-3 md:mb-4">
+                  <CreditCard className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                 </div>
-                <h3 className="font-semibold text-lg mb-4">付款方式</h3>
+                <h3 className="font-semibold text-base md:text-lg mb-3 md:mb-4">付款方式</h3>
                 <div className="space-y-1 text-sm text-muted-foreground">
                   {Array.isArray(bookingSettings?.payment_methods) 
                     ? bookingSettings.payment_methods.map((method: string, index: number) => (
@@ -86,11 +86,11 @@ const BookingInfoSection = () => {
             </Card>
 
             <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <FileText className="h-6 w-6 text-primary" />
+              <CardContent className="pt-4 md:pt-6">
+                <div className="flex items-center gap-2 mb-3 md:mb-4">
+                  <FileText className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                 </div>
-                <h3 className="font-semibold text-lg mb-4">取消政策</h3>
+                <h3 className="font-semibold text-base md:text-lg mb-3 md:mb-4">取消政策</h3>
                 <div className="space-y-1 text-sm text-muted-foreground">
                   {bookingSettings?.cancellation_policy?.split('\n').map((line: string, index: number) => (
                     <p key={index}>{line}</p>
@@ -100,11 +100,11 @@ const BookingInfoSection = () => {
             </Card>
 
             <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <Info className="h-6 w-6 text-primary" />
+              <CardContent className="pt-4 md:pt-6">
+                <div className="flex items-center gap-2 mb-3 md:mb-4">
+                  <Info className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                 </div>
-                <h3 className="font-semibold text-lg mb-4">重要事項</h3>
+                <h3 className="font-semibold text-base md:text-lg mb-3 md:mb-4">重要事項</h3>
                 <div className="space-y-1 text-sm text-muted-foreground">
                   {accommodationInfo?.check_in_notice?.split('\n').map((line: string, index: number) => (
                     <p key={index}>{line}</p>
@@ -115,13 +115,13 @@ const BookingInfoSection = () => {
           </div>
 
           {/* 常見問題區塊 */}
-          <div className="mt-16">
-            <h3 className="text-2xl font-bold mb-8">常見問題</h3>
+          <div className="mt-8 md:mt-16">
+            <h3 className="text-xl md:text-2xl font-bold mb-6 md:mb-8">常見問題</h3>
             <Card className="border rounded-lg overflow-hidden">
               <CardContent className="p-0">
                 <Accordion type="single" collapsible className="w-full">
-                  <AccordionItem value="item-1" className="border-b last:border-b-0 px-6">
-                    <AccordionTrigger className="text-left font-semibold py-6 hover:no-underline">
+                  <AccordionItem value="item-1" className="border-b last:border-b-0 px-4 md:px-6">
+                    <AccordionTrigger className="text-left font-semibold text-sm md:text-base py-4 md:py-6 hover:no-underline">
                       如何預訂房間？
                     </AccordionTrigger>
                     <AccordionContent className="text-muted-foreground pb-6">
@@ -129,8 +129,8 @@ const BookingInfoSection = () => {
                     </AccordionContent>
                   </AccordionItem>
 
-                  <AccordionItem value="item-2" className="border-b last:border-b-0 px-6">
-                    <AccordionTrigger className="text-left font-semibold py-6 hover:no-underline">
+                  <AccordionItem value="item-2" className="border-b last:border-b-0 px-4 md:px-6">
+                    <AccordionTrigger className="text-left font-semibold text-sm md:text-base py-4 md:py-6 hover:no-underline">
                       是否提供機場接送服務？
                     </AccordionTrigger>
                     <AccordionContent className="text-muted-foreground pb-6">
@@ -138,8 +138,8 @@ const BookingInfoSection = () => {
                     </AccordionContent>
                   </AccordionItem>
 
-                  <AccordionItem value="item-3" className="border-b last:border-b-0 px-6">
-                    <AccordionTrigger className="text-left font-semibold py-6 hover:no-underline">
+                  <AccordionItem value="item-3" className="border-b last:border-b-0 px-4 md:px-6">
+                    <AccordionTrigger className="text-left font-semibold text-sm md:text-base py-4 md:py-6 hover:no-underline">
                       可以攜帶寵物嗎？
                     </AccordionTrigger>
                     <AccordionContent className="text-muted-foreground pb-6">
@@ -147,8 +147,8 @@ const BookingInfoSection = () => {
                     </AccordionContent>
                   </AccordionItem>
 
-                  <AccordionItem value="item-4" className="border-b last:border-b-0 px-6">
-                    <AccordionTrigger className="text-left font-semibold py-6 hover:no-underline">
+                  <AccordionItem value="item-4" className="border-b last:border-b-0 px-4 md:px-6">
+                    <AccordionTrigger className="text-left font-semibold text-sm md:text-base py-4 md:py-6 hover:no-underline">
                       房間內有提供什麼設施？
                     </AccordionTrigger>
                     <AccordionContent className="text-muted-foreground pb-6">
@@ -156,8 +156,8 @@ const BookingInfoSection = () => {
                     </AccordionContent>
                   </AccordionItem>
 
-                  <AccordionItem value="item-5" className="border-b-0 px-6">
-                    <AccordionTrigger className="text-left font-semibold py-6 hover:no-underline">
+                  <AccordionItem value="item-5" className="border-b-0 px-4 md:px-6">
+                    <AccordionTrigger className="text-left font-semibold text-sm md:text-base py-4 md:py-6 hover:no-underline">
                       如何修改或取消訂房？
                     </AccordionTrigger>
                     <AccordionContent className="text-muted-foreground pb-6">

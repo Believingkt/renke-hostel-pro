@@ -32,44 +32,44 @@ const ReviewsSection = () => {
   const totalReviews = 4;
 
   return (
-    <section className="py-20 bg-muted/30">
+    <section className="py-12 md:py-20 bg-muted/30">
       <div className="container mx-auto px-4">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-4xl font-bold text-center mb-6">旅客評價</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 md:mb-6">旅客評價</h2>
           
           {/* Rating Summary */}
-          <div className="text-center mb-12">
+          <div className="text-center mb-8 md:mb-12">
             <div className="flex items-center justify-center gap-2 mb-2">
-              <span className="text-5xl font-bold text-primary">{averageRating}</span>
-              <div className="flex gap-1">
+              <span className="text-4xl md:text-5xl font-bold text-primary">{averageRating}</span>
+              <div className="flex gap-0.5 md:gap-1">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Star
                     key={star}
-                    className="w-8 h-8 fill-primary text-primary"
+                    className="w-6 h-6 md:w-8 md:h-8 fill-primary text-primary"
                   />
                 ))}
               </div>
             </div>
-            <p className="text-muted-foreground">來自 {totalReviews} 則評論</p>
+            <p className="text-sm md:text-base text-muted-foreground">來自 {totalReviews} 則評論</p>
           </div>
 
           {/* Reviews Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             {reviews.map((review, index) => (
               <div
                 key={index}
-                className="bg-card p-6 rounded-lg border border-border hover:shadow-lg transition-shadow"
+                className="bg-card p-4 md:p-6 rounded-lg border border-border hover:shadow-lg transition-shadow"
               >
-                <div className="flex items-start justify-between mb-4">
+                <div className="flex items-start justify-between mb-3 md:mb-4">
                   <div>
-                    <h3 className="font-semibold text-lg">{review.name}</h3>
-                    <p className="text-sm text-muted-foreground">{review.date}</p>
+                    <h3 className="font-semibold text-base md:text-lg">{review.name}</h3>
+                    <p className="text-xs md:text-sm text-muted-foreground">{review.date}</p>
                   </div>
                   <div className="flex gap-0.5">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Star
                         key={star}
-                        className={`w-5 h-5 ${
+                        className={`w-4 h-4 md:w-5 md:h-5 ${
                           star <= review.rating
                             ? "fill-primary text-primary"
                             : "fill-muted text-muted"
@@ -78,7 +78,7 @@ const ReviewsSection = () => {
                     ))}
                   </div>
                 </div>
-                <p className="text-foreground leading-relaxed">{review.comment}</p>
+                <p className="text-sm md:text-base text-foreground leading-relaxed">{review.comment}</p>
               </div>
             ))}
           </div>

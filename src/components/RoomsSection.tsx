@@ -51,15 +51,15 @@ const RoomsSection = () => {
   };
 
   return (
-    <section id="rooms" className="py-20 bg-secondary/30">
+    <section id="rooms" className="py-12 md:py-20 bg-secondary/30">
       <div className="container mx-auto px-4">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-4xl font-bold text-center mb-4">房型導覽</h2>
-          <p className="text-center text-muted-foreground mb-16 text-lg">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-3 md:mb-4">房型導覽</h2>
+          <p className="text-center text-muted-foreground mb-8 md:mb-16 text-base md:text-lg">
             精心設計的客房空間，讓您在山林間享受寧靜舒適的住宿體驗
           </p>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
             {roomTypes.map((room) => (
               <Card key={room.id} className="overflow-hidden hover:shadow-xl transition-shadow group border rounded-xl bg-card">
                 <div className="aspect-[4/3] overflow-hidden relative">
@@ -72,10 +72,10 @@ const RoomsSection = () => {
                     {room.capacity}人
                   </div>
                 </div>
-                <CardContent className="p-6">
-                  <h3 className="text-2xl font-bold mb-1 text-foreground">{room.name}</h3>
-                  <p className="text-sm text-muted-foreground mb-4">{room.name_en}</p>
-                  <p className="text-sm mb-6 text-muted-foreground leading-relaxed">{room.description}</p>
+                <CardContent className="p-4 md:p-6">
+                  <h3 className="text-xl md:text-2xl font-bold mb-1 text-foreground">{room.name}</h3>
+                  <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4">{room.name_en}</p>
+                  <p className="text-sm mb-4 md:mb-6 text-muted-foreground leading-relaxed">{room.description}</p>
                   
                   <div className="flex items-center gap-3 mb-6 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">

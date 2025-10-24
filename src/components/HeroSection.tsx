@@ -48,21 +48,21 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
           <CarouselContent>
             {[heroSlide1, heroSlide2, heroSlide3].map((img, index) => (
               <CarouselItem key={index}>
-                <div className="relative h-[600px] md:h-[700px] w-full">
+                <div className="relative h-[500px] md:h-[700px] w-full">
                   <img 
                     src={img} 
                     alt={`山景 ${index + 1}`}
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                    <div className="text-center text-white space-y-4 max-w-4xl px-4 pb-52 md:pb-56">
-                      <h1 className="text-5xl md:text-7xl font-bold animate-fade-in drop-shadow-lg">
+                    <div className="text-center text-white space-y-2 md:space-y-4 max-w-4xl px-4 pb-32 md:pb-56">
+                      <h1 className="text-3xl md:text-7xl font-bold animate-fade-in drop-shadow-lg">
                         {accommodationName}
                       </h1>
-                      <p className="text-2xl md:text-3xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.2s" }}>
+                      <p className="text-lg md:text-3xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.2s" }}>
                         山間的寧靜時光
                       </p>
-                      <p className="text-lg md:text-xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.4s" }}>
+                      <p className="text-base md:text-xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.4s" }}>
                         體驗日式美學與自然的完美融合
                       </p>
                     </div>
@@ -73,7 +73,7 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
           </CarouselContent>
           
           {/* 輪播指示器（圓點） - 在圖片底部 */}
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+          <div className="absolute bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-10">
             {[0, 1, 2].map((index) => (
               <button
                 key={index}
@@ -90,14 +90,14 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
         </Carousel>
 
         {/* 搜尋卡片 - 位於文字和輪播指示器之間 */}
-        <div className="absolute bottom-[120px] md:bottom-[140px] left-1/2 -translate-x-1/2 w-full max-w-5xl px-4 z-30">
-          <Card className="shadow-2xl bg-white/95 backdrop-blur-sm border-0 rounded-2xl">
-            <CardContent className="p-6 md:p-8">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="absolute bottom-[60px] md:bottom-[140px] left-1/2 -translate-x-1/2 w-full max-w-5xl px-4 z-30">
+          <Card className="shadow-2xl bg-white/95 backdrop-blur-sm border-0 rounded-xl md:rounded-2xl">
+            <CardContent className="p-4 md:p-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-3 md:mb-4">
                 {/* 入住日期 */}
                 <Popover>
                   <PopoverTrigger asChild>
-                    <button className="flex items-center h-16 px-4 border-2 border-border rounded-lg bg-background hover:border-primary/50 transition-colors text-left w-full">
+                    <button className="flex items-center h-12 md:h-16 px-3 md:px-4 border-2 border-border rounded-lg bg-background hover:border-primary/50 transition-colors text-left w-full">
                       <CalendarIcon className="h-5 w-5 text-muted-foreground mr-3 flex-shrink-0" />
                       <div className="flex flex-col">
                         <span className="text-xs text-muted-foreground">入住日期</span>
@@ -215,7 +215,7 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
               </div>
 
               {/* 搜尋按鈕 */}
-              <Button className="w-full bg-green-600 hover:bg-green-700 text-white text-base h-14 font-medium rounded-lg shadow-md hover:shadow-lg transition-all">
+              <Button className="w-full bg-green-600 hover:bg-green-700 text-white text-sm md:text-base h-11 md:h-14 font-medium rounded-lg shadow-md hover:shadow-lg transition-all">
                 <Search className="mr-2 h-5 w-5" />
                 搜尋空房
               </Button>

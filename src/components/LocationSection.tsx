@@ -26,11 +26,11 @@ const LocationSection = () => {
   };
 
   return (
-    <section id="location" className="py-20 bg-secondary/30">
+    <section id="location" className="py-12 md:py-20 bg-secondary/30">
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-4xl font-bold text-center mb-4">交通 & 地圖</h2>
-          <p className="text-center text-muted-foreground mb-16 text-lg">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-3 md:mb-4">交通 & 地圖</h2>
+          <p className="text-center text-muted-foreground mb-8 md:mb-16 text-base md:text-lg">
             如何前往森山寫造
           </p>
 
