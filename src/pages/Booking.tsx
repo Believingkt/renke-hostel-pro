@@ -329,8 +329,8 @@ const Booking = () => {
 
             <div className="grid md:grid-cols-3 gap-8">
               {roomTypes.map((room) => (
-                <Card key={room.id} className="overflow-hidden hover:shadow-xl transition-shadow group">
-                  <div className="aspect-[4/3] overflow-hidden">
+                <Card key={room.id} className="overflow-hidden hover:shadow-xl transition-shadow group border-0 rounded-2xl">
+                  <div className="aspect-[4/3] overflow-hidden rounded-t-2xl">
                     <img 
                       src={roomImages[room.name] || roomStandard} 
                       alt={room.name}
@@ -339,38 +339,30 @@ const Booking = () => {
                   </div>
                   <CardContent className="p-6">
                     <div className="flex items-center gap-2 mb-3">
-                      <Users className="h-4 w-4 text-primary" />
-                      <span className="text-sm text-muted-foreground">{room.capacity}人</span>
+                      <Users className="h-5 w-5 text-primary" />
+                      <span className="text-sm text-primary font-medium">{room.capacity}人</span>
                     </div>
-                    <h3 className="text-2xl font-semibold mb-2">{room.name}</h3>
-                    <p className="text-sm text-primary mb-4">{room.name_en}</p>
-                    <p className="text-sm mb-6 text-muted-foreground">{room.description}</p>
+                    <h3 className="text-2xl font-bold mb-2 text-foreground">{room.name}</h3>
+                    <p className="text-base text-primary mb-4 font-normal">{room.name_en}</p>
+                    <p className="text-sm mb-6 text-muted-foreground leading-relaxed">{room.description}</p>
                     
-                    <div className="flex flex-wrap gap-2 mb-6">
-                      <Badge variant="secondary">
-                        {room.capacity}人
-                      </Badge>
-                      <Badge variant="secondary">
-                        {room.size_sqm}㎡
-                      </Badge>
-                      <Badge variant="secondary">
-                        山景陽台
-                      </Badge>
-                      <Badge variant="secondary">
-                        免費WiFi
-                      </Badge>
+                    <div className="flex items-center gap-4 mb-6 text-sm text-foreground font-medium">
+                      <span>{room.capacity}人</span>
+                      <span>{room.size_sqm}㎡</span>
+                      <span>山景陽台</span>
+                      <span>免費WiFi</span>
                     </div>
 
-                    <Separator className="my-4" />
+                    <Separator className="my-6" />
                     
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-end justify-between">
                       <div>
-                        <p className="text-sm text-muted-foreground mb-1">起價</p>
+                        <p className="text-sm text-muted-foreground mb-2">起價</p>
                         <p className="text-3xl font-bold text-primary">
                           NT$ {room.base_price.toLocaleString()}
                         </p>
                       </div>
-                      <Button className="bg-primary hover:bg-primary/90">
+                      <Button className="bg-primary hover:bg-primary/90 rounded-lg px-6 h-11 font-medium">
                         立即預訂
                       </Button>
                     </div>
