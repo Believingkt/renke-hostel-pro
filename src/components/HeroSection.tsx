@@ -1,11 +1,15 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import type { CarouselApi } from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
-import { Calendar, Users, Search } from "lucide-react";
+import { Calendar as CalendarIcon, Users, Search } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { zhTW } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 import heroSlide1 from "@/assets/hero-slide-1.jpg";
 import heroSlide2 from "@/assets/hero-slide-2.jpg";
 import heroSlide3 from "@/assets/hero-slide-3.jpg";
@@ -15,9 +19,10 @@ interface HeroSectionProps {
 }
 
 const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) => {
-  const [checkInDate, setCheckInDate] = useState("");
-  const [checkOutDate, setCheckOutDate] = useState("");
-  const [guests, setGuests] = useState(2);
+  const [checkInDate, setCheckInDate] = useState<Date>();
+  const [checkOutDate, setCheckOutDate] = useState<Date>();
+  const [adults, setAdults] = useState(2);
+  const [children, setChildren] = useState(0);
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
 
@@ -90,53 +95,127 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
             <CardContent className="p-6 md:p-8">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 {/* 入住日期 */}
-                <div className="relative">
-                  <div className="flex items-center h-14 px-4 border-2 border-border rounded-lg bg-background hover:border-primary/50 transition-colors cursor-pointer">
-                    <Calendar className="h-5 w-5 text-muted-foreground mr-3 flex-shrink-0" />
-                    <div className="flex flex-col">
-                      <span className="text-xs text-muted-foreground">入住日期</span>
-                      <span className="text-sm text-foreground">選擇日期</span>
-                    </div>
-                    <Input 
-                      type="date" 
-                      value={checkInDate}
-                      onChange={(e) => setCheckInDate(e.target.value)}
-                      className="absolute opacity-0 inset-0 cursor-pointer"
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button className="flex items-center h-16 px-4 rounded-xl bg-green-500 hover:bg-green-600 transition-colors text-left w-full">
+                      <CalendarIcon className="h-6 w-6 text-white mr-3 flex-shrink-0" />
+                      <div className="flex flex-col">
+                        <span className="text-xs text-white/70 mb-0.5">入住日期</span>
+                        <span className="text-base text-white font-medium">
+                          {checkInDate ? format(checkInDate, "yyyy/MM/dd", { locale: zhTW }) : "選擇日期"}
+                        </span>
+                      </div>
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={checkInDate}
+                      onSelect={setCheckInDate}
+                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
                     />
-                  </div>
-                </div>
+                  </PopoverContent>
+                </Popover>
 
                 {/* 退房日期 */}
-                <div className="relative">
-                  <div className="flex items-center h-14 px-4 border-2 border-primary rounded-lg bg-background hover:border-primary transition-colors cursor-pointer">
-                    <Calendar className="h-5 w-5 text-muted-foreground mr-3 flex-shrink-0" />
-                    <div className="flex flex-col">
-                      <span className="text-xs text-muted-foreground">退房日期</span>
-                      <span className="text-sm text-foreground">選擇日期</span>
-                    </div>
-                    <Input 
-                      type="date" 
-                      value={checkOutDate}
-                      onChange={(e) => setCheckOutDate(e.target.value)}
-                      className="absolute opacity-0 inset-0 cursor-pointer"
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button className="flex items-center h-16 px-4 rounded-xl bg-green-500 hover:bg-green-600 transition-colors text-left w-full">
+                      <CalendarIcon className="h-6 w-6 text-white mr-3 flex-shrink-0" />
+                      <div className="flex flex-col">
+                        <span className="text-xs text-white/70 mb-0.5">退房日期</span>
+                        <span className="text-base text-white font-medium">
+                          {checkOutDate ? format(checkOutDate, "yyyy/MM/dd", { locale: zhTW }) : "選擇日期"}
+                        </span>
+                      </div>
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={checkOutDate}
+                      onSelect={setCheckOutDate}
+                      disabled={(date) => {
+                        const today = new Date(new Date().setHours(0, 0, 0, 0));
+                        if (date < today) return true;
+                        if (checkInDate && date <= checkInDate) return true;
+                        return false;
+                      }}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
                     />
-                  </div>
-                </div>
+                  </PopoverContent>
+                </Popover>
 
                 {/* 住宿人數 */}
-                <div className="relative">
-                  <div className="flex items-center h-14 px-4 border-2 border-border rounded-lg bg-background hover:border-primary/50 transition-colors cursor-pointer">
-                    <Users className="h-5 w-5 text-muted-foreground mr-3 flex-shrink-0" />
-                    <div className="flex flex-col">
-                      <span className="text-xs text-muted-foreground">住宿人數</span>
-                      <span className="text-sm text-foreground">{guests}位大人 · 1間客房</span>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button className="flex items-center h-16 px-4 rounded-xl bg-green-500 hover:bg-green-600 transition-colors text-left w-full">
+                      <Users className="h-6 w-6 text-white mr-3 flex-shrink-0" />
+                      <div className="flex flex-col">
+                        <span className="text-xs text-white/70 mb-0.5">住宿人數</span>
+                        <span className="text-base text-white font-medium">
+                          {adults}位大人{children > 0 ? ` · ${children}位兒童` : ""} · 1間客房
+                        </span>
+                      </div>
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-4" align="start">
+                    <div className="space-y-4">
+                      {/* 大人 */}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-medium text-base">大人</div>
+                          <div className="text-sm text-muted-foreground">18歲（含）或以上</div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => setAdults(Math.max(1, adults - 1))}
+                            className="w-10 h-10 rounded-lg border-2 border-green-600 text-green-600 hover:bg-green-50 transition-colors flex items-center justify-center font-medium"
+                          >
+                            -
+                          </button>
+                          <span className="w-8 text-center font-medium">{adults}</span>
+                          <button
+                            onClick={() => setAdults(Math.min(10, adults + 1))}
+                            className="w-10 h-10 rounded-lg border-2 border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center font-medium"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* 兒童 */}
+                      <div className="flex items-center justify-between pt-4 border-t">
+                        <div>
+                          <div className="font-medium text-base">兒童</div>
+                          <div className="text-sm text-muted-foreground">0-17歲</div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => setChildren(Math.max(0, children - 1))}
+                            className="w-10 h-10 rounded-lg border-2 border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center font-medium"
+                          >
+                            -
+                          </button>
+                          <span className="w-8 text-center font-medium">{children}</span>
+                          <button
+                            onClick={() => setChildren(Math.min(10, children + 1))}
+                            className="w-10 h-10 rounded-lg border-2 border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center font-medium"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               {/* 搜尋按鈕 */}
-              <Button className="w-full bg-primary hover:bg-primary/90 text-white text-base h-14 font-medium rounded-lg shadow-md hover:shadow-lg transition-all">
+              <Button className="w-full bg-green-600 hover:bg-green-700 text-white text-base h-14 font-medium rounded-lg shadow-md hover:shadow-lg transition-all">
                 <Search className="mr-2 h-5 w-5" />
                 搜尋空房
               </Button>
