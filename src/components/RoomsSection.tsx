@@ -61,40 +61,50 @@ const RoomsSection = () => {
 
           <div className="grid md:grid-cols-3 gap-8">
             {roomTypes.map((room) => (
-              <Card key={room.id} className="overflow-hidden hover:shadow-xl transition-shadow group border-0 rounded-2xl">
-                <div className="aspect-[4/3] overflow-hidden rounded-t-2xl">
+              <Card key={room.id} className="overflow-hidden hover:shadow-xl transition-shadow group border rounded-xl bg-card">
+                <div className="aspect-[4/3] overflow-hidden relative">
                   <img 
                     src={roomImages[room.name] || roomStandard} 
                     alt={room.name}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
+                  <div className="absolute top-4 right-4 bg-green-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                    {room.capacity}人
+                  </div>
                 </div>
                 <CardContent className="p-6">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Users className="h-5 w-5 text-primary" />
-                    <span className="text-sm text-primary font-medium">{room.capacity}人</span>
-                  </div>
-                  <h3 className="text-2xl font-bold mb-2 text-foreground">{room.name}</h3>
-                  <p className="text-base text-primary mb-4 font-normal">{room.name_en}</p>
+                  <h3 className="text-2xl font-bold mb-1 text-foreground">{room.name}</h3>
+                  <p className="text-sm text-muted-foreground mb-4">{room.name_en}</p>
                   <p className="text-sm mb-6 text-muted-foreground leading-relaxed">{room.description}</p>
                   
-                  <div className="flex items-center gap-4 mb-6 text-sm text-foreground font-medium">
-                    <span>{room.capacity}人</span>
-                    <span>{room.size_sqm}㎡</span>
-                    <span>山景陽台</span>
-                    <span>免費WiFi</span>
+                  <div className="flex items-center gap-3 mb-6 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <Users className="h-4 w-4" />
+                      <span>{room.capacity}人</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                      </svg>
+                      <span>{room.size_sqm}㎡</span>
+                    </div>
                   </div>
 
-                  <Separator className="my-6" />
+                  <div className="flex flex-wrap gap-2 mb-6">
+                    <span className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md">山景陽台</span>
+                    <span className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md">獨立衛浴</span>
+                    <span className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md">免費WiFi</span>
+                    <span className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md">迎賓茶點</span>
+                  </div>
                   
-                  <div className="flex items-end justify-between">
+                  <div className="flex items-end justify-between pt-4 border-t">
                     <div>
-                      <p className="text-sm text-muted-foreground mb-2">起價</p>
-                      <p className="text-3xl font-bold text-primary">
+                      <p className="text-xs text-muted-foreground mb-1">起價</p>
+                      <p className="text-2xl font-bold text-green-600">
                         NT$ {room.base_price.toLocaleString()}
                       </p>
                     </div>
-                    <Button className="bg-primary hover:bg-primary/90 rounded-lg px-6 h-11 font-medium">
+                    <Button className="bg-green-600 hover:bg-green-700 text-white rounded-lg px-6 h-10 font-medium">
                       立即預訂
                     </Button>
                   </div>
