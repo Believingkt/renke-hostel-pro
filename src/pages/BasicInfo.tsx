@@ -99,68 +99,6 @@ const BasicInfo = () => {
                   </div>
                 </div>
               </div>
-
-              <div className="space-y-4 pt-4 border-t">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-semibold">支付方式(手續費)</h3>
-                  <Info className="h-4 w-4 text-muted-foreground" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Checkbox id="atm" defaultChecked />
-                        <Label htmlFor="atm" className="flex items-center gap-2">
-                          <span className="font-medium">ATM/匯款</span>
-                          <Info className="h-4 w-4 text-muted-foreground" />
-                        </Label>
-                      </div>
-                      <span className="text-sm text-muted-foreground">(2.5%)</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Checkbox id="applepay" defaultChecked />
-                      <Label htmlFor="applepay" className="font-medium">Apple Pay</Label>
-                    </div>
-                    <span className="text-sm text-muted-foreground">(2.5%)</span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Checkbox id="linepay" />
-                      <Label htmlFor="linepay" className="font-medium">LINE Pay</Label>
-                    </div>
-                    <span className="text-sm text-muted-foreground">(3.5%)</span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Checkbox id="paypal" />
-                      <Label htmlFor="paypal" className="font-medium">PayPal</Label>
-                    </div>
-                    <span className="text-sm text-muted-foreground">(4.5%)</span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Checkbox id="unionpay" />
-                      <Label htmlFor="unionpay" className="font-medium">UnionPay</Label>
-                    </div>
-                    <span className="text-sm text-muted-foreground">(2.5%)</span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Checkbox id="creditcard" defaultChecked />
-                      <Label htmlFor="creditcard" className="font-medium">VISA / MasterCard / JCB</Label>
-                    </div>
-                    <span className="text-sm text-muted-foreground">(2.5%)</span>
-                  </div>
-                </div>
-              </div>
         </CardContent>
       </Card>
     </div>
