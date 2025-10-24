@@ -2,7 +2,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Users } from "lucide-react";
-import { useLazyImage } from "@/hooks/use-lazy-image";
 import roomDeluxe from "@/assets/room-deluxe.jpg";
 import roomSuite from "@/assets/room-suite.jpg";
 import roomStandard from "@/assets/room-standard.jpg";
@@ -29,31 +28,21 @@ const roomImages: Record<string, string> = {
 
 const RoomCard = ({ room }: { room: RoomType }) => {
   const imageSrc = roomImages[room.name] || roomStandard;
-  const { imageSrc: lazyImageSrc, isLoaded, imgRef, handleLoad } = useLazyImage(imageSrc);
 
   return (
     <Card className="overflow-hidden hover:shadow-xl transition-shadow group border rounded-xl bg-card">
       <div className="aspect-[4/3] overflow-hidden relative bg-muted">
         <picture>
-          {lazyImageSrc && (
-            <img 
-              ref={imgRef}
-              src={lazyImageSrc} 
-              alt={room.name}
-              className={`w-full h-full object-cover group-hover:scale-110 transition-all duration-500 ${
-                isLoaded ? 'opacity-100' : 'opacity-0'
-              }`}
-              loading="lazy"
-              decoding="async"
-              width="800"
-              height="600"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              onLoad={handleLoad}
-            />
-          )}
-          {!isLoaded && (
-            <div className="absolute inset-0 bg-muted animate-pulse" />
-          )}
+          <img 
+            src={imageSrc} 
+            alt={room.name}
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+            loading="lazy"
+            decoding="async"
+            width="800"
+            height="600"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          />
         </picture>
         <div className="absolute top-4 right-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
           {room.capacity}人
