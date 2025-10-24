@@ -39,15 +39,6 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
   const [children, setChildren] = useState(0);
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
-  const [imagesLoaded, setImagesLoaded] = useState(false);
-
-  useEffect(() => {
-    // 延迟加载其他图片
-    const timer = setTimeout(() => {
-      setImagesLoaded(true);
-    }, 100);
-    return () => clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     if (!carouselApi) return;
@@ -69,33 +60,55 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
           setApi={setCarouselApi}
         >
           <CarouselContent>
-            {[heroSlide1, ...(imagesLoaded ? [heroSlide2, heroSlide3] : [])].map((img, index) => (
-              <CarouselItem key={index}>
-                <div className="relative h-[500px] md:h-[700px] w-full bg-muted">
-                  <img 
-                    src={img} 
-                    alt={`山景 ${index + 1}`}
-                    className="w-full h-full object-cover"
-                    loading={index === 0 ? "eager" : "lazy"}
-                    fetchPriority={index === 0 ? "high" : "low"}
-                    decoding={index === 0 ? "sync" : "async"}
-                  />
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                    <div className="text-center text-white space-y-2 md:space-y-4 max-w-4xl px-4 pb-32 md:pb-56">
-                      <h1 className="text-3xl md:text-7xl font-bold animate-fade-in drop-shadow-lg">
-                        {accommodationName}
-                      </h1>
-                      <p className="text-lg md:text-3xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.2s" }}>
-                        山間的寧靜時光
-                      </p>
-                      <p className="text-base md:text-xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.4s" }}>
-                        體驗日式美學與自然的完美融合
-                      </p>
-                    </div>
+            <CarouselItem>
+              <div className="relative h-[500px] md:h-[700px] w-full bg-gradient-to-br from-muted to-muted/50">
+                <img 
+                  src={heroSlide1} 
+                  alt="山景 1"
+                  className="w-full h-full object-cover"
+                  loading="eager"
+                  fetchPriority="high"
+                  decoding="sync"
+                />
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                  <div className="text-center text-white space-y-2 md:space-y-4 max-w-4xl px-4 pb-32 md:pb-56">
+                    <h1 className="text-3xl md:text-7xl font-bold animate-fade-in drop-shadow-lg">
+                      {accommodationName}
+                    </h1>
+                    <p className="text-lg md:text-3xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.2s" }}>
+                      山間的寧靜時光
+                    </p>
+                    <p className="text-base md:text-xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.4s" }}>
+                      體驗日式美學與自然的完美融合
+                    </p>
                   </div>
                 </div>
-              </CarouselItem>
-            ))}
+              </div>
+            </CarouselItem>
+            <CarouselItem>
+              <div className="relative h-[500px] md:h-[700px] w-full bg-muted">
+                <img 
+                  src={heroSlide2} 
+                  alt="山景 2"
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <div className="absolute inset-0 bg-black/40" />
+              </div>
+            </CarouselItem>
+            <CarouselItem>
+              <div className="relative h-[500px] md:h-[700px] w-full bg-muted">
+                <img 
+                  src={heroSlide3} 
+                  alt="山景 3"
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <div className="absolute inset-0 bg-black/40" />
+              </div>
+            </CarouselItem>
           </CarouselContent>
           
           {/* 輪播指示器（圓點） - 在圖片底部 */}
