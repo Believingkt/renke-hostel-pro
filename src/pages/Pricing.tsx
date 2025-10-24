@@ -9,7 +9,7 @@ const Pricing = () => {
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab && (tab === "rooms" || tab === "basic" || tab === "project" || tab === "inventory")) {
+    if (tab && (tab === "rooms" || tab === "basic" || tab === "inventory")) {
       setActiveTab(tab);
     }
   }, [searchParams]);
@@ -21,10 +21,9 @@ const Pricing = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full max-w-2xl grid-cols-4">
+        <TabsList className="grid w-full max-w-xl grid-cols-3">
           <TabsTrigger value="rooms">房型管理</TabsTrigger>
           <TabsTrigger value="basic">價格管理</TabsTrigger>
-          <TabsTrigger value="project">專案價格</TabsTrigger>
           <TabsTrigger value="inventory">庫存管理</TabsTrigger>
         </TabsList>
 
@@ -52,20 +51,6 @@ const Pricing = () => {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">價格管理內容</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="project" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>專案價格設定</CardTitle>
-              <CardDescription>
-                設定特殊專案的優惠價格
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">專案價格設定內容</p>
             </CardContent>
           </Card>
         </TabsContent>
