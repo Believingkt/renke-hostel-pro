@@ -97,11 +97,11 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
                 {/* 入住日期 */}
                 <Popover>
                   <PopoverTrigger asChild>
-                    <button className="flex items-center h-16 px-4 rounded-xl bg-green-500 hover:bg-green-600 transition-colors text-left w-full">
-                      <CalendarIcon className="h-6 w-6 text-white mr-3 flex-shrink-0" />
+                    <button className="flex items-center h-16 px-4 border-2 border-border rounded-lg bg-background hover:border-primary/50 transition-colors text-left w-full">
+                      <CalendarIcon className="h-5 w-5 text-muted-foreground mr-3 flex-shrink-0" />
                       <div className="flex flex-col">
-                        <span className="text-xs text-white/70 mb-0.5">入住日期</span>
-                        <span className="text-base text-white font-medium">
+                        <span className="text-xs text-muted-foreground">入住日期</span>
+                        <span className="text-sm text-foreground">
                           {checkInDate ? format(checkInDate, "yyyy/MM/dd", { locale: zhTW }) : "選擇日期"}
                         </span>
                       </div>
@@ -122,11 +122,11 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
                 {/* 退房日期 */}
                 <Popover>
                   <PopoverTrigger asChild>
-                    <button className="flex items-center h-16 px-4 rounded-xl bg-green-500 hover:bg-green-600 transition-colors text-left w-full">
-                      <CalendarIcon className="h-6 w-6 text-white mr-3 flex-shrink-0" />
+                    <button className="flex items-center h-16 px-4 border-2 border-border rounded-lg bg-background hover:border-primary/50 transition-colors text-left w-full">
+                      <CalendarIcon className="h-5 w-5 text-muted-foreground mr-3 flex-shrink-0" />
                       <div className="flex flex-col">
-                        <span className="text-xs text-white/70 mb-0.5">退房日期</span>
-                        <span className="text-base text-white font-medium">
+                        <span className="text-xs text-muted-foreground">退房日期</span>
+                        <span className="text-sm text-foreground">
                           {checkOutDate ? format(checkOutDate, "yyyy/MM/dd", { locale: zhTW }) : "選擇日期"}
                         </span>
                       </div>
@@ -152,11 +152,11 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
                 {/* 住宿人數 */}
                 <Popover>
                   <PopoverTrigger asChild>
-                    <button className="flex items-center h-16 px-4 rounded-xl bg-green-500 hover:bg-green-600 transition-colors text-left w-full">
-                      <Users className="h-6 w-6 text-white mr-3 flex-shrink-0" />
+                    <button className="flex items-center h-16 px-4 border-2 border-border rounded-lg bg-background hover:border-primary/50 transition-colors text-left w-full">
+                      <Users className="h-5 w-5 text-muted-foreground mr-3 flex-shrink-0" />
                       <div className="flex flex-col">
-                        <span className="text-xs text-white/70 mb-0.5">住宿人數</span>
-                        <span className="text-base text-white font-medium">
+                        <span className="text-xs text-muted-foreground">住宿人數</span>
+                        <span className="text-sm text-foreground">
                           {adults}位大人{children > 0 ? ` · ${children}位兒童` : ""} · 1間客房
                         </span>
                       </div>
