@@ -186,49 +186,56 @@ const Booking = () => {
         </Carousel>
 
         {/* 搜尋卡片 - 疊加在輪播上 */}
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-full max-w-4xl px-4">
-          <Card className="shadow-2xl bg-white">
-            <CardContent className="p-6">
-              <div className="grid md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2 text-base">
-                    <Calendar className="h-4 w-4 text-primary" />
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-full max-w-5xl px-4">
+          <Card className="shadow-2xl bg-white border-0">
+            <CardContent className="p-8">
+              <div className="grid md:grid-cols-3 gap-6 mb-6">
+                <div className="space-y-3">
+                  <Label className="flex items-center gap-2 text-base font-medium text-primary">
+                    <Calendar className="h-5 w-5" />
                     入住日期
                   </Label>
                   <Input 
                     type="date" 
                     value={checkInDate}
                     onChange={(e) => setCheckInDate(e.target.value)}
+                    className="h-12 text-base"
+                    placeholder="選擇日期"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2 text-base">
-                    <Calendar className="h-4 w-4 text-primary" />
+                <div className="space-y-3">
+                  <Label className="flex items-center gap-2 text-base font-medium text-primary">
+                    <Calendar className="h-5 w-5" />
                     退房日期
                   </Label>
                   <Input 
                     type="date" 
                     value={checkOutDate}
                     onChange={(e) => setCheckOutDate(e.target.value)}
+                    className="h-12 text-base"
+                    placeholder="選擇日期"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2 text-base">
-                    <Users className="h-4 w-4 text-primary" />
+                <div className="space-y-3">
+                  <Label className="flex items-center gap-2 text-base font-medium text-primary">
+                    <Users className="h-5 w-5" />
                     住宿人數
                   </Label>
-                  <div className="flex items-center gap-2">
+                  <div className="relative">
                     <Input 
                       type="number" 
                       min="1"
                       value={guests}
                       onChange={(e) => setGuests(parseInt(e.target.value))}
+                      className="h-12 text-base pr-24"
                     />
-                    <span className="text-sm text-muted-foreground whitespace-nowrap">位大人</span>
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                      位大人
+                    </span>
                   </div>
                 </div>
               </div>
-              <Button className="w-full mt-4 bg-primary hover:bg-primary/90 text-lg h-12" size="lg">
+              <Button className="w-full bg-primary hover:bg-primary/90 text-white text-lg h-14 font-medium rounded-lg shadow-lg hover:shadow-xl transition-all" size="lg">
                 <Search className="mr-2 h-5 w-5" />
                 搜尋空房
               </Button>
