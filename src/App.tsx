@@ -14,6 +14,7 @@ import Pricing from "./pages/Pricing";
 import Accounts from "./pages/Accounts";
 import KolDiscount from "./pages/KolDiscount";
 import Availability from "./pages/Availability";
+import Booking from "./pages/Booking";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
                   <Route path="/accounts" element={<Accounts />} />
                   <Route path="/discount-codes" element={<KolDiscount />} />
                   <Route path="/availability" element={<Availability />} />
+                  <Route path="/booking" element={<Booking />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
