@@ -1,4 +1,4 @@
-import { Bell, MessageSquare, Gift, Moon } from "lucide-react";
+import { Bell, MessageSquare } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,13 +17,6 @@ export function Header() {
           <Button variant="ghost" size="icon" className="relative h-9 w-9 md:h-10 md:w-10 hidden sm:inline-flex">
             <MessageSquare className="h-4 w-4 md:h-5 md:w-5" />
             <span className="absolute right-1.5 top-1.5 md:right-2 md:top-2 h-2 w-2 rounded-full bg-primary"></span>
-          </Button>
-          <Button variant="ghost" size="icon" className="relative h-9 w-9 md:h-10 md:w-10 hidden sm:inline-flex">
-            <Gift className="h-4 w-4 md:h-5 md:w-5" />
-            <span className="absolute right-1.5 top-1.5 md:right-2 md:top-2 h-2 w-2 rounded-full bg-primary"></span>
-          </Button>
-          <Button variant="ghost" size="icon" className="h-9 w-9 md:h-10 md:w-10 hidden md:inline-flex">
-            <Moon className="h-4 w-4 md:h-5 md:w-5" />
           </Button>
           
           <div className="flex items-center gap-2 md:gap-3">
