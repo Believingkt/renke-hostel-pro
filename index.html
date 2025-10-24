@@ -5,14 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>森山寫造 - 山間的寧靜時光</title>
     
-    <!-- Preconnect only (removed dns-prefetch for faster initial load) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <!-- Preconnect for faster loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://dmafqwfynatdvnaeovhz.supabase.co">
     
-    <!-- Async font loading to prevent render blocking -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <noscript><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
+    <!-- 优化字体加载 - 使用 font-display: optional 提升 Safari 性能 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=optional" rel="stylesheet">
     
     <meta name="description" content="森山寫造位於寧靜的山區，是一處結合日式傳統美學與現代舒適的精品旅宿" />
     <meta name="author" content="森山寫造" />
@@ -25,9 +24,13 @@
     
     <!-- Inline critical CSS for instant rendering -->
     <style>
-      body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+      * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+      body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Noto Sans TC", system-ui, sans-serif; }
       #root { min-height: 100vh; }
       .loading { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+      /* Safari 性能优化 */
+      img { transform: translateZ(0); -webkit-transform: translateZ(0); }
+      * { -webkit-backface-visibility: hidden; backface-visibility: hidden; }
     </style>
   </head>
 

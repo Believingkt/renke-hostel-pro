@@ -25,7 +25,7 @@ const Index = () => {
   const [data, setData] = useState<AccommodationData | null>(null);
 
   useEffect(() => {
-    // 在背景异步加载数据，不阻塞页面渲染
+    // 优化 Safari 的数据加载 - 立即执行而不是等待空闲
     const loadData = async () => {
       try {
         const { data: infoData } = await supabase
@@ -66,12 +66,8 @@ const Index = () => {
       }
     };
 
-    // 使用 requestIdleCallback 在浏览器空闲时加载
-    if ('requestIdleCallback' in window) {
-      requestIdleCallback(() => loadData());
-    } else {
-      setTimeout(loadData, 0);
-    }
+    // Safari 优化：立即加载而不使用 requestIdleCallback
+    loadData();
   }, []);
 
   const scrollToSection = (sectionId: string) => {

@@ -69,7 +69,7 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
         <Carousel
           opts={{ 
             loop: true,
-            duration: 40,
+            duration: 30,
             align: "start",
           }}
           plugins={[Autoplay({ delay: 5000, stopOnInteraction: false })]}

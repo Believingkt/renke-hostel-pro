@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-export const useLazyImage = (src: string, rootMargin = "50px") => {
+export const useLazyImage = (src: string, rootMargin = "100px") => {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
@@ -8,6 +8,7 @@ export const useLazyImage = (src: string, rootMargin = "50px") => {
   useEffect(() => {
     if (!imgRef.current) return;
 
+    // Safari 优化：更大的 rootMargin 提前加载
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -17,7 +18,7 @@ export const useLazyImage = (src: string, rootMargin = "50px") => {
           }
         });
       },
-      { rootMargin }
+      { rootMargin, threshold: 0.01 }
     );
 
     observer.observe(imgRef.current);
