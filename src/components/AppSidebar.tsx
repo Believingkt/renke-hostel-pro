@@ -74,7 +74,7 @@ const menuItems = [
       { title: "保留單列表", url: "/admin/orders?tab=reserved" },
     ]
   },
-  { title: "帳號權限管理", url: "/admin/accounts", icon: Settings },
+  { title: "帳號管理", url: "/admin/accounts", icon: Settings },
   { title: "KOL折扣代碼", url: "/admin/discount-codes", icon: Tag },
 ];
 
