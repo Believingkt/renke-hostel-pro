@@ -22,11 +22,13 @@ const AboutSection = ({ description = "森山寫造位於寧靜的山區，是�
               { icon: Clock3, title: "全天服務", desc: "24小時貼心服務，隨時為您提供協助與支援" },
               { icon: Shield, title: "安心保障", desc: "完善的安全設施與衛生標準，讓您住得安心" },
             ].map((item, index) => (
-              <Card key={index} className="hover:shadow-lg transition-shadow">
+              <Card key={index} className="hover:shadow-lg transition-shadow border bg-card">
                 <CardContent className="pt-8 pb-6 text-center">
-                  <item.icon className="h-14 w-14 mx-auto mb-4 text-primary" />
-                  <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
-                  <p className="text-sm text-muted-foreground">{item.desc}</p>
+                  <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-green-50 flex items-center justify-center">
+                    <item.icon className="h-10 w-10 text-green-600" strokeWidth={1.5} />
+                  </div>
+                  <h3 className="font-bold text-lg mb-3 text-foreground">{item.title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
                 </CardContent>
               </Card>
             ))}
