@@ -1,15 +1,86 @@
+import { Star } from "lucide-react";
+
+const reviews = [
+  {
+    name: "王小明",
+    date: "2024年10月",
+    rating: 5,
+    comment: "環境非常優美，房間乾淨舒適，服務人員態度親切，山景令人驚艷，是放鬆身心的好地方！"
+  },
+  {
+    name: "李美華",
+    date: "2024年9月",
+    rating: 5,
+    comment: "和式房間設計很有特色，融合了傳統與現代。早餐豐盛美味，附近的溫泉也很棒。會再來！"
+  },
+  {
+    name: "張大衛",
+    date: "2024年9月",
+    rating: 4,
+    comment: "整體住宿體驗很好，唯一小缺點是交通不太方便。但環境清幽，空氣新鮮，很值得。"
+  },
+  {
+    name: "陳雅婷",
+    date: "2024年8月",
+    rating: 5,
+    comment: "完美的假期！員工服務超讚，房間設施齊全，view超美。強烈推薦給想要遠離都市的朋友！"
+  }
+];
+
 const ReviewsSection = () => {
+  const averageRating = 4.8;
+  const totalReviews = 4;
+
   return (
-    <section className="py-20">
+    <section className="py-20 bg-muted/30">
       <div className="container mx-auto px-4">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-4xl font-bold text-center mb-4">旅客評價</h2>
-          <p className="text-center text-muted-foreground mb-16 text-lg">
-            聽聽來過森山寫造的旅客怎麼說
-          </p>
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-4xl font-bold text-center mb-6">旅客評價</h2>
           
-          <div className="text-center text-muted-foreground py-12">
-            評價功能即將推出...
+          {/* Rating Summary */}
+          <div className="text-center mb-12">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <span className="text-5xl font-bold text-primary">{averageRating}</span>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    className="w-8 h-8 fill-primary text-primary"
+                  />
+                ))}
+              </div>
+            </div>
+            <p className="text-muted-foreground">來自 {totalReviews} 則評論</p>
+          </div>
+
+          {/* Reviews Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {reviews.map((review, index) => (
+              <div
+                key={index}
+                className="bg-card p-6 rounded-lg border border-border hover:shadow-lg transition-shadow"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="font-semibold text-lg">{review.name}</h3>
+                    <p className="text-sm text-muted-foreground">{review.date}</p>
+                  </div>
+                  <div className="flex gap-0.5">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={`w-5 h-5 ${
+                          star <= review.rating
+                            ? "fill-primary text-primary"
+                            : "fill-muted text-muted"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <p className="text-foreground leading-relaxed">{review.comment}</p>
+              </div>
+            ))}
           </div>
         </div>
       </div>
