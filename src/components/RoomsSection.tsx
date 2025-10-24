@@ -2,11 +2,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Users } from "lucide-react";
-import { cn } from "@/lib/utils";
 import roomDeluxe from "@/assets/room-deluxe.jpg";
 import roomSuite from "@/assets/room-suite.jpg";
 import roomStandard from "@/assets/room-standard.jpg";
-import { useState } from "react";
 
 interface RoomType {
   id: string;
@@ -29,8 +27,6 @@ const roomImages: Record<string, string> = {
 };
 
 const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
-  const [imageLoaded, setImageLoaded] = useState<Record<string, boolean>>({});
-
   return (
     <section id="rooms" className="py-12 md:py-20 bg-secondary/30">
       <div className="container mx-auto px-4">
@@ -44,18 +40,12 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
             {roomTypes.map((room) => (
               <Card key={room.id} className="overflow-hidden hover:shadow-xl transition-shadow group border rounded-xl bg-card">
                 <div className="aspect-[4/3] overflow-hidden relative bg-muted">
-                  {!imageLoaded[room.id] && (
-                    <div className="absolute inset-0 bg-muted animate-pulse" />
-                  )}
                   <img 
                     src={roomImages[room.name] || roomStandard} 
                     alt={room.name}
-                    className={cn(
-                      "w-full h-full object-cover group-hover:scale-110 transition-all duration-500",
-                      imageLoaded[room.id] ? "opacity-100" : "opacity-0"
-                    )}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     loading="lazy"
-                    onLoad={() => setImageLoaded(prev => ({ ...prev, [room.id]: true }))}
+                    decoding="async"
                   />
                   <div className="absolute top-4 right-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
                     {room.capacity}人

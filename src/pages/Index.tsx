@@ -1,15 +1,13 @@
-import { useEffect, useState, lazy, Suspense } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Navigation from "@/components/Navigation";
 import HeroSection from "@/components/HeroSection";
 import AboutSection from "@/components/AboutSection";
-
-// 懶加載非首屏組件以提升初始載入速度
-const RoomsSection = lazy(() => import("@/components/RoomsSection"));
-const BookingInfoSection = lazy(() => import("@/components/BookingInfoSection"));
-const LocationSection = lazy(() => import("@/components/LocationSection"));
-const ReviewsSection = lazy(() => import("@/components/ReviewsSection"));
-const Footer = lazy(() => import("@/components/Footer"));
+import RoomsSection from "@/components/RoomsSection";
+import BookingInfoSection from "@/components/BookingInfoSection";
+import LocationSection from "@/components/LocationSection";
+import ReviewsSection from "@/components/ReviewsSection";
+import Footer from "@/components/Footer";
 
 interface AccommodationData {
   info: {
@@ -25,15 +23,9 @@ interface AccommodationData {
 
 const Index = () => {
   const [data, setData] = useState<AccommodationData | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 使用 requestIdleCallback 延遲非關鍵資料載入
-    const timeoutId = setTimeout(() => {
-      fetchAllData();
-    }, 0);
-    
-    return () => clearTimeout(timeoutId);
+    fetchAllData();
   }, []);
 
   const fetchAllData = async () => {
@@ -67,8 +59,6 @@ const Index = () => {
       }
     } catch (error) {
       console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -79,46 +69,27 @@ const Index = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="w-12 h-12 border-3 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-          <p className="text-sm text-muted-foreground">載入中...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen">
       <Navigation 
-        accommodationName={data?.info.name} 
+        accommodationName={data?.info.name || "森山寫造"} 
         onNavigate={scrollToSection} 
       />
       <main>
-        <HeroSection accommodationName={data?.info.name} />
+        <HeroSection accommodationName={data?.info.name || "森山寫造"} />
         <AboutSection description={data?.info.description} />
-        <Suspense fallback={
-          <div className="py-12 text-center">
-            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-          </div>
-        }>
-          <RoomsSection roomTypes={data?.roomTypes || []} />
-          <BookingInfoSection 
-            bookingSettings={data?.bookingSettings}
-            checkInNotice={data?.info.check_in_notice}
-          />
-          <LocationSection address={data?.info.address} />
-          <ReviewsSection />
-        </Suspense>
-      </main>
-      <Suspense fallback={null}>
-        <Footer 
-          accommodationName={data?.info.name}
-          address={data?.info.address}
+        <RoomsSection roomTypes={data?.roomTypes || []} />
+        <BookingInfoSection 
+          bookingSettings={data?.bookingSettings}
+          checkInNotice={data?.info.check_in_notice}
         />
-      </Suspense>
+        <LocationSection address={data?.info.address} />
+        <ReviewsSection />
+      </main>
+      <Footer 
+        accommodationName={data?.info.name}
+        address={data?.info.address}
+      />
     </div>
   );
 };
