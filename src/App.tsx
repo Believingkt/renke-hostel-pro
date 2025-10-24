@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { BackendLayout } from "@/components/BackendLayout";
+import { ConditionalLayout } from "@/components/ConditionalLayout";
 import Dashboard from "./pages/Dashboard";
 import Reception from "./pages/Reception";
 import Orders from "./pages/Orders";
@@ -18,11 +18,8 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <BrowserRouter>
       <Routes>
-        {/* 前台訂房網站 - 獨立路由 */}
-        <Route path="/booking" element={<Booking />} />
-        
-        {/* PMS 後台管理系統 - 使用 BackendLayout */}
-        <Route element={<BackendLayout />}>
+        <Route element={<ConditionalLayout />}>
+          <Route path="/booking" element={<Booking />} />
           <Route path="/" element={<Dashboard />} />
           <Route path="/reception" element={<Reception />} />
           <Route path="/orders" element={<Orders />} />
