@@ -1,12 +1,23 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Globe } from "lucide-react";
+import { Globe, Plus, Trash2, Edit2, GripVertical } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -121,6 +132,14 @@ const facilitiesData = {
   ],
 };
 
+interface FaqItem {
+  id: string;
+  question: string;
+  answer: string;
+  display_order: number;
+  is_published: boolean;
+}
+
 const WebsiteContent = () => {
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("facilities");
@@ -138,6 +157,16 @@ const WebsiteContent = () => {
     checkInNotice: ""
   });
 
+  // FAQ 狀態
+  const [faqs, setFaqs] = useState<FaqItem[]>([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingFaq, setEditingFaq] = useState<FaqItem | null>(null);
+  const [faqFormData, setFaqFormData] = useState({
+    question: "",
+    answer: "",
+    is_published: true,
+  });
+
   useEffect(() => {
     const tab = searchParams.get("tab");
     if (tab) {
@@ -145,7 +174,7 @@ const WebsiteContent = () => {
     }
   }, [searchParams]);
 
-  // 加載現有設施資料和訂房須知
+  // 加載現有設施資料、訂房須知和常見問題
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -203,6 +232,17 @@ const WebsiteContent = () => {
               ...prev,
               checkInNotice: infoData.check_in_notice || ""
             }));
+          }
+
+          // 加載常見問題
+          const { data: faqData } = await supabase
+            .from("faqs")
+            .select("*")
+            .eq("accommodation_id", infoData.id)
+            .order("display_order");
+
+          if (faqData) {
+            setFaqs(faqData);
           }
         }
       } catch (error) {
@@ -328,6 +368,141 @@ const WebsiteContent = () => {
     }));
   };
 
+  // FAQ handlers
+  const handleSaveFaq = async () => {
+    if (!accommodationId) {
+      toast.error("找不到旅宿資訊");
+      return;
+    }
+
+    if (!faqFormData.question.trim() || !faqFormData.answer.trim()) {
+      toast.error("問題和答案不能為空");
+      return;
+    }
+
+    try {
+      if (editingFaq) {
+        const { error } = await supabase
+          .from("faqs")
+          .update({
+            question: faqFormData.question,
+            answer: faqFormData.answer,
+            is_published: faqFormData.is_published,
+          })
+          .eq("id", editingFaq.id);
+
+        if (error) throw error;
+        toast.success("更新成功");
+      } else {
+        const maxOrder = faqs.length > 0 ? Math.max(...faqs.map(f => f.display_order)) : 0;
+        
+        const { error } = await supabase
+          .from("faqs")
+          .insert({
+            accommodation_id: accommodationId,
+            question: faqFormData.question,
+            answer: faqFormData.answer,
+            is_published: faqFormData.is_published,
+            display_order: maxOrder + 1,
+          });
+
+        if (error) throw error;
+        toast.success("新增成功");
+      }
+
+      // 重新載入 FAQs
+      const { data: faqData } = await supabase
+        .from("faqs")
+        .select("*")
+        .eq("accommodation_id", accommodationId)
+        .order("display_order");
+
+      if (faqData) {
+        setFaqs(faqData);
+      }
+
+      handleCloseFaqDialog();
+    } catch (error) {
+      console.error("Error saving FAQ:", error);
+      toast.error("儲存失敗");
+    }
+  };
+
+  const handleDeleteFaq = async (id: string) => {
+    if (!confirm("確定要刪除此常見問題嗎？")) return;
+
+    try {
+      const { error } = await supabase.from("faqs").delete().eq("id", id);
+
+      if (error) throw error;
+      toast.success("刪除成功");
+      
+      // 重新載入 FAQs
+      if (accommodationId) {
+        const { data: faqData } = await supabase
+          .from("faqs")
+          .select("*")
+          .eq("accommodation_id", accommodationId)
+          .order("display_order");
+
+        if (faqData) {
+          setFaqs(faqData);
+        }
+      }
+    } catch (error) {
+      console.error("Error deleting FAQ:", error);
+      toast.error("刪除失敗");
+    }
+  };
+
+  const handleEditFaq = (faq: FaqItem) => {
+    setEditingFaq(faq);
+    setFaqFormData({
+      question: faq.question,
+      answer: faq.answer,
+      is_published: faq.is_published,
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleCloseFaqDialog = () => {
+    setIsDialogOpen(false);
+    setEditingFaq(null);
+    setFaqFormData({
+      question: "",
+      answer: "",
+      is_published: true,
+    });
+  };
+
+  const handleTogglePublishFaq = async (faq: FaqItem) => {
+    try {
+      const { error } = await supabase
+        .from("faqs")
+        .update({ is_published: !faq.is_published })
+        .eq("id", faq.id);
+
+      if (error) throw error;
+      toast.success(faq.is_published ? "已隱藏" : "已發布");
+      
+      // 重新載入 FAQs
+      if (accommodationId) {
+        const { data: faqData } = await supabase
+          .from("faqs")
+          .select("*")
+          .eq("accommodation_id", accommodationId)
+          .order("display_order");
+
+        if (faqData) {
+          setFaqs(faqData);
+        }
+      }
+    } catch (error) {
+      console.error("Error toggling publish:", error);
+      toast.error("操作失敗");
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -342,6 +517,7 @@ const WebsiteContent = () => {
         <TabsList>
           <TabsTrigger value="facilities">設施與服務</TabsTrigger>
           <TabsTrigger value="booking-info">訂房須知</TabsTrigger>
+          <TabsTrigger value="faq">常見問題</TabsTrigger>
         </TabsList>
 
         <TabsContent value="facilities" className="space-y-6">
@@ -502,7 +678,251 @@ const WebsiteContent = () => {
             </Button>
           </div>
         </TabsContent>
+
+        <TabsContent value="booking-info" className="space-y-6">
+          {/* 入住退房時間 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>入住退房時間</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label>入住時間</Label>
+                  <Input
+                    type="time"
+                    value={bookingInfo.checkInTime}
+                    onChange={(e) => setBookingInfo(prev => ({
+                      ...prev,
+                      checkInTime: e.target.value
+                    }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>退房時間</Label>
+                  <Input
+                    type="time"
+                    value={bookingInfo.checkOutTime}
+                    onChange={(e) => setBookingInfo(prev => ({
+                      ...prev,
+                      checkOutTime: e.target.value
+                    }))}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 付款方式 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>付款方式</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">請選擇接受的付款方式</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {['信用卡', '現金', '線上支付', 'ATM轉帳', '行動支付'].map((method) => (
+                    <div key={method} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`payment-${method}`}
+                        checked={bookingInfo.paymentMethods.includes(method)}
+                        onCheckedChange={(checked) => 
+                          handlePaymentMethodToggle(method, checked as boolean)
+                        }
+                      />
+                      <Label htmlFor={`payment-${method}`}>{method}</Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 取消政策 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>取消政策</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Label>政策說明</Label>
+                <Textarea
+                  rows={6}
+                  placeholder="例如：入住前7天免費取消，7天內取消收取50%費用"
+                  value={bookingInfo.cancellationPolicy}
+                  onChange={(e) => setBookingInfo(prev => ({
+                    ...prev,
+                    cancellationPolicy: e.target.value
+                  }))}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 重要事項 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>重要事項</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Label>入住須知</Label>
+                <Textarea
+                  rows={8}
+                  placeholder="例如：&#10;請出示身分證件&#10;禁止吸菸&#10;不可攜帶寵物"
+                  value={bookingInfo.checkInNotice}
+                  onChange={(e) => setBookingInfo(prev => ({
+                    ...prev,
+                    checkInNotice: e.target.value
+                  }))}
+                />
+                <p className="text-sm text-muted-foreground">每行一個注意事項</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="flex justify-end">
+            <Button onClick={handleSaveBookingInfo} disabled={isSaving}>
+              {isSaving ? '保存中...' : '保存設定'}
+            </Button>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="faq" className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold">常見問題管理</h2>
+              <p className="text-muted-foreground">管理網站常見問題內容</p>
+            </div>
+            <Button onClick={() => setIsDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              新增問題
+            </Button>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>問題列表</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {faqs.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">
+                    尚無常見問題，點擊上方按鈕新增
+                  </p>
+                ) : (
+                  faqs.map((faq) => (
+                    <div
+                      key={faq.id}
+                      className="flex items-start gap-4 p-4 border rounded-lg"
+                    >
+                      <GripVertical className="h-5 w-5 text-muted-foreground mt-1 cursor-move" />
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <h3 className="font-semibold">{faq.question}</h3>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {faq.answer}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2">
+                              <Label htmlFor={`publish-${faq.id}`} className="text-sm">
+                                {faq.is_published ? "已發布" : "已隱藏"}
+                              </Label>
+                              <Switch
+                                id={`publish-${faq.id}`}
+                                checked={faq.is_published}
+                                onCheckedChange={() => handleTogglePublishFaq(faq)}
+                              />
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditFaq(faq)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteFaq(faq.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+
+      {/* FAQ Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {editingFaq ? "編輯常見問題" : "新增常見問題"}
+            </DialogTitle>
+            <DialogDescription>
+              填寫常見問題的內容，這些內容將顯示在網站前台
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="question">問題</Label>
+              <Input
+                id="question"
+                placeholder="請輸入問題"
+                value={faqFormData.question}
+                onChange={(e) =>
+                  setFaqFormData({ ...faqFormData, question: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="answer">答案</Label>
+              <Textarea
+                id="answer"
+                placeholder="請輸入答案"
+                value={faqFormData.answer}
+                onChange={(e) =>
+                  setFaqFormData({ ...faqFormData, answer: e.target.value })
+                }
+                rows={6}
+              />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="is_published"
+                checked={faqFormData.is_published}
+                onCheckedChange={(checked) =>
+                  setFaqFormData({ ...faqFormData, is_published: checked })
+                }
+              />
+              <Label htmlFor="is_published">立即發布</Label>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCloseFaqDialog}>
+              取消
+            </Button>
+            <Button onClick={handleSaveFaq}>
+              {editingFaq ? "更新" : "新增"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
