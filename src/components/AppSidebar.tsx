@@ -29,50 +29,50 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const menuItems = [
-  { title: "營運報表", url: "/", icon: BarChart3 },
+  { title: "營運報表", url: "/admin", icon: BarChart3 },
   { 
     title: "櫃檯接待", 
-    url: "/reception", 
+    url: "/admin/reception", 
     icon: Users,
     subItems: [
-      { title: "今日櫃檯", url: "/reception?tab=today" },
-      { title: "房況表", url: "/reception?tab=status" },
+      { title: "今日櫃檯", url: "/admin/reception?tab=today" },
+      { title: "房況表", url: "/admin/reception?tab=status" },
     ]
   },
   { 
     title: "基本資訊", 
-    url: "/basic-info", 
+    url: "/admin/basic-info", 
     icon: Building2,
     subItems: [
-      { title: "官網旅宿資訊", url: "/basic-info?tab=info" },
-      { title: "房型管理", url: "/basic-info?tab=rooms" },
-      { title: "官網訂房資訊", url: "/basic-info?tab=booking" },
-      { title: "旅宿設施與服務", url: "/basic-info?tab=facilities" },
+      { title: "官網旅宿資訊", url: "/admin/basic-info?tab=info" },
+      { title: "房型管理", url: "/admin/basic-info?tab=rooms" },
+      { title: "官網訂房資訊", url: "/admin/basic-info?tab=booking" },
+      { title: "旅宿設施與服務", url: "/admin/basic-info?tab=facilities" },
     ]
   },
   { 
     title: "房價庫存設定", 
-    url: "/pricing", 
+    url: "/admin/pricing", 
     icon: DollarSign,
     subItems: [
-      { title: "基本價格", url: "/pricing?tab=basic" },
-      { title: "專案價格", url: "/pricing?tab=project" },
-      { title: "庫存管理", url: "/pricing?tab=inventory" },
+      { title: "基本價格", url: "/admin/pricing?tab=basic" },
+      { title: "專案價格", url: "/admin/pricing?tab=project" },
+      { title: "庫存管理", url: "/admin/pricing?tab=inventory" },
     ]
   },
-  { title: "空房查詢", url: "/availability", icon: Search },
+  { title: "空房查詢", url: "/admin/availability", icon: Search },
   { 
     title: "訂單查詢", 
-    url: "/orders", 
+    url: "/admin/orders", 
     icon: ClipboardList,
     subItems: [
-      { title: "訂單資訊", url: "/orders?tab=info" },
-      { title: "訂單列表", url: "/orders?tab=list" },
-      { title: "保留單列表", url: "/orders?tab=reserved" },
+      { title: "訂單資訊", url: "/admin/orders?tab=info" },
+      { title: "訂單列表", url: "/admin/orders?tab=list" },
+      { title: "保留單列表", url: "/admin/orders?tab=reserved" },
     ]
   },
-  { title: "帳號權限管理", url: "/accounts", icon: Settings },
-  { title: "KOL折扣代碼", url: "/discount-codes", icon: Tag },
+  { title: "帳號權限管理", url: "/admin/accounts", icon: Settings },
+  { title: "KOL折扣代碼", url: "/admin/discount-codes", icon: Tag },
   { title: "前台訂房網站", url: "/booking", icon: DoorOpen },
 ];
 
@@ -100,7 +100,7 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r">
       <SidebarHeader className="border-b px-6 py-4">
         <NavLink 
-          to="/" 
+          to="/admin" 
           onClick={handleLinkClick}
           className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
         >

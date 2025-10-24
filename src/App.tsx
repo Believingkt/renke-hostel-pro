@@ -20,14 +20,14 @@ const App = () => (
       <Routes>
         <Route element={<ConditionalLayout />}>
           <Route path="/booking" element={<Booking />} />
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/reception" element={<Reception />} />
-          <Route path="/orders" element={<Orders />} />
-          <Route path="/basic-info" element={<BasicInfo />} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="/accounts" element={<Accounts />} />
-          <Route path="/discount-codes" element={<KolDiscount />} />
-          <Route path="/availability" element={<Availability />} />
+          <Route path="/admin" element={<Dashboard />} />
+          <Route path="/admin/reception" element={<Reception />} />
+          <Route path="/admin/orders" element={<Orders />} />
+          <Route path="/admin/basic-info" element={<BasicInfo />} />
+          <Route path="/admin/pricing" element={<Pricing />} />
+          <Route path="/admin/accounts" element={<Accounts />} />
+          <Route path="/admin/discount-codes" element={<KolDiscount />} />
+          <Route path="/admin/availability" element={<Availability />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
