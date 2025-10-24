@@ -11,8 +11,8 @@ const Navigation = ({ accommodationName = "森山寫造", onNavigate }: Navigati
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Mountain className="h-6 w-6 text-primary" />
-          <h1 className="text-xl font-bold text-primary">{accommodationName}</h1>
+          <Mountain className="h-8 w-8 text-primary" />
+          <h1 className="text-3xl font-bold text-primary">{accommodationName}</h1>
         </div>
         <nav className="hidden md:flex items-center gap-6">
           <button onClick={() => onNavigate("home")} className="text-sm hover:text-primary transition-colors">
