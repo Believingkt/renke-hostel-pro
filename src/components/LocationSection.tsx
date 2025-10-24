@@ -122,37 +122,39 @@ const LocationSection = () => {
           </div>
 
           {/* 周邊景點 */}
-          <div>
-            <h3 className="text-2xl font-bold mb-6">周邊景點</h3>
-            <div className="grid md:grid-cols-3 gap-6">
-              {/* 東埔溫泉 */}
-              <div>
-                <h4 className="font-semibold text-lg mb-2">東埔溫泉</h4>
-                <p className="text-sm text-muted-foreground mb-1">步行5分鐘</p>
-                <p className="text-sm text-muted-foreground">
-                  著名的碳酸氫鈉泉，有美人湯之稱
-                </p>
-              </div>
+          <Card>
+            <CardContent className="pt-6">
+              <h3 className="text-2xl font-bold mb-6">周邊景點</h3>
+              <div className="grid md:grid-cols-3 gap-8">
+                {/* 東埔溫泉 */}
+                <div>
+                  <h4 className="font-semibold text-lg mb-2">東埔溫泉</h4>
+                  <p className="text-sm text-muted-foreground mb-2">步行5分鐘</p>
+                  <p className="text-sm text-muted-foreground">
+                    著名的碳酸氫鈉泉，有美人湯之稱
+                  </p>
+                </div>
 
-              {/* 彩虹瀑布 */}
-              <div>
-                <h4 className="font-semibold text-lg mb-2">彩虹瀑布</h4>
-                <p className="text-sm text-muted-foreground mb-1">開車15分鐘</p>
-                <p className="text-sm text-muted-foreground">
-                  晨光照射時可見彩虹，景色壯觀
-                </p>
-              </div>
+                {/* 彩虹瀑布 */}
+                <div>
+                  <h4 className="font-semibold text-lg mb-2">彩虹瀑布</h4>
+                  <p className="text-sm text-muted-foreground mb-2">開車15分鐘</p>
+                  <p className="text-sm text-muted-foreground">
+                    晨光照射時可見彩虹，景色壯觀
+                  </p>
+                </div>
 
-              {/* 八通關古道 */}
-              <div>
-                <h4 className="font-semibold text-lg mb-2">八通關古道</h4>
-                <p className="text-sm text-muted-foreground mb-1">開車10分鐘</p>
-                <p className="text-sm text-muted-foreground">
-                  歷史悠久的登山古道，適合健行愛好者
-                </p>
+                {/* 八通關古道 */}
+                <div>
+                  <h4 className="font-semibold text-lg mb-2">八通關古道</h4>
+                  <p className="text-sm text-muted-foreground mb-2">開車10分鐘</p>
+                  <p className="text-sm text-muted-foreground">
+                    歷史悠久的登山古道，適合健行愛好者
+                  </p>
+                </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </section>
