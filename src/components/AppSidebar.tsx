@@ -46,6 +46,7 @@ const menuItems = [
     icon: Globe,
     subItems: [
       { title: "設施與服務", url: "/admin/website-content?tab=facilities" },
+      { title: "常見問題", url: "/admin/faq" },
     ]
   },
   { 

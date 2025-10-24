@@ -194,6 +194,47 @@ export type Database = {
           },
         ]
       }
+      faqs: {
+        Row: {
+          accommodation_id: string | null
+          answer: string
+          created_at: string
+          display_order: number | null
+          id: string
+          is_published: boolean | null
+          question: string
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id?: string | null
+          answer: string
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_published?: boolean | null
+          question: string
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string | null
+          answer?: string
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_published?: boolean | null
+          question?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "faqs_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_amenities: {
         Row: {
           amenity_icon: string | null
