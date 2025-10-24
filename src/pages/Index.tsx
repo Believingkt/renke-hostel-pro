@@ -1,13 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Navigation from "@/components/Navigation";
 import HeroSection from "@/components/HeroSection";
 import AboutSection from "@/components/AboutSection";
-import RoomsSection from "@/components/RoomsSection";
-import BookingInfoSection from "@/components/BookingInfoSection";
-import LocationSection from "@/components/LocationSection";
-import ReviewsSection from "@/components/ReviewsSection";
-import Footer from "@/components/Footer";
+
+// 懶加載非首屏組件以提升初始載入速度
+const RoomsSection = lazy(() => import("@/components/RoomsSection"));
+const BookingInfoSection = lazy(() => import("@/components/BookingInfoSection"));
+const LocationSection = lazy(() => import("@/components/LocationSection"));
+const ReviewsSection = lazy(() => import("@/components/ReviewsSection"));
+const Footer = lazy(() => import("@/components/Footer"));
 
 interface AccommodationInfo {
   name: string;
@@ -25,7 +27,7 @@ const Index = () => {
     const { data } = await supabase
       .from("accommodation_info")
       .select("name, description")
-      .single();
+      .maybeSingle();
     
     if (data) {
       setAccommodationInfo(data);
@@ -48,12 +50,16 @@ const Index = () => {
       <main>
         <HeroSection accommodationName={accommodationInfo?.name} />
         <AboutSection description={accommodationInfo?.description} />
-        <RoomsSection />
-        <BookingInfoSection />
-        <LocationSection />
-        <ReviewsSection />
+        <Suspense fallback={<div className="py-20 text-center text-muted-foreground">載入中...</div>}>
+          <RoomsSection />
+          <BookingInfoSection />
+          <LocationSection />
+          <ReviewsSection />
+        </Suspense>
       </main>
-      <Footer />
+      <Suspense fallback={null}>
+        <Footer />
+      </Suspense>
     </div>
   );
 };

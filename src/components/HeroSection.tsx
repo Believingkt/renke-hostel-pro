@@ -53,6 +53,7 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
                     src={img} 
                     alt={`山景 ${index + 1}`}
                     className="w-full h-full object-cover"
+                    loading={index === 0 ? "eager" : "lazy"}
                   />
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                     <div className="text-center text-white space-y-2 md:space-y-4 max-w-4xl px-4 pb-32 md:pb-56">
