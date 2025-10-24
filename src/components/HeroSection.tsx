@@ -118,7 +118,8 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
         </Carousel>
 
         {/* 搜尋卡片 - 位於文字和輪播指示器之間 */}
-        <div className="absolute bottom-[60px] md:bottom-[140px] left-1/2 -translate-x-1/2 w-full max-w-5xl px-4 z-30">
+        <div className="absolute bottom-[60px] md:bottom-[140px] top-auto md:top-auto left-1/2 -translate-x-1/2 w-full max-w-5xl px-4 z-30 
+                        max-md:top-[45%] max-md:bottom-auto max-md:-translate-y-1/2">
           <Card className="shadow-2xl bg-white/95 backdrop-blur-sm border-0 rounded-xl md:rounded-2xl">
             <CardContent className="p-4 md:p-8">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-3 md:mb-4">
