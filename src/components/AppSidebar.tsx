@@ -52,12 +52,11 @@ const menuItems = [
         ]
       },
   { 
-    title: "基本資訊", 
+    title: "帳務資訊", 
     url: "/admin/basic-info", 
     icon: Building2,
     subItems: [
       { title: "官網旅宿資訊", url: "/admin/basic-info?tab=info" },
-      { title: "官網訂房資訊", url: "/admin/basic-info?tab=booking" },
     ]
   },
   { 
