@@ -42,15 +42,17 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
       const index = carouselApi.selectedScrollSnap();
       setCurrent(index);
       
-      // 预加载下一张图片
+      // 延遲預載下一張圖片
       const nextIndex = (index + 1) % 3;
-      setLoadedImages(prev => new Set([...prev, index, nextIndex]));
+      setTimeout(() => {
+        setLoadedImages(prev => new Set([...prev, index, nextIndex]));
+      }, 500);
     });
     
-    // 预加载第二张图片
+    // 延遲預載第二張圖片
     const timer = setTimeout(() => {
       setLoadedImages(prev => new Set([...prev, 1]));
-    }, 1000);
+    }, 2000);
     
     return () => clearTimeout(timer);
   }, [carouselApi]);
@@ -64,7 +66,7 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
             duration: 30,
             align: "start",
           }}
-          plugins={[Autoplay({ delay: 5000, stopOnInteraction: false })]}
+          plugins={[Autoplay({ delay: 8000, stopOnInteraction: true })]}
           className="w-full"
           setApi={setCarouselApi}
         >
