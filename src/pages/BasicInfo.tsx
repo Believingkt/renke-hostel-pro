@@ -31,7 +31,6 @@ const BasicInfo = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="info">官網旅宿資訊</TabsTrigger>
-          <TabsTrigger value="booking">官網訂房資訊</TabsTrigger>
         </TabsList>
 
         {/* 旅館資訊標籤 */}
@@ -248,18 +247,6 @@ const BasicInfo = () => {
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* 官網訂房資訊 */}
-        <TabsContent value="booking" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>官網訂房資訊</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">訂房相關設定</p>
             </CardContent>
           </Card>
         </TabsContent>
