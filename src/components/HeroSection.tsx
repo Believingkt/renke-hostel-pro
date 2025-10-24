@@ -15,17 +15,9 @@ import heroSlide2 from "@/assets/hero-slide-2.jpg";
 import heroSlide3 from "@/assets/hero-slide-3.jpg";
 
 // 預載入首張圖片
-const preloadImage = (src: string) => {
-  const link = document.createElement('link');
-  link.rel = 'preload';
-  link.as = 'image';
-  link.href = src;
-  document.head.appendChild(link);
-};
-
-// 預載入第一張輪播圖
 if (typeof window !== 'undefined') {
-  preloadImage(heroSlide1);
+  const img = new Image();
+  img.src = heroSlide1;
 }
 
 interface HeroSectionProps {
