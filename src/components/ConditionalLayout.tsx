@@ -8,7 +8,7 @@ import { Header } from "@/components/Header";
 
 export function ConditionalLayout() {
   const location = useLocation();
-  const isBookingPage = location.pathname === "/booking";
+  const isBookingPage = location.pathname === "/";
   const isAdminPage = location.pathname.startsWith("/admin");
 
   // 前台訂房頁面：不使用任何 layout

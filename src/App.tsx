@@ -19,7 +19,7 @@ const App = () => (
     <BrowserRouter>
       <Routes>
         <Route element={<ConditionalLayout />}>
-          <Route path="/booking" element={<Booking />} />
+          <Route path="/" element={<Booking />} />
           <Route path="/admin" element={<Dashboard />} />
           <Route path="/admin/reception" element={<Reception />} />
           <Route path="/admin/orders" element={<Orders />} />
