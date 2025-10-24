@@ -1,14 +1,26 @@
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const Pricing = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "basic");
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab && (tab === "basic" || tab === "project" || tab === "inventory")) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">房價庫存設定</h1>
       </div>
 
-      <Tabs defaultValue="basic" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-3">
           <TabsTrigger value="basic">基本價格</TabsTrigger>
           <TabsTrigger value="project">專案價格</TabsTrigger>

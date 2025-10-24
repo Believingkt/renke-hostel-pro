@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Plus, ChevronLeft, ChevronRight, Calendar, Lock, Home, DoorOpen, DoorClosed, Settings, CheckCircle2, Clock, CreditCard, AlertCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,11 +11,20 @@ import { Badge } from "@/components/ui/badge";
 import Footer from "@/components/Footer";
 
 const Orders = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "info");
   const [date, setDate] = useState("2025/10/19");
   const [showNewOrders, setShowNewOrders] = useState(true);
   const [continuousDisplay, setContinuousDisplay] = useState(true);
   const [autoAssignRoom, setAutoAssignRoom] = useState(false);
   const [selectedDays, setSelectedDays] = useState(7);
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab && (tab === "info" || tab === "list" || tab === "reserved")) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   // 生成日曆日期（示例數據）
   const calendarDays = [
@@ -32,7 +42,7 @@ const Orders = () => {
       <h1 className="text-2xl md:text-3xl font-bold tracking-tight">訂單查詢</h1>
       
       {/* 頂部標籤 */}
-      <Tabs defaultValue="info" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList>
           <TabsTrigger value="info">📋 訂單資訊</TabsTrigger>
           <TabsTrigger value="list">訂單列表</TabsTrigger>

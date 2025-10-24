@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Bell, CreditCard, DollarSign, Search, ArrowRight, Filter, ChevronDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,17 +12,26 @@ import { Calendar } from "@/components/ui/calendar";
 import Footer from "@/components/Footer";
 
 const Reception = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "today");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedRoomTypes, setSelectedRoomTypes] = useState<string[]>(["1棟"]);
   const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab && (tab === "today" || tab === "status")) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   return (
     <div className="space-y-4 md:space-y-6 px-2 md:px-0">
       <h1 className="text-2xl md:text-3xl font-bold tracking-tight">櫃檯接待</h1>
       
       {/* 頂部標籤 */}
-      <Tabs defaultValue="today" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList>
           <TabsTrigger value="today">今日櫃檯</TabsTrigger>
           <TabsTrigger value="status">房況表</TabsTrigger>
