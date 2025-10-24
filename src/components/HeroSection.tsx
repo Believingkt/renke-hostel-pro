@@ -39,6 +39,15 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
   const [children, setChildren] = useState(0);
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
+  const [imagesLoaded, setImagesLoaded] = useState(false);
+
+  useEffect(() => {
+    // 延迟加载其他图片
+    const timer = setTimeout(() => {
+      setImagesLoaded(true);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (!carouselApi) return;
@@ -60,7 +69,7 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
           setApi={setCarouselApi}
         >
           <CarouselContent>
-            {[heroSlide1, heroSlide2, heroSlide3].map((img, index) => (
+            {[heroSlide1, ...(imagesLoaded ? [heroSlide2, heroSlide3] : [])].map((img, index) => (
               <CarouselItem key={index}>
                 <div className="relative h-[500px] md:h-[700px] w-full bg-muted">
                   <img 

@@ -23,9 +23,20 @@ interface AccommodationData {
 
 const Index = () => {
   const [data, setData] = useState<AccommodationData | null>(null);
+  const [showRooms, setShowRooms] = useState(false);
+  const [showReviews, setShowReviews] = useState(false);
 
   useEffect(() => {
     fetchAllData();
+    
+    // 延迟加载非关键内容
+    const roomsTimer = setTimeout(() => setShowRooms(true), 200);
+    const reviewsTimer = setTimeout(() => setShowReviews(true), 400);
+    
+    return () => {
+      clearTimeout(roomsTimer);
+      clearTimeout(reviewsTimer);
+    };
   }, []);
 
   const fetchAllData = async () => {
@@ -37,8 +48,15 @@ const Index = () => {
         .maybeSingle();
       
       if (infoData) {
-        // 並行獲取房型和訂房設定
-        const [roomTypesRes, bookingSettingsRes] = await Promise.all([
+        // 先设置基本信息，立即显示页面
+        setData({
+          info: infoData,
+          roomTypes: [],
+          bookingSettings: null
+        });
+        
+        // 在后台加载其他数据
+        Promise.all([
           supabase
             .from("room_types")
             .select("*")
@@ -49,12 +67,12 @@ const Index = () => {
             .select("*")
             .eq("accommodation_id", infoData.id)
             .maybeSingle()
-        ]);
-
-        setData({
-          info: infoData,
-          roomTypes: roomTypesRes.data || [],
-          bookingSettings: bookingSettingsRes.data
+        ]).then(([roomTypesRes, bookingSettingsRes]) => {
+          setData(prev => prev ? {
+            ...prev,
+            roomTypes: roomTypesRes.data || [],
+            bookingSettings: bookingSettingsRes.data
+          } : null);
         });
       }
     } catch (error) {
@@ -78,13 +96,13 @@ const Index = () => {
       <main>
         <HeroSection accommodationName={data?.info.name || "森山寫造"} />
         <AboutSection description={data?.info.description} />
-        <RoomsSection roomTypes={data?.roomTypes || []} />
+        {showRooms && <RoomsSection roomTypes={data?.roomTypes || []} />}
         <BookingInfoSection 
           bookingSettings={data?.bookingSettings}
           checkInNotice={data?.info.check_in_notice}
         />
         <LocationSection address={data?.info.address} />
-        <ReviewsSection />
+        {showReviews && <ReviewsSection />}
       </main>
       <Footer 
         accommodationName={data?.info.name}
