@@ -12,7 +12,6 @@ import {
   Globe
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
-import logo from "@/assets/logo.jpg";
 import {
   Sidebar,
   SidebarContent,
@@ -105,11 +104,6 @@ export function AppSidebar() {
           onClick={handleLinkClick}
           className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
         >
-          <img 
-            src={logo} 
-            alt="人客多 Logo" 
-            className="h-12 w-12 rounded-lg object-cover"
-          />
           {open && (
             <div>
               <h2 className="text-2xl font-semibold text-primary">人客多 PMS</h2>
