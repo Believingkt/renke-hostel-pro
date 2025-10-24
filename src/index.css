@@ -17,25 +17,25 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 15%;
 
-    --primary: 142 71% 45%;
+    --primary: 142 71% 55%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 142 71% 38%;
+    --primary-hover: 142 71% 48%;
 
-    --secondary: 142 30% 96%;
+    --secondary: 142 40% 97%;
     --secondary-foreground: 0 0% 15%;
 
     --muted: 142 20% 96%;
-    --muted-foreground: 0 0% 40%;
+    --muted-foreground: 0 0% 45%;
 
-    --accent: 142 71% 45%;
+    --accent: 142 71% 55%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 142 20% 90%;
-    --input: 142 20% 90%;
-    --ring: 142 71% 45%;
+    --border: 142 20% 88%;
+    --input: 142 20% 92%;
+    --ring: 142 71% 55%;
 
     --radius: 0.75rem;
 
@@ -51,23 +51,23 @@ All colors MUST be HSL.
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 0 0% 20%;
-    --sidebar-primary: 142 71% 45%;
+    --sidebar-primary: 142 71% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 142 30% 96%;
+    --sidebar-accent: 142 40% 97%;
     --sidebar-accent-foreground: 0 0% 20%;
-    --sidebar-border: 142 20% 90%;
-    --sidebar-ring: 142 71% 45%;
+    --sidebar-border: 142 20% 88%;
+    --sidebar-ring: 142 71% 55%;
 
     --stat-coral: 6 78% 71%;
     --stat-coral-light: 6 78% 95%;
-    --stat-green: 142 71% 45%;
+    --stat-green: 142 71% 55%;
     --stat-green-light: 142 71% 95%;
     --stat-blue: 199 89% 48%;
     --stat-blue-light: 199 89% 95%;
     --stat-purple: 271 81% 56%;
     --stat-purple-light: 271 81% 95%;
 
-    --chart-1: 142 71% 45%;
+    --chart-1: 142 71% 55%;
     --chart-2: 271 81% 56%;
     --chart-3: 199 89% 48%;
     --chart-4: 6 78% 71%;
@@ -84,7 +84,7 @@ All colors MUST be HSL.
     --popover: 160 50% 10%;
     --popover-foreground: 0 0% 95%;
 
-    --primary: 142 71% 45%;
+    --primary: 142 71% 55%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 160 30% 15%;
@@ -93,7 +93,7 @@ All colors MUST be HSL.
     --muted: 160 30% 15%;
     --muted-foreground: 0 0% 65%;
 
-    --accent: 142 71% 45%;
+    --accent: 142 71% 55%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
@@ -101,27 +101,27 @@ All colors MUST be HSL.
 
     --border: 160 30% 20%;
     --input: 160 30% 20%;
-    --ring: 142 71% 45%;
+    --ring: 142 71% 55%;
 
     --sidebar-background: 160 50% 10%;
     --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 142 71% 45%;
+    --sidebar-primary: 142 71% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 160 30% 15%;
     --sidebar-accent-foreground: 0 0% 95%;
     --sidebar-border: 160 30% 20%;
-    --sidebar-ring: 142 71% 45%;
+    --sidebar-ring: 142 71% 55%;
 
     --stat-coral: 6 78% 71%;
     --stat-coral-light: 6 78% 20%;
-    --stat-green: 142 71% 45%;
+    --stat-green: 142 71% 55%;
     --stat-green-light: 142 71% 20%;
     --stat-blue: 199 89% 48%;
     --stat-blue-light: 199 89% 20%;
     --stat-purple: 271 81% 56%;
     --stat-purple-light: 271 81% 20%;
 
-    --chart-1: 142 71% 45%;
+    --chart-1: 142 71% 55%;
     --chart-2: 271 81% 56%;
     --chart-3: 199 89% 48%;
     --chart-4: 6 78% 71%;
