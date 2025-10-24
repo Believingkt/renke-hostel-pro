@@ -68,20 +68,6 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
               <div className="relative h-[500px] md:h-[700px] w-full bg-gradient-to-br from-muted to-muted/50">
                 <picture>
                   <source 
-                    type="image/webp"
-                    srcSet={heroSlide1.replace(/\.(jpg|jpeg|png)$/i, '.webp')}
-                    media="(max-width: 768px)"
-                    width="768"
-                    height="500"
-                  />
-                  <source 
-                    type="image/webp"
-                    srcSet={heroSlide1.replace(/\.(jpg|jpeg|png)$/i, '.webp')}
-                    media="(min-width: 769px)"
-                    width="1920"
-                    height="700"
-                  />
-                  <source 
                     media="(max-width: 768px)" 
                     srcSet={heroSlide1}
                     width="768"
@@ -123,12 +109,6 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
             <CarouselItem className="pl-0">
               <div className="relative h-[500px] md:h-[700px] w-full bg-muted">
                 <picture>
-                  <source 
-                    type="image/webp"
-                    srcSet={heroSlide2.replace(/\.(jpg|jpeg|png)$/i, '.webp')}
-                    width="1920"
-                    height="700"
-                  />
                   <img 
                     src={heroSlide2} 
                     alt="山景 2"
@@ -158,12 +138,6 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
             <CarouselItem className="pl-0">
               <div className="relative h-[500px] md:h-[700px] w-full bg-muted">
                 <picture>
-                  <source 
-                    type="image/webp"
-                    srcSet={heroSlide3.replace(/\.(jpg|jpeg|png)$/i, '.webp')}
-                    width="1920"
-                    height="700"
-                  />
                   <img 
                     src={heroSlide3} 
                     alt="山景 3"

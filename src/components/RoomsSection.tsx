@@ -41,12 +41,6 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
               <Card key={room.id} className="overflow-hidden hover:shadow-xl transition-shadow group border rounded-xl bg-card">
                 <div className="aspect-[4/3] overflow-hidden relative bg-muted">
                   <picture>
-                    <source 
-                      type="image/webp"
-                      srcSet={(roomImages[room.name] || roomStandard).replace(/\.(jpg|jpeg|png)$/i, '.webp')}
-                      width="800"
-                      height="600"
-                    />
                     <img 
                       src={roomImages[room.name] || roomStandard} 
                       alt={room.name}
