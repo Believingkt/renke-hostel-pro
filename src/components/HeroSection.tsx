@@ -76,13 +76,13 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
                     media="(max-width: 768px)" 
                     srcSet={heroSlide1}
                     width="768"
-                    height="500"
+                    height="432"
                   />
                   <source 
                     media="(min-width: 769px)" 
                     srcSet={heroSlide1}
-                    width="1920"
-                    height="700"
+                    width="1280"
+                    height="720"
                   />
                   <img 
                     src={heroSlide1} 
@@ -91,8 +91,8 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
                     loading="eager"
                     fetchPriority="high"
                     decoding="sync"
-                    width="1920"
-                    height="700"
+                    width="1280"
+                    height="720"
                   />
                 </picture>
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center transition-all duration-700">
@@ -120,8 +120,8 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
                       className="w-full h-full object-cover transition-opacity duration-700"
                       loading="lazy"
                       decoding="async"
-                      width="1920"
-                      height="700"
+                      width="1280"
+                      height="720"
                     />
                   </picture>
                 ) : (
@@ -152,8 +152,8 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
                       className="w-full h-full object-cover transition-opacity duration-700"
                       loading="lazy"
                       decoding="async"
-                      width="1920"
-                      height="700"
+                      width="1280"
+                      height="720"
                     />
                   </picture>
                 ) : (
