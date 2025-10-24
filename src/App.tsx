@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ConditionalLayout } from "@/components/ConditionalLayout";
+import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Reception from "./pages/Reception";
 import Orders from "./pages/Orders";
@@ -9,7 +10,6 @@ import Pricing from "./pages/Pricing";
 import Accounts from "./pages/Accounts";
 import KolDiscount from "./pages/KolDiscount";
 import Availability from "./pages/Availability";
-import Booking from "./pages/Booking";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -19,7 +19,7 @@ const App = () => (
     <BrowserRouter>
       <Routes>
         <Route element={<ConditionalLayout />}>
-          <Route path="/" element={<Booking />} />
+          <Route path="/" element={<Index />} />
           <Route path="/admin" element={<Dashboard />} />
           <Route path="/admin/reception" element={<Reception />} />
           <Route path="/admin/orders" element={<Orders />} />

@@ -8,12 +8,18 @@ import { Header } from "@/components/Header";
 
 export function ConditionalLayout() {
   const location = useLocation();
-  const isBookingPage = location.pathname === "/";
+  const isFrontendPage = location.pathname === "/";
   const isAdminPage = location.pathname.startsWith("/admin");
 
-  // 前台訂房頁面：不使用任何 layout
-  if (isBookingPage) {
-    return <Outlet />;
+  // 前台頁面：不使用任何 layout
+  if (isFrontendPage) {
+    return (
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <Outlet />
+      </TooltipProvider>
+    );
   }
 
   // 非後台頁面也不使用 layout
