@@ -77,14 +77,14 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
                   <source 
                     media="(max-width: 768px)" 
                     srcSet={heroSlide1}
-                    width="768"
-                    height="432"
+                    width="480"
+                    height="270"
                   />
                   <source 
                     media="(min-width: 769px)" 
                     srcSet={heroSlide1}
-                    width="1280"
-                    height="720"
+                    width="960"
+                    height="540"
                   />
                   <img 
                     src={heroSlide1} 
@@ -93,8 +93,8 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
                     loading="eager"
                     fetchPriority="high"
                     decoding="sync"
-                    width="1280"
-                    height="720"
+                    width="960"
+                    height="540"
                   />
                 </picture>
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center transition-all duration-700">
@@ -122,8 +122,8 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
                       className="w-full h-full object-cover transition-opacity duration-700"
                       loading="lazy"
                       decoding="async"
-                      width="1280"
-                      height="720"
+                      width="960"
+                      height="540"
                     />
                   </picture>
                 ) : (
@@ -154,8 +154,8 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
                       className="w-full h-full object-cover transition-opacity duration-700"
                       loading="lazy"
                       decoding="async"
-                      width="1280"
-                      height="720"
+                      width="960"
+                      height="540"
                     />
                   </picture>
                 ) : (
