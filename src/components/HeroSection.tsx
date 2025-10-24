@@ -177,7 +177,7 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
           </CarouselContent>
           
           {/* 輪播指示器（圓點） - 在圖片底部 */}
-          <div className="absolute bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+          <div className="absolute bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-40">
             {[0, 1, 2].map((index) => (
               <button
                 key={index}
