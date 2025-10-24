@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 import roomDeluxe from "@/assets/room-deluxe.jpg";
 import roomSuite from "@/assets/room-suite.jpg";
 import roomStandard from "@/assets/room-standard.jpg";
@@ -26,6 +27,7 @@ const roomImages: Record<string, string> = {
 
 const RoomsSection = () => {
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
+  const [imageLoaded, setImageLoaded] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchRoomTypes();
@@ -62,12 +64,19 @@ const RoomsSection = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
             {roomTypes.map((room) => (
               <Card key={room.id} className="overflow-hidden hover:shadow-xl transition-shadow group border rounded-xl bg-card">
-                <div className="aspect-[4/3] overflow-hidden relative">
+                <div className="aspect-[4/3] overflow-hidden relative bg-muted">
+                  {!imageLoaded[room.id] && (
+                    <div className="absolute inset-0 bg-muted animate-pulse" />
+                  )}
                   <img 
                     src={roomImages[room.name] || roomStandard} 
                     alt={room.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    className={cn(
+                      "w-full h-full object-cover group-hover:scale-110 transition-all duration-500",
+                      imageLoaded[room.id] ? "opacity-100" : "opacity-0"
+                    )}
                     loading="lazy"
+                    onLoad={() => setImageLoaded(prev => ({ ...prev, [room.id]: true }))}
                   />
                   <div className="absolute top-4 right-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
                     {room.capacity}人

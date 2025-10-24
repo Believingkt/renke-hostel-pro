@@ -14,6 +14,20 @@ import heroSlide1 from "@/assets/hero-slide-1.jpg";
 import heroSlide2 from "@/assets/hero-slide-2.jpg";
 import heroSlide3 from "@/assets/hero-slide-3.jpg";
 
+// 預載入首張圖片
+const preloadImage = (src: string) => {
+  const link = document.createElement('link');
+  link.rel = 'preload';
+  link.as = 'image';
+  link.href = src;
+  document.head.appendChild(link);
+};
+
+// 預載入第一張輪播圖
+if (typeof window !== 'undefined') {
+  preloadImage(heroSlide1);
+}
+
 interface HeroSectionProps {
   accommodationName?: string;
 }
@@ -25,6 +39,11 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
   const [children, setChildren] = useState(0);
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
+  const [imageLoaded, setImageLoaded] = useState<Record<number, boolean>>({
+    0: false,
+    1: false,
+    2: false,
+  });
 
   useEffect(() => {
     if (!carouselApi) return;
@@ -48,12 +67,20 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
           <CarouselContent>
             {[heroSlide1, heroSlide2, heroSlide3].map((img, index) => (
               <CarouselItem key={index}>
-                <div className="relative h-[500px] md:h-[700px] w-full">
+                <div className="relative h-[500px] md:h-[700px] w-full bg-muted">
+                  {!imageLoaded[index] && (
+                    <div className="absolute inset-0 bg-muted animate-pulse" />
+                  )}
                   <img 
                     src={img} 
                     alt={`山景 ${index + 1}`}
-                    className="w-full h-full object-cover"
+                    className={cn(
+                      "w-full h-full object-cover transition-opacity duration-300",
+                      imageLoaded[index] ? "opacity-100" : "opacity-0"
+                    )}
                     loading={index === 0 ? "eager" : "lazy"}
+                    fetchPriority={index === 0 ? "high" : "low"}
+                    onLoad={() => setImageLoaded(prev => ({ ...prev, [index]: true }))}
                   />
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                     <div className="text-center text-white space-y-2 md:space-y-4 max-w-4xl px-4 pb-32 md:pb-56">
