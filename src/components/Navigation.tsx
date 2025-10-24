@@ -50,36 +50,46 @@ const Navigation = ({ accommodationName = "森山寫造", onNavigate }: Navigati
               <Menu className="h-6 w-6" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="right" className="w-[280px]">
-            <nav className="flex flex-col gap-6 mt-8">
-              <button 
-                onClick={() => handleNavigate("home")} 
-                className="text-lg hover:text-primary transition-colors text-left py-2"
-              >
-                旅宿介紹
-              </button>
-              <button 
-                onClick={() => handleNavigate("rooms")} 
-                className="text-lg hover:text-primary transition-colors text-left py-2"
-              >
-                房型導覽
-              </button>
-              <button 
-                onClick={() => handleNavigate("booking-info")} 
-                className="text-lg hover:text-primary transition-colors text-left py-2"
-              >
-                訂房須知
-              </button>
-              <button 
-                onClick={() => handleNavigate("location")} 
-                className="text-lg hover:text-primary transition-colors text-left py-2"
-              >
-                交通 & 地圖
-              </button>
-              <Button className="bg-primary hover:bg-primary/90 w-full mt-4">
-                立即訂房
-              </Button>
-            </nav>
+          <SheetContent side="right" className="w-full sm:w-[400px] p-0">
+            <div className="flex flex-col h-full">
+              {/* 選單項目 */}
+              <nav className="flex-1 flex flex-col px-8 pt-16">
+                <button 
+                  onClick={() => handleNavigate("home")} 
+                  className="text-2xl font-medium text-foreground hover:text-primary transition-colors text-left py-6 border-b border-border"
+                >
+                  旅宿介紹
+                </button>
+                <button 
+                  onClick={() => handleNavigate("rooms")} 
+                  className="text-2xl font-medium text-foreground hover:text-primary transition-colors text-left py-6 border-b border-border"
+                >
+                  房型導覽
+                </button>
+                <button 
+                  onClick={() => handleNavigate("booking-info")} 
+                  className="text-2xl font-medium text-foreground hover:text-primary transition-colors text-left py-6 border-b border-border"
+                >
+                  訂房須知
+                </button>
+                <button 
+                  onClick={() => handleNavigate("location")} 
+                  className="text-2xl font-medium text-foreground hover:text-primary transition-colors text-left py-6 border-b border-border"
+                >
+                  交通 & 地圖
+                </button>
+              </nav>
+              
+              {/* 底部訂房按鈕 */}
+              <div className="p-8">
+                <Button 
+                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-14 text-lg font-medium rounded-xl shadow-lg"
+                  onClick={() => setOpen(false)}
+                >
+                  立即訂房
+                </Button>
+              </div>
+            </div>
           </SheetContent>
         </Sheet>
       </div>
