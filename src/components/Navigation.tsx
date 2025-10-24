@@ -38,9 +38,6 @@ const Navigation = ({ accommodationName = "森山寫造", onNavigate }: Navigati
           <button onClick={() => onNavigate("booking-info")} className="text-sm hover:text-primary transition-colors">
             訂房須知
           </button>
-          <button onClick={() => onNavigate("faq")} className="text-sm hover:text-primary transition-colors">
-            常見問題
-          </button>
           <button onClick={() => onNavigate("location")} className="text-sm hover:text-primary transition-colors">
             交通 & 地圖
           </button>
@@ -83,12 +80,6 @@ const Navigation = ({ accommodationName = "森山寫造", onNavigate }: Navigati
                   className="text-lg font-medium text-foreground hover:text-primary transition-colors text-left py-4 border-b border-border/50"
                 >
                   訂房須知
-                </button>
-                <button 
-                  onClick={() => handleNavigate("faq")} 
-                  className="text-lg font-medium text-foreground hover:text-primary transition-colors text-left py-4 border-b border-border/50"
-                >
-                  常見問題
                 </button>
                 <button 
                   onClick={() => handleNavigate("location")} 
