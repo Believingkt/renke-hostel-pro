@@ -76,7 +76,6 @@ const menuItems = [
   },
   { title: "帳號權限管理", url: "/admin/accounts", icon: Settings },
   { title: "KOL折扣代碼", url: "/admin/discount-codes", icon: Tag },
-  { title: "前台訂房網站", url: "/booking", icon: DoorOpen },
 ];
 
 export function AppSidebar() {
