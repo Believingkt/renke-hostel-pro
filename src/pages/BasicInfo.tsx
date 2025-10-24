@@ -31,7 +31,6 @@ const BasicInfo = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="info">官網旅宿資訊</TabsTrigger>
-          <TabsTrigger value="rooms">房型管理</TabsTrigger>
           <TabsTrigger value="booking">官網訂房資訊</TabsTrigger>
         </TabsList>
 
