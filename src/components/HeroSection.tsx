@@ -32,7 +32,7 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
   }, [carouselApi]);
 
   return (
-    <section id="home" className="pt-16 relative pb-32 md:pb-36">
+    <section id="home" className="pt-16 relative pb-24 md:pb-28">
       <div className="relative">
         <Carousel
           opts={{ loop: true }}
@@ -43,7 +43,7 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
           <CarouselContent>
             {[heroSlide1, heroSlide2, heroSlide3].map((img, index) => (
               <CarouselItem key={index}>
-                <div className="relative h-[500px] md:h-[600px] w-full">
+                <div className="relative h-[600px] md:h-[700px] w-full">
                   <img 
                     src={img} 
                     alt={`山景 ${index + 1}`}
@@ -67,6 +67,21 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
             ))}
           </CarouselContent>
           
+          {/* 輪播指示器（圓點） - 在圖片底部 */}
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+            {[0, 1, 2].map((index) => (
+              <button
+                key={index}
+                onClick={() => carouselApi?.scrollTo(index)}
+                className={`h-2 rounded-full transition-all ${
+                  current === index 
+                    ? "w-8 bg-white" 
+                    : "w-2 bg-white/50 hover:bg-white/75"
+                }`}
+                aria-label={`切換到第 ${index + 1} 張圖片`}
+              />
+            ))}
+          </div>
         </Carousel>
 
         {/* 搜尋卡片 - 在輪播外部底部延伸 */}
@@ -127,22 +142,6 @@ const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) =
               </Button>
           </CardContent>
         </Card>
-        </div>
-
-        {/* 輪播指示器（圓點） - 在搜尋卡片下方 */}
-        <div className="absolute bottom-[-40px] left-1/2 -translate-x-1/2 flex gap-2 z-10">
-          {[0, 1, 2].map((index) => (
-            <button
-              key={index}
-              onClick={() => carouselApi?.scrollTo(index)}
-              className={`h-2 rounded-full transition-all ${
-                current === index 
-                  ? "w-8 bg-muted-foreground" 
-                  : "w-2 bg-muted-foreground/40 hover:bg-muted-foreground/60"
-              }`}
-              aria-label={`切換到第 ${index + 1} 張圖片`}
-            />
-          ))}
         </div>
       </div>
     </section>
