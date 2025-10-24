@@ -40,7 +40,14 @@ const menuItems = [
       { title: "房況表", url: "/admin/reception?tab=status" },
     ]
   },
-  { title: "官網內容", url: "/admin/website-content", icon: Globe },
+  { 
+    title: "官網內容", 
+    url: "/admin/website-content", 
+    icon: Globe,
+    subItems: [
+      { title: "旅宿設施與服務", url: "/admin/website-content?tab=facilities" },
+    ]
+  },
   { 
     title: "基本資訊", 
     url: "/admin/basic-info", 
@@ -49,7 +56,6 @@ const menuItems = [
       { title: "官網旅宿資訊", url: "/admin/basic-info?tab=info" },
       { title: "房型管理", url: "/admin/basic-info?tab=rooms" },
       { title: "官網訂房資訊", url: "/admin/basic-info?tab=booking" },
-      { title: "旅宿設施與服務", url: "/admin/basic-info?tab=facilities" },
     ]
   },
   { 
