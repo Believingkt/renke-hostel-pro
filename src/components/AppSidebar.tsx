@@ -98,7 +98,11 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r">
       <SidebarHeader className="border-b px-6 py-4">
-        <div className="flex items-center gap-3">
+        <NavLink 
+          to="/" 
+          onClick={handleLinkClick}
+          className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+        >
           <img 
             src={logo} 
             alt="人客多 Logo" 
@@ -110,7 +114,7 @@ export function AppSidebar() {
               <p className="text-sm text-muted-foreground">旅宿管理系統</p>
             </div>
           )}
-        </div>
+        </NavLink>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
