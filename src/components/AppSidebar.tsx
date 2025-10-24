@@ -45,7 +45,7 @@ const menuItems = [
     url: "/admin/website-content", 
     icon: Globe,
     subItems: [
-      { title: "旅宿設施與服務", url: "/admin/website-content?tab=facilities" },
+      { title: "設施與服務", url: "/admin/website-content?tab=facilities" },
     ]
   },
   { 

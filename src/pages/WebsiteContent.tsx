@@ -30,10 +30,10 @@ const WebsiteContent = () => {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="facilities">旅宿設施與服務</TabsTrigger>
+          <TabsTrigger value="facilities">設施與服務</TabsTrigger>
         </TabsList>
 
-        {/* 旅宿設施與服務 */}
+        {/* 設施與服務 */}
         <TabsContent value="facilities" className="space-y-6">
           {/* 公共區設施與服務 */}
           <Card>
