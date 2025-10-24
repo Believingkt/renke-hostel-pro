@@ -89,10 +89,7 @@ const BasicInfo = () => {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
 
-        {/* 官網訂房資訊 */}
-        <TabsContent value="booking" className="space-y-6">
           {/* 收款資訊 */}
           <Card>
             <CardHeader>
@@ -251,6 +248,18 @@ const BasicInfo = () => {
                   </div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* 官網訂房資訊 */}
+        <TabsContent value="booking" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>官網訂房資訊</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">訂房相關設定</p>
             </CardContent>
           </Card>
         </TabsContent>
