@@ -62,18 +62,18 @@ const FaqSection = () => {
           </p>
         </div>
 
-        <div className="max-w-3xl mx-auto">
-          <Accordion type="single" collapsible className="space-y-4">
-            {faqs.map((faq) => (
+        <div className="max-w-4xl mx-auto bg-background rounded-lg border overflow-hidden">
+          <Accordion type="single" collapsible>
+            {faqs.map((faq, index) => (
               <AccordionItem
                 key={faq.id}
                 value={faq.id}
-                className="bg-background border rounded-lg px-6"
+                className={index === faqs.length - 1 ? "border-b-0" : ""}
               >
-                <AccordionTrigger className="text-left hover:no-underline">
-                  <span className="font-semibold">{faq.question}</span>
+                <AccordionTrigger className="text-left hover:no-underline px-8 py-6 text-lg font-normal">
+                  {faq.question}
                 </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground">
+                <AccordionContent className="text-muted-foreground px-8 pb-6 pt-0 text-base leading-relaxed">
                   {faq.answer}
                 </AccordionContent>
               </AccordionItem>
