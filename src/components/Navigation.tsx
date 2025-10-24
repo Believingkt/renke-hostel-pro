@@ -46,8 +46,8 @@ const Navigation = ({ accommodationName = "森山寫造", onNavigate }: Navigati
         {/* Mobile Navigation */}
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild className="md:hidden">
-            <Button variant="ghost" size="icon" className="w-20 h-20 hover:bg-transparent active:bg-transparent">
-              <Menu className="h-24 w-24 text-foreground" />
+            <Button variant="ghost" size="icon" className="w-[120px] h-[120px] hover:bg-transparent active:bg-transparent">
+              <Menu className="h-[120px] w-[120px] text-foreground" />
             </Button>
           </SheetTrigger>
           <SheetContent side="right" className="w-full sm:w-[400px] p-0">
