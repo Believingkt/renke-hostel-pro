@@ -31,7 +31,7 @@ const LocationSection = () => {
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-3 md:mb-4">交通 & 地圖</h2>
           <p className="text-center text-muted-foreground mb-8 md:mb-16 text-base md:text-lg">
-            如何前往森山寫造
+            多種交通方式輕鬆抵達，讓您的旅程更加便利
           </p>
 
           <div className="grid md:grid-cols-2 gap-6 mb-8">
