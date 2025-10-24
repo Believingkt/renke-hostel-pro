@@ -8,7 +8,7 @@ import {
   BarChart3, 
   Settings,
   Tag,
-  ChevronRight
+  ChevronDown
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import logo from "@/assets/logo.jpg";
@@ -128,7 +128,7 @@ export function AppSidebar() {
                         <SidebarMenuButton className="h-12 py-3 text-base">
                           <item.icon className="h-5 w-5" />
                           <span>{item.title}</span>
-                          <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                          <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
                       <CollapsibleContent>
