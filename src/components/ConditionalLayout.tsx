@@ -100,7 +100,7 @@ export function ConditionalLayout() {
             </main>
             <footer className="border-t py-4 px-3 md:px-6">
               <p className="text-sm text-center text-muted-foreground">
-                © 2025 人客多 PMS 旅宿管理系統. 版權所有
+                © 2025 森山寫造 PMS 管理系統. 版權所有
               </p>
             </footer>
           </div>
