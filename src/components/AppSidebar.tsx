@@ -106,8 +106,7 @@ export function AppSidebar() {
         >
           {open && (
             <div>
-              <h2 className="text-2xl font-semibold text-primary">人客多 PMS</h2>
-              <p className="text-sm text-muted-foreground">旅宿管理系統</p>
+              <h2 className="text-2xl font-semibold text-primary">森山寫造 PMS 管理系統</h2>
             </div>
           )}
         </NavLink>
