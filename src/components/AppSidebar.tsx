@@ -108,7 +108,7 @@ export function AppSidebar() {
           {open && (
             <div>
               <h2 className="text-2xl font-semibold text-primary">
-                森山寫照管理後台
+                管理後台
               </h2>
             </div>
           )}
