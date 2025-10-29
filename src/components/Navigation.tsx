@@ -42,7 +42,7 @@ const Navigation = ({ accommodationName = "森山寫照", onNavigate }: Navigati
             常見問題
           </button>
           <Button className="bg-primary hover:bg-primary/90">
-            立即訂房
+            立即預訂
           </Button>
         </nav>
 
@@ -95,7 +95,7 @@ const Navigation = ({ accommodationName = "森山寫照", onNavigate }: Navigati
                   className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-12 text-base font-medium rounded-lg shadow-lg"
                   onClick={() => setOpen(false)}
                 >
-                  立即訂房
+                  立即預訂
                 </Button>
               </div>
             </div>
