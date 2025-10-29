@@ -17,21 +17,18 @@ export function Header() {
 
   const handleLogout = async () => {
     try {
-      // Always clear session regardless of signOut result
+      // Clear session
       await supabase.auth.signOut({ scope: 'local' });
       
       toast.success("已登出");
-      // Force page reload to clear all state
-      setTimeout(() => {
-        window.location.href = "/auth";
-      }, 100);
+      
+      // Use replace to avoid keeping logout page in history
+      window.location.replace(`${window.location.origin}/auth`);
     } catch (error) {
       // Even if signOut fails, still redirect to clear state
       console.error("Logout error:", error);
       toast.success("已登出");
-      setTimeout(() => {
-        window.location.href = "/auth";
-      }, 100);
+      window.location.replace(`${window.location.origin}/auth`);
     }
   };
 
