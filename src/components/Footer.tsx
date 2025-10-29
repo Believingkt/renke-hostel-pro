@@ -1,5 +1,5 @@
 import { Separator } from "@/components/ui/separator";
-import { MapPin, Phone, Mail, Mountain, Facebook, Instagram } from "lucide-react";
+import { MapPin, Phone, Mail, Mountain, Facebook, Instagram, MessageCircle } from "lucide-react";
 
 interface FooterProps {
   accommodationName?: string;
@@ -87,6 +87,10 @@ const Footer = ({ accommodationName, address }: FooterProps) => {
                 <li className="flex items-center gap-2 md:gap-3">
                   <Phone className="h-4 w-4 md:h-5 md:w-5 text-white/80 flex-shrink-0" />
                   <span className="text-sm md:text-base text-white/80">0903178518</span>
+                </li>
+                <li className="flex items-center gap-2 md:gap-3">
+                  <MessageCircle className="h-4 w-4 md:h-5 md:w-5 text-white/80 flex-shrink-0" />
+                  <span className="text-sm md:text-base text-white/80">LINE: @042deypa</span>
                 </li>
                 <li className="flex items-center gap-2 md:gap-3">
                   <Mail className="h-4 w-4 md:h-5 md:w-5 text-white/80 flex-shrink-0" />
