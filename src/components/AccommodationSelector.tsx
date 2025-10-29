@@ -8,7 +8,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Building2 } from "lucide-react";
 
 interface Accommodation {
   id: string;
@@ -55,16 +54,14 @@ export function AccommodationSelector() {
   // If only one accommodation, show it as label instead of selector
   if (accommodations.length === 1) {
     return (
-      <div className="flex items-center gap-2 px-3 py-2 text-sm">
-        <Building2 className="h-4 w-4 text-muted-foreground" />
-        <span className="font-medium">{accommodations[0].name}</span>
+      <div className="flex items-center px-3 py-2">
+        <span className="font-medium text-lg">{accommodations[0].name}</span>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-2 px-3">
-      <Building2 className="h-4 w-4 text-muted-foreground" />
+    <div className="flex items-center px-3">
       <Select value={currentAccommodationId || undefined} onValueChange={setCurrentAccommodationId}>
         <SelectTrigger className="w-[200px]">
           <SelectValue placeholder="選擇旅館" />
