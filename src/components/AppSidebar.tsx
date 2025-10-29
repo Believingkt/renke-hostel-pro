@@ -108,7 +108,7 @@ export function AppSidebar() {
           {open && (
             <div>
               <h2 className="text-2xl font-semibold text-primary">
-                森山寫造 <span className="text-xs text-black dark:text-white">PMS 管理系統</span>
+                森山寫照 <span className="text-xs text-black dark:text-white">PMS 管理系統</span>
               </h2>
             </div>
           )}

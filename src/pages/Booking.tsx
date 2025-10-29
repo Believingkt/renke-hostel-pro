@@ -141,7 +141,7 @@ const Booking = () => {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Mountain className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-bold text-primary">{accommodationInfo?.name || "森山寫造"}</h1>
+            <h1 className="text-xl font-bold text-primary">{accommodationInfo?.name || "森山寫照"}</h1>
           </div>
           <nav className="hidden md:flex items-center gap-6">
             <button onClick={() => scrollToSection("home")} className="text-sm hover:text-primary transition-colors">
@@ -183,7 +183,7 @@ const Booking = () => {
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                     <div className="text-center text-white space-y-4 max-w-4xl px-4">
                       <h1 className="text-5xl md:text-7xl font-bold animate-fade-in">
-                        {accommodationInfo?.name || "森山寫造"}
+                        {accommodationInfo?.name || "森山寫照"}
                       </h1>
                       <p className="text-2xl md:text-3xl animate-fade-in" style={{ animationDelay: "0.2s" }}>
                         山間的寧靜時光
@@ -475,7 +475,7 @@ const Booking = () => {
               <div>
                 <div className="flex items-center gap-2 mb-4">
                   <Mountain className="h-8 w-8 text-white" />
-                  <h3 className="text-2xl font-bold">{accommodationInfo?.name || "森山寫造"}</h3>
+                  <h3 className="text-2xl font-bold">{accommodationInfo?.name || "森山寫照"}</h3>
                 </div>
                 <p className="text-white/80 mb-6">山間的寧靜時光</p>
                 <div className="flex gap-4">
@@ -538,7 +538,7 @@ const Booking = () => {
             <Separator className="my-8 bg-white/20" />
             
             <p className="text-center text-white/60 text-sm">
-              © 2025 森山寫造. All rights reserved.
+              © 2025 森山寫照. All rights reserved.
             </p>
           </div>
         </div>

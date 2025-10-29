@@ -24,7 +24,7 @@ interface HeroSectionProps {
   accommodationName?: string;
 }
 
-const HeroSection = ({ accommodationName = "森山寫造" }: HeroSectionProps) => {
+const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) => {
   const [checkInDate, setCheckInDate] = useState<Date>();
   const [checkOutDate, setCheckOutDate] = useState<Date>();
   const [adults, setAdults] = useState(2);

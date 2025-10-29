@@ -24,7 +24,7 @@ const Footer = ({ accommodationName, address }: FooterProps) => {
             <div>
               <div className="flex items-center gap-2 mb-3 md:mb-4">
                 <Mountain className="h-6 w-6 md:h-8 md:w-8 text-white" />
-                <h3 className="text-xl md:text-2xl font-bold">{accommodationName || "森山寫造"}</h3>
+                <h3 className="text-xl md:text-2xl font-bold">{accommodationName || "森山寫照"}</h3>
               </div>
               <p className="text-sm md:text-base text-white/80 mb-4 md:mb-6">山間的寧靜時光</p>
               <div className="flex gap-4">
@@ -110,7 +110,7 @@ const Footer = ({ accommodationName, address }: FooterProps) => {
           <Separator className="my-6 md:my-8 bg-white/20" />
           
           <p className="text-center text-white/60 text-xs md:text-sm">
-            © 2025 森山寫造. All rights reserved.
+            © 2025 森山寫照. All rights reserved.
           </p>
         </div>
       </div>

@@ -8,7 +8,7 @@ interface NavigationProps {
   onNavigate: (sectionId: string) => void;
 }
 
-const Navigation = ({ accommodationName = "森山寫造", onNavigate }: NavigationProps) => {
+const Navigation = ({ accommodationName = "森山寫照", onNavigate }: NavigationProps) => {
   const [open, setOpen] = useState(false);
 
   const handleNavigate = (sectionId: string) => {
