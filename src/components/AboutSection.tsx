@@ -5,13 +5,13 @@ interface AboutSectionProps {
   description?: string;
 }
 
-const AboutSection = ({ description = "森山寫造位於寧靜的山區，是一處結合日式傳統美學與現代舒適的精品旅宿。 在這裡，您可以遠離都市喧囂，沉浸在大自然的懷抱中，享受一段悠閒的時光。" }: AboutSectionProps) => {
+const AboutSection = ({ description = "園區坐落於群山下，在砂紋蜿蜒的庭園中，遇見一座靜心園林。以「一泊二食，全區獨享」的隱奢理念為起點，誠摯邀請您展開一場自然、舒眠與慢活的豪華露營體驗。" }: AboutSectionProps) => {
   return (
     <section className="py-12 md:py-20">
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-3 md:mb-4">旅宿介紹</h2>
-          <p className="text-center text-muted-foreground mb-8 md:mb-16 text-base md:text-lg">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-3 md:mb-4">自然中的秘境 X 宿泊空間</h2>
+          <p className="text-center text-muted-foreground mb-8 md:mb-16 text-base md:text-lg whitespace-pre-line">
             {description}
           </p>
 
