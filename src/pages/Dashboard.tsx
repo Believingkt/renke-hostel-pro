@@ -1,6 +1,10 @@
 import { Hotel, Users, Calendar, DollarSign } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Info } from "lucide-react";
 
 import {
   LineChart,
@@ -53,11 +57,34 @@ const recentBookings = [
 ];
 
 const Dashboard = () => {
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUserId(session.user.id);
+        setUserEmail(session.user.email || null);
+      }
+    });
+  }, []);
+
   return (
     <div className="space-y-6 md:space-y-8">
       <div className="px-2 md:px-0">
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">營運報表</h1>
       </div>
+
+      {userId && (
+        <Alert className="mx-2 md:mx-0">
+          <Info className="h-4 w-4" />
+          <AlertTitle>您的用戶資訊</AlertTitle>
+          <AlertDescription className="mt-2 space-y-1">
+            <p className="text-sm"><strong>Email:</strong> {userEmail}</p>
+            <p className="text-sm font-mono break-all"><strong>User ID:</strong> {userId}</p>
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-4 px-2 md:px-0">
         <StatCard
