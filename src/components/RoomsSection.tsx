@@ -131,7 +131,8 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
     },
   ];
 
-  const displayRooms = roomTypes.length > 0 ? roomTypes : defaultRooms;
+  // 直接使用固定的包區數據，不使用資料庫的舊資料
+  const displayRooms = defaultRooms;
 
   return (
     <section id="rooms" className="py-12 md:py-20 bg-secondary/30">
