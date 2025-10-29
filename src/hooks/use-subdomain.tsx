@@ -21,11 +21,24 @@ export function useSubdomain() {
         const { data, error } = await supabase
           .from('accommodation_info')
           .select('id')
+          .order('created_at', { ascending: true })
           .limit(1)
-          .single();
+          .maybeSingle();
 
-        if (error) throw error;
-        setAccommodationId(data?.id || null);
+        if (error) {
+          console.error('Error loading accommodation:', error);
+          setError('載入旅館資訊失敗');
+          setIsLoading(false);
+          return;
+        }
+
+        if (!data) {
+          setError('找不到旅館資料');
+          setIsLoading(false);
+          return;
+        }
+
+        setAccommodationId(data.id);
         setIsLoading(false);
         return;
       }
@@ -44,9 +57,14 @@ export function useSubdomain() {
         .from('accommodation_info')
         .select('id')
         .eq('short_url_alias', subdomain)
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error querying accommodation:', error);
+        setError('載入旅館資訊失敗');
+        setIsLoading(false);
+        return;
+      }
 
       if (!data) {
         setError('找不到對應的旅館');
