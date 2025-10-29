@@ -17,21 +17,29 @@ export function Header() {
 
   const handleLogout = async () => {
     try {
-      // Use global scope to clear session from all tabs/windows
-      await supabase.auth.signOut({ scope: 'global' });
+      // Clear all supabase-related data from localStorage FIRST
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('sb-') || key.includes('supabase')) {
+          localStorage.removeItem(key);
+        }
+      });
       
-      // Clear local storage manually as backup
-      localStorage.removeItem('supabase.auth.token');
       sessionStorage.clear();
+      
+      // Then sign out from server
+      await supabase.auth.signOut({ scope: 'global' });
       
       toast.success("已登出");
       
-      // Use replace to avoid keeping logout page in history
+      // Small delay to ensure auth state updates propagate
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Force navigation to auth page
       window.location.replace(`${window.location.origin}/auth`);
     } catch (error) {
-      // Even if signOut fails, force clear and redirect
       console.error("Logout error:", error);
-      localStorage.removeItem('supabase.auth.token');
+      // Force clear everything if signOut fails
+      localStorage.clear();
       sessionStorage.clear();
       toast.success("已登出");
       window.location.replace(`${window.location.origin}/auth`);
