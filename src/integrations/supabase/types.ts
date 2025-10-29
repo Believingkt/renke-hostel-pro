@@ -432,6 +432,7 @@ export type Database = {
           role: Database["public"]["Enums"]["app_role"]
         }[]
       }
+      is_admin: { Args: { user_id_param: string }; Returns: boolean }
       user_has_access_to_accommodation: {
         Args: { _accommodation_id: string; _user_id: string }
         Returns: boolean
