@@ -1,7 +1,6 @@
 import { Bell, LogOut } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -43,12 +42,7 @@ export function Header() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2 md:gap-3">
-                <Avatar className="h-8 w-8 md:h-10 md:w-10">
-                  <AvatarFallback className="text-xs md:text-sm text-foreground bg-transparent">森山寫照</AvatarFallback>
-                </Avatar>
-                <div className="hidden lg:block">
-                  <p className="text-sm font-medium">管理員</p>
-                </div>
+                <div className="text-sm font-medium">森山寫照</div>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
