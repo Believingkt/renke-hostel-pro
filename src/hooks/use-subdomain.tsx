@@ -16,8 +16,8 @@ export function useSubdomain() {
       const hostname = window.location.hostname;
       const parts = hostname.split('.');
       
-      // For development (localhost), use the first accommodation
-      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      // For development (localhost) and Lovable preview, use the first accommodation
+      if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('lovableproject.com')) {
         const { data, error } = await supabase
           .from('accommodation_info')
           .select('id')
