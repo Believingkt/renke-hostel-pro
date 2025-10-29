@@ -18,6 +18,17 @@ export function ConditionalLayout() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Update page title based on current route
+  useEffect(() => {
+    if (isAdminPage) {
+      document.title = "人客多 PMS 管理系統";
+    } else if (isAuthPage) {
+      document.title = "登入 - 人客多 PMS 管理系統";
+    } else {
+      document.title = "森山寫照 - 山間的寧靜時光";
+    }
+  }, [isAdminPage, isAuthPage]);
+
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
