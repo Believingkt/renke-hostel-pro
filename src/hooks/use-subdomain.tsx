@@ -46,8 +46,29 @@ export function useSubdomain() {
       // Extract subdomain (first part of hostname)
       const subdomain = parts.length > 2 ? parts[0] : null;
 
+      // If no subdomain, use the first accommodation (for custom domains without subdomains)
       if (!subdomain) {
-        setError('無效的子域名');
+        const { data, error } = await supabase
+          .from('accommodation_info')
+          .select('id')
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error loading accommodation:', error);
+          setError('載入旅館資訊失敗');
+          setIsLoading(false);
+          return;
+        }
+
+        if (!data) {
+          setError('找不到旅館資料');
+          setIsLoading(false);
+          return;
+        }
+
+        setAccommodationId(data.id);
         setIsLoading(false);
         return;
       }
