@@ -104,7 +104,7 @@ const Accounts = () => {
   return (
     <div className="space-y-4 md:space-y-6 p-4 md:p-0">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">帳號權限管理</h1>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">帳號管理</h1>
         
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
