@@ -87,9 +87,9 @@ const RoomCard = ({ room }: { room: RoomType }) => {
               <p className="text-xs font-semibold text-foreground mb-2">平日</p>
               <div className="space-y-1">
                 {room.weekdayPricing.map((option, idx) => (
-                  <div key={idx} className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">{option.type}</span>
-                    <span className="font-semibold text-primary">NT$ {option.price.toLocaleString()}</span>
+                  <div key={idx} className="flex justify-between items-center">
+                    <span className="text-lg text-muted-foreground">{option.type}</span>
+                    <span className="font-semibold text-xl text-primary">NT$ {option.price.toLocaleString()}</span>
                   </div>
                 ))}
               </div>
@@ -100,9 +100,9 @@ const RoomCard = ({ room }: { room: RoomType }) => {
               <p className="text-xs font-semibold text-foreground mb-2">假日</p>
               <div className="space-y-1">
                 {room.weekendPricing.map((option, idx) => (
-                  <div key={idx} className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">{option.type}</span>
-                    <span className="font-semibold text-primary">NT$ {option.price.toLocaleString()}</span>
+                  <div key={idx} className="flex justify-between items-center">
+                    <span className="text-lg text-muted-foreground">{option.type}</span>
+                    <span className="font-semibold text-xl text-primary">NT$ {option.price.toLocaleString()}</span>
                   </div>
                 ))}
               </div>
