@@ -96,7 +96,7 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
     {
       id: "12-people",
       name: "12人包區",
-      name_en: "12 People Package",
+      name_en: "三間房 | 四人房：3間",
       description: "適合中小型團體的豪華包區，提供完整的露營設施與舒適空間",
       capacity: 12,
       size_sqm: 150,
@@ -105,7 +105,7 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
     {
       id: "14-people",
       name: "14人包區",
-      name_en: "14 People Package",
+      name_en: "四間房 | 雙人1間 +四人3間",
       description: "寬敞舒適的包區空間，適合家庭或朋友團體聚會",
       capacity: 14,
       size_sqm: 180,
@@ -114,20 +114,11 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
     {
       id: "16-people",
       name: "16人包區",
-      name_en: "16 People Package",
+      name_en: "五間房 | 雙人2間 +四人3間",
       description: "大型團體的理想選擇，享受自然與慢活的豪華體驗",
       capacity: 16,
       size_sqm: 200,
       base_price: 24000,
-    },
-    {
-      id: "18-people",
-      name: "18人包區",
-      name_en: "18 People Package",
-      description: "最大容量包區，提供頂級的團體露營體驗",
-      capacity: 18,
-      size_sqm: 220,
-      base_price: 27000,
     },
   ];
 
@@ -143,7 +134,7 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
             精心設計的客房空間，讓您在山林間享受寧靜舒適的住宿體驗
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             {displayRooms.map((room) => (
               <RoomCard key={room.id} room={room} />
             ))}
