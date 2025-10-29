@@ -120,6 +120,15 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
       size_sqm: 200,
       base_price: 24000,
     },
+    {
+      id: "18-people",
+      name: "18人包區",
+      name_en: "18 People Package",
+      description: "最大容量包區，提供頂級的團體露營體驗",
+      capacity: 18,
+      size_sqm: 220,
+      base_price: 27000,
+    },
   ];
 
   // 直接使用固定的包區數據，不使用資料庫的舊資料
@@ -134,7 +143,7 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
             精心設計的客房空間，讓您在山林間享受寧靜舒適的住宿體驗
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
             {displayRooms.map((room) => (
               <RoomCard key={room.id} room={room} />
             ))}
