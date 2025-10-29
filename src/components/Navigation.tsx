@@ -32,11 +32,14 @@ const Navigation = ({ accommodationName = "森山寫照", onNavigate }: Navigati
           <button onClick={() => onNavigate("facilities")} className="text-sm hover:text-primary transition-colors">
             設施與服務
           </button>
+          <button onClick={() => onNavigate("location")} className="text-sm hover:text-primary transition-colors">
+            交通 & 地圖
+          </button>
           <button onClick={() => onNavigate("booking-info")} className="text-sm hover:text-primary transition-colors">
             訂房須知
           </button>
-          <button onClick={() => onNavigate("location")} className="text-sm hover:text-primary transition-colors">
-            交通 & 地圖
+          <button onClick={() => onNavigate("reviews")} className="text-sm hover:text-primary transition-colors">
+            旅客評價
           </button>
           <button onClick={() => onNavigate("faq")} className="text-sm hover:text-primary transition-colors">
             常見問題
@@ -70,16 +73,22 @@ const Navigation = ({ accommodationName = "森山寫照", onNavigate }: Navigati
                   設施與服務
                 </button>
                 <button 
+                  onClick={() => handleNavigate("location")} 
+                  className="text-lg font-medium text-foreground hover:text-primary transition-colors text-left py-4 border-b border-border/50"
+                >
+                  交通 & 地圖
+                </button>
+                <button 
                   onClick={() => handleNavigate("booking-info")} 
                   className="text-lg font-medium text-foreground hover:text-primary transition-colors text-left py-4 border-b border-border/50"
                 >
                   訂房須知
                 </button>
                 <button 
-                  onClick={() => handleNavigate("location")} 
+                  onClick={() => handleNavigate("reviews")} 
                   className="text-lg font-medium text-foreground hover:text-primary transition-colors text-left py-4 border-b border-border/50"
                 >
-                  交通 & 地圖
+                  旅客評價
                 </button>
                 <button 
                   onClick={() => handleNavigate("faq")} 
