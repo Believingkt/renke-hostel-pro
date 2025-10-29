@@ -34,12 +34,18 @@ export function AccommodationProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      // Use Promise to avoid blocking
       const { data, error } = await supabase
         .from('user_roles')
         .select('accommodation_id, role')
-        .eq('user_id', session.user.id);
+        .eq('user_id', session.user.id)
+        .limit(10); // Add limit for faster query
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading user accommodations:', error);
+        setIsLoading(false);
+        return;
+      }
 
       setUserAccommodations(data || []);
 
@@ -47,9 +53,10 @@ export function AccommodationProvider({ children }: { children: ReactNode }) {
       if (data && data.length === 1 && !currentAccommodationId) {
         setCurrentAccommodationId(data[0].accommodation_id);
       }
+      
+      setIsLoading(false);
     } catch (error) {
       console.error('Error loading user accommodations:', error);
-    } finally {
       setIsLoading(false);
     }
   };

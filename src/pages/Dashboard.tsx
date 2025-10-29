@@ -61,12 +61,15 @@ const Dashboard = () => {
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Get cached session (fast, synchronous from localStorage)
+    const getCachedSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         setUserId(session.user.id);
         setUserEmail(session.user.email || null);
       }
-    });
+    };
+    getCachedSession();
   }, []);
 
   return (
