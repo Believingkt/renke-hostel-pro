@@ -23,6 +23,7 @@ interface AccommodationData {
   roomTypes: any[];
   bookingSettings: any;
   facilities: any[];
+  locationInfo: any;
 }
 
 const Index = () => {
@@ -46,11 +47,12 @@ const Index = () => {
             info: infoData,
             roomTypes: [],
             bookingSettings: null,
-            facilities: []
+            facilities: [],
+            locationInfo: null
           });
           
           // 继续加载其他数据
-          const [roomTypesRes, bookingSettingsRes, facilitiesRes] = await Promise.all([
+          const [roomTypesRes, bookingSettingsRes, facilitiesRes, locationInfoRes] = await Promise.all([
             supabase
               .from("room_types")
               .select("*")
@@ -65,14 +67,20 @@ const Index = () => {
               .from("accommodation_facilities")
               .select("*")
               .eq("accommodation_id", infoData.id)
-              .eq("is_available", true)
+              .eq("is_available", true),
+            supabase
+              .from("location_info")
+              .select("*")
+              .eq("accommodation_id", infoData.id)
+              .maybeSingle()
           ]);
 
           setData({
             info: infoData,
             roomTypes: roomTypesRes.data || [],
             bookingSettings: bookingSettingsRes.data,
-            facilities: facilitiesRes.data || []
+            facilities: facilitiesRes.data || [],
+            locationInfo: locationInfoRes.data
           });
         }
       } catch (error) {
@@ -123,7 +131,10 @@ const Index = () => {
         <AboutSection description={data?.info.description} />
         <RoomsSection roomTypes={data?.roomTypes || []} />
         <FacilitiesSection facilities={data?.facilities || []} />
-        <LocationSection address={data?.info.address} />
+        <LocationSection 
+          address={data?.info.address}
+          locationInfo={data?.locationInfo}
+        />
         <BookingInfoSection 
           bookingSettings={data?.bookingSettings}
           checkInNotice={data?.info.check_in_notice}
