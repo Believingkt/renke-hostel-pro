@@ -26,9 +26,6 @@ const Navigation = ({ accommodationName = "森山寫造", onNavigate }: Navigati
         
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6">
-          <button onClick={() => onNavigate("home")} className="text-sm hover:text-primary transition-colors">
-            旅宿介紹
-          </button>
           <button onClick={() => onNavigate("rooms")} className="text-sm hover:text-primary transition-colors">
             房型導覽
           </button>
@@ -60,12 +57,6 @@ const Navigation = ({ accommodationName = "森山寫造", onNavigate }: Navigati
             <div className="flex flex-col h-full">
               {/* 選單項目 */}
               <nav className="flex-1 flex flex-col px-6 pt-20">
-                <button 
-                  onClick={() => handleNavigate("home")} 
-                  className="text-lg font-medium text-foreground hover:text-primary transition-colors text-left py-4 border-b border-border/50"
-                >
-                  旅宿介紹
-                </button>
                 <button 
                   onClick={() => handleNavigate("rooms")} 
                   className="text-lg font-medium text-foreground hover:text-primary transition-colors text-left py-4 border-b border-border/50"
