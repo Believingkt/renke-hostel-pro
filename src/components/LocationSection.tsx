@@ -24,11 +24,17 @@ const LocationSection = ({ address }: LocationSectionProps) => {
                   <MapPin className="h-5 w-5 text-primary" />
                   位置資訊
                 </h3>
-                <div className="aspect-video bg-muted rounded-lg flex items-center justify-center mb-4">
-                  <div className="text-center">
-                    <MapPin className="h-16 w-16 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-muted-foreground">地圖載入中...</p>
-                  </div>
+                <div className="aspect-video bg-muted rounded-lg overflow-hidden mb-4">
+                  <iframe
+                    src={`https://www.google.com/maps?q=${encodeURIComponent(address || "宜蘭縣冬山鄉大進三路208號")}&output=embed`}
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    allowFullScreen
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    title="旅館位置地圖"
+                  />
                 </div>
                 <div className="flex items-start gap-2 mb-2">
                   <MapPin className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
