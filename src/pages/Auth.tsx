@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import lokezeLogo from "@/assets/lokeze-logo-auth.png";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -106,7 +107,9 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">森山寫照 PMS 管理系統</CardTitle>
+          <div className="flex justify-center">
+            <img src={lokezeLogo} alt="Lokeze" className="h-12 object-contain" />
+          </div>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
