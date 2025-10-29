@@ -29,8 +29,11 @@ export default function Auth() {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
+      if (event === "SIGNED_IN" && session) {
         navigate("/admin");
+      } else if (event === "SIGNED_OUT") {
+        // User logged out, stay on auth page
+        console.log("User signed out");
       }
     });
 

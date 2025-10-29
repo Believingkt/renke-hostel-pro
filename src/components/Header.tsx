@@ -17,10 +17,14 @@ export function Header() {
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
       toast.success("已登出");
-      navigate("/auth");
+      // Force page reload to clear all state
+      window.location.href = "/auth";
     } catch (error) {
+      console.error("Logout error:", error);
       toast.error("登出失敗");
     }
   };
