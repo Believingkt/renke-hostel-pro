@@ -21,9 +21,10 @@ interface RoomsSectionProps {
 }
 
 const roomImages: Record<string, string> = {
-  "豪華和室": roomDeluxe,
-  "精緻套房": roomSuite,
-  "標準客房": roomStandard,
+  "12人包區": roomDeluxe,
+  "14人包區": roomSuite,
+  "16人包區": roomStandard,
+  "18人包區": roomDeluxe,
 };
 
 const RoomCard = ({ room }: { room: RoomType }) => {
@@ -90,17 +91,59 @@ const RoomCard = ({ room }: { room: RoomType }) => {
 };
 
 const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
+  // 使用固定的包區數據
+  const defaultRooms: RoomType[] = [
+    {
+      id: "12-people",
+      name: "12人包區",
+      name_en: "12 People Package",
+      description: "適合中小型團體的豪華包區，提供完整的露營設施與舒適空間",
+      capacity: 12,
+      size_sqm: 150,
+      base_price: 18000,
+    },
+    {
+      id: "14-people",
+      name: "14人包區",
+      name_en: "14 People Package",
+      description: "寬敞舒適的包區空間，適合家庭或朋友團體聚會",
+      capacity: 14,
+      size_sqm: 180,
+      base_price: 21000,
+    },
+    {
+      id: "16-people",
+      name: "16人包區",
+      name_en: "16 People Package",
+      description: "大型團體的理想選擇，享受自然與慢活的豪華體驗",
+      capacity: 16,
+      size_sqm: 200,
+      base_price: 24000,
+    },
+    {
+      id: "18-people",
+      name: "18人包區",
+      name_en: "18 People Package",
+      description: "最大容量包區，提供頂級的團體露營體驗",
+      capacity: 18,
+      size_sqm: 220,
+      base_price: 27000,
+    },
+  ];
+
+  const displayRooms = roomTypes.length > 0 ? roomTypes : defaultRooms;
+
   return (
     <section id="rooms" className="py-12 md:py-20 bg-secondary/30">
       <div className="container mx-auto px-4">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-3 md:mb-4">房型導覽</h2>
           <p className="text-center text-muted-foreground mb-8 md:mb-16 text-base md:text-lg">
             精心設計的客房空間，讓您在山林間享受寧靜舒適的住宿體驗
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-            {roomTypes.map((room) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+            {displayRooms.map((room) => (
               <RoomCard key={room.id} room={room} />
             ))}
           </div>
