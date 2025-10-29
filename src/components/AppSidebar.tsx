@@ -27,6 +27,7 @@ import {
   SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import lokezeLogo from "@/assets/lokeze-logo.png";
 
 const menuItems = [
   { title: "營運報表", url: "/admin", icon: BarChart3 },
@@ -107,9 +108,7 @@ export function AppSidebar() {
         >
           {open && (
             <div>
-              <h2 className="text-2xl font-semibold text-primary">
-                管理後台
-              </h2>
+              <img src={lokezeLogo} alt="Lokeze" className="h-8 object-contain" />
             </div>
           )}
         </NavLink>
