@@ -123,7 +123,7 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
     {
       id: "12-people",
       name: "12人包區",
-      name_en: "三間房 | 四人房：3間",
+      name_en: "三間房 | 四人：3間",
       description: "適合中小型團體的豪華包區，提供完整的露營設施與舒適空間",
       capacity: 12,
       size_sqm: 150,
