@@ -44,7 +44,7 @@ export function Header() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2 md:gap-3">
                 <Avatar className="h-8 w-8 md:h-10 md:w-10">
-                  <AvatarFallback className="text-xs md:text-sm bg-primary/10 text-primary">森山寫照</AvatarFallback>
+                  <AvatarFallback className="text-xs md:text-sm text-foreground">森山寫照</AvatarFallback>
                 </Avatar>
                 <div className="hidden lg:block">
                   <p className="text-sm font-medium">管理員</p>
