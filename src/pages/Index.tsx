@@ -123,11 +123,11 @@ const Index = () => {
         <AboutSection description={data?.info.description} />
         <RoomsSection roomTypes={data?.roomTypes || []} />
         <FacilitiesSection facilities={data?.facilities || []} />
+        <LocationSection address={data?.info.address} />
         <BookingInfoSection 
           bookingSettings={data?.bookingSettings}
           checkInNotice={data?.info.check_in_notice}
         />
-        <LocationSection address={data?.info.address} />
         <ReviewsSection />
         <FaqSection />
       </main>
