@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ConditionalLayout } from "@/components/ConditionalLayout";
+import { AccommodationProvider } from "@/contexts/AccommodationContext";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -13,31 +14,35 @@ import Pricing from "./pages/Pricing";
 import Accounts from "./pages/Accounts";
 import KolDiscount from "./pages/KolDiscount";
 import Availability from "./pages/Availability";
+import UserRoles from "./pages/UserRoles";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <BrowserRouter>
-      <Routes>
-        <Route element={<ConditionalLayout />}>
-          <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/admin" element={<Dashboard />} />
-          <Route path="/admin/reception" element={<Reception />} />
-          <Route path="/admin/website-content" element={<WebsiteContent />} />
-          <Route path="/admin/faq" element={<Faq />} />
-          <Route path="/admin/orders" element={<Orders />} />
-          <Route path="/admin/basic-info" element={<BasicInfo />} />
-          <Route path="/admin/pricing" element={<Pricing />} />
-          <Route path="/admin/accounts" element={<Accounts />} />
-          <Route path="/admin/discount-codes" element={<KolDiscount />} />
-          <Route path="/admin/availability" element={<Availability />} />
-          <Route path="*" element={<NotFound />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <AccommodationProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route element={<ConditionalLayout />}>
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/admin" element={<Dashboard />} />
+            <Route path="/admin/reception" element={<Reception />} />
+            <Route path="/admin/website-content" element={<WebsiteContent />} />
+            <Route path="/admin/faq" element={<Faq />} />
+            <Route path="/admin/orders" element={<Orders />} />
+            <Route path="/admin/basic-info" element={<BasicInfo />} />
+            <Route path="/admin/pricing" element={<Pricing />} />
+            <Route path="/admin/accounts" element={<Accounts />} />
+            <Route path="/admin/discount-codes" element={<KolDiscount />} />
+            <Route path="/admin/availability" element={<Availability />} />
+            <Route path="/admin/user-roles" element={<UserRoles />} />
+            <Route path="*" element={<NotFound />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </AccommodationProvider>
   </QueryClientProvider>
 );
 

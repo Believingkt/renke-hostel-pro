@@ -385,15 +385,68 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_accommodations: {
+        Args: { _user_id: string }
+        Returns: {
+          accommodation_id: string
+          role: Database["public"]["Enums"]["app_role"]
+        }[]
+      }
+      user_has_access_to_accommodation: {
+        Args: { _accommodation_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_has_role: {
+        Args: {
+          _accommodation_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "super_admin" | "hotel_admin" | "staff"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -520,6 +573,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["super_admin", "hotel_admin", "staff"],
+    },
   },
 } as const

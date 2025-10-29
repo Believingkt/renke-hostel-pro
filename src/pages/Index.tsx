@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useSubdomain } from "@/hooks/use-subdomain";
 import Navigation from "@/components/Navigation";
 import HeroSection from "@/components/HeroSection";
 import AboutSection from "@/components/AboutSection";
@@ -26,15 +27,18 @@ interface AccommodationData {
 
 const Index = () => {
   const [data, setData] = useState<AccommodationData | null>(null);
+  const { accommodationId, isLoading: subdomainLoading, error: subdomainError } = useSubdomain();
 
   useEffect(() => {
-    // 优化 Safari 的数据加载 - 立即执行而不是等待空闲
+    if (subdomainLoading || !accommodationId) return;
+
     const loadData = async () => {
       try {
         const { data: infoData } = await supabase
           .from("accommodation_info")
           .select("id, name, description, address, check_in_notice")
-          .maybeSingle();
+          .eq("id", accommodationId)
+          .single();
         
         if (infoData) {
           // 先设置基本信息
@@ -76,9 +80,30 @@ const Index = () => {
       }
     };
 
-    // Safari 优化：立即加载而不使用 requestIdleCallback
     loadData();
-  }, []);
+  }, [accommodationId, subdomainLoading]);
+
+  if (subdomainLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+          <p className="text-sm text-muted-foreground">載入中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (subdomainError) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-lg font-semibold text-destructive mb-2">{subdomainError}</p>
+          <p className="text-sm text-muted-foreground">請確認您的網址是否正確</p>
+        </div>
+      </div>
+    );
+  }
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
