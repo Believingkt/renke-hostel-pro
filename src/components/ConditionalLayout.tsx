@@ -98,9 +98,11 @@ export function ConditionalLayout() {
   if (isAuthPage) {
     return (
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <Outlet />
+        <div className="admin-theme">
+          <Toaster />
+          <Sonner />
+          <Outlet />
+        </div>
       </TooltipProvider>
     );
   }
@@ -111,7 +113,7 @@ export function ConditionalLayout() {
       <Toaster />
       <Sonner />
       <SidebarProvider>
-        <div className="flex min-h-screen w-full">
+        <div className="admin-theme flex min-h-screen w-full">
           <AppSidebar />
           <div className="flex flex-1 flex-col">
             <Header />
