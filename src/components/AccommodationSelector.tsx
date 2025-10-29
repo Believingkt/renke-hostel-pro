@@ -55,7 +55,7 @@ export function AccommodationSelector() {
   if (accommodations.length === 1) {
     return (
       <div className="flex items-center px-3 py-2">
-        <span className="font-medium text-lg">{accommodations[0].name}</span>
+        <span className="font-medium text-sm">{accommodations[0].name}</span>
       </div>
     );
   }
