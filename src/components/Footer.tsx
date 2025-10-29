@@ -74,11 +74,11 @@ const Footer = ({ accommodationName, address }: FooterProps) => {
                 </li>
                 <li className="flex items-center gap-2 md:gap-3">
                   <Phone className="h-4 w-4 md:h-5 md:w-5 text-white/80 flex-shrink-0" />
-                  <span className="text-sm md:text-base text-white/80">+886-49-270-1234</span>
+                  <span className="text-sm md:text-base text-white/80">0903178518</span>
                 </li>
                 <li className="flex items-center gap-2 md:gap-3">
                   <Mail className="h-4 w-4 md:h-5 md:w-5 text-white/80 flex-shrink-0" />
-                  <span className="text-sm md:text-base text-white/80">info@moriyama-shazo.com</span>
+                  <span className="text-sm md:text-base text-white/80">sensan.inn@gmail.com</span>
                 </li>
               </ul>
             </div>
