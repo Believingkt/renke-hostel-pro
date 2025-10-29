@@ -6,6 +6,11 @@ import roomDeluxe from "@/assets/room-deluxe.jpg";
 import roomSuite from "@/assets/room-suite.jpg";
 import roomStandard from "@/assets/room-standard.jpg";
 
+interface PricingOption {
+  type: string;
+  price: number;
+}
+
 interface RoomType {
   id: string;
   name: string;
@@ -14,6 +19,8 @@ interface RoomType {
   capacity: number;
   size_sqm: number;
   base_price: number;
+  weekdayPricing?: PricingOption[];
+  weekendPricing?: PricingOption[];
 }
 
 interface RoomsSectionProps {
@@ -74,14 +81,34 @@ const RoomCard = ({ room }: { room: RoomType }) => {
           <span className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md">迎賓茶點</span>
         </div>
         
-        <div className="flex items-end justify-between pt-4 border-t">
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">起價</p>
-            <p className="text-2xl font-bold text-primary">
-              NT$ {room.base_price.toLocaleString()}
-            </p>
-          </div>
-          <Button className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg px-6 h-10 font-medium">
+        <div className="pt-4 border-t space-y-3">
+          {room.weekdayPricing && (
+            <div>
+              <p className="text-xs font-semibold text-foreground mb-2">平日</p>
+              <div className="space-y-1">
+                {room.weekdayPricing.map((option, idx) => (
+                  <div key={idx} className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">{option.type}</span>
+                    <span className="font-semibold text-primary">NT$ {option.price.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {room.weekendPricing && (
+            <div>
+              <p className="text-xs font-semibold text-foreground mb-2">假日</p>
+              <div className="space-y-1">
+                {room.weekendPricing.map((option, idx) => (
+                  <div key={idx} className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">{option.type}</span>
+                    <span className="font-semibold text-primary">NT$ {option.price.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg h-10 font-medium mt-3">
             立即預訂
           </Button>
         </div>
@@ -100,7 +127,11 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
       description: "適合中小型團體的豪華包區，提供完整的露營設施與舒適空間",
       capacity: 12,
       size_sqm: 150,
-      base_price: 18000,
+      base_price: 30000,
+      weekdayPricing: [
+        { type: "一泊二食", price: 30000 },
+        { type: "一泊三食", price: 38400 },
+      ],
     },
     {
       id: "14-people",
@@ -109,7 +140,11 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
       description: "寬敞舒適的包區空間，適合家庭或朋友團體聚會",
       capacity: 14,
       size_sqm: 180,
-      base_price: 21000,
+      base_price: 32700,
+      weekdayPricing: [
+        { type: "一泊二食", price: 32700 },
+        { type: "一泊三食", price: 42500 },
+      ],
     },
     {
       id: "16-people",
@@ -118,7 +153,11 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
       description: "大型團體的理想選擇，享受自然與慢活的豪華體驗",
       capacity: 16,
       size_sqm: 200,
-      base_price: 24000,
+      base_price: 38700,
+      weekdayPricing: [
+        { type: "一泊二食", price: 38700 },
+        { type: "一泊三食", price: 49900 },
+      ],
     },
     {
       id: "18-people",
@@ -127,7 +166,15 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
       description: "最大容量包區，提供頂級的團體露營體驗",
       capacity: 18,
       size_sqm: 220,
-      base_price: 27000,
+      base_price: 49500,
+      weekdayPricing: [
+        { type: "一泊二食", price: 49500 },
+        { type: "一泊三食", price: 62100 },
+      ],
+      weekendPricing: [
+        { type: "一泊二食", price: 54600 },
+        { type: "一泊三食", price: 67200 },
+      ],
     },
   ];
 
