@@ -28,10 +28,22 @@ const Footer = ({ accommodationName, address }: FooterProps) => {
               </div>
               <p className="text-sm md:text-base text-white/80 mb-4 md:mb-6">山間的寧靜時光</p>
               <div className="flex gap-4">
-                <a href="#" className="hover:text-primary transition-colors" aria-label="Facebook">
+                <a 
+                  href="https://www.facebook.com/profile.php?id=61577434234279" 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-primary transition-colors" 
+                  aria-label="Facebook"
+                >
                   <Facebook className="h-5 w-5" />
                 </a>
-                <a href="#" className="hover:text-primary transition-colors" aria-label="Instagram">
+                <a 
+                  href="https://www.instagram.com/sensan.inn_" 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-primary transition-colors" 
+                  aria-label="Instagram"
+                >
                   <Instagram className="h-5 w-5" />
                 </a>
               </div>
