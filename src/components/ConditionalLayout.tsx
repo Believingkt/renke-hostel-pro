@@ -18,7 +18,17 @@ export function ConditionalLayout() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Update page title based on current route
+  // Set page title immediately based on current route
+  // This runs synchronously before any rendering
+  if (isAdminPage && document.title !== "人客多 PMS 管理系統") {
+    document.title = "人客多 PMS 管理系統";
+  } else if (isAuthPage && document.title !== "登入 - 人客多 PMS 管理系統") {
+    document.title = "登入 - 人客多 PMS 管理系統";
+  } else if (isFrontendPage && document.title !== "森山寫照 - 山間的寧靜時光") {
+    document.title = "森山寫照 - 山間的寧靜時光";
+  }
+
+  // Also update when route changes
   useEffect(() => {
     if (isAdminPage) {
       document.title = "人客多 PMS 管理系統";
