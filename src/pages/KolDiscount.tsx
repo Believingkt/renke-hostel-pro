@@ -37,6 +37,7 @@ interface DiscountCode {
   discountType: "percentage" | "amount";
   discountValue: number;
   usageLimit: number;
+  usedCount: number;
 }
 
 const KolDiscount = () => {
@@ -55,6 +56,7 @@ const KolDiscount = () => {
       discountType: "percentage",
       discountValue: 10,
       usageLimit: 100,
+      usedCount: 23,
     },
     {
       id: "2",
@@ -63,6 +65,7 @@ const KolDiscount = () => {
       discountType: "amount",
       discountValue: 500,
       usageLimit: 50,
+      usedCount: 8,
     },
   ]);
 
@@ -91,6 +94,7 @@ const KolDiscount = () => {
       discountType,
       discountValue: parseFloat(discountValue),
       usageLimit: parseInt(usageLimit),
+      usedCount: 0,
     };
 
     setDiscountCodes([...discountCodes, newCode]);
@@ -222,13 +226,14 @@ const KolDiscount = () => {
                   <TableHead>折扣碼</TableHead>
                   <TableHead>折扣內容</TableHead>
                   <TableHead>使用次數上限</TableHead>
+                  <TableHead>已使用次數</TableHead>
                   <TableHead className="w-[100px]">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {discountCodes.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground">
                       尚無折扣碼
                     </TableCell>
                   </TableRow>
@@ -255,6 +260,7 @@ const KolDiscount = () => {
                         {formatDiscount(item.discountType, item.discountValue)}
                       </TableCell>
                       <TableCell>{item.usageLimit} 次</TableCell>
+                      <TableCell>{item.usedCount} 次</TableCell>
                       <TableCell>
                         <Button
                           variant="ghost"
@@ -312,6 +318,10 @@ const KolDiscount = () => {
                         <div>
                           <p className="text-xs text-muted-foreground">使用次數上限</p>
                           <p className="text-sm">{item.usageLimit} 次</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">已使用次數</p>
+                          <p className="text-sm">{item.usedCount} 次</p>
                         </div>
                       </div>
                       <Button
