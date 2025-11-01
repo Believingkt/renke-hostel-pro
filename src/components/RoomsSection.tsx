@@ -2,6 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Users } from "lucide-react";
+import { Link } from "react-router-dom";
 import roomDeluxe from "@/assets/room-deluxe.jpg";
 import roomSuite from "@/assets/room-suite.jpg";
 import roomStandard from "@/assets/room-standard.jpg";
@@ -108,9 +109,11 @@ const RoomCard = ({ room }: { room: RoomType }) => {
               </div>
             </div>
           )}
-          <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg h-10 font-medium mt-3">
-            立即預訂
-          </Button>
+          <Link to={`/booking?roomId=${room.id}`}>
+            <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg h-10 font-medium mt-3">
+              立即預訂
+            </Button>
+          </Link>
         </div>
       </CardContent>
     </Card>

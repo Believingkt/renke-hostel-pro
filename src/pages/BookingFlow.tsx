@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubdomain } from "@/hooks/use-subdomain";
 import { useAccommodation } from "@/contexts/AccommodationContext";
@@ -72,6 +72,7 @@ type BookingStep = "room" | "dates" | "guest" | "payment" | "confirm";
 const BookingFlow = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   const { accommodationId, isLoading: subdomainLoading, error: subdomainError } = useSubdomain();
   const { 
     checkInDate, 
@@ -217,6 +218,18 @@ const BookingFlow = () => {
 
     loadData();
   }, [accommodationId, subdomainLoading, toast]);
+
+  // 處理從房型頁面傳來的 roomId 參數
+  useEffect(() => {
+    const roomId = searchParams.get("roomId");
+    if (roomId && !selectedRoom) {
+      const room = roomTypes.find((r) => r.id === roomId);
+      if (room) {
+        setSelectedRoom(room);
+        setCurrentStep("dates");
+      }
+    }
+  }, [searchParams, selectedRoom]);
 
   const calculateNights = () => {
     if (!checkInDateStr || !checkOutDateStr) return 0;
