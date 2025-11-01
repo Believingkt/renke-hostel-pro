@@ -54,7 +54,7 @@ const menuItems = [
       },
   { title: "帳務資訊", url: "/admin/basic-info", icon: Building2 },
   { 
-    title: "房型價格庫存", 
+    title: "物件管理", 
     url: "/admin/pricing", 
     icon: DollarSign,
     subItems: [
