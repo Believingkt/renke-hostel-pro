@@ -54,13 +54,18 @@ const Footer = ({ accommodationName, address }: FooterProps) => {
               <h4 className="text-base md:text-lg font-semibold mb-4 md:mb-6">快速連結</h4>
               <ul className="space-y-2 md:space-y-3">
                 <li>
-                  <button onClick={() => scrollToSection("home")} className="text-sm md:text-base text-white/80 hover:text-white transition-colors">
-                    旅宿介紹
+                  <button onClick={() => scrollToSection("rooms")} className="text-sm md:text-base text-white/80 hover:text-white transition-colors">
+                    房型導覽
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => scrollToSection("rooms")} className="text-sm md:text-base text-white/80 hover:text-white transition-colors">
-                    房型導覽
+                  <button onClick={() => scrollToSection("facilities")} className="text-sm md:text-base text-white/80 hover:text-white transition-colors">
+                    設施與服務
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => scrollToSection("location")} className="text-sm md:text-base text-white/80 hover:text-white transition-colors">
+                    交通 & 地圖
                   </button>
                 </li>
                 <li>
@@ -69,8 +74,8 @@ const Footer = ({ accommodationName, address }: FooterProps) => {
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => scrollToSection("location")} className="text-sm md:text-base text-white/80 hover:text-white transition-colors">
-                    交通&地圖
+                  <button onClick={() => scrollToSection("faq")} className="text-sm md:text-base text-white/80 hover:text-white transition-colors">
+                    常見問題
                   </button>
                 </li>
               </ul>
