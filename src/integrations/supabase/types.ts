@@ -346,8 +346,11 @@ export type Database = {
           id: string
           name: string
           name_en: string | null
+          room_count: number | null
           size_sqm: number | null
           updated_at: string
+          weekday_price: number | null
+          weekend_price: number | null
         }
         Insert: {
           accommodation_id?: string | null
@@ -359,8 +362,11 @@ export type Database = {
           id?: string
           name: string
           name_en?: string | null
+          room_count?: number | null
           size_sqm?: number | null
           updated_at?: string
+          weekday_price?: number | null
+          weekend_price?: number | null
         }
         Update: {
           accommodation_id?: string | null
@@ -372,8 +378,11 @@ export type Database = {
           id?: string
           name?: string
           name_en?: string | null
+          room_count?: number | null
           size_sqm?: number | null
           updated_at?: string
+          weekday_price?: number | null
+          weekend_price?: number | null
         }
         Relationships: [
           {
