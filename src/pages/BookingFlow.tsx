@@ -73,7 +73,13 @@ const BookingFlow = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { accommodationId, isLoading: subdomainLoading, error: subdomainError } = useSubdomain();
-  const { checkInDate, setCheckInDate, checkOutDate, setCheckOutDate, guests: contextGuests } = useAccommodation();
+  const { 
+    checkInDate, 
+    setCheckInDate, 
+    checkOutDate, 
+    setCheckOutDate, 
+    guests: contextGuests = { adults: 2, children: 0 }
+  } = useAccommodation();
   
   const [currentStep, setCurrentStep] = useState<BookingStep>("room");
   const [bookingSettings, setBookingSettings] = useState<BookingSettings | null>(null);
@@ -93,6 +99,10 @@ const BookingFlow = () => {
         { type: "一泊二食", price: 30000 },
         { type: "一泊三食", price: 38400 },
       ],
+      weekendPricing: [
+        { type: "一泊二食", price: 33000 },
+        { type: "一泊三食", price: 42000 },
+      ],
     },
     {
       id: "14-people",
@@ -106,6 +116,10 @@ const BookingFlow = () => {
         { type: "一泊二食", price: 32700 },
         { type: "一泊三食", price: 42500 },
       ],
+      weekendPricing: [
+        { type: "一泊二食", price: 36000 },
+        { type: "一泊三食", price: 46500 },
+      ],
     },
     {
       id: "16-people",
@@ -118,6 +132,10 @@ const BookingFlow = () => {
       weekdayPricing: [
         { type: "一泊二食", price: 38700 },
         { type: "一泊三食", price: 49900 },
+      ],
+      weekendPricing: [
+        { type: "一泊二食", price: 42500 },
+        { type: "一泊三食", price: 54500 },
       ],
     },
     {
@@ -149,12 +167,12 @@ const BookingFlow = () => {
     notes: "",
   });
   const [paymentMethod, setPaymentMethod] = useState("");
-  const [errors, setErrors] = useState<Record<string, string>>();
+  const [errors, setErrors] = useState<Record<string, string>>({});
   
-  // 將 context 日期轉換為字串格式
+  // 將 context 日期轉換為字串格式，並提供預設值
   const checkInDateStr = checkInDate ? format(checkInDate, "yyyy-MM-dd") : "";
   const checkOutDateStr = checkOutDate ? format(checkOutDate, "yyyy-MM-dd") : "";
-  const totalGuests = contextGuests.adults + contextGuests.children;
+  const totalGuests = (contextGuests?.adults || 2) + (contextGuests?.children || 0);
 
   useEffect(() => {
     if (subdomainLoading || !accommodationId) return;
@@ -544,7 +562,7 @@ const BookingFlow = () => {
                         入住人數
                       </Label>
                       <div className="text-sm text-muted-foreground">
-                        {contextGuests.adults} 位大人{contextGuests.children > 0 ? ` · ${contextGuests.children} 位兒童` : ""}（共 {totalGuests} 人）
+                        {contextGuests?.adults || 2} 位大人{(contextGuests?.children || 0) > 0 ? ` · ${contextGuests.children} 位兒童` : ""}（共 {totalGuests} 人）
                       </div>
                       {selectedRoom && (
                         <p className="text-xs text-muted-foreground">
