@@ -22,7 +22,7 @@ const Navigation = ({ accommodationName = "森山寫照", onNavigate }: Navigati
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <button onClick={() => onNavigate("home")} className="flex items-center hover:opacity-80 transition-opacity">
-          <img src={sensanLogo} alt={accommodationName} className="h-12 w-auto" />
+          <img src={sensanLogo} alt={accommodationName} className="h-14 w-auto" />
         </button>
         
         {/* Desktop Navigation */}
