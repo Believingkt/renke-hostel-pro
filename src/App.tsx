@@ -16,6 +16,7 @@ import Accounts from "./pages/Accounts";
 import KolDiscount from "./pages/KolDiscount";
 import Availability from "./pages/Availability";
 import UserRoles from "./pages/UserRoles";
+import Headquarters from "./pages/Headquarters";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ const App = () => (
             <Route path="/admin/discount-codes" element={<KolDiscount />} />
             <Route path="/admin/availability" element={<Availability />} />
             <Route path="/admin/user-roles" element={<UserRoles />} />
+            <Route path="/admin/headquarters" element={<Headquarters />} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
