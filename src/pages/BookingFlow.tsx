@@ -24,6 +24,9 @@ import {
   Home,
 } from "lucide-react";
 import { z } from "zod";
+import roomDeluxe from "@/assets/room-deluxe.jpg";
+import roomSuite from "@/assets/room-suite.jpg";
+import roomStandard from "@/assets/room-standard.jpg";
 
 // 表單驗證 Schema
 const guestInfoSchema = z.object({
@@ -33,6 +36,14 @@ const guestInfoSchema = z.object({
   address: z.string().trim().max(200, { message: "地址不能超過200個字元" }).optional(),
   notes: z.string().trim().max(500, { message: "備註不能超過500個字元" }).optional(),
 });
+
+// 房型圖片映射
+const roomImages: Record<string, string> = {
+  "12人包區": roomDeluxe,
+  "14人包區": roomSuite,
+  "16人包區": roomStandard,
+  "18人包區": roomDeluxe,
+};
 
 interface RoomType {
   id: string;
@@ -402,64 +413,78 @@ const BookingFlow = () => {
                     {roomTypes.map((room) => (
                       <Card
                         key={room.id}
-                        className={`cursor-pointer transition-all hover:shadow-md ${
+                        className={`cursor-pointer transition-all hover:shadow-md overflow-hidden ${
                           selectedRoom?.id === room.id
                             ? "border-2 border-primary shadow-md"
                             : "border"
                         }`}
                         onClick={() => setSelectedRoom(room)}
                       >
-                        <CardContent className="p-6">
-                          <div className="flex justify-between items-start mb-4">
-                            <div>
+                        <div className="grid md:grid-cols-5 gap-0">
+                          {/* 左側圖片 */}
+                          <div className="md:col-span-2 aspect-[4/3] md:aspect-auto relative bg-muted overflow-hidden">
+                            <img 
+                              src={roomImages[room.name] || roomStandard} 
+                              alt={room.name}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                            />
+                            <div className="absolute top-3 right-3 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium shadow-lg">
+                              {room.capacity}人
+                            </div>
+                          </div>
+                          
+                          {/* 右側內容 */}
+                          <CardContent className="md:col-span-3 p-6">
+                            <div className="mb-4">
                               <h3 className="text-xl font-bold mb-1">{room.name}</h3>
                               <p className="text-sm text-muted-foreground mb-2">{room.name_en}</p>
                               <p className="text-sm mb-3">{room.description}</p>
                             </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-                            <span className="flex items-center gap-1">
-                              <Users className="h-4 w-4" />
-                              {room.capacity} 人
-                            </span>
-                            <span>{room.size_sqm} ㎡</span>
-                          </div>
+                            
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+                              <span className="flex items-center gap-1">
+                                <Users className="h-4 w-4" />
+                                {room.capacity} 人
+                              </span>
+                              <span>{room.size_sqm} ㎡</span>
+                            </div>
 
-                          {/* 定價資訊 */}
-                          <div className="space-y-3 pt-4 border-t">
-                            {room.weekdayPricing && (
-                              <div>
-                                <p className="text-xs font-semibold text-foreground mb-2">平日</p>
-                                <div className="space-y-2">
-                                  {room.weekdayPricing.map((option, idx) => (
-                                    <div key={idx} className="flex justify-between items-center">
-                                      <span className="text-sm text-muted-foreground">{option.type}</span>
-                                      <span className="font-semibold text-lg text-primary">
-                                        NT$ {option.price.toLocaleString()}
-                                      </span>
-                                    </div>
-                                  ))}
+                            {/* 定價資訊 */}
+                            <div className="space-y-3 pt-4 border-t">
+                              {room.weekdayPricing && (
+                                <div>
+                                  <p className="text-xs font-semibold text-foreground mb-2">平日</p>
+                                  <div className="space-y-2">
+                                    {room.weekdayPricing.map((option, idx) => (
+                                      <div key={idx} className="flex justify-between items-center">
+                                        <span className="text-sm text-muted-foreground">{option.type}</span>
+                                        <span className="font-semibold text-lg text-primary">
+                                          NT$ {option.price.toLocaleString()}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
-                            )}
-                            {room.weekendPricing && (
-                              <div>
-                                <p className="text-xs font-semibold text-foreground mb-2">假日</p>
-                                <div className="space-y-2">
-                                  {room.weekendPricing.map((option, idx) => (
-                                    <div key={idx} className="flex justify-between items-center">
-                                      <span className="text-sm text-muted-foreground">{option.type}</span>
-                                      <span className="font-semibold text-lg text-primary">
-                                        NT$ {option.price.toLocaleString()}
-                                      </span>
-                                    </div>
-                                  ))}
+                              )}
+                              {room.weekendPricing && (
+                                <div>
+                                  <p className="text-xs font-semibold text-foreground mb-2">假日</p>
+                                  <div className="space-y-2">
+                                    {room.weekendPricing.map((option, idx) => (
+                                      <div key={idx} className="flex justify-between items-center">
+                                        <span className="text-sm text-muted-foreground">{option.type}</span>
+                                        <span className="font-semibold text-lg text-primary">
+                                          NT$ {option.price.toLocaleString()}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
-                            )}
-                          </div>
-                        </CardContent>
+                              )}
+                            </div>
+                          </CardContent>
+                        </div>
                       </Card>
                     ))}
                   </div>
