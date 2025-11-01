@@ -42,6 +42,8 @@ interface RoomType {
   capacity: number;
   size_sqm: number;
   base_price: number;
+  weekdayPricing?: { type: string; price: number }[];
+  weekendPricing?: { type: string; price: number }[];
 }
 
 interface BookingSettings {
@@ -60,9 +62,68 @@ const BookingFlow = () => {
   const { accommodationId, isLoading: subdomainLoading, error: subdomainError } = useSubdomain();
   
   const [currentStep, setCurrentStep] = useState<BookingStep>("room");
-  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [bookingSettings, setBookingSettings] = useState<BookingSettings | null>(null);
   const [accommodationName, setAccommodationName] = useState("森山寫照");
+  
+  // 固定的包區資料，與首頁保持一致
+  const roomTypes: RoomType[] = [
+    {
+      id: "12-people",
+      name: "12人包區",
+      name_en: "三間房 | 四人：3間",
+      description: "適合中小型團體的豪華包區，提供完整的露營設施與舒適空間",
+      capacity: 12,
+      size_sqm: 150,
+      base_price: 30000,
+      weekdayPricing: [
+        { type: "一泊二食", price: 30000 },
+        { type: "一泊三食", price: 38400 },
+      ],
+    },
+    {
+      id: "14-people",
+      name: "14人包區",
+      name_en: "四間房 | 雙人1間 +四人3間",
+      description: "寬敞舒適的包區空間，適合家庭或朋友團體聚會",
+      capacity: 14,
+      size_sqm: 180,
+      base_price: 32700,
+      weekdayPricing: [
+        { type: "一泊二食", price: 32700 },
+        { type: "一泊三食", price: 42500 },
+      ],
+    },
+    {
+      id: "16-people",
+      name: "16人包區",
+      name_en: "五間房 | 雙人2間 +四人3間",
+      description: "大型團體的理想選擇，享受自然與慢活的豪華體驗",
+      capacity: 16,
+      size_sqm: 200,
+      base_price: 38700,
+      weekdayPricing: [
+        { type: "一泊二食", price: 38700 },
+        { type: "一泊三食", price: 49900 },
+      ],
+    },
+    {
+      id: "18-people",
+      name: "18人包區",
+      name_en: "18 People Package",
+      description: "最大容量包區，提供頂級的團體露營體驗",
+      capacity: 18,
+      size_sqm: 220,
+      base_price: 49500,
+      weekdayPricing: [
+        { type: "一泊二食", price: 49500 },
+        { type: "一泊三食", price: 62100 },
+      ],
+      weekendPricing: [
+        { type: "一泊二食", price: 54600 },
+        { type: "一泊三食", price: 67200 },
+      ],
+    },
+  ];
   
   // 訂房資料
   const [selectedRoom, setSelectedRoom] = useState<RoomType | null>(null);
@@ -92,16 +153,6 @@ const BookingFlow = () => {
         
         if (infoData) {
           setAccommodationName(infoData.name);
-        }
-
-        const { data: roomsData } = await supabase
-          .from("room_types")
-          .select("*")
-          .eq("accommodation_id", accommodationId)
-          .order("display_order");
-        
-        if (roomsData) {
-          setRoomTypes(roomsData);
         }
 
         const { data: settingsData } = await supabase
@@ -362,22 +413,51 @@ const BookingFlow = () => {
                           <div className="flex justify-between items-start mb-4">
                             <div>
                               <h3 className="text-xl font-bold mb-1">{room.name}</h3>
-                              <p className="text-sm text-muted-foreground">{room.name_en}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-2xl font-bold text-primary">
-                                NT$ {room.base_price.toLocaleString()}
-                              </p>
-                              <p className="text-xs text-muted-foreground">每晚</p>
+                              <p className="text-sm text-muted-foreground mb-2">{room.name_en}</p>
+                              <p className="text-sm mb-3">{room.description}</p>
                             </div>
                           </div>
-                          <p className="text-sm mb-4">{room.description}</p>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
                             <span className="flex items-center gap-1">
                               <Users className="h-4 w-4" />
                               {room.capacity} 人
                             </span>
                             <span>{room.size_sqm} ㎡</span>
+                          </div>
+
+                          {/* 定價資訊 */}
+                          <div className="space-y-3 pt-4 border-t">
+                            {room.weekdayPricing && (
+                              <div>
+                                <p className="text-xs font-semibold text-foreground mb-2">平日</p>
+                                <div className="space-y-2">
+                                  {room.weekdayPricing.map((option, idx) => (
+                                    <div key={idx} className="flex justify-between items-center">
+                                      <span className="text-sm text-muted-foreground">{option.type}</span>
+                                      <span className="font-semibold text-lg text-primary">
+                                        NT$ {option.price.toLocaleString()}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {room.weekendPricing && (
+                              <div>
+                                <p className="text-xs font-semibold text-foreground mb-2">假日</p>
+                                <div className="space-y-2">
+                                  {room.weekendPricing.map((option, idx) => (
+                                    <div key={idx} className="flex justify-between items-center">
+                                      <span className="text-sm text-muted-foreground">{option.type}</span>
+                                      <span className="font-semibold text-lg text-primary">
+                                        NT$ {option.price.toLocaleString()}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </CardContent>
                       </Card>
