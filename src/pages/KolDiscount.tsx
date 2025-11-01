@@ -140,12 +140,12 @@ const KolDiscount = () => {
           <DialogTrigger asChild>
             <Button className="gap-2 w-full md:w-auto">
               <Plus className="h-4 w-4" />
-              新增折扣碼
+              新增折扣代碼
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>新增折扣碼</DialogTitle>
+              <DialogTitle>新增折扣代碼</DialogTitle>
               <DialogDescription>
                 設定名稱和折扣內容，系統將自動生成折扣碼
               </DialogDescription>
