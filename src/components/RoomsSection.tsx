@@ -132,6 +132,10 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
         { type: "一泊二食", price: 30000 },
         { type: "一泊三食", price: 38400 },
       ],
+      weekendPricing: [
+        { type: "一泊二食", price: 33000 },
+        { type: "一泊三食", price: 42000 },
+      ],
     },
     {
       id: "14-people",
@@ -145,6 +149,10 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
         { type: "一泊二食", price: 32700 },
         { type: "一泊三食", price: 42500 },
       ],
+      weekendPricing: [
+        { type: "一泊二食", price: 36000 },
+        { type: "一泊三食", price: 46500 },
+      ],
     },
     {
       id: "16-people",
@@ -157,6 +165,10 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
       weekdayPricing: [
         { type: "一泊二食", price: 38700 },
         { type: "一泊三食", price: 49900 },
+      ],
+      weekendPricing: [
+        { type: "一泊二食", price: 42500 },
+        { type: "一泊三食", price: 54500 },
       ],
     },
     {
