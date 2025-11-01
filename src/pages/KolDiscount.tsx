@@ -36,6 +36,7 @@ interface DiscountCode {
   code: string;
   discountType: "percentage" | "amount";
   discountValue: number;
+  usageLimit: number;
 }
 
 const KolDiscount = () => {
@@ -43,6 +44,7 @@ const KolDiscount = () => {
   const [kolName, setKolName] = useState("");
   const [discountType, setDiscountType] = useState<"percentage" | "amount">("percentage");
   const [discountValue, setDiscountValue] = useState("");
+  const [usageLimit, setUsageLimit] = useState("");
   const { toast } = useToast();
 
   const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([
@@ -52,6 +54,7 @@ const KolDiscount = () => {
       code: "ABC12",
       discountType: "percentage",
       discountValue: 10,
+      usageLimit: 100,
     },
     {
       id: "2",
@@ -59,6 +62,7 @@ const KolDiscount = () => {
       code: "XYZ34",
       discountType: "amount",
       discountValue: 500,
+      usageLimit: 50,
     },
   ]);
 
@@ -72,7 +76,7 @@ const KolDiscount = () => {
   };
 
   const handleSubmit = () => {
-    if (!kolName || !discountValue) {
+    if (!kolName || !discountValue || !usageLimit) {
       toast({
         title: "請填寫所有欄位",
         variant: "destructive",
@@ -86,12 +90,14 @@ const KolDiscount = () => {
       code: generateCode(),
       discountType,
       discountValue: parseFloat(discountValue),
+      usageLimit: parseInt(usageLimit),
     };
 
     setDiscountCodes([...discountCodes, newCode]);
     setOpen(false);
     setKolName("");
     setDiscountValue("");
+    setUsageLimit("");
     setDiscountType("percentage");
 
     toast({
@@ -183,6 +189,17 @@ const KolDiscount = () => {
                   }
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="usageLimit">使用次數</Label>
+                <Input
+                  id="usageLimit"
+                  type="number"
+                  min="1"
+                  value={usageLimit}
+                  onChange={(e) => setUsageLimit(e.target.value)}
+                  placeholder="例如：100"
+                />
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>
@@ -204,6 +221,7 @@ const KolDiscount = () => {
                   <TableHead>名稱</TableHead>
                   <TableHead>折扣碼</TableHead>
                   <TableHead>折扣內容</TableHead>
+                  <TableHead>使用次數</TableHead>
                   <TableHead className="w-[100px]">操作</TableHead>
                 </TableRow>
               </TableHeader>
@@ -236,6 +254,7 @@ const KolDiscount = () => {
                       <TableCell>
                         {formatDiscount(item.discountType, item.discountValue)}
                       </TableCell>
+                      <TableCell>{item.usageLimit} 次</TableCell>
                       <TableCell>
                         <Button
                           variant="ghost"
@@ -289,6 +308,10 @@ const KolDiscount = () => {
                           <p className="text-sm">
                             {formatDiscount(item.discountType, item.discountValue)}
                           </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">使用次數</p>
+                          <p className="text-sm">{item.usageLimit} 次</p>
                         </div>
                       </div>
                       <Button
