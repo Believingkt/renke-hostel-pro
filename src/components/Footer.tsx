@@ -23,10 +23,9 @@ const Footer = ({ accommodationName, address }: FooterProps) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 mb-8 md:mb-12">
             {/* 左側 - Logo 與社交媒體 */}
             <div>
-              <div className="mb-3 md:mb-4">
+              <div className="mb-4 md:mb-6">
                 <img src={sensanLogoWhite} alt={accommodationName || "森山寫照"} className="h-12 md:h-16 w-auto" />
               </div>
-              <p className="text-sm md:text-base text-white/80 mb-4 md:mb-6">山間的寧靜時光</p>
               <div className="flex gap-4">
                 <a 
                   href="https://www.facebook.com/profile.php?id=61577434234279" 
