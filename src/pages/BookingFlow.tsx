@@ -18,7 +18,6 @@ import {
   CheckCircle,
   ChevronLeft,
   ChevronRight,
-  Mountain,
   Phone,
   Mail,
   User,
@@ -29,6 +28,7 @@ import { format } from "date-fns";
 import roomDeluxe from "@/assets/room-deluxe.jpg";
 import roomSuite from "@/assets/room-suite.jpg";
 import roomStandard from "@/assets/room-standard.jpg";
+import sensanLogo from "@/assets/sensan-logo.png";
 
 // 表單驗證 Schema
 const guestInfoSchema = z.object({
@@ -443,9 +443,8 @@ const BookingFlow = () => {
       {/* Header */}
       <header className="border-b bg-background/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <Mountain className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-bold text-primary">{accommodationName}</h1>
+          <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
+            <img src={sensanLogo} alt={accommodationName} className="h-14 w-auto" />
           </Link>
           <Button variant="ghost" onClick={() => navigate("/")} size="sm">
             <ChevronLeft className="h-4 w-4 mr-1" />
