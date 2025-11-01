@@ -123,7 +123,7 @@ const KolDiscount = () => {
     <div className="space-y-4 md:space-y-6 p-4 md:p-0">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-          KOL折扣代碼
+          折扣代碼
         </h1>
 
         <Dialog open={open} onOpenChange={setOpen}>
@@ -137,17 +137,17 @@ const KolDiscount = () => {
             <DialogHeader>
               <DialogTitle>新增折扣碼</DialogTitle>
               <DialogDescription>
-                設定 KOL 名稱和折扣內容，系統將自動生成折扣碼
+                設定名稱和折扣內容，系統將自動生成折扣碼
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="kolName">KOL 名稱</Label>
+                <Label htmlFor="kolName">名稱</Label>
                 <Input
                   id="kolName"
                   value={kolName}
                   onChange={(e) => setKolName(e.target.value)}
-                  placeholder="請輸入 KOL 名稱"
+                  placeholder="請輸入名稱"
                 />
               </div>
               <div className="space-y-2">
@@ -201,7 +201,7 @@ const KolDiscount = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>KOL 名稱</TableHead>
+                  <TableHead>名稱</TableHead>
                   <TableHead>折扣碼</TableHead>
                   <TableHead>折扣內容</TableHead>
                   <TableHead className="w-[100px]">操作</TableHead>
@@ -265,7 +265,7 @@ const KolDiscount = () => {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 space-y-2 min-w-0">
                         <div>
-                          <p className="text-xs text-muted-foreground">KOL 名稱</p>
+                          <p className="text-xs text-muted-foreground">名稱</p>
                           <p className="font-medium">{item.kolName}</p>
                         </div>
                         <div>
