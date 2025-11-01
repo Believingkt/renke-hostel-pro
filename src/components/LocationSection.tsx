@@ -81,23 +81,47 @@ const LocationSection = ({ address, locationInfo }: LocationSectionProps) => {
             <div className="space-y-6">
               {/* 自行開車 */}
               <Card>
-                <CardContent className="pt-6">
-                  <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                    <Car className="h-5 w-5 text-primary" />
+                <CardContent className="pt-6 pb-6">
+                  <h3 className="font-bold text-xl mb-5 flex items-center gap-2">
+                    <Car className="h-6 w-6 text-primary" />
                     自行開車
                   </h3>
-                  <div className="space-y-2">
+                  <div className="space-y-4">
                     {locationInfo?.driving_info ? (
-                      <p className="text-sm text-muted-foreground whitespace-pre-line">
-                        {locationInfo.driving_info}
-                      </p>
+                      <div className="text-base text-foreground/90 whitespace-pre-line leading-relaxed">
+                        {locationInfo.driving_info.split('\n\n').map((section, index) => {
+                          const lines = section.split('\n');
+                          const isTitle = lines[0].includes('從') && lines[0].includes('出發');
+                          
+                          return (
+                            <div key={index} className={index > 0 ? "mt-5" : ""}>
+                              {lines.map((line, lineIndex) => {
+                                if (lineIndex === 0 && isTitle) {
+                                  return (
+                                    <p key={lineIndex} className="font-semibold text-foreground mb-2 text-base">
+                                      {line}
+                                    </p>
+                                  );
+                                }
+                                return (
+                                  <p key={lineIndex} className="text-sm text-muted-foreground leading-relaxed mb-1.5">
+                                    {line}
+                                  </p>
+                                );
+                              })}
+                            </div>
+                          );
+                        })}
+                      </div>
                     ) : (
                       <>
-                        <p className="text-sm font-medium">從台北出發：</p>
-                        <p className="text-sm text-muted-foreground">
-                          國道3號 → 名間交流道 → 台16線 → 台21線 → 約3.5小時
-                        </p>
-                        <p className="text-sm text-muted-foreground">
+                        <div>
+                          <p className="font-semibold text-foreground mb-2 text-base">從台北出發：</p>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            國道3號 → 名間交流道 → 台16線 → 台21線 → 約3.5小時
+                          </p>
+                        </div>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
                           旅宿提供免費停車場，無需預約
                         </p>
                       </>
@@ -108,23 +132,47 @@ const LocationSection = ({ address, locationInfo }: LocationSectionProps) => {
 
               {/* 大眾運輸 */}
               <Card>
-                <CardContent className="pt-6">
-                  <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                    <Bus className="h-5 w-5 text-primary" />
+                <CardContent className="pt-6 pb-6">
+                  <h3 className="font-bold text-xl mb-5 flex items-center gap-2">
+                    <Bus className="h-6 w-6 text-primary" />
                     大眾運輸
                   </h3>
-                  <div className="space-y-2">
+                  <div className="space-y-4">
                     {locationInfo?.public_transport_info ? (
-                      <p className="text-sm text-muted-foreground whitespace-pre-line">
-                        {locationInfo.public_transport_info}
-                      </p>
+                      <div className="text-base text-foreground/90 whitespace-pre-line leading-relaxed">
+                        {locationInfo.public_transport_info.split('\n\n').map((section, index) => {
+                          const lines = section.split('\n');
+                          const isTitle = lines[0].includes('從') && lines[0].includes('出發');
+                          
+                          return (
+                            <div key={index} className={index > 0 ? "mt-5" : ""}>
+                              {lines.map((line, lineIndex) => {
+                                if (lineIndex === 0 && isTitle) {
+                                  return (
+                                    <p key={lineIndex} className="font-semibold text-foreground mb-2 text-base">
+                                      {line}
+                                    </p>
+                                  );
+                                }
+                                return (
+                                  <p key={lineIndex} className="text-sm text-muted-foreground leading-relaxed mb-1.5">
+                                    {line}
+                                  </p>
+                                );
+                              })}
+                            </div>
+                          );
+                        })}
+                      </div>
                     ) : (
                       <>
-                        <p className="text-sm font-medium">高鐵 + 巴士：</p>
-                        <p className="text-sm text-muted-foreground">
-                          高鐵台中站 → 轉乘南投客運 → 東埔站 → 步行約10分鐘
-                        </p>
-                        <p className="text-sm text-muted-foreground">
+                        <div>
+                          <p className="font-semibold text-foreground mb-2 text-base">高鐵 + 巴士：</p>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            高鐵台中站 → 轉乘南投客運 → 東埔站 → 步行約10分鐘
+                          </p>
+                        </div>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
                           建議提前預約接駁服務（需額外付費）
                         </p>
                       </>
