@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { useAccommodation } from "@/contexts/AccommodationContext";
 import heroSlide1 from "@/assets/hero-slide-1.jpg";
 import heroSlide2 from "@/assets/hero-slide-2.jpg";
 import heroSlide3 from "@/assets/hero-slide-3.jpg";
@@ -26,10 +27,7 @@ interface HeroSectionProps {
 }
 
 const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) => {
-  const [checkInDate, setCheckInDate] = useState<Date>();
-  const [checkOutDate, setCheckOutDate] = useState<Date>();
-  const [adults, setAdults] = useState(2);
-  const [children, setChildren] = useState(0);
+  const { checkInDate, setCheckInDate, checkOutDate, setCheckOutDate, guests, setGuests } = useAccommodation();
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set([0]));
@@ -266,7 +264,7 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
                       <div className="flex flex-col">
                         <span className="text-xs text-muted-foreground">住宿人數</span>
                         <span className="text-sm text-foreground">
-                          {adults}位大人{children > 0 ? ` · ${children}位兒童` : ""} · 1間客房
+                          {guests.adults}位大人{guests.children > 0 ? ` · ${guests.children}位兒童` : ""} · 1間客房
                         </span>
                       </div>
                     </button>
@@ -281,14 +279,14 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
                         </div>
                         <div className="flex items-center gap-3">
                           <button
-                            onClick={() => setAdults(Math.max(1, adults - 1))}
+                            onClick={() => setGuests({ ...guests, adults: Math.max(1, guests.adults - 1) })}
                             className="w-10 h-10 rounded-lg border-2 border-primary text-primary hover:bg-primary/10 transition-colors flex items-center justify-center font-medium"
                           >
                             -
                           </button>
-                          <span className="w-8 text-center font-medium">{adults}</span>
+                          <span className="w-8 text-center font-medium">{guests.adults}</span>
                           <button
-                            onClick={() => setAdults(Math.min(10, adults + 1))}
+                            onClick={() => setGuests({ ...guests, adults: Math.min(10, guests.adults + 1) })}
                             className="w-10 h-10 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium"
                           >
                             +
@@ -304,14 +302,14 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
                         </div>
                         <div className="flex items-center gap-3">
                           <button
-                            onClick={() => setChildren(Math.max(0, children - 1))}
+                            onClick={() => setGuests({ ...guests, children: Math.max(0, guests.children - 1) })}
                             className="w-10 h-10 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium"
                           >
                             -
                           </button>
-                          <span className="w-8 text-center font-medium">{children}</span>
+                          <span className="w-8 text-center font-medium">{guests.children}</span>
                           <button
-                            onClick={() => setChildren(Math.min(10, children + 1))}
+                            onClick={() => setGuests({ ...guests, children: Math.min(10, guests.children + 1) })}
                             className="w-10 h-10 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium"
                           >
                             +

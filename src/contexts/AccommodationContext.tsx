@@ -9,6 +9,12 @@ interface AccommodationContextType {
     role: string;
   }>;
   isLoading: boolean;
+  checkInDate: Date | undefined;
+  setCheckInDate: (date: Date | undefined) => void;
+  checkOutDate: Date | undefined;
+  setCheckOutDate: (date: Date | undefined) => void;
+  guests: { adults: number; children: number };
+  setGuests: (guests: { adults: number; children: number }) => void;
 }
 
 const AccommodationContext = createContext<AccommodationContextType | undefined>(undefined);
@@ -20,6 +26,9 @@ export function AccommodationProvider({ children }: { children: ReactNode }) {
     role: string;
   }>>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [checkInDate, setCheckInDate] = useState<Date | undefined>();
+  const [checkOutDate, setCheckOutDate] = useState<Date | undefined>();
+  const [guests, setGuests] = useState({ adults: 2, children: 0 });
 
   useEffect(() => {
     loadUserAccommodations();
@@ -68,6 +77,12 @@ export function AccommodationProvider({ children }: { children: ReactNode }) {
         setCurrentAccommodationId,
         userAccommodations,
         isLoading,
+        checkInDate,
+        setCheckInDate,
+        checkOutDate,
+        setCheckOutDate,
+        guests,
+        setGuests,
       }}
     >
       {children}

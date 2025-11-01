@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubdomain } from "@/hooks/use-subdomain";
+import { useAccommodation } from "@/contexts/AccommodationContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,7 @@ import {
   Home,
 } from "lucide-react";
 import { z } from "zod";
+import { format } from "date-fns";
 import roomDeluxe from "@/assets/room-deluxe.jpg";
 import roomSuite from "@/assets/room-suite.jpg";
 import roomStandard from "@/assets/room-standard.jpg";
@@ -71,6 +73,7 @@ const BookingFlow = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { accommodationId, isLoading: subdomainLoading, error: subdomainError } = useSubdomain();
+  const { checkInDate, setCheckInDate, checkOutDate, setCheckOutDate, guests: contextGuests } = useAccommodation();
   
   const [currentStep, setCurrentStep] = useState<BookingStep>("room");
   const [bookingSettings, setBookingSettings] = useState<BookingSettings | null>(null);
@@ -138,9 +141,6 @@ const BookingFlow = () => {
   
   // 訂房資料
   const [selectedRoom, setSelectedRoom] = useState<RoomType | null>(null);
-  const [checkInDate, setCheckInDate] = useState("");
-  const [checkOutDate, setCheckOutDate] = useState("");
-  const [guests, setGuests] = useState(2);
   const [guestInfo, setGuestInfo] = useState({
     name: "",
     phone: "",
@@ -149,7 +149,12 @@ const BookingFlow = () => {
     notes: "",
   });
   const [paymentMethod, setPaymentMethod] = useState("");
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string>>();
+  
+  // 將 context 日期轉換為字串格式
+  const checkInDateStr = checkInDate ? format(checkInDate, "yyyy-MM-dd") : "";
+  const checkOutDateStr = checkOutDate ? format(checkOutDate, "yyyy-MM-dd") : "";
+  const totalGuests = contextGuests.adults + contextGuests.children;
 
   useEffect(() => {
     if (subdomainLoading || !accommodationId) return;
@@ -189,9 +194,9 @@ const BookingFlow = () => {
   }, [accommodationId, subdomainLoading, toast]);
 
   const calculateNights = () => {
-    if (!checkInDate || !checkOutDate) return 0;
-    const start = new Date(checkInDate);
-    const end = new Date(checkOutDate);
+    if (!checkInDateStr || !checkOutDateStr) return 0;
+    const start = new Date(checkInDateStr);
+    const end = new Date(checkOutDateStr);
     const diff = end.getTime() - start.getTime();
     return Math.ceil(diff / (1000 * 3600 * 24));
   };
@@ -219,7 +224,7 @@ const BookingFlow = () => {
     }
     
     if (currentStep === "dates") {
-      if (!checkInDate || !checkOutDate) {
+      if (!checkInDateStr || !checkOutDateStr) {
         toast({
           title: "請選擇日期",
           description: "請選擇入住和退房日期",
@@ -227,7 +232,7 @@ const BookingFlow = () => {
         });
         return;
       }
-      if (new Date(checkOutDate) <= new Date(checkInDate)) {
+      if (new Date(checkOutDateStr) <= new Date(checkInDateStr)) {
         toast({
           title: "日期錯誤",
           description: "退房日期必須晚於入住日期",
@@ -502,8 +507,8 @@ const BookingFlow = () => {
                         <Input
                           id="checkIn"
                           type="date"
-                          value={checkInDate}
-                          onChange={(e) => setCheckInDate(e.target.value)}
+                          value={checkInDateStr}
+                          onChange={(e) => setCheckInDate(e.target.value ? new Date(e.target.value) : undefined)}
                           min={new Date().toISOString().split("T")[0]}
                           className="h-12"
                         />
@@ -521,9 +526,9 @@ const BookingFlow = () => {
                         <Input
                           id="checkOut"
                           type="date"
-                          value={checkOutDate}
-                          onChange={(e) => setCheckOutDate(e.target.value)}
-                          min={checkInDate || new Date().toISOString().split("T")[0]}
+                          value={checkOutDateStr}
+                          onChange={(e) => setCheckOutDate(e.target.value ? new Date(e.target.value) : undefined)}
+                          min={checkInDateStr || new Date().toISOString().split("T")[0]}
                           className="h-12"
                         />
                         {bookingSettings && (
@@ -538,15 +543,9 @@ const BookingFlow = () => {
                         <Users className="h-4 w-4 text-primary" />
                         入住人數
                       </Label>
-                      <Input
-                        id="guests"
-                        type="number"
-                        value={guests}
-                        onChange={(e) => setGuests(parseInt(e.target.value) || 1)}
-                        min={1}
-                        max={selectedRoom?.capacity || 10}
-                        className="h-12"
-                      />
+                      <div className="text-sm text-muted-foreground">
+                        {contextGuests.adults} 位大人{contextGuests.children > 0 ? ` · ${contextGuests.children} 位兒童` : ""}（共 {totalGuests} 人）
+                      </div>
                       {selectedRoom && (
                         <p className="text-xs text-muted-foreground">
                           此房型最多可容納 {selectedRoom.capacity} 人
@@ -717,16 +716,16 @@ const BookingFlow = () => {
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <p className="text-sm text-muted-foreground">入住日期</p>
-                            <p className="font-medium">{checkInDate}</p>
+                            <p className="font-medium">{checkInDateStr}</p>
                           </div>
                           <div>
                             <p className="text-sm text-muted-foreground">退房日期</p>
-                            <p className="font-medium">{checkOutDate}</p>
+                            <p className="font-medium">{checkOutDateStr}</p>
                           </div>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">入住人數</p>
-                          <p className="font-medium">{guests} 人</p>
+                          <p className="font-medium">{totalGuests} 人</p>
                         </div>
                       </CardContent>
                     </Card>
@@ -836,11 +835,11 @@ const BookingFlow = () => {
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">入住</span>
-                            <span>{checkInDate}</span>
+                            <span>{checkInDateStr}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">退房</span>
-                            <span>{checkOutDate}</span>
+                            <span>{checkOutDateStr}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">住宿天數</span>
@@ -848,7 +847,7 @@ const BookingFlow = () => {
                           </div>
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">入住人數</span>
-                            <span>{guests} 人</span>
+                            <span>{totalGuests} 人</span>
                           </div>
                         </div>
                         <Separator />
