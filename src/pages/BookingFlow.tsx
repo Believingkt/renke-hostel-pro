@@ -168,6 +168,13 @@ const BookingFlow = () => {
   });
   const [paymentMethod, setPaymentMethod] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [discountCode, setDiscountCode] = useState("");
+  const [appliedDiscount, setAppliedDiscount] = useState<{
+    code: string;
+    type: "percentage" | "amount";
+    value: number;
+  } | null>(null);
+  const [isValidatingCode, setIsValidatingCode] = useState(false);
   
   // 將 context 日期轉換為字串格式，並提供預設值
   const checkInDateStr = checkInDate ? format(checkInDate, "yyyy-MM-dd") : "";
@@ -225,9 +232,74 @@ const BookingFlow = () => {
     return selectedRoom.base_price * nights;
   };
 
+  const calculateDiscount = () => {
+    if (!appliedDiscount) return 0;
+    const total = calculateTotal();
+    if (appliedDiscount.type === "percentage") {
+      return Math.round(total * (appliedDiscount.value / 100));
+    }
+    return appliedDiscount.value;
+  };
+
+  const calculateFinalTotal = () => {
+    return Math.max(0, calculateTotal() - calculateDiscount());
+  };
+
   const calculateDeposit = () => {
     if (!bookingSettings?.use_deposit) return 0;
-    return Math.round(calculateTotal() * (bookingSettings.deposit_percentage / 100));
+    return Math.round(calculateFinalTotal() * (bookingSettings.deposit_percentage / 100));
+  };
+
+  const handleApplyDiscount = async () => {
+    if (!discountCode.trim()) {
+      toast({
+        title: "請輸入折扣代碼",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsValidatingCode(true);
+    
+    // 模擬驗證折扣代碼（實際應該從後台 API 驗證）
+    // 這裡使用硬編碼的測試折扣碼
+    const testDiscounts = [
+      { code: "ABC12", type: "percentage" as const, value: 10 },
+      { code: "XYZ34", type: "amount" as const, value: 500 },
+    ];
+
+    const foundDiscount = testDiscounts.find(
+      (d) => d.code.toUpperCase() === discountCode.trim().toUpperCase()
+    );
+
+    setTimeout(() => {
+      if (foundDiscount) {
+        setAppliedDiscount(foundDiscount);
+        toast({
+          title: "折扣代碼已套用",
+          description: `已套用 ${
+            foundDiscount.type === "percentage"
+              ? `${foundDiscount.value}% 折扣`
+              : `NT$ ${foundDiscount.value} 折扣`
+          }`,
+        });
+      } else {
+        toast({
+          title: "折扣代碼無效",
+          description: "請檢查您的折扣代碼是否正確",
+          variant: "destructive",
+        });
+      }
+      setIsValidatingCode(false);
+    }, 500);
+  };
+
+  const handleRemoveDiscount = () => {
+    setAppliedDiscount(null);
+    setDiscountCode("");
+    toast({
+      title: "已移除折扣代碼",
+    });
   };
 
   const handleNextStep = () => {
@@ -683,6 +755,53 @@ const BookingFlow = () => {
                 {/* Step 4: Payment */}
                 {currentStep === "payment" && (
                   <div className="space-y-6">
+                    {/* 折扣代碼欄位 */}
+                    <div className="space-y-4">
+                      <Label htmlFor="discountCode">折扣代碼（選填）</Label>
+                      {!appliedDiscount ? (
+                        <div className="flex gap-2">
+                          <Input
+                            id="discountCode"
+                            value={discountCode}
+                            onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                            placeholder="請輸入折扣代碼"
+                            className="h-12"
+                            maxLength={10}
+                            disabled={isValidatingCode}
+                          />
+                          <Button
+                            onClick={handleApplyDiscount}
+                            disabled={isValidatingCode || !discountCode.trim()}
+                            className="shrink-0"
+                          >
+                            {isValidatingCode ? "驗證中..." : "套用"}
+                          </Button>
+                        </div>
+                      ) : (
+                        <Card className="bg-primary/5 border-primary/20">
+                          <CardContent className="p-4 flex items-center justify-between">
+                            <div>
+                              <p className="font-medium">已套用折扣代碼：{appliedDiscount.code}</p>
+                              <p className="text-sm text-muted-foreground">
+                                折扣 {appliedDiscount.type === "percentage" 
+                                  ? `${appliedDiscount.value}%` 
+                                  : `NT$ ${appliedDiscount.value}`}
+                              </p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleRemoveDiscount}
+                            >
+                              移除
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+
+                    <Separator />
+
                     <div className="space-y-4">
                       <p className="text-sm text-muted-foreground">
                         請選擇您的付款方式
@@ -878,12 +997,18 @@ const BookingFlow = () => {
                               NT$ {calculateTotal().toLocaleString()}
                             </span>
                           </div>
+                          {appliedDiscount && (
+                            <div className="flex justify-between text-primary">
+                              <span>折扣 ({appliedDiscount.code})</span>
+                              <span>- NT$ {calculateDiscount().toLocaleString()}</span>
+                            </div>
+                          )}
                         </div>
                         <Separator />
                         <div className="flex justify-between items-center">
                           <span className="font-semibold">總金額</span>
                           <span className="text-2xl font-bold text-primary">
-                            NT$ {calculateTotal().toLocaleString()}
+                            NT$ {calculateFinalTotal().toLocaleString()}
                           </span>
                         </div>
                         {bookingSettings?.use_deposit && calculateDeposit() > 0 && (
