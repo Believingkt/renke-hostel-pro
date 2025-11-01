@@ -190,7 +190,7 @@ const KolDiscount = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="usageLimit">使用次數</Label>
+                <Label htmlFor="usageLimit">使用次數上限</Label>
                 <Input
                   id="usageLimit"
                   type="number"
@@ -221,7 +221,7 @@ const KolDiscount = () => {
                   <TableHead>名稱</TableHead>
                   <TableHead>折扣碼</TableHead>
                   <TableHead>折扣內容</TableHead>
-                  <TableHead>使用次數</TableHead>
+                  <TableHead>使用次數上限</TableHead>
                   <TableHead className="w-[100px]">操作</TableHead>
                 </TableRow>
               </TableHeader>
@@ -310,7 +310,7 @@ const KolDiscount = () => {
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-muted-foreground">使用次數</p>
+                          <p className="text-xs text-muted-foreground">使用次數上限</p>
                           <p className="text-sm">{item.usageLimit} 次</p>
                         </div>
                       </div>
