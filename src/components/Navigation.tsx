@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Mountain, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import sensanLogo from "@/assets/sensan-logo.png";
 
 interface NavigationProps {
   accommodationName?: string;
@@ -20,9 +21,8 @@ const Navigation = ({ accommodationName = "森山寫照", onNavigate }: Navigati
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-        <button onClick={() => onNavigate("home")} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <Mountain className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold text-primary">{accommodationName}</h1>
+        <button onClick={() => onNavigate("home")} className="flex items-center hover:opacity-80 transition-opacity">
+          <img src={sensanLogo} alt={accommodationName} className="h-12 w-auto" />
         </button>
         
         {/* Desktop Navigation */}
