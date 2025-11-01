@@ -77,7 +77,6 @@ const menuItems = [
   { title: "帳號管理", url: "/admin/accounts", icon: Settings },
   { title: "折扣代碼", url: "/admin/discount-codes", icon: Tag },
   { title: "用戶權限管理", url: "/admin/user-roles", icon: Users },
-  { title: "人客多總部", url: "/admin/headquarters", icon: Building },
 ];
 
 export function AppSidebar() {

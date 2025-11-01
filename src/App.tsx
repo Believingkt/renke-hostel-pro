@@ -30,6 +30,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/booking" element={<BookingFlow />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/hq" element={<Headquarters />} />
             <Route path="/admin" element={<Dashboard />} />
             <Route path="/admin/reception" element={<Reception />} />
             <Route path="/admin/website-content" element={<WebsiteContent />} />
@@ -41,7 +42,6 @@ const App = () => (
             <Route path="/admin/discount-codes" element={<KolDiscount />} />
             <Route path="/admin/availability" element={<Availability />} />
             <Route path="/admin/user-roles" element={<UserRoles />} />
-            <Route path="/admin/headquarters" element={<Headquarters />} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
