@@ -1,5 +1,6 @@
 import { Separator } from "@/components/ui/separator";
-import { MapPin, Phone, Mail, Mountain, Facebook, Instagram, MessageCircle } from "lucide-react";
+import { MapPin, Phone, Mail, Facebook, Instagram } from "lucide-react";
+import sensanLogoWhite from "@/assets/sensan-logo-white.png";
 
 interface FooterProps {
   accommodationName?: string;
@@ -22,9 +23,8 @@ const Footer = ({ accommodationName, address }: FooterProps) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 mb-8 md:mb-12">
             {/* 左側 - Logo 與社交媒體 */}
             <div>
-              <div className="flex items-center gap-2 mb-3 md:mb-4">
-                <Mountain className="h-6 w-6 md:h-8 md:w-8 text-white" />
-                <h3 className="text-xl md:text-2xl font-bold">{accommodationName || "森山寫照"}</h3>
+              <div className="mb-3 md:mb-4">
+                <img src={sensanLogoWhite} alt={accommodationName || "森山寫照"} className="h-12 md:h-16 w-auto" />
               </div>
               <p className="text-sm md:text-base text-white/80 mb-4 md:mb-6">山間的寧靜時光</p>
               <div className="flex gap-4">
