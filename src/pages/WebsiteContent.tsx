@@ -177,7 +177,6 @@ const WebsiteContent = () => {
   const [locationDescription, setLocationDescription] = useState("");
   const [drivingInfo, setDrivingInfo] = useState("");
   const [publicTransportInfo, setPublicTransportInfo] = useState("");
-  const [airportPickupInfo, setAirportPickupInfo] = useState("");
   const [nearbyAttractions, setNearbyAttractions] = useState<NearbyAttraction[]>([
     { name: "", distance: "", description: "" }
   ]);
@@ -271,7 +270,6 @@ const WebsiteContent = () => {
             setLocationDescription(locationData.location_description || "");
             setDrivingInfo(locationData.driving_info || "");
             setPublicTransportInfo(locationData.public_transport_info || "");
-            setAirportPickupInfo(locationData.airport_pickup_info || "");
             
             // 安全地處理 nearby_attractions 類型
             const attractions = locationData.nearby_attractions;
@@ -573,7 +571,6 @@ const WebsiteContent = () => {
         location_description: locationDescription,
         driving_info: drivingInfo,
         public_transport_info: publicTransportInfo,
-        airport_pickup_info: airportPickupInfo,
         nearby_attractions: nearbyAttractions.filter(
           a => a.name || a.distance || a.description
         ) as any, // 轉換為 Json 類型
@@ -1023,17 +1020,6 @@ const WebsiteContent = () => {
                   value={publicTransportInfo}
                   onChange={(e) => setPublicTransportInfo(e.target.value)}
                   placeholder="高鐵 + 巴士：高鐵台中站 → 轉乘南投客運 → 東埔站 → 步行約10分鐘&#10;建議提前預約接駁服務（需額外付費）"
-                  rows={4}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="airport-pickup-info">機場接送</Label>
-                <Textarea
-                  id="airport-pickup-info"
-                  value={airportPickupInfo}
-                  onChange={(e) => setAirportPickupInfo(e.target.value)}
-                  placeholder="提供台中清泉崗機場接送服務，請提前3天預約&#10;接送時間：約2小時&#10;費用：NT$ 3,500 / 趟（4人座轎車）"
                   rows={4}
                 />
               </div>

@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Car, Bus, Plane } from "lucide-react";
+import { MapPin, Car, Bus } from "lucide-react";
 
 interface LocationSectionProps {
   address: string;
@@ -133,34 +133,6 @@ const LocationSection = ({ address, locationInfo }: LocationSectionProps) => {
                 </CardContent>
               </Card>
 
-              {/* 機場接送 */}
-              <Card>
-                <CardContent className="pt-6">
-                  <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                    <Plane className="h-5 w-5 text-primary" />
-                    機場接送
-                  </h3>
-                  <div className="space-y-2">
-                    {locationInfo?.airport_pickup_info ? (
-                      <p className="text-sm text-muted-foreground whitespace-pre-line">
-                        {locationInfo.airport_pickup_info}
-                      </p>
-                    ) : (
-                      <>
-                        <p className="text-sm text-muted-foreground">
-                          提供台中清泉崗機場接送服務，請提前3天預約
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          接送時間：約2小時
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          費用：NT$ 3,500 / 趟（4人座轎車）
-                        </p>
-                      </>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </div>
 
