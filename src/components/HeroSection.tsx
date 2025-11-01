@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
@@ -323,10 +324,12 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
               </div>
 
               {/* 搜尋按鈕 */}
-              <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-sm md:text-base h-11 md:h-14 font-medium rounded-lg shadow-md hover:shadow-lg transition-all">
-                <Search className="mr-2 h-5 w-5" />
-                搜尋空房
-              </Button>
+              <Link to="/booking" className="block">
+                <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-sm md:text-base h-11 md:h-14 font-medium rounded-lg shadow-md hover:shadow-lg transition-all">
+                  <Search className="mr-2 h-5 w-5" />
+                  搜尋空房
+                </Button>
+              </Link>
           </CardContent>
         </Card>
         </div>

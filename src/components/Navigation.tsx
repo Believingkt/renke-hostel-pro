@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Mountain, Menu } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 interface NavigationProps {
   accommodationName?: string;
@@ -41,9 +42,11 @@ const Navigation = ({ accommodationName = "森山寫照", onNavigate }: Navigati
           <button onClick={() => onNavigate("faq")} className="text-sm hover:text-primary transition-colors">
             常見問題
           </button>
-          <Button className="bg-primary hover:bg-primary/90">
-            立即預訂
-          </Button>
+          <Link to="/booking">
+            <Button className="bg-primary hover:bg-primary/90">
+              立即預訂
+            </Button>
+          </Link>
         </nav>
 
         {/* Mobile Navigation */}
@@ -91,12 +94,14 @@ const Navigation = ({ accommodationName = "森山寫照", onNavigate }: Navigati
               
               {/* 底部訂房按鈕 */}
               <div className="p-6">
-                <Button 
-                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-12 text-base font-medium rounded-lg shadow-lg"
-                  onClick={() => setOpen(false)}
-                >
-                  立即預訂
-                </Button>
+                <Link to="/booking" className="block">
+                  <Button 
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-12 text-base font-medium rounded-lg shadow-lg"
+                    onClick={() => setOpen(false)}
+                  >
+                    立即預訂
+                  </Button>
+                </Link>
               </div>
             </div>
           </SheetContent>
