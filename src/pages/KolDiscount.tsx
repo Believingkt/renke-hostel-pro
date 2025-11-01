@@ -225,8 +225,8 @@ const KolDiscount = () => {
                   <TableHead>名稱</TableHead>
                   <TableHead>折扣碼</TableHead>
                   <TableHead>折扣內容</TableHead>
-                  <TableHead>使用次數上限</TableHead>
                   <TableHead>已使用次數</TableHead>
+                  <TableHead>使用次數上限</TableHead>
                   <TableHead className="w-[100px]">操作</TableHead>
                 </TableRow>
               </TableHeader>
@@ -259,8 +259,8 @@ const KolDiscount = () => {
                       <TableCell>
                         {formatDiscount(item.discountType, item.discountValue)}
                       </TableCell>
-                      <TableCell>{item.usageLimit} 次</TableCell>
                       <TableCell>{item.usedCount} 次</TableCell>
+                      <TableCell>{item.usageLimit} 次</TableCell>
                       <TableCell>
                         <Button
                           variant="ghost"
@@ -316,12 +316,12 @@ const KolDiscount = () => {
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-muted-foreground">使用次數上限</p>
-                          <p className="text-sm">{item.usageLimit} 次</p>
-                        </div>
-                        <div>
                           <p className="text-xs text-muted-foreground">已使用次數</p>
                           <p className="text-sm">{item.usedCount} 次</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">使用次數上限</p>
+                          <p className="text-sm">{item.usageLimit} 次</p>
                         </div>
                       </div>
                       <Button
