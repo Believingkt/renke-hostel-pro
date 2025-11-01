@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { RoomTypeForm } from "@/components/RoomTypeForm";
 import {
   AlertDialog,
@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const Pricing = () => {
-  const { toast } = useToast();
   const { currentAccommodationId } = useAccommodation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "rooms");
@@ -40,10 +39,10 @@ const Pricing = () => {
   }, [searchParams]);
 
   useEffect(() => {
-    if (currentAccommodationId) {
+    if (currentAccommodationId && activeTab === "rooms") {
       loadRoomTypes();
     }
-  }, [currentAccommodationId]);
+  }, [currentAccommodationId, activeTab]);
 
   const loadRoomTypes = async () => {
     if (!currentAccommodationId) return;
@@ -60,11 +59,7 @@ const Pricing = () => {
       setRoomTypes(data || []);
     } catch (error) {
       console.error('Error loading room types:', error);
-      toast({
-        title: "載入失敗",
-        description: "無法載入房型資料",
-        variant: "destructive",
-      });
+      toast.error("無法載入房型資料");
     } finally {
       setIsLoading(false);
     }
@@ -89,6 +84,13 @@ const Pricing = () => {
     if (!deletingRoomType) return;
 
     try {
+      // Delete photos first
+      await supabase
+        .from("room_photos")
+        .delete()
+        .eq("room_type_id", deletingRoomType.id);
+
+      // Delete room
       const { error } = await supabase
         .from('room_types')
         .delete()
@@ -96,19 +98,11 @@ const Pricing = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "刪除成功",
-        description: "房型已成功刪除",
-      });
-
+      toast.success("房型已成功刪除");
       loadRoomTypes();
     } catch (error) {
       console.error('Error deleting room type:', error);
-      toast({
-        title: "刪除失敗",
-        description: "無法刪除房型，請重試",
-        variant: "destructive",
-      });
+      toast.error("無法刪除房型，請重試");
     } finally {
       setDeleteDialogOpen(false);
       setDeletingRoomType(null);
@@ -217,13 +211,13 @@ const Pricing = () => {
                                 <div>
                                   <span className="text-muted-foreground">平日價格：</span>
                                   <span className="font-bold text-primary">
-                                    NT$ {roomType.weekday_price?.toLocaleString() || '未設定'}
+                                    {roomType.weekday_price ? `NT$ ${roomType.weekday_price.toLocaleString()}` : '未設定'}
                                   </span>
                                 </div>
                                 <div>
                                   <span className="text-muted-foreground">假日價格：</span>
                                   <span className="font-bold text-primary">
-                                    NT$ {roomType.weekend_price?.toLocaleString() || '未設定'}
+                                    {roomType.weekend_price ? `NT$ ${roomType.weekend_price.toLocaleString()}` : '未設定'}
                                   </span>
                                 </div>
                               </div>
