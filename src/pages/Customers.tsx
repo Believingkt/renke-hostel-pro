@@ -185,7 +185,7 @@ const Customers = () => {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">顧客名單</h1>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">顧客資料</h1>
           <p className="text-muted-foreground mt-1">管理您的顧客資料</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
