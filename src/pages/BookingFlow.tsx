@@ -42,7 +42,7 @@ import {
 import roomDeluxe from "@/assets/room-deluxe.jpg";
 import roomSuite from "@/assets/room-suite.jpg";
 import roomStandard from "@/assets/room-standard.jpg";
-import sensanLogo from "@/assets/sensan-logo.png";
+import sensanLogo from "@/assets/sensan-logo-new.png";
 
 // 表單驗證 Schema
 const guestInfoSchema = z.object({
