@@ -544,10 +544,10 @@ const BookingFlow = () => {
                         }`}
                         onClick={() => setSelectedRoom(room)}
                       >
-                        <div className="grid md:grid-cols-2 gap-0">
+                        <div className="grid md:grid-cols-2 gap-0 min-h-[400px]">
                           {/* 左側圖片 */}
-                          <div className="aspect-[4/3] md:aspect-auto relative bg-muted overflow-hidden">
-                            <Carousel className="w-full h-full">
+                          <div className="relative bg-muted overflow-hidden h-full min-h-[400px]">
+                            <Carousel className="w-full h-full absolute inset-0">
                               <CarouselContent className="h-full">
                                 {(roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard]).map((image, index) => (
                                   <CarouselItem key={index} className="h-full">
