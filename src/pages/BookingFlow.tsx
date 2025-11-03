@@ -22,6 +22,8 @@ import {
   Mail,
   User,
   Home,
+  X,
+  ZoomIn,
 } from "lucide-react";
 import { z } from "zod";
 import { format } from "date-fns";
@@ -32,6 +34,11 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import {
+  Dialog,
+  DialogContent,
+  DialogClose,
+} from "@/components/ui/dialog";
 import roomDeluxe from "@/assets/room-deluxe.jpg";
 import roomSuite from "@/assets/room-suite.jpg";
 import roomStandard from "@/assets/room-standard.jpg";
@@ -183,6 +190,9 @@ const BookingFlow = () => {
     value: number;
   } | null>(null);
   const [isValidatingCode, setIsValidatingCode] = useState(false);
+  const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
+  const [selectedImageRoom, setSelectedImageRoom] = useState<RoomType | null>(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   
   // 將 context 日期轉換為字串格式，並提供預設值
   const checkInDateStr = checkInDate ? format(checkInDate, "yyyy-MM-dd") : "";
@@ -541,12 +551,25 @@ const BookingFlow = () => {
                               <CarouselContent>
                                 {(roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard]).map((image, index) => (
                                   <CarouselItem key={index}>
-                                    <img 
-                                      src={image} 
-                                      alt={`${room.name} - ${index + 1}`}
-                                      className="w-full h-full object-cover"
-                                      loading="lazy"
-                                    />
+                                    <div 
+                                      className="relative cursor-pointer group/image"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedImageRoom(room);
+                                        setSelectedImageIndex(index);
+                                        setIsImageDialogOpen(true);
+                                      }}
+                                    >
+                                      <img 
+                                        src={image} 
+                                        alt={`${room.name} - ${index + 1}`}
+                                        className="w-full h-full object-cover"
+                                        loading="lazy"
+                                      />
+                                      <div className="absolute inset-0 bg-black/0 group-hover/image:bg-black/20 transition-colors flex items-center justify-center">
+                                        <ZoomIn className="h-8 w-8 text-white opacity-0 group-hover/image:opacity-100 transition-opacity" />
+                                      </div>
+                                    </div>
                                   </CarouselItem>
                                 ))}
                               </CarouselContent>
@@ -1070,6 +1093,35 @@ const BookingFlow = () => {
           </div>
         </div>
       </div>
+
+      {/* 圖片放大對話框 */}
+      <Dialog open={isImageDialogOpen} onOpenChange={setIsImageDialogOpen}>
+        <DialogContent className="max-w-7xl w-[95vw] h-[90vh] p-0">
+          <DialogClose className="absolute right-4 top-4 z-50 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+            <X className="h-6 w-6 text-white drop-shadow-lg" />
+            <span className="sr-only">關閉</span>
+          </DialogClose>
+          <div className="relative w-full h-full flex items-center justify-center bg-black">
+            {selectedImageRoom && (
+              <Carousel className="w-full h-full" opts={{ startIndex: selectedImageIndex }}>
+                <CarouselContent className="h-full">
+                  {(roomImages[selectedImageRoom.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard]).map((image, index) => (
+                    <CarouselItem key={index} className="flex items-center justify-center h-full">
+                      <img 
+                        src={image} 
+                        alt={`${selectedImageRoom.name} - ${index + 1}`}
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious className="left-4" />
+                <CarouselNext className="right-4" />
+              </Carousel>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -1,7 +1,8 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Users } from "lucide-react";
+import { Users, X, ZoomIn } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
   Carousel,
@@ -10,6 +11,11 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import {
+  Dialog,
+  DialogContent,
+  DialogClose,
+} from "@/components/ui/dialog";
 import roomDeluxe from "@/assets/room-deluxe.jpg";
 import roomSuite from "@/assets/room-suite.jpg";
 import roomStandard from "@/assets/room-standard.jpg";
@@ -49,36 +55,52 @@ const roomImages: Record<string, string[]> = {
 
 const RoomCard = ({ room }: { room: RoomType }) => {
   const images = roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard];
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
+  const handleImageClick = (index: number) => {
+    setSelectedImageIndex(index);
+    setIsDialogOpen(true);
+  };
 
   return (
-    <Card className="overflow-hidden hover:shadow-xl transition-shadow group border rounded-xl bg-card">
-      <div className="aspect-[4/3] overflow-hidden relative bg-muted">
-        <Carousel className="w-full h-full">
-          <CarouselContent>
-            {images.map((image, index) => (
-              <CarouselItem key={index}>
-                <picture>
-                  <img 
-                    src={image} 
-                    alt={`${room.name} - ${index + 1}`}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                    decoding="async"
-                    width="512"
-                    height="512"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  />
-                </picture>
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-          <CarouselPrevious className="left-2" />
-          <CarouselNext className="right-2" />
-        </Carousel>
-        <div className="absolute top-4 right-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium z-10">
-          {room.capacity}人
+    <>
+      <Card className="overflow-hidden hover:shadow-xl transition-shadow group border rounded-xl bg-card">
+        <div className="aspect-[4/3] overflow-hidden relative bg-muted">
+          <Carousel className="w-full h-full">
+            <CarouselContent>
+              {images.map((image, index) => (
+                <CarouselItem key={index}>
+                  <div 
+                    className="relative cursor-pointer group/image"
+                    onClick={() => handleImageClick(index)}
+                  >
+                    <picture>
+                      <img 
+                        src={image} 
+                        alt={`${room.name} - ${index + 1}`}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        decoding="async"
+                        width="512"
+                        height="512"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      />
+                    </picture>
+                    <div className="absolute inset-0 bg-black/0 group-hover/image:bg-black/20 transition-colors flex items-center justify-center">
+                      <ZoomIn className="h-8 w-8 text-white opacity-0 group-hover/image:opacity-100 transition-opacity" />
+                    </div>
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious className="left-2" />
+            <CarouselNext className="right-2" />
+          </Carousel>
+          <div className="absolute top-4 right-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium z-10">
+            {room.capacity}人
+          </div>
         </div>
-      </div>
       <CardContent className="p-4 md:p-6">
         <h3 className="text-xl md:text-2xl font-bold mb-1 text-foreground">{room.name}</h3>
         <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4">{room.name_en}</p>
@@ -139,6 +161,33 @@ const RoomCard = ({ room }: { room: RoomType }) => {
         </div>
       </CardContent>
     </Card>
+
+    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <DialogContent className="max-w-7xl w-[95vw] h-[90vh] p-0">
+        <DialogClose className="absolute right-4 top-4 z-50 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+          <X className="h-6 w-6 text-white drop-shadow-lg" />
+          <span className="sr-only">關閉</span>
+        </DialogClose>
+        <div className="relative w-full h-full flex items-center justify-center bg-black">
+          <Carousel className="w-full h-full" opts={{ startIndex: selectedImageIndex }}>
+            <CarouselContent className="h-full">
+              {images.map((image, index) => (
+                <CarouselItem key={index} className="flex items-center justify-center h-full">
+                  <img 
+                    src={image} 
+                    alt={`${room.name} - ${index + 1}`}
+                    className="max-w-full max-h-full object-contain"
+                  />
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious className="left-4" />
+            <CarouselNext className="right-4" />
+          </Carousel>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 };
 
