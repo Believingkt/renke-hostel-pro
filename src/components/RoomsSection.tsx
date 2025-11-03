@@ -87,8 +87,8 @@ const RoomCard = ({ room }: { room: RoomType }) => {
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       />
                     </picture>
-                    <div className="absolute inset-0 bg-black/0 group-hover/image:bg-black/20 transition-colors flex items-center justify-center">
-                      <ZoomIn className="h-8 w-8 text-white opacity-0 group-hover/image:opacity-100 transition-opacity" />
+                    <div className="absolute top-4 right-4 bg-black/40 hover:bg-black/60 p-2 rounded-full transition-colors z-10">
+                      <ZoomIn className="h-5 w-5 text-white" />
                     </div>
                   </div>
                 </CarouselItem>
@@ -97,9 +97,6 @@ const RoomCard = ({ room }: { room: RoomType }) => {
             <CarouselPrevious className="left-2" />
             <CarouselNext className="right-2" />
           </Carousel>
-          <div className="absolute top-4 right-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium z-10">
-            {room.capacity}人
-          </div>
         </div>
       <CardContent className="p-4 md:p-6">
         <h3 className="text-xl md:text-2xl font-bold mb-1 text-foreground">{room.name}</h3>

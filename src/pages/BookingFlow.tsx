@@ -566,8 +566,8 @@ const BookingFlow = () => {
                                         className="w-full h-full object-cover"
                                         loading="lazy"
                                       />
-                                      <div className="absolute inset-0 bg-black/0 group-hover/image:bg-black/20 transition-colors flex items-center justify-center">
-                                        <ZoomIn className="h-8 w-8 text-white opacity-0 group-hover/image:opacity-100 transition-opacity" />
+                                      <div className="absolute top-3 right-3 bg-black/40 hover:bg-black/60 p-2 rounded-full transition-colors z-10">
+                                        <ZoomIn className="h-5 w-5 text-white" />
                                       </div>
                                     </div>
                                   </CarouselItem>
@@ -576,9 +576,6 @@ const BookingFlow = () => {
                               <CarouselPrevious className="left-2" />
                               <CarouselNext className="right-2" />
                             </Carousel>
-                            <div className="absolute top-3 right-3 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium shadow-lg z-10">
-                              {room.capacity}人
-                            </div>
                           </div>
                           
                           {/* 右側內容 */}
