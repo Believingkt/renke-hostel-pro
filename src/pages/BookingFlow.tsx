@@ -546,7 +546,7 @@ const BookingFlow = () => {
                       >
                         <div className="grid md:grid-cols-[3fr_2fr] gap-0">
                           {/* 左側圖片 - 占60% */}
-                          <div className="relative bg-muted h-[280px] md:h-[400px]">
+                          <div className="relative bg-muted h-[280px] sm:h-[340px] md:h-[400px]">
                             <Carousel className="w-full h-full">
                               <CarouselContent className="ml-0 h-full">
                                 {(roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard]).map((image, index) => (
