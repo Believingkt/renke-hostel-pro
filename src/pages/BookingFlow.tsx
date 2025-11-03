@@ -517,9 +517,9 @@ const BookingFlow = () => {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-8">
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-[2fr_1fr] gap-8">
           {/* Left: Form Content */}
-          <div className="md:col-span-2">
+          <div className="w-full">
             <Card>
               <CardHeader>
                 <CardTitle className="text-2xl">
@@ -544,14 +544,9 @@ const BookingFlow = () => {
                         }`}
                         onClick={() => setSelectedRoom(room)}
                       >
-                        <div className="grid md:grid-cols-2 gap-0">
-                          {/* 左側圖片 */}
+                        <div className="grid md:grid-cols-[3fr_2fr] gap-0">
+                          {/* 左側圖片 - 占60% */}
                           <div 
-                            ref={(el) => {
-                              if (el && room.name === "12人包區") {
-                                console.log(`[容器宽度检查 - ${room.name}] 容器宽度: ${el.clientWidth}px`);
-                              }
-                            }}
                             style={{ 
                               position: 'relative', 
                               height: '400px', 
