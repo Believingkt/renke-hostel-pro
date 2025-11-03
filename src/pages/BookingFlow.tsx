@@ -546,14 +546,14 @@ const BookingFlow = () => {
                       >
                         <div className="grid md:grid-cols-2 gap-0">
                           {/* 左側圖片 */}
-                          <div className="relative bg-muted overflow-hidden" style={{ height: '400px' }}>
-                            <Carousel className="w-full h-full" style={{ height: '400px' }}>
-                              <CarouselContent className="!ml-0 h-full" style={{ height: '400px' }}>
+                          <div className="relative bg-muted" style={{ height: '400px', overflow: 'hidden' }}>
+                            <Carousel className="w-full h-full">
+                              <CarouselContent className="!ml-0 h-full !flex">
                                 {(roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard]).map((image, index) => (
-                                  <CarouselItem key={index} className="!pl-0 basis-full h-full" style={{ height: '400px' }}>
+                                  <CarouselItem key={index} className="!pl-0 basis-full h-full !min-w-full">
                                     <div 
-                                      className="relative cursor-pointer group/image w-full h-full"
-                                      style={{ height: '400px' }}
+                                      className="relative cursor-pointer group/image"
+                                      style={{ width: '100%', height: '400px' }}
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setSelectedImageRoom(room);
@@ -564,9 +564,15 @@ const BookingFlow = () => {
                                       <img 
                                         src={image} 
                                         alt={`${room.name} - ${index + 1}`}
-                                        className="w-full h-full object-cover block"
                                         loading="lazy"
-                                        style={{ width: '100%', height: '400px', objectFit: 'cover', display: 'block' }}
+                                        style={{ 
+                                          width: '100%', 
+                                          height: '400px', 
+                                          objectFit: 'cover',
+                                          display: 'block',
+                                          minHeight: '400px',
+                                          maxHeight: '400px'
+                                        }}
                                       />
                                       <div className="absolute top-3 right-3 bg-black/40 hover:bg-black/60 p-2 rounded-full transition-colors z-10">
                                         <ZoomIn className="h-5 w-5 text-white" />
