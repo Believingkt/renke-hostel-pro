@@ -168,10 +168,10 @@ const RoomCard = ({ room }: { room: RoomType }) => {
           <span className="sr-only">關閉</span>
         </DialogClose>
         <div className="relative w-full h-full flex items-center justify-center bg-black">
-          <Carousel className="w-full h-full" opts={{ startIndex: selectedImageIndex }}>
-            <CarouselContent className="h-full">
+          <Carousel className="w-full h-full" opts={{ startIndex: selectedImageIndex, align: "center" }}>
+            <CarouselContent className="h-full items-center">
               {images.map((image, index) => (
-                <CarouselItem key={index} className="flex items-center justify-center h-full">
+                <CarouselItem key={index} className="flex items-center justify-center h-full basis-full">
                   <img 
                     src={image} 
                     alt={`${room.name} - ${index + 1}`}
