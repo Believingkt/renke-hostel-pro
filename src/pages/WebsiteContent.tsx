@@ -624,7 +624,6 @@ const WebsiteContent = () => {
         <Globe className="h-8 w-8 text-primary" />
         <div>
           <h1 className="text-3xl font-bold tracking-tight">官網內容</h1>
-          <p className="text-muted-foreground">管理網站內容與設定</p>
         </div>
       </div>
 
