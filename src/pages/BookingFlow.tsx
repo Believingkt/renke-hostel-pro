@@ -546,16 +546,16 @@ const BookingFlow = () => {
                       >
                         <div className="grid md:grid-cols-[3fr_2fr] gap-0">
                           {/* 左側圖片 - 占60% */}
-                          <div className="relative bg-muted h-[280px] sm:h-[340px] md:h-[400px]">
-                            <Carousel className="w-full h-[280px] sm:h-[340px] md:h-[400px]">
-                              <CarouselContent className="ml-0 h-[280px] sm:h-[340px] md:h-[400px]">
+                          <div className="relative bg-muted min-h-[280px] sm:min-h-[340px] md:min-h-[400px]">
+                            <Carousel className="w-full !h-[280px] sm:!h-[340px] md:!h-[400px]">
+                              <CarouselContent className="ml-0 !h-[280px] sm:!h-[340px] md:!h-[400px]">
                                 {(roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard]).map((image, index) => (
                                   <CarouselItem 
                                     key={index}
-                                    className="pl-0 min-w-full h-full"
+                                    className="pl-0 min-w-full !h-[280px] sm:!h-[340px] md:!h-[400px]"
                                   >
                                     <div 
-                                      className="relative cursor-pointer group/image w-full h-full"
+                                      className="relative cursor-pointer group/image w-full !h-[280px] sm:!h-[340px] md:!h-[400px]"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setSelectedImageRoom(room);
@@ -567,7 +567,7 @@ const BookingFlow = () => {
                                         src={image} 
                                         alt={`${room.name} - ${index + 1}`}
                                         loading="lazy"
-                                        className="w-full h-[280px] sm:h-[340px] md:h-[400px] object-cover"
+                                        className="w-full !h-[280px] sm:!h-[340px] md:!h-[400px] object-cover"
                                       />
                                       <div className="absolute top-3 right-3 bg-black/40 hover:bg-black/60 p-2 rounded-full transition-colors z-10">
                                         <ZoomIn className="h-5 w-5 text-white" />
