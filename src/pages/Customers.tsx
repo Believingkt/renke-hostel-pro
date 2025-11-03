@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -165,154 +165,155 @@ const Customers = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-2xl">顧客名單</CardTitle>
-              <CardDescription>管理您的顧客資料</CardDescription>
-            </div>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button onClick={() => handleOpenDialog()}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  新增顧客
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>{editingCustomer ? "編輯顧客" : "新增顧客"}</DialogTitle>
-                  <DialogDescription>填寫顧客的基本資料</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">顧客名單</h1>
+          <p className="text-muted-foreground mt-1">管理您的顧客資料</p>
+        </div>
+        <div>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => handleOpenDialog()}>
+                <Plus className="h-4 w-4 mr-2" />
+                新增顧客
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>{editingCustomer ? "編輯顧客" : "新增顧客"}</DialogTitle>
+                <DialogDescription>填寫顧客的基本資料</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">姓名 *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="請輸入姓名"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">姓名 *</Label>
+                    <Label htmlFor="phone">手機號碼</Label>
                     <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="請輸入姓名"
+                      id="phone"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      placeholder="0912-345-678"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">手機號碼</Label>
-                      <Input
-                        id="phone"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        placeholder="0912-345-678"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        placeholder="example@email.com"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="first_order_date">首筆訂單日</Label>
-                      <Input
-                        id="first_order_date"
-                        type="date"
-                        value={formData.first_order_date}
-                        onChange={(e) => setFormData({ ...formData, first_order_date: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="visit_count">來訪次數</Label>
-                      <Input
-                        id="visit_count"
-                        type="number"
-                        min="0"
-                        value={formData.visit_count}
-                        onChange={(e) => setFormData({ ...formData, visit_count: e.target.value })}
-                      />
-                    </div>
-                  </div>
                   <div className="space-y-2">
-                    <Label htmlFor="notes">備註</Label>
+                    <Label htmlFor="email">Email</Label>
                     <Input
-                      id="notes"
-                      value={formData.notes}
-                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                      placeholder="其他備註資訊"
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      placeholder="example@email.com"
                     />
                   </div>
                 </div>
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                    取消
-                  </Button>
-                  <Button onClick={handleSave} disabled={isLoading}>
-                    {isLoading ? "儲存中..." : "儲存"}
-                  </Button>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="first_order_date">首筆訂單日</Label>
+                    <Input
+                      id="first_order_date"
+                      type="date"
+                      value={formData.first_order_date}
+                      onChange={(e) => setFormData({ ...formData, first_order_date: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="visit_count">來訪次數</Label>
+                    <Input
+                      id="visit_count"
+                      type="number"
+                      min="0"
+                      value={formData.visit_count}
+                      onChange={(e) => setFormData({ ...formData, visit_count: e.target.value })}
+                    />
+                  </div>
                 </div>
-              </DialogContent>
-            </Dialog>
-          </CardHeader>
-          <CardContent>
-            {isLoading && customers.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">載入中...</div>
-            ) : customers.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">尚無顧客資料</div>
-            ) : (
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12">編號</TableHead>
-                      <TableHead>姓名</TableHead>
-                      <TableHead>手機號碼</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>首筆訂單日</TableHead>
-                      <TableHead className="text-center">來訪次數</TableHead>
-                      <TableHead className="w-24 text-right">操作</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {customers.map((customer, index) => (
-                      <TableRow key={customer.id}>
-                        <TableCell className="font-medium">{index + 1}</TableCell>
-                        <TableCell>{customer.name}</TableCell>
-                        <TableCell>{customer.phone || "-"}</TableCell>
-                        <TableCell>{customer.email || "-"}</TableCell>
-                        <TableCell>{formatDate(customer.first_order_date)}</TableCell>
-                        <TableCell className="text-center">{customer.visit_count}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleOpenDialog(customer)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setDeleteCustomerId(customer.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <div className="space-y-2">
+                  <Label htmlFor="notes">備註</Label>
+                  <Input
+                    id="notes"
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    placeholder="其他備註資訊"
+                  />
+                </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  取消
+                </Button>
+                <Button onClick={handleSave} disabled={isLoading}>
+                  {isLoading ? "儲存中..." : "儲存"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
+
+      <Card>
+        <CardContent className="p-0">
+          {isLoading && customers.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">載入中...</div>
+          ) : customers.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">尚無顧客資料</div>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12">編號</TableHead>
+                    <TableHead>姓名</TableHead>
+                    <TableHead>手機號碼</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>首筆訂單日</TableHead>
+                    <TableHead className="text-center">來訪次數</TableHead>
+                    <TableHead className="w-24 text-right">操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {customers.map((customer, index) => (
+                    <TableRow key={customer.id}>
+                      <TableCell className="font-medium">{index + 1}</TableCell>
+                      <TableCell>{customer.name}</TableCell>
+                      <TableCell>{customer.phone || "-"}</TableCell>
+                      <TableCell>{customer.email || "-"}</TableCell>
+                      <TableCell>{formatDate(customer.first_order_date)}</TableCell>
+                      <TableCell className="text-center">{customer.visit_count}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleOpenDialog(customer)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setDeleteCustomerId(customer.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <AlertDialog open={!!deleteCustomerId} onOpenChange={() => setDeleteCustomerId(null)}>
         <AlertDialogContent>
