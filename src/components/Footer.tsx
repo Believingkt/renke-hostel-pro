@@ -1,6 +1,7 @@
 import { Separator } from "@/components/ui/separator";
 import { MapPin, Phone, Mail, Facebook, Instagram } from "lucide-react";
 import sensanLogoWhite from "@/assets/sensan-logo-white.png";
+import lakezeLogoWhite from "@/assets/lakeze-logo-white.png";
 
 interface FooterProps {
   accommodationName?: string;
@@ -108,9 +109,11 @@ const Footer = ({ accommodationName, address }: FooterProps) => {
 
           <Separator className="my-6 md:my-8 bg-white/20" />
           
-          <p className="text-center text-white/60 text-xs md:text-sm">
-            © 2025 森山寫照 Sensan Inn. By Lakeze. All Rights Reserved.
-          </p>
+          <div className="flex items-center justify-center gap-2 text-white/60 text-xs md:text-sm">
+            <span>© 2025 森山寫照 Sensan Inn. By</span>
+            <img src={lakezeLogoWhite} alt="Lakeze" className="h-4 md:h-5 w-auto" />
+            <span>All Rights Reserved.</span>
+          </div>
         </div>
       </div>
     </footer>
