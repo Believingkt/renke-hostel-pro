@@ -115,6 +115,9 @@ All colors MUST be HSL.
 
     --chart-1: 25 95% 53%;
     --chart-2: 217 91% 60%;
+    --chart-3: 0 84% 60%;
+    --chart-4: 45 93% 58%;
+    --chart-5: 271 81% 56%;
   }
 
   .dark {
