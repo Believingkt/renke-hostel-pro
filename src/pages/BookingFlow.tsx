@@ -549,12 +549,12 @@ const BookingFlow = () => {
                           <div style={{ position: 'relative', height: '400px', overflow: 'hidden', backgroundColor: 'var(--muted)' }}>
                             <Carousel className="w-full" style={{ height: '400px', position: 'relative' }}>
                               <div style={{ overflow: 'hidden', height: '400px' }}>
-                                <CarouselContent style={{ marginLeft: '0 !important', height: '400px', display: 'flex' }}>
+                                <CarouselContent className="ml-0" style={{ height: '400px', display: 'flex' }}>
                                   {(roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard]).map((image, index) => (
                                     <CarouselItem 
-                                      key={index} 
+                                      key={index}
+                                      className="pl-0"
                                       style={{ 
-                                        paddingLeft: '0 !important',
                                         flexShrink: 0,
                                         flexGrow: 0,
                                         flexBasis: '100%',
@@ -565,7 +565,7 @@ const BookingFlow = () => {
                                     >
                                       <div 
                                         className="relative cursor-pointer group/image"
-                                        style={{ width: '100%', height: '400px', position: 'relative' }}
+                                        style={{ width: '100%', height: '400px', position: 'relative', overflow: 'hidden' }}
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           setSelectedImageRoom(room);
@@ -577,6 +577,9 @@ const BookingFlow = () => {
                                           src={image} 
                                           alt={`${room.name} - ${index + 1}`}
                                           loading="lazy"
+                                          onLoad={(e) => {
+                                            console.log(`[${room.name}] Image ${index + 1} loaded - Natural: ${e.currentTarget.naturalWidth}x${e.currentTarget.naturalHeight}, Display: ${e.currentTarget.clientWidth}x${e.currentTarget.clientHeight}`);
+                                          }}
                                           style={{ 
                                             width: '100%', 
                                             height: '400px',
@@ -585,7 +588,8 @@ const BookingFlow = () => {
                                             display: 'block',
                                             margin: '0',
                                             padding: '0',
-                                            border: 'none'
+                                            border: 'none',
+                                            verticalAlign: 'top'
                                           }}
                                         />
                                         <div className="absolute top-3 right-3 bg-black/40 hover:bg-black/60 p-2 rounded-full transition-colors z-10">
