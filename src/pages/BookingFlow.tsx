@@ -537,16 +537,16 @@ const BookingFlow = () => {
                     {roomTypes.map((room) => (
                       <Card
                         key={room.id}
-                        className={`cursor-pointer transition-all hover:shadow-md overflow-hidden md:h-80 ${
+                        className={`cursor-pointer transition-all hover:shadow-md overflow-hidden ${
                           selectedRoom?.id === room.id
                             ? "border-2 border-primary shadow-md"
                             : "border"
                         }`}
                         onClick={() => setSelectedRoom(room)}
                       >
-                        <div className="grid md:grid-cols-5 gap-0 h-full">
+                        <div className="grid md:grid-cols-2 gap-0">
                           {/* 左側圖片 */}
-                          <div className="md:col-span-2 aspect-[4/3] md:aspect-auto h-full relative bg-muted overflow-hidden">
+                          <div className="aspect-[4/3] md:aspect-auto md:min-h-[400px] relative bg-muted overflow-hidden">
                             <Carousel className="w-full h-full">
                               <CarouselContent className="h-full">
                                 {(roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard]).map((image, index) => (
@@ -579,7 +579,7 @@ const BookingFlow = () => {
                           </div>
                           
                           {/* 右側內容 */}
-                          <CardContent className="md:col-span-3 p-6">
+                          <CardContent className="p-6 flex flex-col justify-between">
                             <div className="mb-4">
                               <h3 className="text-xl font-bold mb-1">{room.name}</h3>
                               <p className="text-sm text-muted-foreground mb-2">{room.name_en}</p>
