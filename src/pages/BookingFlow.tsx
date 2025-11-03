@@ -546,13 +546,20 @@ const BookingFlow = () => {
                       >
                         <div className="grid md:grid-cols-2 gap-0">
                           {/* 左側圖片 */}
-                          <div style={{ 
-                            position: 'relative', 
-                            height: '400px', 
-                            overflow: 'hidden', 
-                            backgroundColor: 'var(--muted)',
-                            width: '100%'
-                          }}>
+                          <div 
+                            ref={(el) => {
+                              if (el && room.name === "12人包區") {
+                                console.log(`[容器宽度检查 - ${room.name}] 容器宽度: ${el.clientWidth}px`);
+                              }
+                            }}
+                            style={{ 
+                              position: 'relative', 
+                              height: '400px', 
+                              overflow: 'hidden', 
+                              backgroundColor: 'var(--muted)',
+                              width: '100%'
+                            }}
+                          >
                             <Carousel className="w-full" style={{ height: '400px', width: '100%' }}>
                               <div style={{ overflow: 'hidden', height: '400px', width: '100%' }}>
                                 <CarouselContent className="room-carousel-content" style={{ height: '400px', width: '100%' }}>
@@ -560,6 +567,11 @@ const BookingFlow = () => {
                                     <CarouselItem 
                                       key={index}
                                       className="room-carousel-item"
+                                      ref={(el) => {
+                                        if (el && room.name === "12人包區" && index === 0) {
+                                          console.log(`[CarouselItem - ${room.name}] 宽度: ${el.clientWidth}px, flex: ${getComputedStyle(el).flex}, flexBasis: ${getComputedStyle(el).flexBasis}`);
+                                        }
+                                      }}
                                       style={{ 
                                         height: '400px'
                                       }}
@@ -583,9 +595,6 @@ const BookingFlow = () => {
                                           src={image} 
                                           alt={`${room.name} - ${index + 1}`}
                                           loading="lazy"
-                                          onLoad={(e) => {
-                                            console.log(`[${room.name}] Image ${index + 1} - Width: ${e.currentTarget.clientWidth}px, Height: ${e.currentTarget.clientHeight}px`);
-                                          }}
                                           style={{ 
                                             width: '100%',
                                             height: '400px',
