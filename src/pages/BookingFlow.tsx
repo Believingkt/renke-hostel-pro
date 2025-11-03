@@ -547,38 +547,20 @@ const BookingFlow = () => {
                         <div className="grid md:grid-cols-[3fr_2fr] gap-0">
                           {/* 左側圖片 - 占60% */}
                           <div 
-                            style={{ 
-                              position: 'relative', 
-                              height: '400px', 
-                              overflow: 'hidden', 
-                              backgroundColor: 'var(--muted)',
-                              width: '100%'
-                            }}
+                            className="relative overflow-hidden bg-muted"
+                            style={{ height: '400px' }}
                           >
-                            <Carousel className="w-full" style={{ height: '400px', width: '100%' }}>
-                              <div style={{ overflow: 'hidden', height: '400px', width: '100%' }}>
-                                <CarouselContent className="room-carousel-content" style={{ height: '400px', width: '100%' }}>
+                            <Carousel className="w-full h-full">
+                              <div className="overflow-hidden h-full w-full">
+                                <CarouselContent className="room-carousel-content h-full">
                                   {(roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard]).map((image, index) => (
                                     <CarouselItem 
                                       key={index}
                                       className="room-carousel-item"
-                                      ref={(el) => {
-                                        if (el && room.name === "12人包區" && index === 0) {
-                                          console.log(`[CarouselItem - ${room.name}] 宽度: ${el.clientWidth}px, flex: ${getComputedStyle(el).flex}, flexBasis: ${getComputedStyle(el).flexBasis}`);
-                                        }
-                                      }}
-                                      style={{ 
-                                        height: '400px'
-                                      }}
+                                      style={{ height: '400px' }}
                                     >
                                       <div 
-                                        className="relative cursor-pointer group/image"
-                                        style={{ 
-                                          width: '100%', 
-                                          height: '400px', 
-                                          position: 'relative', 
-                                          overflow: 'hidden' 
-                                        }}
+                                        className="relative cursor-pointer group/image h-full w-full"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           setSelectedImageRoom(room);
@@ -590,13 +572,7 @@ const BookingFlow = () => {
                                           src={image} 
                                           alt={`${room.name} - ${index + 1}`}
                                           loading="lazy"
-                                          style={{ 
-                                            width: '100%',
-                                            height: '400px',
-                                            objectFit: 'cover',
-                                            objectPosition: 'center',
-                                            display: 'block'
-                                          }}
+                                          className="w-full h-full object-cover"
                                         />
                                         <div className="absolute top-3 right-3 bg-black/40 hover:bg-black/60 p-2 rounded-full transition-colors z-10">
                                           <ZoomIn className="h-5 w-5 text-white" />
@@ -606,8 +582,8 @@ const BookingFlow = () => {
                                   ))}
                                 </CarouselContent>
                               </div>
-                              <CarouselPrevious className="left-2" style={{ position: 'absolute' }} />
-                              <CarouselNext className="right-2" style={{ position: 'absolute' }} />
+                              <CarouselPrevious className="left-2" />
+                              <CarouselNext className="right-2" />
                             </Carousel>
                           </div>
                           
