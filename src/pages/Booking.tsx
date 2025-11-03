@@ -67,6 +67,11 @@ interface BookingSettings {
 }
 
 const roomImages: Record<string, string[]> = {
+  "12人包區": [roomDeluxe, roomSuite, roomStandard, roomDeluxe, roomSuite],
+  "14人包區": [roomSuite, roomStandard, roomDeluxe, roomSuite, roomStandard],
+  "16人包區": [roomStandard, roomDeluxe, roomSuite, roomStandard, roomDeluxe],
+  "18人包區": [roomDeluxe, roomStandard, roomSuite, roomDeluxe, roomStandard],
+  // 也保留舊的房型名稱以防萬一
   "豪華和室": [roomDeluxe, roomSuite, roomStandard, roomDeluxe, roomSuite],
   "精緻套房": [roomSuite, roomStandard, roomDeluxe, roomSuite, roomStandard],
   "標準客房": [roomStandard, roomDeluxe, roomSuite, roomStandard, roomDeluxe],
