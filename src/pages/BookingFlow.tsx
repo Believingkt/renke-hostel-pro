@@ -567,7 +567,7 @@ const BookingFlow = () => {
                                         src={image} 
                                         alt={`${room.name} - ${index + 1}`}
                                         loading="lazy"
-                                        className="w-full h-full object-cover"
+                                        className="w-full h-[280px] sm:h-[340px] md:h-[400px] object-cover"
                                       />
                                       <div className="absolute top-3 right-3 bg-black/40 hover:bg-black/60 p-2 rounded-full transition-colors z-10">
                                         <ZoomIn className="h-5 w-5 text-white" />
