@@ -548,11 +548,11 @@ const BookingFlow = () => {
                           {/* 左側圖片 */}
                           <div className="relative bg-muted overflow-hidden min-h-[400px]">
                             <Carousel className="w-full h-full absolute inset-0">
-                              <CarouselContent className="h-full !ml-0">
+                              <CarouselContent className="h-full !ml-0 items-stretch">
                                 {(roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard]).map((image, index) => (
-                                  <CarouselItem key={index} className="h-full !pl-0 basis-full">
+                                  <CarouselItem key={index} className="h-full !pl-0 basis-full flex">
                                     <div 
-                                      className="relative cursor-pointer group/image w-full h-full min-h-[400px]"
+                                      className="relative cursor-pointer group/image w-full h-full min-h-[400px] flex-1"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setSelectedImageRoom(room);
