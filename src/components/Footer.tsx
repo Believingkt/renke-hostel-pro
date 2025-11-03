@@ -109,7 +109,7 @@ const Footer = ({ accommodationName, address }: FooterProps) => {
           <Separator className="my-6 md:my-8 bg-white/20" />
           
           <p className="text-center text-white/60 text-xs md:text-sm">
-            © 2025 森山寫照 Sensan Inn.  All Rights Reserved.
+            © 2025 森山寫照 Sensan Inn. By Lakeze. All Rights Reserved.
           </p>
         </div>
       </div>
