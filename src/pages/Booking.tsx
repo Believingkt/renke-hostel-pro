@@ -342,10 +342,10 @@ const Booking = () => {
                   <Card key={room.id} className="overflow-hidden hover:shadow-xl transition-shadow group border-0 rounded-2xl">
                     <div className="aspect-[4/3] overflow-hidden rounded-t-2xl relative">
                       <Carousel className="w-full h-full">
-                        <CarouselContent>
+                        <CarouselContent className="h-full">
                           {images.map((image, index) => (
-                            <CarouselItem key={index}>
-                              <img 
+                            <CarouselItem key={index} className="h-full">
+                              <img
                                 src={image} 
                                 alt={`${room.name} - ${index + 1}`}
                                 className="w-full h-full object-cover"

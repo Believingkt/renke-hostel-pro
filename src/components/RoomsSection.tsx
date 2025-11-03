@@ -69,11 +69,11 @@ const RoomCard = ({ room }: { room: RoomType }) => {
       <Card className="overflow-hidden hover:shadow-xl transition-shadow group border rounded-xl bg-card">
         <div className="aspect-[4/3] overflow-hidden relative bg-muted">
           <Carousel className="w-full h-full">
-            <CarouselContent>
+            <CarouselContent className="h-full">
               {images.map((image, index) => (
-                <CarouselItem key={index}>
+                <CarouselItem key={index} className="h-full">
                   <div 
-                    className="relative cursor-pointer group/image"
+                    className="relative cursor-pointer group/image h-full"
                     onClick={() => handleImageClick(index)}
                   >
                     <picture>
