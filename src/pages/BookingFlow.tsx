@@ -537,16 +537,16 @@ const BookingFlow = () => {
                     {roomTypes.map((room) => (
                       <Card
                         key={room.id}
-                        className={`cursor-pointer transition-all hover:shadow-md overflow-hidden ${
+                        className={`cursor-pointer transition-all hover:shadow-md overflow-hidden md:h-64 ${
                           selectedRoom?.id === room.id
                             ? "border-2 border-primary shadow-md"
                             : "border"
                         }`}
                         onClick={() => setSelectedRoom(room)}
                       >
-                        <div className="grid md:grid-cols-5 gap-0 md:h-full">
+                        <div className="grid md:grid-cols-5 gap-0 h-full">
                           {/* 左側圖片 */}
-                          <div className="md:col-span-2 aspect-[4/3] md:aspect-auto md:h-full relative bg-muted overflow-hidden">
+                          <div className="md:col-span-2 aspect-[4/3] md:aspect-auto h-full relative bg-muted overflow-hidden">
                             <Carousel className="w-full h-full">
                               <CarouselContent className="h-full">
                                 {(roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard]).map((image, index) => (
