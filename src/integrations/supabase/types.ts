@@ -205,6 +205,7 @@ export type Database = {
           notes: string | null
           phone: string | null
           updated_at: string
+          visit_count: number
         }
         Insert: {
           accommodation_id: string
@@ -216,6 +217,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           updated_at?: string
+          visit_count?: number
         }
         Update: {
           accommodation_id?: string
@@ -227,6 +229,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           updated_at?: string
+          visit_count?: number
         }
         Relationships: [
           {

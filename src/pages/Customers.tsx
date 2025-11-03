@@ -17,6 +17,7 @@ interface Customer {
   phone: string | null;
   email: string | null;
   first_order_date: string | null;
+  visit_count: number;
   notes: string | null;
   created_at: string;
 }
@@ -33,6 +34,7 @@ const Customers = () => {
     phone: "",
     email: "",
     first_order_date: "",
+    visit_count: "0",
     notes: "",
   });
 
@@ -70,6 +72,7 @@ const Customers = () => {
         phone: customer.phone || "",
         email: customer.email || "",
         first_order_date: customer.first_order_date || "",
+        visit_count: customer.visit_count.toString(),
         notes: customer.notes || "",
       });
     } else {
@@ -79,6 +82,7 @@ const Customers = () => {
         phone: "",
         email: "",
         first_order_date: "",
+        visit_count: "0",
         notes: "",
       });
     }
@@ -104,6 +108,7 @@ const Customers = () => {
         phone: formData.phone.trim() || null,
         email: formData.email.trim() || null,
         first_order_date: formData.first_order_date || null,
+        visit_count: parseInt(formData.visit_count) || 0,
         notes: formData.notes.trim() || null,
       };
 
@@ -211,14 +216,26 @@ const Customers = () => {
                       />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="first_order_date">首筆訂單日</Label>
-                    <Input
-                      id="first_order_date"
-                      type="date"
-                      value={formData.first_order_date}
-                      onChange={(e) => setFormData({ ...formData, first_order_date: e.target.value })}
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="first_order_date">首筆訂單日</Label>
+                      <Input
+                        id="first_order_date"
+                        type="date"
+                        value={formData.first_order_date}
+                        onChange={(e) => setFormData({ ...formData, first_order_date: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="visit_count">來訪次數</Label>
+                      <Input
+                        id="visit_count"
+                        type="number"
+                        min="0"
+                        value={formData.visit_count}
+                        onChange={(e) => setFormData({ ...formData, visit_count: e.target.value })}
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="notes">備註</Label>
@@ -256,6 +273,7 @@ const Customers = () => {
                       <TableHead>手機號碼</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>首筆訂單日</TableHead>
+                      <TableHead className="text-center">來訪次數</TableHead>
                       <TableHead className="w-24 text-right">操作</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -267,6 +285,7 @@ const Customers = () => {
                         <TableCell>{customer.phone || "-"}</TableCell>
                         <TableCell>{customer.email || "-"}</TableCell>
                         <TableCell>{formatDate(customer.first_order_date)}</TableCell>
+                        <TableCell className="text-center">{customer.visit_count}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
                             <Button
