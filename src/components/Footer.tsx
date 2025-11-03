@@ -111,7 +111,7 @@ const Footer = ({ accommodationName, address }: FooterProps) => {
           
           <div className="flex items-center justify-center gap-2 text-white/60 text-xs md:text-sm">
             <a href="https://lakeze.com" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity inline-flex items-center">
-              <img src={lakezeLogoWhite} alt="Lakeze" className="h-4 md:h-5 w-auto -mb-1" />
+              <img src={lakezeLogoWhite} alt="Lakeze" className="h-4 md:h-5 w-auto -mb-0.5" />
             </a>
             <span>© 2025. All Rights Reserved.</span>
           </div>
