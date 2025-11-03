@@ -33,12 +33,14 @@ interface RoomType {
   capacity: number;
   size_sqm: number;
   base_price: number;
+  weekday_price?: number;
+  weekend_price?: number;
   weekdayPricing?: PricingOption[];
   weekendPricing?: PricingOption[];
 }
 
 interface RoomsSectionProps {
-  roomTypes: RoomType[];
+  roomTypes: any[];
 }
 
 const roomImages: Record<string, string[]> = {
@@ -189,80 +191,24 @@ const RoomCard = ({ room }: { room: RoomType }) => {
 };
 
 const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
-  // 使用固定的包區數據
-  const defaultRooms: RoomType[] = [
-    {
-      id: "12-people",
-      name: "12人包區",
-      name_en: "三間房 | 四人：3間",
-      description: "適合中小型團體的豪華包區，提供完整的露營設施與舒適空間",
-      capacity: 12,
-      size_sqm: 150,
-      base_price: 30000,
-      weekdayPricing: [
-        { type: "一泊二食", price: 30000 },
-        { type: "一泊三食", price: 38400 },
-      ],
-      weekendPricing: [
-        { type: "一泊二食", price: 33000 },
-        { type: "一泊三食", price: 42000 },
-      ],
-    },
-    {
-      id: "14-people",
-      name: "14人包區",
-      name_en: "四間房 | 雙人1間 +四人3間",
-      description: "寬敞舒適的包區空間，適合家庭或朋友團體聚會",
-      capacity: 14,
-      size_sqm: 180,
-      base_price: 32700,
-      weekdayPricing: [
-        { type: "一泊二食", price: 32700 },
-        { type: "一泊三食", price: 42500 },
-      ],
-      weekendPricing: [
-        { type: "一泊二食", price: 36000 },
-        { type: "一泊三食", price: 46500 },
-      ],
-    },
-    {
-      id: "16-people",
-      name: "16人包區",
-      name_en: "五間房 | 雙人2間 +四人3間",
-      description: "大型團體的理想選擇，享受自然與慢活的豪華體驗",
-      capacity: 16,
-      size_sqm: 200,
-      base_price: 38700,
-      weekdayPricing: [
-        { type: "一泊二食", price: 38700 },
-        { type: "一泊三食", price: 49900 },
-      ],
-      weekendPricing: [
-        { type: "一泊二食", price: 42500 },
-        { type: "一泊三食", price: 54500 },
-      ],
-    },
-    {
-      id: "18-people",
-      name: "18人包區",
-      name_en: "18 People Package",
-      description: "最大容量包區，提供頂級的團體露營體驗",
-      capacity: 18,
-      size_sqm: 220,
-      base_price: 49500,
-      weekdayPricing: [
-        { type: "一泊二食", price: 49500 },
-        { type: "一泊三食", price: 62100 },
-      ],
-      weekendPricing: [
-        { type: "一泊二食", price: 54600 },
-        { type: "一泊三食", price: 67200 },
-      ],
-    },
-  ];
-
-  // 直接使用固定的包區數據，不使用資料庫的舊資料
-  const displayRooms = defaultRooms;
+  // 將資料庫的房型資料轉換為顯示格式
+  const displayRooms: RoomType[] = roomTypes.map(room => ({
+    id: room.id,
+    name: room.name,
+    name_en: room.name_en || '',
+    description: room.description || '',
+    capacity: room.capacity,
+    size_sqm: room.size_sqm || 0,
+    base_price: room.base_price,
+    weekdayPricing: room.weekday_price ? [
+      { type: "一泊二食", price: room.weekday_price },
+      { type: "一泊三食", price: Math.round(room.weekday_price * 1.28) }
+    ] : undefined,
+    weekendPricing: room.weekend_price ? [
+      { type: "一泊二食", price: room.weekend_price },
+      { type: "一泊三食", price: Math.round(room.weekend_price * 1.28) }
+    ] : undefined,
+  }));
 
   return (
     <section id="rooms" className="py-12 md:py-20 bg-secondary/30">
