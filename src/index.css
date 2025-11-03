@@ -238,4 +238,16 @@ All colors MUST be HSL.
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.5);
   }
+
+  /* Fix for room carousel images to fill container width */
+  .room-carousel-item {
+    flex: 0 0 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding-left: 0 !important;
+  }
+
+  .room-carousel-content {
+    margin-left: 0 !important;
+  }
 }
