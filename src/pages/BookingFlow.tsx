@@ -547,12 +547,12 @@ const BookingFlow = () => {
                         <div className="grid md:grid-cols-2 gap-0 min-h-[400px]">
                           {/* 左側圖片 */}
                           <div className="relative bg-muted overflow-hidden min-h-[400px]">
-                            <Carousel className="w-full h-full absolute inset-0">
-                              <CarouselContent className="h-full !ml-0 items-stretch">
+                            <Carousel className="w-full h-full">
+                              <CarouselContent className="h-full !ml-0">
                                 {(roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard]).map((image, index) => (
-                                  <CarouselItem key={index} className="h-full !pl-0 basis-full flex">
+                                  <CarouselItem key={index} className="!pl-0 basis-full min-h-[400px]">
                                     <div 
-                                      className="relative cursor-pointer group/image w-full h-full min-h-[400px] flex-1"
+                                      className="relative cursor-pointer group/image min-h-[400px] h-full"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setSelectedImageRoom(room);
@@ -563,7 +563,7 @@ const BookingFlow = () => {
                                       <img 
                                         src={image} 
                                         alt={`${room.name} - ${index + 1}`}
-                                        className="absolute inset-0 w-full h-full object-cover"
+                                        className="w-full h-full min-h-[400px] object-cover"
                                         loading="lazy"
                                       />
                                       <div className="absolute top-3 right-3 bg-black/40 hover:bg-black/60 p-2 rounded-full transition-colors z-10">
