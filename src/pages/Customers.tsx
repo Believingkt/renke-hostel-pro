@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAccommodation } from "@/contexts/AccommodationContext";
@@ -304,7 +304,7 @@ const Customers = () => {
                     <TableHead>Email</TableHead>
                     <TableHead>首筆訂單日</TableHead>
                     <TableHead className="text-center">來訪次數</TableHead>
-                    <TableHead className="w-24 text-right">操作</TableHead>
+                    <TableHead className="w-32 text-right">操作</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -321,7 +321,16 @@ const Customers = () => {
                           <Button
                             variant="ghost"
                             size="icon"
+                            onClick={() => toast.info("訂單詳情功能開發中")}
+                            title="查看訂單詳情"
+                          >
+                            <FileText className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={() => handleOpenDialog(customer)}
+                            title="編輯顧客"
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -329,6 +338,7 @@ const Customers = () => {
                             variant="ghost"
                             size="icon"
                             onClick={() => setDeleteCustomerId(customer.id)}
+                            title="刪除顧客"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
