@@ -546,26 +546,39 @@ const BookingFlow = () => {
                       >
                         <div className="grid md:grid-cols-2 gap-0">
                           {/* 左側圖片 */}
-                          <div style={{ position: 'relative', height: '400px', overflow: 'hidden', backgroundColor: 'var(--muted)' }}>
-                            <Carousel className="w-full" style={{ height: '400px', position: 'relative' }}>
-                              <div style={{ overflow: 'hidden', height: '400px' }}>
-                                <CarouselContent className="ml-0" style={{ height: '400px', display: 'flex' }}>
+                          <div style={{ 
+                            position: 'relative', 
+                            height: '400px', 
+                            overflow: 'hidden', 
+                            backgroundColor: 'var(--muted)',
+                            width: '100%'
+                          }}>
+                            <Carousel className="w-full" style={{ height: '400px', width: '100%' }}>
+                              <div style={{ overflow: 'hidden', height: '400px', width: '100%' }}>
+                                <CarouselContent className="ml-0" style={{ height: '400px', width: '100%' }}>
                                   {(roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard]).map((image, index) => (
                                     <CarouselItem 
                                       key={index}
-                                      className="pl-0"
+                                      className="pl-0 basis-full"
                                       style={{ 
                                         flexShrink: 0,
                                         flexGrow: 0,
                                         flexBasis: '100%',
                                         minWidth: '100%',
+                                        maxWidth: '100%',
                                         width: '100%',
                                         height: '400px'
                                       }}
                                     >
                                       <div 
                                         className="relative cursor-pointer group/image"
-                                        style={{ width: '100%', height: '400px', position: 'relative', overflow: 'hidden' }}
+                                        style={{ 
+                                          width: '100%', 
+                                          minWidth: '100%',
+                                          height: '400px', 
+                                          position: 'relative', 
+                                          overflow: 'hidden' 
+                                        }}
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           setSelectedImageRoom(room);
@@ -578,11 +591,14 @@ const BookingFlow = () => {
                                           alt={`${room.name} - ${index + 1}`}
                                           loading="lazy"
                                           onLoad={(e) => {
-                                            console.log(`[${room.name}] Image ${index + 1} loaded - Natural: ${e.currentTarget.naturalWidth}x${e.currentTarget.naturalHeight}, Display: ${e.currentTarget.clientWidth}x${e.currentTarget.clientHeight}`);
+                                            console.log(`[${room.name}] Image ${index + 1} loaded - Display: ${e.currentTarget.clientWidth}x${e.currentTarget.clientHeight}`);
                                           }}
                                           style={{ 
-                                            width: '100%', 
+                                            width: '100%',
+                                            minWidth: '100%',
                                             height: '400px',
+                                            minHeight: '400px',
+                                            maxHeight: '400px',
                                             objectFit: 'cover',
                                             objectPosition: 'center',
                                             display: 'block',
