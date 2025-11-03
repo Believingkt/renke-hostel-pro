@@ -27,7 +27,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, Copy } from "lucide-react";
+import { Plus, Trash2, Copy, Pencil, Check, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface DiscountCode {
@@ -46,6 +46,8 @@ const KolDiscount = () => {
   const [discountType, setDiscountType] = useState<"percentage" | "amount">("percentage");
   const [discountValue, setDiscountValue] = useState("");
   const [usageLimit, setUsageLimit] = useState("");
+  const [editingLimitId, setEditingLimitId] = useState<string | null>(null);
+  const [editingLimitValue, setEditingLimitValue] = useState("");
   const { toast } = useToast();
 
   const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([
@@ -127,6 +129,37 @@ const KolDiscount = () => {
 
   const formatDiscount = (type: "percentage" | "amount", value: number) => {
     return type === "percentage" ? `${value}%` : `NT$ ${value}`;
+  };
+
+  const handleEditLimit = (id: string, currentLimit: number) => {
+    setEditingLimitId(id);
+    setEditingLimitValue(currentLimit.toString());
+  };
+
+  const handleSaveLimit = (id: string) => {
+    const newLimit = parseInt(editingLimitValue);
+    if (isNaN(newLimit) || newLimit < 1) {
+      toast({
+        title: "請輸入有效的數字",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setDiscountCodes(
+      discountCodes.map((code) =>
+        code.id === id ? { ...code, usageLimit: newLimit } : code
+      )
+    );
+    setEditingLimitId(null);
+    toast({
+      title: "使用次數上限已更新",
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingLimitId(null);
+    setEditingLimitValue("");
   };
 
   return (
@@ -260,7 +293,49 @@ const KolDiscount = () => {
                         {formatDiscount(item.discountType, item.discountValue)}
                       </TableCell>
                       <TableCell>{item.usedCount} 次</TableCell>
-                      <TableCell>{item.usageLimit} 次</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {editingLimitId === item.id ? (
+                            <>
+                              <Input
+                                type="number"
+                                min="1"
+                                value={editingLimitValue}
+                                onChange={(e) => setEditingLimitValue(e.target.value)}
+                                className="w-20 h-8"
+                              />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleSaveLimit(item.id)}
+                              >
+                                <Check className="h-4 w-4 text-green-600" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={handleCancelEdit}
+                              >
+                                <X className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <span>{item.usageLimit} 次</span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleEditLimit(item.id, item.usageLimit)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <Button
                           variant="ghost"
@@ -321,7 +396,47 @@ const KolDiscount = () => {
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">使用次數上限</p>
-                          <p className="text-sm">{item.usageLimit} 次</p>
+                          <div className="flex items-center gap-2">
+                            {editingLimitId === item.id ? (
+                              <>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={editingLimitValue}
+                                  onChange={(e) => setEditingLimitValue(e.target.value)}
+                                  className="w-20 h-8"
+                                />
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => handleSaveLimit(item.id)}
+                                >
+                                  <Check className="h-4 w-4 text-green-600" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={handleCancelEdit}
+                                >
+                                  <X className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                <p className="text-sm">{item.usageLimit} 次</p>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => handleEditLimit(item.id, item.usageLimit)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <Button
