@@ -546,15 +546,26 @@ const BookingFlow = () => {
                       >
                         <div className="grid md:grid-cols-2 gap-0">
                           {/* 左側圖片 */}
-                          <div className="relative bg-muted" style={{ height: '400px', overflow: 'hidden', display: 'flex' }}>
-                            <div style={{ width: '100%', height: '400px', position: 'relative' }}>
-                              <Carousel className="w-full" style={{ height: '400px' }}>
-                                <CarouselContent style={{ marginLeft: '0', height: '400px' }}>
+                          <div style={{ position: 'relative', height: '400px', overflow: 'hidden', backgroundColor: 'var(--muted)' }}>
+                            <Carousel className="w-full" style={{ height: '400px', position: 'relative' }}>
+                              <div style={{ overflow: 'hidden', height: '400px' }}>
+                                <CarouselContent style={{ marginLeft: '0 !important', height: '400px', display: 'flex' }}>
                                   {(roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard]).map((image, index) => (
-                                    <CarouselItem key={index} style={{ paddingLeft: '0', flexBasis: '100%', minWidth: '100%', height: '400px' }}>
+                                    <CarouselItem 
+                                      key={index} 
+                                      style={{ 
+                                        paddingLeft: '0 !important',
+                                        flexShrink: 0,
+                                        flexGrow: 0,
+                                        flexBasis: '100%',
+                                        minWidth: '100%',
+                                        width: '100%',
+                                        height: '400px'
+                                      }}
+                                    >
                                       <div 
                                         className="relative cursor-pointer group/image"
-                                        style={{ width: '100%', height: '400px', overflow: 'hidden' }}
+                                        style={{ width: '100%', height: '400px', position: 'relative' }}
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           setSelectedImageRoom(room);
@@ -573,7 +584,8 @@ const BookingFlow = () => {
                                             objectPosition: 'center',
                                             display: 'block',
                                             margin: '0',
-                                            padding: '0'
+                                            padding: '0',
+                                            border: 'none'
                                           }}
                                         />
                                         <div className="absolute top-3 right-3 bg-black/40 hover:bg-black/60 p-2 rounded-full transition-colors z-10">
@@ -583,10 +595,10 @@ const BookingFlow = () => {
                                     </CarouselItem>
                                   ))}
                                 </CarouselContent>
-                                <CarouselPrevious className="left-2" />
-                                <CarouselNext className="right-2" />
-                              </Carousel>
-                            </div>
+                              </div>
+                              <CarouselPrevious className="left-2" style={{ position: 'absolute' }} />
+                              <CarouselNext className="right-2" style={{ position: 'absolute' }} />
+                            </Carousel>
                           </div>
                           
                           {/* 右側內容 */}
