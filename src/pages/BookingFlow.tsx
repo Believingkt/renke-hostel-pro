@@ -552,10 +552,10 @@ const BookingFlow = () => {
                                 {(roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard]).map((image, index) => (
                                   <CarouselItem 
                                     key={index}
-                                    className="pl-0 min-w-full h-full"
+                                    className="pl-0 min-w-full h-[280px] sm:h-[340px] md:h-[400px]"
                                   >
                                     <div 
-                                      className="relative cursor-pointer group/image w-full h-full"
+                                      className="relative cursor-pointer group/image w-full h-[280px] sm:h-[340px] md:h-[400px]"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setSelectedImageRoom(room);
