@@ -10,7 +10,8 @@ import {
   Tag,
   ChevronDown,
   Globe,
-  Building
+  Building,
+  UserCircle
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
@@ -74,6 +75,7 @@ const menuItems = [
       { title: "保留單列表", url: "/admin/orders?tab=reserved" },
     ]
   },
+  { title: "顧客名單", url: "/admin/customers", icon: UserCircle },
   { title: "帳號管理", url: "/admin/accounts", icon: Settings },
   { title: "折扣代碼", url: "/admin/discount-codes", icon: Tag },
 ];
