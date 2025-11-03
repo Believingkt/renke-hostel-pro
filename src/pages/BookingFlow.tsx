@@ -546,44 +546,53 @@ const BookingFlow = () => {
                       >
                         <div className="grid md:grid-cols-[3fr_2fr] gap-0">
                           {/* 左側圖片 - 占60% */}
-                          <div 
-                            className="relative overflow-hidden bg-muted"
-                            style={{ height: '400px' }}
-                          >
+                          <div className="relative bg-muted" style={{ height: '400px' }}>
                             <Carousel className="w-full h-full">
-                              <div className="overflow-hidden h-full w-full">
-                                <CarouselContent className="room-carousel-content h-full">
-                                  {(roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard]).map((image, index) => (
-                                    <CarouselItem 
-                                      key={index}
-                                      className="room-carousel-item"
-                                      style={{ height: '400px' }}
+                              <CarouselContent className="room-carousel-content h-full">
+                                {(roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard]).map((image, index) => (
+                                  <CarouselItem 
+                                    key={index}
+                                    className="room-carousel-item h-full"
+                                  >
+                                    <div 
+                                      className="relative cursor-pointer group/image"
+                                      style={{ 
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: 0,
+                                        width: '100%',
+                                        height: '400px'
+                                      }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedImageRoom(room);
+                                        setSelectedImageIndex(index);
+                                        setIsImageDialogOpen(true);
+                                      }}
                                     >
-                                      <div 
-                                        className="relative cursor-pointer group/image h-full w-full"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setSelectedImageRoom(room);
-                                          setSelectedImageIndex(index);
-                                          setIsImageDialogOpen(true);
+                                      <img 
+                                        src={image} 
+                                        alt={`${room.name} - ${index + 1}`}
+                                        loading="lazy"
+                                        style={{
+                                          position: 'absolute',
+                                          top: 0,
+                                          left: 0,
+                                          width: '100%',
+                                          height: '100%',
+                                          objectFit: 'cover',
+                                          objectPosition: 'center'
                                         }}
-                                      >
-                                        <img 
-                                          src={image} 
-                                          alt={`${room.name} - ${index + 1}`}
-                                          loading="lazy"
-                                          className="w-full h-full object-cover"
-                                        />
-                                        <div className="absolute top-3 right-3 bg-black/40 hover:bg-black/60 p-2 rounded-full transition-colors z-10">
-                                          <ZoomIn className="h-5 w-5 text-white" />
-                                        </div>
+                                      />
+                                      <div className="absolute top-3 right-3 bg-black/40 hover:bg-black/60 p-2 rounded-full transition-colors z-10">
+                                        <ZoomIn className="h-5 w-5 text-white" />
                                       </div>
-                                    </CarouselItem>
-                                  ))}
-                                </CarouselContent>
-                              </div>
-                              <CarouselPrevious className="left-2" />
-                              <CarouselNext className="right-2" />
+                                    </div>
+                                  </CarouselItem>
+                                ))}
+                              </CarouselContent>
+                              <CarouselPrevious className="left-2 z-20" />
+                              <CarouselNext className="right-2 z-20" />
                             </Carousel>
                           </div>
                           
