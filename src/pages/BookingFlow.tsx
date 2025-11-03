@@ -1096,7 +1096,7 @@ const BookingFlow = () => {
 
       {/* 圖片放大對話框 */}
       <Dialog open={isImageDialogOpen} onOpenChange={setIsImageDialogOpen}>
-        <DialogContent className="max-w-7xl w-[95vw] h-[90vh] p-0">
+        <DialogContent className="max-w-7xl w-[95vw] h-[90vh] p-0 border-0">
           <DialogClose className="absolute right-4 top-4 z-50 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
             <X className="h-6 w-6 text-white drop-shadow-lg" />
             <span className="sr-only">關閉</span>
