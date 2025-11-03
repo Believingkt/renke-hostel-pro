@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAccommodation } from "@/contexts/AccommodationContext";
@@ -25,6 +25,8 @@ interface Customer {
 const Customers = () => {
   const { currentAccommodationId } = useAccommodation();
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -44,6 +46,20 @@ const Customers = () => {
     }
   }, [currentAccommodationId]);
 
+  useEffect(() => {
+    // 當搜尋條件改變時過濾顧客列表
+    if (searchQuery.trim() === "") {
+      setFilteredCustomers(customers);
+    } else {
+      const query = searchQuery.toLowerCase().trim();
+      const filtered = customers.filter(customer => 
+        customer.name.toLowerCase().includes(query) ||
+        (customer.phone && customer.phone.toLowerCase().includes(query))
+      );
+      setFilteredCustomers(filtered);
+    }
+  }, [searchQuery, customers]);
+
   const loadCustomers = async () => {
     if (!currentAccommodationId) return;
     
@@ -57,6 +73,7 @@ const Customers = () => {
 
       if (error) throw error;
       setCustomers(data || []);
+      setFilteredCustomers(data || []);
     } catch (error: any) {
       toast.error("載入顧客資料失敗：" + error.message);
     } finally {
@@ -171,7 +188,16 @@ const Customers = () => {
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">顧客名單</h1>
           <p className="text-muted-foreground mt-1">管理您的顧客資料</p>
         </div>
-        <div>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1 sm:w-80">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="搜尋姓名或手機號碼..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={() => handleOpenDialog()}>
@@ -261,10 +287,12 @@ const Customers = () => {
 
       <Card>
         <CardContent className="p-0">
-          {isLoading && customers.length === 0 ? (
+          {isLoading && filteredCustomers.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">載入中...</div>
-          ) : customers.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">尚無顧客資料</div>
+          ) : filteredCustomers.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              {searchQuery ? "查無符合的顧客資料" : "尚無顧客資料"}
+            </div>
           ) : (
             <div className="rounded-md border">
               <Table>
@@ -280,7 +308,7 @@ const Customers = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {customers.map((customer, index) => (
+                  {filteredCustomers.map((customer, index) => (
                     <TableRow key={customer.id}>
                       <TableCell className="font-medium">{index + 1}</TableCell>
                       <TableCell>{customer.name}</TableCell>
