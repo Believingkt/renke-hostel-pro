@@ -270,7 +270,7 @@ const Customers = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-12">編號</TableHead>
+                    <TableHead className="w-20">編號</TableHead>
                     <TableHead>姓名</TableHead>
                     <TableHead>手機號碼</TableHead>
                     <TableHead>Email</TableHead>
