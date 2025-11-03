@@ -36,10 +36,15 @@ interface RoomsSectionProps {
 }
 
 const roomImages: Record<string, string[]> = {
+  // 包區房型
   "12人包區": [roomDeluxe, roomSuite, roomStandard, roomDeluxe, roomSuite],
   "14人包區": [roomSuite, roomStandard, roomDeluxe, roomSuite, roomStandard],
   "16人包區": [roomStandard, roomDeluxe, roomSuite, roomStandard, roomDeluxe],
   "18人包區": [roomDeluxe, roomStandard, roomSuite, roomDeluxe, roomStandard],
+  // 資料庫中的房型
+  "豪華和室": [roomDeluxe, roomSuite, roomStandard, roomDeluxe, roomSuite],
+  "精緻套房": [roomSuite, roomStandard, roomDeluxe, roomSuite, roomStandard],
+  "標準客房": [roomStandard, roomDeluxe, roomSuite, roomStandard, roomDeluxe],
 };
 
 const RoomCard = ({ room }: { room: RoomType }) => {
