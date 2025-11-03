@@ -25,6 +25,13 @@ import {
 } from "lucide-react";
 import { z } from "zod";
 import { format } from "date-fns";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 import roomDeluxe from "@/assets/room-deluxe.jpg";
 import roomSuite from "@/assets/room-suite.jpg";
 import roomStandard from "@/assets/room-standard.jpg";
@@ -40,11 +47,11 @@ const guestInfoSchema = z.object({
 });
 
 // 房型圖片映射
-const roomImages: Record<string, string> = {
-  "12人包區": roomDeluxe,
-  "14人包區": roomSuite,
-  "16人包區": roomStandard,
-  "18人包區": roomDeluxe,
+const roomImages: Record<string, string[]> = {
+  "12人包區": [roomDeluxe, roomSuite, roomStandard, roomDeluxe, roomSuite],
+  "14人包區": [roomSuite, roomStandard, roomDeluxe, roomSuite, roomStandard],
+  "16人包區": [roomStandard, roomDeluxe, roomSuite, roomStandard, roomDeluxe],
+  "18人包區": [roomDeluxe, roomStandard, roomSuite, roomDeluxe, roomStandard],
 };
 
 interface RoomType {
@@ -530,13 +537,23 @@ const BookingFlow = () => {
                         <div className="grid md:grid-cols-5 gap-0">
                           {/* 左側圖片 */}
                           <div className="md:col-span-2 aspect-[4/3] md:aspect-auto relative bg-muted overflow-hidden">
-                            <img 
-                              src={roomImages[room.name] || roomStandard} 
-                              alt={room.name}
-                              className="w-full h-full object-cover"
-                              loading="lazy"
-                            />
-                            <div className="absolute top-3 right-3 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium shadow-lg">
+                            <Carousel className="w-full h-full">
+                              <CarouselContent>
+                                {(roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard]).map((image, index) => (
+                                  <CarouselItem key={index}>
+                                    <img 
+                                      src={image} 
+                                      alt={`${room.name} - ${index + 1}`}
+                                      className="w-full h-full object-cover"
+                                      loading="lazy"
+                                    />
+                                  </CarouselItem>
+                                ))}
+                              </CarouselContent>
+                              <CarouselPrevious className="left-2" />
+                              <CarouselNext className="right-2" />
+                            </Carousel>
+                            <div className="absolute top-3 right-3 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium shadow-lg z-10">
                               {room.capacity}人
                             </div>
                           </div>
