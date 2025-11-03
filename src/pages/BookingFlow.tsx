@@ -546,23 +546,16 @@ const BookingFlow = () => {
                       >
                         <div className="grid md:grid-cols-[3fr_2fr] gap-0">
                           {/* 左側圖片 - 占60% */}
-                          <div className="relative bg-muted" style={{ height: '400px' }}>
+                          <div className="relative bg-muted h-[400px]">
                             <Carousel className="w-full h-full">
-                              <CarouselContent className="room-carousel-content h-full">
+                              <CarouselContent className="ml-0 h-full">
                                 {(roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard]).map((image, index) => (
                                   <CarouselItem 
                                     key={index}
-                                    className="room-carousel-item h-full"
+                                    className="pl-0 min-w-full h-full"
                                   >
                                     <div 
-                                      className="relative cursor-pointer group/image"
-                                      style={{ 
-                                        position: 'absolute',
-                                        top: 0,
-                                        left: 0,
-                                        width: '100%',
-                                        height: '400px'
-                                      }}
+                                      className="relative cursor-pointer group/image w-full h-full"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setSelectedImageRoom(room);
@@ -574,15 +567,7 @@ const BookingFlow = () => {
                                         src={image} 
                                         alt={`${room.name} - ${index + 1}`}
                                         loading="lazy"
-                                        style={{
-                                          position: 'absolute',
-                                          top: 0,
-                                          left: 0,
-                                          width: '100%',
-                                          height: '100%',
-                                          objectFit: 'cover',
-                                          objectPosition: 'center'
-                                        }}
+                                        className="w-full h-full object-cover"
                                       />
                                       <div className="absolute top-3 right-3 bg-black/40 hover:bg-black/60 p-2 rounded-full transition-colors z-10">
                                         <ZoomIn className="h-5 w-5 text-white" />
