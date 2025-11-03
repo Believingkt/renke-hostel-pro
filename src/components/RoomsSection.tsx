@@ -3,6 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Users } from "lucide-react";
 import { Link } from "react-router-dom";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 import roomDeluxe from "@/assets/room-deluxe.jpg";
 import roomSuite from "@/assets/room-suite.jpg";
 import roomStandard from "@/assets/room-standard.jpg";
@@ -28,32 +35,42 @@ interface RoomsSectionProps {
   roomTypes: RoomType[];
 }
 
-const roomImages: Record<string, string> = {
-  "12人包區": roomDeluxe,
-  "14人包區": roomSuite,
-  "16人包區": roomStandard,
-  "18人包區": roomDeluxe,
+const roomImages: Record<string, string[]> = {
+  "12人包區": [roomDeluxe, roomSuite, roomStandard, roomDeluxe, roomSuite],
+  "14人包區": [roomSuite, roomStandard, roomDeluxe, roomSuite, roomStandard],
+  "16人包區": [roomStandard, roomDeluxe, roomSuite, roomStandard, roomDeluxe],
+  "18人包區": [roomDeluxe, roomStandard, roomSuite, roomDeluxe, roomStandard],
 };
 
 const RoomCard = ({ room }: { room: RoomType }) => {
-  const imageSrc = roomImages[room.name] || roomStandard;
+  const images = roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard];
 
   return (
     <Card className="overflow-hidden hover:shadow-xl transition-shadow group border rounded-xl bg-card">
       <div className="aspect-[4/3] overflow-hidden relative bg-muted">
-        <picture>
-          <img 
-            src={imageSrc} 
-            alt={room.name}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-            loading="lazy"
-            decoding="async"
-            width="512"
-            height="512"
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          />
-        </picture>
-        <div className="absolute top-4 right-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
+        <Carousel className="w-full h-full">
+          <CarouselContent>
+            {images.map((image, index) => (
+              <CarouselItem key={index}>
+                <picture>
+                  <img 
+                    src={image} 
+                    alt={`${room.name} - ${index + 1}`}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                    width="512"
+                    height="512"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  />
+                </picture>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious className="left-2" />
+          <CarouselNext className="right-2" />
+        </Carousel>
+        <div className="absolute top-4 right-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium z-10">
           {room.capacity}人
         </div>
       </div>
