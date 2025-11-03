@@ -66,10 +66,10 @@ interface BookingSettings {
   payment_methods: any;
 }
 
-const roomImages: Record<string, string> = {
-  "豪華和室": roomDeluxe,
-  "精緻套房": roomSuite,
-  "標準客房": roomStandard,
+const roomImages: Record<string, string[]> = {
+  "豪華和室": [roomDeluxe, roomSuite, roomStandard, roomDeluxe, roomSuite],
+  "精緻套房": [roomSuite, roomStandard, roomDeluxe, roomSuite, roomStandard],
+  "標準客房": [roomStandard, roomDeluxe, roomSuite, roomStandard, roomDeluxe],
 };
 
 const Booking = () => {
@@ -330,15 +330,27 @@ const Booking = () => {
             </p>
 
             <div className="grid md:grid-cols-3 gap-8">
-              {roomTypes.map((room) => (
-                <Card key={room.id} className="overflow-hidden hover:shadow-xl transition-shadow group border-0 rounded-2xl">
-                  <div className="aspect-[4/3] overflow-hidden rounded-t-2xl">
-                    <img 
-                      src={roomImages[room.name] || roomStandard} 
-                      alt={room.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
-                  </div>
+              {roomTypes.map((room) => {
+                const images = roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard];
+                return (
+                  <Card key={room.id} className="overflow-hidden hover:shadow-xl transition-shadow group border-0 rounded-2xl">
+                    <div className="aspect-[4/3] overflow-hidden rounded-t-2xl relative">
+                      <Carousel className="w-full h-full">
+                        <CarouselContent>
+                          {images.map((image, index) => (
+                            <CarouselItem key={index}>
+                              <img 
+                                src={image} 
+                                alt={`${room.name} - ${index + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                            </CarouselItem>
+                          ))}
+                        </CarouselContent>
+                        <CarouselPrevious className="left-2" />
+                        <CarouselNext className="right-2" />
+                      </Carousel>
+                    </div>
                   <CardContent className="p-6">
                     <div className="flex items-center gap-2 mb-3">
                       <Users className="h-5 w-5 text-primary" />
@@ -370,7 +382,8 @@ const Booking = () => {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
