@@ -53,7 +53,7 @@ const LocationSection = ({ address, locationInfo }: LocationSectionProps) => {
                   <MapPin className="h-5 w-5 text-primary" />
                   位置資訊
                 </h3>
-                <div className="aspect-video bg-muted rounded-lg overflow-hidden mb-3">
+                <div className="aspect-video bg-muted rounded-lg overflow-hidden">
                   <iframe
                     src={`https://www.google.com/maps?q=${encodeURIComponent(address || "宜蘭縣冬山鄉大進三路208號")}&output=embed`}
                     width="100%"
@@ -65,7 +65,7 @@ const LocationSection = ({ address, locationInfo }: LocationSectionProps) => {
                     title="旅館位置地圖"
                   />
                 </div>
-                <div className="flex items-start gap-2">
+                <div className="flex items-start gap-2 mt-3">
                   <MapPin className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                   <p className="text-sm font-medium">{address || "台灣南投縣信義鄉東埔村開高巷123號"}</p>
                 </div>
