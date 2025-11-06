@@ -195,7 +195,7 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         </div>
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <Label>物件照片</Label>
+            <Label>物件照片 {photoUrls.length > 0 && `(${photoUrls.length})`}</Label>
             <div className="flex gap-2">
               <Button 
                 type="button" 
@@ -218,21 +218,30 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
             </div>
           </div>
           {photoUrls.length > 0 && (
-            <div className="space-y-2 mt-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
               {photoUrls.map((url, i) => (
-                <div key={i} className="flex gap-2 items-start">
-                  <div className="flex-1 space-y-1">
-                    <img src={url} alt={`照片 ${i + 1}`} className="w-full h-32 object-cover rounded-md border" />
-                    <Input value={url} readOnly className="text-xs" />
-                  </div>
+                <div 
+                  key={i} 
+                  className="relative group aspect-[4/3] rounded-lg overflow-hidden border border-border bg-muted hover:border-primary transition-colors"
+                >
+                  <img 
+                    src={url} 
+                    alt={`照片 ${i + 1}`} 
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors" />
                   <Button 
                     type="button"
-                    variant="outline" 
-                    size="icon" 
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
                     onClick={() => setPhotoUrls(photoUrls.filter((_, idx) => idx !== i))}
                   >
                     <X className="h-4 w-4" />
                   </Button>
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                    <p className="text-xs text-white truncate">照片 {i + 1}</p>
+                  </div>
                 </div>
               ))}
             </div>
