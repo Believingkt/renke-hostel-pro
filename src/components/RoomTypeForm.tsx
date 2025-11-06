@@ -274,7 +274,7 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
           <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="例：豪華雙人房" />
         </div>
         <div className="space-y-2">
-          <Label>物件說明</Label>
+          <Label>說明</Label>
           <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={3} />
         </div>
         <div className="grid grid-cols-2 gap-4">
