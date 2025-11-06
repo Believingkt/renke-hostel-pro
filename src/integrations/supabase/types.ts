@@ -538,6 +538,7 @@ export type Database = {
         }[]
       }
       is_admin: { Args: { user_id_param: string }; Returns: boolean }
+      is_user_admin: { Args: { _user_id: string }; Returns: boolean }
       user_has_access_to_accommodation: {
         Args: { _accommodation_id: string; _user_id: string }
         Returns: boolean
