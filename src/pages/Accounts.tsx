@@ -131,15 +131,19 @@ const Accounts = () => {
 
       if (error) throw error;
 
-      if (data.error) {
+      if (data?.error) {
         // Handle specific error messages
         let errorMessage = data.error;
-        if (data.error.includes("already been registered")) {
+        if (errorMessage === "此 Email 已被註冊") {
           errorMessage = "此 Email 已被註冊，請使用其他 Email";
-        } else if (data.error.includes("Invalid email")) {
-          errorMessage = "Email 格式不正確";
         }
-        throw new Error(errorMessage);
+        toast.error(errorMessage);
+        return;
+      }
+
+      if (!data?.success) {
+        toast.error("建立帳號失敗");
+        return;
       }
 
       toast.success("帳號建立成功");

@@ -50,7 +50,25 @@ serve(async (req) => {
 
     if (userError) {
       console.error("Error creating user:", userError);
-      throw userError;
+      
+      // Return friendly error messages
+      let errorMessage = userError.message;
+      if (userError.message.includes("already been registered")) {
+        errorMessage = "此 Email 已被註冊";
+      } else if (userError.message.includes("Invalid email")) {
+        errorMessage = "Email 格式不正確";
+      }
+      
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: errorMessage,
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        }
+      );
     }
 
     console.log("User created successfully:", userData.user.id);
