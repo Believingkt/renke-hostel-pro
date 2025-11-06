@@ -396,7 +396,11 @@ export type Database = {
           room_count: number | null
           size_sqm: number | null
           updated_at: string
+          weekday_2_meals_price: number | null
+          weekday_3_meals_price: number | null
           weekday_price: number | null
+          weekend_2_meals_price: number | null
+          weekend_3_meals_price: number | null
           weekend_price: number | null
         }
         Insert: {
@@ -412,7 +416,11 @@ export type Database = {
           room_count?: number | null
           size_sqm?: number | null
           updated_at?: string
+          weekday_2_meals_price?: number | null
+          weekday_3_meals_price?: number | null
           weekday_price?: number | null
+          weekend_2_meals_price?: number | null
+          weekend_3_meals_price?: number | null
           weekend_price?: number | null
         }
         Update: {
@@ -428,7 +436,11 @@ export type Database = {
           room_count?: number | null
           size_sqm?: number | null
           updated_at?: string
+          weekday_2_meals_price?: number | null
+          weekday_3_meals_price?: number | null
           weekday_price?: number | null
+          weekend_2_meals_price?: number | null
+          weekend_3_meals_price?: number | null
           weekend_price?: number | null
         }
         Relationships: [

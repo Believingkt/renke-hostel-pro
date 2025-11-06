@@ -104,8 +104,10 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
     size_sqm: "",
     capacity: "",
     room_count: "1",
-    weekday_price: "",
-    weekend_price: "",
+    weekday_2_meals_price: "",
+    weekday_3_meals_price: "",
+    weekend_2_meals_price: "",
+    weekend_3_meals_price: "",
     display_order: "0",
   });
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
@@ -127,8 +129,10 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         size_sqm: roomType.size_sqm?.toString() || "",
         capacity: roomType.capacity?.toString() || "",
         room_count: roomType.room_count?.toString() || "1",
-        weekday_price: roomType.weekday_price?.toString() || "",
-        weekend_price: roomType.weekend_price?.toString() || "",
+        weekday_2_meals_price: roomType.weekday_2_meals_price?.toString() || "",
+        weekday_3_meals_price: roomType.weekday_3_meals_price?.toString() || "",
+        weekend_2_meals_price: roomType.weekend_2_meals_price?.toString() || "",
+        weekend_3_meals_price: roomType.weekend_3_meals_price?.toString() || "",
         display_order: roomType.display_order?.toString() || "0",
       });
       loadPhotos(roomType.id);
@@ -214,9 +218,11 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         size_sqm: formData.size_sqm ? parseInt(formData.size_sqm) : null,
         capacity: parseInt(formData.capacity),
         room_count: parseInt(formData.room_count),
-        weekday_price: formData.weekday_price ? parseInt(formData.weekday_price) : null,
-        weekend_price: formData.weekend_price ? parseInt(formData.weekend_price) : null,
-        base_price: formData.weekday_price ? parseInt(formData.weekday_price) : 0,
+        weekday_2_meals_price: formData.weekday_2_meals_price ? parseInt(formData.weekday_2_meals_price) : null,
+        weekday_3_meals_price: formData.weekday_3_meals_price ? parseInt(formData.weekday_3_meals_price) : null,
+        weekend_2_meals_price: formData.weekend_2_meals_price ? parseInt(formData.weekend_2_meals_price) : null,
+        weekend_3_meals_price: formData.weekend_3_meals_price ? parseInt(formData.weekend_3_meals_price) : null,
+        base_price: formData.weekday_2_meals_price ? parseInt(formData.weekday_2_meals_price) : 0,
         display_order: parseInt(formData.display_order) || 0,
       };
 
@@ -283,14 +289,54 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
           <Label>房間數量 *</Label>
           <Input type="number" value={formData.room_count} onChange={(e) => setFormData({ ...formData, room_count: e.target.value })} />
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>平日價格</Label>
-            <Input type="number" value={formData.weekday_price} onChange={(e) => setFormData({ ...formData, weekday_price: e.target.value })} />
+        
+        {/* 平日價格 */}
+        <div className="space-y-3">
+          <Label className="text-base font-semibold">平日價格</Label>
+          <div className="grid grid-cols-2 gap-4 pl-4">
+            <div className="space-y-2">
+              <Label>一泊二食</Label>
+              <Input 
+                type="number" 
+                value={formData.weekday_2_meals_price} 
+                onChange={(e) => setFormData({ ...formData, weekday_2_meals_price: e.target.value })} 
+                placeholder="輸入價格"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>一泊三食</Label>
+              <Input 
+                type="number" 
+                value={formData.weekday_3_meals_price} 
+                onChange={(e) => setFormData({ ...formData, weekday_3_meals_price: e.target.value })} 
+                placeholder="輸入價格"
+              />
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label>假日價格</Label>
-            <Input type="number" value={formData.weekend_price} onChange={(e) => setFormData({ ...formData, weekend_price: e.target.value })} />
+        </div>
+
+        {/* 假日價格 */}
+        <div className="space-y-3">
+          <Label className="text-base font-semibold">假日價格</Label>
+          <div className="grid grid-cols-2 gap-4 pl-4">
+            <div className="space-y-2">
+              <Label>一泊二食</Label>
+              <Input 
+                type="number" 
+                value={formData.weekend_2_meals_price} 
+                onChange={(e) => setFormData({ ...formData, weekend_2_meals_price: e.target.value })} 
+                placeholder="輸入價格"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>一泊三食</Label>
+              <Input 
+                type="number" 
+                value={formData.weekend_3_meals_price} 
+                onChange={(e) => setFormData({ ...formData, weekend_3_meals_price: e.target.value })} 
+                placeholder="輸入價格"
+              />
+            </div>
           </div>
         </div>
         <div className="space-y-2">
