@@ -4,15 +4,95 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, X } from "lucide-react";
+import { Plus, X, GripVertical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  rectSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface RoomTypeFormProps {
   accommodationId: string;
   roomType?: any;
   onSuccess: () => void;
   onCancel: () => void;
+}
+
+interface SortablePhotoItemProps {
+  url: string;
+  index: number;
+  onRemove: () => void;
+}
+
+function SortablePhotoItem({ url, index, onRemove }: SortablePhotoItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: url });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="relative group aspect-[4/3] rounded-lg overflow-hidden border border-border bg-muted hover:border-primary transition-colors"
+    >
+      <img 
+        src={url} 
+        alt={`照片 ${index + 1}`} 
+        className="w-full h-full object-cover"
+      />
+      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors" />
+      
+      {/* 拖拉手柄 */}
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute top-2 left-2 h-7 w-7 bg-background/90 rounded flex items-center justify-center cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+      >
+        <GripVertical className="h-4 w-4 text-muted-foreground" />
+      </div>
+      
+      {/* 刪除按鈕 */}
+      <Button 
+        type="button"
+        variant="destructive"
+        size="icon"
+        className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={onRemove}
+      >
+        <X className="h-4 w-4" />
+      </Button>
+      
+      {/* 順序標籤 */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+        <p className="text-xs text-white truncate">照片 {index + 1}</p>
+      </div>
+    </div>
+  );
 }
 
 export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }: RoomTypeFormProps) {
@@ -30,6 +110,13 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
   });
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     if (roomType) {
@@ -95,6 +182,19 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
     } finally {
       setUploading(false);
       event.target.value = '';
+    }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setPhotoUrls((items) => {
+        const oldIndex = items.indexOf(active.id as string);
+        const newIndex = items.indexOf(over.id as string);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+      toast.success("照片順序已更新");
     }
   };
 
@@ -218,32 +318,26 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
             </div>
           </div>
           {photoUrls.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
-              {photoUrls.map((url, i) => (
-                <div 
-                  key={i} 
-                  className="relative group aspect-[4/3] rounded-lg overflow-hidden border border-border bg-muted hover:border-primary transition-colors"
-                >
-                  <img 
-                    src={url} 
-                    alt={`照片 ${i + 1}`} 
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors" />
-                  <Button 
-                    type="button"
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => setPhotoUrls(photoUrls.filter((_, idx) => idx !== i))}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
-                    <p className="text-xs text-white truncate">照片 {i + 1}</p>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">拖曳照片可調整順序</p>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext items={photoUrls} strategy={rectSortingStrategy}>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {photoUrls.map((url, i) => (
+                      <SortablePhotoItem
+                        key={url}
+                        url={url}
+                        index={i}
+                        onRemove={() => setPhotoUrls(photoUrls.filter((_, idx) => idx !== i))}
+                      />
+                    ))}
                   </div>
-                </div>
-              ))}
+                </SortableContext>
+              </DndContext>
             </div>
           )}
         </div>
