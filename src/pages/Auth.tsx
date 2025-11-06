@@ -88,9 +88,10 @@ export default function Auth() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="space-y-1">
-          <div className="flex justify-center">
+        <CardHeader className="space-y-3">
+          <div className="flex flex-col items-center space-y-2">
             <img src={lokezeLogo} alt="Lokeze" className="h-12 object-contain" />
+            <p className="text-lg font-medium text-muted-foreground">人客多 PMS 管理系統</p>
           </div>
         </CardHeader>
         <CardContent>
