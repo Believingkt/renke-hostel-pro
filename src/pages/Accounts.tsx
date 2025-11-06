@@ -31,6 +31,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useSubdomain } from "@/hooks/use-subdomain";
+import { format } from "date-fns";
 
 interface User {
   id: string;
@@ -99,7 +100,7 @@ const Accounts = () => {
 
       const { data: profiles, error: profileError } = await supabase
         .from("profiles")
-        .select("id, name")
+        .select("id, name, email, last_sign_in_at")
         .in("id", userIds);
 
       console.log("Profiles query result:", { profiles, profileError });
@@ -108,16 +109,29 @@ const Accounts = () => {
         console.error("Error loading profiles:", profileError);
       }
 
-      const profilesMap = new Map(profiles?.map(p => [p.id, p.name]) || []);
+      const profilesMap = new Map(
+        profiles?.map(p => [p.id, { 
+          name: p.name, 
+          email: p.email,
+          lastSignInAt: p.last_sign_in_at 
+        }]) || []
+      );
 
-      const usersData = userRoles.map((ur: any) => ({
-        id: ur.user_id,
-        name: profilesMap.get(ur.user_id) || "未知",
-        email: "",
-        lastLogin: "",
-        role: ur.role,
-        roleLabel: getRoleLabel(ur.role),
-      }));
+      const usersData = userRoles.map((ur: any) => {
+        const profile = profilesMap.get(ur.user_id);
+        const lastLogin = profile?.lastSignInAt 
+          ? format(new Date(profile.lastSignInAt), "yyyy/MM/dd HH:mm")
+          : "-";
+        
+        return {
+          id: ur.user_id,
+          name: profile?.name || "未知",
+          email: profile?.email || "-",
+          lastLogin,
+          role: ur.role,
+          roleLabel: getRoleLabel(ur.role),
+        };
+      });
 
       console.log("Final users data to display:", usersData);
       setUsers(usersData);
@@ -302,9 +316,9 @@ const Accounts = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>名稱</TableHead>
-                  <TableHead>帳號</TableHead>
+                  <TableHead>Email</TableHead>
                   <TableHead>角色</TableHead>
-                  <TableHead>最後登入日期</TableHead>
+                  <TableHead>最後登入時間</TableHead>
                   <TableHead className="w-[100px]">操作</TableHead>
                 </TableRow>
               </TableHeader>
@@ -319,9 +333,9 @@ const Accounts = () => {
                   users.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.name}</TableCell>
-                      <TableCell>{user.email || "-"}</TableCell>
+                      <TableCell>{user.email}</TableCell>
                       <TableCell>{user.roleLabel}</TableCell>
-                      <TableCell>{user.lastLogin || "-"}</TableCell>
+                      <TableCell>{user.lastLogin}</TableCell>
                       <TableCell>
                         <Button
                           variant="ghost"
@@ -363,8 +377,8 @@ const Accounts = () => {
                           <p className="text-sm">{user.roleLabel}</p>
                         </div>
                         <div>
-                          <p className="text-xs text-muted-foreground">最後登入日期</p>
-                          <p className="text-sm">{user.lastLogin || "-"}</p>
+                          <p className="text-xs text-muted-foreground">最後登入時間</p>
+                          <p className="text-sm">{user.lastLogin}</p>
                         </div>
                       </div>
                       <Button
