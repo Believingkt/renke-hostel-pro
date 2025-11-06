@@ -2,7 +2,7 @@ import { Star } from "lucide-react";
 
 const reviews = [
   {
-    name: "王小明",
+    name: "王啟明",
     date: "2024年10月",
     rating: 5,
     comment: "環境非常優美，房間乾淨舒適，服務人員態度親切，山景令人驚艷，是放鬆身心的好地方！"
