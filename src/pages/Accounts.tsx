@@ -58,7 +58,12 @@ const Accounts = () => {
   }, [accommodationId]);
 
   const loadUsers = async () => {
-    if (!accommodationId) return;
+    if (!accommodationId) {
+      console.log("No accommodationId, skipping load");
+      return;
+    }
+
+    console.log("Loading users for accommodation:", accommodationId);
 
     try {
       const { data: userRoles, error } = await supabase
@@ -66,31 +71,50 @@ const Accounts = () => {
         .select("user_id, role")
         .eq("accommodation_id", accommodationId);
 
-      if (error) throw error;
+      console.log("User roles query result:", { userRoles, error });
 
-      if (userRoles && userRoles.length > 0) {
-        // Get profiles for all users
-        const userIds = userRoles.map(ur => ur.user_id);
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("id, name")
-          .in("id", userIds);
-
-        const profilesMap = new Map(profiles?.map(p => [p.id, p.name]));
-
-        const usersData = userRoles.map((ur: any) => ({
-          id: ur.user_id,
-          name: profilesMap.get(ur.user_id) || "未知",
-          email: "",
-          lastLogin: "",
-          role: ur.role,
-          roleLabel: getRoleLabel(ur.role),
-        }));
-        setUsers(usersData);
+      if (error) {
+        console.error("Error loading user roles:", error);
+        throw error;
       }
+
+      if (!userRoles || userRoles.length === 0) {
+        console.log("No user roles found");
+        setUsers([]);
+        return;
+      }
+
+      // Get profiles for all users
+      const userIds = userRoles.map(ur => ur.user_id);
+      console.log("Fetching profiles for user IDs:", userIds);
+
+      const { data: profiles, error: profileError } = await supabase
+        .from("profiles")
+        .select("id, name")
+        .in("id", userIds);
+
+      console.log("Profiles query result:", { profiles, profileError });
+
+      if (profileError) {
+        console.error("Error loading profiles:", profileError);
+      }
+
+      const profilesMap = new Map(profiles?.map(p => [p.id, p.name]) || []);
+
+      const usersData = userRoles.map((ur: any) => ({
+        id: ur.user_id,
+        name: profilesMap.get(ur.user_id) || "未知",
+        email: "",
+        lastLogin: "",
+        role: ur.role,
+        roleLabel: getRoleLabel(ur.role),
+      }));
+
+      console.log("Setting users data:", usersData);
+      setUsers(usersData);
     } catch (error: any) {
       console.error("Error loading users:", error);
-      toast.error("載入使用者列表失敗");
+      toast.error("載入使用者列表失敗: " + error.message);
     }
   };
 
