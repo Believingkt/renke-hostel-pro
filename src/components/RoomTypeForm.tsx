@@ -270,7 +270,7 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label>物件名稱 *</Label>
+          <Label>名稱 *</Label>
           <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="例：豪華雙人房" />
         </div>
         <div className="space-y-2">
@@ -279,7 +279,7 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label>物件坪數 (m²)</Label>
+            <Label>坪數 (m²)</Label>
             <Input type="number" value={formData.size_sqm} onChange={(e) => setFormData({ ...formData, size_sqm: e.target.value })} />
           </div>
           <div className="space-y-2">
