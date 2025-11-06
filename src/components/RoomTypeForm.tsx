@@ -29,6 +29,7 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
     display_order: "0",
   });
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [uploadingPhotos, setUploadingPhotos] = useState<boolean[]>([]);
 
   useEffect(() => {
     if (roomType) {
@@ -57,6 +58,46 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
       setPhotoUrls(data?.map(p => p.photo_url) || []);
     } catch (error) {
       console.error("Error loading photos:", error);
+    }
+  };
+
+  const handleFileUpload = async (file: File, index: number) => {
+    if (!file) return;
+
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    setUploadingPhotos(prev => {
+      const newState = [...prev];
+      newState[index] = true;
+      return newState;
+    });
+
+    try {
+      const { error: uploadError } = await supabase.storage
+        .from('room-photos')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('room-photos')
+        .getPublicUrl(filePath);
+
+      const newUrls = [...photoUrls];
+      newUrls[index] = publicUrl;
+      setPhotoUrls(newUrls);
+
+      toast.success("照片上傳成功");
+    } catch (error: any) {
+      toast.error("照片上傳失敗：" + error.message);
+    } finally {
+      setUploadingPhotos(prev => {
+        const newState = [...prev];
+        newState[index] = false;
+        return newState;
+      });
     }
   };
 
@@ -161,9 +202,28 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
             <Button type="button" variant="outline" size="sm" onClick={() => setPhotoUrls([...photoUrls, ""])}><Plus className="h-4 w-4" /></Button>
           </div>
           {photoUrls.map((url, i) => (
-            <div key={i} className="flex gap-2">
-              <Input value={url} onChange={(e) => { const newUrls = [...photoUrls]; newUrls[i] = e.target.value; setPhotoUrls(newUrls); }} />
-              <Button variant="outline" size="icon" onClick={() => setPhotoUrls(photoUrls.filter((_, idx) => idx !== i))}><X className="h-4 w-4" /></Button>
+            <div key={i} className="space-y-2">
+              <div className="flex gap-2">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleFileUpload(file, i);
+                  }}
+                  disabled={uploadingPhotos[i]}
+                  className="flex-1"
+                />
+                <Button variant="outline" size="icon" onClick={() => setPhotoUrls(photoUrls.filter((_, idx) => idx !== i))} disabled={uploadingPhotos[i]}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              {url && (
+                <div className="relative w-full h-32 rounded-md overflow-hidden border">
+                  <img src={url} alt={`預覽 ${i + 1}`} className="w-full h-full object-cover" />
+                </div>
+              )}
+              {uploadingPhotos[i] && <p className="text-sm text-muted-foreground">上傳中...</p>}
             </div>
           ))}
         </div>
