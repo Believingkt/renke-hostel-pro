@@ -75,19 +75,19 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
                 <picture>
                   <source 
                     media="(max-width: 768px)" 
-                    srcSet={heroSlide3}
+                    srcSet={heroSlide1}
                     width="480"
                     height="270"
                   />
                   <source 
                     media="(min-width: 769px)" 
-                    srcSet={heroSlide3}
+                    srcSet={heroSlide1}
                     width="960"
                     height="540"
                   />
                   <img 
-                    src={heroSlide3} 
-                    alt="山景 3"
+                    src={heroSlide1} 
+                    alt="山景 1"
                     className="w-full h-full object-cover transition-opacity duration-700 brightness-125"
                     loading="eager"
                     fetchPriority="high"
@@ -148,8 +148,8 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
                 {loadedImages.has(2) ? (
                   <picture>
                     <img 
-                      src={heroSlide1} 
-                      alt="山景 1"
+                      src={heroSlide3} 
+                      alt="山景 3"
                       className="w-full h-full object-cover transition-opacity duration-700 brightness-125"
                       loading="lazy"
                       decoding="async"
