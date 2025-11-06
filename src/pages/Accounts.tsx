@@ -64,8 +64,17 @@ const Accounts = () => {
     }
 
     console.log("Loading users for accommodation:", accommodationId);
+    setIsLoading(true);
 
     try {
+      // First, test if we can query at all
+      const { data: testQuery, error: testError } = await supabase
+        .from("user_roles")
+        .select("*")
+        .limit(1);
+      
+      console.log("Test query result (first record):", { testQuery, testError });
+
       const { data: userRoles, error } = await supabase
         .from("user_roles")
         .select("user_id, role")
@@ -79,7 +88,7 @@ const Accounts = () => {
       }
 
       if (!userRoles || userRoles.length === 0) {
-        console.log("No user roles found");
+        console.log("No user roles found for this accommodation");
         setUsers([]);
         return;
       }
@@ -110,11 +119,13 @@ const Accounts = () => {
         roleLabel: getRoleLabel(ur.role),
       }));
 
-      console.log("Setting users data:", usersData);
+      console.log("Final users data to display:", usersData);
       setUsers(usersData);
     } catch (error: any) {
       console.error("Error loading users:", error);
       toast.error("載入使用者列表失敗: " + error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
