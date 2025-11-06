@@ -318,6 +318,30 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          created_at: string
+          force_password_change: boolean
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          force_password_change?: boolean
+          id: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          force_password_change?: boolean
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       room_amenities: {
         Row: {
           amenity_icon: string | null

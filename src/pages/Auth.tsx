@@ -20,25 +20,48 @@ export default function Auth() {
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
 
   useEffect(() => {
-    // Check if user is already logged in
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        navigate("/admin");
+        await checkForcePasswordChange(session.user.id);
       }
-    });
+    };
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN" && session) {
-        navigate("/admin");
-      } else if (event === "SIGNED_OUT") {
-        // User logged out, stay on auth page
-        console.log("User signed out");
+        await checkForcePasswordChange(session.user.id);
       }
     });
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  const checkForcePasswordChange = async (userId: string) => {
+    try {
+      const { data: profile, error } = await supabase
+        .from("profiles")
+        .select("force_password_change")
+        .eq("id", userId)
+        .single();
+
+      if (error) {
+        console.error("Error checking profile:", error);
+        navigate("/admin");
+        return;
+      }
+
+      if (profile?.force_password_change) {
+        navigate("/change-password");
+      } else {
+        navigate("/admin");
+      }
+    } catch (error) {
+      console.error("Error in checkForcePasswordChange:", error);
+      navigate("/admin");
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

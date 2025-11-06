@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -26,10 +26,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useSubdomain } from "@/hooks/use-subdomain";
 
 interface User {
+  id: string;
   name: string;
   email: string;
   lastLogin: string;
@@ -41,64 +45,126 @@ const Accounts = () => {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState("operator");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState("staff");
+  const [isLoading, setIsLoading] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const { accommodationId } = useSubdomain();
 
-  const [users, setUsers] = useState<User[]>([
-    {
-      name: "森山寫照",
-      email: "sensan.inn@gmail.com",
-      lastLogin: "2025-10-20 08:37",
-      role: "owner",
-      roleLabel: "擁有者",
-    },
-    {
-      name: "yushiuan0315",
-      email: "yushiuan0315@gmail.com",
-      lastLogin: "2025-06-20 09:44",
-      role: "operator",
-      roleLabel: "現場營運",
-    },
-    {
-      name: "nokimi",
-      email: "nokimi@gmail.com",
-      lastLogin: "2025-10-15 09:14",
-      role: "operator",
-      roleLabel: "現場營運",
-    },
-    {
-      name: "DOFI",
-      email: "dofilab@gmail.com",
-      lastLogin: "2025-10-18 10:41",
-      role: "operator",
-      roleLabel: "現場營運",
-    },
-  ]);
+  useEffect(() => {
+    loadUsers();
+  }, [accommodationId]);
 
-  const handleSubmit = () => {
-    const roleLabel = role === "owner" ? "擁有者" : "現場營運";
-    const newUser: User = {
-      name,
-      email,
-      lastLogin: new Date().toLocaleString("zh-TW", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      role,
-      roleLabel,
-    };
-    
-    setUsers([...users, newUser]);
-    setOpen(false);
-    setName("");
-    setEmail("");
-    setRole("operator");
+  const loadUsers = async () => {
+    if (!accommodationId) return;
+
+    try {
+      const { data: userRoles, error } = await supabase
+        .from("user_roles")
+        .select(`
+          user_id,
+          role,
+          profiles:user_id (
+            name
+          )
+        `)
+        .eq("accommodation_id", accommodationId);
+
+      if (error) throw error;
+
+      if (userRoles) {
+        const usersData = userRoles.map((ur: any) => ({
+          id: ur.user_id,
+          name: ur.profiles?.name || "未知",
+          email: "",
+          lastLogin: "",
+          role: ur.role,
+          roleLabel: getRoleLabel(ur.role),
+        }));
+        setUsers(usersData);
+      }
+    } catch (error: any) {
+      console.error("Error loading users:", error);
+      toast.error("載入使用者列表失敗");
+    }
   };
 
-  const handleDelete = (email: string) => {
-    setUsers(users.filter((user) => user.email !== email));
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case "super_admin":
+        return "超級管理員";
+      case "hotel_admin":
+        return "飯店管理員";
+      case "staff":
+        return "現場營運";
+      default:
+        return role;
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!accommodationId) {
+      toast.error("無法取得住宿設施 ID");
+      return;
+    }
+
+    if (!name || !email || !password || !role) {
+      toast.error("請填寫所有欄位");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("create-user", {
+        body: {
+          name,
+          email,
+          password,
+          role,
+          accommodationId,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      toast.success("帳號建立成功");
+      setOpen(false);
+      setName("");
+      setEmail("");
+      setPassword("");
+      setRole("staff");
+      loadUsers();
+    } catch (error: any) {
+      console.error("Error creating user:", error);
+      toast.error(error.message || "建立帳號失敗");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async (userId: string) => {
+    if (!confirm("確定要刪除此帳號嗎？")) return;
+
+    try {
+      const { error } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", userId)
+        .eq("accommodation_id", accommodationId);
+
+      if (error) throw error;
+
+      toast.success("帳號已刪除");
+      loadUsers();
+    } catch (error: any) {
+      console.error("Error deleting user:", error);
+      toast.error("刪除帳號失敗");
+    }
   };
 
   return (
@@ -117,7 +183,7 @@ const Accounts = () => {
             <DialogHeader>
               <DialogTitle>新增帳號</DialogTitle>
               <DialogDescription>
-                設定新帳號的名稱、帳號和權限
+                設定新帳號的名稱、Email、臨時密碼和權限
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -131,13 +197,23 @@ const Accounts = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">帳號</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="請輸入帳號"
+                  placeholder="請輸入 Email"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">臨時密碼</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="至少 6 個字元"
                 />
               </div>
               <div className="space-y-2">
@@ -147,17 +223,21 @@ const Accounts = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="owner">擁有者</SelectItem>
-                    <SelectItem value="operator">現場營運</SelectItem>
+                    <SelectItem value="super_admin">超級管理員</SelectItem>
+                    <SelectItem value="hotel_admin">飯店管理員</SelectItem>
+                    <SelectItem value="staff">現場營運</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>
+              <Button variant="outline" onClick={() => setOpen(false)} disabled={isLoading}>
                 取消
               </Button>
-              <Button onClick={handleSubmit}>確認</Button>
+              <Button onClick={handleSubmit} disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                確認
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -185,17 +265,17 @@ const Accounts = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  users.map((user, index) => (
-                    <TableRow key={index}>
+                  users.map((user) => (
+                    <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.name}</TableCell>
-                      <TableCell>{user.email}</TableCell>
+                      <TableCell>{user.email || "-"}</TableCell>
                       <TableCell>{user.roleLabel}</TableCell>
-                      <TableCell>{user.lastLogin}</TableCell>
+                      <TableCell>{user.lastLogin || "-"}</TableCell>
                       <TableCell>
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDelete(user.email)}
+                          onClick={() => handleDelete(user.id)}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
@@ -214,8 +294,8 @@ const Accounts = () => {
                 尚無帳號
               </p>
             ) : (
-              users.map((user, index) => (
-                <Card key={index}>
+              users.map((user) => (
+                <Card key={user.id}>
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 space-y-2 min-w-0">
@@ -224,8 +304,8 @@ const Accounts = () => {
                           <p className="font-medium">{user.name}</p>
                         </div>
                         <div>
-                          <p className="text-xs text-muted-foreground">帳號</p>
-                          <p className="text-sm break-all">{user.email}</p>
+                          <p className="text-xs text-muted-foreground">Email</p>
+                          <p className="text-sm break-all">{user.email || "-"}</p>
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">角色</p>
@@ -233,14 +313,14 @@ const Accounts = () => {
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">最後登入日期</p>
-                          <p className="text-sm">{user.lastLogin}</p>
+                          <p className="text-sm">{user.lastLogin || "-"}</p>
                         </div>
                       </div>
                       <Button
                         variant="ghost"
                         size="icon"
                         className="shrink-0"
-                        onClick={() => handleDelete(user.email)}
+                        onClick={() => handleDelete(user.id)}
                       >
                         <Trash2 className="h-5 w-5 text-destructive" />
                       </Button>

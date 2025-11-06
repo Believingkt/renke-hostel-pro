@@ -4,6 +4,7 @@ import { ConditionalLayout } from "@/components/ConditionalLayout";
 import { AccommodationProvider } from "@/contexts/AccommodationContext";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import ChangePassword from "./pages/ChangePassword";
 import BookingFlow from "./pages/BookingFlow";
 import Dashboard from "./pages/Dashboard";
 import Reception from "./pages/Reception";
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/booking" element={<BookingFlow />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/change-password" element={<ChangePassword />} />
             <Route path="/hq" element={<Headquarters />} />
             <Route path="/admin" element={<Dashboard />} />
             <Route path="/admin/reception" element={<Reception />} />
