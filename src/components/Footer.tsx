@@ -119,7 +119,7 @@ const Footer = ({ accommodationName, address }: FooterProps) => {
             <a href="https://lakeze.com" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity inline-flex items-center">
               <img src={lakezeLogoWhite} alt="Lakeze" className="h-4 md:h-5 w-auto -translate-y-0.5" />
             </a>
-            <span>. 2025 © All Rights Reserved.</span>
+            <span>2025 © All Rights Reserved.</span>
           </div>
         </div>
       </div>
