@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, GripVertical } from "lucide-react";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -18,6 +18,132 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+interface SortableRoomCardProps {
+  roomType: any;
+  onEdit: (roomType: any) => void;
+  onDelete: (roomType: any) => void;
+}
+
+const SortableRoomCard = ({ roomType, onEdit, onDelete }: SortableRoomCardProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: roomType.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <Card ref={setNodeRef} style={style}>
+      <CardContent className="pt-6">
+        <div className="flex items-start gap-3">
+          <button
+            className="mt-1 cursor-grab active:cursor-grabbing touch-none"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="h-5 w-5 text-muted-foreground" />
+          </button>
+          
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-3">
+              <h3 className="text-xl font-bold">{roomType.name}</h3>
+              {roomType.name_en && (
+                <span className="text-sm text-muted-foreground">
+                  {roomType.name_en}
+                </span>
+              )}
+            </div>
+            
+            {roomType.description && (
+              <p className="text-sm text-muted-foreground mb-4">
+                {roomType.description}
+              </p>
+            )}
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <span className="text-muted-foreground">坪數：</span>
+                <span className="font-medium">
+                  {roomType.size_sqm ? `${roomType.size_sqm} m²` : '未設定'}
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">容納人數：</span>
+                <span className="font-medium">{roomType.capacity} 人</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">房間數量：</span>
+                <span className="font-medium">{roomType.room_count || 1} 間</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">顯示順序：</span>
+                <span className="font-medium">{roomType.display_order}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
+              <div>
+                <span className="text-muted-foreground">平日價格：</span>
+                <span className="font-bold text-primary">
+                  {roomType.weekday_price ? `NT$ ${roomType.weekday_price.toLocaleString()}` : '未設定'}
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">假日價格：</span>
+                <span className="font-bold text-primary">
+                  {roomType.weekend_price ? `NT$ ${roomType.weekend_price.toLocaleString()}` : '未設定'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => onEdit(roomType)}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => onDelete(roomType)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 const Pricing = () => {
   const { currentAccommodationId } = useAccommodation();
@@ -120,6 +246,42 @@ const Pricing = () => {
     setEditingRoomType(null);
   };
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = roomTypes.findIndex((item) => item.id === active.id);
+      const newIndex = roomTypes.findIndex((item) => item.id === over.id);
+
+      const newRoomTypes = arrayMove(roomTypes, oldIndex, newIndex);
+      setRoomTypes(newRoomTypes);
+
+      // Update display_order in database
+      try {
+        const updates = newRoomTypes.map((roomType, index) => 
+          supabase
+            .from('room_types')
+            .update({ display_order: index })
+            .eq('id', roomType.id)
+        );
+
+        await Promise.all(updates);
+        toast.success("房型順序已更新");
+      } catch (error) {
+        console.error('Error updating room order:', error);
+        toast.error("無法更新房型順序");
+        loadRoomTypes(); // Reload to reset order
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -165,85 +327,27 @@ const Pricing = () => {
                     尚無房型資料，請點擊「新增房型」開始建立
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {roomTypes.map((roomType) => (
-                      <Card key={roomType.id}>
-                        <CardContent className="pt-6">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-3">
-                                <h3 className="text-xl font-bold">{roomType.name}</h3>
-                                {roomType.name_en && (
-                                  <span className="text-sm text-muted-foreground">
-                                    {roomType.name_en}
-                                  </span>
-                                )}
-                              </div>
-                              
-                              {roomType.description && (
-                                <p className="text-sm text-muted-foreground mb-4">
-                                  {roomType.description}
-                                </p>
-                              )}
-
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                                <div>
-                                  <span className="text-muted-foreground">坪數：</span>
-                                  <span className="font-medium">
-                                    {roomType.size_sqm ? `${roomType.size_sqm} m²` : '未設定'}
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className="text-muted-foreground">容納人數：</span>
-                                  <span className="font-medium">{roomType.capacity} 人</span>
-                                </div>
-                                <div>
-                                  <span className="text-muted-foreground">房間數量：</span>
-                                  <span className="font-medium">{roomType.room_count || 1} 間</span>
-                                </div>
-                                <div>
-                                  <span className="text-muted-foreground">顯示順序：</span>
-                                  <span className="font-medium">{roomType.display_order}</span>
-                                </div>
-                              </div>
-
-                              <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
-                                <div>
-                                  <span className="text-muted-foreground">平日價格：</span>
-                                  <span className="font-bold text-primary">
-                                    {roomType.weekday_price ? `NT$ ${roomType.weekday_price.toLocaleString()}` : '未設定'}
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className="text-muted-foreground">假日價格：</span>
-                                  <span className="font-bold text-primary">
-                                    {roomType.weekend_price ? `NT$ ${roomType.weekend_price.toLocaleString()}` : '未設定'}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="flex gap-2 ml-4">
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => handleEdit(roomType)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => handleDelete(roomType)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext
+                      items={roomTypes.map(rt => rt.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="space-y-4">
+                        {roomTypes.map((roomType) => (
+                          <SortableRoomCard
+                            key={roomType.id}
+                            roomType={roomType}
+                            onEdit={handleEdit}
+                            onDelete={handleDelete}
+                          />
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
                 )}
               </CardContent>
             </Card>
