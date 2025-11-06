@@ -61,21 +61,24 @@ const Accounts = () => {
     try {
       const { data: userRoles, error } = await supabase
         .from("user_roles")
-        .select(`
-          user_id,
-          role,
-          profiles:user_id (
-            name
-          )
-        `)
+        .select("user_id, role")
         .eq("accommodation_id", accommodationId);
 
       if (error) throw error;
 
-      if (userRoles) {
+      if (userRoles && userRoles.length > 0) {
+        // Get profiles for all users
+        const userIds = userRoles.map(ur => ur.user_id);
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, name")
+          .in("id", userIds);
+
+        const profilesMap = new Map(profiles?.map(p => [p.id, p.name]));
+
         const usersData = userRoles.map((ur: any) => ({
           id: ur.user_id,
-          name: ur.profiles?.name || "未知",
+          name: profilesMap.get(ur.user_id) || "未知",
           email: "",
           lastLogin: "",
           role: ur.role,
