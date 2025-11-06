@@ -99,7 +99,6 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
-    name_en: "",
     description: "",
     size_sqm: "",
     capacity: "",
@@ -124,7 +123,6 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
     if (roomType) {
       setFormData({
         name: roomType.name || "",
-        name_en: roomType.name_en || "",
         description: roomType.description || "",
         size_sqm: roomType.size_sqm?.toString() || "",
         capacity: roomType.capacity?.toString() || "",
@@ -213,7 +211,6 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
       const roomData = {
         accommodation_id: accommodationId,
         name: formData.name.trim(),
-        name_en: formData.name_en.trim() || null,
         description: formData.description.trim() || null,
         size_sqm: formData.size_sqm ? parseInt(formData.size_sqm) : null,
         capacity: parseInt(formData.capacity),
@@ -266,10 +263,6 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         <div className="space-y-2">
           <Label>物件名稱 *</Label>
           <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="例：豪華雙人房" />
-        </div>
-        <div className="space-y-2">
-          <Label>英文名稱</Label>
-          <Input value={formData.name_en} onChange={(e) => setFormData({ ...formData, name_en: e.target.value })} />
         </div>
         <div className="space-y-2">
           <Label>物件說明</Label>
