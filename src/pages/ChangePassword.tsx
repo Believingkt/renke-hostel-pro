@@ -98,7 +98,11 @@ export default function ChangePassword() {
                 required
               />
             </div>
-            <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600" disabled={isLoading}>
+            <Button 
+              type="submit" 
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white border-none" 
+              disabled={isLoading}
+            >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               確認修改
             </Button>
