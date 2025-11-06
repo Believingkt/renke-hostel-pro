@@ -18,6 +18,7 @@ import Availability from "./pages/Availability";
 import UserRoles from "./pages/UserRoles";
 import Headquarters from "./pages/Headquarters";
 import Customers from "./pages/Customers";
+import OgImagePreview from "./pages/OgImagePreview";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ const App = () => (
             <Route path="/admin/availability" element={<Availability />} />
             <Route path="/admin/user-roles" element={<UserRoles />} />
             <Route path="/admin/customers" element={<Customers />} />
+            <Route path="/og-preview" element={<OgImagePreview />} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
