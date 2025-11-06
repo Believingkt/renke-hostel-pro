@@ -60,6 +60,13 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
   const defaultImages = roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard];
   const images = databaseImages.length > 0 ? databaseImages : defaultImages;
   
+  console.log(`Room ${room.name}:`, {
+    hasRoomPhotos: !!room.room_photos,
+    photoCount: room.room_photos?.length || 0,
+    databaseImages: databaseImages.length,
+    usingDatabase: databaseImages.length > 0
+  });
+  
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
