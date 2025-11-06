@@ -88,7 +88,7 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
                   <img 
                     src={heroSlide1} 
                     alt="山景 1"
-                    className="w-full h-full object-cover transition-opacity duration-700 brightness-125"
+                    className="w-full h-full object-cover transition-opacity duration-700 brightness-150"
                     loading="eager"
                     fetchPriority="high"
                     decoding="sync"
@@ -118,7 +118,7 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
                     <img 
                       src={heroSlide2} 
                       alt="山景 2"
-                      className="w-full h-full object-cover transition-opacity duration-700 brightness-125"
+                      className="w-full h-full object-cover transition-opacity duration-700 brightness-150"
                       loading="lazy"
                       decoding="async"
                       width="960"
@@ -150,7 +150,7 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
                     <img 
                       src={heroSlide3} 
                       alt="山景 3"
-                      className="w-full h-full object-cover transition-opacity duration-700 brightness-125"
+                      className="w-full h-full object-cover transition-opacity duration-700 brightness-150"
                       loading="lazy"
                       decoding="async"
                       width="960"
