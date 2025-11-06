@@ -106,10 +106,10 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
             <CarouselNext className="right-2" />
           </Carousel>
         </div>
-      <CardContent className="p-4 md:p-6 flex flex-col flex-1">
+      <CardContent className="p-4 md:p-6 flex flex-col flex-1 min-h-0">
         <h3 className="text-xl md:text-2xl font-bold mb-1 text-foreground">{room.name}</h3>
         <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4">{room.name_en}</p>
-        <p className="text-sm mb-4 md:mb-6 text-muted-foreground leading-relaxed">{room.description}</p>
+        <p className="text-sm mb-4 md:mb-6 text-muted-foreground leading-relaxed line-clamp-3">{room.description}</p>
         
         <div className="flex items-center gap-3 mb-6 text-sm text-muted-foreground">
           <div className="flex items-center gap-1">
