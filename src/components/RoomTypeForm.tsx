@@ -103,6 +103,9 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
     size_sqm: "",
     capacity: "",
     room_count: "1",
+    quad_room_count: "0",
+    triple_room_count: "0",
+    double_room_count: "0",
     weekday_2_meals_price: "",
     weekday_3_meals_price: "",
     weekend_2_meals_price: "",
@@ -127,6 +130,9 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         size_sqm: roomType.size_sqm?.toString() || "",
         capacity: roomType.capacity?.toString() || "",
         room_count: roomType.room_count?.toString() || "1",
+        quad_room_count: roomType.quad_room_count?.toString() || "0",
+        triple_room_count: roomType.triple_room_count?.toString() || "0",
+        double_room_count: roomType.double_room_count?.toString() || "0",
         weekday_2_meals_price: roomType.weekday_2_meals_price?.toString() || "",
         weekday_3_meals_price: roomType.weekday_3_meals_price?.toString() || "",
         weekend_2_meals_price: roomType.weekend_2_meals_price?.toString() || "",
@@ -215,6 +221,9 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         size_sqm: formData.size_sqm ? parseInt(formData.size_sqm) : null,
         capacity: parseInt(formData.capacity),
         room_count: parseInt(formData.room_count),
+        quad_room_count: parseInt(formData.quad_room_count) || 0,
+        triple_room_count: parseInt(formData.triple_room_count) || 0,
+        double_room_count: parseInt(formData.double_room_count) || 0,
         weekday_2_meals_price: formData.weekday_2_meals_price ? parseInt(formData.weekday_2_meals_price) : null,
         weekday_3_meals_price: formData.weekday_3_meals_price ? parseInt(formData.weekday_3_meals_price) : null,
         weekend_2_meals_price: formData.weekend_2_meals_price ? parseInt(formData.weekend_2_meals_price) : null,
@@ -281,6 +290,43 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         <div className="space-y-2">
           <Label>房間數量 *</Label>
           <Input type="number" value={formData.room_count} onChange={(e) => setFormData({ ...formData, room_count: e.target.value })} />
+        </div>
+        
+        {/* 房型間數設定 */}
+        <div className="space-y-3">
+          <Label className="text-base font-semibold">房型間數設定</Label>
+          <div className="grid grid-cols-3 gap-4 pl-4">
+            <div className="space-y-2">
+              <Label>四人房</Label>
+              <Input 
+                type="number" 
+                min="0"
+                value={formData.quad_room_count} 
+                onChange={(e) => setFormData({ ...formData, quad_room_count: e.target.value })} 
+                placeholder="0"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>三人房</Label>
+              <Input 
+                type="number" 
+                min="0"
+                value={formData.triple_room_count} 
+                onChange={(e) => setFormData({ ...formData, triple_room_count: e.target.value })} 
+                placeholder="0"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>雙人房</Label>
+              <Input 
+                type="number" 
+                min="0"
+                value={formData.double_room_count} 
+                onChange={(e) => setFormData({ ...formData, double_room_count: e.target.value })} 
+                placeholder="0"
+              />
+            </div>
+          </div>
         </div>
         
         {/* 平日價格 */}

@@ -390,11 +390,14 @@ export type Database = {
           created_at: string
           description: string | null
           display_order: number | null
+          double_room_count: number | null
           id: string
           name: string
           name_en: string | null
+          quad_room_count: number | null
           room_count: number | null
           size_sqm: number | null
+          triple_room_count: number | null
           updated_at: string
           weekday_2_meals_price: number | null
           weekday_3_meals_price: number | null
@@ -410,11 +413,14 @@ export type Database = {
           created_at?: string
           description?: string | null
           display_order?: number | null
+          double_room_count?: number | null
           id?: string
           name: string
           name_en?: string | null
+          quad_room_count?: number | null
           room_count?: number | null
           size_sqm?: number | null
+          triple_room_count?: number | null
           updated_at?: string
           weekday_2_meals_price?: number | null
           weekday_3_meals_price?: number | null
@@ -430,11 +436,14 @@ export type Database = {
           created_at?: string
           description?: string | null
           display_order?: number | null
+          double_room_count?: number | null
           id?: string
           name?: string
           name_en?: string | null
+          quad_room_count?: number | null
           room_count?: number | null
           size_sqm?: number | null
+          triple_room_count?: number | null
           updated_at?: string
           weekday_2_meals_price?: number | null
           weekday_3_meals_price?: number | null
