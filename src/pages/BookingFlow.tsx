@@ -205,17 +205,24 @@ const BookingFlow = () => {
     loadData();
   }, [accommodationId, subdomainLoading, toast]);
 
-  // 處理從房型頁面傳來的 roomId 參數
+  // 處理從房型頁面傳來的 roomId 和 step 參數
   useEffect(() => {
     const roomId = searchParams.get("roomId");
-    if (roomId && !selectedRoom) {
+    const step = searchParams.get("step");
+    
+    if (roomId && roomTypes.length > 0 && !selectedRoom) {
       const room = roomTypes.find((r) => r.id === roomId);
       if (room) {
         setSelectedRoom(room);
-        setCurrentStep("dates");
+        // 如果有指定 step 參數且為有效步驟，則使用該步驟
+        if (step && ["room", "dates", "guest", "payment", "confirm"].includes(step)) {
+          setCurrentStep(step as BookingStep);
+        } else {
+          setCurrentStep("dates");
+        }
       }
     }
-  }, [searchParams, selectedRoom]);
+  }, [searchParams, roomTypes, selectedRoom]);
 
   const calculateNights = () => {
     if (!checkInDateStr || !checkOutDateStr) return 0;

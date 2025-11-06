@@ -160,7 +160,7 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
               </div>
             )}
           </div>
-          <Link to={`/booking?roomId=${room.id}`}>
+          <Link to={`/booking?roomId=${room.id}&step=dates`}>
             <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg h-10 font-medium mt-3">
               立即預訂
             </Button>
