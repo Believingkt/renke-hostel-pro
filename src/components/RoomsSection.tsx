@@ -70,8 +70,8 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
 
   return (
     <>
-      <Card className="overflow-hidden hover:shadow-xl transition-shadow group border rounded-xl bg-card">
-        <div className="aspect-[4/3] overflow-hidden relative bg-muted">
+      <Card className="overflow-hidden hover:shadow-xl transition-shadow group border rounded-xl bg-card flex flex-col h-full">
+        <div className="aspect-[4/3] overflow-hidden relative bg-muted flex-shrink-0">
           <Carousel 
             className="w-full h-full"
             opts={{ loop: true }}
@@ -106,7 +106,7 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
             <CarouselNext className="right-2" />
           </Carousel>
         </div>
-      <CardContent className="p-4 md:p-6">
+      <CardContent className="p-4 md:p-6 flex flex-col flex-1">
         <h3 className="text-xl md:text-2xl font-bold mb-1 text-foreground">{room.name}</h3>
         <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4">{room.name_en}</p>
         <p className="text-sm mb-4 md:mb-6 text-muted-foreground leading-relaxed">{room.description}</p>
@@ -131,7 +131,7 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
           <span className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md">迎賓茶點</span>
         </div>
         
-        <div className="pt-4 border-t space-y-3">
+        <div className="pt-4 border-t space-y-3 mt-auto">
           {room.weekdayPricing && (
             <div>
               <p className="text-xs font-semibold text-foreground mb-2">平日</p>
