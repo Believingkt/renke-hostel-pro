@@ -55,7 +55,13 @@ const Index = () => {
           const [roomTypesRes, bookingSettingsRes, facilitiesRes, locationInfoRes] = await Promise.all([
             supabase
               .from("room_types")
-              .select("*")
+              .select(`
+                *,
+                room_photos (
+                  photo_url,
+                  display_order
+                )
+              `)
               .eq("accommodation_id", infoData.id)
               .order("display_order"),
             supabase
@@ -75,9 +81,15 @@ const Index = () => {
               .maybeSingle()
           ]);
 
+          // 整理照片順序
+          const roomTypesWithPhotos = (roomTypesRes.data || []).map(room => ({
+            ...room,
+            room_photos: (room.room_photos || []).sort((a, b) => a.display_order - b.display_order)
+          }));
+
           setData({
             info: infoData,
-            roomTypes: roomTypesRes.data || [],
+            roomTypes: roomTypesWithPhotos,
             bookingSettings: bookingSettingsRes.data,
             facilities: facilitiesRes.data || [],
             locationInfo: locationInfoRes.data

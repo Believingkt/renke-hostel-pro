@@ -54,8 +54,12 @@ const roomImages: Record<string, string[]> = {
   "標準客房": [roomStandard, roomDeluxe, roomSuite, roomStandard, roomDeluxe],
 };
 
-const RoomCard = ({ room }: { room: RoomType }) => {
-  const images = roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard];
+const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: string; display_order: number }[] } }) => {
+  // 優先使用資料庫照片，沒有則使用預設照片
+  const databaseImages = room.room_photos?.map(p => p.photo_url) || [];
+  const defaultImages = roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard];
+  const images = databaseImages.length > 0 ? databaseImages : defaultImages;
+  
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
