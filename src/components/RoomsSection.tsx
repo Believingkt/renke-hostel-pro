@@ -109,7 +109,7 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
       <CardContent className="p-4 md:p-6 flex flex-col flex-1 min-h-0">
         <h3 className="text-xl md:text-2xl font-bold mb-1 text-foreground">{room.name}</h3>
         <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4">{room.name_en}</p>
-        <p className="text-sm mb-4 md:mb-6 text-muted-foreground leading-relaxed line-clamp-3">{room.description}</p>
+        <p className="text-sm mb-4 md:mb-6 text-muted-foreground leading-relaxed h-12 overflow-hidden">{room.description}</p>
         
         <div className="flex items-center gap-3 mb-6 text-sm text-muted-foreground">
           <div className="flex items-center gap-1">
@@ -124,14 +124,12 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <span className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md">山景陽台</span>
-          <span className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md">獨立衛浴</span>
-          <span className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md">免費WiFi</span>
-          <span className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md">迎賓茶點</span>
+        <div className="flex flex-wrap gap-2 h-16 content-start">
+          <span className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md h-fit">山景陽台</span>
+          <span className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md h-fit">獨立衛浴</span>
+          <span className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md h-fit">免費WiFi</span>
+          <span className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md h-fit">迎賓茶點</span>
         </div>
-        
-        <div className="flex-1"></div>
         
         <div className="pt-3 border-t space-y-3 mt-3">
           {room.weekdayPricing && (
