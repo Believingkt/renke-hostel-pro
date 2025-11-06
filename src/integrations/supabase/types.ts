@@ -526,6 +526,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_view_user_roles: {
+        Args: { _accommodation_id: string }
+        Returns: boolean
+      }
       get_user_accommodations: {
         Args: { _user_id: string }
         Returns: {
