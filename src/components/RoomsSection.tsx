@@ -72,7 +72,10 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
     <>
       <Card className="overflow-hidden hover:shadow-xl transition-shadow group border rounded-xl bg-card">
         <div className="aspect-[4/3] overflow-hidden relative bg-muted">
-          <Carousel className="w-full h-full">
+          <Carousel 
+            className="w-full h-full"
+            opts={{ loop: true }}
+          >
             <CarouselContent className="h-full">
               {images.map((image, index) => (
                 <CarouselItem key={index} className="h-full">
