@@ -60,13 +60,6 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
   const defaultImages = roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard];
   const images = databaseImages.length > 0 ? databaseImages : defaultImages;
   
-  console.log(`Room ${room.name}:`, {
-    hasRoomPhotos: !!room.room_photos,
-    photoCount: room.room_photos?.length || 0,
-    databaseImages: databaseImages.length,
-    usingDatabase: databaseImages.length > 0
-  });
-  
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
@@ -211,7 +204,7 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
 };
 
 const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
-  // 將資料庫的房型資料轉換為顯示格式
+  // 將資料庫的房型資料轉換為顯示格式，保留照片資料
   const displayRooms: RoomType[] = roomTypes.map(room => ({
     id: room.id,
     name: room.name,
@@ -220,6 +213,7 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
     capacity: room.capacity,
     size_sqm: room.size_sqm || 0,
     base_price: room.base_price,
+    room_photos: room.room_photos || [], // 保留照片資料
     weekdayPricing: room.weekday_price ? [
       { type: "一泊二食", price: room.weekday_price },
       { type: "一泊三食", price: Math.round(room.weekday_price * 1.28) }

@@ -87,8 +87,6 @@ const Index = () => {
             room_photos: (room.room_photos || []).sort((a, b) => a.display_order - b.display_order)
           }));
 
-          console.log('Loaded room types with photos:', roomTypesWithPhotos);
-
           setData({
             info: infoData,
             roomTypes: roomTypesWithPhotos,
