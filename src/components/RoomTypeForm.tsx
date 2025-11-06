@@ -159,8 +159,8 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
-        const filePath = `${accommodationId}/${fileName}`;
+        const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+        const filePath = fileName;
 
         const { error } = await supabase.storage
           .from('room-photos')
