@@ -69,7 +69,7 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
   };
 
   return (
-    <>
+    <div className="h-full">
       <Card className="overflow-hidden hover:shadow-xl transition-shadow group border rounded-xl bg-card flex flex-col h-full">
         <div className="aspect-[4/3] overflow-hidden relative bg-muted flex-shrink-0">
           <Carousel 
@@ -204,7 +204,7 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
         </div>
       </DialogContent>
     </Dialog>
-    </>
+    </div>
   );
 };
 
@@ -238,7 +238,7 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
             精心設計的客房空間，讓您在山林間享受寧靜舒適的住宿體驗
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 items-stretch">
             {displayRooms.map((room) => (
               <RoomCard key={room.id} room={room} />
             ))}
