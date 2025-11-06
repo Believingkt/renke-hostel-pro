@@ -132,34 +132,36 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
         </div>
         
         <div className="pt-3 border-t space-y-3 mt-auto">
-          {room.weekdayPricing && (
-            <div>
-              <p className="text-xs font-semibold text-foreground mb-2">平日</p>
-              <div className="space-y-1">
-                {room.weekdayPricing.map((option, idx) => (
-                  <div key={idx} className="flex justify-between items-center">
-                    <span className="text-lg text-muted-foreground">{option.type}</span>
-                    <span className="font-semibold text-xl text-primary">NT$ {option.price.toLocaleString()}</span>
-                  </div>
-                ))}
+          <div className="space-y-3">
+            {room.weekdayPricing && (
+              <div>
+                <p className="text-xs font-semibold text-foreground mb-2">平日</p>
+                <div className="space-y-1">
+                  {room.weekdayPricing.map((option, idx) => (
+                    <div key={idx} className="flex justify-between items-center">
+                      <span className="text-lg text-muted-foreground">{option.type}</span>
+                      <span className="font-semibold text-xl text-primary">NT$ {option.price.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
-          {room.weekendPricing && (
-            <div>
-              <p className="text-xs font-semibold text-foreground mb-2">假日</p>
-              <div className="space-y-1">
-                {room.weekendPricing.map((option, idx) => (
-                  <div key={idx} className="flex justify-between items-center">
-                    <span className="text-lg text-muted-foreground">{option.type}</span>
-                    <span className="font-semibold text-xl text-primary">NT$ {option.price.toLocaleString()}</span>
-                  </div>
-                ))}
+            )}
+            {room.weekendPricing && (
+              <div>
+                <p className="text-xs font-semibold text-foreground mb-2">假日</p>
+                <div className="space-y-1">
+                  {room.weekendPricing.map((option, idx) => (
+                    <div key={idx} className="flex justify-between items-center">
+                      <span className="text-lg text-muted-foreground">{option.type}</span>
+                      <span className="font-semibold text-xl text-primary">NT$ {option.price.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
           <Link to={`/booking?roomId=${room.id}`}>
-            <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg h-10 font-medium mt-3">
+            <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg h-10 font-medium">
               立即預訂
             </Button>
           </Link>
