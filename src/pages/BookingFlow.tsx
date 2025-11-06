@@ -53,14 +53,6 @@ const guestInfoSchema = z.object({
   notes: z.string().trim().max(500, { message: "備註不能超過500個字元" }).optional(),
 });
 
-// 房型圖片映射
-const roomImages: Record<string, string[]> = {
-  "12人包區": [roomDeluxe, roomSuite, roomStandard, roomDeluxe, roomSuite],
-  "14人包區": [roomSuite, roomStandard, roomDeluxe, roomSuite, roomStandard],
-  "16人包區": [roomStandard, roomDeluxe, roomSuite, roomStandard, roomDeluxe],
-  "18人包區": [roomDeluxe, roomStandard, roomSuite, roomDeluxe, roomStandard],
-};
-
 interface RoomType {
   id: string;
   name: string;
@@ -71,6 +63,7 @@ interface RoomType {
   base_price: number;
   weekdayPricing?: { type: string; price: number }[];
   weekendPricing?: { type: string; price: number }[];
+  room_photos?: { photo_url: string; display_order: number }[];
 }
 
 interface BookingSettings {
@@ -99,78 +92,7 @@ const BookingFlow = () => {
   const [currentStep, setCurrentStep] = useState<BookingStep>("room");
   const [bookingSettings, setBookingSettings] = useState<BookingSettings | null>(null);
   const [accommodationName, setAccommodationName] = useState("森山寫照");
-  
-  // 固定的包區資料，與首頁保持一致
-  const roomTypes: RoomType[] = [
-    {
-      id: "12-people",
-      name: "12人包區",
-      name_en: "三間房 | 四人：3間",
-      description: "適合中小型團體的豪華包區，提供完整的露營設施與舒適空間",
-      capacity: 12,
-      size_sqm: 150,
-      base_price: 30000,
-      weekdayPricing: [
-        { type: "一泊二食", price: 30000 },
-        { type: "一泊三食", price: 38400 },
-      ],
-      weekendPricing: [
-        { type: "一泊二食", price: 33000 },
-        { type: "一泊三食", price: 42000 },
-      ],
-    },
-    {
-      id: "14-people",
-      name: "14人包區",
-      name_en: "四間房 | 雙人1間 +四人3間",
-      description: "寬敞舒適的包區空間，適合家庭或朋友團體聚會",
-      capacity: 14,
-      size_sqm: 180,
-      base_price: 32700,
-      weekdayPricing: [
-        { type: "一泊二食", price: 32700 },
-        { type: "一泊三食", price: 42500 },
-      ],
-      weekendPricing: [
-        { type: "一泊二食", price: 36000 },
-        { type: "一泊三食", price: 46500 },
-      ],
-    },
-    {
-      id: "16-people",
-      name: "16人包區",
-      name_en: "五間房 | 雙人2間 +四人3間",
-      description: "大型團體的理想選擇，享受自然與慢活的豪華體驗",
-      capacity: 16,
-      size_sqm: 200,
-      base_price: 38700,
-      weekdayPricing: [
-        { type: "一泊二食", price: 38700 },
-        { type: "一泊三食", price: 49900 },
-      ],
-      weekendPricing: [
-        { type: "一泊二食", price: 42500 },
-        { type: "一泊三食", price: 54500 },
-      ],
-    },
-    {
-      id: "18-people",
-      name: "18人包區",
-      name_en: "18 People Package",
-      description: "最大容量包區，提供頂級的團體露營體驗",
-      capacity: 18,
-      size_sqm: 220,
-      base_price: 49500,
-      weekdayPricing: [
-        { type: "一泊二食", price: 49500 },
-        { type: "一泊三食", price: 62100 },
-      ],
-      weekendPricing: [
-        { type: "一泊二食", price: 54600 },
-        { type: "一泊三食", price: 67200 },
-      ],
-    },
-  ];
+  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   
   // 訂房資料
   const [selectedRoom, setSelectedRoom] = useState<RoomType | null>(null);
@@ -222,6 +144,44 @@ const BookingFlow = () => {
         
         if (settingsData) {
           setBookingSettings(settingsData);
+        }
+
+        // 獲取房型資料，包括照片
+        const { data: roomTypesData, error: roomTypesError } = await supabase
+          .from("room_types")
+          .select(`
+            *,
+            room_photos (
+              photo_url,
+              display_order
+            )
+          `)
+          .eq("accommodation_id", accommodationId)
+          .order("display_order", { ascending: true });
+
+        if (roomTypesError) throw roomTypesError;
+
+        if (roomTypesData) {
+          const roomTypesWithPhotos: RoomType[] = roomTypesData.map(room => ({
+            id: room.id,
+            name: room.name,
+            name_en: room.name_en || '',
+            description: room.description || '',
+            capacity: room.capacity,
+            size_sqm: room.size_sqm || 0,
+            base_price: room.base_price,
+            room_photos: (room.room_photos || []).sort((a, b) => a.display_order - b.display_order),
+            weekdayPricing: room.weekday_price ? [
+              { type: "一泊二食", price: room.weekday_price },
+              { type: "一泊三食", price: Math.round(room.weekday_price * 1.28) }
+            ] : undefined,
+            weekendPricing: room.weekend_price ? [
+              { type: "一泊二食", price: room.weekend_price },
+              { type: "一泊三食", price: Math.round(room.weekend_price * 1.28) }
+            ] : undefined,
+          }));
+          
+          setRoomTypes(roomTypesWithPhotos);
         }
       } catch (error) {
         console.error("Error loading data:", error);
@@ -549,7 +509,7 @@ const BookingFlow = () => {
                           <div className="relative bg-muted h-[300px] md:h-[500px] lg:h-[450px] overflow-hidden">
                             <Carousel className="w-full h-full">
                               <CarouselContent className="ml-0 h-full">
-                                {(roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard]).map((image, index) => (
+                                {((room.room_photos?.map(p => p.photo_url) || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard])).map((image, index) => (
                                   <CarouselItem 
                                     key={index}
                                     className="pl-0 min-w-full h-full"
@@ -1105,7 +1065,7 @@ const BookingFlow = () => {
             {selectedImageRoom && (
               <>
                 <img 
-                  src={(roomImages[selectedImageRoom.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard])[selectedImageIndex]} 
+                  src={(selectedImageRoom.room_photos?.map(p => p.photo_url) || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard])[selectedImageIndex]} 
                   alt={`${selectedImageRoom.name} - ${selectedImageIndex + 1}`}
                   className="max-w-full max-h-full object-contain"
                 />
@@ -1114,7 +1074,7 @@ const BookingFlow = () => {
                   size="icon"
                   className="absolute left-4 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 border-white/20"
                   onClick={() => {
-                    const images = roomImages[selectedImageRoom.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard];
+                    const images = selectedImageRoom.room_photos?.map(p => p.photo_url) || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard];
                     setSelectedImageIndex((prev) => (prev - 1 + images.length) % images.length);
                   }}
                 >
@@ -1127,7 +1087,7 @@ const BookingFlow = () => {
                   size="icon"
                   className="absolute right-4 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 border-white/20"
                   onClick={() => {
-                    const images = roomImages[selectedImageRoom.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard];
+                    const images = selectedImageRoom.room_photos?.map(p => p.photo_url) || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard];
                     setSelectedImageIndex((prev) => (prev + 1) % images.length);
                   }}
                 >
