@@ -1060,6 +1060,16 @@ const BookingFlow = () => {
               <CardContent className="space-y-4">
                 {selectedRoom ? (
                   <>
+                    {/* 房型照片 */}
+                    {selectedRoom.room_photos && selectedRoom.room_photos.length > 0 && (
+                      <div className="rounded-lg overflow-hidden">
+                        <img 
+                          src={selectedRoom.room_photos[0].photo_url} 
+                          alt={selectedRoom.name}
+                          className="w-full h-40 object-cover"
+                        />
+                      </div>
+                    )}
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">房型</p>
                       <p className="font-medium">{selectedRoom.name}</p>
