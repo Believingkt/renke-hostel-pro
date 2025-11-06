@@ -61,6 +61,10 @@ interface RoomType {
   capacity: number;
   size_sqm: number;
   base_price: number;
+  weekday_2_meals_price?: number;
+  weekday_3_meals_price?: number;
+  weekend_2_meals_price?: number;
+  weekend_3_meals_price?: number;
   weekdayPricing?: { type: string; price: number }[];
   weekendPricing?: { type: string; price: number }[];
   room_photos?: { photo_url: string; display_order: number }[];
@@ -96,6 +100,7 @@ const BookingFlow = () => {
   
   // 訂房資料
   const [selectedRoom, setSelectedRoom] = useState<RoomType | null>(null);
+  const [selectedMealPlan, setSelectedMealPlan] = useState<"2_meals" | "3_meals">("2_meals");
   const [guestInfo, setGuestInfo] = useState({
     name: "",
     phone: "",
@@ -170,14 +175,18 @@ const BookingFlow = () => {
             capacity: room.capacity,
             size_sqm: room.size_sqm || 0,
             base_price: room.base_price,
+            weekday_2_meals_price: room.weekday_2_meals_price,
+            weekday_3_meals_price: room.weekday_3_meals_price,
+            weekend_2_meals_price: room.weekend_2_meals_price,
+            weekend_3_meals_price: room.weekend_3_meals_price,
             room_photos: (room.room_photos || []).sort((a, b) => a.display_order - b.display_order),
-            weekdayPricing: room.weekday_price ? [
-              { type: "一泊二食", price: room.weekday_price },
-              { type: "一泊三食", price: Math.round(room.weekday_price * 1.28) }
+            weekdayPricing: (room.weekday_2_meals_price || room.weekday_3_meals_price) ? [
+              ...(room.weekday_2_meals_price ? [{ type: "一泊二食", price: room.weekday_2_meals_price }] : []),
+              ...(room.weekday_3_meals_price ? [{ type: "一泊三食", price: room.weekday_3_meals_price }] : [])
             ] : undefined,
-            weekendPricing: room.weekend_price ? [
-              { type: "一泊二食", price: room.weekend_price },
-              { type: "一泊三食", price: Math.round(room.weekend_price * 1.28) }
+            weekendPricing: (room.weekend_2_meals_price || room.weekend_3_meals_price) ? [
+              ...(room.weekend_2_meals_price ? [{ type: "一泊二食", price: room.weekend_2_meals_price }] : []),
+              ...(room.weekend_3_meals_price ? [{ type: "一泊三食", price: room.weekend_3_meals_price }] : [])
             ] : undefined,
           }));
           
@@ -216,10 +225,40 @@ const BookingFlow = () => {
     return Math.ceil(diff / (1000 * 3600 * 24));
   };
 
+  const isWeekend = (date: Date) => {
+    const day = date.getDay();
+    return day === 5 || day === 6; // 五、六為假日
+  };
+
   const calculateTotal = () => {
-    if (!selectedRoom) return 0;
+    if (!selectedRoom || !checkInDate || !checkOutDate) return 0;
     const nights = calculateNights();
-    return selectedRoom.base_price * nights;
+    if (nights === 0) return 0;
+
+    let total = 0;
+    const start = new Date(checkInDateStr);
+    
+    for (let i = 0; i < nights; i++) {
+      const currentDate = new Date(start);
+      currentDate.setDate(start.getDate() + i);
+      
+      const isWeekendDay = isWeekend(currentDate);
+      let pricePerNight = 0;
+      
+      if (isWeekendDay) {
+        pricePerNight = selectedMealPlan === "2_meals" 
+          ? (selectedRoom.weekend_2_meals_price || 0)
+          : (selectedRoom.weekend_3_meals_price || 0);
+      } else {
+        pricePerNight = selectedMealPlan === "2_meals"
+          ? (selectedRoom.weekday_2_meals_price || 0)
+          : (selectedRoom.weekday_3_meals_price || 0);
+      }
+      
+      total += pricePerNight;
+    }
+    
+    return total;
   };
 
   const calculateDiscount = () => {
@@ -657,6 +696,39 @@ const BookingFlow = () => {
                         </p>
                       )}
                     </div>
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        餐食方案 <span className="text-destructive">*</span>
+                      </Label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <Card 
+                          className={`cursor-pointer transition-all ${
+                            selectedMealPlan === "2_meals"
+                              ? "border-2 border-primary shadow-md bg-primary/5"
+                              : "border hover:border-primary/50"
+                          }`}
+                          onClick={() => setSelectedMealPlan("2_meals")}
+                        >
+                          <CardContent className="p-4 text-center">
+                            <p className="font-semibold mb-1">一泊二食</p>
+                            <p className="text-xs text-muted-foreground">含早餐、晚餐</p>
+                          </CardContent>
+                        </Card>
+                        <Card 
+                          className={`cursor-pointer transition-all ${
+                            selectedMealPlan === "3_meals"
+                              ? "border-2 border-primary shadow-md bg-primary/5"
+                              : "border hover:border-primary/50"
+                          }`}
+                          onClick={() => setSelectedMealPlan("3_meals")}
+                        >
+                          <CardContent className="p-4 text-center">
+                            <p className="font-semibold mb-1">一泊三食</p>
+                            <p className="text-xs text-muted-foreground">含早、午、晚餐</p>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </div>
                     {checkInDate && checkOutDate && (
                       <Card className="bg-muted/50">
                         <CardContent className="p-4">
@@ -879,6 +951,10 @@ const BookingFlow = () => {
                           <p className="text-sm text-muted-foreground">入住人數</p>
                           <p className="font-medium">{totalGuests} 人</p>
                         </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">餐食方案</p>
+                          <p className="font-medium">{selectedMealPlan === "2_meals" ? "一泊二食" : "一泊三食"}</p>
+                        </div>
                       </CardContent>
                     </Card>
 
@@ -1006,7 +1082,7 @@ const BookingFlow = () => {
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">
-                              NT$ {selectedRoom.base_price.toLocaleString()} × {calculateNights()} 晚
+                              {selectedMealPlan === "2_meals" ? "一泊二食" : "一泊三食"} × {calculateNights()} 晚
                             </span>
                             <span className="font-medium">
                               NT$ {calculateTotal().toLocaleString()}

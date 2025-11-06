@@ -217,13 +217,13 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
     size_sqm: room.size_sqm || 0,
     base_price: room.base_price,
     room_photos: room.room_photos || [], // 保留照片資料
-    weekdayPricing: room.weekday_price ? [
-      { type: "一泊二食", price: room.weekday_price },
-      { type: "一泊三食", price: Math.round(room.weekday_price * 1.28) }
+    weekdayPricing: (room.weekday_2_meals_price || room.weekday_3_meals_price) ? [
+      ...(room.weekday_2_meals_price ? [{ type: "一泊二食", price: room.weekday_2_meals_price }] : []),
+      ...(room.weekday_3_meals_price ? [{ type: "一泊三食", price: room.weekday_3_meals_price }] : [])
     ] : undefined,
-    weekendPricing: room.weekend_price ? [
-      { type: "一泊二食", price: room.weekend_price },
-      { type: "一泊三食", price: Math.round(room.weekend_price * 1.28) }
+    weekendPricing: (room.weekend_2_meals_price || room.weekend_3_meals_price) ? [
+      ...(room.weekend_2_meals_price ? [{ type: "一泊二食", price: room.weekend_2_meals_price }] : []),
+      ...(room.weekend_3_meals_price ? [{ type: "一泊三食", price: room.weekend_3_meals_price }] : [])
     ] : undefined,
   }));
 
