@@ -107,31 +107,31 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
           </Carousel>
         </div>
       <CardContent className="p-4 md:p-6 flex flex-col flex-1">
-        <div className="flex-1">
-          <h3 className="text-xl md:text-2xl font-bold mb-1 text-foreground">{room.name}</h3>
-          <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4">{room.name_en}</p>
-          <p className="text-sm mb-4 md:mb-6 text-muted-foreground leading-relaxed">{room.description}</p>
-          
-          <div className="flex items-center gap-3 mb-6 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Users className="h-4 w-4" />
-              <span>{room.capacity}人</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-              </svg>
-              <span>{room.size_sqm}㎡</span>
-            </div>
+        <h3 className="text-xl md:text-2xl font-bold mb-1 text-foreground">{room.name}</h3>
+        <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4">{room.name_en}</p>
+        <p className="text-sm mb-4 md:mb-6 text-muted-foreground leading-relaxed">{room.description}</p>
+        
+        <div className="flex items-center gap-3 mb-6 text-sm text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <Users className="h-4 w-4" />
+            <span>{room.capacity}人</span>
           </div>
-
-          <div className="flex flex-wrap gap-2">
-            <span className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md">山景陽台</span>
-            <span className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md">獨立衛浴</span>
-            <span className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md">免費WiFi</span>
-            <span className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md">迎賓茶點</span>
+          <div className="flex items-center gap-1">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+            </svg>
+            <span>{room.size_sqm}㎡</span>
           </div>
         </div>
+
+        <div className="flex flex-wrap gap-2">
+          <span className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md">山景陽台</span>
+          <span className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md">獨立衛浴</span>
+          <span className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md">免費WiFi</span>
+          <span className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md">迎賓茶點</span>
+        </div>
+        
+        <div className="flex-1"></div>
         
         <div className="pt-3 border-t space-y-3 mt-3">
           {room.weekdayPricing && (
