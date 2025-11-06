@@ -124,14 +124,14 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2 mb-6">
+        <div className="flex flex-wrap gap-2 mb-3">
           <span className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md">山景陽台</span>
           <span className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md">獨立衛浴</span>
           <span className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md">免費WiFi</span>
           <span className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md">迎賓茶點</span>
         </div>
         
-        <div className="pt-4 border-t space-y-3 mt-auto">
+        <div className="pt-3 border-t space-y-3 mt-auto">
           {room.weekdayPricing && (
             <div>
               <p className="text-xs font-semibold text-foreground mb-2">平日</p>
