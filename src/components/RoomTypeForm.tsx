@@ -29,7 +29,7 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
     display_order: "0",
   });
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
-  const [uploadingPhotos, setUploadingPhotos] = useState<boolean[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (roomType) {
@@ -61,43 +61,40 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
     }
   };
 
-  const handleFileUpload = async (file: File, index: number) => {
-    if (!file) return;
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
 
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-    const filePath = `${fileName}`;
-
-    setUploadingPhotos(prev => {
-      const newState = [...prev];
-      newState[index] = true;
-      return newState;
-    });
-
+    setUploading(true);
     try {
-      const { error: uploadError } = await supabase.storage
-        .from('room-photos')
-        .upload(filePath, file);
+      const uploadedUrls: string[] = [];
+      
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+        const filePath = `${accommodationId}/${fileName}`;
 
-      if (uploadError) throw uploadError;
+        const { error } = await supabase.storage
+          .from('room-photos')
+          .upload(filePath, file);
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('room-photos')
-        .getPublicUrl(filePath);
+        if (error) throw error;
 
-      const newUrls = [...photoUrls];
-      newUrls[index] = publicUrl;
-      setPhotoUrls(newUrls);
+        const { data: { publicUrl } } = supabase.storage
+          .from('room-photos')
+          .getPublicUrl(filePath);
 
-      toast.success("照片上傳成功");
+        uploadedUrls.push(publicUrl);
+      }
+
+      setPhotoUrls([...photoUrls, ...uploadedUrls]);
+      toast.success(`已上傳 ${uploadedUrls.length} 張照片`);
     } catch (error: any) {
-      toast.error("照片上傳失敗：" + error.message);
+      toast.error("上傳失敗：" + error.message);
     } finally {
-      setUploadingPhotos(prev => {
-        const newState = [...prev];
-        newState[index] = false;
-        return newState;
-      });
+      setUploading(false);
+      event.target.value = '';
     }
   };
 
@@ -197,35 +194,49 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
           </div>
         </div>
         <div className="space-y-2">
-          <div className="flex justify-between">
+          <div className="flex justify-between items-center">
             <Label>物件照片</Label>
-            <Button type="button" variant="outline" size="sm" onClick={() => setPhotoUrls([...photoUrls, ""])}><Plus className="h-4 w-4" /></Button>
-          </div>
-          {photoUrls.map((url, i) => (
-            <div key={i} className="space-y-2">
-              <div className="flex gap-2">
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleFileUpload(file, i);
-                  }}
-                  disabled={uploadingPhotos[i]}
-                  className="flex-1"
-                />
-                <Button variant="outline" size="icon" onClick={() => setPhotoUrls(photoUrls.filter((_, idx) => idx !== i))} disabled={uploadingPhotos[i]}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-              {url && (
-                <div className="relative w-full h-32 rounded-md overflow-hidden border">
-                  <img src={url} alt={`預覽 ${i + 1}`} className="w-full h-full object-cover" />
-                </div>
-              )}
-              {uploadingPhotos[i] && <p className="text-sm text-muted-foreground">上傳中...</p>}
+            <div className="flex gap-2">
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                onClick={() => document.getElementById('photo-upload')?.click()}
+                disabled={uploading}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                {uploading ? "上傳中..." : "選擇照片"}
+              </Button>
+              <input
+                id="photo-upload"
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={handleFileUpload}
+              />
             </div>
-          ))}
+          </div>
+          {photoUrls.length > 0 && (
+            <div className="space-y-2 mt-3">
+              {photoUrls.map((url, i) => (
+                <div key={i} className="flex gap-2 items-start">
+                  <div className="flex-1 space-y-1">
+                    <img src={url} alt={`照片 ${i + 1}`} className="w-full h-32 object-cover rounded-md border" />
+                    <Input value={url} readOnly className="text-xs" />
+                  </div>
+                  <Button 
+                    type="button"
+                    variant="outline" 
+                    size="icon" 
+                    onClick={() => setPhotoUrls(photoUrls.filter((_, idx) => idx !== i))}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <div className="flex justify-end gap-2 pt-4">
           <Button variant="outline" onClick={onCancel}>取消</Button>
