@@ -52,7 +52,9 @@ const Accounts = () => {
   const { accommodationId } = useSubdomain();
 
   useEffect(() => {
-    loadUsers();
+    if (accommodationId) {
+      loadUsers();
+    }
   }, [accommodationId]);
 
   const loadUsers = async () => {
