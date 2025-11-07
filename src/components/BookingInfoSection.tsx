@@ -14,7 +14,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
         <div className="max-w-4xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-3 md:mb-4">訂房須知</h2>
           <p className="text-center text-muted-foreground mb-8 md:mb-16 text-base md:text-lg">
-            為確保您有愉快的住宿體驗，請詳閱以下訂房相關資訊
+            為確保愉快的住宿體驗，請詳閱以下相關資訊
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
