@@ -1170,14 +1170,14 @@ const BookingFlow = () => {
 
       {/* 圖片放大對話框 */}
       <Dialog open={isImageDialogOpen} onOpenChange={setIsImageDialogOpen}>
-        <DialogContent hideCloseButton className="max-w-7xl w-[95vw] h-[95vh] p-0 border-0 overflow-hidden">
-          <div className="relative w-full h-full flex items-center justify-center bg-black p-2 md:p-4">
+        <DialogContent hideCloseButton className="max-w-[98vw] w-[98vw] h-[98vh] p-0 border-0 overflow-hidden">
+          <div className="relative w-full h-full flex items-center justify-center bg-black">
             {selectedImageRoom && (
               <>
                 <img 
                   src={(selectedImageRoom.room_photos?.map(p => p.photo_url) || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard])[selectedImageIndex]} 
                   alt={`${selectedImageRoom.name} - ${selectedImageIndex + 1}`}
-                  className="max-w-full max-h-full object-contain"
+                  className="w-full h-full object-contain"
                 />
                 <Button
                   variant="outline"
