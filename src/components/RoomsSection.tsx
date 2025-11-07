@@ -198,7 +198,7 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
     </Card>
 
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-      <DialogContent hideCloseButton className="max-w-[100vw] w-[100vw] h-[100vh] p-0 border-0 overflow-hidden">
+      <DialogContent hideCloseButton={true} className="max-w-[100vw] w-[100vw] h-[100vh] p-0 border-0 overflow-hidden">
         <div className="relative w-full h-full flex items-center justify-center bg-black">
           <img 
             src={images[selectedImageIndex]} 
