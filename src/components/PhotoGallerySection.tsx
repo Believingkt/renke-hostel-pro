@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Photo {
   id: string;
@@ -16,7 +17,10 @@ interface PhotoGallerySectionProps {
 const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
-  const photosPerPage = 12;
+  const isMobile = useIsMobile();
+  
+  // 手機版顯示 9 張（3列x3欄），平板和桌面顯示 12 張
+  const photosPerPage = isMobile ? 9 : 12;
 
   if (!photos || photos.length === 0) {
     return null;
