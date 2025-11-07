@@ -71,8 +71,6 @@ serve(async (req) => {
 
     const { name, email, password, role, accommodationId } = validation.data;
 
-    console.log("Creating user:", { name, email, role, accommodationId });
-
     // Check if caller has admin role for this accommodation
     const { data: userRoles } = await supabaseAdmin
       .from('user_roles')
@@ -117,8 +115,6 @@ serve(async (req) => {
     });
 
     if (userError) {
-      console.error("Error creating user:", userError);
-      
       // Return friendly error messages
       let errorMessage = userError.message;
       if (userError.message.includes("already been registered")) {
@@ -139,8 +135,6 @@ serve(async (req) => {
       );
     }
 
-    console.log("User created successfully:", userData.user.id);
-
     // Create user role
     const { error: roleError } = await supabaseAdmin
       .from("user_roles")
@@ -151,13 +145,10 @@ serve(async (req) => {
       });
 
     if (roleError) {
-      console.error("Error creating user role:", roleError);
       // Rollback: delete the created user
       await supabaseAdmin.auth.admin.deleteUser(userData.user.id);
       throw new Error("建立使用者角色失敗");
     }
-
-    console.log("User role created successfully");
 
     return new Response(
       JSON.stringify({

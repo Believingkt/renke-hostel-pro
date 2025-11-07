@@ -60,28 +60,16 @@ const Accounts = () => {
 
   const loadUsers = async () => {
     if (!accommodationId) {
-      console.log("No accommodationId, skipping load");
       return;
     }
 
-    console.log("Loading users for accommodation:", accommodationId);
     setIsLoading(true);
 
     try {
-      // First, test if we can query at all
-      const { data: testQuery, error: testError } = await supabase
-        .from("user_roles")
-        .select("*")
-        .limit(1);
-      
-      console.log("Test query result (first record):", { testQuery, testError });
-
       const { data: userRoles, error } = await supabase
         .from("user_roles")
         .select("user_id, role")
         .eq("accommodation_id", accommodationId);
-
-      console.log("User roles query result:", { userRoles, error });
 
       if (error) {
         console.error("Error loading user roles:", error);
@@ -89,21 +77,17 @@ const Accounts = () => {
       }
 
       if (!userRoles || userRoles.length === 0) {
-        console.log("No user roles found for this accommodation");
         setUsers([]);
         return;
       }
 
       // Get profiles for all users
       const userIds = userRoles.map(ur => ur.user_id);
-      console.log("Fetching profiles for user IDs:", userIds);
 
       const { data: profiles, error: profileError } = await supabase
         .from("profiles")
         .select("id, name, email, last_sign_in_at")
         .in("id", userIds);
-
-      console.log("Profiles query result:", { profiles, profileError });
 
       if (profileError) {
         console.error("Error loading profiles:", profileError);
@@ -133,7 +117,6 @@ const Accounts = () => {
         };
       });
 
-      console.log("Final users data to display:", usersData);
       setUsers(usersData);
     } catch (error: any) {
       console.error("Error loading users:", error);
@@ -213,7 +196,7 @@ const Accounts = () => {
   };
 
   const handleDelete = async (userId: string) => {
-    if (!confirm("確定要刪除此帳號嗎？")) return;
+    if (!confirm("確定要移除此帳號的存取權限嗎？\n\n注意：這只會移除該用戶對此住宿設施的存取權限，不會刪除用戶帳號本身。")) return;
 
     try {
       const { error } = await supabase
@@ -224,11 +207,11 @@ const Accounts = () => {
 
       if (error) throw error;
 
-      toast.success("帳號已刪除");
+      toast.success("已移除用戶存取權限");
       loadUsers();
     } catch (error: any) {
-      console.error("Error deleting user:", error);
-      toast.error("刪除帳號失敗");
+      console.error("Error removing user access:", error);
+      toast.error("移除存取權限失敗");
     }
   };
 
