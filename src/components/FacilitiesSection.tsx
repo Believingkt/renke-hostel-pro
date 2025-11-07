@@ -42,19 +42,19 @@ const FacilitiesSection = ({ facilities }: FacilitiesSectionProps) => {
           <p className="text-center text-muted-foreground mb-0 text-base md:text-lg">完善設施與貼心服務，讓您的住宿體驗更加舒適</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6 max-w-6xl mx-auto">
           {Object.entries(groupedFacilities).map(([category, items]) => (
-            <Card key={category}>
-              <CardContent className="p-6">
-                <h3 className="text-xl font-semibold mb-4">
+            <Card key={category} className="hover:shadow-lg transition-all duration-300 border border-border/50 bg-card">
+              <CardContent className="p-5 md:p-6">
+                <h3 className="text-lg md:text-xl font-semibold mb-4 text-foreground">
                   {categoryNames[category] || category}
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {items.map((facility) => (
                     <div key={facility.id} className="flex items-start gap-2">
-                      <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                      <Check className="h-4 w-4 md:h-5 md:w-5 text-primary mt-0.5 flex-shrink-0" />
                       <div className="flex-1">
-                        <span className="text-sm">{facility.facility_name}</span>
+                        <span className="text-xs md:text-sm text-foreground">{facility.facility_name}</span>
                         {facility.pricing_type && facility.pricing_type !== 'included' && (
                           <span className="text-xs text-muted-foreground block">
                             ({facility.pricing_type === 'free' ? '免費提供' : '需額外付費'})

@@ -22,26 +22,26 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
   };
 
   return (
-    <section id="booking-info" className="py-12 md:py-20 bg-gradient-to-b from-background to-muted/30">
+    <section id="booking-info" className="py-12 md:py-20 bg-background">
       <div className="container mx-auto px-4">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12 md:mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-center mb-3 md:mb-4">
               訂房須知
             </h2>
-            <p className="text-center text-muted-foreground mb-0 text-base md:text-lg max-w-2xl mx-auto">
+            <p className="text-center text-muted-foreground text-base md:text-lg mb-0 max-w-2xl mx-auto">
               為確保愉快的住宿體驗，請詳閱以下相關資訊
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
-            <Card className="group hover:shadow-xl transition-all duration-300 border-border/50 bg-card/80 backdrop-blur-sm hover:scale-[1.02]">
+            <Card className="group hover:shadow-lg transition-all duration-300 border border-border/50 bg-card">
               <CardContent className="p-5 md:p-6">
                 <div className="flex items-center gap-2.5 mb-3 md:mb-4">
                   <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
                     <Clock className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                   </div>
-                  <h3 className="font-bold text-base md:text-lg">入住時間</h3>
+                  <h3 className="font-semibold text-base md:text-lg">入住時間</h3>
                 </div>
                 <div className="space-y-0.5 text-sm md:text-sm text-muted-foreground">
                   <div className="flex items-center gap-2 py-1.5">
@@ -56,13 +56,13 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
               </CardContent>
             </Card>
 
-            <Card className="group hover:shadow-xl transition-all duration-300 border-border/50 bg-card/80 backdrop-blur-sm hover:scale-[1.02]">
+            <Card className="group hover:shadow-lg transition-all duration-300 border border-border/50 bg-card">
               <CardContent className="p-5 md:p-6">
                 <div className="flex items-center gap-2.5 mb-3 md:mb-4">
                   <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
                     <CreditCard className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                   </div>
-                  <h3 className="font-bold text-base md:text-lg">付款方式</h3>
+                  <h3 className="font-semibold text-base md:text-lg">付款方式</h3>
                 </div>
                 <div className="space-y-0.5 text-sm md:text-sm text-muted-foreground">
                   {Array.isArray(bookingSettings?.payment_methods)
@@ -78,13 +78,13 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
               </CardContent>
             </Card>
 
-            <Card className="group hover:shadow-xl transition-all duration-300 border-border/50 bg-card/80 backdrop-blur-sm hover:scale-[1.02]">
+            <Card className="group hover:shadow-lg transition-all duration-300 border border-border/50 bg-card">
               <CardContent className="p-5 md:p-6">
                 <div className="flex items-center gap-2.5 mb-3 md:mb-4">
                   <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
                     <FileText className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                   </div>
-                  <h3 className="font-bold text-base md:text-lg">取消政策</h3>
+                  <h3 className="font-semibold text-base md:text-lg">取消政策</h3>
                 </div>
                 <div className="space-y-0.5 text-sm md:text-sm text-muted-foreground">
                   {bookingSettings?.cancellation_policy?.split('\n').map((line: string, index: number) => (
@@ -94,13 +94,13 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
               </CardContent>
             </Card>
 
-            <Card className="group hover:shadow-xl transition-all duration-300 border-border/50 bg-card/80 backdrop-blur-sm hover:scale-[1.02] flex flex-col">
+            <Card className="group hover:shadow-lg transition-all duration-300 border border-border/50 bg-card flex flex-col">
               <CardContent className="p-5 md:p-6 flex flex-col flex-1">
                 <div className="flex items-center gap-2.5 mb-3 md:mb-4">
                   <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
                     <Info className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                   </div>
-                  <h3 className="font-bold text-base md:text-lg">重要事項</h3>
+                  <h3 className="font-semibold text-base md:text-lg">重要事項</h3>
                 </div>
                 <div className="flex-1 flex flex-col">
                   <div className="space-y-0.5 text-sm md:text-sm text-muted-foreground overflow-hidden" style={{ maxHeight: "180px" }}>
@@ -123,13 +123,13 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
             </Card>
 
             {hasPetPolicy && (
-              <Card className="group hover:shadow-xl transition-all duration-300 border-border/50 bg-card/80 backdrop-blur-sm hover:scale-[1.02] flex flex-col">
+              <Card className="group hover:shadow-lg transition-all duration-300 border border-border/50 bg-card flex flex-col">
                 <CardContent className="p-5 md:p-6 flex flex-col flex-1">
                   <div className="flex items-center gap-2.5 mb-3 md:mb-4">
                     <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
                       <PawPrint className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                     </div>
-                    <h3 className="font-bold text-base md:text-lg">寵物入住守則</h3>
+                    <h3 className="font-semibold text-base md:text-lg">寵物入住守則</h3>
                   </div>
                   <div className="flex-1 flex flex-col">
                     <div className="space-y-0.5 text-sm md:text-sm text-muted-foreground overflow-hidden" style={{ maxHeight: "180px" }}>
@@ -153,13 +153,13 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
             )}
 
             {hasOtherNotes && (
-              <Card className="group hover:shadow-xl transition-all duration-300 border-border/50 bg-card/80 backdrop-blur-sm hover:scale-[1.02] flex flex-col">
+              <Card className="group hover:shadow-lg transition-all duration-300 border border-border/50 bg-card flex flex-col">
                 <CardContent className="p-5 md:p-6 flex flex-col flex-1">
                   <div className="flex items-center gap-2.5 mb-3 md:mb-4">
                     <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
                       <AlertCircle className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                     </div>
-                    <h3 className="font-bold text-base md:text-lg">其他注意事項</h3>
+                    <h3 className="font-semibold text-base md:text-lg">其他注意事項</h3>
                   </div>
                   <div className="flex-1 flex flex-col">
                     <div className="space-y-0.5 text-sm md:text-sm text-muted-foreground overflow-hidden" style={{ maxHeight: "180px" }}>

@@ -37,19 +37,19 @@ const LocationSection = ({ address, locationInfo }: LocationSectionProps) => {
   ];
 
   return (
-    <section id="location" className="py-12 md:py-20 bg-secondary/30">
+    <section id="location" className="py-12 md:py-20 bg-background">
       <div className="container mx-auto px-4">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-3 md:mb-4">交通 & 地圖</h2>
-          <p className="text-center text-muted-foreground mb-8 md:mb-16 text-base md:text-lg">
+          <p className="text-center text-muted-foreground text-base md:text-lg mb-8 md:mb-16">
             多種交通方式輕鬆抵達，讓您的旅程更加便利
           </p>
 
-          <div className="grid md:grid-cols-2 gap-6 mb-8">
+          <div className="grid md:grid-cols-2 gap-5 md:gap-6 mb-6 md:mb-8">
             {/* 左側 - 位置資訊 */}
-            <Card>
-              <CardContent className="pt-6 pb-6">
-                <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+            <Card className="hover:shadow-lg transition-all duration-300 border border-border/50 bg-card">
+              <CardContent className="p-5 md:p-6">
+                <h3 className="font-semibold text-lg md:text-xl mb-4 flex items-center gap-2 text-foreground">
                   <MapPin className="h-5 w-5 text-primary" />
                   位置資訊
                 </h3>
@@ -65,12 +65,12 @@ const LocationSection = ({ address, locationInfo }: LocationSectionProps) => {
                     title="旅館位置地圖"
                   />
                 </div>
-                <div className="flex items-start gap-2 mt-3">
-                  <MapPin className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                  <p className="text-sm font-medium">{address || "台灣南投縣信義鄉東埔村開高巷123號"}</p>
+                <div className="flex items-start gap-2 mt-4">
+                  <MapPin className="h-4 w-4 md:h-5 md:w-5 text-primary flex-shrink-0 mt-0.5" />
+                  <p className="text-xs md:text-sm font-medium text-foreground">{address || "台灣南投縣信義鄉東埔村開高巷123號"}</p>
                 </div>
                 {locationInfo?.location_description && (
-                  <p className="text-sm text-muted-foreground ml-7 mt-1">
+                  <p className="text-xs md:text-sm text-muted-foreground ml-6 md:ml-7 mt-1">
                     {locationInfo.location_description}
                   </p>
                 )}
@@ -78,15 +78,15 @@ const LocationSection = ({ address, locationInfo }: LocationSectionProps) => {
             </Card>
 
             {/* 右側 - 交通方式 */}
-            <div className="space-y-6">
+            <div className="space-y-5 md:space-y-6">
               {/* 自行開車 */}
-              <Card>
-                <CardContent className="pt-6 pb-6">
-                  <h3 className="font-bold text-xl mb-5 flex items-center gap-2">
-                    <Car className="h-6 w-6 text-primary" />
+              <Card className="hover:shadow-lg transition-all duration-300 border border-border/50 bg-card">
+                <CardContent className="p-5 md:p-6">
+                  <h3 className="font-semibold text-lg md:text-xl mb-4 flex items-center gap-2 text-foreground">
+                    <Car className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                     自行開車
                   </h3>
-                  <div className="space-y-4">
+                  <div className="space-y-3 md:space-y-4">
                     {locationInfo?.driving_info ? (
                       <div className="text-base text-foreground/90 whitespace-pre-line leading-relaxed">
                         {locationInfo.driving_info.split('\n\n').map((section, index) => {
@@ -131,13 +131,13 @@ const LocationSection = ({ address, locationInfo }: LocationSectionProps) => {
               </Card>
 
               {/* 大眾運輸 */}
-              <Card>
-                <CardContent className="pt-6 pb-6">
-                  <h3 className="font-bold text-xl mb-5 flex items-center gap-2">
-                    <Bus className="h-6 w-6 text-primary" />
+              <Card className="hover:shadow-lg transition-all duration-300 border border-border/50 bg-card">
+                <CardContent className="p-5 md:p-6">
+                  <h3 className="font-semibold text-lg md:text-xl mb-4 flex items-center gap-2 text-foreground">
+                    <Bus className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                     大眾運輸
                   </h3>
-                  <div className="space-y-4">
+                  <div className="space-y-3 md:space-y-4">
                     {locationInfo?.public_transport_info ? (
                       <div className="text-base text-foreground/90 whitespace-pre-line leading-relaxed">
                         {locationInfo.public_transport_info.split('\n\n').map((section, index) => {
@@ -185,15 +185,15 @@ const LocationSection = ({ address, locationInfo }: LocationSectionProps) => {
           </div>
 
           {/* 周邊景點 */}
-          <Card>
-            <CardContent className="pt-6">
-              <h3 className="text-2xl font-bold mb-6">周邊景點</h3>
-              <div className="grid md:grid-cols-3 gap-8">
+          <Card className="hover:shadow-lg transition-all duration-300 border border-border/50 bg-card">
+            <CardContent className="p-5 md:p-6">
+              <h3 className="text-lg md:text-xl font-semibold mb-5 md:mb-6 text-foreground">周邊景點</h3>
+              <div className="grid md:grid-cols-3 gap-6 md:gap-8">
                 {nearbyAttractions.map((attraction, index) => (
                   <div key={index}>
-                    <h4 className="font-semibold text-lg mb-2">{attraction.name}</h4>
-                    <p className="text-sm text-muted-foreground mb-2">{attraction.distance}</p>
-                    <p className="text-sm text-muted-foreground">
+                    <h4 className="font-semibold text-base md:text-lg mb-2 text-foreground">{attraction.name}</h4>
+                    <p className="text-xs md:text-sm text-muted-foreground mb-2">{attraction.distance}</p>
+                    <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
                       {attraction.description}
                     </p>
                   </div>
