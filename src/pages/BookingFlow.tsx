@@ -1170,7 +1170,7 @@ const BookingFlow = () => {
 
       {/* 圖片放大對話框 */}
       <Dialog open={isImageDialogOpen} onOpenChange={setIsImageDialogOpen}>
-        <DialogContent className="max-w-7xl w-[95vw] h-[90vh] p-0 border-0 overflow-hidden">
+        <DialogContent hideCloseButton className="max-w-7xl w-[95vw] h-[90vh] p-0 border-0 overflow-hidden">
           <div className="relative w-full h-full flex items-center justify-center bg-black p-6 md:p-8">
             {selectedImageRoom && (
               <>
