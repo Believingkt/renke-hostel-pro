@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, X, ZoomIn } from "lucide-react";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Carousel,
   CarouselContent,
@@ -62,6 +63,28 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [amenities, setAmenities] = useState<string[]>([]);
+
+  useEffect(() => {
+    loadAmenities();
+  }, [room.id]);
+
+  const loadAmenities = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('room_amenities')
+        .select('amenity_name')
+        .eq('room_type_id', room.id)
+        .limit(8); // 限制顯示數量
+
+      if (error) throw error;
+      setAmenities(data?.map(item => item.amenity_name) || []);
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error loading amenities:', error);
+      }
+    }
+  };
 
   const handleImageClick = (index: number) => {
     setSelectedImageIndex(index);
@@ -124,11 +147,16 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2 h-16 content-start">
-          <span className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md h-fit">山景陽台</span>
-          <span className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md h-fit">獨立衛浴</span>
-          <span className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md h-fit">免費WiFi</span>
-          <span className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md h-fit">迎賓茶點</span>
+        <div className="flex flex-wrap gap-2 h-16 content-start overflow-hidden">
+          {amenities.length > 0 ? (
+            amenities.map((amenity, index) => (
+              <span key={index} className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md h-fit whitespace-nowrap">
+                {amenity}
+              </span>
+            ))
+          ) : (
+            <span className="text-xs text-muted-foreground">尚未設定設施</span>
+          )}
         </div>
         
         <div className="pt-3 border-t mt-3">
