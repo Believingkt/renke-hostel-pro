@@ -373,6 +373,7 @@ export type Database = {
         Row: {
           amenity_icon: string | null
           amenity_name: string
+          category: string | null
           created_at: string
           id: string
           room_type_id: string | null
@@ -380,6 +381,7 @@ export type Database = {
         Insert: {
           amenity_icon?: string | null
           amenity_name: string
+          category?: string | null
           created_at?: string
           id?: string
           room_type_id?: string | null
@@ -387,6 +389,7 @@ export type Database = {
         Update: {
           amenity_icon?: string | null
           amenity_name?: string
+          category?: string | null
           created_at?: string
           id?: string
           room_type_id?: string | null

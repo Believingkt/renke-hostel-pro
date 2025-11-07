@@ -3,11 +3,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface RoomFacilitiesFormProps {
   accommodationId: string;
+}
+
+interface RoomType {
+  id: string;
+  name: string;
+  name_en?: string;
 }
 
 const FACILITY_CATEGORIES = {
@@ -80,32 +87,69 @@ const FACILITY_CATEGORIES = {
 };
 
 export const RoomFacilitiesForm = ({ accommodationId }: RoomFacilitiesFormProps) => {
+  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
+  const [selectedRoomType, setSelectedRoomType] = useState<string>("");
   const [selectedFacilities, setSelectedFacilities] = useState<Record<string, string[]>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    loadFacilities();
+    loadRoomTypes();
   }, [accommodationId]);
 
-  const loadFacilities = async () => {
+  useEffect(() => {
+    if (selectedRoomType) {
+      loadFacilities();
+    }
+  }, [selectedRoomType]);
+
+  const loadRoomTypes = async () => {
     if (!accommodationId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('room_types')
+        .select('id, name, name_en')
+        .eq('accommodation_id', accommodationId)
+        .order('display_order', { ascending: true });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setRoomTypes(data);
+        setSelectedRoomType(data[0].id);
+      } else {
+        setRoomTypes([]);
+        toast.error("請先在房型管理新增房型");
+      }
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error loading room types:', error);
+      }
+      toast.error("無法載入房型資料");
+    }
+  };
+
+  const loadFacilities = async () => {
+    if (!selectedRoomType) return;
 
     setIsLoading(true);
     try {
       const { data, error } = await supabase
-        .from('accommodation_facilities')
-        .select('category, facility_name')
-        .eq('accommodation_id', accommodationId);
+        .from('room_amenities')
+        .select('category, amenity_name')
+        .eq('room_type_id', selectedRoomType);
 
       if (error) throw error;
 
       const facilityMap: Record<string, string[]> = {};
       data?.forEach(item => {
-        if (!facilityMap[item.category]) {
-          facilityMap[item.category] = [];
+        if (item.category) {
+          if (!facilityMap[item.category]) {
+            facilityMap[item.category] = [];
+          }
+          facilityMap[item.category].push(item.amenity_name);
         }
-        facilityMap[item.category].push(item.facility_name);
       });
 
       setSelectedFacilities(facilityMap);
@@ -131,28 +175,28 @@ export const RoomFacilitiesForm = ({ accommodationId }: RoomFacilitiesFormProps)
   };
 
   const handleSave = async () => {
-    if (!accommodationId) return;
+    if (!selectedRoomType) return;
 
     setIsSaving(true);
     try {
-      // Delete existing facilities
+      // Delete existing facilities for this room type
       await supabase
-        .from('accommodation_facilities')
+        .from('room_amenities')
         .delete()
-        .eq('accommodation_id', accommodationId);
+        .eq('room_type_id', selectedRoomType);
 
       // Insert new facilities
       const facilitiesToInsert = Object.entries(selectedFacilities).flatMap(([category, items]) =>
         items.map(item => ({
-          accommodation_id: accommodationId,
+          room_type_id: selectedRoomType,
           category,
-          facility_name: item
+          amenity_name: item
         }))
       );
 
       if (facilitiesToInsert.length > 0) {
         const { error } = await supabase
-          .from('accommodation_facilities')
+          .from('room_amenities')
           .insert(facilitiesToInsert);
 
         if (error) throw error;
@@ -169,11 +213,13 @@ export const RoomFacilitiesForm = ({ accommodationId }: RoomFacilitiesFormProps)
     }
   };
 
-  if (isLoading) {
+  if (roomTypes.length === 0) {
     return (
       <Card>
         <CardContent className="pt-6">
-          <div className="text-center py-8 text-muted-foreground">載入中...</div>
+          <div className="text-center py-8 text-muted-foreground">
+            請先在「房型管理」頁面新增房型
+          </div>
         </CardContent>
       </Card>
     );
@@ -181,40 +227,74 @@ export const RoomFacilitiesForm = ({ accommodationId }: RoomFacilitiesFormProps)
 
   return (
     <div className="space-y-6">
-      {Object.entries(FACILITY_CATEGORIES).map(([key, { title, items }]) => (
-        <Card key={key}>
-          <CardHeader>
-            <CardTitle>{title}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {items.map((item) => (
-                <div key={item} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`${key}-${item}`}
-                    checked={selectedFacilities[key]?.includes(item) || false}
-                    onCheckedChange={(checked) => 
-                      handleCheckboxChange(key, item, checked as boolean)
-                    }
-                  />
-                  <Label
-                    htmlFor={`${key}-${item}`}
-                    className="text-sm font-normal cursor-pointer"
-                  >
-                    {item}
-                  </Label>
-                </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>選擇房型</CardTitle>
+          <CardDescription>請選擇要設定客房設施的房型</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Select value={selectedRoomType} onValueChange={setSelectedRoomType}>
+            <SelectTrigger className="w-full md:w-[300px] bg-background">
+              <SelectValue placeholder="請選擇房型" />
+            </SelectTrigger>
+            <SelectContent className="bg-background border border-border shadow-lg z-50">
+              {roomTypes.map((roomType) => (
+                <SelectItem key={roomType.id} value={roomType.id}>
+                  {roomType.name}
+                  {roomType.name_en && (
+                    <span className="text-muted-foreground ml-2">({roomType.name_en})</span>
+                  )}
+                </SelectItem>
               ))}
-            </div>
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
+      {isLoading ? (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center py-8 text-muted-foreground">載入中...</div>
           </CardContent>
         </Card>
-      ))}
+      ) : (
+        <>
+          {Object.entries(FACILITY_CATEGORIES).map(([key, { title, items }]) => (
+            <Card key={key}>
+              <CardHeader>
+                <CardTitle>{title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                  {items.map((item) => (
+                    <div key={item} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`${key}-${item}`}
+                        checked={selectedFacilities[key]?.includes(item) || false}
+                        onCheckedChange={(checked) => 
+                          handleCheckboxChange(key, item, checked as boolean)
+                        }
+                      />
+                      <Label
+                        htmlFor={`${key}-${item}`}
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        {item}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
 
-      <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={isSaving}>
-          {isSaving ? "儲存中..." : "儲存設施"}
-        </Button>
-      </div>
+          <div className="flex justify-end">
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? "儲存中..." : "儲存設施"}
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 };
