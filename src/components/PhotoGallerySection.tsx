@@ -42,21 +42,32 @@ const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
           <p className="text-muted-foreground">探索更多精彩瞬間</p>
         </div>
 
-        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 max-w-7xl mx-auto">
-          {sortedPhotos.map((photo, index) => (
-            <div
-              key={photo.id}
-              className="relative aspect-square overflow-hidden rounded-lg cursor-pointer group"
-              onClick={() => setSelectedImageIndex(index)}
-            >
-              <img
-                src={photo.photo_url}
-                alt={`相簿照片 ${index + 1}`}
-                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-              />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
-            </div>
-          ))}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 max-w-7xl mx-auto">
+          {sortedPhotos.map((photo, index) => {
+            // 創造不規則的尺寸模式，讓排版更活潑
+            const isLarge = index % 7 === 0 || index % 11 === 0;
+            const gridSpan = isLarge ? "md:col-span-2 md:row-span-2" : "";
+            
+            return (
+              <div
+                key={photo.id}
+                className={`relative overflow-hidden rounded-xl cursor-pointer group animate-fade-in ${gridSpan}`}
+                style={{ 
+                  aspectRatio: isLarge ? "1" : "1",
+                  animationDelay: `${index * 50}ms`
+                }}
+                onClick={() => setSelectedImageIndex(index)}
+              >
+                <img
+                  src={photo.photo_url}
+                  alt={`相簿照片 ${index + 1}`}
+                  className="w-full h-full object-cover transition-all duration-500 group-hover:scale-110 group-hover:rotate-1"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute inset-0 ring-2 ring-primary/0 group-hover:ring-primary/50 transition-all duration-300 rounded-xl" />
+              </div>
+            );
+          })}
         </div>
 
         <Dialog open={selectedImageIndex !== null} onOpenChange={() => setSelectedImageIndex(null)}>
