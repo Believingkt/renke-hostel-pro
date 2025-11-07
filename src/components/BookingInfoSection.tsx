@@ -43,7 +43,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                   </div>
                   <h3 className="font-bold text-base md:text-lg">入住時間</h3>
                 </div>
-                <div className="space-y-0.5 text-xs md:text-sm text-muted-foreground">
+                <div className="space-y-0.5 text-sm md:text-sm text-muted-foreground">
                   <div className="flex items-center gap-2 py-1.5">
                     <span className="font-medium text-foreground">入住：</span>
                     <span>{bookingSettings?.check_in_time} 之後</span>
@@ -64,7 +64,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                   </div>
                   <h3 className="font-bold text-base md:text-lg">付款方式</h3>
                 </div>
-                <div className="space-y-0.5 text-xs md:text-sm text-muted-foreground">
+                <div className="space-y-0.5 text-sm md:text-sm text-muted-foreground">
                   {Array.isArray(bookingSettings?.payment_methods)
                     ? bookingSettings.payment_methods.map((method: string, index: number) => (
                         <div key={index} className="flex items-center gap-2 py-1.5">
@@ -86,7 +86,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                   </div>
                   <h3 className="font-bold text-base md:text-lg">取消政策</h3>
                 </div>
-                <div className="space-y-0.5 text-xs md:text-sm text-muted-foreground">
+                <div className="space-y-0.5 text-sm md:text-sm text-muted-foreground">
                   {bookingSettings?.cancellation_policy?.split('\n').map((line: string, index: number) => (
                     <p key={index} className="py-1.5 leading-relaxed">{line}</p>
                   ))}
@@ -103,7 +103,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                   <h3 className="font-bold text-base md:text-lg">重要事項</h3>
                 </div>
                 <div className="flex-1 flex flex-col">
-                  <div className="space-y-0.5 text-xs md:text-sm text-muted-foreground overflow-hidden" style={{ maxHeight: "180px" }}>
+                  <div className="space-y-0.5 text-sm md:text-sm text-muted-foreground overflow-hidden" style={{ maxHeight: "180px" }}>
                     {checkInNotice?.split('\n').map((line: string, index: number) => (
                       <p key={index} className="py-1.5 leading-relaxed">{line}</p>
                     ))}
@@ -132,7 +132,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                     <h3 className="font-bold text-base md:text-lg">寵物入住守則</h3>
                   </div>
                   <div className="flex-1 flex flex-col">
-                    <div className="space-y-0.5 text-xs md:text-sm text-muted-foreground overflow-hidden" style={{ maxHeight: "180px" }}>
+                    <div className="space-y-0.5 text-sm md:text-sm text-muted-foreground overflow-hidden" style={{ maxHeight: "180px" }}>
                       {bookingSettings.pet_policy?.split('\n').map((line: string, index: number) => (
                         <p key={index} className="py-1.5 leading-relaxed">{line}</p>
                       ))}
@@ -162,7 +162,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                     <h3 className="font-bold text-base md:text-lg">其他注意事項</h3>
                   </div>
                   <div className="flex-1 flex flex-col">
-                    <div className="space-y-0.5 text-xs md:text-sm text-muted-foreground overflow-hidden" style={{ maxHeight: "180px" }}>
+                    <div className="space-y-0.5 text-sm md:text-sm text-muted-foreground overflow-hidden" style={{ maxHeight: "180px" }}>
                       {bookingSettings.other_notes?.split('\n').map((line: string, index: number) => (
                         <p key={index} className="py-1.5 leading-relaxed">{line}</p>
                       ))}
