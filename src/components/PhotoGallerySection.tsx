@@ -15,22 +15,46 @@ interface PhotoGallerySectionProps {
 
 const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const photosPerPage = 12;
 
   if (!photos || photos.length === 0) {
     return null;
   }
 
   const sortedPhotos = [...photos].sort((a, b) => a.display_order - b.display_order);
+  const totalPages = Math.ceil(sortedPhotos.length / photosPerPage);
+  const startIndex = currentPage * photosPerPage;
+  const endIndex = startIndex + photosPerPage;
+  const currentPhotos = sortedPhotos.slice(startIndex, endIndex);
+
+  const handlePrevPage = () => {
+    setCurrentPage((prev) => (prev > 0 ? prev - 1 : totalPages - 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => (prev < totalPages - 1 ? prev + 1 : 0));
+  };
 
   const handlePrevImage = () => {
     if (selectedImageIndex !== null) {
-      setSelectedImageIndex((selectedImageIndex - 1 + sortedPhotos.length) % sortedPhotos.length);
+      const globalIndex = startIndex + selectedImageIndex;
+      const newGlobalIndex = (globalIndex - 1 + sortedPhotos.length) % sortedPhotos.length;
+      const newPage = Math.floor(newGlobalIndex / photosPerPage);
+      const newLocalIndex = newGlobalIndex % photosPerPage;
+      setCurrentPage(newPage);
+      setSelectedImageIndex(newLocalIndex);
     }
   };
 
   const handleNextImage = () => {
     if (selectedImageIndex !== null) {
-      setSelectedImageIndex((selectedImageIndex + 1) % sortedPhotos.length);
+      const globalIndex = startIndex + selectedImageIndex;
+      const newGlobalIndex = (globalIndex + 1) % sortedPhotos.length;
+      const newPage = Math.floor(newGlobalIndex / photosPerPage);
+      const newLocalIndex = newGlobalIndex % photosPerPage;
+      setCurrentPage(newPage);
+      setSelectedImageIndex(newLocalIndex);
     }
   };
 
@@ -42,11 +66,33 @@ const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
           <p className="text-muted-foreground">探索更多精彩瞬間</p>
         </div>
 
-        <div className="max-w-7xl mx-auto bg-card rounded-2xl shadow-lg p-6 md:p-8 border border-border/50">
+        <div className="max-w-7xl mx-auto bg-card rounded-2xl shadow-lg p-6 md:p-8 border border-border/50 relative">
+          {totalPages > 1 && (
+            <>
+              <Button
+                variant="outline"
+                size="icon"
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-background/90 hover:bg-background shadow-lg"
+                onClick={handlePrevPage}
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-background/90 hover:bg-background shadow-lg"
+                onClick={handleNextPage}
+              >
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            </>
+          )}
+          
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          {sortedPhotos.map((photo, index) => {
+          {currentPhotos.map((photo, index) => {
             // 創造不規則的尺寸模式，讓排版更活潑
-            const isLarge = index % 7 === 0 || index % 11 === 0;
+            const globalIndex = startIndex + index;
+            const isLarge = globalIndex % 7 === 0 || globalIndex % 11 === 0;
             const gridSpan = isLarge ? "md:col-span-2 md:row-span-2" : "";
             
             return (
@@ -61,7 +107,7 @@ const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
               >
                 <img
                   src={photo.photo_url}
-                  alt={`相簿照片 ${index + 1}`}
+                  alt={`相簿照片 ${globalIndex + 1}`}
                   className="w-full h-full object-cover transition-all duration-500 group-hover:scale-110 group-hover:rotate-1"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -70,6 +116,23 @@ const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
             );
           })}
           </div>
+          
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-6">
+              {Array.from({ length: totalPages }).map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentPage(idx)}
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                    idx === currentPage 
+                      ? 'bg-primary w-8' 
+                      : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
+                  }`}
+                  aria-label={`跳到第 ${idx + 1} 頁`}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         <Dialog open={selectedImageIndex !== null} onOpenChange={() => setSelectedImageIndex(null)}>
@@ -82,8 +145,8 @@ const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
               {selectedImageIndex !== null && (
                 <>
                   <img
-                    src={sortedPhotos[selectedImageIndex].photo_url}
-                    alt={`相簿照片 ${selectedImageIndex + 1}`}
+                    src={sortedPhotos[startIndex + selectedImageIndex].photo_url}
+                    alt={`相簿照片 ${startIndex + selectedImageIndex + 1}`}
                     className="w-full h-full object-cover"
                   />
                   <Button
@@ -103,7 +166,7 @@ const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
                     <ChevronRight className="h-6 w-6" />
                   </Button>
                   <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-full text-sm">
-                    {selectedImageIndex + 1} / {sortedPhotos.length}
+                    {startIndex + selectedImageIndex + 1} / {sortedPhotos.length}
                   </div>
                 </>
               )}
