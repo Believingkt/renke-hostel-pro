@@ -132,7 +132,7 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
         </div>
         
         <div className="pt-3 border-t mt-3">
-          <div className="space-y-3">
+          <div className="space-y-3 md:min-h-[200px]">
             {room.weekdayPricing && (
               <div>
                 <p className="text-xs font-semibold text-foreground mb-2">平日</p>
