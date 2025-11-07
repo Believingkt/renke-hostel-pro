@@ -182,9 +182,6 @@ const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </Button>
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-full text-sm backdrop-blur-sm">
-                    {startIndex + selectedImageIndex + 1} / {sortedPhotos.length}
-                  </div>
                 </>
               )}
             </div>
