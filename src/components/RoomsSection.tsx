@@ -203,7 +203,7 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
           <img 
             src={images[selectedImageIndex]} 
             alt={`${room.name} - ${selectedImageIndex + 1}`}
-            className="w-[95%] h-[95%] object-contain"
+            className="w-[90%] h-[90%] object-contain"
           />
           <Button
             variant="outline"
