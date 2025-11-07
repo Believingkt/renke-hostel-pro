@@ -53,10 +53,7 @@ const FaqSection = () => {
     <section id="faq" className="py-20 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <HelpCircle className="h-8 w-8 text-primary" />
-            <h2 className="text-4xl font-bold">常見問題</h2>
-          </div>
+          <h2 className="text-4xl font-bold mb-4">常見問題</h2>
           <p className="text-muted-foreground">
             關於住宿的常見問題解答
           </p>
