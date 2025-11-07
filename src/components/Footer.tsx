@@ -73,6 +73,11 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
                   </button>
                 </li>
                 <li>
+                  <button onClick={() => scrollToSection("gallery")} className="text-sm md:text-base text-white/80 hover:text-white transition-colors">
+                    精選照片
+                  </button>
+                </li>
+                <li>
                   <button onClick={() => scrollToSection("location")} className="text-sm md:text-base text-white/80 hover:text-white transition-colors">
                     交通 & 地圖
                   </button>
