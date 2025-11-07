@@ -1157,13 +1157,13 @@ const BookingFlow = () => {
             <X className="h-6 w-6 text-white drop-shadow-lg" />
             <span className="sr-only">關閉</span>
           </DialogClose>
-          <div className="relative w-full h-full flex items-center justify-center bg-black">
+          <div className="relative w-full h-full flex items-center justify-center">
             {selectedImageRoom && (
               <>
                 <img 
                   src={(selectedImageRoom.room_photos?.map(p => p.photo_url) || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard])[selectedImageIndex]} 
                   alt={`${selectedImageRoom.name} - ${selectedImageIndex + 1}`}
-                  className="max-w-full max-h-full object-contain"
+                  className="w-full h-full object-cover"
                 />
                 <Button
                   variant="outline"
