@@ -175,11 +175,11 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
           <X className="h-6 w-6 text-white drop-shadow-lg" />
           <span className="sr-only">關閉</span>
         </DialogClose>
-        <div className="relative w-full h-full flex items-center justify-center bg-black">
+        <div className="relative w-full h-full flex items-center justify-center">
           <img 
             src={images[selectedImageIndex]} 
             alt={`${room.name} - ${selectedImageIndex + 1}`}
-            className="max-w-full max-h-full object-contain"
+            className="w-full h-full object-cover"
           />
           <Button
             variant="outline"
