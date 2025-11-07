@@ -42,7 +42,7 @@ const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
           <p className="text-muted-foreground">探索更多精彩瞬間</p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-w-7xl mx-auto">
+        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 max-w-7xl mx-auto">
           {sortedPhotos.map((photo, index) => (
             <div
               key={photo.id}
