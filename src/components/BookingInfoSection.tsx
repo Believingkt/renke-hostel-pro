@@ -34,21 +34,21 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
             <Card className="group hover:shadow-xl transition-all duration-300 border-border/50 bg-card/80 backdrop-blur-sm hover:scale-[1.02]">
-              <CardContent className="pt-6 md:pt-8">
-                <div className="flex items-center gap-3 mb-4 md:mb-6">
-                  <div className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <Clock className="h-6 w-6 md:h-7 md:w-7 text-primary" />
+              <CardContent className="p-5 md:p-6">
+                <div className="flex items-center gap-2.5 mb-3 md:mb-4">
+                  <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                    <Clock className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                   </div>
-                  <h3 className="font-bold text-lg md:text-xl">入住時間</h3>
+                  <h3 className="font-bold text-base md:text-lg">入住時間</h3>
                 </div>
                 <div className="space-y-0.5 text-xs md:text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2 p-3 rounded-lg">
+                  <div className="flex items-center gap-2 py-1.5">
                     <span className="font-medium text-foreground">入住：</span>
                     <span>{bookingSettings?.check_in_time} 之後</span>
                   </div>
-                  <div className="flex items-center gap-2 p-3 rounded-lg">
+                  <div className="flex items-center gap-2 py-1.5">
                     <span className="font-medium text-foreground">退房：</span>
                     <span>{bookingSettings?.check_out_time} 之前</span>
                   </div>
@@ -57,62 +57,62 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
             </Card>
 
             <Card className="group hover:shadow-xl transition-all duration-300 border-border/50 bg-card/80 backdrop-blur-sm hover:scale-[1.02]">
-              <CardContent className="pt-6 md:pt-8">
-                <div className="flex items-center gap-3 mb-4 md:mb-6">
-                  <div className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <CreditCard className="h-6 w-6 md:h-7 md:w-7 text-primary" />
+              <CardContent className="p-5 md:p-6">
+                <div className="flex items-center gap-2.5 mb-3 md:mb-4">
+                  <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                    <CreditCard className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                   </div>
-                  <h3 className="font-bold text-lg md:text-xl">付款方式</h3>
+                  <h3 className="font-bold text-base md:text-lg">付款方式</h3>
                 </div>
                 <div className="space-y-0.5 text-xs md:text-sm text-muted-foreground">
                   {Array.isArray(bookingSettings?.payment_methods)
                     ? bookingSettings.payment_methods.map((method: string, index: number) => (
-                        <div key={index} className="flex items-center gap-2 p-2.5 rounded-lg">
+                        <div key={index} className="flex items-center gap-2 py-1.5">
                           <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
                           <span>{method}</span>
                         </div>
                       ))
-                    : <p className="p-2.5 text-muted-foreground/60">尚未設定</p>
+                    : <p className="py-1.5 text-muted-foreground/60">尚未設定</p>
                   }
                 </div>
               </CardContent>
             </Card>
 
             <Card className="group hover:shadow-xl transition-all duration-300 border-border/50 bg-card/80 backdrop-blur-sm hover:scale-[1.02]">
-              <CardContent className="pt-6 md:pt-8">
-                <div className="flex items-center gap-3 mb-4 md:mb-6">
-                  <div className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <FileText className="h-6 w-6 md:h-7 md:w-7 text-primary" />
+              <CardContent className="p-5 md:p-6">
+                <div className="flex items-center gap-2.5 mb-3 md:mb-4">
+                  <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                    <FileText className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                   </div>
-                  <h3 className="font-bold text-lg md:text-xl">取消政策</h3>
+                  <h3 className="font-bold text-base md:text-lg">取消政策</h3>
                 </div>
                 <div className="space-y-0.5 text-xs md:text-sm text-muted-foreground">
                   {bookingSettings?.cancellation_policy?.split('\n').map((line: string, index: number) => (
-                    <p key={index} className="p-2.5 rounded-lg leading-relaxed">{line}</p>
+                    <p key={index} className="py-1.5 leading-relaxed">{line}</p>
                   ))}
                 </div>
               </CardContent>
             </Card>
 
             <Card className="group hover:shadow-xl transition-all duration-300 border-border/50 bg-card/80 backdrop-blur-sm hover:scale-[1.02] flex flex-col">
-              <CardContent className="pt-6 md:pt-8 flex flex-col flex-1">
-                <div className="flex items-center gap-3 mb-4 md:mb-6">
-                  <div className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <Info className="h-6 w-6 md:h-7 md:w-7 text-primary" />
+              <CardContent className="p-5 md:p-6 flex flex-col flex-1">
+                <div className="flex items-center gap-2.5 mb-3 md:mb-4">
+                  <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                    <Info className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                   </div>
-                  <h3 className="font-bold text-lg md:text-xl">重要事項</h3>
+                  <h3 className="font-bold text-base md:text-lg">重要事項</h3>
                 </div>
                 <div className="flex-1 flex flex-col">
                   <div className="space-y-0.5 text-xs md:text-sm text-muted-foreground overflow-hidden" style={{ maxHeight: "180px" }}>
                     {checkInNotice?.split('\n').map((line: string, index: number) => (
-                      <p key={index} className="p-2.5 rounded-lg leading-relaxed">{line}</p>
+                      <p key={index} className="py-1.5 leading-relaxed">{line}</p>
                     ))}
                   </div>
                   {checkInNotice && checkInNotice.split('\n').length > 4 && (
                     <Button
                       variant="outline"
                       size="sm"
-                      className="mt-4 w-full text-foreground hover:bg-primary hover:text-primary-foreground border-primary/20"
+                      className="mt-3 w-full text-foreground hover:bg-primary hover:text-primary-foreground border-primary/20"
                       onClick={() => openDialog("重要事項", checkInNotice)}
                     >
                       查看完整內容
@@ -124,24 +124,24 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
 
             {hasPetPolicy && (
               <Card className="group hover:shadow-xl transition-all duration-300 border-border/50 bg-card/80 backdrop-blur-sm hover:scale-[1.02] flex flex-col">
-                <CardContent className="pt-6 md:pt-8 flex flex-col flex-1">
-                  <div className="flex items-center gap-3 mb-4 md:mb-6">
-                    <div className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                      <PawPrint className="h-6 w-6 md:h-7 md:w-7 text-primary" />
+                <CardContent className="p-5 md:p-6 flex flex-col flex-1">
+                  <div className="flex items-center gap-2.5 mb-3 md:mb-4">
+                    <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                      <PawPrint className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                     </div>
-                    <h3 className="font-bold text-lg md:text-xl">寵物入住守則</h3>
+                    <h3 className="font-bold text-base md:text-lg">寵物入住守則</h3>
                   </div>
                   <div className="flex-1 flex flex-col">
                     <div className="space-y-0.5 text-xs md:text-sm text-muted-foreground overflow-hidden" style={{ maxHeight: "180px" }}>
                       {bookingSettings.pet_policy?.split('\n').map((line: string, index: number) => (
-                        <p key={index} className="p-2.5 rounded-lg leading-relaxed">{line}</p>
+                        <p key={index} className="py-1.5 leading-relaxed">{line}</p>
                       ))}
                     </div>
                     {bookingSettings.pet_policy && bookingSettings.pet_policy.split('\n').length > 4 && (
                       <Button
                         variant="outline"
                         size="sm"
-                        className="mt-4 w-full text-foreground hover:bg-primary hover:text-primary-foreground border-primary/20"
+                        className="mt-3 w-full text-foreground hover:bg-primary hover:text-primary-foreground border-primary/20"
                         onClick={() => openDialog("寵物入住守則", bookingSettings.pet_policy)}
                       >
                         查看完整內容
@@ -154,24 +154,24 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
 
             {hasOtherNotes && (
               <Card className="group hover:shadow-xl transition-all duration-300 border-border/50 bg-card/80 backdrop-blur-sm hover:scale-[1.02] flex flex-col">
-                <CardContent className="pt-6 md:pt-8 flex flex-col flex-1">
-                  <div className="flex items-center gap-3 mb-4 md:mb-6">
-                    <div className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                      <AlertCircle className="h-6 w-6 md:h-7 md:w-7 text-primary" />
+                <CardContent className="p-5 md:p-6 flex flex-col flex-1">
+                  <div className="flex items-center gap-2.5 mb-3 md:mb-4">
+                    <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                      <AlertCircle className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                     </div>
-                    <h3 className="font-bold text-lg md:text-xl">其他注意事項</h3>
+                    <h3 className="font-bold text-base md:text-lg">其他注意事項</h3>
                   </div>
                   <div className="flex-1 flex flex-col">
                     <div className="space-y-0.5 text-xs md:text-sm text-muted-foreground overflow-hidden" style={{ maxHeight: "180px" }}>
                       {bookingSettings.other_notes?.split('\n').map((line: string, index: number) => (
-                        <p key={index} className="p-2.5 rounded-lg leading-relaxed">{line}</p>
+                        <p key={index} className="py-1.5 leading-relaxed">{line}</p>
                       ))}
                     </div>
                     {bookingSettings.other_notes && bookingSettings.other_notes.split('\n').length > 4 && (
                       <Button
                         variant="outline"
                         size="sm"
-                        className="mt-4 w-full text-foreground hover:bg-primary hover:text-primary-foreground border-primary/20"
+                        className="mt-3 w-full text-foreground hover:bg-primary hover:text-primary-foreground border-primary/20"
                         onClick={() => openDialog("其他注意事項", bookingSettings.other_notes)}
                       >
                         查看完整內容
