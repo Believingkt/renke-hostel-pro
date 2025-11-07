@@ -682,7 +682,7 @@ const WebsiteContent = () => {
         <TabsContent value="basic-info" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>住宿基本資訊</CardTitle>
+              <CardTitle>基本資料</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
