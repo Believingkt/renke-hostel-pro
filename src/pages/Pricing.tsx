@@ -8,6 +8,7 @@ import { useAccommodation } from "@/contexts/AccommodationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { RoomTypeForm } from "@/components/RoomTypeForm";
+import { RoomFacilitiesForm } from "@/components/RoomFacilitiesForm";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -159,7 +160,7 @@ const Pricing = () => {
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab && (tab === "rooms" || tab === "basic" || tab === "inventory")) {
+    if (tab && (tab === "rooms" || tab === "basic" || tab === "inventory" || tab === "facilities")) {
       setActiveTab(tab);
     }
   }, [searchParams]);
@@ -295,8 +296,9 @@ const Pricing = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full max-w-xl grid-cols-3">
+        <TabsList className="grid w-full max-w-2xl grid-cols-4">
           <TabsTrigger value="rooms">房型管理</TabsTrigger>
+          <TabsTrigger value="facilities">客房設施</TabsTrigger>
           <TabsTrigger value="basic">價格管理</TabsTrigger>
           <TabsTrigger value="inventory">庫存管理</TabsTrigger>
         </TabsList>
@@ -358,6 +360,10 @@ const Pricing = () => {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="facilities" className="space-y-4">
+          <RoomFacilitiesForm accommodationId={currentAccommodationId || ""} />
         </TabsContent>
 
         <TabsContent value="basic" className="space-y-4">
