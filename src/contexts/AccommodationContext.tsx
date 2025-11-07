@@ -51,7 +51,9 @@ export function AccommodationProvider({ children }: { children: ReactNode }) {
         .limit(10); // Add limit for faster query
 
       if (error) {
-        console.error('Error loading user accommodations:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error loading user accommodations:', error);
+        }
         setIsLoading(false);
         return;
       }
@@ -65,7 +67,9 @@ export function AccommodationProvider({ children }: { children: ReactNode }) {
       
       setIsLoading(false);
     } catch (error) {
-      console.error('Error loading user accommodations:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error loading user accommodations:', error);
+      }
       setIsLoading(false);
     }
   };

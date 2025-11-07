@@ -184,7 +184,9 @@ const Pricing = () => {
       if (error) throw error;
       setRoomTypes(data || []);
     } catch (error) {
-      console.error('Error loading room types:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error loading room types:', error);
+      }
       toast.error("無法載入房型資料");
     } finally {
       setIsLoading(false);
@@ -227,7 +229,9 @@ const Pricing = () => {
       toast.success("房型已成功刪除");
       loadRoomTypes();
     } catch (error) {
-      console.error('Error deleting room type:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error deleting room type:', error);
+      }
       toast.error("無法刪除房型，請重試");
     } finally {
       setDeleteDialogOpen(false);
@@ -275,7 +279,9 @@ const Pricing = () => {
         await Promise.all(updates);
         toast.success("房型順序已更新");
       } catch (error) {
-        console.error('Error updating room order:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error updating room order:', error);
+        }
         toast.error("無法更新房型順序");
         loadRoomTypes(); // Reload to reset order
       }

@@ -152,7 +152,9 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         .order("display_order", { ascending: true });
       setPhotoUrls(data?.map(p => p.photo_url) || []);
     } catch (error) {
-      console.error("Error loading photos:", error);
+      if (import.meta.env.DEV) {
+        console.error("Error loading photos:", error);
+      }
     }
   };
 

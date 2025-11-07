@@ -43,7 +43,9 @@ export default function Auth() {
         .single();
 
       if (error) {
-        console.error("Error checking profile:", error);
+        if (import.meta.env.DEV) {
+          console.error("Error checking profile:", error);
+        }
         navigate("/admin");
         return;
       }
@@ -54,7 +56,9 @@ export default function Auth() {
         navigate("/admin");
       }
     } catch (error) {
-      console.error("Error in checkForcePasswordChange:", error);
+      if (import.meta.env.DEV) {
+        console.error("Error in checkForcePasswordChange:", error);
+      }
       navigate("/admin");
     }
   };

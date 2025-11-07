@@ -40,7 +40,9 @@ const FaqSection = () => {
         }
       }
     } catch (error) {
-      console.error("Error loading FAQs:", error);
+      if (import.meta.env.DEV) {
+        console.error("Error loading FAQs:", error);
+      }
     }
   };
 

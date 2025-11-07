@@ -37,7 +37,9 @@ export function Header() {
       // Force navigation to auth page
       window.location.replace(`${window.location.origin}/auth`);
     } catch (error) {
-      console.error("Logout error:", error);
+      if (import.meta.env.DEV) {
+        console.error("Logout error:", error);
+      }
       // Force clear everything if signOut fails
       localStorage.clear();
       sessionStorage.clear();

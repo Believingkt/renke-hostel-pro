@@ -41,7 +41,9 @@ export function AccommodationSelector() {
 
       setAccommodations(data || []);
     } catch (error) {
-      console.error('Error loading accommodations:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error loading accommodations:', error);
+      }
     } finally {
       setIsLoading(false);
     }

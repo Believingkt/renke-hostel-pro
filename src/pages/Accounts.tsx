@@ -32,6 +32,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useSubdomain } from "@/hooks/use-subdomain";
 import { format } from "date-fns";
+import { z } from 'zod';
 
 interface User {
   id: string;
@@ -72,7 +73,9 @@ const Accounts = () => {
         .eq("accommodation_id", accommodationId);
 
       if (error) {
-        console.error("Error loading user roles:", error);
+        if (import.meta.env.DEV) {
+          console.error("Error loading user roles:", error);
+        }
         throw error;
       }
 
@@ -90,7 +93,9 @@ const Accounts = () => {
         .in("id", userIds);
 
       if (profileError) {
-        console.error("Error loading profiles:", profileError);
+        if (import.meta.env.DEV) {
+          console.error("Error loading profiles:", profileError);
+        }
       }
 
       const profilesMap = new Map(
@@ -119,7 +124,9 @@ const Accounts = () => {
 
       setUsers(usersData);
     } catch (error: any) {
-      console.error("Error loading users:", error);
+      if (import.meta.env.DEV) {
+        console.error("Error loading users:", error);
+      }
       toast.error("載入使用者列表失敗: " + error.message);
     } finally {
       setIsLoading(false);
@@ -147,6 +154,20 @@ const Accounts = () => {
 
     if (!name || !email || !password || !role) {
       toast.error("請填寫所有欄位");
+      return;
+    }
+
+    // Client-side validation
+    const accountSchema = z.object({
+      name: z.string().trim().min(1, "姓名不能為空").max(100, "姓名長度不能超過100個字元"),
+      email: z.string().email("請輸入有效的電子郵件地址").max(255, "電子郵件長度不能超過255個字元"),
+      password: z.string().min(6, "密碼長度至少6個字元").max(72, "密碼長度不能超過72個字元"),
+      role: z.enum(['super_admin', 'hotel_admin', 'staff'], { errorMap: () => ({ message: "請選擇有效的角色" }) })
+    });
+
+    const validation = accountSchema.safeParse({ name: name.trim(), email: email.trim(), password, role });
+    if (!validation.success) {
+      toast.error(validation.error.issues[0].message);
       return;
     }
 
@@ -188,7 +209,9 @@ const Accounts = () => {
       setRole("staff");
       loadUsers();
     } catch (error: any) {
-      console.error("Error creating user:", error);
+      if (import.meta.env.DEV) {
+        console.error("Error creating user:", error);
+      }
       toast.error(error.message || "建立帳號失敗");
     } finally {
       setIsLoading(false);
@@ -210,7 +233,9 @@ const Accounts = () => {
       toast.success("已移除用戶存取權限");
       loadUsers();
     } catch (error: any) {
-      console.error("Error removing user access:", error);
+      if (import.meta.env.DEV) {
+        console.error("Error removing user access:", error);
+      }
       toast.error("移除存取權限失敗");
     }
   };

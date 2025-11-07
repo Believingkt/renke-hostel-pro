@@ -26,7 +26,9 @@ export function useSubdomain() {
           .maybeSingle();
 
         if (error) {
-          console.error('Error loading accommodation:', error);
+          if (import.meta.env.DEV) {
+            console.error('Error loading accommodation:', error);
+          }
           setError('載入旅館資訊失敗');
           setIsLoading(false);
           return;
@@ -56,7 +58,9 @@ export function useSubdomain() {
           .maybeSingle();
 
         if (error) {
-          console.error('Error loading accommodation:', error);
+          if (import.meta.env.DEV) {
+            console.error('Error loading accommodation:', error);
+          }
           setError('載入旅館資訊失敗');
           setIsLoading(false);
           return;
@@ -81,7 +85,9 @@ export function useSubdomain() {
         .maybeSingle();
 
       if (error) {
-        console.error('Error querying accommodation:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error querying accommodation:', error);
+        }
         setError('載入旅館資訊失敗');
         setIsLoading(false);
         return;
@@ -95,7 +101,9 @@ export function useSubdomain() {
 
       setAccommodationId(data.id);
     } catch (err) {
-      console.error('Error loading accommodation from subdomain:', err);
+      if (import.meta.env.DEV) {
+        console.error('Error loading accommodation from subdomain:', err);
+      }
       setError('載入旅館資訊失敗');
     } finally {
       setIsLoading(false);

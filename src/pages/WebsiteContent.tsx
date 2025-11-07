@@ -341,7 +341,9 @@ const WebsiteContent = () => {
           }
         }
       } catch (error) {
-        console.error('Error loading data:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error loading data:', error);
+        }
         toast.error('載入資料失敗');
       }
     };
@@ -405,7 +407,9 @@ const WebsiteContent = () => {
 
       toast.success('設施資料已保存');
     } catch (error) {
-      console.error('Error saving facilities:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error saving facilities:', error);
+      }
       toast.error('保存失敗，請稍後再試');
     } finally {
       setIsSaving(false);
@@ -449,7 +453,9 @@ const WebsiteContent = () => {
 
       toast.success('訂房須知已保存');
     } catch (error) {
-      console.error('Error saving booking info:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error saving booking info:', error);
+      }
       toast.error('保存失敗，請稍後再試');
     } finally {
       setIsSaving(false);
@@ -520,7 +526,9 @@ const WebsiteContent = () => {
 
       handleCloseFaqDialog();
     } catch (error) {
-      console.error("Error saving FAQ:", error);
+      if (import.meta.env.DEV) {
+        console.error("Error saving FAQ:", error);
+      }
       toast.error("儲存失敗");
     }
   };
@@ -547,7 +555,9 @@ const WebsiteContent = () => {
         }
       }
     } catch (error) {
-      console.error("Error deleting FAQ:", error);
+      if (import.meta.env.DEV) {
+        console.error("Error deleting FAQ:", error);
+      }
       toast.error("刪除失敗");
     }
   };
@@ -595,7 +605,9 @@ const WebsiteContent = () => {
         }
       }
     } catch (error) {
-      console.error("Error toggling publish:", error);
+      if (import.meta.env.DEV) {
+        console.error("Error toggling publish:", error);
+      }
       toast.error("操作失敗");
     }
   };
@@ -644,7 +656,9 @@ const WebsiteContent = () => {
 
       toast.success('交通與地圖資訊已儲存');
     } catch (error) {
-      console.error('Error saving location info:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error saving location info:', error);
+      }
       toast.error('儲存失敗，請稍後再試');
     } finally {
       setIsSaving(false);
@@ -678,7 +692,9 @@ const WebsiteContent = () => {
 
       toast.success('基本資料已儲存');
     } catch (error) {
-      console.error("Error saving basic info:", error);
+      if (import.meta.env.DEV) {
+        console.error("Error saving basic info:", error);
+      }
       toast.error('儲存失敗，請稍後再試');
     } finally {
       setIsSaving(false);
@@ -743,7 +759,9 @@ const WebsiteContent = () => {
       setPhotos([...photos, newPhoto]);
       toast.success('照片已上傳');
     } catch (error) {
-      console.error('Error uploading photo:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error uploading photo:', error);
+      }
       toast.error('上傳失敗，請稍後再試');
     } finally {
       setUploadingPhoto(false);
@@ -762,7 +780,9 @@ const WebsiteContent = () => {
       setPhotos(photos.filter(p => p.id !== photoId));
       toast.success('照片已刪除');
     } catch (error) {
-      console.error('Error deleting photo:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error deleting photo:', error);
+      }
       toast.error('刪除失敗，請稍後再試');
     }
   };
@@ -782,7 +802,9 @@ const WebsiteContent = () => {
       setPhotos(updatedPhotos.sort((a, b) => a.display_order - b.display_order));
       toast.success('順序已更新');
     } catch (error) {
-      console.error('Error updating photo order:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error updating photo order:', error);
+      }
       toast.error('更新失敗，請稍後再試');
     }
   };

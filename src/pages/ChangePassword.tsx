@@ -56,7 +56,9 @@ export default function ChangePassword() {
       await supabase.auth.signOut();
       navigate("/auth");
     } catch (error: any) {
-      console.error("Error changing password:", error);
+      if (import.meta.env.DEV) {
+        console.error("Error changing password:", error);
+      }
       toast.error(error.message || "修改密碼失敗");
     } finally {
       setIsLoading(false);

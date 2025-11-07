@@ -79,7 +79,9 @@ const Headquarters = () => {
 
     if (error) {
       toast.error("載入旅館列表失敗");
-      console.error(error);
+      if (import.meta.env.DEV) {
+        console.error(error);
+      }
       return;
     }
 
@@ -95,7 +97,9 @@ const Headquarters = () => {
 
     if (error) {
       toast.error("載入用戶權限失敗");
-      console.error(error);
+      if (import.meta.env.DEV) {
+        console.error(error);
+      }
     } else {
       setUserRoles(data || []);
     }
@@ -118,7 +122,9 @@ const Headquarters = () => {
 
     if (error) {
       toast.error("新增用戶權限失敗");
-      console.error(error);
+      if (import.meta.env.DEV) {
+        console.error(error);
+      }
     } else {
       toast.success("用戶權限新增成功");
       setNewUserId("");
@@ -136,7 +142,9 @@ const Headquarters = () => {
 
     if (error) {
       toast.error("刪除用戶權限失敗");
-      console.error(error);
+      if (import.meta.env.DEV) {
+        console.error(error);
+      }
     } else {
       toast.success("用戶權限已刪除");
       loadUserRoles();
@@ -151,7 +159,9 @@ const Headquarters = () => {
 
     if (error) {
       toast.error("更新用戶權限失敗");
-      console.error(error);
+      if (import.meta.env.DEV) {
+        console.error(error);
+      }
     } else {
       toast.success("用戶權限已更新");
       loadUserRoles();

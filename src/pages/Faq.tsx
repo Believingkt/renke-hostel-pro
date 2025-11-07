@@ -74,7 +74,9 @@ const Faq = () => {
         setFaqs(faqData || []);
       }
     } catch (error) {
-      console.error("Error loading FAQs:", error);
+      if (import.meta.env.DEV) {
+        console.error("Error loading FAQs:", error);
+      }
       toast.error("載入常見問題失敗");
     }
   };
@@ -126,7 +128,9 @@ const Faq = () => {
       loadFaqs();
       handleCloseDialog();
     } catch (error) {
-      console.error("Error saving FAQ:", error);
+      if (import.meta.env.DEV) {
+        console.error("Error saving FAQ:", error);
+      }
       toast.error("儲存失敗");
     }
   };
@@ -141,7 +145,9 @@ const Faq = () => {
       toast.success("刪除成功");
       loadFaqs();
     } catch (error) {
-      console.error("Error deleting FAQ:", error);
+      if (import.meta.env.DEV) {
+        console.error("Error deleting FAQ:", error);
+      }
       toast.error("刪除失敗");
     }
   };
@@ -177,7 +183,9 @@ const Faq = () => {
       toast.success(faq.is_published ? "已隱藏" : "已發布");
       loadFaqs();
     } catch (error) {
-      console.error("Error toggling publish:", error);
+      if (import.meta.env.DEV) {
+        console.error("Error toggling publish:", error);
+      }
       toast.error("操作失敗");
     }
   };

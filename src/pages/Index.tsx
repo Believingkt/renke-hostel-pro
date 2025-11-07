@@ -110,7 +110,9 @@ const Index = () => {
           });
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error fetching data:', error);
+        }
       }
     };
 

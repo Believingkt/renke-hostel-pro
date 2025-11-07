@@ -56,7 +56,9 @@ export default function UserRoles() {
       if (error) throw error;
       setUserRoles(data || []);
     } catch (error) {
-      console.error('Error loading user roles:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error loading user roles:', error);
+      }
       toast.error('載入用戶權限失敗');
     } finally {
       setIsLoading(false);
@@ -110,7 +112,9 @@ export default function UserRoles() {
       setNewUserEmail('');
       loadUserRoles();
     } catch (error) {
-      console.error('Error adding user:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error adding user:', error);
+      }
       toast.error('新增用戶權限失敗');
     }
   };
@@ -127,7 +131,9 @@ export default function UserRoles() {
       toast.success('成功刪除用戶權限');
       loadUserRoles();
     } catch (error) {
-      console.error('Error deleting role:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error deleting role:', error);
+      }
       toast.error('刪除用戶權限失敗');
     }
   };
@@ -144,7 +150,9 @@ export default function UserRoles() {
       toast.success('成功更新用戶角色');
       loadUserRoles();
     } catch (error) {
-      console.error('Error updating role:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error updating role:', error);
+      }
       toast.error('更新用戶角色失敗');
     }
   };

@@ -193,7 +193,9 @@ const BookingFlow = () => {
           setRoomTypes(roomTypesWithPhotos);
         }
       } catch (error) {
-        console.error("Error loading data:", error);
+        if (import.meta.env.DEV) {
+          console.error("Error loading data:", error);
+        }
         toast({
           title: "載入失敗",
           description: "無法載入訂房資訊，請稍後再試",
