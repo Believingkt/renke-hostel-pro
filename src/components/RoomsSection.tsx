@@ -199,20 +199,20 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
 
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogContent className="max-w-7xl w-[95vw] h-[90vh] p-0 border-0" aria-describedby={undefined}>
-        <DialogClose className="absolute right-4 top-4 z-50 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+        <DialogClose className="absolute right-4 top-4 z-[60] rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
           <X className="h-6 w-6 text-white drop-shadow-lg" />
           <span className="sr-only">關閉</span>
         </DialogClose>
-        <div className="relative w-full h-full flex items-center justify-center">
+        <div className="relative w-full h-full flex items-center justify-center bg-black">
           <img 
             src={images[selectedImageIndex]} 
             alt={`${room.name} - ${selectedImageIndex + 1}`}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
           />
           <Button
             variant="outline"
             size="icon"
-            className="absolute left-4 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 border-white/20"
+            className="absolute left-4 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-white/10 hover:bg-white/20 border-white/20 z-[60]"
             onClick={() => setSelectedImageIndex((prev) => (prev - 1 + images.length) % images.length)}
           >
             <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -222,7 +222,7 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
           <Button
             variant="outline"
             size="icon"
-            className="absolute right-4 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 border-white/20"
+            className="absolute right-4 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-white/10 hover:bg-white/20 border-white/20 z-[60]"
             onClick={() => setSelectedImageIndex((prev) => (prev + 1) % images.length)}
           >
             <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">

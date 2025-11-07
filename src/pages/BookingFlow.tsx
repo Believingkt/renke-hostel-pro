@@ -1171,22 +1171,22 @@ const BookingFlow = () => {
       {/* 圖片放大對話框 */}
       <Dialog open={isImageDialogOpen} onOpenChange={setIsImageDialogOpen}>
         <DialogContent className="max-w-7xl w-[95vw] h-[90vh] p-0 border-0" aria-describedby={undefined}>
-          <DialogClose className="absolute right-4 top-4 z-50 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+          <DialogClose className="absolute right-4 top-4 z-[60] rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
             <X className="h-6 w-6 text-white drop-shadow-lg" />
             <span className="sr-only">關閉</span>
           </DialogClose>
-          <div className="relative w-full h-full flex items-center justify-center">
+          <div className="relative w-full h-full flex items-center justify-center bg-black">
             {selectedImageRoom && (
               <>
                 <img 
                   src={(selectedImageRoom.room_photos?.map(p => p.photo_url) || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard])[selectedImageIndex]} 
                   alt={`${selectedImageRoom.name} - ${selectedImageIndex + 1}`}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                 />
                 <Button
                   variant="outline"
                   size="icon"
-                  className="absolute left-4 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 border-white/20"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-white/10 hover:bg-white/20 border-white/20 z-[60]"
                   onClick={() => {
                     const images = selectedImageRoom.room_photos?.map(p => p.photo_url) || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard];
                     setSelectedImageIndex((prev) => (prev - 1 + images.length) % images.length);
@@ -1199,7 +1199,7 @@ const BookingFlow = () => {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="absolute right-4 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 border-white/20"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-white/10 hover:bg-white/20 border-white/20 z-[60]"
                   onClick={() => {
                     const images = selectedImageRoom.room_photos?.map(p => p.photo_url) || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard];
                     setSelectedImageIndex((prev) => (prev + 1) % images.length);
