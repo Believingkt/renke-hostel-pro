@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { z } from "zod";
 
 interface FaqItem {
   id: string;
@@ -24,6 +25,19 @@ interface FaqItem {
   display_order: number;
   is_published: boolean;
 }
+
+// Validation schema for FAQ inputs
+const faqSchema = z.object({
+  question: z.string()
+    .trim()
+    .min(1, "問題不能為空")
+    .max(500, "問題長度不能超過 500 字元"),
+  answer: z.string()
+    .trim()
+    .min(1, "答案不能為空")
+    .max(2000, "答案長度不能超過 2000 字元"),
+  is_published: z.boolean(),
+});
 
 const Faq = () => {
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
@@ -71,8 +85,11 @@ const Faq = () => {
       return;
     }
 
-    if (!formData.question.trim() || !formData.answer.trim()) {
-      toast.error("問題和答案不能為空");
+    // Validate input with Zod schema
+    const validation = faqSchema.safeParse(formData);
+    if (!validation.success) {
+      const firstError = validation.error.errors[0];
+      toast.error(firstError.message);
       return;
     }
 
