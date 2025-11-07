@@ -68,6 +68,7 @@ interface RoomType {
   weekdayPricing?: { type: string; price: number }[];
   weekendPricing?: { type: string; price: number }[];
   room_photos?: { photo_url: string; display_order: number }[];
+  amenities?: string[];
 }
 
 interface BookingSettings {
@@ -151,7 +152,7 @@ const BookingFlow = () => {
           setBookingSettings(settingsData);
         }
 
-        // 獲取房型資料，包括照片
+        // 獲取房型資料，包括照片和設施
         const { data: roomTypesData, error: roomTypesError } = await supabase
           .from("room_types")
           .select(`
@@ -159,6 +160,9 @@ const BookingFlow = () => {
             room_photos (
               photo_url,
               display_order
+            ),
+            room_amenities (
+              amenity_name
             )
           `)
           .eq("accommodation_id", accommodationId)
@@ -180,6 +184,7 @@ const BookingFlow = () => {
             weekend_2_meals_price: room.weekend_2_meals_price,
             weekend_3_meals_price: room.weekend_3_meals_price,
             room_photos: (room.room_photos || []).sort((a, b) => a.display_order - b.display_order),
+            amenities: (room.room_amenities || []).map((a: any) => a.amenity_name).slice(0, 8),
             weekdayPricing: (room.weekday_2_meals_price || room.weekday_3_meals_price) ? [
               ...(room.weekday_2_meals_price ? [{ type: "一泊二食", price: room.weekday_2_meals_price }] : []),
               ...(room.weekday_3_meals_price ? [{ type: "一泊三食", price: room.weekday_3_meals_price }] : [])
@@ -607,6 +612,17 @@ const BookingFlow = () => {
                               </span>
                               <span>{room.size_sqm} ㎡</span>
                             </div>
+
+                            {/* 客房設施 */}
+                            {room.amenities && room.amenities.length > 0 && (
+                              <div className="flex flex-wrap gap-2 mb-4">
+                                {room.amenities.map((amenity, index) => (
+                                  <span key={index} className="px-2 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md whitespace-nowrap">
+                                    {amenity}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
 
                             {/* 定價資訊 */}
                             <div className="space-y-3 pt-4 border-t">
