@@ -148,37 +148,41 @@ const Index = () => {
     }
   };
 
+  if (!data) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen">
       <Navigation 
-        accommodationName={data?.info.name || "森山寫照"}
+        accommodationName={data.info.name || "森山寫照"}
         onNavigate={scrollToSection} 
       />
       <main>
-        <HeroSection accommodationName={data?.info.name || "森山寫照"} />
-        <AboutSection description={data?.info.description} />
-        <RoomsSection roomTypes={data?.roomTypes || []} />
-        <FacilitiesSection facilities={data?.facilities || []} />
-        <PhotoGallerySection photos={data?.photos || []} />
+        <HeroSection accommodationName={data.info.name || "森山寫照"} />
+        <AboutSection description={data.info.description} />
+        <RoomsSection roomTypes={data.roomTypes || []} />
+        <FacilitiesSection facilities={data.facilities || []} />
+        <PhotoGallerySection photos={data.photos || []} />
         <LocationSection
-          address={data?.info.address}
-          locationInfo={data?.locationInfo}
+          address={data.info.address}
+          locationInfo={data.locationInfo}
         />
         <BookingInfoSection 
-          bookingSettings={data?.bookingSettings}
-          checkInNotice={data?.info.check_in_notice}
+          bookingSettings={data.bookingSettings}
+          checkInNotice={data.info.check_in_notice}
         />
         <ReviewsSection />
         <FaqSection />
       </main>
       <Footer 
-        accommodationName={data?.info.name}
-        address={data?.info.address}
-        phone={data?.info.phone}
-        email={data?.info.email}
-        lineId={data?.info.line_id}
-        facebookUrl={data?.info.facebook_url}
-        instagramUrl={data?.info.instagram_url}
+        accommodationName={data.info.name}
+        address={data.info.address}
+        phone={data.info.phone}
+        email={data.info.email}
+        lineId={data.info.line_id}
+        facebookUrl={data.info.facebook_url}
+        instagramUrl={data.info.instagram_url}
       />
     </div>
   );
