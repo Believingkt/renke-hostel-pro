@@ -70,10 +70,10 @@ const FaqSection = () => {
                 value={faq.id}
                 className={index === faqs.length - 1 ? "border-b-0" : ""}
               >
-                <AccordionTrigger className="text-left hover:no-underline px-8 py-6 text-lg font-normal">
+                <AccordionTrigger className="text-left hover:no-underline px-8 py-6 text-base font-normal">
                   {faq.question}
                 </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground px-8 pb-6 pt-0 text-base leading-relaxed">
+                <AccordionContent className="text-muted-foreground px-8 pb-6 pt-0 text-sm leading-relaxed">
                   {faq.answer}
                 </AccordionContent>
               </AccordionItem>
