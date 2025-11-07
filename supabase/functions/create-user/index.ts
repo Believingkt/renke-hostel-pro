@@ -12,20 +12,16 @@ serve(async (req) => {
   }
 
   try {
-    const { name, email, password, role, accommodationId } = await req.json();
-
-    console.log("Creating user:", { name, email, role, accommodationId });
-
-    // Validate inputs
-    if (!name || !email || !password || !role || !accommodationId) {
-      throw new Error("缺少必要欄位");
+    // Get authenticated user from JWT
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ success: false, error: '需要驗證' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    if (password.length < 6) {
-      throw new Error("密碼至少需要 6 個字元");
-    }
-
-    // Create Supabase admin client
+    // Create Supabase admin client for authorization check
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
@@ -36,6 +32,49 @@ serve(async (req) => {
         },
       }
     );
+
+    // Verify caller has valid JWT
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    );
+    
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ success: false, error: '驗證失敗' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { name, email, password, role, accommodationId } = await req.json();
+
+    console.log("Creating user:", { name, email, role, accommodationId });
+
+    // Validate inputs
+    if (!name || !email || !password || !role || !accommodationId) {
+      throw new Error("缺少必要欄位");
+    }
+
+    // Check if caller has admin role for this accommodation
+    const { data: userRoles } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('accommodation_id', accommodationId);
+
+    const isAdmin = userRoles?.some(r => 
+      r.role === 'super_admin' || r.role === 'hotel_admin'
+    );
+
+    if (!isAdmin) {
+      return new Response(
+        JSON.stringify({ success: false, error: '需要管理員權限' }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (password.length < 6) {
+      throw new Error("密碼至少需要 6 個字元");
+    }
 
     // Create user with admin API
     const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
