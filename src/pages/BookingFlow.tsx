@@ -1170,11 +1170,7 @@ const BookingFlow = () => {
 
       {/* 圖片放大對話框 */}
       <Dialog open={isImageDialogOpen} onOpenChange={setIsImageDialogOpen}>
-        <DialogContent className="max-w-7xl w-[95vw] h-[90vh] p-0 border-0 overflow-hidden" aria-describedby={undefined}>
-          <DialogClose className="absolute right-6 md:right-8 top-6 md:top-8 z-[60] rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-            <X className="h-6 w-6 text-white drop-shadow-lg" />
-            <span className="sr-only">關閉</span>
-          </DialogClose>
+        <DialogContent className="max-w-7xl w-[95vw] h-[90vh] p-0 border-0 overflow-hidden">
           <div className="relative w-full h-full flex items-center justify-center bg-black p-6 md:p-8">
             {selectedImageRoom && (
               <>
@@ -1183,6 +1179,15 @@ const BookingFlow = () => {
                   alt={`${selectedImageRoom.name} - ${selectedImageIndex + 1}`}
                   className="max-w-full max-h-full object-contain"
                 />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="absolute right-6 md:right-8 top-6 md:top-8 h-12 w-12 rounded-full bg-white/10 hover:bg-white/20 border-white/20 backdrop-blur-sm z-[60] shadow-lg"
+                  onClick={() => setIsImageDialogOpen(false)}
+                >
+                  <X className="h-6 w-6 text-white" />
+                  <span className="sr-only">關閉</span>
+                </Button>
                 <Button
                   variant="outline"
                   size="icon"
