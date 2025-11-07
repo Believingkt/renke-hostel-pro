@@ -39,7 +39,7 @@ const FacilitiesSection = ({ facilities }: FacilitiesSectionProps) => {
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold mb-4">設施與服務</h2>
-          <p className="text-muted-foreground">完善的設施與貼心的服務，讓您的住宿體驗更加舒適</p>
+          <p className="text-muted-foreground">完善設施與貼心服務，讓您的住宿體驗更加舒適</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
