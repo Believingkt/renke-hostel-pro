@@ -25,6 +25,9 @@ interface AccommodationData {
     line_id?: string;
     facebook_url?: string;
     instagram_url?: string;
+    threads_url?: string;
+    youtube_url?: string;
+    tiktok_url?: string;
   };
   roomTypes: any[];
   bookingSettings: any;
@@ -44,7 +47,7 @@ const Index = () => {
       try {
         const { data: infoData } = await supabase
           .from("accommodation_info")
-          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url")
+          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url")
           .eq("id", accommodationId)
           .single();
         
@@ -183,6 +186,9 @@ const Index = () => {
         lineId={data.info.line_id}
         facebookUrl={data.info.facebook_url}
         instagramUrl={data.info.instagram_url}
+        threadsUrl={data.info.threads_url}
+        youtubeUrl={data.info.youtube_url}
+        tiktokUrl={data.info.tiktok_url}
       />
     </div>
   );

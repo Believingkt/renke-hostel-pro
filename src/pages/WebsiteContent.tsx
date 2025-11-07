@@ -169,7 +169,10 @@ const WebsiteContent = () => {
     email: "",
     line_id: "",
     facebook_url: "",
-    instagram_url: ""
+    instagram_url: "",
+    threads_url: "",
+    youtube_url: "",
+    tiktok_url: ""
   });
   
   // 訂房須知狀態
@@ -219,7 +222,7 @@ const WebsiteContent = () => {
         // 獲取 accommodation ID 和基本資料
         const { data: infoData } = await supabase
           .from("accommodation_info")
-          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url")
+          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url")
           .maybeSingle();
 
         if (infoData) {
@@ -234,7 +237,10 @@ const WebsiteContent = () => {
             email: infoData.email || "",
             line_id: infoData.line_id || "",
             facebook_url: infoData.facebook_url || "",
-            instagram_url: infoData.instagram_url || ""
+            instagram_url: infoData.instagram_url || "",
+            threads_url: infoData.threads_url || "",
+            youtube_url: infoData.youtube_url || "",
+            tiktok_url: infoData.tiktok_url || ""
           });
 
           // 加載現有設施
@@ -684,7 +690,10 @@ const WebsiteContent = () => {
           email: basicInfo.email,
           line_id: basicInfo.line_id,
           facebook_url: basicInfo.facebook_url,
-          instagram_url: basicInfo.instagram_url
+          instagram_url: basicInfo.instagram_url,
+          threads_url: basicInfo.threads_url,
+          youtube_url: basicInfo.youtube_url,
+          tiktok_url: basicInfo.tiktok_url
         })
         .eq("id", accommodationId);
 
@@ -897,6 +906,30 @@ const WebsiteContent = () => {
                   value={basicInfo.instagram_url}
                   onChange={(e) => setBasicInfo({ ...basicInfo, instagram_url: e.target.value })}
                   placeholder="請輸入完整 Instagram 網址"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Threads</Label>
+                <Input 
+                  value={basicInfo.threads_url}
+                  onChange={(e) => setBasicInfo({ ...basicInfo, threads_url: e.target.value })}
+                  placeholder="請輸入完整 Threads 網址"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>YouTube</Label>
+                <Input 
+                  value={basicInfo.youtube_url}
+                  onChange={(e) => setBasicInfo({ ...basicInfo, youtube_url: e.target.value })}
+                  placeholder="請輸入完整 YouTube 網址"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>TikTok</Label>
+                <Input 
+                  value={basicInfo.tiktok_url}
+                  onChange={(e) => setBasicInfo({ ...basicInfo, tiktok_url: e.target.value })}
+                  placeholder="請輸入完整 TikTok 網址"
                 />
               </div>
               <Button onClick={handleSaveBasicInfo} disabled={isSaving}>

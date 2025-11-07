@@ -73,10 +73,13 @@ export type Database = {
           registration_number: string | null
           short_url_alias: string | null
           star_rating: string | null
+          threads_url: string | null
+          tiktok_url: string | null
           total_rooms: number | null
           type: string | null
           updated_at: string
           website_url: string | null
+          youtube_url: string | null
         }
         Insert: {
           address?: string | null
@@ -98,10 +101,13 @@ export type Database = {
           registration_number?: string | null
           short_url_alias?: string | null
           star_rating?: string | null
+          threads_url?: string | null
+          tiktok_url?: string | null
           total_rooms?: number | null
           type?: string | null
           updated_at?: string
           website_url?: string | null
+          youtube_url?: string | null
         }
         Update: {
           address?: string | null
@@ -123,10 +129,13 @@ export type Database = {
           registration_number?: string | null
           short_url_alias?: string | null
           star_rating?: string | null
+          threads_url?: string | null
+          tiktok_url?: string | null
           total_rooms?: number | null
           type?: string | null
           updated_at?: string
           website_url?: string | null
+          youtube_url?: string | null
         }
         Relationships: []
       }
