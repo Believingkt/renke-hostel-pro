@@ -1,10 +1,19 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const createUserSchema = z.object({
+  name: z.string().trim().min(1, "名稱不可為空").max(100, "名稱不可超過 100 字元"),
+  email: z.string().email("Email 格式不正確").max(255, "Email 不可超過 255 字元"),
+  password: z.string().min(6, "密碼至少需要 6 個字元").max(72, "密碼不可超過 72 字元"),
+  role: z.enum(['super_admin', 'hotel_admin', 'staff'], { errorMap: () => ({ message: "無效的角色" }) }),
+  accommodationId: z.string().uuid("無效的住宿 ID 格式")
+});
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -45,14 +54,24 @@ serve(async (req) => {
       );
     }
 
-    const { name, email, password, role, accommodationId } = await req.json();
+    const body = await req.json();
+    
+    // Validate inputs with Zod schema
+    const validation = createUserSchema.safeParse(body);
+    if (!validation.success) {
+      const errorMessage = validation.error.issues.map(issue => issue.message).join(", ");
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: errorMessage
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { name, email, password, role, accommodationId } = validation.data;
 
     console.log("Creating user:", { name, email, role, accommodationId });
-
-    // Validate inputs
-    if (!name || !email || !password || !role || !accommodationId) {
-      throw new Error("缺少必要欄位");
-    }
 
     // Check if caller has admin role for this accommodation
     const { data: userRoles } = await supabaseAdmin
@@ -72,8 +91,18 @@ serve(async (req) => {
       );
     }
 
-    if (password.length < 6) {
-      throw new Error("密碼至少需要 6 個字元");
+    // Verify accommodationId exists
+    const { data: accommodation, error: accommodationError } = await supabaseAdmin
+      .from('accommodation_info')
+      .select('id')
+      .eq('id', accommodationId)
+      .single();
+
+    if (accommodationError || !accommodation) {
+      return new Response(
+        JSON.stringify({ success: false, error: '無效的住宿 ID' }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Create user with admin API
