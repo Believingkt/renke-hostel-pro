@@ -159,7 +159,6 @@ const WebsiteContent = () => {
     name: "",
     description: "",
     address: "",
-    check_in_notice: "",
     phone: "",
     email: "",
     line_id: "",
@@ -219,7 +218,6 @@ const WebsiteContent = () => {
             name: infoData.name || "",
             description: infoData.description || "",
             address: infoData.address || "",
-            check_in_notice: infoData.check_in_notice || "",
             phone: infoData.phone || "",
             email: infoData.email || "",
             line_id: infoData.line_id || "",
@@ -641,7 +639,6 @@ const WebsiteContent = () => {
           name: basicInfo.name,
           description: basicInfo.description,
           address: basicInfo.address,
-          check_in_notice: basicInfo.check_in_notice,
           phone: basicInfo.phone,
           email: basicInfo.email,
           line_id: basicInfo.line_id,
@@ -721,15 +718,6 @@ const WebsiteContent = () => {
                 <Input 
                   value={basicInfo.address}
                   onChange={(e) => setBasicInfo({ ...basicInfo, address: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>入住須知</Label>
-                <Textarea 
-                  value={basicInfo.check_in_notice}
-                  onChange={(e) => setBasicInfo({ ...basicInfo, check_in_notice: e.target.value })}
-                  rows={3}
-                  placeholder="請輸入入住須知..."
                 />
               </div>
               <div className="space-y-2">
