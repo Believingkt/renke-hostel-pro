@@ -178,7 +178,8 @@ const WebsiteContent = () => {
     checkOutTime: "11:00",
     paymentMethods: [] as string[],
     cancellationPolicy: "",
-    checkInNotice: ""
+    checkInNotice: "",
+    petPolicy: ""
   });
 
   // FAQ 狀態
@@ -272,7 +273,8 @@ const WebsiteContent = () => {
                 ? (bookingSettings.payment_methods as string[])
                 : [],
               cancellationPolicy: bookingSettings.cancellation_policy || "",
-              checkInNotice: infoData.check_in_notice || ""
+              checkInNotice: infoData.check_in_notice || "",
+              petPolicy: bookingSettings.pet_policy || ""
             });
           } else {
             // 如果沒有設定，使用預設值但保留入住須知
@@ -424,6 +426,7 @@ const WebsiteContent = () => {
           check_out_time: bookingInfo.checkOutTime,
           payment_methods: bookingInfo.paymentMethods,
           cancellation_policy: bookingInfo.cancellationPolicy,
+          pet_policy: bookingInfo.petPolicy,
           updated_at: new Date().toISOString()
         })
         .eq("accommodation_id", accommodationId);
@@ -1220,6 +1223,27 @@ const WebsiteContent = () => {
                   onChange={(e) => setBookingInfo(prev => ({
                     ...prev,
                     checkInNotice: e.target.value
+                  }))}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 寵物入住守則 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>寵物入住守則</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Label>守則說明</Label>
+                <Textarea
+                  rows={8}
+                  placeholder="例如：&#10;歡迎攜帶寵物入住&#10;寵物需加收清潔費用&#10;請主人隨時清理寵物排泄物&#10;寵物不可上床"
+                  value={bookingInfo.petPolicy}
+                  onChange={(e) => setBookingInfo(prev => ({
+                    ...prev,
+                    petPolicy: e.target.value
                   }))}
                 />
               </div>

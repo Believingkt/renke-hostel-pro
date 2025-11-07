@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Clock, CreditCard, FileText, Info } from "lucide-react";
+import { Clock, CreditCard, FileText, Info, PawPrint } from "lucide-react";
 
 interface BookingInfoSectionProps {
   bookingSettings: any;
@@ -7,6 +7,7 @@ interface BookingInfoSectionProps {
 }
 
 const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSectionProps) => {
+  const hasPetPolicy = bookingSettings?.pet_policy && bookingSettings.pet_policy.trim() !== "";
 
   return (
     <section id="booking-info" className="py-12 md:py-20">
@@ -17,7 +18,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
             為確保愉快的住宿體驗，請詳閱以下相關資訊
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+          <div className={`grid grid-cols-1 sm:grid-cols-2 ${hasPetPolicy ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-4 md:gap-6`}>
             <Card>
               <CardContent className="pt-4 md:pt-6">
                 <div className="flex items-center gap-2 mb-3 md:mb-4">
@@ -75,6 +76,22 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                 </div>
               </CardContent>
             </Card>
+
+            {hasPetPolicy && (
+              <Card>
+                <CardContent className="pt-4 md:pt-6">
+                  <div className="flex items-center gap-2 mb-3 md:mb-4">
+                    <PawPrint className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+                  </div>
+                  <h3 className="font-semibold text-base md:text-lg mb-3 md:mb-4">寵物入住守則</h3>
+                  <div className="space-y-1 text-sm text-muted-foreground">
+                    {bookingSettings.pet_policy?.split('\n').map((line: string, index: number) => (
+                      <p key={index}>{line}</p>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>

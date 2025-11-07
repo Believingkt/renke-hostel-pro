@@ -172,6 +172,7 @@ export type Database = {
           deposit_percentage: number | null
           id: string
           payment_methods: Json | null
+          pet_policy: string | null
           updated_at: string
           use_deposit: boolean | null
         }
@@ -184,6 +185,7 @@ export type Database = {
           deposit_percentage?: number | null
           id?: string
           payment_methods?: Json | null
+          pet_policy?: string | null
           updated_at?: string
           use_deposit?: boolean | null
         }
@@ -196,6 +198,7 @@ export type Database = {
           deposit_percentage?: number | null
           id?: string
           payment_methods?: Json | null
+          pet_policy?: string | null
           updated_at?: string
           use_deposit?: boolean | null
         }
