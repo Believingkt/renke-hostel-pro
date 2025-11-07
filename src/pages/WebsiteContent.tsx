@@ -686,14 +686,14 @@ const WebsiteContent = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <Label>住宿名稱</Label>
+                <Label>名稱</Label>
                 <Input 
                   value={basicInfo.name}
                   onChange={(e) => setBasicInfo({ ...basicInfo, name: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <Label>住宿描述</Label>
+                <Label>描述</Label>
                 <Textarea 
                   value={basicInfo.description}
                   onChange={(e) => setBasicInfo({ ...basicInfo, description: e.target.value })}
