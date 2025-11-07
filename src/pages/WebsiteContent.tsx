@@ -683,7 +683,6 @@ const WebsiteContent = () => {
           <Card>
             <CardHeader>
               <CardTitle>住宿基本資訊</CardTitle>
-              <CardDescription>管理住宿的名稱、描述和地址等基本資料</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
@@ -925,7 +924,6 @@ const WebsiteContent = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">請選擇接受的付款方式</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {['信用卡', '現金', '線上支付', 'ATM轉帳', '行動支付'].map((method) => (
                     <div key={method} className="flex items-center space-x-2">
@@ -982,7 +980,6 @@ const WebsiteContent = () => {
                     checkInNotice: e.target.value
                   }))}
                 />
-                <p className="text-sm text-muted-foreground">每行一個注意事項</p>
               </div>
             </CardContent>
           </Card>
@@ -998,7 +995,6 @@ const WebsiteContent = () => {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold">常見問題管理</h2>
-              <p className="text-muted-foreground">管理網站常見問題內容</p>
             </div>
             <Button onClick={() => setIsDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
@@ -1075,9 +1071,6 @@ const WebsiteContent = () => {
                 <MapPin className="h-5 w-5" />
                 交通 & 地圖
               </CardTitle>
-              <CardDescription>
-                管理交通資訊、地圖位置和周邊景點內容
-              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
@@ -1204,9 +1197,6 @@ const WebsiteContent = () => {
             <DialogTitle>
               {editingFaq ? "編輯常見問題" : "新增常見問題"}
             </DialogTitle>
-            <DialogDescription>
-              填寫常見問題的內容，這些內容將顯示在網站前台
-            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
