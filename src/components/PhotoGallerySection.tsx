@@ -42,7 +42,8 @@ const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
           <p className="text-muted-foreground">探索更多精彩瞬間</p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto bg-card rounded-2xl shadow-lg p-6 md:p-8 border border-border/50">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
           {sortedPhotos.map((photo, index) => {
             // 創造不規則的尺寸模式，讓排版更活潑
             const isLarge = index % 7 === 0 || index % 11 === 0;
@@ -68,6 +69,7 @@ const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
               </div>
             );
           })}
+          </div>
         </div>
 
         <Dialog open={selectedImageIndex !== null} onOpenChange={() => setSelectedImageIndex(null)}>
