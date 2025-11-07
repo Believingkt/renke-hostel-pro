@@ -15,7 +15,7 @@ const AboutSection = ({ description = "園區坐落於群山下，在砂紋蜿�
             {description}
           </p>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 mb-8 md:mb-16">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
             {[
               { icon: Mountain, title: "山林環抱", desc: "坐落於群山之間，遠離喧囂，享受大自然的靜謐" },
               { icon: Sparkles, title: "日式美學", desc: "融合傳統日式設計與現代舒適，打造獨特住宿體驗" },
