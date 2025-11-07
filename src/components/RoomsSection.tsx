@@ -198,34 +198,34 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
     </Card>
 
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-      <DialogContent className="max-w-7xl w-[95vw] h-[90vh] p-0 border-0" aria-describedby={undefined}>
-        <DialogClose className="absolute right-4 top-4 z-[60] rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+      <DialogContent className="max-w-7xl w-[95vw] h-[90vh] p-0 border-0 overflow-hidden" aria-describedby={undefined}>
+        <DialogClose className="absolute right-6 md:right-8 top-6 md:top-8 z-[60] rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
           <X className="h-6 w-6 text-white drop-shadow-lg" />
           <span className="sr-only">關閉</span>
         </DialogClose>
-        <div className="relative w-full h-full flex items-center justify-center bg-black">
+        <div className="relative w-full h-full flex items-center justify-center bg-black p-6 md:p-8">
           <img 
             src={images[selectedImageIndex]} 
             alt={`${room.name} - ${selectedImageIndex + 1}`}
-            className="w-full h-full object-contain"
+            className="max-w-full max-h-full object-contain"
           />
           <Button
             variant="outline"
             size="icon"
-            className="absolute left-4 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-white/10 hover:bg-white/20 border-white/20 z-[60]"
+            className="absolute left-6 md:left-8 top-1/2 -translate-y-1/2 h-14 w-14 md:h-16 md:w-16 rounded-full bg-white/10 hover:bg-white/20 border-white/20 backdrop-blur-sm z-[60] shadow-lg"
             onClick={() => setSelectedImageIndex((prev) => (prev - 1 + images.length) % images.length)}
           >
-            <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="h-7 w-7 md:h-8 md:w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </Button>
           <Button
             variant="outline"
             size="icon"
-            className="absolute right-4 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-white/10 hover:bg-white/20 border-white/20 z-[60]"
+            className="absolute right-6 md:right-8 top-1/2 -translate-y-1/2 h-14 w-14 md:h-16 md:w-16 rounded-full bg-white/10 hover:bg-white/20 border-white/20 backdrop-blur-sm z-[60] shadow-lg"
             onClick={() => setSelectedImageIndex((prev) => (prev + 1) % images.length)}
           >
-            <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="h-7 w-7 md:h-8 md:w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </Button>
