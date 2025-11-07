@@ -6,6 +6,7 @@ import HeroSection from "@/components/HeroSection";
 import AboutSection from "@/components/AboutSection";
 import RoomsSection from "@/components/RoomsSection";
 import FacilitiesSection from "@/components/FacilitiesSection";
+import PhotoGallerySection from "@/components/PhotoGallerySection";
 import BookingInfoSection from "@/components/BookingInfoSection";
 import LocationSection from "@/components/LocationSection";
 import FaqSection from "@/components/FaqSection";
@@ -28,6 +29,7 @@ interface AccommodationData {
   roomTypes: any[];
   bookingSettings: any;
   facilities: any[];
+  photos: any[];
   locationInfo: any;
 }
 
@@ -53,11 +55,12 @@ const Index = () => {
             roomTypes: [],
             bookingSettings: null,
             facilities: [],
+            photos: [],
             locationInfo: null
           });
           
           // 继续加载其他数据
-          const [roomTypesRes, bookingSettingsRes, facilitiesRes, locationInfoRes] = await Promise.all([
+          const [roomTypesRes, bookingSettingsRes, facilitiesRes, photosRes, locationInfoRes] = await Promise.all([
             supabase
               .from("room_types")
               .select(`
@@ -80,6 +83,11 @@ const Index = () => {
               .eq("accommodation_id", infoData.id)
               .eq("is_available", true),
             supabase
+              .from("accommodation_photos")
+              .select("*")
+              .eq("accommodation_id", infoData.id)
+              .order("display_order"),
+            supabase
               .from("location_info")
               .select("*")
               .eq("accommodation_id", infoData.id)
@@ -97,6 +105,7 @@ const Index = () => {
             roomTypes: roomTypesWithPhotos,
             bookingSettings: bookingSettingsRes.data,
             facilities: facilitiesRes.data || [],
+            photos: photosRes.data || [],
             locationInfo: locationInfoRes.data
           });
         }
@@ -148,7 +157,8 @@ const Index = () => {
         <AboutSection description={data?.info.description} />
         <RoomsSection roomTypes={data?.roomTypes || []} />
         <FacilitiesSection facilities={data?.facilities || []} />
-        <LocationSection 
+        <PhotoGallerySection photos={data?.photos || []} />
+        <LocationSection
           address={data?.info.address}
           locationInfo={data?.locationInfo}
         />

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Globe, Plus, Trash2, Edit2, GripVertical, MapPin } from "lucide-react";
+import { Globe, Plus, Trash2, Edit2, GripVertical, MapPin, Image as ImageIcon, Upload } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
@@ -146,6 +146,12 @@ interface NearbyAttraction {
   description: string;
 }
 
+interface Photo {
+  id: string;
+  photo_url: string;
+  display_order: number;
+}
+
 const WebsiteContent = () => {
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("basic-info");
@@ -192,6 +198,10 @@ const WebsiteContent = () => {
   const [nearbyAttractions, setNearbyAttractions] = useState<NearbyAttraction[]>([
     { name: "", distance: "", description: "" }
   ]);
+
+  // Gallery state
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -313,6 +323,17 @@ const WebsiteContent = () => {
             } else {
               setNearbyAttractions([{ name: "", distance: "", description: "" }]);
             }
+          }
+
+          // 加載相簿照片
+          const { data: photosData } = await supabase
+            .from("accommodation_photos")
+            .select("*")
+            .eq("accommodation_id", infoData.id)
+            .order("display_order");
+
+          if (photosData) {
+            setPhotos(photosData);
           }
         }
       } catch (error) {
@@ -672,6 +693,94 @@ const WebsiteContent = () => {
     setNearbyAttractions(updated);
   };
 
+  // Gallery handlers
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!accommodationId || !event.target.files || event.target.files.length === 0) {
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      const file = event.target.files[0];
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `${accommodationId}/${fileName}`;
+
+      const { error: uploadError, data } = await supabase.storage
+        .from('room-photos')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('room-photos')
+        .getPublicUrl(filePath);
+
+      const maxOrder = photos.length > 0 
+        ? Math.max(...photos.map(p => p.display_order)) 
+        : 0;
+
+      const { error: insertError, data: newPhoto } = await supabase
+        .from('accommodation_photos')
+        .insert([
+          {
+            accommodation_id: accommodationId,
+            photo_url: publicUrl,
+            display_order: maxOrder + 1
+          }
+        ])
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      setPhotos([...photos, newPhoto]);
+      toast.success('照片已上傳');
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      toast.error('上傳失敗，請稍後再試');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleDeletePhoto = async (photoId: string) => {
+    try {
+      const { error } = await supabase
+        .from('accommodation_photos')
+        .delete()
+        .eq('id', photoId);
+
+      if (error) throw error;
+
+      setPhotos(photos.filter(p => p.id !== photoId));
+      toast.success('照片已刪除');
+    } catch (error) {
+      console.error('Error deleting photo:', error);
+      toast.error('刪除失敗，請稍後再試');
+    }
+  };
+
+  const handleUpdatePhotoOrder = async (photoId: string, newOrder: number) => {
+    try {
+      const { error } = await supabase
+        .from('accommodation_photos')
+        .update({ display_order: newOrder })
+        .eq('id', photoId);
+
+      if (error) throw error;
+
+      const updatedPhotos = photos.map(p => 
+        p.id === photoId ? { ...p, display_order: newOrder } : p
+      );
+      setPhotos(updatedPhotos.sort((a, b) => a.display_order - b.display_order));
+      toast.success('順序已更新');
+    } catch (error) {
+      console.error('Error updating photo order:', error);
+      toast.error('更新失敗，請稍後再試');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -685,6 +794,7 @@ const WebsiteContent = () => {
         <TabsList>
           <TabsTrigger value="basic-info">基本資料</TabsTrigger>
           <TabsTrigger value="facilities">設施與服務</TabsTrigger>
+          <TabsTrigger value="gallery">相簿管理</TabsTrigger>
           <TabsTrigger value="location">交通 & 地圖</TabsTrigger>
           <TabsTrigger value="booking-info">訂房須知</TabsTrigger>
           <TabsTrigger value="faq">常見問題</TabsTrigger>
@@ -925,6 +1035,94 @@ const WebsiteContent = () => {
               {isSaving ? '保存中...' : '保存設定'}
             </Button>
           </div>
+        </TabsContent>
+
+        {/* 相簿管理 Tab */}
+        <TabsContent value="gallery" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>相簿管理</CardTitle>
+              <CardDescription>上傳和管理住宿相簿照片</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* 上傳按鈕 */}
+              <div className="flex items-center gap-4">
+                <Button
+                  onClick={() => document.getElementById('photo-upload')?.click()}
+                  disabled={uploadingPhoto}
+                  className="gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  {uploadingPhoto ? '上傳中...' : '上傳照片'}
+                </Button>
+                <input
+                  id="photo-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  className="hidden"
+                />
+                <p className="text-sm text-muted-foreground">
+                  支援 JPG、PNG 格式，建議尺寸 1200x800 以上
+                </p>
+              </div>
+
+              {/* 照片網格 */}
+              {photos.length === 0 ? (
+                <div className="text-center py-12 border-2 border-dashed rounded-lg">
+                  <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">尚無照片，請上傳您的第一張照片</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {photos.map((photo, index) => (
+                    <div
+                      key={photo.id}
+                      className="relative group aspect-square overflow-hidden rounded-lg border"
+                    >
+                      <img
+                        src={photo.photo_url}
+                        alt={`照片 ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => handleDeletePhoto(photo.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-xs">
+                        順序: {photo.display_order}
+                      </div>
+                      <div className="absolute top-2 right-2 flex gap-1">
+                        <Button
+                          size="icon"
+                          variant="secondary"
+                          className="h-6 w-6"
+                          onClick={() => handleUpdatePhotoOrder(photo.id, photo.display_order - 1)}
+                          disabled={index === 0}
+                        >
+                          ↑
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="secondary"
+                          className="h-6 w-6"
+                          onClick={() => handleUpdatePhotoOrder(photo.id, photo.display_order + 1)}
+                          disabled={index === photos.length - 1}
+                        >
+                          ↓
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="booking-info" className="space-y-6">
