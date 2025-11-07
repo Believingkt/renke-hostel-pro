@@ -9,13 +9,13 @@ const AboutSection = ({ description = "園區坐落於群山下，在砂紋蜿�
   return (
     <section className="py-12 md:py-20 bg-background">
       <div className="container mx-auto px-4">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-3 md:mb-4">自然中的秘境 X 宿泊空間</h2>
           <p className="text-center text-muted-foreground text-base md:text-lg mb-8 md:mb-16 whitespace-pre-line">
             {description}
           </p>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-5 md:gap-6 mb-8 md:mb-16">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 mb-8 md:mb-16">
             {[
               { icon: Mountain, title: "山林環抱", desc: "坐落於群山之間，遠離喧囂，享受大自然的靜謐" },
               { icon: Sparkles, title: "日式美學", desc: "融合傳統日式設計與現代舒適，打造獨特住宿體驗" },
