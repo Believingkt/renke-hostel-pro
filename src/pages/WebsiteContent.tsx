@@ -814,7 +814,7 @@ const WebsiteContent = () => {
           {/* 餐飲設施 */}
           <Card>
             <CardHeader>
-              <CardTitle>餐飲設施</CardTitle>
+              <h3 className="font-semibold">餐飲設施</h3>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -837,7 +837,7 @@ const WebsiteContent = () => {
           {/* 安全設施 */}
           <Card>
             <CardHeader>
-              <CardTitle>安全設施</CardTitle>
+              <h3 className="font-semibold">安全設施</h3>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -860,7 +860,7 @@ const WebsiteContent = () => {
           {/* 休閒娛樂設施 */}
           <Card>
             <CardHeader>
-              <CardTitle>休閒娛樂設施</CardTitle>
+              <h3 className="font-semibold">休閒娛樂設施</h3>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -900,7 +900,7 @@ const WebsiteContent = () => {
           {/* 服務語言 */}
           <Card>
             <CardHeader>
-              <CardTitle>服務語言</CardTitle>
+              <h3 className="font-semibold">服務語言</h3>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
