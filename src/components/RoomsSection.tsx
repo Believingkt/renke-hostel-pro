@@ -132,7 +132,7 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
         </div>
         
         <div className="pt-3 border-t mt-3">
-          <div className="space-y-3 min-h-[200px]">
+          <div className="space-y-3">
             {room.weekdayPricing && (
               <div>
                 <p className="text-xs font-semibold text-foreground mb-2">平日</p>
@@ -161,7 +161,7 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
             )}
           </div>
           <Link to={`/booking?roomId=${room.id}&step=dates`}>
-            <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg h-10 font-medium mt-3">
+            <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg h-10 font-medium mt-4">
               立即預訂
             </Button>
           </Link>
