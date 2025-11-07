@@ -316,17 +316,17 @@ const WebsiteContent = () => {
     loadData();
   }, []);
 
-  const handleCheckboxChange = (facilityId: string, checked: boolean) => {
+  const handleCheckboxChange = (facilityName: string, checked: boolean) => {
     setSelectedFacilities(prev => ({
       ...prev,
-      [facilityId]: checked
+      [facilityName]: checked
     }));
   };
 
-  const handlePricingTypeChange = (facilityId: string, value: string) => {
+  const handlePricingTypeChange = (facilityName: string, value: string) => {
     setPricingTypes(prev => ({
       ...prev,
-      [facilityId]: value
+      [facilityName]: value
     }));
   };
 
@@ -349,12 +349,12 @@ const WebsiteContent = () => {
       
       for (const [category, items] of Object.entries(facilitiesData)) {
         for (const item of items) {
-          if (selectedFacilities[item.id]) {
+          if (selectedFacilities[item.name]) {
             facilitiesToInsert.push({
               accommodation_id: accommodationId,
               facility_name: item.name,
               category: category,
-              pricing_type: item.hasPrice ? (pricingTypes[item.id] || 'free') : 'included',
+              pricing_type: item.hasPrice ? (pricingTypes[item.name] || 'free') : 'included',
               is_available: true
             });
           }
@@ -740,17 +740,17 @@ const WebsiteContent = () => {
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           id={facility.id}
-                          checked={selectedFacilities[facility.id] || false}
+                          checked={selectedFacilities[facility.name] || false}
                           onCheckedChange={(checked) => 
-                            handleCheckboxChange(facility.id, checked as boolean)
+                            handleCheckboxChange(facility.name, checked as boolean)
                           }
                         />
                         <Label htmlFor={facility.id}>{facility.name}</Label>
                       </div>
-                      {facility.hasPrice && selectedFacilities[facility.id] && (
+                      {facility.hasPrice && selectedFacilities[facility.name] && (
                         <Select
-                          value={pricingTypes[facility.id] || 'free'}
-                          onValueChange={(value) => handlePricingTypeChange(facility.id, value)}
+                          value={pricingTypes[facility.name] || 'free'}
+                          onValueChange={(value) => handlePricingTypeChange(facility.name, value)}
                         >
                           <SelectTrigger className="w-full">
                             <SelectValue />
@@ -779,9 +779,9 @@ const WebsiteContent = () => {
                   <div key={facility.id} className="flex items-center space-x-2">
                     <Checkbox
                       id={facility.id}
-                      checked={selectedFacilities[facility.id] || false}
+                      checked={selectedFacilities[facility.name] || false}
                       onCheckedChange={(checked) => 
-                        handleCheckboxChange(facility.id, checked as boolean)
+                        handleCheckboxChange(facility.name, checked as boolean)
                       }
                     />
                     <Label htmlFor={facility.id}>{facility.name}</Label>
@@ -802,9 +802,9 @@ const WebsiteContent = () => {
                   <div key={facility.id} className="flex items-center space-x-2">
                     <Checkbox
                       id={facility.id}
-                      checked={selectedFacilities[facility.id] || false}
+                      checked={selectedFacilities[facility.name] || false}
                       onCheckedChange={(checked) => 
-                        handleCheckboxChange(facility.id, checked as boolean)
+                        handleCheckboxChange(facility.name, checked as boolean)
                       }
                     />
                     <Label htmlFor={facility.id}>{facility.name}</Label>
@@ -826,17 +826,17 @@ const WebsiteContent = () => {
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id={facility.id}
-                        checked={selectedFacilities[facility.id] || false}
+                        checked={selectedFacilities[facility.name] || false}
                         onCheckedChange={(checked) => 
-                          handleCheckboxChange(facility.id, checked as boolean)
+                          handleCheckboxChange(facility.name, checked as boolean)
                         }
                       />
                       <Label htmlFor={facility.id}>{facility.name}</Label>
                     </div>
-                    {facility.hasPrice && selectedFacilities[facility.id] && (
+                    {facility.hasPrice && selectedFacilities[facility.name] && (
                       <Select
-                        value={pricingTypes[facility.id] || 'free'}
-                        onValueChange={(value) => handlePricingTypeChange(facility.id, value)}
+                        value={pricingTypes[facility.name] || 'free'}
+                        onValueChange={(value) => handlePricingTypeChange(facility.name, value)}
                       >
                         <SelectTrigger className="w-full">
                           <SelectValue />
@@ -865,9 +865,9 @@ const WebsiteContent = () => {
                   <div key={facility.id} className="flex items-center space-x-2">
                     <Checkbox
                       id={facility.id}
-                      checked={selectedFacilities[facility.id] || false}
+                      checked={selectedFacilities[facility.name] || false}
                       onCheckedChange={(checked) => 
-                        handleCheckboxChange(facility.id, checked as boolean)
+                        handleCheckboxChange(facility.name, checked as boolean)
                       }
                     />
                     <Label htmlFor={facility.id}>{facility.name}</Label>
