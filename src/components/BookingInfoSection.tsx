@@ -44,11 +44,11 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                   <h3 className="font-bold text-lg md:text-xl">入住時間</h3>
                 </div>
                 <div className="space-y-3 text-sm md:text-base text-muted-foreground">
-                  <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-2 p-3 rounded-lg">
                     <span className="font-medium text-foreground">入住：</span>
                     <span>{bookingSettings?.check_in_time} 之後</span>
                   </div>
-                  <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-2 p-3 rounded-lg">
                     <span className="font-medium text-foreground">退房：</span>
                     <span>{bookingSettings?.check_out_time} 之前</span>
                   </div>
@@ -67,7 +67,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                 <div className="space-y-2 text-sm md:text-base text-muted-foreground">
                   {Array.isArray(bookingSettings?.payment_methods) 
                     ? bookingSettings.payment_methods.map((method: string, index: number) => (
-                        <div key={index} className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/50">
+                        <div key={index} className="flex items-center gap-2 p-2.5 rounded-lg">
                           <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
                           <span>{method}</span>
                         </div>
@@ -88,7 +88,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                 </div>
                 <div className="space-y-2 text-sm md:text-base text-muted-foreground">
                   {bookingSettings?.cancellation_policy?.split('\n').map((line: string, index: number) => (
-                    <p key={index} className="p-2.5 rounded-lg bg-muted/50 leading-relaxed">{line}</p>
+                    <p key={index} className="p-2.5 rounded-lg leading-relaxed">{line}</p>
                   ))}
                 </div>
               </CardContent>
@@ -105,7 +105,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                 <div className="flex-1 flex flex-col">
                   <div className="space-y-2 text-sm md:text-base text-muted-foreground overflow-hidden" style={{ maxHeight: "180px" }}>
                     {checkInNotice?.split('\n').map((line: string, index: number) => (
-                      <p key={index} className="p-2.5 rounded-lg bg-muted/50 leading-relaxed">{line}</p>
+                      <p key={index} className="p-2.5 rounded-lg leading-relaxed">{line}</p>
                     ))}
                   </div>
                   {checkInNotice && checkInNotice.split('\n').length > 4 && (
@@ -134,7 +134,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                   <div className="flex-1 flex flex-col">
                     <div className="space-y-2 text-sm md:text-base text-muted-foreground overflow-hidden" style={{ maxHeight: "180px" }}>
                       {bookingSettings.pet_policy?.split('\n').map((line: string, index: number) => (
-                        <p key={index} className="p-2.5 rounded-lg bg-muted/50 leading-relaxed">{line}</p>
+                        <p key={index} className="p-2.5 rounded-lg leading-relaxed">{line}</p>
                       ))}
                     </div>
                     {bookingSettings.pet_policy && bookingSettings.pet_policy.split('\n').length > 4 && (
@@ -164,7 +164,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                   <div className="flex-1 flex flex-col">
                     <div className="space-y-2 text-sm md:text-base text-muted-foreground overflow-hidden" style={{ maxHeight: "180px" }}>
                       {bookingSettings.other_notes?.split('\n').map((line: string, index: number) => (
-                        <p key={index} className="p-2.5 rounded-lg bg-muted/50 leading-relaxed">{line}</p>
+                        <p key={index} className="p-2.5 rounded-lg leading-relaxed">{line}</p>
                       ))}
                     </div>
                     {bookingSettings.other_notes && bookingSettings.other_notes.split('\n').length > 4 && (
@@ -192,7 +192,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
           </DialogHeader>
           <div className="space-y-3 mt-4">
             {dialogContent.content.split('\n').map((line: string, index: number) => (
-              <p key={index} className="p-3 rounded-lg bg-muted/50 leading-relaxed text-muted-foreground">
+              <p key={index} className="p-3 rounded-lg leading-relaxed text-muted-foreground">
                 {line}
               </p>
             ))}
