@@ -87,7 +87,7 @@ const BasicInfo = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">帳務資訊</h1>
+      <h1 className="text-3xl font-bold tracking-tight">基本資料</h1>
 
       {/* 住宿基本資訊 */}
       <Card>
