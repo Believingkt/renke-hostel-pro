@@ -90,10 +90,10 @@ const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
           
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
           {currentPhotos.map((photo, index) => {
-            // 創造不規則的尺寸模式，讓排版更活潑
-            const globalIndex = startIndex + index;
-            const isLarge = globalIndex % 7 === 0 || globalIndex % 11 === 0;
+            // 調整大縮圖位置邏輯：在每頁的第1和第7張設為大圖（索引0和6）
+            const isLarge = index === 0 || index === 6;
             const gridSpan = isLarge ? "md:col-span-2 md:row-span-2" : "";
+            const globalIndex = startIndex + index;
             
             return (
               <div
