@@ -674,8 +674,8 @@ const WebsiteContent = () => {
           <TabsTrigger value="basic-info">基本資料</TabsTrigger>
           <TabsTrigger value="facilities">設施與服務</TabsTrigger>
           <TabsTrigger value="booking-info">訂房須知</TabsTrigger>
-          <TabsTrigger value="faq">常見問題</TabsTrigger>
           <TabsTrigger value="location">交通 & 地圖</TabsTrigger>
+          <TabsTrigger value="faq">常見問題</TabsTrigger>
         </TabsList>
 
         {/* 基本資料 Tab */}
