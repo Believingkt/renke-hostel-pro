@@ -19,8 +19,8 @@ const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
   const [currentPage, setCurrentPage] = useState(0);
   const isMobile = useIsMobile();
   
-  // 手機版顯示 9 張（3列x3欄），平板和桌面顯示 12 張
-  const photosPerPage = isMobile ? 9 : 12;
+  // 手機版顯示 6 張（2列x3欄），平板和桌面顯示 12 張
+  const photosPerPage = isMobile ? 6 : 12;
 
   if (!photos || photos.length === 0) {
     return null;
