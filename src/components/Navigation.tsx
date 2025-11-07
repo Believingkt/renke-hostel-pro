@@ -26,27 +26,27 @@ const Navigation = ({ accommodationName = "森山寫照", onNavigate }: Navigati
         </button>
         
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-6">
-          <button onClick={() => onNavigate("rooms")} className="text-sm hover:text-primary transition-colors">
+        <nav className="hidden md:flex items-center gap-2 lg:gap-4 xl:gap-6">
+          <button onClick={() => onNavigate("rooms")} className="text-xs lg:text-sm hover:text-primary transition-colors whitespace-nowrap px-1 lg:px-2">
             房型導覽
           </button>
-          <button onClick={() => onNavigate("facilities")} className="text-sm hover:text-primary transition-colors">
+          <button onClick={() => onNavigate("facilities")} className="text-xs lg:text-sm hover:text-primary transition-colors whitespace-nowrap px-1 lg:px-2">
             設施與服務
           </button>
-          <button onClick={() => onNavigate("gallery")} className="text-sm hover:text-primary transition-colors">
+          <button onClick={() => onNavigate("gallery")} className="text-xs lg:text-sm hover:text-primary transition-colors whitespace-nowrap px-1 lg:px-2">
             精選照片
           </button>
-          <button onClick={() => onNavigate("location")} className="text-sm hover:text-primary transition-colors">
+          <button onClick={() => onNavigate("location")} className="text-xs lg:text-sm hover:text-primary transition-colors whitespace-nowrap px-1 lg:px-2">
             交通 & 地圖
           </button>
-          <button onClick={() => onNavigate("booking-info")} className="text-sm hover:text-primary transition-colors">
+          <button onClick={() => onNavigate("booking-info")} className="text-xs lg:text-sm hover:text-primary transition-colors whitespace-nowrap px-1 lg:px-2">
             訂房須知
           </button>
-          <button onClick={() => onNavigate("faq")} className="text-sm hover:text-primary transition-colors">
+          <button onClick={() => onNavigate("faq")} className="text-xs lg:text-sm hover:text-primary transition-colors whitespace-nowrap px-1 lg:px-2">
             常見問題
           </button>
           <Link to="/booking">
-            <Button className="bg-primary hover:bg-primary/90">
+            <Button className="bg-primary hover:bg-primary/90 text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4">
               立即預訂
             </Button>
           </Link>
