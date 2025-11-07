@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Clock, CreditCard, FileText, Info, PawPrint, AlertCircle } from "lucide-react";
+import { Clock, CreditCard, FileText, Info, PawPrint, AlertTriangle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
@@ -98,7 +98,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
               <CardContent className="p-5 md:p-6 flex flex-col flex-1">
                 <div className="flex items-center gap-2.5 mb-3 md:mb-4">
                   <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <Info className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+                    <AlertTriangle className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                   </div>
                   <h3 className="font-semibold text-base md:text-lg">重要事項</h3>
                 </div>
@@ -157,7 +157,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                 <CardContent className="p-5 md:p-6 flex flex-col flex-1">
                   <div className="flex items-center gap-2.5 mb-3 md:mb-4">
                     <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                      <AlertCircle className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+                      <Info className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                     </div>
                     <h3 className="font-semibold text-base md:text-lg">其他注意事項</h3>
                   </div>
