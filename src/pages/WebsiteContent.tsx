@@ -148,11 +148,19 @@ interface NearbyAttraction {
 
 const WebsiteContent = () => {
   const [searchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState("facilities");
+  const [activeTab, setActiveTab] = useState("basic-info");
   const [selectedFacilities, setSelectedFacilities] = useState<Record<string, boolean>>({});
   const [pricingTypes, setPricingTypes] = useState<Record<string, string>>({});
   const [accommodationId, setAccommodationId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // 基本資料狀態
+  const [basicInfo, setBasicInfo] = useState({
+    name: "",
+    description: "",
+    address: "",
+    check_in_notice: ""
+  });
   
   // 訂房須知狀態
   const [bookingInfo, setBookingInfo] = useState({
@@ -192,14 +200,22 @@ const WebsiteContent = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // 獲取 accommodation ID 和入住須知
+        // 獲取 accommodation ID 和基本資料
         const { data: infoData } = await supabase
           .from("accommodation_info")
-          .select("id, check_in_notice")
+          .select("id, name, description, address, check_in_notice")
           .maybeSingle();
 
         if (infoData) {
           setAccommodationId(infoData.id);
+          
+          // 設置基本資料
+          setBasicInfo({
+            name: infoData.name || "",
+            description: infoData.description || "",
+            address: infoData.address || "",
+            check_in_notice: infoData.check_in_notice || ""
+          });
 
           // 加載現有設施
           const { data: facilities } = await supabase
@@ -604,6 +620,32 @@ const WebsiteContent = () => {
     setNearbyAttractions([...nearbyAttractions, { name: "", distance: "", description: "" }]);
   };
 
+  const handleSaveBasicInfo = async () => {
+    if (!accommodationId) return;
+    
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from("accommodation_info")
+        .update({
+          name: basicInfo.name,
+          description: basicInfo.description,
+          address: basicInfo.address,
+          check_in_notice: basicInfo.check_in_notice
+        })
+        .eq("id", accommodationId);
+
+      if (error) throw error;
+
+      toast.success('基本資料已儲存');
+    } catch (error) {
+      console.error("Error saving basic info:", error);
+      toast.error('儲存失敗，請稍後再試');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleRemoveAttraction = (index: number) => {
     setNearbyAttractions(nearbyAttractions.filter((_, i) => i !== index));
   };
@@ -629,11 +671,59 @@ const WebsiteContent = () => {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
+          <TabsTrigger value="basic-info">基本資料</TabsTrigger>
           <TabsTrigger value="facilities">設施與服務</TabsTrigger>
           <TabsTrigger value="booking-info">訂房須知</TabsTrigger>
           <TabsTrigger value="faq">常見問題</TabsTrigger>
           <TabsTrigger value="location">交通 & 地圖</TabsTrigger>
         </TabsList>
+
+        {/* 基本資料 Tab */}
+        <TabsContent value="basic-info" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>住宿基本資訊</CardTitle>
+              <CardDescription>管理住宿的名稱、描述和地址等基本資料</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label>住宿名稱</Label>
+                <Input 
+                  value={basicInfo.name}
+                  onChange={(e) => setBasicInfo({ ...basicInfo, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>住宿描述</Label>
+                <Textarea 
+                  value={basicInfo.description}
+                  onChange={(e) => setBasicInfo({ ...basicInfo, description: e.target.value })}
+                  rows={4}
+                  placeholder="請輸入住宿描述..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>地址</Label>
+                <Input 
+                  value={basicInfo.address}
+                  onChange={(e) => setBasicInfo({ ...basicInfo, address: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>入住須知</Label>
+                <Textarea 
+                  value={basicInfo.check_in_notice}
+                  onChange={(e) => setBasicInfo({ ...basicInfo, check_in_notice: e.target.value })}
+                  rows={3}
+                  placeholder="請輸入入住須知..."
+                />
+              </div>
+              <Button onClick={handleSaveBasicInfo} disabled={isSaving}>
+                {isSaving ? "儲存中..." : "儲存變更"}
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="facilities" className="space-y-6">
           {/* 公共區設施與服務 */}
