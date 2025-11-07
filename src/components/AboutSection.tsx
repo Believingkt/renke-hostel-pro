@@ -23,12 +23,12 @@ const AboutSection = ({ description = "園區坐落於群山下，在砂紋蜿�
               { icon: Shield, title: "安心保障", desc: "完善的安全設施與衛生標準，讓您住得安心" },
             ].map((item, index) => (
               <Card key={index} className="hover:shadow-lg transition-all duration-300 border border-border/50 bg-card">
-                <CardContent className="p-5 md:p-6 text-center">
-                  <div className="w-14 h-14 md:w-16 md:h-16 mx-auto mb-3 md:mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-                    <item.icon className="h-7 w-7 md:h-8 md:w-8 text-primary" strokeWidth={1.5} />
+                <CardContent className="p-6 md:p-8 text-center">
+                  <div className="w-20 h-20 md:w-24 md:h-24 mx-auto mb-4 md:mb-6 rounded-full bg-primary/10 flex items-center justify-center">
+                    <item.icon className="h-10 w-10 md:h-12 md:w-12 text-primary" strokeWidth={1.5} />
                   </div>
-                  <h3 className="font-semibold text-base md:text-lg mb-2 text-foreground">{item.title}</h3>
-                  <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                  <h3 className="font-semibold text-lg md:text-xl mb-3 text-foreground">{item.title}</h3>
+                  <p className="text-sm md:text-base text-muted-foreground leading-relaxed">{item.desc}</p>
                 </CardContent>
               </Card>
             ))}
