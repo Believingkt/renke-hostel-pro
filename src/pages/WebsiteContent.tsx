@@ -179,7 +179,8 @@ const WebsiteContent = () => {
     paymentMethods: [] as string[],
     cancellationPolicy: "",
     checkInNotice: "",
-    petPolicy: ""
+    petPolicy: "",
+    otherNotes: ""
   });
 
   // FAQ 狀態
@@ -274,7 +275,8 @@ const WebsiteContent = () => {
                 : [],
               cancellationPolicy: bookingSettings.cancellation_policy || "",
               checkInNotice: infoData.check_in_notice || "",
-              petPolicy: bookingSettings.pet_policy || ""
+              petPolicy: bookingSettings.pet_policy || "",
+              otherNotes: bookingSettings.other_notes || ""
             });
           } else {
             // 如果沒有設定，使用預設值但保留入住須知
@@ -427,6 +429,7 @@ const WebsiteContent = () => {
           payment_methods: bookingInfo.paymentMethods,
           cancellation_policy: bookingInfo.cancellationPolicy,
           pet_policy: bookingInfo.petPolicy,
+          other_notes: bookingInfo.otherNotes,
           updated_at: new Date().toISOString()
         })
         .eq("accommodation_id", accommodationId);
@@ -1244,6 +1247,27 @@ const WebsiteContent = () => {
                   onChange={(e) => setBookingInfo(prev => ({
                     ...prev,
                     petPolicy: e.target.value
+                  }))}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 其他注意事項 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>其他注意事項</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Label>注意事項說明</Label>
+                <Textarea
+                  rows={8}
+                  placeholder="例如：&#10;房間內禁止吸菸&#10;晚上10點後請降低音量&#10;使用設施請遵守安全規範&#10;貴重物品請自行保管"
+                  value={bookingInfo.otherNotes}
+                  onChange={(e) => setBookingInfo(prev => ({
+                    ...prev,
+                    otherNotes: e.target.value
                   }))}
                 />
               </div>
