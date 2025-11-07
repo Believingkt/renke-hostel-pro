@@ -794,7 +794,7 @@ const WebsiteContent = () => {
         <TabsList>
           <TabsTrigger value="basic-info">基本資料</TabsTrigger>
           <TabsTrigger value="facilities">設施與服務</TabsTrigger>
-          <TabsTrigger value="gallery">相簿管理</TabsTrigger>
+          <TabsTrigger value="gallery">精選照片</TabsTrigger>
           <TabsTrigger value="location">交通 & 地圖</TabsTrigger>
           <TabsTrigger value="booking-info">訂房須知</TabsTrigger>
           <TabsTrigger value="faq">常見問題</TabsTrigger>
@@ -1041,8 +1041,8 @@ const WebsiteContent = () => {
         <TabsContent value="gallery" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>相簿管理</CardTitle>
-              <CardDescription>上傳和管理住宿相簿照片</CardDescription>
+              <CardTitle>精選照片</CardTitle>
+              <CardDescription>上傳和管理住宿精選照片</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* 上傳按鈕 */}
