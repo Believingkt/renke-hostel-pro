@@ -59,10 +59,15 @@ export type Database = {
           country: string | null
           created_at: string
           description: string | null
+          email: string | null
+          facebook_url: string | null
           id: string
+          instagram_url: string | null
           latitude: number | null
+          line_id: string | null
           longitude: number | null
           name: string
+          phone: string | null
           region_1: string | null
           region_2: string | null
           registration_number: string | null
@@ -79,10 +84,15 @@ export type Database = {
           country?: string | null
           created_at?: string
           description?: string | null
+          email?: string | null
+          facebook_url?: string | null
           id?: string
+          instagram_url?: string | null
           latitude?: number | null
+          line_id?: string | null
           longitude?: number | null
           name: string
+          phone?: string | null
           region_1?: string | null
           region_2?: string | null
           registration_number?: string | null
@@ -99,10 +109,15 @@ export type Database = {
           country?: string | null
           created_at?: string
           description?: string | null
+          email?: string | null
+          facebook_url?: string | null
           id?: string
+          instagram_url?: string | null
           latitude?: number | null
+          line_id?: string | null
           longitude?: number | null
           name?: string
+          phone?: string | null
           region_1?: string | null
           region_2?: string | null
           registration_number?: string | null

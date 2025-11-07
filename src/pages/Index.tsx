@@ -19,6 +19,11 @@ interface AccommodationData {
     description: string;
     address: string;
     check_in_notice: string;
+    phone?: string;
+    email?: string;
+    line_id?: string;
+    facebook_url?: string;
+    instagram_url?: string;
   };
   roomTypes: any[];
   bookingSettings: any;
@@ -37,7 +42,7 @@ const Index = () => {
       try {
         const { data: infoData } = await supabase
           .from("accommodation_info")
-          .select("id, name, description, address, check_in_notice")
+          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url")
           .eq("id", accommodationId)
           .single();
         
@@ -157,6 +162,11 @@ const Index = () => {
       <Footer 
         accommodationName={data?.info.name}
         address={data?.info.address}
+        phone={data?.info.phone}
+        email={data?.info.email}
+        lineId={data?.info.line_id}
+        facebookUrl={data?.info.facebook_url}
+        instagramUrl={data?.info.instagram_url}
       />
     </div>
   );

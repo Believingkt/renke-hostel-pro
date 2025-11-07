@@ -159,7 +159,12 @@ const WebsiteContent = () => {
     name: "",
     description: "",
     address: "",
-    check_in_notice: ""
+    check_in_notice: "",
+    phone: "",
+    email: "",
+    line_id: "",
+    facebook_url: "",
+    instagram_url: ""
   });
   
   // 訂房須知狀態
@@ -203,7 +208,7 @@ const WebsiteContent = () => {
         // 獲取 accommodation ID 和基本資料
         const { data: infoData } = await supabase
           .from("accommodation_info")
-          .select("id, name, description, address, check_in_notice")
+          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url")
           .maybeSingle();
 
         if (infoData) {
@@ -214,7 +219,12 @@ const WebsiteContent = () => {
             name: infoData.name || "",
             description: infoData.description || "",
             address: infoData.address || "",
-            check_in_notice: infoData.check_in_notice || ""
+            check_in_notice: infoData.check_in_notice || "",
+            phone: infoData.phone || "",
+            email: infoData.email || "",
+            line_id: infoData.line_id || "",
+            facebook_url: infoData.facebook_url || "",
+            instagram_url: infoData.instagram_url || ""
           });
 
           // 加載現有設施
@@ -631,7 +641,12 @@ const WebsiteContent = () => {
           name: basicInfo.name,
           description: basicInfo.description,
           address: basicInfo.address,
-          check_in_notice: basicInfo.check_in_notice
+          check_in_notice: basicInfo.check_in_notice,
+          phone: basicInfo.phone,
+          email: basicInfo.email,
+          line_id: basicInfo.line_id,
+          facebook_url: basicInfo.facebook_url,
+          instagram_url: basicInfo.instagram_url
         })
         .eq("id", accommodationId);
 
@@ -715,6 +730,47 @@ const WebsiteContent = () => {
                   onChange={(e) => setBasicInfo({ ...basicInfo, check_in_notice: e.target.value })}
                   rows={3}
                   placeholder="請輸入入住須知..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>電話</Label>
+                <Input 
+                  value={basicInfo.phone}
+                  onChange={(e) => setBasicInfo({ ...basicInfo, phone: e.target.value })}
+                  placeholder="例如：0903178518"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input 
+                  type="email"
+                  value={basicInfo.email}
+                  onChange={(e) => setBasicInfo({ ...basicInfo, email: e.target.value })}
+                  placeholder="例如：info@example.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>LINE ID</Label>
+                <Input 
+                  value={basicInfo.line_id}
+                  onChange={(e) => setBasicInfo({ ...basicInfo, line_id: e.target.value })}
+                  placeholder="例如：@042deypa"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Facebook</Label>
+                <Input 
+                  value={basicInfo.facebook_url}
+                  onChange={(e) => setBasicInfo({ ...basicInfo, facebook_url: e.target.value })}
+                  placeholder="請輸入完整 Facebook 網址"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Instagram</Label>
+                <Input 
+                  value={basicInfo.instagram_url}
+                  onChange={(e) => setBasicInfo({ ...basicInfo, instagram_url: e.target.value })}
+                  placeholder="請輸入完整 Instagram 網址"
                 />
               </div>
               <Button onClick={handleSaveBasicInfo} disabled={isSaving}>
