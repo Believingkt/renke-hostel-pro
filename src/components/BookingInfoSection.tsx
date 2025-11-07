@@ -103,16 +103,16 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                   <h3 className="font-bold text-lg md:text-xl">重要事項</h3>
                 </div>
                 <div className="flex-1 flex flex-col">
-                  <div className="space-y-2 text-sm md:text-base text-muted-foreground line-clamp-4">
+                  <div className="space-y-2 text-sm md:text-base text-muted-foreground overflow-hidden" style={{ maxHeight: "180px" }}>
                     {checkInNotice?.split('\n').map((line: string, index: number) => (
                       <p key={index} className="p-2.5 rounded-lg bg-muted/50 leading-relaxed">{line}</p>
                     ))}
                   </div>
                   {checkInNotice && checkInNotice.split('\n').length > 4 && (
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
-                      className="mt-4 text-primary hover:text-primary/80"
+                      className="mt-4 w-full text-foreground hover:bg-primary hover:text-primary-foreground border-primary/20"
                       onClick={() => openDialog("重要事項", checkInNotice)}
                     >
                       查看完整內容
@@ -132,16 +132,16 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                     <h3 className="font-bold text-lg md:text-xl">寵物入住守則</h3>
                   </div>
                   <div className="flex-1 flex flex-col">
-                    <div className="space-y-2 text-sm md:text-base text-muted-foreground line-clamp-4">
+                    <div className="space-y-2 text-sm md:text-base text-muted-foreground overflow-hidden" style={{ maxHeight: "180px" }}>
                       {bookingSettings.pet_policy?.split('\n').map((line: string, index: number) => (
                         <p key={index} className="p-2.5 rounded-lg bg-muted/50 leading-relaxed">{line}</p>
                       ))}
                     </div>
                     {bookingSettings.pet_policy && bookingSettings.pet_policy.split('\n').length > 4 && (
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        className="mt-4 text-primary hover:text-primary/80"
+                        className="mt-4 w-full text-foreground hover:bg-primary hover:text-primary-foreground border-primary/20"
                         onClick={() => openDialog("寵物入住守則", bookingSettings.pet_policy)}
                       >
                         查看完整內容
@@ -162,16 +162,16 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                     <h3 className="font-bold text-lg md:text-xl">其他注意事項</h3>
                   </div>
                   <div className="flex-1 flex flex-col">
-                    <div className="space-y-2 text-sm md:text-base text-muted-foreground line-clamp-4">
+                    <div className="space-y-2 text-sm md:text-base text-muted-foreground overflow-hidden" style={{ maxHeight: "180px" }}>
                       {bookingSettings.other_notes?.split('\n').map((line: string, index: number) => (
                         <p key={index} className="p-2.5 rounded-lg bg-muted/50 leading-relaxed">{line}</p>
                       ))}
                     </div>
                     {bookingSettings.other_notes && bookingSettings.other_notes.split('\n').length > 4 && (
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        className="mt-4 text-primary hover:text-primary/80"
+                        className="mt-4 w-full text-foreground hover:bg-primary hover:text-primary-foreground border-primary/20"
                         onClick={() => openDialog("其他注意事項", bookingSettings.other_notes)}
                       >
                         查看完整內容
