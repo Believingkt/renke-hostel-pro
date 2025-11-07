@@ -63,11 +63,11 @@ const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
   };
 
   return (
-    <section id="gallery" className="py-20 bg-muted/30">
+    <section id="gallery" className="py-12 md:py-20 bg-muted/30">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold mb-4">精選照片</h2>
-          <p className="text-muted-foreground">探索更多精彩瞬間</p>
+        <div className="text-center mb-12 md:mb-16">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-3 md:mb-4">精選照片</h2>
+          <p className="text-center text-muted-foreground mb-0 text-base md:text-lg">探索更多精彩瞬間</p>
         </div>
 
         <div className="max-w-7xl mx-auto bg-card rounded-2xl shadow-lg p-6 md:p-8 border border-border/50 relative">

@@ -35,7 +35,8 @@ const ReviewsSection = () => {
     <section className="py-12 md:py-20 bg-muted/30">
       <div className="container mx-auto px-4">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 md:mb-6">旅客評價</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-3 md:mb-4">旅客評價</h2>
+          <p className="text-center text-muted-foreground mb-8 md:mb-16 text-base md:text-lg">來自真實旅客的住宿體驗分享</p>
           
           {/* Rating Summary */}
           <div className="text-center mb-8 md:mb-12">

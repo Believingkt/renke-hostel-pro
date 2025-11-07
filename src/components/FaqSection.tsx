@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { HelpCircle } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -50,11 +49,11 @@ const FaqSection = () => {
   }
 
   return (
-    <section id="faq" className="py-20 bg-background">
+    <section id="faq" className="py-12 md:py-20 bg-background">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold mb-4">常見問題</h2>
-          <p className="text-muted-foreground">
+        <div className="text-center mb-12 md:mb-16">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-3 md:mb-4">常見問題</h2>
+          <p className="text-center text-muted-foreground mb-0 text-base md:text-lg">
             關於住宿的常見問題解答
           </p>
         </div>
