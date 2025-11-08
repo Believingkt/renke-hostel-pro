@@ -41,7 +41,7 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
       padding: '0',
       border: 'none',
       transform: 'translate3d(0, 0, 0)',
-      WebkitTransform: 'translate3d(0, 0, 0)',
+      webkitTransform: 'translate3d(0, 0, 0)',
       willChange: 'auto',
       isolation: 'isolate',
     });
@@ -140,12 +140,19 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     const root = document.documentElement;
     const body = document.body;
     
-    // 完全凍結輪播
-    const emblaContainers = document.querySelectorAll('.embla__container');
-    emblaContainers.forEach((el) => {
-      (el as HTMLElement).style.transform = 'translate3d(0, 0, 0)';
-      (el as HTMLElement).style.transition = 'none';
-    });
+    // 使用 RAF 持續強制鎖定輪播位置
+    let rafId: number;
+    const lockCarousel = () => {
+      const emblaContainers = document.querySelectorAll('.embla__container');
+      emblaContainers.forEach((el) => {
+        const htmlEl = el as HTMLElement;
+        htmlEl.style.transform = 'translate3d(0, 0, 0)';
+        htmlEl.style.webkitTransform = 'translate3d(0, 0, 0)';
+        htmlEl.style.transition = 'none';
+      });
+      rafId = requestAnimationFrame(lockCarousel);
+    };
+    lockCarousel();
     
     // 鎖定滾動
     root.style.overflow = 'hidden';
@@ -169,14 +176,19 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     window.addEventListener('keydown', handleKey);
     
     return () => {
+      // 停止 RAF
+      cancelAnimationFrame(rafId);
+      
       // 清理
       if (overlay.parentNode) {
         overlay.parentNode.removeChild(overlay);
       }
       
       // 恢復輪播
+      const emblaContainers = document.querySelectorAll('.embla__container');
       emblaContainers.forEach((el) => {
         (el as HTMLElement).style.transform = '';
+        (el as HTMLElement).style.webkitTransform = '';
         (el as HTMLElement).style.transition = '';
       });
       
