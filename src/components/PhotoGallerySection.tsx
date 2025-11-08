@@ -39,6 +39,16 @@ const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
     setCurrentPage((prev) => (prev < totalPages - 1 ? prev + 1 : 0));
   };
 
+  const handleCloseViewer = () => {
+    setSelectedImageIndex(null);
+    setTimeout(() => {
+      const gallerySection = document.getElementById('gallery');
+      if (gallerySection) {
+        gallerySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  };
+
   const handlePrevImage = () => {
     if (selectedImageIndex !== null) {
       const globalIndex = startIndex + selectedImageIndex;
@@ -145,7 +155,7 @@ const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
         {selectedImageIndex !== null && (
           <ImageViewerPortal
             imageUrl={sortedPhotos[startIndex + selectedImageIndex].photo_url}
-            onClose={() => setSelectedImageIndex(null)}
+            onClose={handleCloseViewer}
             onPrev={handlePrevImage}
             onNext={handleNextImage}
           />
