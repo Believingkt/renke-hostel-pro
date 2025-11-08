@@ -1,6 +1,23 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Globe, Plus, Trash2, Edit2, GripVertical, MapPin, Image as ImageIcon, Upload } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
@@ -151,6 +168,62 @@ interface Photo {
   photo_url: string;
   display_order: number;
 }
+
+interface SortablePhotoItemProps {
+  photo: Photo;
+  index: number;
+  onDelete: (photoId: string) => void;
+}
+
+const SortablePhotoItem = ({ photo, index, onDelete }: SortablePhotoItemProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: photo.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="relative group aspect-square overflow-hidden rounded-lg border bg-background"
+    >
+      <img
+        src={photo.photo_url}
+        alt={`照片 ${index + 1}`}
+        className="w-full h-full object-cover"
+      />
+      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => onDelete(photo.id)}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+      <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-xs">
+        順序: {photo.display_order}
+      </div>
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute top-2 right-2 cursor-grab active:cursor-grabbing bg-white/90 hover:bg-white rounded-lg p-2 transition-colors"
+      >
+        <GripVertical className="h-4 w-4 text-gray-700" />
+      </div>
+    </div>
+  );
+};
 
 const WebsiteContent = () => {
   const [searchParams] = useSearchParams();
@@ -796,27 +869,58 @@ const WebsiteContent = () => {
     }
   };
 
-  const handleUpdatePhotoOrder = async (photoId: string, newOrder: number) => {
+  const handlePhotoDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    const oldIndex = photos.findIndex((p) => p.id === active.id);
+    const newIndex = photos.findIndex((p) => p.id === over.id);
+
+    const newPhotos = arrayMove(photos, oldIndex, newIndex);
+    
+    // Update display_order for all photos
+    const updatedPhotos = newPhotos.map((photo, index) => ({
+      ...photo,
+      display_order: index + 1,
+    }));
+
+    setPhotos(updatedPhotos);
+
+    // Save to database
     try {
-      const { error } = await supabase
-        .from('accommodation_photos')
-        .update({ display_order: newOrder })
-        .eq('id', photoId);
-
-      if (error) throw error;
-
-      const updatedPhotos = photos.map(p => 
-        p.id === photoId ? { ...p, display_order: newOrder } : p
+      const updates = updatedPhotos.map((photo) =>
+        supabase
+          .from('accommodation_photos')
+          .update({ display_order: photo.display_order })
+          .eq('id', photo.id)
       );
-      setPhotos(updatedPhotos.sort((a, b) => a.display_order - b.display_order));
+
+      await Promise.all(updates);
       toast.success('順序已更新');
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error updating photo order:', error);
       }
       toast.error('更新失敗，請稍後再試');
+      // Reload photos on error
+      const { data } = await supabase
+        .from('accommodation_photos')
+        .select('*')
+        .eq('accommodation_id', accommodationId!)
+        .order('display_order');
+      if (data) setPhotos(data);
     }
   };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   return (
     <div className="space-y-6">
@@ -1135,52 +1239,27 @@ const WebsiteContent = () => {
                   <p className="text-muted-foreground">尚無照片，請上傳您的第一張照片</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {photos.map((photo, index) => (
-                    <div
-                      key={photo.id}
-                      className="relative group aspect-square overflow-hidden rounded-lg border"
-                    >
-                      <img
-                        src={photo.photo_url}
-                        alt={`照片 ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => handleDeletePhoto(photo.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-xs">
-                        順序: {photo.display_order}
-                      </div>
-                      <div className="absolute top-2 right-2 flex gap-1">
-                        <Button
-                          size="icon"
-                          variant="secondary"
-                          className="h-6 w-6"
-                          onClick={() => handleUpdatePhotoOrder(photo.id, photo.display_order - 1)}
-                          disabled={index === 0}
-                        >
-                          ↑
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="secondary"
-                          className="h-6 w-6"
-                          onClick={() => handleUpdatePhotoOrder(photo.id, photo.display_order + 1)}
-                          disabled={index === photos.length - 1}
-                        >
-                          ↓
-                        </Button>
-                      </div>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handlePhotoDragEnd}
+                >
+                  <SortableContext
+                    items={photos.map((p) => p.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {photos.map((photo, index) => (
+                        <SortablePhotoItem
+                          key={photo.id}
+                          photo={photo}
+                          index={index}
+                          onDelete={handleDeletePhoto}
+                        />
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </SortableContext>
+                </DndContext>
               )}
             </CardContent>
           </Card>
