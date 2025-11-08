@@ -1,6 +1,4 @@
 import { useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ImageViewerPortalProps {
   imageUrl: string;
@@ -13,21 +11,40 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    // 創建完全獨立的容器，直接掛載到 body
+    // 針對 Safari 的特殊處理
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    
+    // 獲取真實視口尺寸（Safari 專用）
+    const getViewportSize = () => {
+      if (window.visualViewport) {
+        return {
+          width: window.visualViewport.width,
+          height: window.visualViewport.height,
+          offsetLeft: window.visualViewport.offsetLeft,
+          offsetTop: window.visualViewport.offsetTop,
+        };
+      }
+      return {
+        width: window.innerWidth,
+        height: window.innerHeight,
+        offsetLeft: 0,
+        offsetTop: 0,
+      };
+    };
+
+    const viewport = getViewportSize();
+    
+    // 創建容器
     const container = document.createElement('div');
-    container.id = 'image-viewer-root';
+    container.id = 'image-viewer-safari';
     
-    // 獲取實際視口尺寸
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    
-    // 使用內聯樣式，完全隔離
-    container.setAttribute('style', `
+    // Safari 專用樣式
+    const styleString = isSafari ? `
       position: fixed !important;
-      top: 0 !important;
-      left: 0 !important;
-      width: ${vw}px !important;
-      height: ${vh}px !important;
+      top: ${viewport.offsetTop}px !important;
+      left: ${viewport.offsetLeft}px !important;
+      width: ${viewport.width}px !important;
+      height: ${viewport.height}px !important;
       background-color: rgba(0, 0, 0, 0.95) !important;
       z-index: 2147483647 !important;
       display: flex !important;
@@ -35,23 +52,46 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
       justify-content: center !important;
       margin: 0 !important;
       padding: 0 !important;
-      transform: none !important;
-      pointer-events: auto !important;
-    `);
+      overflow: hidden !important;
+      -webkit-transform: translate3d(0, 0, 0) !important;
+      transform: translate3d(0, 0, 0) !important;
+      -webkit-backface-visibility: hidden !important;
+      backface-visibility: hidden !important;
+      -webkit-perspective: 1000 !important;
+      perspective: 1000 !important;
+    ` : `
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      background-color: rgba(0, 0, 0, 0.95) !important;
+      z-index: 2147483647 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+    `;
+    
+    container.setAttribute('style', styleString);
     
     // 圖片
     const img = document.createElement('img');
     img.src = imageUrl;
     img.alt = '查看照片';
     img.setAttribute('style', `
-      max-width: ${vw * 0.9}px !important;
-      max-height: ${vh * 0.8}px !important;
+      max-width: ${viewport.width * 0.9}px !important;
+      max-height: ${viewport.height * 0.8}px !important;
       width: auto !important;
       height: auto !important;
       object-fit: contain !important;
       user-select: none !important;
+      -webkit-user-select: none !important;
       pointer-events: none !important;
-      transform: none !important;
+      -webkit-transform: translate3d(0, 0, 0) !important;
+      transform: translate3d(0, 0, 0) !important;
     `);
     img.draggable = false;
     
@@ -72,7 +112,8 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
-      transform: none !important;
+      -webkit-transform: translate3d(0, 0, 0) !important;
+      transform: translate3d(0, 0, 0) !important;
     `);
     closeBtn.onclick = onClose;
     
@@ -82,7 +123,7 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     prevBtn.setAttribute('style', `
       position: absolute !important;
       left: 24px !important;
-      top: ${vh / 2}px !important;
+      top: 50% !important;
       margin-top: -28px !important;
       width: 56px !important;
       height: 56px !important;
@@ -94,7 +135,8 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
-      transform: none !important;
+      -webkit-transform: translate3d(0, 0, 0) !important;
+      transform: translate3d(0, 0, 0) !important;
     `);
     prevBtn.onclick = onPrev;
     
@@ -104,7 +146,7 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     nextBtn.setAttribute('style', `
       position: absolute !important;
       right: 24px !important;
-      top: ${vh / 2}px !important;
+      top: 50% !important;
       margin-top: -28px !important;
       width: 56px !important;
       height: 56px !important;
@@ -116,7 +158,8 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
-      transform: none !important;
+      -webkit-transform: translate3d(0, 0, 0) !important;
+      transform: translate3d(0, 0, 0) !important;
     `);
     nextBtn.onclick = onNext;
     
@@ -131,16 +174,43 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
       if (e.target === container) onClose();
     };
     
+    // 阻止所有觸控事件傳遞
+    const preventTouch = (e: TouchEvent) => {
+      if (e.target !== img) {
+        e.preventDefault();
+      }
+    };
+    container.addEventListener('touchmove', preventTouch, { passive: false });
+    container.addEventListener('touchstart', preventTouch, { passive: false });
+    
     // 掛載到 body
     document.body.appendChild(container);
     containerRef.current = container;
     
-    // 鎖定頁面
+    // 完全鎖定頁面
     const scrollY = window.scrollY;
-    document.body.style.overflow = 'hidden';
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.width = '100%';
+    const scrollX = window.scrollX;
+    const htmlEl = document.documentElement;
+    const bodyEl = document.body;
+    
+    // 保存原始樣式
+    const originalHtmlStyle = htmlEl.getAttribute('style') || '';
+    const originalBodyStyle = bodyEl.getAttribute('style') || '';
+    
+    // 鎖定
+    htmlEl.style.overflow = 'hidden';
+    htmlEl.style.position = 'fixed';
+    htmlEl.style.width = '100%';
+    htmlEl.style.height = '100%';
+    htmlEl.style.top = `-${scrollY}px`;
+    htmlEl.style.left = `-${scrollX}px`;
+    
+    bodyEl.style.overflow = 'hidden';
+    bodyEl.style.position = 'fixed';
+    bodyEl.style.width = '100%';
+    bodyEl.style.height = '100%';
+    bodyEl.style.top = `-${scrollY}px`;
+    bodyEl.style.left = `-${scrollX}px`;
     
     // 鍵盤事件
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -150,6 +220,20 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     };
     window.addEventListener('keydown', handleKeyDown);
     
+    // Safari 視口變化監聽
+    const handleViewportResize = () => {
+      const newViewport = getViewportSize();
+      container.style.top = `${newViewport.offsetTop}px`;
+      container.style.left = `${newViewport.offsetLeft}px`;
+      container.style.width = `${newViewport.width}px`;
+      container.style.height = `${newViewport.height}px`;
+    };
+    
+    if (window.visualViewport && isSafari) {
+      window.visualViewport.addEventListener('resize', handleViewportResize);
+      window.visualViewport.addEventListener('scroll', handleViewportResize);
+    }
+    
     return () => {
       // 清理
       if (containerRef.current && document.body.contains(containerRef.current)) {
@@ -157,13 +241,28 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
       }
       
       // 恢復頁面
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
-      window.scrollTo(0, scrollY);
+      if (originalHtmlStyle) {
+        htmlEl.setAttribute('style', originalHtmlStyle);
+      } else {
+        htmlEl.removeAttribute('style');
+      }
       
+      if (originalBodyStyle) {
+        bodyEl.setAttribute('style', originalBodyStyle);
+      } else {
+        bodyEl.removeAttribute('style');
+      }
+      
+      window.scrollTo(scrollX, scrollY);
+      
+      container.removeEventListener('touchmove', preventTouch);
+      container.removeEventListener('touchstart', preventTouch);
       window.removeEventListener('keydown', handleKeyDown);
+      
+      if (window.visualViewport && isSafari) {
+        window.visualViewport.removeEventListener('resize', handleViewportResize);
+        window.visualViewport.removeEventListener('scroll', handleViewportResize);
+      }
     };
   }, [imageUrl, onClose, onPrev, onNext]);
 
