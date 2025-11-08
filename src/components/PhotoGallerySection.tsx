@@ -144,14 +144,14 @@ const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
         </div>
 
         <Dialog open={selectedImageIndex !== null} onOpenChange={() => setSelectedImageIndex(null)}>
-          <DialogContent hideCloseButton={true} className="max-w-[95vw] max-h-[95vh] sm:max-w-[90vw] sm:max-h-[90vh] w-auto h-auto p-0 border-0 bg-black/95">
-            <div className="relative w-full h-full flex items-center justify-center p-4">
+          <DialogContent hideCloseButton={true} className="!max-w-none !w-screen !h-screen !translate-x-0 !translate-y-0 !left-0 !top-0 p-0 border-0 bg-black/95 !rounded-none">
+            <div className="relative w-full h-full flex items-center justify-center">
               {selectedImageIndex !== null && (
                 <>
                   <img
                     src={sortedPhotos[startIndex + selectedImageIndex].photo_url}
                     alt={`相簿照片 ${startIndex + selectedImageIndex + 1}`}
-                    className="max-w-full max-h-[80vh] sm:max-h-[85vh] w-auto h-auto object-contain"
+                    className="max-w-[90vw] max-h-[80vh] w-auto h-auto object-contain"
                   />
                   <Button
                     variant="outline"
