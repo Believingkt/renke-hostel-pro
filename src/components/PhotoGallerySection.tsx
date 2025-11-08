@@ -22,25 +22,46 @@ const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
   // 手機版顯示 6 張（2列x3欄），平板和桌面顯示 12 張
   const photosPerPage = isMobile ? 6 : 12;
 
-  // 鎖定 body 滾動
+  // 鎖定 body 滾動並記錄位置
   useEffect(() => {
     if (selectedImageIndex !== null) {
+      const scrollY = window.scrollY;
+      const scrollX = window.scrollX;
+      
+      // 完全鎖定滾動
+      document.documentElement.style.overflow = 'hidden';
+      document.documentElement.style.position = 'fixed';
+      document.documentElement.style.width = '100%';
+      document.documentElement.style.height = '100%';
+      document.documentElement.style.top = `-${scrollY}px`;
+      document.documentElement.style.left = `-${scrollX}px`;
+      
       document.body.style.overflow = 'hidden';
       document.body.style.position = 'fixed';
       document.body.style.width = '100%';
-      document.body.style.top = '0';
-    } else {
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.width = '';
-      document.body.style.top = '';
+      document.body.style.height = '100%';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.left = `-${scrollX}px`;
+      
+      return () => {
+        // 恢復滾動
+        document.documentElement.style.overflow = '';
+        document.documentElement.style.position = '';
+        document.documentElement.style.width = '';
+        document.documentElement.style.height = '';
+        document.documentElement.style.top = '';
+        document.documentElement.style.left = '';
+        
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.width = '';
+        document.body.style.height = '';
+        document.body.style.top = '';
+        document.body.style.left = '';
+        
+        window.scrollTo(scrollX, scrollY);
+      };
     }
-    return () => {
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.width = '';
-      document.body.style.top = '';
-    };
   }, [selectedImageIndex]);
 
   if (!photos || photos.length === 0) {
@@ -166,24 +187,33 @@ const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
 
         {selectedImageIndex !== null && createPortal(
           <div 
-            className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center"
             style={{ 
-              touchAction: 'none',
-              transform: 'translate3d(0, 0, 0)',
-              WebkitTransform: 'translate3d(0, 0, 0)',
+              position: 'fixed',
               top: 0,
               left: 0,
               right: 0,
               bottom: 0,
-              position: 'fixed'
+              zIndex: 9999,
+              backgroundColor: 'rgba(0, 0, 0, 0.95)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              touchAction: 'none',
+              transform: 'translate3d(0, 0, 0)',
+              WebkitTransform: 'translate3d(0, 0, 0)'
             }}
             onTouchMove={(e) => e.preventDefault()}
           >
             <img
               src={sortedPhotos[startIndex + selectedImageIndex].photo_url}
               alt={`相簿照片 ${startIndex + selectedImageIndex + 1}`}
-              className="max-w-[90vw] max-h-[80vh] w-auto h-auto object-contain select-none"
               style={{ 
+                maxWidth: '90vw',
+                maxHeight: '80vh',
+                width: 'auto',
+                height: 'auto',
+                objectFit: 'contain',
+                userSelect: 'none',
                 touchAction: 'none',
                 transform: 'translate3d(0, 0, 0)',
                 WebkitTransform: 'translate3d(0, 0, 0)'
