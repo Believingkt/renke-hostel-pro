@@ -22,7 +22,7 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     const container = document.createElement('div');
     container.id = 'image-viewer-portal';
     
-    // 設置樣式 - 使用 CSS Grid 居中
+    // 設置樣式 - 使用簡單的 flex 居中
     container.style.cssText = `
       position: fixed !important;
       top: 0 !important;
@@ -35,8 +35,6 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
       max-height: 100vh !important;
       background-color: rgba(0, 0, 0, 0.95) !important;
       z-index: 999999 !important;
-      display: grid !important;
-      place-items: center !important;
       margin: 0 !important;
       padding: 0 !important;
       overflow: hidden !important;
@@ -98,6 +96,10 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     img.src = imageUrl;
     img.alt = '查看照片';
     img.style.cssText = `
+      position: absolute !important;
+      top: 50% !important;
+      left: 50% !important;
+      transform: translate(-50%, -50%) !important;
       max-width: 90vw !important;
       max-height: 80vh !important;
       width: auto !important;
