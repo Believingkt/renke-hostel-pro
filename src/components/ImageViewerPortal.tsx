@@ -17,6 +17,15 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     // 保存當前滾動位置
     const scrollY = window.scrollY;
     
+    // 創建完全獨立的根容器（body 的直接子元素，與 #root 平行）
+    let viewerRoot = document.getElementById('viewer-root');
+    if (!viewerRoot) {
+      viewerRoot = document.createElement('div');
+      viewerRoot.id = 'viewer-root';
+      viewerRoot.style.cssText = 'position: absolute; top: 0; left: 0; pointer-events: none;';
+      document.body.appendChild(viewerRoot);
+    }
+    
     // 創建完全獨立的容器
     const overlay = document.createElement('div');
     overlay.id = 'photo-viewer-overlay';
@@ -26,103 +35,101 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
     
     // 設置容器樣式 - 完全固定，不受任何影響
-    Object.assign(overlay.style, {
-      position: 'fixed',
-      top: '0',
-      left: '0',
-      width: `${vw}px`,
-      height: `${vh}px`,
-      backgroundColor: 'rgba(0, 0, 0, 0.95)',
-      zIndex: '2147483647',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      margin: '0',
-      padding: '0',
-      border: 'none',
-      transform: 'translate3d(0, 0, 0)',
-      webkitTransform: 'translate3d(0, 0, 0)',
-      willChange: 'auto',
-      isolation: 'isolate',
-    });
+    overlay.style.cssText = `
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      background-color: rgba(0, 0, 0, 0.95) !important;
+      z-index: 2147483647 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      border: none !important;
+      pointer-events: auto !important;
+    `;
     
     // 創建圖片
     const img = document.createElement('img');
     img.src = imageUrl;
     img.alt = '查看照片';
-    Object.assign(img.style, {
-      maxWidth: `${vw * 0.9}px`,
-      maxHeight: `${vh * 0.8}px`,
-      objectFit: 'contain',
-      userSelect: 'none',
-      WebkitUserSelect: 'none',
-      pointerEvents: 'none',
-    });
+    img.style.cssText = `
+      max-width: 90vw !important;
+      max-height: 80vh !important;
+      object-fit: contain !important;
+      user-select: none !important;
+      pointer-events: none !important;
+    `;
     img.draggable = false;
     
     // 關閉按鈕
     const closeBtn = document.createElement('button');
     closeBtn.innerHTML = '✕';
-    Object.assign(closeBtn.style, {
-      position: 'absolute',
-      top: '16px',
-      right: '16px',
-      width: '48px',
-      height: '48px',
-      borderRadius: '50%',
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-      border: '1px solid rgba(255, 255, 255, 0.2)',
-      color: 'white',
-      fontSize: '24px',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    });
+    closeBtn.style.cssText = `
+      position: absolute !important;
+      top: 16px !important;
+      right: 16px !important;
+      width: 48px !important;
+      height: 48px !important;
+      border-radius: 50% !important;
+      background-color: rgba(255, 255, 255, 0.1) !important;
+      border: 1px solid rgba(255, 255, 255, 0.2) !important;
+      color: white !important;
+      font-size: 24px !important;
+      cursor: pointer !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    `;
     closeBtn.onclick = onClose;
     
     // 上一張按鈕
     const prevBtn = document.createElement('button');
     prevBtn.innerHTML = '‹';
-    Object.assign(prevBtn.style, {
-      position: 'absolute',
-      left: '24px',
-      top: '50%',
-      marginTop: '-28px',
-      width: '56px',
-      height: '56px',
-      borderRadius: '50%',
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-      border: '1px solid rgba(255, 255, 255, 0.2)',
-      color: 'white',
-      fontSize: '40px',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    });
+    prevBtn.style.cssText = `
+      position: absolute !important;
+      left: 24px !important;
+      top: 50% !important;
+      margin-top: -28px !important;
+      width: 56px !important;
+      height: 56px !important;
+      border-radius: 50% !important;
+      background-color: rgba(255, 255, 255, 0.1) !important;
+      border: 1px solid rgba(255, 255, 255, 0.2) !important;
+      color: white !important;
+      font-size: 40px !important;
+      cursor: pointer !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    `;
     prevBtn.onclick = onPrev;
     
     // 下一張按鈕
     const nextBtn = document.createElement('button');
     nextBtn.innerHTML = '›';
-    Object.assign(nextBtn.style, {
-      position: 'absolute',
-      right: '24px',
-      top: '50%',
-      marginTop: '-28px',
-      width: '56px',
-      height: '56px',
-      borderRadius: '50%',
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-      border: '1px solid rgba(255, 255, 255, 0.2)',
-      color: 'white',
-      fontSize: '40px',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    });
+    nextBtn.style.cssText = `
+      position: absolute !important;
+      right: 24px !important;
+      top: 50% !important;
+      margin-top: -28px !important;
+      width: 56px !important;
+      height: 56px !important;
+      border-radius: 50% !important;
+      background-color: rgba(255, 255, 255, 0.1) !important;
+      border: 1px solid rgba(255, 255, 255, 0.2) !important;
+      color: white !important;
+      font-size: 40px !important;
+      cursor: pointer !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    `;
     nextBtn.onclick = onNext;
     
     // 組裝元素
@@ -163,8 +170,8 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     body.style.position = 'fixed';
     body.style.width = '100%';
     
-    // 添加到 DOM
-    document.body.appendChild(overlay);
+    // 添加到獨立的 viewer root
+    viewerRoot.appendChild(overlay);
     containerRef.current = overlay;
     
     // 鍵盤事件
