@@ -22,9 +22,26 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     const container = document.createElement('div');
     container.id = 'image-viewer-portal';
     
+    // 使用 RAF 持續鎖定位置
+    let rafId: number;
+    
     // 使用實際視口尺寸而不是 vh/vw
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
+    
+    // 強制鎖定容器位置的函數
+    const lockContainerPosition = () => {
+      if (container && document.body.contains(container)) {
+        container.style.position = 'fixed';
+        container.style.top = '0px';
+        container.style.left = '0px';
+        container.style.width = `${viewportWidth}px`;
+        container.style.height = `${viewportHeight}px`;
+        container.style.transform = 'none';
+        container.style.webkitTransform = 'none';
+        rafId = requestAnimationFrame(lockContainerPosition);
+      }
+    };
     
     // 設置樣式
     container.style.cssText = `
@@ -203,9 +220,17 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     // 添加到 body
     document.body.appendChild(container);
     containerRef.current = container;
+    
+    // 開始持續鎖定位置
+    lockContainerPosition();
 
     // 清理函數
     return () => {
+      // 停止位置鎖定
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+      }
+      
       if (containerRef.current && document.body.contains(containerRef.current)) {
         document.body.removeChild(containerRef.current);
       }
