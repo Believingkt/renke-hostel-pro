@@ -133,14 +133,14 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
           </Carousel>
         </div>
       <CardContent className="p-4 md:p-6 flex flex-col flex-1 min-h-0">
-        <h3 className="text-xl md:text-2xl font-bold mb-3 text-foreground">{room.name}</h3>
+        <h3 className="text-xl md:text-2xl font-bold mb-2 text-foreground">{room.name}</h3>
         
-        <div className="space-y-2 mb-4">
+        <div className="space-y-3 mb-5">
           {(room.room_count || room.quad_room_count || room.double_room_count) && (
-            <div className="text-sm text-muted-foreground font-medium">
-              {room.room_count && room.room_count > 0 && <span>{room.room_count}間房</span>}
+            <div className="text-base text-foreground/80 font-medium leading-relaxed">
+              {room.room_count && room.room_count > 0 && <span className="font-semibold">{room.room_count}間房</span>}
               {((room.quad_room_count && room.quad_room_count > 0) || (room.double_room_count && room.double_room_count > 0)) && (
-                <span className="ml-1">
+                <span className="ml-2 text-muted-foreground">
                   (
                   {room.quad_room_count && room.quad_room_count > 0 && <span>四人房{room.quad_room_count}間</span>}
                   {room.quad_room_count && room.quad_room_count > 0 && room.double_room_count && room.double_room_count > 0 && <span>、</span>}
@@ -150,21 +150,21 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
               )}
             </div>
           )}
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1">
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-1.5">
               <Users className="h-4 w-4" />
-              <span>{room.capacity}人</span>
+              <span className="font-medium">{room.capacity}人</span>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
               </svg>
-              <span>{room.size_sqm}㎡</span>
+              <span className="font-medium">{room.size_sqm}㎡</span>
             </div>
           </div>
         </div>
         
-        <p className="text-sm mb-4 md:mb-6 text-muted-foreground leading-relaxed h-12 overflow-hidden">{room.description}</p>
+        <p className="text-sm mb-5 text-muted-foreground leading-relaxed h-12 overflow-hidden">{room.description}</p>
 
         <div className="flex flex-wrap gap-2 h-16 content-start overflow-hidden">
           {amenities.length > 0 ? (
