@@ -39,6 +39,14 @@ import {
   DialogContent,
   DialogClose,
 } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { zhTW } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import roomDeluxe from "@/assets/room-deluxe.jpg";
 import roomSuite from "@/assets/room-suite.jpg";
 import roomStandard from "@/assets/room-standard.jpg";
@@ -696,18 +704,33 @@ const BookingFlow = () => {
                   <div className="space-y-6">
                     <div className="grid md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <Label htmlFor="checkIn" className="flex items-center gap-2">
+                        <Label className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-primary" />
                           入住日期
                         </Label>
-                        <Input
-                          id="checkIn"
-                          type="date"
-                          value={checkInDateStr}
-                          onChange={(e) => setCheckInDate(e.target.value ? new Date(e.target.value) : undefined)}
-                          min={new Date().toISOString().split("T")[0]}
-                          className="h-12"
-                        />
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button className="flex items-center h-16 px-4 border-2 border-border rounded-lg bg-background hover:border-primary/50 transition-colors text-left w-full">
+                              <Calendar className="h-5 w-5 text-muted-foreground mr-3 flex-shrink-0" />
+                              <div className="flex flex-col">
+                                <span className="text-xs text-muted-foreground">入住日期</span>
+                                <span className="text-sm text-foreground">
+                                  {checkInDate ? format(checkInDate, "yyyy/MM/dd", { locale: zhTW }) : "選擇日期"}
+                                </span>
+                              </div>
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <CalendarComponent
+                              mode="single"
+                              selected={checkInDate}
+                              onSelect={setCheckInDate}
+                              disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                              initialFocus
+                              className={cn("p-3 pointer-events-auto")}
+                            />
+                          </PopoverContent>
+                        </Popover>
                         {bookingSettings && (
                           <p className="text-xs text-muted-foreground">
                             入住時間：{bookingSettings.check_in_time} 之後
@@ -715,18 +738,38 @@ const BookingFlow = () => {
                         )}
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="checkOut" className="flex items-center gap-2">
+                        <Label className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-primary" />
                           退房日期
                         </Label>
-                        <Input
-                          id="checkOut"
-                          type="date"
-                          value={checkOutDateStr}
-                          onChange={(e) => setCheckOutDate(e.target.value ? new Date(e.target.value) : undefined)}
-                          min={checkInDateStr || new Date().toISOString().split("T")[0]}
-                          className="h-12"
-                        />
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button className="flex items-center h-16 px-4 border-2 border-border rounded-lg bg-background hover:border-primary/50 transition-colors text-left w-full">
+                              <Calendar className="h-5 w-5 text-muted-foreground mr-3 flex-shrink-0" />
+                              <div className="flex flex-col">
+                                <span className="text-xs text-muted-foreground">退房日期</span>
+                                <span className="text-sm text-foreground">
+                                  {checkOutDate ? format(checkOutDate, "yyyy/MM/dd", { locale: zhTW }) : "選擇日期"}
+                                </span>
+                              </div>
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <CalendarComponent
+                              mode="single"
+                              selected={checkOutDate}
+                              onSelect={setCheckOutDate}
+                              disabled={(date) => {
+                                const today = new Date(new Date().setHours(0, 0, 0, 0));
+                                if (date < today) return true;
+                                if (checkInDate && date <= checkInDate) return true;
+                                return false;
+                              }}
+                              initialFocus
+                              className={cn("p-3 pointer-events-auto")}
+                            />
+                          </PopoverContent>
+                        </Popover>
                         {bookingSettings && (
                           <p className="text-xs text-muted-foreground">
                             退房時間：{bookingSettings.check_out_time} 之前
