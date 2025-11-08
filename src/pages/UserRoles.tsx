@@ -72,17 +72,22 @@ export default function UserRoles() {
     }
 
     try {
-      // Query user by email using auth admin API
-      const { data, error: authError } = await supabase.auth.admin.listUsers();
-      
-      if (authError) throw authError;
+      // Query user by email using secure edge function
+      const { data: lookupData, error: lookupError } = await supabase.functions.invoke('lookup-user-by-email', {
+        body: { 
+          email: newUserEmail,
+          accommodationId: currentAccommodationId
+        }
+      });
 
-      const user = data.users.find((u: any) => u.email === newUserEmail);
+      if (lookupError) throw lookupError;
 
-      if (!user) {
-        toast.error('找不到此用戶，請確認 Email 是否正確');
+      if (!lookupData?.success || !lookupData?.user) {
+        toast.error(lookupData?.error || '找不到此用戶，請確認 Email 是否正確');
         return;
       }
+
+      const user = lookupData.user;
 
       // Check if user already has role for this accommodation
       const { data: existingRole } = await supabase
