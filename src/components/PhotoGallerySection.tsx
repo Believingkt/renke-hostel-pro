@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Photo {
@@ -143,50 +142,44 @@ const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
           )}
         </div>
 
-        <Dialog open={selectedImageIndex !== null} onOpenChange={() => setSelectedImageIndex(null)}>
-          <DialogContent hideCloseButton={true} className="!max-w-none !w-screen !h-screen !translate-x-0 !translate-y-0 !left-0 !top-0 p-0 border-0 bg-black/95 !rounded-none">
-            <div className="relative w-full h-full flex items-center justify-center">
-              {selectedImageIndex !== null && (
-                <>
-                  <img
-                    src={sortedPhotos[startIndex + selectedImageIndex].photo_url}
-                    alt={`相簿照片 ${startIndex + selectedImageIndex + 1}`}
-                    className="max-w-[90vw] max-h-[80vh] w-auto h-auto object-contain"
-                  />
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="absolute right-4 md:right-6 top-4 md:top-6 h-12 w-12 rounded-full bg-white/10 hover:bg-white/20 border-white/20 backdrop-blur-sm z-[60] shadow-lg"
-                    onClick={() => setSelectedImageIndex(null)}
-                  >
-                    <X className="h-6 w-6 text-white" />
-                    <span className="sr-only">關閉</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 h-14 w-14 md:h-16 md:w-16 rounded-full bg-white/10 hover:bg-white/20 border-white/20 backdrop-blur-sm z-[60] shadow-lg"
-                    onClick={handlePrevImage}
-                  >
-                    <svg className="h-7 w-7 md:h-8 md:w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="absolute right-4 md:right-6 top-1/2 -translate-y-1/2 h-14 w-14 md:h-16 md:w-16 rounded-full bg-white/10 hover:bg-white/20 border-white/20 backdrop-blur-sm z-[60] shadow-lg"
-                    onClick={handleNextImage}
-                  >
-                    <svg className="h-7 w-7 md:h-8 md:w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </Button>
-                </>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
+        {selectedImageIndex !== null && (
+          <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center">
+            <img
+              src={sortedPhotos[startIndex + selectedImageIndex].photo_url}
+              alt={`相簿照片 ${startIndex + selectedImageIndex + 1}`}
+              className="max-w-[90vw] max-h-[80vh] w-auto h-auto object-contain"
+            />
+            <Button
+              variant="outline"
+              size="icon"
+              className="absolute right-4 md:right-6 top-4 md:top-6 h-12 w-12 rounded-full bg-white/10 hover:bg-white/20 border-white/20 backdrop-blur-sm shadow-lg"
+              onClick={() => setSelectedImageIndex(null)}
+            >
+              <X className="h-6 w-6 text-white" />
+              <span className="sr-only">關閉</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 h-14 w-14 md:h-16 md:w-16 rounded-full bg-white/10 hover:bg-white/20 border-white/20 backdrop-blur-sm shadow-lg"
+              onClick={handlePrevImage}
+            >
+              <svg className="h-7 w-7 md:h-8 md:w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="absolute right-4 md:right-6 top-1/2 -translate-y-1/2 h-14 w-14 md:h-16 md:w-16 rounded-full bg-white/10 hover:bg-white/20 border-white/20 backdrop-blur-sm shadow-lg"
+              onClick={handleNextImage}
+            >
+              <svg className="h-7 w-7 md:h-8 md:w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Button>
+          </div>
+        )}
       </div>
     </section>
   );
