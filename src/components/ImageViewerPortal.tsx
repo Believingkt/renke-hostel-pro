@@ -41,6 +41,9 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
+      transform: none !important;
+      -webkit-transform: none !important;
+      will-change: auto !important;
     `;
 
     // 阻止所有觸控和滾動
@@ -112,6 +115,10 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
       display: block !important;
       margin: 0 auto !important;
       padding: 0 !important;
+      position: relative !important;
+      transform: none !important;
+      -webkit-transform: none !important;
+      will-change: auto !important;
     `;
 
     // 創建關閉按鈕
