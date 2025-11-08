@@ -22,23 +22,25 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     const container = document.createElement('div');
     container.id = 'image-viewer-portal';
     
-    // 設置樣式 - 使用簡單的 flex 居中
+    // 使用實際視口尺寸而不是 vh/vw
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    // 設置樣式
     container.style.cssText = `
       position: fixed !important;
-      top: 0 !important;
-      left: 0 !important;
-      right: 0 !important;
-      bottom: 0 !important;
-      width: 100vw !important;
-      height: 100vh !important;
-      max-width: 100vw !important;
-      max-height: 100vh !important;
+      top: 0px !important;
+      left: 0px !important;
+      width: ${viewportWidth}px !important;
+      height: ${viewportHeight}px !important;
       background-color: rgba(0, 0, 0, 0.95) !important;
       z-index: 999999 !important;
       margin: 0 !important;
       padding: 0 !important;
       overflow: hidden !important;
-      transform: none !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
     `;
 
     // 阻止所有觸控和滾動
@@ -91,40 +93,26 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
       height: '100%',
     });
 
-    // 創建圖片 - 使用包裝器避免全局樣式干擾
-    const imgWrapper = document.createElement('div');
-    imgWrapper.style.cssText = `
-      position: absolute !important;
-      top: 50% !important;
-      left: 50% !important;
-      transform: translate(-50%, -50%) !important;
-      -webkit-transform: translate(-50%, -50%) !important;
-      max-width: 90vw !important;
-      max-height: 80vh !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-    `;
-    
+    // 創建圖片
     const img = document.createElement('img');
     img.src = imageUrl;
     img.alt = '查看照片';
+    
+    const maxWidth = viewportWidth * 0.9;
+    const maxHeight = viewportHeight * 0.8;
+    
     img.style.cssText = `
-      max-width: 100% !important;
-      max-height: 100% !important;
+      max-width: ${maxWidth}px !important;
+      max-height: ${maxHeight}px !important;
       width: auto !important;
       height: auto !important;
       object-fit: contain !important;
       user-select: none !important;
       pointer-events: none !important;
       display: block !important;
-      margin: 0 !important;
+      margin: 0 auto !important;
       padding: 0 !important;
-      transform: none !important;
-      -webkit-transform: none !important;
     `;
-    
-    imgWrapper.appendChild(img);
 
     // 創建關閉按鈕
     const closeBtn = document.createElement('button');
@@ -189,7 +177,7 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     nextBtn.onclick = onNext;
 
     // 添加元素到容器
-    container.appendChild(imgWrapper);
+    container.appendChild(img);
     container.appendChild(closeBtn);
     container.appendChild(prevBtn);
     container.appendChild(nextBtn);
