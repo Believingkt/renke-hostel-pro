@@ -46,12 +46,29 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     body.style.width = '100%';
     body.style.height = '100%';
     
-    // 停止所有動畫
+    // 強制停止所有輪播和動畫
+    const emblaContainers = document.querySelectorAll('.embla__container');
+    const originalTransforms: string[] = [];
+    
+    emblaContainers.forEach((container) => {
+      const el = container as HTMLElement;
+      originalTransforms.push(el.style.transform);
+      // 完全移除 transform
+      el.style.transform = 'translate3d(0px, 0px, 0px)';
+      el.style.transition = 'none';
+      el.style.willChange = 'auto';
+    });
+    
+    // 停止所有動畫和過渡
     const style = document.createElement('style');
     style.id = 'viewer-freeze';
     style.textContent = `
       * {
         animation-play-state: paused !important;
+        transition: none !important;
+      }
+      .embla__container {
+        transform: translate3d(0px, 0px, 0px) !important;
         transition: none !important;
       }
     `;
@@ -66,6 +83,14 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     window.addEventListener('keydown', handleKeyDown);
     
     return () => {
+      // 恢復輪播的 transform
+      emblaContainers.forEach((container, index) => {
+        const el = container as HTMLElement;
+        el.style.transform = originalTransforms[index] || '';
+        el.style.transition = '';
+        el.style.willChange = '';
+      });
+      
       // 恢復樣式
       root.style.overflow = originalStyles.rootOverflow;
       root.style.position = originalStyles.rootPosition;
