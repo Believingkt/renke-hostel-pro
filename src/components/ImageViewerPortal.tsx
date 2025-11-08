@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { X, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ImageViewerPortalProps {
   imageUrl: string;
@@ -69,67 +70,109 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     
     // 關閉按鈕
     const closeBtn = document.createElement('button');
-    closeBtn.innerHTML = '✕';
+    closeBtn.innerHTML = `
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    `;
     closeBtn.style.cssText = `
       position: absolute !important;
-      top: 16px !important;
-      right: 16px !important;
-      width: 48px !important;
-      height: 48px !important;
+      top: 20px !important;
+      right: 20px !important;
+      width: 44px !important;
+      height: 44px !important;
       border-radius: 50% !important;
-      background-color: rgba(255, 255, 255, 0.1) !important;
-      border: 1px solid rgba(255, 255, 255, 0.2) !important;
+      background-color: rgba(0, 0, 0, 0.5) !important;
+      border: 1px solid rgba(255, 255, 255, 0.3) !important;
       color: white !important;
-      font-size: 24px !important;
       cursor: pointer !important;
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
+      transition: all 0.2s ease !important;
+      backdrop-filter: blur(10px) !important;
+      -webkit-backdrop-filter: blur(10px) !important;
     `;
+    closeBtn.onmouseover = () => {
+      closeBtn.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+      closeBtn.style.transform = 'scale(1.1)';
+    };
+    closeBtn.onmouseout = () => {
+      closeBtn.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+      closeBtn.style.transform = 'scale(1)';
+    };
     closeBtn.onclick = onClose;
     
     // 上一張按鈕
     const prevBtn = document.createElement('button');
-    prevBtn.innerHTML = '‹';
+    prevBtn.innerHTML = `
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M15 18l-6-6 6-6"/>
+      </svg>
+    `;
     prevBtn.style.cssText = `
       position: absolute !important;
-      left: 24px !important;
+      left: 20px !important;
       top: 50% !important;
-      margin-top: -28px !important;
+      transform: translateY(-50%) !important;
       width: 56px !important;
       height: 56px !important;
       border-radius: 50% !important;
-      background-color: rgba(255, 255, 255, 0.1) !important;
-      border: 1px solid rgba(255, 255, 255, 0.2) !important;
+      background-color: rgba(0, 0, 0, 0.5) !important;
+      border: 1px solid rgba(255, 255, 255, 0.3) !important;
       color: white !important;
-      font-size: 40px !important;
       cursor: pointer !important;
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
+      transition: all 0.2s ease !important;
+      backdrop-filter: blur(10px) !important;
+      -webkit-backdrop-filter: blur(10px) !important;
     `;
+    prevBtn.onmouseover = () => {
+      prevBtn.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+      prevBtn.style.transform = 'translateY(-50%) scale(1.1)';
+    };
+    prevBtn.onmouseout = () => {
+      prevBtn.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+      prevBtn.style.transform = 'translateY(-50%) scale(1)';
+    };
     prevBtn.onclick = onPrev;
     
     // 下一張按鈕
     const nextBtn = document.createElement('button');
-    nextBtn.innerHTML = '›';
+    nextBtn.innerHTML = `
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M9 18l6-6-6-6"/>
+      </svg>
+    `;
     nextBtn.style.cssText = `
       position: absolute !important;
-      right: 24px !important;
+      right: 20px !important;
       top: 50% !important;
-      margin-top: -28px !important;
+      transform: translateY(-50%) !important;
       width: 56px !important;
       height: 56px !important;
       border-radius: 50% !important;
-      background-color: rgba(255, 255, 255, 0.1) !important;
-      border: 1px solid rgba(255, 255, 255, 0.2) !important;
+      background-color: rgba(0, 0, 0, 0.5) !important;
+      border: 1px solid rgba(255, 255, 255, 0.3) !important;
       color: white !important;
-      font-size: 40px !important;
       cursor: pointer !important;
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
+      transition: all 0.2s ease !important;
+      backdrop-filter: blur(10px) !important;
+      -webkit-backdrop-filter: blur(10px) !important;
     `;
+    nextBtn.onmouseover = () => {
+      nextBtn.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+      nextBtn.style.transform = 'translateY(-50%) scale(1.1)';
+    };
+    nextBtn.onmouseout = () => {
+      nextBtn.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+      nextBtn.style.transform = 'translateY(-50%) scale(1)';
+    };
     nextBtn.onclick = onNext;
     
     // 組裝元素
