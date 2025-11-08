@@ -563,9 +563,9 @@ const BookingFlow = () => {
                         }`}
                         onClick={() => setSelectedRoom(room)}
                       >
-                        <div className="grid md:grid-cols-[3fr_2fr] gap-0">
+                        <div className="grid md:grid-cols-[3fr_2fr] gap-0 h-full">
                           {/* 左側圖片 - 占60% */}
-                          <div className="relative bg-muted h-[300px] md:h-[500px] lg:h-[450px] overflow-hidden">
+                          <div className="relative bg-muted min-h-[400px] md:min-h-full overflow-hidden">
                             <Carousel 
                               className="w-full h-full"
                               opts={{ loop: true }}
