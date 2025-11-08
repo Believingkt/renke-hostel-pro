@@ -3,7 +3,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import sensanLogo from "@/assets/sensan-logo-9.png";
+import sensanLogo from "@/assets/sensan-logo-10.png";
 
 interface NavigationProps {
   accommodationName?: string;
