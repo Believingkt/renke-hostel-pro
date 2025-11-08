@@ -61,6 +61,9 @@ interface RoomType {
   capacity: number;
   size_sqm: number;
   base_price: number;
+  room_count?: number;
+  quad_room_count?: number;
+  double_room_count?: number;
   weekday_2_meals_price?: number;
   weekday_3_meals_price?: number;
   weekend_2_meals_price?: number;
@@ -179,6 +182,9 @@ const BookingFlow = () => {
             capacity: room.capacity,
             size_sqm: room.size_sqm || 0,
             base_price: room.base_price,
+            room_count: room.room_count,
+            quad_room_count: room.quad_room_count,
+            double_room_count: room.double_room_count,
             weekday_2_meals_price: room.weekday_2_meals_price,
             weekday_3_meals_price: room.weekday_3_meals_price,
             weekend_2_meals_price: room.weekend_2_meals_price,
@@ -600,17 +606,38 @@ const BookingFlow = () => {
                           {/* 右側內容 */}
                           <CardContent className="p-6 flex flex-col justify-between">
                             <div className="mb-4">
-                              <h3 className="text-xl font-bold mb-1">{room.name}</h3>
-                              <p className="text-sm text-muted-foreground mb-2">{room.name_en}</p>
-                              <p className="text-sm mb-3">{room.description}</p>
-                            </div>
-                            
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-                              <span className="flex items-center gap-1">
-                                <Users className="h-4 w-4" />
-                                {room.capacity} 人
-                              </span>
-                              <span>{room.size_sqm} ㎡</span>
+                              <h3 className="text-xl font-bold mb-3">{room.name}</h3>
+                              
+                              <div className="space-y-3 mb-4">
+                                {(room.room_count || room.quad_room_count || room.double_room_count) && (
+                                  <div className="text-base text-foreground/80 font-medium leading-relaxed">
+                                    {room.room_count && room.room_count > 0 && <span className="font-semibold">{room.room_count} 間房</span>}
+                                    {((room.quad_room_count && room.quad_room_count > 0) || (room.double_room_count && room.double_room_count > 0)) && (
+                                      <span className="ml-2 text-muted-foreground">
+                                        (
+                                        {room.quad_room_count && room.quad_room_count > 0 && <span>四人房 {room.quad_room_count} 間</span>}
+                                        {room.quad_room_count && room.quad_room_count > 0 && room.double_room_count && room.double_room_count > 0 && <span>、</span>}
+                                        {room.double_room_count && room.double_room_count > 0 && <span>雙人房 {room.double_room_count} 間</span>}
+                                        )
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                  <div className="flex items-center gap-1.5">
+                                    <Users className="h-4 w-4" />
+                                    <span className="font-medium">{room.capacity} 人</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                                    </svg>
+                                    <span className="font-medium">{room.size_sqm} ㎡</span>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <p className="text-sm mb-4 text-muted-foreground leading-relaxed">{room.description}</p>
                             </div>
 
                             {/* 客房設施 */}
