@@ -1177,7 +1177,7 @@ const BookingFlow = () => {
                 <img 
                   src={(selectedImageRoom.room_photos?.map(p => p.photo_url) || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard])[selectedImageIndex]} 
                   alt={`${selectedImageRoom.name} - ${selectedImageIndex + 1}`}
-                  className="w-[85%] h-[85%] object-contain"
+                  className="max-w-[90vw] max-h-[90vh] w-auto h-auto object-contain"
                 />
                 <Button
                   variant="outline"

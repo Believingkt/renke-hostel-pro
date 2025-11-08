@@ -151,7 +151,7 @@ const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
                   <img
                     src={sortedPhotos[startIndex + selectedImageIndex].photo_url}
                     alt={`相簿照片 ${startIndex + selectedImageIndex + 1}`}
-                    className="w-[85%] h-[85%] object-contain"
+                    className="max-w-[90vw] max-h-[90vh] w-auto h-auto object-contain"
                   />
                   <Button
                     variant="outline"
