@@ -13,6 +13,15 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     // 停止首頁輪播
     window.dispatchEvent(new CustomEvent('viewer-opened'));
     
+    // 直接隱藏輪播元素，防止其動畫影響
+    const carousels = document.querySelectorAll('[class*="carousel"], .embla, .embla__viewport');
+    const originalDisplays: string[] = [];
+    carousels.forEach((el) => {
+      const htmlEl = el as HTMLElement;
+      originalDisplays.push(htmlEl.style.display || '');
+      htmlEl.style.display = 'none';
+    });
+    
     // 鎖定頁面滾動
     const scrollY = window.scrollY;
     document.body.style.position = 'fixed';
@@ -29,6 +38,12 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     window.addEventListener('keydown', handleKeyDown);
     
     return () => {
+      // 恢復輪播顯示
+      carousels.forEach((el, index) => {
+        const htmlEl = el as HTMLElement;
+        htmlEl.style.display = originalDisplays[index];
+      });
+      
       window.dispatchEvent(new CustomEvent('viewer-closed'));
       document.body.style.position = '';
       document.body.style.top = '';
