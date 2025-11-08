@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, X, GripVertical } from "lucide-react";
+import { Plus, Trash2, GripVertical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -58,38 +58,31 @@ function SortablePhotoItem({ url, index, onRemove }: SortablePhotoItemProps) {
     <div
       ref={setNodeRef}
       style={style}
-      className="relative group aspect-[4/3] rounded-lg overflow-hidden border border-border bg-muted hover:border-primary transition-colors"
+      className="relative group aspect-square overflow-hidden rounded-lg border bg-background"
     >
-      <img 
-        src={url} 
-        alt={`照片 ${index + 1}`} 
+      <img
+        src={url}
+        alt={`照片 ${index + 1}`}
         className="w-full h-full object-cover"
       />
-      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors" />
-      
-      {/* 拖拉手柄 */}
+      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={onRemove}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+      <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-xs">
+        順序: {index + 1}
+      </div>
       <div
         {...attributes}
         {...listeners}
-        className="absolute top-2 left-2 h-7 w-7 bg-background/90 rounded flex items-center justify-center cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+        className="absolute top-2 right-2 cursor-grab active:cursor-grabbing bg-white/90 hover:bg-white rounded-lg p-2 transition-colors"
       >
-        <GripVertical className="h-4 w-4 text-muted-foreground" />
-      </div>
-      
-      {/* 刪除按鈕 */}
-      <Button 
-        type="button"
-        variant="destructive"
-        size="icon"
-        className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-        onClick={onRemove}
-      >
-        <X className="h-4 w-4" />
-      </Button>
-      
-      {/* 順序標籤 */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
-        <p className="text-xs text-white truncate">照片 {index + 1}</p>
+        <GripVertical className="h-4 w-4 text-gray-700" />
       </div>
     </div>
   );
