@@ -18,32 +18,23 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
       y: window.pageYOffset || document.documentElement.scrollTop,
     };
 
+    // 隱藏整個應用內容
+    const appRoot = document.getElementById('root');
+    let originalRootDisplay = '';
+    if (appRoot) {
+      originalRootDisplay = appRoot.style.display;
+      appRoot.style.display = 'none';
+    }
+
     // 創建容器
     const container = document.createElement('div');
     container.id = 'image-viewer-portal';
-    
-    // 使用 RAF 持續鎖定位置
-    let rafId: number;
     
     // 使用實際視口尺寸而不是 vh/vw
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
     
-    // 強制鎖定容器位置的函數
-    const lockContainerPosition = () => {
-      if (container && document.body.contains(container)) {
-        container.style.position = 'fixed';
-        container.style.top = '0px';
-        container.style.left = '0px';
-        container.style.width = `${viewportWidth}px`;
-        container.style.height = `${viewportHeight}px`;
-        container.style.transform = 'none';
-        container.style.webkitTransform = 'none';
-        rafId = requestAnimationFrame(lockContainerPosition);
-      }
-    };
-    
-    // 設置樣式
+    // 設置樣式 - 簡單直接
     container.style.cssText = `
       position: fixed !important;
       top: 0px !important;
@@ -58,9 +49,6 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
-      transform: none !important;
-      -webkit-transform: none !important;
-      will-change: auto !important;
     `;
 
     // 阻止所有觸控和滾動
@@ -74,70 +62,21 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     container.addEventListener('wheel', preventScroll, { passive: false });
     container.addEventListener('scroll', preventScroll, { passive: false });
 
-    // 鎖定 body 和 html
-    const originalBodyStyle = {
-      overflow: document.body.style.overflow,
-      position: document.body.style.position,
-      top: document.body.style.top,
-      left: document.body.style.left,
-      width: document.body.style.width,
-      height: document.body.style.height,
-    };
-
+    // 鎖定 html 和 body
     const originalHtmlStyle = {
       overflow: document.documentElement.style.overflow,
-      position: document.documentElement.style.position,
-      top: document.documentElement.style.top,
-      left: document.documentElement.style.left,
-      width: document.documentElement.style.width,
       height: document.documentElement.style.height,
     };
 
-    // 停止所有輪播和動畫
-    const style = document.createElement('style');
-    style.id = 'image-viewer-no-animation';
-    style.textContent = `
-      * {
-        animation-play-state: paused !important;
-        transition: none !important;
-      }
-      .embla__container {
-        transition: none !important;
-        transform: none !important;
-      }
-    `;
-    document.head.appendChild(style);
+    const originalBodyStyle = {
+      overflow: document.body.style.overflow,
+      height: document.body.style.height,
+    };
 
-    // 停止所有 Embla Carousel 實例
-    const emblaContainers = document.querySelectorAll('.embla__container');
-    const originalTransforms: string[] = [];
-    emblaContainers.forEach((container) => {
-      const htmlContainer = container as HTMLElement;
-      originalTransforms.push(htmlContainer.style.transform || '');
-      htmlContainer.style.transition = 'none';
-      htmlContainer.style.transform = 'none';
-      htmlContainer.style.willChange = 'auto';
-    });
-
-    // 鎖定 html
-    Object.assign(document.documentElement.style, {
-      overflow: 'hidden',
-      position: 'fixed',
-      top: `-${scrollPositionRef.current.y}px`,
-      left: `-${scrollPositionRef.current.x}px`,
-      width: '100%',
-      height: '100%',
-    });
-
-    // 鎖定 body
-    Object.assign(document.body.style, {
-      overflow: 'hidden',
-      position: 'fixed',
-      top: `-${scrollPositionRef.current.y}px`,
-      left: `-${scrollPositionRef.current.x}px`,
-      width: '100%',
-      height: '100%',
-    });
+    document.documentElement.style.overflow = 'hidden';
+    document.documentElement.style.height = '100%';
+    document.body.style.overflow = 'hidden';
+    document.body.style.height = '100%';
 
     // 創建圖片
     const img = document.createElement('img');
@@ -156,12 +95,6 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
       user-select: none !important;
       pointer-events: none !important;
       display: block !important;
-      margin: 0 auto !important;
-      padding: 0 !important;
-      position: relative !important;
-      transform: none !important;
-      -webkit-transform: none !important;
-      will-change: auto !important;
     `;
 
     // 創建關閉按鈕
@@ -235,37 +168,17 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     // 添加到 body
     document.body.appendChild(container);
     containerRef.current = container;
-    
-    // 開始持續鎖定位置
-    lockContainerPosition();
 
     // 清理函數
     return () => {
-      // 停止位置鎖定
-      if (rafId) {
-        cancelAnimationFrame(rafId);
-      }
-      
       if (containerRef.current && document.body.contains(containerRef.current)) {
         document.body.removeChild(containerRef.current);
       }
 
-      // 移除動畫禁用樣式
-      const noAnimStyle = document.getElementById('image-viewer-no-animation');
-      if (noAnimStyle) {
-        document.head.removeChild(noAnimStyle);
+      // 恢復應用內容顯示
+      if (appRoot) {
+        appRoot.style.display = originalRootDisplay;
       }
-
-      // 恢復輪播的 transform
-      const emblaContainers = document.querySelectorAll('.embla__container');
-      emblaContainers.forEach((container, index) => {
-        const htmlContainer = container as HTMLElement;
-        if (originalTransforms[index]) {
-          htmlContainer.style.transform = originalTransforms[index];
-        }
-        htmlContainer.style.transition = '';
-        htmlContainer.style.willChange = '';
-      });
 
       // 恢復 html 樣式
       Object.assign(document.documentElement.style, originalHtmlStyle);
