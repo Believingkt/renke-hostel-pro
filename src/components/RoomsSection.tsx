@@ -136,18 +136,6 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
         <h3 className="text-xl md:text-2xl font-bold mb-3 text-foreground">{room.name}</h3>
         
         <div className="space-y-2 mb-4">
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Users className="h-4 w-4" />
-              <span>{room.capacity}人</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-              </svg>
-              <span>{room.size_sqm}㎡</span>
-            </div>
-          </div>
           {(room.room_count || room.quad_room_count || room.double_room_count) && (
             <div className="text-sm text-muted-foreground font-medium">
               {room.room_count && room.room_count > 0 && <span>共{room.room_count}間</span>}
@@ -162,6 +150,18 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
               )}
             </div>
           )}
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <Users className="h-4 w-4" />
+              <span>{room.capacity}人</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+              </svg>
+              <span>{room.size_sqm}㎡</span>
+            </div>
+          </div>
         </div>
         
         <p className="text-sm mb-4 md:mb-6 text-muted-foreground leading-relaxed h-12 overflow-hidden">{room.description}</p>
