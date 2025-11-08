@@ -21,6 +21,27 @@ const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
   // 手機版顯示 6 張（2列x3欄），平板和桌面顯示 12 張
   const photosPerPage = isMobile ? 6 : 12;
 
+  // 鎖定 body 滾動
+  useEffect(() => {
+    if (selectedImageIndex !== null) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.top = '0';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.top = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.top = '';
+    };
+  }, [selectedImageIndex]);
+
   if (!photos || photos.length === 0) {
     return null;
   }
@@ -143,11 +164,17 @@ const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
         </div>
 
         {selectedImageIndex !== null && (
-          <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center">
+          <div 
+            className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
+            style={{ touchAction: 'none' }}
+            onTouchMove={(e) => e.preventDefault()}
+          >
             <img
               src={sortedPhotos[startIndex + selectedImageIndex].photo_url}
               alt={`相簿照片 ${startIndex + selectedImageIndex + 1}`}
-              className="max-w-[90vw] max-h-[80vh] w-auto h-auto object-contain"
+              className="max-w-[90vw] max-h-[80vh] w-auto h-auto object-contain select-none"
+              style={{ touchAction: 'none' }}
+              draggable={false}
             />
             <Button
               variant="outline"
