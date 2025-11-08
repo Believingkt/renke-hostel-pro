@@ -33,6 +33,9 @@ interface RoomType {
   capacity: number;
   size_sqm: number;
   base_price: number;
+  room_count?: number;
+  quad_room_count?: number;
+  double_room_count?: number;
   weekday_price?: number;
   weekend_price?: number;
   weekdayPricing?: PricingOption[];
@@ -134,17 +137,33 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
         <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4">{room.name_en}</p>
         <p className="text-sm mb-4 md:mb-6 text-muted-foreground leading-relaxed h-12 overflow-hidden">{room.description}</p>
         
-        <div className="flex items-center gap-3 mb-6 text-sm text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <Users className="h-4 w-4" />
-            <span>{room.capacity}人</span>
+        <div className="space-y-2 mb-6">
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <Users className="h-4 w-4" />
+              <span>{room.capacity}人</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+              </svg>
+              <span>{room.size_sqm}㎡</span>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-            </svg>
-            <span>{room.size_sqm}㎡</span>
-          </div>
+          {(room.room_count || room.quad_room_count || room.double_room_count) && (
+            <div className="text-xs text-muted-foreground">
+              {room.room_count && room.room_count > 0 && <span>共{room.room_count}間</span>}
+              {(room.quad_room_count || room.double_room_count) && (
+                <span className="ml-1">
+                  (
+                  {room.quad_room_count && room.quad_room_count > 0 && <span>四人房{room.quad_room_count}間</span>}
+                  {room.quad_room_count && room.quad_room_count > 0 && room.double_room_count && room.double_room_count > 0 && <span>、</span>}
+                  {room.double_room_count && room.double_room_count > 0 && <span>雙人房{room.double_room_count}間</span>}
+                  )
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex flex-wrap gap-2 h-16 content-start overflow-hidden">
@@ -251,6 +270,9 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
     capacity: room.capacity,
     size_sqm: room.size_sqm || 0,
     base_price: room.base_price,
+    room_count: room.room_count,
+    quad_room_count: room.quad_room_count,
+    double_room_count: room.double_room_count,
     room_photos: room.room_photos || [], // 保留照片資料
     weekdayPricing: (room.weekday_2_meals_price || room.weekday_3_meals_price) ? [
       ...(room.weekday_2_meals_price ? [{ type: "一泊二食", price: room.weekday_2_meals_price }] : []),
