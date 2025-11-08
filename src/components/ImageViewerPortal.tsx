@@ -93,7 +93,7 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
       height: document.documentElement.style.height,
     };
 
-    // 停止所有動畫和過渡
+    // 停止所有輪播和動畫
     const style = document.createElement('style');
     style.id = 'image-viewer-no-animation';
     style.textContent = `
@@ -101,8 +101,23 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
         animation-play-state: paused !important;
         transition: none !important;
       }
+      .embla__container {
+        transition: none !important;
+        transform: none !important;
+      }
     `;
     document.head.appendChild(style);
+
+    // 停止所有 Embla Carousel 實例
+    const emblaContainers = document.querySelectorAll('.embla__container');
+    const originalTransforms: string[] = [];
+    emblaContainers.forEach((container) => {
+      const htmlContainer = container as HTMLElement;
+      originalTransforms.push(htmlContainer.style.transform || '');
+      htmlContainer.style.transition = 'none';
+      htmlContainer.style.transform = 'none';
+      htmlContainer.style.willChange = 'auto';
+    });
 
     // 鎖定 html
     Object.assign(document.documentElement.style, {
@@ -240,6 +255,17 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
       if (noAnimStyle) {
         document.head.removeChild(noAnimStyle);
       }
+
+      // 恢復輪播的 transform
+      const emblaContainers = document.querySelectorAll('.embla__container');
+      emblaContainers.forEach((container, index) => {
+        const htmlContainer = container as HTMLElement;
+        if (originalTransforms[index]) {
+          htmlContainer.style.transform = originalTransforms[index];
+        }
+        htmlContainer.style.transition = '';
+        htmlContainer.style.willChange = '';
+      });
 
       // 恢復 html 樣式
       Object.assign(document.documentElement.style, originalHtmlStyle);
