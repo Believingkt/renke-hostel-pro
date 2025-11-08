@@ -60,6 +60,7 @@ const menuItems = [
     icon: DollarSign,
     subItems: [
       { title: "房型管理", url: "/admin/pricing?tab=rooms" },
+      { title: "客房設施", url: "/admin/pricing?tab=facilities" },
       { title: "價格管理", url: "/admin/pricing?tab=basic" },
       { title: "庫存管理", url: "/admin/pricing?tab=inventory" },
     ]
