@@ -1,5 +1,7 @@
 import { useEffect } from "react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ImageViewerPortalProps {
   imageUrl: string;
@@ -10,11 +12,6 @@ interface ImageViewerPortalProps {
 
 export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageViewerPortalProps) => {
   useEffect(() => {
-    // 鎖定 body 滾動
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    
-    // 鍵盤事件
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
       if (e.key === 'ArrowLeft') onPrev();
@@ -22,55 +19,54 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     };
     
     window.addEventListener('keydown', handleKeyDown);
-    
-    return () => {
-      document.body.style.overflow = originalOverflow;
-      window.removeEventListener('keydown', handleKeyDown);
-    };
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose, onPrev, onNext]);
 
   return (
-    <div 
-      className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center"
-      onClick={onClose}
-    >
-      {/* 圖片 */}
-      <img
-        src={imageUrl}
-        alt="查看照片"
-        className="max-w-[90vw] max-h-[80vh] w-auto h-auto object-contain"
-        onClick={(e) => e.stopPropagation()}
-      />
-
-      {/* 關閉按鈕 */}
-      <button
-        onClick={onClose}
-        className="absolute top-4 right-4 w-12 h-12 rounded-full bg-white/10 border border-white/20 text-white hover:bg-white/20 transition-colors flex items-center justify-center"
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent 
+        className="max-w-none w-screen h-screen p-0 bg-black/95 border-0 [&>button]:hidden"
       >
-        <X className="w-6 h-6" />
-      </button>
+        <div className="relative w-full h-full flex items-center justify-center">
+          {/* 圖片 */}
+          <img
+            src={imageUrl}
+            alt="查看照片"
+            className="max-w-[90vw] max-h-[80vh] object-contain select-none"
+            draggable={false}
+          />
 
-      {/* 上一張 */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onPrev();
-        }}
-        className="absolute left-6 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-white/10 border border-white/20 text-white hover:bg-white/20 transition-colors flex items-center justify-center"
-      >
-        <ChevronLeft className="w-7 h-7" />
-      </button>
+          {/* 關閉按鈕 */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="absolute top-4 right-4 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white"
+          >
+            <X className="w-6 h-6" />
+          </Button>
 
-      {/* 下一張 */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onNext();
-        }}
-        className="absolute right-6 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-white/10 border border-white/20 text-white hover:bg-white/20 transition-colors flex items-center justify-center"
-      >
-        <ChevronRight className="w-7 h-7" />
-      </button>
-    </div>
+          {/* 上一張 */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onPrev}
+            className="absolute left-6 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white"
+          >
+            <ChevronLeft className="w-7 h-7" />
+          </Button>
+
+          {/* 下一張 */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onNext}
+            className="absolute right-6 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white"
+          >
+            <ChevronRight className="w-7 h-7" />
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
