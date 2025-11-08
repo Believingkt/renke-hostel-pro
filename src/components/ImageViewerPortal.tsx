@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
+import { X, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ImageViewerPortalProps {
   imageUrl: string;
@@ -8,194 +9,68 @@ interface ImageViewerPortalProps {
 }
 
 export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageViewerPortalProps) => {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const scrollPositionRef = useRef({ x: 0, y: 0 });
-
   useEffect(() => {
-    // 保存滾動位置
-    scrollPositionRef.current = {
-      x: window.pageXOffset || document.documentElement.scrollLeft,
-      y: window.pageYOffset || document.documentElement.scrollTop,
-    };
-
-    // 隱藏整個應用內容
-    const appRoot = document.getElementById('root');
-    let originalRootDisplay = '';
-    if (appRoot) {
-      originalRootDisplay = appRoot.style.display;
-      appRoot.style.display = 'none';
-    }
-
-    // 創建容器
-    const container = document.createElement('div');
-    container.id = 'image-viewer-portal';
-    
-    // 使用實際視口尺寸而不是 vh/vw
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    
-    // 設置樣式 - 簡單直接
-    container.style.cssText = `
-      position: fixed !important;
-      top: 0px !important;
-      left: 0px !important;
-      width: ${viewportWidth}px !important;
-      height: ${viewportHeight}px !important;
-      background-color: rgba(0, 0, 0, 0.95) !important;
-      z-index: 999999 !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      overflow: hidden !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-    `;
-
-    // 阻止所有觸控和滾動
-    const preventScroll = (e: Event) => {
-      e.preventDefault();
-      e.stopPropagation();
-      return false;
-    };
-
-    container.addEventListener('touchmove', preventScroll, { passive: false });
-    container.addEventListener('wheel', preventScroll, { passive: false });
-    container.addEventListener('scroll', preventScroll, { passive: false });
-
-    // 鎖定 html 和 body
-    const originalHtmlStyle = {
-      overflow: document.documentElement.style.overflow,
-      height: document.documentElement.style.height,
-    };
-
-    const originalBodyStyle = {
-      overflow: document.body.style.overflow,
-      height: document.body.style.height,
-    };
-
-    document.documentElement.style.overflow = 'hidden';
-    document.documentElement.style.height = '100%';
+    // 鎖定 body 滾動
+    const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    document.body.style.height = '100%';
-
-    // 創建圖片
-    const img = document.createElement('img');
-    img.src = imageUrl;
-    img.alt = '查看照片';
     
-    const maxWidth = viewportWidth * 0.9;
-    const maxHeight = viewportHeight * 0.8;
-    
-    img.style.cssText = `
-      max-width: ${maxWidth}px !important;
-      max-height: ${maxHeight}px !important;
-      width: auto !important;
-      height: auto !important;
-      object-fit: contain !important;
-      user-select: none !important;
-      pointer-events: none !important;
-      display: block !important;
-    `;
-
-    // 創建關閉按鈕
-    const closeBtn = document.createElement('button');
-    closeBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>';
-    Object.assign(closeBtn.style, {
-      position: 'absolute',
-      top: '16px',
-      right: '16px',
-      width: '48px',
-      height: '48px',
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-      border: '1px solid rgba(255, 255, 255, 0.2)',
-      borderRadius: '50%',
-      color: 'white',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    });
-    closeBtn.onclick = onClose;
-
-    // 創建左箭頭
-    const prevBtn = document.createElement('button');
-    prevBtn.innerHTML = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg>';
-    Object.assign(prevBtn.style, {
-      position: 'absolute',
-      left: '24px',
-      top: '50%',
-      transform: 'translateY(-50%)',
-      width: '56px',
-      height: '56px',
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-      border: '1px solid rgba(255, 255, 255, 0.2)',
-      borderRadius: '50%',
-      color: 'white',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    });
-    prevBtn.onclick = onPrev;
-
-    // 創建右箭頭
-    const nextBtn = document.createElement('button');
-    nextBtn.innerHTML = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>';
-    Object.assign(nextBtn.style, {
-      position: 'absolute',
-      right: '24px',
-      top: '50%',
-      transform: 'translateY(-50%)',
-      width: '56px',
-      height: '56px',
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-      border: '1px solid rgba(255, 255, 255, 0.2)',
-      borderRadius: '50%',
-      color: 'white',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    });
-    nextBtn.onclick = onNext;
-
-    // 添加元素到容器
-    container.appendChild(img);
-    container.appendChild(closeBtn);
-    container.appendChild(prevBtn);
-    container.appendChild(nextBtn);
-
-    // 添加到 body
-    document.body.appendChild(container);
-    containerRef.current = container;
-
-    // 清理函數
-    return () => {
-      if (containerRef.current && document.body.contains(containerRef.current)) {
-        document.body.removeChild(containerRef.current);
-      }
-
-      // 恢復應用內容顯示
-      if (appRoot) {
-        appRoot.style.display = originalRootDisplay;
-      }
-
-      // 恢復 html 樣式
-      Object.assign(document.documentElement.style, originalHtmlStyle);
-      
-      // 恢復 body 樣式
-      Object.assign(document.body.style, originalBodyStyle);
-
-      // 恢復滾動位置
-      window.scrollTo(scrollPositionRef.current.x, scrollPositionRef.current.y);
-
-      // 移除事件監聽
-      container.removeEventListener('touchmove', preventScroll);
-      container.removeEventListener('wheel', preventScroll);
-      container.removeEventListener('scroll', preventScroll);
+    // 鍵盤事件
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'ArrowLeft') onPrev();
+      if (e.key === 'ArrowRight') onNext();
     };
-  }, [imageUrl, onClose, onPrev, onNext]);
+    
+    window.addEventListener('keydown', handleKeyDown);
+    
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose, onPrev, onNext]);
 
-  // 這個組件不渲染任何 React 內容，因為我們直接操作 DOM
-  return null;
+  return (
+    <div 
+      className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center"
+      onClick={onClose}
+    >
+      {/* 圖片 */}
+      <img
+        src={imageUrl}
+        alt="查看照片"
+        className="max-w-[90vw] max-h-[80vh] w-auto h-auto object-contain"
+        onClick={(e) => e.stopPropagation()}
+      />
+
+      {/* 關閉按鈕 */}
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 w-12 h-12 rounded-full bg-white/10 border border-white/20 text-white hover:bg-white/20 transition-colors flex items-center justify-center"
+      >
+        <X className="w-6 h-6" />
+      </button>
+
+      {/* 上一張 */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onPrev();
+        }}
+        className="absolute left-6 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-white/10 border border-white/20 text-white hover:bg-white/20 transition-colors flex items-center justify-center"
+      >
+        <ChevronLeft className="w-7 h-7" />
+      </button>
+
+      {/* 下一張 */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onNext();
+        }}
+        className="absolute right-6 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-white/10 border border-white/20 text-white hover:bg-white/20 transition-colors flex items-center justify-center"
+      >
+        <ChevronRight className="w-7 h-7" />
+      </button>
+    </div>
+  );
 };
