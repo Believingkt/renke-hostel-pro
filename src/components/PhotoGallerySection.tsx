@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
-import { X } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ImageViewer } from "./ImageViewer";
 
 interface Photo {
   id: string;
@@ -21,48 +20,6 @@ const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
   
   // 手機版顯示 6 張（2列x3欄），平板和桌面顯示 12 張
   const photosPerPage = isMobile ? 6 : 12;
-
-  // 鎖定 body 滾動並記錄位置
-  useEffect(() => {
-    if (selectedImageIndex !== null) {
-      const scrollY = window.scrollY;
-      const scrollX = window.scrollX;
-      
-      // 完全鎖定滾動
-      document.documentElement.style.overflow = 'hidden';
-      document.documentElement.style.position = 'fixed';
-      document.documentElement.style.width = '100%';
-      document.documentElement.style.height = '100%';
-      document.documentElement.style.top = `-${scrollY}px`;
-      document.documentElement.style.left = `-${scrollX}px`;
-      
-      document.body.style.overflow = 'hidden';
-      document.body.style.position = 'fixed';
-      document.body.style.width = '100%';
-      document.body.style.height = '100%';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.left = `-${scrollX}px`;
-      
-      return () => {
-        // 恢復滾動
-        document.documentElement.style.overflow = '';
-        document.documentElement.style.position = '';
-        document.documentElement.style.width = '';
-        document.documentElement.style.height = '';
-        document.documentElement.style.top = '';
-        document.documentElement.style.left = '';
-        
-        document.body.style.overflow = '';
-        document.body.style.position = '';
-        document.body.style.width = '';
-        document.body.style.height = '';
-        document.body.style.top = '';
-        document.body.style.left = '';
-        
-        window.scrollTo(scrollX, scrollY);
-      };
-    }
-  }, [selectedImageIndex]);
 
   if (!photos || photos.length === 0) {
     return null;
@@ -185,72 +142,13 @@ const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
           )}
         </div>
 
-        {selectedImageIndex !== null && createPortal(
-          <div 
-            style={{ 
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              zIndex: 9999,
-              backgroundColor: 'rgba(0, 0, 0, 0.95)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              touchAction: 'none',
-              transform: 'translate3d(0, 0, 0)',
-              WebkitTransform: 'translate3d(0, 0, 0)'
-            }}
-            onTouchMove={(e) => e.preventDefault()}
-          >
-            <img
-              src={sortedPhotos[startIndex + selectedImageIndex].photo_url}
-              alt={`相簿照片 ${startIndex + selectedImageIndex + 1}`}
-              style={{ 
-                maxWidth: '90vw',
-                maxHeight: '80vh',
-                width: 'auto',
-                height: 'auto',
-                objectFit: 'contain',
-                userSelect: 'none',
-                touchAction: 'none',
-                transform: 'translate3d(0, 0, 0)',
-                WebkitTransform: 'translate3d(0, 0, 0)'
-              }}
-              draggable={false}
-            />
-            <Button
-              variant="outline"
-              size="icon"
-              className="absolute right-4 md:right-6 top-4 md:top-6 h-12 w-12 rounded-full bg-white/10 hover:bg-white/20 border-white/20 backdrop-blur-sm shadow-lg"
-              onClick={() => setSelectedImageIndex(null)}
-            >
-              <X className="h-6 w-6 text-white" />
-              <span className="sr-only">關閉</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 h-14 w-14 md:h-16 md:w-16 rounded-full bg-white/10 hover:bg-white/20 border-white/20 backdrop-blur-sm shadow-lg"
-              onClick={handlePrevImage}
-            >
-              <svg className="h-7 w-7 md:h-8 md:w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="absolute right-4 md:right-6 top-1/2 -translate-y-1/2 h-14 w-14 md:h-16 md:w-16 rounded-full bg-white/10 hover:bg-white/20 border-white/20 backdrop-blur-sm shadow-lg"
-              onClick={handleNextImage}
-            >
-              <svg className="h-7 w-7 md:h-8 md:w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </Button>
-          </div>,
-          document.body
+        {selectedImageIndex !== null && (
+          <ImageViewer
+            imageUrl={sortedPhotos[startIndex + selectedImageIndex].photo_url}
+            onClose={() => setSelectedImageIndex(null)}
+            onPrev={handlePrevImage}
+            onNext={handleNextImage}
+          />
         )}
       </div>
     </section>
