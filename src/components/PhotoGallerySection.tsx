@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -163,17 +164,30 @@ const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
           )}
         </div>
 
-        {selectedImageIndex !== null && (
+        {selectedImageIndex !== null && createPortal(
           <div 
-            className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
-            style={{ touchAction: 'none' }}
+            className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center"
+            style={{ 
+              touchAction: 'none',
+              transform: 'translate3d(0, 0, 0)',
+              WebkitTransform: 'translate3d(0, 0, 0)',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              position: 'fixed'
+            }}
             onTouchMove={(e) => e.preventDefault()}
           >
             <img
               src={sortedPhotos[startIndex + selectedImageIndex].photo_url}
               alt={`相簿照片 ${startIndex + selectedImageIndex + 1}`}
               className="max-w-[90vw] max-h-[80vh] w-auto h-auto object-contain select-none"
-              style={{ touchAction: 'none' }}
+              style={{ 
+                touchAction: 'none',
+                transform: 'translate3d(0, 0, 0)',
+                WebkitTransform: 'translate3d(0, 0, 0)'
+              }}
               draggable={false}
             />
             <Button
@@ -205,7 +219,8 @@ const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </Button>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
     </section>
