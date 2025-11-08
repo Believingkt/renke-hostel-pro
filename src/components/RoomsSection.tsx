@@ -186,7 +186,7 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
                 <div className="space-y-1">
                   {room.weekdayPricing.map((option, idx) => (
                     <div key={idx} className="flex justify-between items-center">
-                      <span className="text-lg text-muted-foreground">{option.type}</span>
+                      <span className="text-sm text-muted-foreground">{option.type}</span>
                       <span className="font-semibold text-xl text-primary">NT$ {option.price.toLocaleString()}</span>
                     </div>
                   ))}
@@ -199,7 +199,7 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
                 <div className="space-y-1">
                   {room.weekendPricing.map((option, idx) => (
                     <div key={idx} className="flex justify-between items-center">
-                      <span className="text-lg text-muted-foreground">{option.type}</span>
+                      <span className="text-sm text-muted-foreground">{option.type}</span>
                       <span className="font-semibold text-xl text-primary">NT$ {option.price.toLocaleString()}</span>
                     </div>
                   ))}
