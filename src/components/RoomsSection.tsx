@@ -133,10 +133,9 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
           </Carousel>
         </div>
       <CardContent className="p-4 md:p-6 flex flex-col flex-1 min-h-0">
-        <h3 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-foreground">{room.name}</h3>
-        <p className="text-sm mb-4 md:mb-6 text-muted-foreground leading-relaxed h-12 overflow-hidden">{room.description}</p>
+        <h3 className="text-xl md:text-2xl font-bold mb-3 text-foreground">{room.name}</h3>
         
-        <div className="space-y-2 mb-6">
+        <div className="space-y-2 mb-4">
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <div className="flex items-center gap-1">
               <Users className="h-4 w-4" />
@@ -164,6 +163,8 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
             </div>
           )}
         </div>
+        
+        <p className="text-sm mb-4 md:mb-6 text-muted-foreground leading-relaxed h-12 overflow-hidden">{room.description}</p>
 
         <div className="flex flex-wrap gap-2 h-16 content-start overflow-hidden">
           {amenities.length > 0 ? (
