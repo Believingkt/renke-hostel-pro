@@ -91,17 +91,27 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
       height: '100%',
     });
 
-    // 創建圖片
-    const img = document.createElement('img');
-    img.src = imageUrl;
-    img.alt = '查看照片';
-    img.style.cssText = `
+    // 創建圖片 - 使用包裝器避免全局樣式干擾
+    const imgWrapper = document.createElement('div');
+    imgWrapper.style.cssText = `
       position: absolute !important;
       top: 50% !important;
       left: 50% !important;
       transform: translate(-50%, -50%) !important;
+      -webkit-transform: translate(-50%, -50%) !important;
       max-width: 90vw !important;
       max-height: 80vh !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    `;
+    
+    const img = document.createElement('img');
+    img.src = imageUrl;
+    img.alt = '查看照片';
+    img.style.cssText = `
+      max-width: 100% !important;
+      max-height: 100% !important;
       width: auto !important;
       height: auto !important;
       object-fit: contain !important;
@@ -110,7 +120,11 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
       display: block !important;
       margin: 0 !important;
       padding: 0 !important;
+      transform: none !important;
+      -webkit-transform: none !important;
     `;
+    
+    imgWrapper.appendChild(img);
 
     // 創建關閉按鈕
     const closeBtn = document.createElement('button');
@@ -175,7 +189,7 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     nextBtn.onclick = onNext;
 
     // 添加元素到容器
-    container.appendChild(img);
+    container.appendChild(imgWrapper);
     container.appendChild(closeBtn);
     container.appendChild(prevBtn);
     container.appendChild(nextBtn);
