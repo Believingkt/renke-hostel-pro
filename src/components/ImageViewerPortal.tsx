@@ -22,22 +22,26 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     const container = document.createElement('div');
     container.id = 'image-viewer-portal';
     
-    // 設置樣式
-    Object.assign(container.style, {
-      position: 'fixed',
-      top: '0',
-      left: '0',
-      width: '100vw',
-      height: '100vh',
-      backgroundColor: 'rgba(0, 0, 0, 0.95)',
-      zIndex: '999999',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      margin: '0',
-      padding: '0',
-      overflow: 'hidden',
-    });
+    // 設置樣式 - 使用 CSS Grid 居中
+    container.style.cssText = `
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      max-width: 100vw !important;
+      max-height: 100vh !important;
+      background-color: rgba(0, 0, 0, 0.95) !important;
+      z-index: 999999 !important;
+      display: grid !important;
+      place-items: center !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+      transform: none !important;
+    `;
 
     // 阻止所有觸控和滾動
     const preventScroll = (e: Event) => {
@@ -50,7 +54,7 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     container.addEventListener('wheel', preventScroll, { passive: false });
     container.addEventListener('scroll', preventScroll, { passive: false });
 
-    // 鎖定 body
+    // 鎖定 body 和 html
     const originalBodyStyle = {
       overflow: document.body.style.overflow,
       position: document.body.style.position,
@@ -60,6 +64,26 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
       height: document.body.style.height,
     };
 
+    const originalHtmlStyle = {
+      overflow: document.documentElement.style.overflow,
+      position: document.documentElement.style.position,
+      top: document.documentElement.style.top,
+      left: document.documentElement.style.left,
+      width: document.documentElement.style.width,
+      height: document.documentElement.style.height,
+    };
+
+    // 鎖定 html
+    Object.assign(document.documentElement.style, {
+      overflow: 'hidden',
+      position: 'fixed',
+      top: `-${scrollPositionRef.current.y}px`,
+      left: `-${scrollPositionRef.current.x}px`,
+      width: '100%',
+      height: '100%',
+    });
+
+    // 鎖定 body
     Object.assign(document.body.style, {
       overflow: 'hidden',
       position: 'fixed',
@@ -73,15 +97,18 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     const img = document.createElement('img');
     img.src = imageUrl;
     img.alt = '查看照片';
-    Object.assign(img.style, {
-      maxWidth: '90vw',
-      maxHeight: '80vh',
-      width: 'auto',
-      height: 'auto',
-      objectFit: 'contain',
-      userSelect: 'none',
-      pointerEvents: 'none',
-    });
+    img.style.cssText = `
+      max-width: 90vw !important;
+      max-height: 80vh !important;
+      width: auto !important;
+      height: auto !important;
+      object-fit: contain !important;
+      user-select: none !important;
+      pointer-events: none !important;
+      display: block !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    `;
 
     // 創建關閉按鈕
     const closeBtn = document.createElement('button');
@@ -161,6 +188,9 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
         document.body.removeChild(containerRef.current);
       }
 
+      // 恢復 html 樣式
+      Object.assign(document.documentElement.style, originalHtmlStyle);
+      
       // 恢復 body 樣式
       Object.assign(document.body.style, originalBodyStyle);
 
