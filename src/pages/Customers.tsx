@@ -10,6 +10,36 @@ import { Plus, Pencil, Trash2, Search, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAccommodation } from "@/contexts/AccommodationContext";
+import { z } from "zod";
+
+// Validation schema for customer inputs
+const customerSchema = z.object({
+  name: z.string()
+    .trim()
+    .min(1, "姓名不能為空")
+    .max(100, "姓名長度不能超過 100 字元"),
+  phone: z.string()
+    .trim()
+    .max(20, "手機號碼長度不能超過 20 字元")
+    .regex(/^[0-9\-\+\(\)\s]*$/, "手機號碼格式不正確")
+    .optional()
+    .or(z.literal("")),
+  email: z.string()
+    .trim()
+    .email("Email 格式不正確")
+    .max(255, "Email 長度不能超過 255 字元")
+    .optional()
+    .or(z.literal("")),
+  notes: z.string()
+    .trim()
+    .max(1000, "備註長度不能超過 1000 字元")
+    .optional()
+    .or(z.literal("")),
+  visit_count: z.number()
+    .int("來訪次數必須是整數")
+    .min(0, "來訪次數不能為負數")
+    .max(999999, "來訪次數超出範圍"),
+});
 
 interface Customer {
   id: string;
@@ -112,8 +142,19 @@ const Customers = () => {
       return;
     }
 
-    if (!formData.name.trim()) {
-      toast.error("請填寫姓名");
+    // Validate input with Zod schema
+    const validationData = {
+      name: formData.name,
+      phone: formData.phone,
+      email: formData.email,
+      notes: formData.notes,
+      visit_count: parseInt(formData.visit_count) || 0,
+    };
+
+    const validation = customerSchema.safeParse(validationData);
+    if (!validation.success) {
+      const firstError = validation.error.errors[0];
+      toast.error(firstError.message);
       return;
     }
 
@@ -121,12 +162,12 @@ const Customers = () => {
     try {
       const customerData = {
         accommodation_id: currentAccommodationId,
-        name: formData.name.trim(),
-        phone: formData.phone.trim() || null,
-        email: formData.email.trim() || null,
+        name: validation.data.name,
+        phone: validation.data.phone || null,
+        email: validation.data.email || null,
         first_order_date: formData.first_order_date || null,
-        visit_count: parseInt(formData.visit_count) || 0,
-        notes: formData.notes.trim() || null,
+        visit_count: validation.data.visit_count,
+        notes: validation.data.notes || null,
       };
 
       if (editingCustomer) {
