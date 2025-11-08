@@ -97,7 +97,7 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
   return (
     <div className="h-full">
       <Card className="overflow-hidden hover:shadow-xl transition-shadow group border rounded-xl bg-card flex flex-col h-full">
-        <div className="aspect-[4/3] overflow-hidden relative bg-muted flex-shrink-0">
+        <div className="aspect-[16/10] md:aspect-[4/3] overflow-hidden relative bg-muted flex-shrink-0">
           <Carousel 
             className="w-full h-full"
             opts={{ loop: true }}
@@ -121,8 +121,8 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       />
                     </picture>
-                    <div className="absolute top-4 right-4 bg-black/40 hover:bg-black/60 p-2 rounded-full transition-colors z-10">
-                      <ZoomIn className="h-5 w-5 text-white" />
+                    <div className="absolute top-3 md:top-4 right-3 md:right-4 bg-black/40 hover:bg-black/60 p-1.5 md:p-2 rounded-full transition-colors z-10">
+                      <ZoomIn className="h-4 w-4 md:h-5 md:w-5 text-white" />
                     </div>
                   </div>
                 </CarouselItem>
