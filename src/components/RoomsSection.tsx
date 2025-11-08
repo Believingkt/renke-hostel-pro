@@ -125,18 +125,16 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
                     className="relative cursor-pointer group/image h-full"
                     onClick={() => handleImageClick(index)}
                   >
-                    <picture>
-                      <img 
-                        src={image} 
-                        alt={`${room.name} - ${index + 1}`}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                        decoding="async"
-                        width="512"
-                        height="512"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      />
-                    </picture>
+                    <img 
+                      src={image} 
+                      alt={`${room.name} - ${index + 1}`}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                      width="800"
+                      height="600"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                    />
                     <div className="absolute top-3 md:top-4 right-3 md:right-4 bg-black/40 hover:bg-black/60 p-1.5 md:p-2 rounded-full transition-colors z-10">
                       <ZoomIn className="h-4 w-4 md:h-5 md:w-5 text-white" />
                     </div>

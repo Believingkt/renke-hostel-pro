@@ -94,30 +94,17 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
           <CarouselContent className="-ml-0">
             <CarouselItem className="pl-0">
               <div className="relative h-[500px] md:h-[700px] w-full bg-gradient-to-br from-muted to-muted/50">
-                <picture>
-                  <source 
-                    media="(max-width: 768px)" 
-                    srcSet={heroSlide1}
-                    width="480"
-                    height="270"
-                  />
-                  <source 
-                    media="(min-width: 769px)" 
-                    srcSet={heroSlide1}
-                    width="960"
-                    height="540"
-                  />
-                  <img 
-                    src={heroSlide1} 
-                    alt="山景 1"
-                    className="w-full h-full object-cover transition-opacity duration-700 brightness-110"
-                    loading="eager"
-                    fetchPriority="high"
-                    decoding="sync"
-                    width="960"
-                    height="540"
-                  />
-                </picture>
+                <img 
+                  src={heroSlide1} 
+                  alt="山景 1"
+                  className="w-full h-full object-cover transition-opacity duration-700 brightness-110"
+                  loading="eager"
+                  fetchPriority="high"
+                  decoding="sync"
+                  width="1920"
+                  height="1080"
+                  sizes="100vw"
+                />
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center transition-all duration-700">
                   <div className="text-center text-white space-y-2 md:space-y-4 max-w-4xl px-4 pb-32 md:pb-56">
                     <h1 className="text-3xl md:text-7xl font-bold animate-fade-in drop-shadow-lg">
@@ -136,17 +123,16 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
             <CarouselItem className="pl-0">
               <div className="relative h-[500px] md:h-[700px] w-full bg-muted">
                 {loadedImages.has(1) ? (
-                  <picture>
-                    <img 
-                      src={heroSlide2} 
-                      alt="山景 2"
-                      className="w-full h-full object-cover transition-opacity duration-700 brightness-110"
-                      loading="lazy"
-                      decoding="async"
-                      width="960"
-                      height="540"
-                    />
-                  </picture>
+                  <img 
+                    src={heroSlide2} 
+                    alt="山景 2"
+                    className="w-full h-full object-cover transition-opacity duration-700 brightness-110"
+                    loading="lazy"
+                    decoding="async"
+                    width="1920"
+                    height="1080"
+                    sizes="100vw"
+                  />
                 ) : (
                   <div className="w-full h-full bg-muted animate-pulse" />
                 )}
@@ -168,17 +154,16 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
             <CarouselItem className="pl-0">
               <div className="relative h-[500px] md:h-[700px] w-full bg-muted">
                 {loadedImages.has(2) ? (
-                  <picture>
-                    <img 
-                      src={heroSlide3} 
-                      alt="山景 3"
-                      className="w-full h-full object-cover transition-opacity duration-700 brightness-110"
-                      loading="lazy"
-                      decoding="async"
-                      width="960"
-                      height="540"
-                    />
-                  </picture>
+                  <img 
+                    src={heroSlide3} 
+                    alt="山景 3"
+                    className="w-full h-full object-cover transition-opacity duration-700 brightness-110"
+                    loading="lazy"
+                    decoding="async"
+                    width="1920"
+                    height="1080"
+                    sizes="100vw"
+                  />
                 ) : (
                   <div className="w-full h-full bg-muted animate-pulse" />
                 )}
