@@ -138,13 +138,13 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
         <div className="space-y-3 mb-5">
           {(room.room_count || room.quad_room_count || room.double_room_count) && (
             <div className="text-base text-foreground/80 font-medium leading-relaxed">
-              {room.room_count && room.room_count > 0 && <span className="font-semibold">{room.room_count}間房</span>}
+              {room.room_count && room.room_count > 0 && <span className="font-semibold">{room.room_count} 間房</span>}
               {((room.quad_room_count && room.quad_room_count > 0) || (room.double_room_count && room.double_room_count > 0)) && (
                 <span className="ml-2 text-muted-foreground">
                   (
-                  {room.quad_room_count && room.quad_room_count > 0 && <span>四人房{room.quad_room_count}間</span>}
+                  {room.quad_room_count && room.quad_room_count > 0 && <span>四人房 {room.quad_room_count} 間</span>}
                   {room.quad_room_count && room.quad_room_count > 0 && room.double_room_count && room.double_room_count > 0 && <span>、</span>}
-                  {room.double_room_count && room.double_room_count > 0 && <span>雙人房{room.double_room_count}間</span>}
+                  {room.double_room_count && room.double_room_count > 0 && <span>雙人房 {room.double_room_count} 間</span>}
                   )
                 </span>
               )}
@@ -153,13 +153,13 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-1.5">
               <Users className="h-4 w-4" />
-              <span className="font-medium">{room.capacity}人</span>
+              <span className="font-medium">{room.capacity} 人</span>
             </div>
             <div className="flex items-center gap-1.5">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
               </svg>
-              <span className="font-medium">{room.size_sqm}㎡</span>
+              <span className="font-medium">{room.size_sqm} ㎡</span>
             </div>
           </div>
         </div>
