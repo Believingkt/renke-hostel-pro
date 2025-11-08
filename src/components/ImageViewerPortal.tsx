@@ -1,5 +1,4 @@
-import { useEffect } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useRef } from "react";
 
 interface ImageViewerPortalProps {
   imageUrl: string;
@@ -9,165 +8,192 @@ interface ImageViewerPortalProps {
 }
 
 export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageViewerPortalProps) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
-    // 停止首頁輪播
+    // 發送停止輪播事件
     window.dispatchEvent(new CustomEvent('viewer-opened'));
     
-    // 強制重置所有輪播的 transform，防止動畫影響
-    const emblaContainers = document.querySelectorAll('.embla__container');
-    const originalTransforms: string[] = [];
-    emblaContainers.forEach((el) => {
-      const htmlEl = el as HTMLElement;
-      originalTransforms.push(htmlEl.style.transform || '');
-      // 強制重置為原點
-      htmlEl.style.transform = 'translate3d(0px, 0px, 0px)';
-      htmlEl.style.transition = 'none';
+    // 保存當前滾動位置
+    const scrollY = window.scrollY;
+    
+    // 創建完全獨立的容器
+    const overlay = document.createElement('div');
+    overlay.id = 'photo-viewer-overlay';
+    
+    // 獲取視口尺寸
+    const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+    const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+    
+    // 設置容器樣式 - 完全固定，不受任何影響
+    Object.assign(overlay.style, {
+      position: 'fixed',
+      top: '0',
+      left: '0',
+      width: `${vw}px`,
+      height: `${vh}px`,
+      backgroundColor: 'rgba(0, 0, 0, 0.95)',
+      zIndex: '2147483647',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      margin: '0',
+      padding: '0',
+      border: 'none',
+      transform: 'translate3d(0, 0, 0)',
+      WebkitTransform: 'translate3d(0, 0, 0)',
+      willChange: 'auto',
+      isolation: 'isolate',
     });
     
-    // 鎖定頁面滾動
-    const scrollY = window.scrollY;
-    document.documentElement.style.overflow = 'hidden';
-    document.documentElement.style.position = 'fixed';
-    document.documentElement.style.width = '100%';
-    document.documentElement.style.top = `-${scrollY}px`;
-    document.body.style.overflow = 'hidden';
-    document.body.style.position = 'fixed';
-    document.body.style.width = '100%';
+    // 創建圖片
+    const img = document.createElement('img');
+    img.src = imageUrl;
+    img.alt = '查看照片';
+    Object.assign(img.style, {
+      maxWidth: `${vw * 0.9}px`,
+      maxHeight: `${vh * 0.8}px`,
+      objectFit: 'contain',
+      userSelect: 'none',
+      WebkitUserSelect: 'none',
+      pointerEvents: 'none',
+    });
+    img.draggable = false;
     
-    const handleKeyDown = (e: KeyboardEvent) => {
+    // 關閉按鈕
+    const closeBtn = document.createElement('button');
+    closeBtn.innerHTML = '✕';
+    Object.assign(closeBtn.style, {
+      position: 'absolute',
+      top: '16px',
+      right: '16px',
+      width: '48px',
+      height: '48px',
+      borderRadius: '50%',
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      color: 'white',
+      fontSize: '24px',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    });
+    closeBtn.onclick = onClose;
+    
+    // 上一張按鈕
+    const prevBtn = document.createElement('button');
+    prevBtn.innerHTML = '‹';
+    Object.assign(prevBtn.style, {
+      position: 'absolute',
+      left: '24px',
+      top: '50%',
+      marginTop: '-28px',
+      width: '56px',
+      height: '56px',
+      borderRadius: '50%',
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      color: 'white',
+      fontSize: '40px',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    });
+    prevBtn.onclick = onPrev;
+    
+    // 下一張按鈕
+    const nextBtn = document.createElement('button');
+    nextBtn.innerHTML = '›';
+    Object.assign(nextBtn.style, {
+      position: 'absolute',
+      right: '24px',
+      top: '50%',
+      marginTop: '-28px',
+      width: '56px',
+      height: '56px',
+      borderRadius: '50%',
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      color: 'white',
+      fontSize: '40px',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    });
+    nextBtn.onclick = onNext;
+    
+    // 組裝元素
+    overlay.appendChild(img);
+    overlay.appendChild(closeBtn);
+    overlay.appendChild(prevBtn);
+    overlay.appendChild(nextBtn);
+    
+    // 點擊背景關閉
+    overlay.onclick = (e) => {
+      if (e.target === overlay) onClose();
+    };
+    
+    // 停止輪播並鎖定頁面
+    const root = document.documentElement;
+    const body = document.body;
+    
+    // 完全凍結輪播
+    const emblaContainers = document.querySelectorAll('.embla__container');
+    emblaContainers.forEach((el) => {
+      (el as HTMLElement).style.transform = 'translate3d(0, 0, 0)';
+      (el as HTMLElement).style.transition = 'none';
+    });
+    
+    // 鎖定滾動
+    root.style.overflow = 'hidden';
+    root.style.position = 'fixed';
+    root.style.width = '100%';
+    root.style.top = `-${scrollY}px`;
+    body.style.overflow = 'hidden';
+    body.style.position = 'fixed';
+    body.style.width = '100%';
+    
+    // 添加到 DOM
+    document.body.appendChild(overlay);
+    containerRef.current = overlay;
+    
+    // 鍵盤事件
+    const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
       if (e.key === 'ArrowLeft') onPrev();
       if (e.key === 'ArrowRight') onNext();
     };
-    
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKey);
     
     return () => {
-      // 恢復輪播的 transform
-      emblaContainers.forEach((el, index) => {
-        const htmlEl = el as HTMLElement;
-        htmlEl.style.transform = originalTransforms[index];
-        htmlEl.style.transition = '';
+      // 清理
+      if (overlay.parentNode) {
+        overlay.parentNode.removeChild(overlay);
+      }
+      
+      // 恢復輪播
+      emblaContainers.forEach((el) => {
+        (el as HTMLElement).style.transform = '';
+        (el as HTMLElement).style.transition = '';
       });
       
-      window.dispatchEvent(new CustomEvent('viewer-closed'));
-      document.documentElement.style.overflow = '';
-      document.documentElement.style.position = '';
-      document.documentElement.style.width = '';
-      document.documentElement.style.top = '';
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.width = '';
-      window.scrollTo(0, scrollY);
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [onClose, onPrev, onNext]);
-
-  const viewer = (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 999999,
-        backgroundColor: 'rgba(0, 0, 0, 0.95)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        isolation: 'isolate',
-      }}
-      onClick={onClose}
-    >
-      <img
-        src={imageUrl}
-        alt="查看照片"
-        style={{
-          maxWidth: '90vw',
-          maxHeight: '80vh',
-          objectFit: 'contain',
-          userSelect: 'none',
-        }}
-        onClick={(e) => e.stopPropagation()}
-        draggable={false}
-      />
+      // 恢復頁面
+      root.style.overflow = '';
+      root.style.position = '';
+      root.style.width = '';
+      root.style.top = '';
+      body.style.overflow = '';
+      body.style.position = '';
+      body.style.width = '';
       
-      <button
-        onClick={onClose}
-        style={{
-          position: 'absolute',
-          top: '16px',
-          right: '16px',
-          width: '48px',
-          height: '48px',
-          borderRadius: '50%',
-          backgroundColor: 'rgba(255, 255, 255, 0.1)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          color: 'white',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M18 6L6 18M6 6l12 12"/>
-        </svg>
-      </button>
+      window.scrollTo(0, scrollY);
+      window.removeEventListener('keydown', handleKey);
+      window.dispatchEvent(new CustomEvent('viewer-closed'));
+    };
+  }, [imageUrl, onClose, onPrev, onNext]);
 
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onPrev();
-        }}
-        style={{
-          position: 'absolute',
-          left: '24px',
-          top: '50%',
-          transform: 'translateY(-50%)',
-          width: '56px',
-          height: '56px',
-          borderRadius: '50%',
-          backgroundColor: 'rgba(255, 255, 255, 0.1)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          color: 'white',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M15 19l-7-7 7-7"/>
-        </svg>
-      </button>
-
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onNext();
-        }}
-        style={{
-          position: 'absolute',
-          right: '24px',
-          top: '50%',
-          transform: 'translateY(-50%)',
-          width: '56px',
-          height: '56px',
-          borderRadius: '50%',
-          backgroundColor: 'rgba(255, 255, 255, 0.1)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          color: 'white',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M9 5l7 7-7 7"/>
-        </svg>
-      </button>
-    </div>
-  );
-
-  return createPortal(viewer, document.body);
+  return null;
 };
