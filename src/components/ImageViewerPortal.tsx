@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -10,227 +10,162 @@ interface ImageViewerPortalProps {
 }
 
 export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageViewerPortalProps) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
-    // 完全禁用頁面滾動和動畫
-    const root = document.documentElement;
-    const body = document.body;
+    // 創建完全獨立的容器，直接掛載到 body
+    const container = document.createElement('div');
+    container.id = 'image-viewer-root';
     
-    // 保存原始樣式
-    const originalStyles = {
-      rootOverflow: root.style.overflow,
-      rootPosition: root.style.position,
-      rootTop: root.style.top,
-      rootLeft: root.style.left,
-      bodyOverflow: body.style.overflow,
-      bodyPosition: body.style.position,
-      bodyTop: body.style.top,
-      bodyLeft: body.style.left,
+    // 獲取實際視口尺寸
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    
+    // 使用內聯樣式，完全隔離
+    container.setAttribute('style', `
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: ${vw}px !important;
+      height: ${vh}px !important;
+      background-color: rgba(0, 0, 0, 0.95) !important;
+      z-index: 2147483647 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      transform: none !important;
+      pointer-events: auto !important;
+    `);
+    
+    // 圖片
+    const img = document.createElement('img');
+    img.src = imageUrl;
+    img.alt = '查看照片';
+    img.setAttribute('style', `
+      max-width: ${vw * 0.9}px !important;
+      max-height: ${vh * 0.8}px !important;
+      width: auto !important;
+      height: auto !important;
+      object-fit: contain !important;
+      user-select: none !important;
+      pointer-events: none !important;
+      transform: none !important;
+    `);
+    img.draggable = false;
+    
+    // 關閉按鈕
+    const closeBtn = document.createElement('button');
+    closeBtn.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>`;
+    closeBtn.setAttribute('style', `
+      position: absolute !important;
+      top: 16px !important;
+      right: 16px !important;
+      width: 48px !important;
+      height: 48px !important;
+      border-radius: 50% !important;
+      background-color: rgba(255, 255, 255, 0.1) !important;
+      border: 1px solid rgba(255, 255, 255, 0.2) !important;
+      color: white !important;
+      cursor: pointer !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      transform: none !important;
+    `);
+    closeBtn.onclick = onClose;
+    
+    // 上一張
+    const prevBtn = document.createElement('button');
+    prevBtn.innerHTML = `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg>`;
+    prevBtn.setAttribute('style', `
+      position: absolute !important;
+      left: 24px !important;
+      top: ${vh / 2}px !important;
+      margin-top: -28px !important;
+      width: 56px !important;
+      height: 56px !important;
+      border-radius: 50% !important;
+      background-color: rgba(255, 255, 255, 0.1) !important;
+      border: 1px solid rgba(255, 255, 255, 0.2) !important;
+      color: white !important;
+      cursor: pointer !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      transform: none !important;
+    `);
+    prevBtn.onclick = onPrev;
+    
+    // 下一張
+    const nextBtn = document.createElement('button');
+    nextBtn.innerHTML = `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>`;
+    nextBtn.setAttribute('style', `
+      position: absolute !important;
+      right: 24px !important;
+      top: ${vh / 2}px !important;
+      margin-top: -28px !important;
+      width: 56px !important;
+      height: 56px !important;
+      border-radius: 50% !important;
+      background-color: rgba(255, 255, 255, 0.1) !important;
+      border: 1px solid rgba(255, 255, 255, 0.2) !important;
+      color: white !important;
+      cursor: pointer !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      transform: none !important;
+    `);
+    nextBtn.onclick = onNext;
+    
+    // 組裝
+    container.appendChild(img);
+    container.appendChild(closeBtn);
+    container.appendChild(prevBtn);
+    container.appendChild(nextBtn);
+    
+    // 背景點擊關閉
+    container.onclick = (e) => {
+      if (e.target === container) onClose();
     };
     
-    // 獲取當前滾動位置
+    // 掛載到 body
+    document.body.appendChild(container);
+    containerRef.current = container;
+    
+    // 鎖定頁面
     const scrollY = window.scrollY;
-    const scrollX = window.scrollX;
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
     
-    // 鎖定 html 和 body
-    root.style.overflow = 'hidden';
-    root.style.position = 'fixed';
-    root.style.top = `-${scrollY}px`;
-    root.style.left = `-${scrollX}px`;
-    root.style.width = '100%';
-    root.style.height = '100%';
-    
-    body.style.overflow = 'hidden';
-    body.style.position = 'fixed';
-    body.style.top = `-${scrollY}px`;
-    body.style.left = `-${scrollX}px`;
-    body.style.width = '100%';
-    body.style.height = '100%';
-    
-    // 強制停止所有輪播和動畫
-    const emblaContainers = document.querySelectorAll('.embla__container');
-    const originalTransforms: string[] = [];
-    
-    emblaContainers.forEach((container) => {
-      const el = container as HTMLElement;
-      originalTransforms.push(el.style.transform);
-      // 完全移除 transform
-      el.style.transform = 'translate3d(0px, 0px, 0px)';
-      el.style.transition = 'none';
-      el.style.willChange = 'auto';
-    });
-    
-    // 停止所有動畫和過渡
-    const style = document.createElement('style');
-    style.id = 'viewer-freeze';
-    style.textContent = `
-      * {
-        animation-play-state: paused !important;
-        transition: none !important;
-      }
-      .embla__container {
-        transform: translate3d(0px, 0px, 0px) !important;
-        transition: none !important;
-      }
-    `;
-    document.head.appendChild(style);
-    
+    // 鍵盤事件
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
       if (e.key === 'ArrowLeft') onPrev();
       if (e.key === 'ArrowRight') onNext();
     };
-    
     window.addEventListener('keydown', handleKeyDown);
     
     return () => {
-      // 恢復輪播的 transform
-      emblaContainers.forEach((container, index) => {
-        const el = container as HTMLElement;
-        el.style.transform = originalTransforms[index] || '';
-        el.style.transition = '';
-        el.style.willChange = '';
-      });
-      
-      // 恢復樣式
-      root.style.overflow = originalStyles.rootOverflow;
-      root.style.position = originalStyles.rootPosition;
-      root.style.top = originalStyles.rootTop;
-      root.style.left = originalStyles.rootLeft;
-      root.style.width = '';
-      root.style.height = '';
-      
-      body.style.overflow = originalStyles.bodyOverflow;
-      body.style.position = originalStyles.bodyPosition;
-      body.style.top = originalStyles.bodyTop;
-      body.style.left = originalStyles.bodyLeft;
-      body.style.width = '';
-      body.style.height = '';
-      
-      // 移除動畫停止樣式
-      const freezeStyle = document.getElementById('viewer-freeze');
-      if (freezeStyle) {
-        freezeStyle.remove();
+      // 清理
+      if (containerRef.current && document.body.contains(containerRef.current)) {
+        document.body.removeChild(containerRef.current);
       }
       
-      // 恢復滾動位置
-      window.scrollTo(scrollX, scrollY);
+      // 恢復頁面
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      window.scrollTo(0, scrollY);
       
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [onClose, onPrev, onNext]);
+  }, [imageUrl, onClose, onPrev, onNext]);
 
-  const viewer = (
-    <div 
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        width: '100vw',
-        height: '100vh',
-        backgroundColor: 'rgba(0, 0, 0, 0.95)',
-        zIndex: 999999,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        pointerEvents: 'auto',
-        touchAction: 'none',
-      }}
-      onClick={onClose}
-      onTouchMove={(e) => e.preventDefault()}
-    >
-      {/* 圖片 */}
-      <img
-        src={imageUrl}
-        alt="查看照片"
-        style={{
-          maxWidth: '90vw',
-          maxHeight: '80vh',
-          width: 'auto',
-          height: 'auto',
-          objectFit: 'contain',
-          userSelect: 'none',
-        }}
-        onClick={(e) => e.stopPropagation()}
-        draggable={false}
-      />
-
-      {/* 關閉按鈕 */}
-      <button
-        onClick={onClose}
-        style={{
-          position: 'absolute',
-          top: '16px',
-          right: '16px',
-          width: '48px',
-          height: '48px',
-          borderRadius: '50%',
-          backgroundColor: 'rgba(255, 255, 255, 0.1)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          color: 'white',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <X size={24} />
-      </button>
-
-      {/* 上一張 */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onPrev();
-        }}
-        style={{
-          position: 'absolute',
-          left: '24px',
-          top: '50%',
-          transform: 'translateY(-50%)',
-          width: '56px',
-          height: '56px',
-          borderRadius: '50%',
-          backgroundColor: 'rgba(255, 255, 255, 0.1)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          color: 'white',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <ChevronLeft size={28} />
-      </button>
-
-      {/* 下一張 */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onNext();
-        }}
-        style={{
-          position: 'absolute',
-          right: '24px',
-          top: '50%',
-          transform: 'translateY(-50%)',
-          width: '56px',
-          height: '56px',
-          borderRadius: '50%',
-          backgroundColor: 'rgba(255, 255, 255, 0.1)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          color: 'white',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <ChevronRight size={28} />
-      </button>
-    </div>
-  );
-
-  return createPortal(viewer, document.body);
+  return null;
 };
