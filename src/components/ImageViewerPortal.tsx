@@ -76,6 +76,17 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
       height: document.documentElement.style.height,
     };
 
+    // 停止所有動畫和過渡
+    const style = document.createElement('style');
+    style.id = 'image-viewer-no-animation';
+    style.textContent = `
+      * {
+        animation-play-state: paused !important;
+        transition: none !important;
+      }
+    `;
+    document.head.appendChild(style);
+
     // 鎖定 html
     Object.assign(document.documentElement.style, {
       overflow: 'hidden',
@@ -197,6 +208,12 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     return () => {
       if (containerRef.current && document.body.contains(containerRef.current)) {
         document.body.removeChild(containerRef.current);
+      }
+
+      // 移除動畫禁用樣式
+      const noAnimStyle = document.getElementById('image-viewer-no-animation');
+      if (noAnimStyle) {
+        document.head.removeChild(noAnimStyle);
       }
 
       // 恢復 html 樣式
