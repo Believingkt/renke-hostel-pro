@@ -72,13 +72,8 @@ const SortableRoomCard = ({ roomType, onEdit, onDelete }: SortableRoomCardProps)
           </button>
           
           <div className="flex-1">
-            <div className="flex items-center gap-3 mb-3">
+            <div className="mb-3">
               <h3 className="text-xl font-bold">{roomType.name}</h3>
-              {roomType.name_en && (
-                <span className="text-sm text-muted-foreground">
-                  {roomType.name_en}
-                </span>
-              )}
             </div>
             
             {roomType.description && (
