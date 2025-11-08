@@ -13,21 +13,26 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     // 停止首頁輪播
     window.dispatchEvent(new CustomEvent('viewer-opened'));
     
-    // 直接隱藏輪播元素，防止其動畫影響
-    const carousels = document.querySelectorAll('[class*="carousel"], .embla, .embla__viewport');
-    const originalDisplays: string[] = [];
-    carousels.forEach((el) => {
+    // 強制重置所有輪播的 transform，防止動畫影響
+    const emblaContainers = document.querySelectorAll('.embla__container');
+    const originalTransforms: string[] = [];
+    emblaContainers.forEach((el) => {
       const htmlEl = el as HTMLElement;
-      originalDisplays.push(htmlEl.style.display || '');
-      htmlEl.style.display = 'none';
+      originalTransforms.push(htmlEl.style.transform || '');
+      // 強制重置為原點
+      htmlEl.style.transform = 'translate3d(0px, 0px, 0px)';
+      htmlEl.style.transition = 'none';
     });
     
     // 鎖定頁面滾動
     const scrollY = window.scrollY;
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.width = '100%';
+    document.documentElement.style.overflow = 'hidden';
+    document.documentElement.style.position = 'fixed';
+    document.documentElement.style.width = '100%';
+    document.documentElement.style.top = `-${scrollY}px`;
     document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
     
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -38,17 +43,21 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     window.addEventListener('keydown', handleKeyDown);
     
     return () => {
-      // 恢復輪播顯示
-      carousels.forEach((el, index) => {
+      // 恢復輪播的 transform
+      emblaContainers.forEach((el, index) => {
         const htmlEl = el as HTMLElement;
-        htmlEl.style.display = originalDisplays[index];
+        htmlEl.style.transform = originalTransforms[index];
+        htmlEl.style.transition = '';
       });
       
       window.dispatchEvent(new CustomEvent('viewer-closed'));
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
+      document.documentElement.style.overflow = '';
+      document.documentElement.style.position = '';
+      document.documentElement.style.width = '';
+      document.documentElement.style.top = '';
       document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
       window.scrollTo(0, scrollY);
       window.removeEventListener('keydown', handleKeyDown);
     };
