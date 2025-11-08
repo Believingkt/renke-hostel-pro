@@ -34,15 +34,37 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
 
     const viewport = getViewportSize();
     
+    // 注入 CSS 完全凍結頁面所有動畫和輪播
+    const freezeStyle = document.createElement('style');
+    freezeStyle.id = 'viewer-freeze-all';
+    freezeStyle.textContent = `
+      body * {
+        animation-play-state: paused !important;
+        transition: none !important;
+      }
+      .embla__container,
+      [class*="carousel"] [class*="container"] {
+        transform: translate3d(0, 0, 0) !important;
+        -webkit-transform: translate3d(0, 0, 0) !important;
+        transition: none !important;
+      }
+    `;
+    document.head.appendChild(freezeStyle);
+    
     // 創建容器
     const container = document.createElement('div');
     container.id = 'image-viewer-safari';
     
-    // Safari 專用樣式
-    const styleString = isSafari ? `
-      position: fixed !important;
-      top: ${viewport.offsetTop}px !important;
-      left: ${viewport.offsetLeft}px !important;
+    // 獲取當前滾動位置
+    const currentScrollY = window.pageYOffset || document.documentElement.scrollTop;
+    const currentScrollX = window.pageXOffset || document.documentElement.scrollLeft;
+    
+    // 使用 absolute 定位，相對於滾動位置
+    // Safari 的 fixed 定位有問題，改用 absolute
+    const styleString = `
+      position: absolute !important;
+      top: ${currentScrollY}px !important;
+      left: ${currentScrollX}px !important;
       width: ${viewport.width}px !important;
       height: ${viewport.height}px !important;
       background-color: rgba(0, 0, 0, 0.95) !important;
@@ -55,24 +77,6 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
       overflow: hidden !important;
       -webkit-transform: translate3d(0, 0, 0) !important;
       transform: translate3d(0, 0, 0) !important;
-      -webkit-backface-visibility: hidden !important;
-      backface-visibility: hidden !important;
-      -webkit-perspective: 1000 !important;
-      perspective: 1000 !important;
-    ` : `
-      position: fixed !important;
-      top: 0 !important;
-      left: 0 !important;
-      width: 100vw !important;
-      height: 100vh !important;
-      background-color: rgba(0, 0, 0, 0.95) !important;
-      z-index: 2147483647 !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      overflow: hidden !important;
     `;
     
     container.setAttribute('style', styleString);
@@ -238,6 +242,12 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
       // 清理
       if (containerRef.current && document.body.contains(containerRef.current)) {
         document.body.removeChild(containerRef.current);
+      }
+      
+      // 移除凍結樣式
+      const freeze = document.getElementById('viewer-freeze-all');
+      if (freeze) {
+        document.head.removeChild(freeze);
       }
       
       // 恢復頁面
