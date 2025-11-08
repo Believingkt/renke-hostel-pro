@@ -88,6 +88,16 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
     setSelectedImageIndex(index);
   };
 
+  const handleCloseViewer = () => {
+    setSelectedImageIndex(null);
+    setTimeout(() => {
+      const roomsSection = document.getElementById('rooms');
+      if (roomsSection) {
+        roomsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  };
+
   const handlePrevImage = () => {
     if (selectedImageIndex !== null) {
       setSelectedImageIndex((selectedImageIndex - 1 + images.length) % images.length);
@@ -225,7 +235,7 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
     {selectedImageIndex !== null && (
       <ImageViewerPortal
         imageUrl={images[selectedImageIndex]}
-        onClose={() => setSelectedImageIndex(null)}
+        onClose={handleCloseViewer}
         onPrev={handlePrevImage}
         onNext={handleNextImage}
       />
