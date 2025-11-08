@@ -138,7 +138,7 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
         <div className="space-y-2 mb-4">
           {(room.room_count || room.quad_room_count || room.double_room_count) && (
             <div className="text-sm text-muted-foreground font-medium">
-              {room.room_count && room.room_count > 0 && <span>共{room.room_count}間</span>}
+              {room.room_count && room.room_count > 0 && <span>{room.room_count}間房</span>}
               {((room.quad_room_count && room.quad_room_count > 0) || (room.double_room_count && room.double_room_count > 0)) && (
                 <span className="ml-1">
                   (
