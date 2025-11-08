@@ -190,9 +190,9 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold">{dialogContent.title}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-1 mt-4 text-sm">
+          <div className="space-y-0 mt-4 text-sm">
             {dialogContent.content.split('\n').map((line: string, index: number) => (
-              <p key={index} className="p-3 rounded-lg leading-snug text-muted-foreground">
+              <p key={index} className="p-2 rounded-lg leading-snug text-muted-foreground">
                 {line}
               </p>
             ))}
