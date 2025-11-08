@@ -11,6 +11,9 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    // 發送全局事件，通知所有輪播停止
+    window.dispatchEvent(new CustomEvent('viewer-opened'));
+    
     // 針對 Safari 的特殊處理
     const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
     
@@ -239,6 +242,9 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     }
     
     return () => {
+      // 發送全局事件，通知所有輪播恢復
+      window.dispatchEvent(new CustomEvent('viewer-closed'));
+      
       // 清理
       if (containerRef.current && document.body.contains(containerRef.current)) {
         document.body.removeChild(containerRef.current);

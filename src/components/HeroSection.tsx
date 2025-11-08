@@ -53,7 +53,29 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
       setLoadedImages(prev => new Set([...prev, 1]));
     }, 2000);
     
-    return () => clearTimeout(timer);
+    // 監聽圖片查看器事件，停止/恢復輪播
+    const handleViewerOpened = () => {
+      const plugins = (carouselApi as any).plugins?.();
+      if (plugins?.autoplay) {
+        plugins.autoplay.stop();
+      }
+    };
+    
+    const handleViewerClosed = () => {
+      const plugins = (carouselApi as any).plugins?.();
+      if (plugins?.autoplay) {
+        plugins.autoplay.play();
+      }
+    };
+    
+    window.addEventListener('viewer-opened', handleViewerOpened);
+    window.addEventListener('viewer-closed', handleViewerClosed);
+    
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('viewer-opened', handleViewerOpened);
+      window.removeEventListener('viewer-closed', handleViewerClosed);
+    };
   }, [carouselApi]);
 
   return (
