@@ -97,7 +97,6 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
     capacity: "",
     room_count: "1",
     quad_room_count: "0",
-    triple_room_count: "0",
     double_room_count: "0",
     weekday_2_meals_price: "",
     weekday_3_meals_price: "",
@@ -124,7 +123,6 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         capacity: roomType.capacity?.toString() || "",
         room_count: roomType.room_count?.toString() || "1",
         quad_room_count: roomType.quad_room_count?.toString() || "0",
-        triple_room_count: roomType.triple_room_count?.toString() || "0",
         double_room_count: roomType.double_room_count?.toString() || "0",
         weekday_2_meals_price: roomType.weekday_2_meals_price?.toString() || "",
         weekday_3_meals_price: roomType.weekday_3_meals_price?.toString() || "",
@@ -217,7 +215,7 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         capacity: parseInt(formData.capacity),
         room_count: parseInt(formData.room_count),
         quad_room_count: parseInt(formData.quad_room_count) || 0,
-        triple_room_count: parseInt(formData.triple_room_count) || 0,
+        triple_room_count: 0,
         double_room_count: parseInt(formData.double_room_count) || 0,
         weekday_2_meals_price: formData.weekday_2_meals_price ? parseInt(formData.weekday_2_meals_price) : null,
         weekday_3_meals_price: formData.weekday_3_meals_price ? parseInt(formData.weekday_3_meals_price) : null,
@@ -290,7 +288,7 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         {/* 房型間數設定 */}
         <div className="space-y-3">
           <Label className="text-base font-semibold">房型間數設定</Label>
-          <div className="grid grid-cols-3 gap-4 pl-4">
+          <div className="grid grid-cols-2 gap-4 pl-4">
             <div className="space-y-2">
               <Label>四人房</Label>
               <Input 
@@ -298,16 +296,6 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
                 min="0"
                 value={formData.quad_room_count} 
                 onChange={(e) => setFormData({ ...formData, quad_room_count: e.target.value })} 
-                placeholder="0"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>三人房</Label>
-              <Input 
-                type="number" 
-                min="0"
-                value={formData.triple_room_count} 
-                onChange={(e) => setFormData({ ...formData, triple_room_count: e.target.value })} 
                 placeholder="0"
               />
             </div>
