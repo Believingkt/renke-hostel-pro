@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { ImageViewer } from "./ImageViewer";
+import { ImageViewerPortal } from "./ImageViewerPortal";
 
 interface Photo {
   id: string;
@@ -143,7 +143,7 @@ const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
         </div>
 
         {selectedImageIndex !== null && (
-          <ImageViewer
+          <ImageViewerPortal
             imageUrl={sortedPhotos[startIndex + selectedImageIndex].photo_url}
             onClose={() => setSelectedImageIndex(null)}
             onPrev={handlePrevImage}
