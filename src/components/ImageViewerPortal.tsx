@@ -1,7 +1,6 @@
 import { useEffect } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { createPortal } from "react-dom";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 interface ImageViewerPortalProps {
   imageUrl: string;
@@ -12,6 +11,12 @@ interface ImageViewerPortalProps {
 
 export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageViewerPortalProps) => {
   useEffect(() => {
+    // 鎖定 body
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+    document.body.style.height = '100%';
+    
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
       if (e.key === 'ArrowLeft') onPrev();
@@ -19,54 +24,125 @@ export const ImageViewerPortal = ({ imageUrl, onClose, onPrev, onNext }: ImageVi
     };
     
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [onClose, onPrev, onNext]);
 
-  return (
-    <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent 
-        className="max-w-none w-screen h-screen p-0 bg-black/95 border-0 [&>button]:hidden"
+  const viewer = (
+    <div 
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100vw',
+        height: '100vh',
+        backgroundColor: 'rgba(0, 0, 0, 0.95)',
+        zIndex: 99999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+      onClick={onClose}
+    >
+      {/* 圖片 */}
+      <img
+        src={imageUrl}
+        alt="查看照片"
+        style={{
+          maxWidth: '90vw',
+          maxHeight: '80vh',
+          width: 'auto',
+          height: 'auto',
+          objectFit: 'contain',
+          userSelect: 'none',
+        }}
+        onClick={(e) => e.stopPropagation()}
+        draggable={false}
+      />
+
+      {/* 關閉按鈕 */}
+      <button
+        onClick={onClose}
+        style={{
+          position: 'absolute',
+          top: '16px',
+          right: '16px',
+          width: '48px',
+          height: '48px',
+          borderRadius: '50%',
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          color: 'white',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
       >
-        <div className="relative w-full h-full flex items-center justify-center">
-          {/* 圖片 */}
-          <img
-            src={imageUrl}
-            alt="查看照片"
-            className="max-w-[90vw] max-h-[80vh] object-contain select-none"
-            draggable={false}
-          />
+        <X size={24} />
+      </button>
 
-          {/* 關閉按鈕 */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="absolute top-4 right-4 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white"
-          >
-            <X className="w-6 h-6" />
-          </Button>
+      {/* 上一張 */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onPrev();
+        }}
+        style={{
+          position: 'absolute',
+          left: '24px',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          width: '56px',
+          height: '56px',
+          borderRadius: '50%',
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          color: 'white',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <ChevronLeft size={28} />
+      </button>
 
-          {/* 上一張 */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onPrev}
-            className="absolute left-6 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white"
-          >
-            <ChevronLeft className="w-7 h-7" />
-          </Button>
-
-          {/* 下一張 */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onNext}
-            className="absolute right-6 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white"
-          >
-            <ChevronRight className="w-7 h-7" />
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+      {/* 下一張 */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onNext();
+        }}
+        style={{
+          position: 'absolute',
+          right: '24px',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          width: '56px',
+          height: '56px',
+          borderRadius: '50%',
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          color: 'white',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <ChevronRight size={28} />
+      </button>
+    </div>
   );
+
+  return createPortal(viewer, document.body);
 };
