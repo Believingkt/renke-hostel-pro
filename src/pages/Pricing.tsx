@@ -293,8 +293,8 @@ const Pricing = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full max-w-2xl grid-cols-4">
           <TabsTrigger value="rooms">房型管理</TabsTrigger>
-          <TabsTrigger value="facilities">客房設施</TabsTrigger>
           <TabsTrigger value="basic">價格管理</TabsTrigger>
+          <TabsTrigger value="facilities">客房設施</TabsTrigger>
           <TabsTrigger value="inventory">庫存管理</TabsTrigger>
         </TabsList>
 
