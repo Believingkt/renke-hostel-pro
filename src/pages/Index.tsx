@@ -158,11 +158,11 @@ const Index = () => {
   return (
     <div className="min-h-screen">
       <Navigation 
-        accommodationName={data.info.name || "森山寫照"}
+        accommodationName={data.info.name}
         onNavigate={scrollToSection} 
       />
       <main>
-        <HeroSection accommodationName={data.info.name || "森山寫照"} />
+        <HeroSection accommodationName={data.info.name} />
         <AboutSection description={data.info.description} />
         <RoomsSection roomTypes={data.roomTypes || []} />
         <FacilitiesSection facilities={data.facilities || []} />

@@ -47,29 +47,9 @@ const Headquarters = () => {
   const [selectedRole, setSelectedRole] = useState<"super_admin" | "hotel_admin" | "staff">("staff");
 
   useEffect(() => {
-    checkSuperAdmin();
     loadAccommodations();
     loadUserRoles();
   }, []);
-
-  const checkSuperAdmin = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      navigate("/auth");
-      return;
-    }
-
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id);
-
-    const isSuperAdmin = roles?.some(r => r.role === "super_admin");
-    if (!isSuperAdmin) {
-      toast.error("您沒有權限訪問此頁面");
-      navigate("/admin");
-    }
-  };
 
   const loadAccommodations = async () => {
     const { data, error } = await supabase
@@ -79,9 +59,6 @@ const Headquarters = () => {
 
     if (error) {
       toast.error("載入旅館列表失敗");
-      if (import.meta.env.DEV) {
-        console.error(error);
-      }
       return;
     }
 
@@ -97,9 +74,6 @@ const Headquarters = () => {
 
     if (error) {
       toast.error("載入用戶權限失敗");
-      if (import.meta.env.DEV) {
-        console.error(error);
-      }
     } else {
       setUserRoles(data || []);
     }
@@ -122,9 +96,6 @@ const Headquarters = () => {
 
     if (error) {
       toast.error("新增用戶權限失敗");
-      if (import.meta.env.DEV) {
-        console.error(error);
-      }
     } else {
       toast.success("用戶權限新增成功");
       setNewUserId("");
@@ -142,9 +113,6 @@ const Headquarters = () => {
 
     if (error) {
       toast.error("刪除用戶權限失敗");
-      if (import.meta.env.DEV) {
-        console.error(error);
-      }
     } else {
       toast.success("用戶權限已刪除");
       loadUserRoles();
@@ -159,9 +127,6 @@ const Headquarters = () => {
 
     if (error) {
       toast.error("更新用戶權限失敗");
-      if (import.meta.env.DEV) {
-        console.error(error);
-      }
     } else {
       toast.success("用戶權限已更新");
       loadUserRoles();

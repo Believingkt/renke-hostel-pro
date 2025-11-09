@@ -17,7 +17,6 @@ export function Header() {
 
   const handleLogout = async () => {
     try {
-      // Clear all supabase-related data from localStorage FIRST
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith('sb-') || key.includes('supabase')) {
           localStorage.removeItem(key);
@@ -25,22 +24,11 @@ export function Header() {
       });
       
       sessionStorage.clear();
-      
-      // Then sign out from server
       await supabase.auth.signOut({ scope: 'global' });
-      
       toast.success("已登出");
-      
-      // Small delay to ensure auth state updates propagate
       await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Force navigation to auth page
       window.location.replace(`${window.location.origin}/auth`);
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error("Logout error:", error);
-      }
-      // Force clear everything if signOut fails
       localStorage.clear();
       sessionStorage.clear();
       toast.success("已登出");

@@ -61,7 +61,6 @@ const Dashboard = () => {
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    // Get cached session (fast, synchronous from localStorage)
     const getCachedSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {

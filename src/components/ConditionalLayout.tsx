@@ -18,35 +18,22 @@ export function ConditionalLayout() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Set page title immediately based on current route
-  // This runs synchronously before any rendering
-  if (isAdminPage && document.title !== "人客多 PMS 管理系統") {
-    document.title = "人客多 PMS 管理系統";
-  } else if (isAuthPage && document.title !== "登入 - 人客多 PMS 管理系統") {
-    document.title = "登入 - 人客多 PMS 管理系統";
-  } else if (isFrontendPage && document.title !== "森山寫照 - 山間的寧靜時光") {
-    document.title = "森山寫照 - 山間的寧靜時光";
-  }
-
-  // Also update when route changes
   useEffect(() => {
     if (isAdminPage) {
       document.title = "人客多 PMS 管理系統";
     } else if (isAuthPage) {
       document.title = "登入 - 人客多 PMS 管理系統";
     } else {
-      document.title = "森山寫照 - 山間的寧靜時光";
+      document.title = "旅館管理系統";
     }
-  }, [isAdminPage, isAuthPage]);
+  }, [isAdminPage, isAuthPage, isFrontendPage]);
 
   useEffect(() => {
-    // Check existing session immediately (sync operation from localStorage)
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
     });
 
-    // Set up auth state listener for future changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
@@ -56,7 +43,6 @@ export function ConditionalLayout() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // 前台頁面：不使用任何 layout
   if (isFrontendPage) {
     return (
       <TooltipProvider>
@@ -67,7 +53,6 @@ export function ConditionalLayout() {
     );
   }
 
-  // Show loading state while checking auth
   if (loading && isAdminPage) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -79,22 +64,18 @@ export function ConditionalLayout() {
     );
   }
 
-  // Redirect to auth if trying to access admin without authentication
   if (isAdminPage && !session && !loading) {
     return <Navigate to="/auth" replace />;
   }
 
-  // Redirect to admin if logged in user tries to access auth page
   if (isAuthPage && session) {
     return <Navigate to="/admin" replace />;
   }
 
-  // 非後台且非登入頁面也不使用 layout
   if (!isAdminPage && !isAuthPage) {
     return <Outlet />;
   }
 
-  // 登入頁面：不使用 layout
   if (isAuthPage) {
     return (
       <TooltipProvider>
@@ -107,7 +88,6 @@ export function ConditionalLayout() {
     );
   }
 
-  // PMS 後台頁面：使用完整 layout（已驗證登入）
   return (
     <TooltipProvider>
       <Toaster />
