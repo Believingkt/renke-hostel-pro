@@ -32,15 +32,7 @@ import lokezeLogo from "@/assets/lokeze-logo.png";
 
 const menuItems = [
   { title: "營運報表", url: "/admin", icon: BarChart3 },
-  { 
-    title: "櫃檯接待", 
-    url: "/admin/reception", 
-    icon: Users,
-    subItems: [
-      { title: "今日櫃檯", url: "/admin/reception?tab=today" },
-      { title: "房況表", url: "/admin/reception?tab=status" },
-    ]
-  },
+  { title: "今日櫃檯", url: "/admin/reception", icon: Users },
       { 
         title: "官網內容", 
         url: "/admin/website-content", 
