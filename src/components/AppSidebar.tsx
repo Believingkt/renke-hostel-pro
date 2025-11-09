@@ -33,19 +33,29 @@ import lokezeLogo from "@/assets/lokeze-logo.png";
 const menuItems = [
   { title: "營運報表", url: "/admin", icon: BarChart3 },
   { title: "今日櫃檯", url: "/admin/reception", icon: Users },
-      { 
-        title: "官網內容", 
-        url: "/admin/website-content", 
-        icon: Globe,
-        subItems: [
-          { title: "基本資料", url: "/admin/website-content?tab=basic-info" },
-          { title: "設施與服務", url: "/admin/website-content?tab=facilities" },
-          { title: "精選照片", url: "/admin/website-content?tab=gallery" },
-          { title: "交通 & 地圖", url: "/admin/website-content?tab=location" },
-          { title: "訂房須知", url: "/admin/website-content?tab=booking-info" },
-          { title: "常見問題", url: "/admin/website-content?tab=faq" },
-        ]
-      },
+  { 
+    title: "訂單查詢", 
+    url: "/admin/orders", 
+    icon: ClipboardList,
+    subItems: [
+      { title: "訂單資訊", url: "/admin/orders?tab=info" },
+      { title: "訂單列表", url: "/admin/orders?tab=list" },
+      { title: "保留單列表", url: "/admin/orders?tab=reserved" },
+    ]
+  },
+  { 
+    title: "官網內容", 
+    url: "/admin/website-content", 
+    icon: Globe,
+    subItems: [
+      { title: "基本資料", url: "/admin/website-content?tab=basic-info" },
+      { title: "設施與服務", url: "/admin/website-content?tab=facilities" },
+      { title: "精選照片", url: "/admin/website-content?tab=gallery" },
+      { title: "交通 & 地圖", url: "/admin/website-content?tab=location" },
+      { title: "訂房須知", url: "/admin/website-content?tab=booking-info" },
+      { title: "常見問題", url: "/admin/website-content?tab=faq" },
+    ]
+  },
   { 
     title: "物件管理", 
     url: "/admin/pricing", 
@@ -58,16 +68,6 @@ const menuItems = [
     ]
   },
   { title: "空房查詢", url: "/admin/availability", icon: Search },
-  { 
-    title: "訂單查詢", 
-    url: "/admin/orders", 
-    icon: ClipboardList,
-    subItems: [
-      { title: "訂單資訊", url: "/admin/orders?tab=info" },
-      { title: "訂單列表", url: "/admin/orders?tab=list" },
-      { title: "保留單列表", url: "/admin/orders?tab=reserved" },
-    ]
-  },
   { title: "顧客資料", url: "/admin/customers", icon: UserCircle },
   { title: "帳號管理", url: "/admin/accounts", icon: Settings },
   { title: "折扣代碼", url: "/admin/discount-codes", icon: Tag },
