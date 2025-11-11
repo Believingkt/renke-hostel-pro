@@ -132,6 +132,7 @@ const BookingFlow = () => {
   const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
   const [selectedImageRoom, setSelectedImageRoom] = useState<RoomType | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // 將 context 日期轉換為字串格式，並提供預設值
   const checkInDateStr = checkInDate ? format(checkInDate, "yyyy-MM-dd") : "";
@@ -448,6 +449,12 @@ const BookingFlow = () => {
       return;
     }
 
+    if (isSubmitting) {
+      return; // 防止重複提交
+    }
+
+    setIsSubmitting(true);
+
     try {
       const totalPrice = calculateTotal();
       const discountAmount = calculateDiscount();
@@ -511,6 +518,7 @@ const BookingFlow = () => {
         description: error instanceof Error ? error.message : "發生錯誤，請稍後再試或聯絡我們",
         variant: "destructive",
       });
+      setIsSubmitting(false); // 失敗時恢復按鈕狀態
     }
   };
 
@@ -1186,11 +1194,21 @@ const BookingFlow = () => {
                     console.log("確認訂房按鈕被點擊");
                     handleConfirmBooking();
                   }}
+                  disabled={isSubmitting}
                   className="flex-1 bg-primary"
                   size="lg"
                 >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  確認訂房
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      處理中...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      確認訂房
+                    </>
+                  )}
                 </Button>
               )}
             </div>
