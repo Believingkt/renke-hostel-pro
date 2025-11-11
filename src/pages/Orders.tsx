@@ -81,8 +81,8 @@ const Orders = () => {
               </div>
 
               {/* 搜尋欄 */}
-              <div className="flex items-end gap-4">
-                <div className="flex-1">
+              <div className="grid grid-cols-12 gap-4">
+                <div className="col-span-10">
                   <Label className="text-sm mb-2 block">搜尋</Label>
                   <div className="relative">
                     <Input
@@ -90,9 +90,11 @@ const Orders = () => {
                     />
                   </div>
                 </div>
-                <Button className="h-10 bg-orange-600 hover:bg-orange-700">
-                  搜尋
-                </Button>
+                <div className="col-span-2 flex items-end">
+                  <Button className="w-full h-10 bg-orange-600 hover:bg-orange-700">
+                    搜尋
+                  </Button>
+                </div>
               </div>
 
               {/* 下載和預覽按鈕 */}
