@@ -30,7 +30,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import lokezeLogo from "@/assets/lokeze-logo.png";
 
 const menuItems = [
-  { title: "營運報表", url: "/admin", icon: BarChart3 },
+  { title: "營運分析", url: "/admin", icon: BarChart3 },
   { title: "今日櫃檯", url: "/admin/reception", icon: Users },
   { title: "訂單查詢", url: "/admin/orders?tab=list", icon: ClipboardList },
   { 
