@@ -54,8 +54,8 @@ const Orders = () => {
   
   // 篩選條件
   const [dateType, setDateType] = useState("check_in");
-  const [startDate, setStartDate] = useState(format(new Date(), "yyyy-MM-dd"));
-  const [endDate, setEndDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [paymentStatus, setPaymentStatus] = useState("");
   const [orderStatus, setOrderStatus] = useState("");
   const [searchKeyword, setSearchKeyword] = useState("");
