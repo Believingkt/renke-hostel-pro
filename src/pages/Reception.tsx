@@ -1,13 +1,143 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bell, CreditCard, DollarSign, Search, ArrowRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { useSubdomain } from "@/hooks/use-subdomain";
+import { format } from "date-fns";
+
+interface Order {
+  id: string;
+  order_number: string;
+  guest_name: string;
+  guest_phone: string;
+  guest_email: string | null;
+  check_in_date: string;
+  check_out_date: string;
+  order_status: string;
+  payment_status: string;
+  room_assigned: boolean;
+  final_price: number;
+  order_date: string;
+  room_types: {
+    name: string;
+  } | null;
+}
 
 
 const Reception = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const { accommodationId } = useSubdomain();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // 統計數據
+  const [todayCheckin, setTodayCheckin] = useState(0);
+  const [todayCheckout, setTodayCheckout] = useState(0);
+  const [todayNewOrders, setTodayNewOrders] = useState(0);
+  const [todayAssignedOrders, setTodayAssignedOrders] = useState(0);
+  const [unpaidOrders, setUnpaidOrders] = useState(0);
+  const [overdueOrders, setOverdueOrders] = useState(0);
+
+  useEffect(() => {
+    if (!accommodationId) return;
+    
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        const today = format(new Date(), "yyyy-MM-dd");
+        
+        // 查詢所有訂單
+        const { data, error } = await supabase
+          .from("orders")
+          .select(`
+            *,
+            room_types (
+              name
+            )
+          `)
+          .eq("accommodation_id", accommodationId)
+          .order("order_date", { ascending: false });
+
+        if (error) throw error;
+        
+        if (data) {
+          setOrders(data);
+          
+          // 計算統計數據
+          const todayCheckins = data.filter(o => o.check_in_date === today).length;
+          const todayCheckouts = data.filter(o => o.check_out_date === today).length;
+          const todayNew = data.filter(o => format(new Date(o.order_date), "yyyy-MM-dd") === today);
+          const todayNewUnassigned = todayNew.filter(o => !o.room_assigned).length;
+          const todayNewAssigned = todayNew.filter(o => o.room_assigned).length;
+          const unpaid = data.filter(o => o.payment_status === 'unpaid' || o.payment_status === 'deposit_paid').length;
+          const overdue = data.filter(o => o.payment_status === 'overdue').length;
+          
+          setTodayCheckin(todayCheckins);
+          setTodayCheckout(todayCheckouts);
+          setTodayNewOrders(todayNewUnassigned);
+          setTodayAssignedOrders(todayNewAssigned);
+          setUnpaidOrders(unpaid);
+          setOverdueOrders(overdue);
+        }
+      } catch (error) {
+        console.error("Error fetching orders:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, [accommodationId]);
+
+  // 篩選訂單
+  const getTodayCheckinOrders = () => {
+    const today = format(new Date(), "yyyy-MM-dd");
+    return orders.filter(o => o.check_in_date === today && searchQuery ? 
+      o.guest_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      o.order_number.toLowerCase().includes(searchQuery.toLowerCase()) : true
+    );
+  };
+
+  const getTodayCheckoutOrders = () => {
+    const today = format(new Date(), "yyyy-MM-dd");
+    return orders.filter(o => o.check_out_date === today && searchQuery ?
+      o.guest_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      o.order_number.toLowerCase().includes(searchQuery.toLowerCase()) : true
+    );
+  };
+
+  const getTomorrowCheckinOrders = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = format(tomorrow, "yyyy-MM-dd");
+    return orders.filter(o => o.check_in_date === tomorrowStr);
+  };
+
+  const getStatusBadge = (status: string) => {
+    const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+      pending: { label: "待確認", variant: "outline" },
+      confirmed: { label: "已確認", variant: "default" },
+      checked_in: { label: "已入住", variant: "secondary" },
+      checked_out: { label: "已退房", variant: "outline" },
+      cancelled: { label: "已取消", variant: "destructive" },
+    };
+    const config = statusMap[status] || { label: status, variant: "outline" };
+    return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+          <p className="text-sm text-muted-foreground">載入中...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 md:space-y-6 px-2 md:px-0">
@@ -34,11 +164,11 @@ const Reception = () => {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-sm">今日住房</span>
-                    <span className="text-2xl font-bold">0</span>
+                    <span className="text-2xl font-bold">{todayCheckin}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm">今日退房</span>
-                    <span className="text-2xl font-bold">0</span>
+                    <span className="text-2xl font-bold">{todayCheckout}</span>
                   </div>
                 </div>
               </CardContent>
@@ -62,11 +192,11 @@ const Reception = () => {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-sm">未排房</span>
-                    <span className="text-2xl font-bold">0</span>
+                    <span className="text-2xl font-bold">{todayNewOrders}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm">已排房</span>
-                    <span className="text-2xl font-bold">0</span>
+                    <span className="text-2xl font-bold">{todayAssignedOrders}</span>
                   </div>
                 </div>
               </CardContent>
@@ -90,11 +220,11 @@ const Reception = () => {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-sm">未付訂/待付款</span>
-                    <span className="text-2xl font-bold">0</span>
+                    <span className="text-2xl font-bold">{unpaidOrders}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm">訂金逾期</span>
-                    <span className="text-2xl font-bold">0</span>
+                    <span className="text-2xl font-bold">{overdueOrders}</span>
                   </div>
                 </div>
               </CardContent>
@@ -134,10 +264,10 @@ const Reception = () => {
                   {/* 入住統計 */}
                   <div className="flex gap-4 mb-4">
                     <Badge variant="outline" className="text-base px-4 py-2">
-                      今日入住 (0 / 0)
+                      今日入住 ({getTodayCheckinOrders().filter(o => o.order_status === 'checked_in').length} / {getTodayCheckinOrders().length})
                     </Badge>
                     <Badge variant="outline" className="text-base px-4 py-2">
-                      明日入住 (0)
+                      明日入住 ({getTomorrowCheckinOrders().length})
                     </Badge>
                   </div>
 
@@ -153,7 +283,7 @@ const Reception = () => {
                             顧客 <span className="ml-1">↕</span>
                           </th>
                           <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                            訂購人 <span className="ml-1">↕</span>
+                            聯絡電話 <span className="ml-1">↕</span>
                           </th>
                           <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
                             房型
@@ -164,11 +294,23 @@ const Reception = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        <tr>
-                          <td colSpan={5} className="py-12 text-center text-muted-foreground">
-                            暫無資料
-                          </td>
-                        </tr>
+                        {getTodayCheckinOrders().length === 0 ? (
+                          <tr>
+                            <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                              暫無資料
+                            </td>
+                          </tr>
+                        ) : (
+                          getTodayCheckinOrders().map((order) => (
+                            <tr key={order.id} className="border-b hover:bg-muted/50">
+                              <td className="px-4 py-3 text-sm">{order.order_number}</td>
+                              <td className="px-4 py-3 text-sm">{order.guest_name}</td>
+                              <td className="px-4 py-3 text-sm">{order.guest_phone}</td>
+                              <td className="px-4 py-3 text-sm">{order.room_types?.name || '-'}</td>
+                              <td className="px-4 py-3 text-sm">{getStatusBadge(order.order_status)}</td>
+                            </tr>
+                          ))
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -178,7 +320,7 @@ const Reception = () => {
                   {/* 退房統計 */}
                   <div className="flex gap-4 mb-4">
                     <Badge variant="outline" className="text-base px-4 py-2">
-                      今日退房 (0 / 0)
+                      今日退房 ({getTodayCheckoutOrders().filter(o => o.order_status === 'checked_out').length} / {getTodayCheckoutOrders().length})
                     </Badge>
                   </div>
 
@@ -194,7 +336,7 @@ const Reception = () => {
                             顧客 <span className="ml-1">↕</span>
                           </th>
                           <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                            訂購人 <span className="ml-1">↕</span>
+                            聯絡電話 <span className="ml-1">↕</span>
                           </th>
                           <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
                             房型
@@ -205,11 +347,23 @@ const Reception = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        <tr>
-                          <td colSpan={5} className="py-12 text-center text-muted-foreground">
-                            暫無資料
-                          </td>
-                        </tr>
+                        {getTodayCheckoutOrders().length === 0 ? (
+                          <tr>
+                            <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                              暫無資料
+                            </td>
+                          </tr>
+                        ) : (
+                          getTodayCheckoutOrders().map((order) => (
+                            <tr key={order.id} className="border-b hover:bg-muted/50">
+                              <td className="px-4 py-3 text-sm">{order.order_number}</td>
+                              <td className="px-4 py-3 text-sm">{order.guest_name}</td>
+                              <td className="px-4 py-3 text-sm">{order.guest_phone}</td>
+                              <td className="px-4 py-3 text-sm">{order.room_types?.name || '-'}</td>
+                              <td className="px-4 py-3 text-sm">{getStatusBadge(order.order_status)}</td>
+                            </tr>
+                          ))
+                        )}
                       </tbody>
                     </table>
                   </div>
