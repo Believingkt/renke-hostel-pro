@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info } from "lucide-react";
+import { useSubdomain } from "@/hooks/use-subdomain";
+import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 
 import {
   LineChart,
@@ -18,6 +20,20 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+
+interface Order {
+  id: string;
+  order_number: string;
+  guest_name: string;
+  check_in_date: string;
+  order_status: string;
+  final_price: number;
+  guest_count: number;
+  order_date: string;
+  room_types: {
+    name: string;
+  } | null;
+}
 
 const revenueData = [
   { month: "1月", "2025年": 45000, "2024年": 38000 },
@@ -49,16 +65,25 @@ const bookingData = [
   { month: "12月", "2025年": 220, "2024年": 200 },
 ];
 
-const recentBookings = [
-  { id: "B001", guest: "王小明", room: "豪華雙人房", checkIn: "2025-10-22", status: "已確認" },
-  { id: "B002", guest: "李小華", room: "標準單人房", checkIn: "2025-10-23", status: "已確認" },
-  { id: "B003", guest: "陳大同", room: "家庭套房", checkIn: "2025-10-24", status: "待確認" },
-  { id: "B004", guest: "張美玲", room: "豪華雙人房", checkIn: "2025-10-25", status: "已確認" },
-];
-
 const Dashboard = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const { accommodationId } = useSubdomain();
+  const [loading, setLoading] = useState(true);
+  
+  // 統計數據
+  const [totalRooms, setTotalRooms] = useState(0);
+  const [monthlyBookings, setMonthlyBookings] = useState(0);
+  const [totalGuests, setTotalGuests] = useState(0);
+  const [monthlyRevenue, setMonthlyRevenue] = useState(0);
+  const [bookingsChange, setBookingsChange] = useState("+0%");
+  const [guestsChange, setGuestsChange] = useState("+0%");
+  const [revenueChange, setRevenueChange] = useState("+0%");
+  
+  // 圖表數據
+  const [revenueData, setRevenueData] = useState<any[]>([]);
+  const [bookingData, setBookingData] = useState<any[]>([]);
+  const [recentBookings, setRecentBookings] = useState<Order[]>([]);
 
   useEffect(() => {
     const getCachedSession = async () => {
@@ -70,6 +95,141 @@ const Dashboard = () => {
     };
     getCachedSession();
   }, []);
+
+  useEffect(() => {
+    if (!accommodationId) return;
+    
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // 獲取房型總數
+        const { data: roomTypesData } = await supabase
+          .from("room_types")
+          .select("room_count")
+          .eq("accommodation_id", accommodationId);
+        
+        const totalRoomCount = roomTypesData?.reduce((sum, rt) => sum + (rt.room_count || 0), 0) || 0;
+        setTotalRooms(totalRoomCount);
+        
+        // 獲取所有訂單
+        const { data: ordersData } = await supabase
+          .from("orders")
+          .select(`
+            *,
+            room_types (
+              name
+            )
+          `)
+          .eq("accommodation_id", accommodationId)
+          .order("order_date", { ascending: false });
+        
+        if (ordersData) {
+          const now = new Date();
+          const currentMonthStart = startOfMonth(now);
+          const currentMonthEnd = endOfMonth(now);
+          const lastMonthStart = startOfMonth(subMonths(now, 1));
+          const lastMonthEnd = endOfMonth(subMonths(now, 1));
+          
+          // 本月訂單
+          const currentMonthOrders = ordersData.filter(o => {
+            const orderDate = new Date(o.order_date);
+            return orderDate >= currentMonthStart && orderDate <= currentMonthEnd;
+          });
+          
+          // 上月訂單
+          const lastMonthOrders = ordersData.filter(o => {
+            const orderDate = new Date(o.order_date);
+            return orderDate >= lastMonthStart && orderDate <= lastMonthEnd;
+          });
+          
+          // 計算統計
+          const monthlyBookingCount = currentMonthOrders.length;
+          const lastMonthBookingCount = lastMonthOrders.length;
+          const monthlyGuestCount = currentMonthOrders.reduce((sum, o) => sum + (o.guest_count || 0), 0);
+          const lastMonthGuestCount = lastMonthOrders.reduce((sum, o) => sum + (o.guest_count || 0), 0);
+          const monthlyRev = currentMonthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+          const lastMonthRev = lastMonthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+          
+          setMonthlyBookings(monthlyBookingCount);
+          setTotalGuests(monthlyGuestCount);
+          setMonthlyRevenue(monthlyRev);
+          
+          // 計算變化百分比
+          const bookingChange = lastMonthBookingCount > 0 
+            ? ((monthlyBookingCount - lastMonthBookingCount) / lastMonthBookingCount * 100).toFixed(1)
+            : "0";
+          const guestChange = lastMonthGuestCount > 0
+            ? ((monthlyGuestCount - lastMonthGuestCount) / lastMonthGuestCount * 100).toFixed(1)
+            : "0";
+          const revChange = lastMonthRev > 0
+            ? ((monthlyRev - lastMonthRev) / lastMonthRev * 100).toFixed(1)
+            : "0";
+          
+          setBookingsChange(`${Number(bookingChange) >= 0 ? '+' : ''}${bookingChange}%`);
+          setGuestsChange(`${Number(guestChange) >= 0 ? '+' : ''}${guestChange}%`);
+          setRevenueChange(`${Number(revChange) >= 0 ? '+' : ''}${revChange}%`);
+          
+          // 生成過去12個月的圖表數據
+          const monthlyData = [];
+          for (let i = 11; i >= 0; i--) {
+            const monthDate = subMonths(now, i);
+            const monthStart = startOfMonth(monthDate);
+            const monthEnd = endOfMonth(monthDate);
+            const monthLabel = format(monthDate, 'M月');
+            
+            const monthOrders = ordersData.filter(o => {
+              const orderDate = new Date(o.order_date);
+              return orderDate >= monthStart && orderDate <= monthEnd;
+            });
+            
+            const revenue = monthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+            const bookingCount = monthOrders.length;
+            
+            monthlyData.push({
+              month: monthLabel,
+              revenue: revenue,
+              bookings: bookingCount,
+            });
+          }
+          
+          setRevenueData(monthlyData.map(m => ({ month: m.month, "營收": m.revenue })));
+          setBookingData(monthlyData.map(m => ({ month: m.month, "訂房數": m.bookings })));
+          
+          // 近期訂房（最近10筆）
+          setRecentBookings(ordersData.slice(0, 10));
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [accommodationId]);
+
+  const getStatusLabel = (status: string) => {
+    const statusMap: Record<string, string> = {
+      pending: "待確認",
+      confirmed: "已確認",
+      checked_in: "已入住",
+      checked_out: "已退房",
+      cancelled: "已取消",
+    };
+    return statusMap[status] || status;
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+          <p className="text-sm text-muted-foreground">載入中...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 md:space-y-8">
@@ -91,29 +251,29 @@ const Dashboard = () => {
       <div className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-4 px-2 md:px-0">
         <StatCard
           title="總房間數"
-          value="48"
-          change="+2.5%"
+          value={totalRooms.toString()}
+          change="+0%"
           icon={Hotel}
           variant="coral"
         />
         <StatCard
           title="本月訂房"
-          value="203"
-          change="+15.3%"
+          value={monthlyBookings.toString()}
+          change={bookingsChange}
           icon={Calendar}
           variant="green"
         />
         <StatCard
           title="住客人數"
-          value="395"
-          change="+8.1%"
+          value={totalGuests.toString()}
+          change={guestsChange}
           icon={Users}
           variant="blue"
         />
         <StatCard
           title="本月營收"
-          value="$67k"
-          change="+21.2%"
+          value={`$${(monthlyRevenue / 1000).toFixed(1)}k`}
+          change={revenueChange}
           icon={DollarSign}
           variant="purple"
         />
@@ -132,8 +292,7 @@ const Dashboard = () => {
                 <YAxis className="text-xs" />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="2025年" fill="hsl(var(--chart-1))" radius={[8, 8, 0, 0]} />
-                <Bar dataKey="2024年" fill="hsl(var(--chart-4))" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="營收" fill="hsl(var(--chart-1))" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -153,17 +312,10 @@ const Dashboard = () => {
                 <Legend />
                 <Line 
                   type="monotone" 
-                  dataKey="2025年" 
+                  dataKey="訂房數" 
                   stroke="hsl(var(--chart-3))" 
                   strokeWidth={3}
                   dot={{ fill: "hsl(var(--chart-3))", r: 5 }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="2024年" 
-                  stroke="hsl(var(--chart-1))" 
-                  strokeWidth={3}
-                  dot={{ fill: "hsl(var(--chart-1))", r: 5 }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -188,25 +340,33 @@ const Dashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {recentBookings.map((booking) => (
-                  <tr key={booking.id} className="border-b transition-colors hover:bg-muted/50">
-                    <td className="px-4 py-3 text-sm font-medium">{booking.id}</td>
-                    <td className="px-4 py-3 text-sm">{booking.guest}</td>
-                    <td className="px-4 py-3 text-sm">{booking.room}</td>
-                    <td className="px-4 py-3 text-sm">{booking.checkIn}</td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
-                          booking.status === "已確認"
-                            ? "bg-stat-green-light text-stat-green"
-                            : "bg-stat-coral-light text-stat-coral"
-                        }`}
-                      >
-                        {booking.status}
-                      </span>
+                {recentBookings.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                      暫無資料
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  recentBookings.map((booking) => (
+                    <tr key={booking.id} className="border-b transition-colors hover:bg-muted/50">
+                      <td className="px-4 py-3 text-sm font-medium">{booking.order_number}</td>
+                      <td className="px-4 py-3 text-sm">{booking.guest_name}</td>
+                      <td className="px-4 py-3 text-sm">{booking.room_types?.name || '-'}</td>
+                      <td className="px-4 py-3 text-sm">{format(new Date(booking.check_in_date), 'yyyy-MM-dd')}</td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
+                            booking.order_status === "confirmed" || booking.order_status === "checked_in"
+                              ? "bg-stat-green-light text-stat-green"
+                              : "bg-stat-coral-light text-stat-coral"
+                          }`}
+                        >
+                          {getStatusLabel(booking.order_status)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
