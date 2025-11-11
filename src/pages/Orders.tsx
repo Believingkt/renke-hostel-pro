@@ -83,7 +83,7 @@ const Orders = () => {
               {/* 搜尋欄 */}
               <div className="grid grid-cols-12 gap-4">
                 <div className="col-span-10">
-                  <Label className="text-sm mb-2 block">搜尋</Label>
+                  <Label className="text-sm mb-2 block">關鍵字搜尋</Label>
                   <div className="relative">
                     <Input
                       className="h-10 pr-20"
