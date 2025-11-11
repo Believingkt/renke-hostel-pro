@@ -1182,12 +1182,15 @@ const BookingFlow = () => {
                 </Button>
               ) : (
                 <Button
-                  onClick={handleConfirmBooking}
+                  onClick={() => {
+                    console.log("確認訂房按鈕被點擊");
+                    handleConfirmBooking();
+                  }}
                   className="flex-1 bg-primary"
                   size="lg"
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  確認訂房（測試）
+                  確認訂房
                 </Button>
               )}
             </div>
