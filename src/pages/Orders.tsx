@@ -29,16 +29,8 @@ const Orders = () => {
             <CardContent className="pt-6 space-y-6">
               {/* 篩選區域 */}
               <div className="grid grid-cols-12 gap-4">
-                {/* 訂單來源 */}
-                <div className="col-span-2">
-                  <Label className="text-sm mb-2 block">訂單來源</Label>
-                  <select className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
-                    <option>(訂單來源)</option>
-                  </select>
-                </div>
-
                 {/* 日期區間 */}
-                <div className="col-span-5">
+                <div className="col-span-6">
                   <Label className="text-sm mb-2 block">日期區間</Label>
                   <div className="flex items-center gap-2">
                     <select className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
@@ -81,7 +73,7 @@ const Orders = () => {
                 </div>
 
                 {/* 搜尋按鈕 */}
-                <div className="col-span-1 flex items-end">
+                <div className="col-span-2 flex items-end">
                   <Button className="w-full h-10 bg-blue-600 hover:bg-blue-700">
                     搜尋
                   </Button>
@@ -134,9 +126,6 @@ const Orders = () => {
                         退房 <span className="ml-1">↕</span>
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                        訂單來源 <span className="ml-1">↕</span>
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
                         付款狀態
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
@@ -152,7 +141,7 @@ const Orders = () => {
                   </thead>
                   <tbody>
                     <tr>
-                      <td colSpan={10} className="py-12 text-center text-muted-foreground">
+                      <td colSpan={9} className="py-12 text-center text-muted-foreground">
                         暫無資料
                       </td>
                     </tr>
