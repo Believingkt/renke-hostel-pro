@@ -97,16 +97,6 @@ const Orders = () => {
                 </div>
               </div>
 
-              {/* 下載和預覽按鈕 */}
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" className="gap-2">
-                  <span>⬇</span> 下載
-                </Button>
-                <Button variant="outline" className="gap-2">
-                  <span>👁</span> 預覽
-                </Button>
-              </div>
-
               {/* 訂單表格 */}
               <div className="overflow-x-auto">
                 <table className="w-full">
