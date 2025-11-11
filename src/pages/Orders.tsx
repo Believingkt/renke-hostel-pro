@@ -341,19 +341,19 @@ const Orders = () => {
                 </div>
                 <div className="col-span-2 flex items-end">
                   <Button 
-                    className="w-full h-10 bg-orange-600 hover:bg-orange-700"
-                    onClick={applyFilters}
-                  >
-                    搜尋
-                  </Button>
-                </div>
-                <div className="col-span-2 flex items-end">
-                  <Button 
                     variant="outline"
                     className="w-full h-10"
                     onClick={clearFilters}
                   >
-                    清除篩選
+                    清除
+                  </Button>
+                </div>
+                <div className="col-span-2 flex items-end">
+                  <Button 
+                    className="w-full h-10 bg-orange-600 hover:bg-orange-700"
+                    onClick={applyFilters}
+                  >
+                    搜尋
                   </Button>
                 </div>
               </div>
