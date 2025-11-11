@@ -454,6 +454,13 @@ const BookingFlow = () => {
       const finalPrice = calculateFinalTotal();
       const depositAmount = calculateDeposit();
 
+      console.log("開始建立訂單...", {
+        accommodationId,
+        roomId: selectedRoom.id,
+        checkIn: checkInDateStr,
+        checkOut: checkOutDateStr,
+      });
+
       // 建立訂單
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
@@ -482,7 +489,12 @@ const BookingFlow = () => {
         .select()
         .single();
 
-      if (orderError) throw orderError;
+      if (orderError) {
+        console.error("建立訂單錯誤:", orderError);
+        throw orderError;
+      }
+
+      console.log("訂單建立成功:", orderData);
 
       toast({
         title: "訂房成功！",
@@ -496,7 +508,7 @@ const BookingFlow = () => {
       console.error("Error creating order:", error);
       toast({
         title: "訂房失敗",
-        description: "發生錯誤，請稍後再試或聯絡我們",
+        description: error instanceof Error ? error.message : "發生錯誤，請稍後再試或聯絡我們",
         variant: "destructive",
       });
     }
