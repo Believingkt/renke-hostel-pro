@@ -137,6 +137,16 @@ const Orders = () => {
     setFilteredOrders(filtered);
   };
 
+  // 清除所有篩選條件
+  const clearFilters = () => {
+    setStartDate("");
+    setEndDate("");
+    setPaymentStatus("");
+    setOrderStatus("");
+    setSearchKeyword("");
+    setFilteredOrders(orders);
+  };
+
   const getPaymentStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
       unpaid: { label: "未付款", variant: "destructive" },
@@ -313,7 +323,7 @@ const Orders = () => {
 
               {/* 搜尋欄 */}
               <div className="grid grid-cols-12 gap-4">
-                <div className="col-span-10">
+                <div className="col-span-8">
                   <Label className="text-sm mb-2 block">關鍵字</Label>
                   <div className="relative">
                     <Input
@@ -335,6 +345,15 @@ const Orders = () => {
                     onClick={applyFilters}
                   >
                     搜尋
+                  </Button>
+                </div>
+                <div className="col-span-2 flex items-end">
+                  <Button 
+                    variant="outline"
+                    className="w-full h-10"
+                    onClick={clearFilters}
+                  >
+                    清除篩選
                   </Button>
                 </div>
               </div>
