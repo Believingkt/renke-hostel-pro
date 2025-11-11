@@ -475,7 +475,7 @@ const BookingFlow = () => {
           check_in_date: checkInDateStr,
           check_out_date: checkOutDateStr,
           guest_count: totalGuests,
-          meal_plan: selectedMealPlan === "2_meals" ? "一泊二食" : "一泊三食",
+          meal_plan: selectedMealPlan, // 使用 "2_meals" 或 "3_meals"
           total_price: totalPrice,
           discount_code: appliedDiscount ? appliedDiscount.code : null,
           discount_amount: discountAmount,
