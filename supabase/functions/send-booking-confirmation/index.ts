@@ -55,7 +55,7 @@ const handler = async (req: Request): Promise<Response> => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Sensan <onboarding@resend.dev>",
+        from: "森山寫照 <onboarding@resend.dev>",
         to: [guestEmail],
         subject: `訂房確認通知 - 訂單編號 ${orderNumber}`,
         html: `
