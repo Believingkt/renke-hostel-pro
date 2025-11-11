@@ -120,15 +120,23 @@ const handler = async (req: Request): Promise<Response> => {
               </div>
 
               <div class="price-highlight">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
-                  <span style="font-size: 18px; font-weight: 600;">總金額</span>
-                  <span class="total-price">NT$ ${finalPrice.toLocaleString()}</span>
-                </div>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="font-size: 18px; font-weight: 600; padding-bottom: 15px;">總金額</td>
+                    <td style="text-align: right; padding-bottom: 15px;">
+                      <span class="total-price">NT$ ${finalPrice.toLocaleString()}</span>
+                    </td>
+                  </tr>
+                  ${depositAmount > 0 ? `
+                  <tr style="border-top: 1px solid #e0e0e0;">
+                    <td style="color: #666; padding-top: 15px;">需支付訂金</td>
+                    <td style="text-align: right; padding-top: 15px;">
+                      <span style="font-size: 20px; font-weight: bold; color: #dc3545;">NT$ ${depositAmount.toLocaleString()}</span>
+                    </td>
+                  </tr>
+                  ` : ''}
+                </table>
                 ${depositAmount > 0 ? `
-                <div style="display: flex; justify-content: space-between; padding-top: 15px; border-top: 1px solid #e0e0e0;">
-                  <span style="color: #666;">需支付訂金</span>
-                  <span style="font-size: 20px; font-weight: bold; color: #dc3545;">NT$ ${depositAmount.toLocaleString()}</span>
-                </div>
                 <p style="margin-top: 10px; color: #666; font-size: 14px;">剩餘款項請於入住時支付</p>
                 ` : ''}
               </div>
