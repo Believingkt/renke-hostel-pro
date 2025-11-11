@@ -348,6 +348,111 @@ export type Database = {
         }
         Relationships: []
       }
+      orders: {
+        Row: {
+          accommodation_id: string
+          check_in_date: string
+          check_out_date: string
+          created_at: string | null
+          customer_id: string | null
+          deposit_amount: number | null
+          discount_amount: number | null
+          discount_code: string | null
+          final_price: number
+          guest_address: string | null
+          guest_count: number
+          guest_email: string | null
+          guest_name: string
+          guest_phone: string
+          id: string
+          meal_plan: string | null
+          notes: string | null
+          order_date: string | null
+          order_number: string
+          order_status: string
+          paid_amount: number | null
+          payment_method: string | null
+          payment_status: string
+          room_assigned: boolean | null
+          room_type_id: string | null
+          total_price: number
+          updated_at: string | null
+        }
+        Insert: {
+          accommodation_id: string
+          check_in_date: string
+          check_out_date: string
+          created_at?: string | null
+          customer_id?: string | null
+          deposit_amount?: number | null
+          discount_amount?: number | null
+          discount_code?: string | null
+          final_price: number
+          guest_address?: string | null
+          guest_count?: number
+          guest_email?: string | null
+          guest_name: string
+          guest_phone: string
+          id?: string
+          meal_plan?: string | null
+          notes?: string | null
+          order_date?: string | null
+          order_number: string
+          order_status?: string
+          paid_amount?: number | null
+          payment_method?: string | null
+          payment_status?: string
+          room_assigned?: boolean | null
+          room_type_id?: string | null
+          total_price: number
+          updated_at?: string | null
+        }
+        Update: {
+          accommodation_id?: string
+          check_in_date?: string
+          check_out_date?: string
+          created_at?: string | null
+          customer_id?: string | null
+          deposit_amount?: number | null
+          discount_amount?: number | null
+          discount_code?: string | null
+          final_price?: number
+          guest_address?: string | null
+          guest_count?: number
+          guest_email?: string | null
+          guest_name?: string
+          guest_phone?: string
+          id?: string
+          meal_plan?: string | null
+          notes?: string | null
+          order_date?: string | null
+          order_number?: string
+          order_status?: string
+          paid_amount?: number | null
+          payment_method?: string | null
+          payment_status?: string
+          room_assigned?: boolean | null
+          room_type_id?: string | null
+          total_price?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "room_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -569,6 +674,7 @@ export type Database = {
         Args: { _accommodation_id: string }
         Returns: boolean
       }
+      generate_order_number: { Args: never; Returns: string }
       get_user_accommodations: {
         Args: { _user_id: string }
         Returns: {
