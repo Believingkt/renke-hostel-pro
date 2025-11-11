@@ -87,6 +87,7 @@ const Orders = () => {
                   <div className="relative">
                     <Input
                       className="h-10 pr-20"
+                      placeholder="請輸入訂單編號或訂購人名稱"
                     />
                   </div>
                 </div>
