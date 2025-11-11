@@ -89,34 +89,36 @@ const handler = async (req: Request): Promise<Response> => {
               <p>我們已收到您的訂房申請，以下是您的訂單詳情：</p>
               
               <div style="margin: 30px 0;">
-                <div class="info-row">
-                  <span class="info-label">訂單編號</span>
-                  <span class="info-value">${orderNumber}</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">房型</span>
-                  <span class="info-value">${roomName}</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">入住日期</span>
-                  <span class="info-value">${checkInDate}</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">退房日期</span>
-                  <span class="info-value">${checkOutDate}</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">入住人數</span>
-                  <span class="info-value">${guestCount} 人</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">餐食方案</span>
-                  <span class="info-value">${mealPlanText}</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">付款方式</span>
-                  <span class="info-value">${paymentMethod}</span>
-                </div>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr style="border-bottom: 1px solid #f0f0f0;">
+                    <td style="color: #666; font-weight: 500; padding: 12px 0; width: 35%;">訂單編號</td>
+                    <td style="color: #333; font-weight: 600; padding: 12px 0; text-align: right;">${orderNumber}</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #f0f0f0;">
+                    <td style="color: #666; font-weight: 500; padding: 12px 0;">房型</td>
+                    <td style="color: #333; font-weight: 600; padding: 12px 0; text-align: right;">${roomName}</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #f0f0f0;">
+                    <td style="color: #666; font-weight: 500; padding: 12px 0;">入住日期</td>
+                    <td style="color: #333; font-weight: 600; padding: 12px 0; text-align: right;">${checkInDate}</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #f0f0f0;">
+                    <td style="color: #666; font-weight: 500; padding: 12px 0;">退房日期</td>
+                    <td style="color: #333; font-weight: 600; padding: 12px 0; text-align: right;">${checkOutDate}</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #f0f0f0;">
+                    <td style="color: #666; font-weight: 500; padding: 12px 0;">入住人數</td>
+                    <td style="color: #333; font-weight: 600; padding: 12px 0; text-align: right;">${guestCount} 人</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #f0f0f0;">
+                    <td style="color: #666; font-weight: 500; padding: 12px 0;">餐食方案</td>
+                    <td style="color: #333; font-weight: 600; padding: 12px 0; text-align: right;">${mealPlanText}</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #f0f0f0;">
+                    <td style="color: #666; font-weight: 500; padding: 12px 0;">付款方式</td>
+                    <td style="color: #333; font-weight: 600; padding: 12px 0; text-align: right;">${paymentMethod}</td>
+                  </tr>
+                </table>
               </div>
 
               <div class="price-highlight">
