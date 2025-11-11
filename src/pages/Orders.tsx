@@ -74,7 +74,7 @@ const Orders = () => {
 
                 {/* 搜尋按鈕 */}
                 <div className="col-span-2 flex items-end">
-                  <Button className="w-full h-10 bg-blue-600 hover:bg-blue-700">
+                  <Button className="w-full h-10 bg-orange-600 hover:bg-orange-700">
                     搜尋
                   </Button>
                 </div>
@@ -90,7 +90,7 @@ const Orders = () => {
                     />
                   </div>
                 </div>
-                <Button variant="outline" className="h-10">
+                <Button className="h-10 bg-orange-600 hover:bg-orange-700">
                   搜尋
                 </Button>
               </div>
