@@ -1153,18 +1153,6 @@ const BookingFlow = () => {
                         <p className="font-medium">{paymentMethod}</p>
                       </CardContent>
                     </Card>
-
-                    <Card className="bg-primary/5 border-primary/20">
-                      <CardContent className="p-4">
-                        <p className="text-sm text-muted-foreground mb-2">
-                          ⚠️ 這是測試用的訂房系統
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          此訂單僅供測試使用，不會實際產生訂單或進行付款。
-                          實際的訂房系統需要連接真實的付款閘道和訂單管理系統。
-                        </p>
-                      </CardContent>
-                    </Card>
                   </div>
                 )}
               </CardContent>
