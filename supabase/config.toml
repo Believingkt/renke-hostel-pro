@@ -5,3 +5,6 @@ verify_jwt = true
 
 [functions.lookup-user-by-email]
 verify_jwt = true
+
+[functions.send-booking-confirmation]
+verify_jwt = false

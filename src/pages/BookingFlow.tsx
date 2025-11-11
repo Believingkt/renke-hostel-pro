@@ -503,6 +503,40 @@ const BookingFlow = () => {
 
       console.log("訂單建立成功:", orderData);
 
+      // 發送訂購確認郵件
+      if (guestInfo.email) {
+        try {
+          const { error: emailError } = await supabase.functions.invoke(
+            "send-booking-confirmation",
+            {
+              body: {
+                guestName: guestInfo.name,
+                guestEmail: guestInfo.email,
+                orderNumber: orderData.order_number,
+                roomName: selectedRoom.name,
+                checkInDate: checkInDateStr,
+                checkOutDate: checkOutDateStr,
+                guestCount: totalGuests,
+                mealPlan: selectedMealPlan,
+                finalPrice: finalPrice,
+                depositAmount: depositAmount,
+                paymentMethod: paymentMethod,
+              },
+            }
+          );
+
+          if (emailError) {
+            console.error("發送確認郵件失敗:", emailError);
+            // 不中斷流程，只記錄錯誤
+          } else {
+            console.log("確認郵件已發送至:", guestInfo.email);
+          }
+        } catch (emailError) {
+          console.error("發送確認郵件時發生錯誤:", emailError);
+          // 不中斷流程
+        }
+      }
+
       toast({
         title: "訂房成功！",
         description: `訂單編號：${orderData.order_number}`,
