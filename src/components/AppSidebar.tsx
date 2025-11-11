@@ -1,7 +1,6 @@
 import { 
   DoorOpen, 
   DollarSign, 
-  Search, 
   ClipboardList, 
   Users, 
   BarChart3, 
@@ -58,7 +57,6 @@ const menuItems = [
       { title: "庫存管理", url: "/admin/pricing?tab=inventory" },
     ]
   },
-  { title: "空房查詢", url: "/admin/availability", icon: Search },
   { title: "顧客資料", url: "/admin/customers", icon: UserCircle },
   { title: "帳號管理", url: "/admin/accounts", icon: Settings },
   { title: "折扣代碼", url: "/admin/discount-codes", icon: Tag },

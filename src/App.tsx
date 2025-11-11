@@ -14,7 +14,6 @@ import Orders from "./pages/Orders";
 import Pricing from "./pages/Pricing";
 import Accounts from "./pages/Accounts";
 import KolDiscount from "./pages/KolDiscount";
-import Availability from "./pages/Availability";
 import UserRoles from "./pages/UserRoles";
 import Headquarters from "./pages/Headquarters";
 import Customers from "./pages/Customers";
@@ -42,7 +41,6 @@ const App = () => (
             <Route path="/admin/pricing" element={<Pricing />} />
             <Route path="/admin/accounts" element={<Accounts />} />
             <Route path="/admin/discount-codes" element={<KolDiscount />} />
-            <Route path="/admin/availability" element={<Availability />} />
             <Route path="/admin/user-roles" element={<UserRoles />} />
             <Route path="/admin/customers" element={<Customers />} />
             <Route path="/og-preview" element={<OgImagePreview />} />
