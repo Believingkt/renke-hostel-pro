@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { Calendar } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -386,7 +386,14 @@ const Orders = () => {
                     ) : (
                       filteredOrders.map((order) => (
                         <tr key={order.id} className="border-b hover:bg-muted/50">
-                          <td className="px-4 py-3 text-sm">{order.order_number}</td>
+                          <td className="px-4 py-3 text-sm">
+                            <Link 
+                              to={`/admin/orders/${order.id}`}
+                              className="text-primary hover:underline font-medium"
+                            >
+                              {order.order_number}
+                            </Link>
+                          </td>
                           <td className="px-4 py-3 text-sm">{format(new Date(order.order_date), "yyyy-MM-dd")}</td>
                           <td className="px-4 py-3 text-sm">{order.guest_name}</td>
                           <td className="px-4 py-3 text-sm">{order.check_in_date}</td>

@@ -11,6 +11,7 @@ import Reception from "./pages/Reception";
 import WebsiteContent from "./pages/WebsiteContent";
 import Faq from "./pages/Faq";
 import Orders from "./pages/Orders";
+import OrderDetail from "./pages/OrderDetail";
 import Pricing from "./pages/Pricing";
 import Accounts from "./pages/Accounts";
 import KolDiscount from "./pages/KolDiscount";
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/admin/website-content" element={<WebsiteContent />} />
             <Route path="/admin/faq" element={<Faq />} />
             <Route path="/admin/orders" element={<Orders />} />
+            <Route path="/admin/orders/:orderId" element={<OrderDetail />} />
             <Route path="/admin/pricing" element={<Pricing />} />
             <Route path="/admin/accounts" element={<Accounts />} />
             <Route path="/admin/discount-codes" element={<KolDiscount />} />
