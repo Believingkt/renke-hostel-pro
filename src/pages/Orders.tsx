@@ -263,28 +263,28 @@ const Orders = () => {
                   <thead>
                     <tr className="border-b">
                       <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                        訂單編號 <span className="ml-1">↕</span>
+                        訂單編號
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                        訂購日期 <span className="ml-1">↕</span>
+                        訂購日期
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                        訂購人 <span className="ml-1">↕</span>
+                        訂購人
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                        入住 <span className="ml-1">↕</span>
+                        入住
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                        退房 <span className="ml-1">↕</span>
+                        退房
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
                         付款狀態
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                        價格 <span className="ml-1">↕</span>
+                        價格
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                        已收 <span className="ml-1">↕</span>
+                        已收
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
                         訂單備註
