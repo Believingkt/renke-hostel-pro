@@ -438,14 +438,68 @@ const BookingFlow = () => {
     }
   };
 
-  const handleConfirmBooking = () => {
-    toast({
-      title: "訂房成功！",
-      description: "這是測試用的訂房系統，您的訂單並未真正送出",
-    });
-    setTimeout(() => {
-      navigate("/");
-    }, 2000);
+  const handleConfirmBooking = async () => {
+    if (!selectedRoom || !accommodationId) {
+      toast({
+        title: "訂房失敗",
+        description: "缺少必要資訊，請重新操作",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const totalPrice = calculateTotal();
+      const discountAmount = calculateDiscount();
+      const finalPrice = calculateFinalTotal();
+      const depositAmount = calculateDeposit();
+
+      // 建立訂單
+      const { data: orderData, error: orderError } = await supabase
+        .from("orders")
+        .insert([{
+          accommodation_id: accommodationId,
+          room_type_id: selectedRoom.id,
+          order_number: "", // 由資料庫 trigger 自動生成
+          guest_name: guestInfo.name,
+          guest_phone: guestInfo.phone,
+          guest_email: guestInfo.email || null,
+          guest_address: guestInfo.address || null,
+          check_in_date: checkInDateStr,
+          check_out_date: checkOutDateStr,
+          guest_count: totalGuests,
+          meal_plan: selectedMealPlan === "2_meals" ? "一泊二食" : "一泊三食",
+          total_price: totalPrice,
+          discount_code: appliedDiscount ? appliedDiscount.code : null,
+          discount_amount: discountAmount,
+          final_price: finalPrice,
+          deposit_amount: depositAmount,
+          payment_method: paymentMethod,
+          payment_status: bookingSettings?.use_deposit ? "unpaid" : "unpaid",
+          order_status: "pending",
+          notes: guestInfo.notes || null,
+        }])
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      toast({
+        title: "訂房成功！",
+        description: `訂單編號：${orderData.order_number}`,
+      });
+
+      setTimeout(() => {
+        navigate("/");
+      }, 2000);
+    } catch (error) {
+      console.error("Error creating order:", error);
+      toast({
+        title: "訂房失敗",
+        description: "發生錯誤，請稍後再試或聯絡我們",
+        variant: "destructive",
+      });
+    }
   };
 
   if (subdomainLoading) {
