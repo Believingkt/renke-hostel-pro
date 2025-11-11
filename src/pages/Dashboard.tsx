@@ -74,7 +74,7 @@ const Dashboard = () => {
   return (
     <div className="space-y-6 md:space-y-8">
       <div className="px-2 md:px-0">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">營運報表</h1>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">營運分析</h1>
       </div>
 
       {userId && (
