@@ -33,16 +33,7 @@ import lokezeLogo from "@/assets/lokeze-logo.png";
 const menuItems = [
   { title: "營運報表", url: "/admin", icon: BarChart3 },
   { title: "今日櫃檯", url: "/admin/reception", icon: Users },
-  { 
-    title: "訂單查詢", 
-    url: "/admin/orders", 
-    icon: ClipboardList,
-    subItems: [
-      { title: "訂單資訊", url: "/admin/orders?tab=info" },
-      { title: "訂單列表", url: "/admin/orders?tab=list" },
-      { title: "保留單列表", url: "/admin/orders?tab=reserved" },
-    ]
-  },
+  { title: "訂單查詢", url: "/admin/orders?tab=list", icon: ClipboardList },
   { 
     title: "官網內容", 
     url: "/admin/website-content", 
