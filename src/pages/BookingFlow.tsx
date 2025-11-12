@@ -102,7 +102,8 @@ const BookingFlow = () => {
     setCheckInDate, 
     checkOutDate, 
     setCheckOutDate, 
-    guests: contextGuests = { adults: 2, children: 0 }
+    guests: contextGuests = { adults: 2, children: 0 },
+    setGuests
   } = useAccommodation();
   
   const [currentStep, setCurrentStep] = useState<BookingStep>("dates"); // 改為先選日期
@@ -1024,9 +1025,68 @@ const BookingFlow = () => {
                         <Users className="h-4 w-4 text-primary" />
                         入住人數
                       </Label>
-                      <div className="text-sm text-muted-foreground">
-                        {contextGuests?.adults || 2} 位大人{(contextGuests?.children || 0) > 0 ? ` · ${contextGuests.children} 位兒童` : ""}（共 {totalGuests} 人）
-                      </div>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button className="flex items-center h-16 px-4 border-2 border-border rounded-lg bg-background hover:border-primary/50 transition-colors text-left w-full">
+                            <Users className="h-5 w-5 text-muted-foreground mr-3 flex-shrink-0" />
+                            <div className="flex flex-col">
+                              <span className="text-xs text-muted-foreground">住宿人數</span>
+                              <span className="text-sm text-foreground">
+                                {contextGuests?.adults || 2}位大人{(contextGuests?.children || 0) > 0 ? ` · ${contextGuests.children}位兒童` : ""} · 1間客房
+                              </span>
+                            </div>
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80 p-4" align="start">
+                          <div className="space-y-4">
+                            {/* 大人 */}
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="font-medium text-base">大人</div>
+                                <div className="text-sm text-muted-foreground">18歲（含）或以上</div>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <button
+                                  onClick={() => setGuests({ ...contextGuests, adults: Math.max(1, (contextGuests?.adults || 2) - 1) })}
+                                  className="w-10 h-10 rounded-lg border-2 border-primary text-primary hover:bg-primary/10 transition-colors flex items-center justify-center font-medium"
+                                >
+                                  -
+                                </button>
+                                <span className="w-8 text-center font-medium">{contextGuests?.adults || 2}</span>
+                                <button
+                                  onClick={() => setGuests({ ...contextGuests, adults: Math.min(18, (contextGuests?.adults || 2) + 1) })}
+                                  className="w-10 h-10 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* 兒童 */}
+                            <div className="flex items-center justify-between pt-4 border-t">
+                              <div>
+                                <div className="font-medium text-base">兒童</div>
+                                <div className="text-sm text-muted-foreground">0-17歲</div>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <button
+                                  onClick={() => setGuests({ ...contextGuests, children: Math.max(0, (contextGuests?.children || 0) - 1) })}
+                                  className="w-10 h-10 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium"
+                                >
+                                  -
+                                </button>
+                                <span className="w-8 text-center font-medium">{contextGuests?.children || 0}</span>
+                                <button
+                                  onClick={() => setGuests({ ...contextGuests, children: Math.min(10, (contextGuests?.children || 0) + 1) })}
+                                  className="w-10 h-10 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
                       {selectedRoom && (
                         <p className="text-xs text-muted-foreground">
                           此房型最多可容納 {selectedRoom.capacity} 人
