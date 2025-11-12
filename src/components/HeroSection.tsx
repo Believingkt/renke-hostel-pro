@@ -31,6 +31,8 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set([0]));
+  const [isCheckInDateOpen, setIsCheckInDateOpen] = useState(false);
+  const [isCheckOutDateOpen, setIsCheckOutDateOpen] = useState(false);
 
   useEffect(() => {
     if (!carouselApi) return;
@@ -209,7 +211,7 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
             <CardContent className="p-4 md:p-8">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-3 md:mb-4">
                 {/* 入住日期 */}
-                <Popover>
+                <Popover open={isCheckInDateOpen} onOpenChange={setIsCheckInDateOpen}>
                   <PopoverTrigger asChild>
                     <button className="flex items-center h-12 md:h-16 px-3 md:px-4 border-2 border-border rounded-lg bg-background hover:border-primary/50 transition-colors text-left w-full">
                       <CalendarIcon className="h-5 w-5 text-muted-foreground mr-3 flex-shrink-0" />
@@ -225,7 +227,16 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
                     <Calendar
                       mode="single"
                       selected={checkInDate}
-                      onSelect={setCheckInDate}
+                      onSelect={(date) => {
+                        setCheckInDate(date);
+                        if (date) {
+                          setIsCheckInDateOpen(false);
+                          // 選完入住日期後自動打開退房日期選擇器
+                          setTimeout(() => {
+                            setIsCheckOutDateOpen(true);
+                          }, 100);
+                        }
+                      }}
                       disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                       initialFocus
                       className={cn("p-3 pointer-events-auto")}
@@ -234,9 +245,9 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
                 </Popover>
 
                 {/* 退房日期 */}
-                <Popover>
+                <Popover open={isCheckOutDateOpen} onOpenChange={setIsCheckOutDateOpen}>
                   <PopoverTrigger asChild>
-                    <button className="flex items-center h-16 px-4 border-2 border-border rounded-lg bg-background hover:border-primary/50 transition-colors text-left w-full">
+                    <button className="flex items-center h-12 md:h-16 px-3 md:px-4 border-2 border-border rounded-lg bg-background hover:border-primary/50 transition-colors text-left w-full">
                       <CalendarIcon className="h-5 w-5 text-muted-foreground mr-3 flex-shrink-0" />
                       <div className="flex flex-col">
                         <span className="text-xs text-muted-foreground">退房日期</span>
@@ -250,7 +261,13 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
                     <Calendar
                       mode="single"
                       selected={checkOutDate}
-                      onSelect={setCheckOutDate}
+                      onSelect={(date) => {
+                        setCheckOutDate(date);
+                        // 選完退房日期後自動關閉
+                        if (date) {
+                          setIsCheckOutDateOpen(false);
+                        }
+                      }}
                       disabled={(date) => {
                         const today = new Date(new Date().setHours(0, 0, 0, 0));
                         if (date < today) return true;
