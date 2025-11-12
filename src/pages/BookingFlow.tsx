@@ -1318,6 +1318,10 @@ const BookingFlow = () => {
                                       <div className="flex items-center gap-2">
                                         <button
                                           onClick={() => {
+                                            if (currentCount === 0) {
+                                              // 未選擇時不做任何事
+                                              return;
+                                            }
                                             const newCount = currentCount - 1;
                                             if (newCount < minCount) {
                                               const newData = { ...bbqMealsByDate };
@@ -1332,7 +1336,7 @@ const BookingFlow = () => {
                                         >
                                           -
                                         </button>
-                                        <span className="w-10 text-center font-medium">{currentCount}</span>
+                                        <span className="w-10 text-center font-medium">{currentCount === 0 ? minCount : currentCount}</span>
                                         <button
                                           onClick={() => {
                                             const newCount = currentCount === 0 ? minCount : Math.min(maxCount, currentCount + 1);
