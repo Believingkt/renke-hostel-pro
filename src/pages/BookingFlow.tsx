@@ -1256,30 +1256,45 @@ const BookingFlow = () => {
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">攜帶寵物</p>
-                            <p className="text-sm text-muted-foreground">每隻 NT$ 600 / 每晚</p>
-                            <p className="text-xs text-muted-foreground mt-1">上限 2 隻</p>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <button
-                              onClick={() => setPetCount(Math.max(0, petCount - 1))}
-                              disabled={petCount === 0}
-                              className="w-10 h-10 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        {petCount === 0 ? (
+                          <div className="text-center py-4">
+                            <Button
+                              onClick={() => setPetCount(1)}
+                              variant="outline"
+                              size="lg"
+                              className="w-full"
                             >
-                              -
-                            </button>
-                            <span className="w-8 text-center font-medium text-lg">{petCount}</span>
-                            <button
-                              onClick={() => setPetCount(Math.min(2, petCount + 1))}
-                              disabled={petCount >= 2}
-                              className="w-10 h-10 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              +
-                            </button>
+                              <ShoppingBag className="mr-2 h-4 w-4" />
+                              加購毛孩方案
+                            </Button>
+                            <p className="text-sm text-muted-foreground mt-3">每隻 NT$ 600 / 每晚，上限 2 隻</p>
                           </div>
-                        </div>
+                        ) : (
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-medium">攜帶寵物</p>
+                              <p className="text-sm text-muted-foreground">每隻 NT$ 600 / 每晚</p>
+                              <p className="text-xs text-muted-foreground mt-1">上限 2 隻</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <button
+                                onClick={() => setPetCount(Math.max(0, petCount - 1))}
+                                disabled={petCount === 0}
+                                className="w-10 h-10 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                -
+                              </button>
+                              <span className="w-8 text-center font-medium text-lg">{petCount}</span>
+                              <button
+                                onClick={() => setPetCount(Math.min(2, petCount + 1))}
+                                disabled={petCount >= 2}
+                                className="w-10 h-10 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+                        )}
                         {petCount > 0 && (
                           <div className="bg-primary/5 p-3 rounded-lg">
                             <p className="text-sm font-medium">
@@ -1309,15 +1324,39 @@ const BookingFlow = () => {
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-4">
-                        <div className="space-y-4">
-                          <div>
-                            <p className="font-medium">烤肉套餐</p>
-                            <p className="text-sm text-muted-foreground">每人 NT$ 900 / 每日</p>
-                            <p className="text-xs text-muted-foreground mt-1">基本人數（平日12人，假日18人），上限30人</p>
+                        {!Object.values(bbqMealsByDate).some(count => count > 0) ? (
+                          <div className="text-center py-4">
+                            <Button
+                              onClick={() => {
+                                const dates = getStayDates();
+                                if (dates.length > 0) {
+                                  const firstDate = dates[0];
+                                  const date = new Date(firstDate);
+                                  const isWeekendDate = isWeekend(date);
+                                  const minCount = isWeekendDate ? 18 : 12;
+                                  setBbqMealsByDate({ [firstDate]: minCount });
+                                }
+                              }}
+                              variant="outline"
+                              size="lg"
+                              className="w-full"
+                            >
+                              <ShoppingBag className="mr-2 h-4 w-4" />
+                              加購烤肉套餐
+                            </Button>
+                            <p className="text-sm text-muted-foreground mt-3">每人 NT$ 900 / 每日</p>
+                            <p className="text-xs text-muted-foreground">基本人數（平日12人，假日18人），上限30人</p>
                           </div>
+                        ) : (
+                          <div className="space-y-4">
+                            <div>
+                              <p className="font-medium">烤肉套餐</p>
+                              <p className="text-sm text-muted-foreground">每人 NT$ 900 / 每日</p>
+                              <p className="text-xs text-muted-foreground mt-1">基本人數（平日12人，假日18人），上限30人</p>
+                            </div>
 
-                          {/* 日期選擇與人數設定 */}
-                          {checkInDate && checkOutDate && (
+                            {/* 日期選擇與人數設定 */}
+                            {checkInDate && checkOutDate && (
                             <div className="border-t pt-4">
                               <Label className="text-sm font-semibold mb-3 block">選擇用餐日期及人數</Label>
                               <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
@@ -1386,8 +1425,9 @@ const BookingFlow = () => {
                                 })}
                               </div>
                             </div>
-                          )}
-                        </div>
+                            )}
+                          </div>
+                        )}
 
                         {Object.values(bbqMealsByDate).some(count => count > 0) && (
                           <div className="bg-primary/5 p-3 rounded-lg">
