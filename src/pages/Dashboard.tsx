@@ -26,7 +26,9 @@ interface Order {
   order_number: string;
   guest_name: string;
   check_in_date: string;
+  check_out_date: string;
   order_status: string;
+  payment_status: string;
   final_price: number;
   guest_count: number;
   order_date: string;
@@ -220,6 +222,16 @@ const Dashboard = () => {
     return statusMap[status] || status;
   };
 
+  const getPaymentStatusLabel = (status: string) => {
+    const statusMap: Record<string, string> = {
+      unpaid: "未付款",
+      deposit_paid: "已付訂金",
+      paid: "已付清",
+      overdue: "已逾期",
+    };
+    return statusMap[status] || status;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -333,16 +345,18 @@ const Dashboard = () => {
               <thead>
                 <tr className="border-b">
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">訂單編號</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">住客姓名</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">房型</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">訂購時間</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">訂購人</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">入住日期</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">狀態</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">退房日期</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">付款狀態</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">操作</th>
                 </tr>
               </thead>
               <tbody>
                 {recentBookings.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                    <td colSpan={7} className="py-12 text-center text-muted-foreground">
                       暫無資料
                     </td>
                   </tr>
@@ -350,19 +364,30 @@ const Dashboard = () => {
                   recentBookings.map((booking) => (
                     <tr key={booking.id} className="border-b transition-colors hover:bg-muted/50">
                       <td className="px-4 py-3 text-sm font-medium">{booking.order_number}</td>
+                      <td className="px-4 py-3 text-sm">{format(new Date(booking.order_date), 'yyyy-MM-dd HH:mm')}</td>
                       <td className="px-4 py-3 text-sm">{booking.guest_name}</td>
-                      <td className="px-4 py-3 text-sm">{booking.room_types?.name || '-'}</td>
                       <td className="px-4 py-3 text-sm">{format(new Date(booking.check_in_date), 'yyyy-MM-dd')}</td>
+                      <td className="px-4 py-3 text-sm">{format(new Date(booking.check_out_date), 'yyyy-MM-dd')}</td>
                       <td className="px-4 py-3">
                         <span
                           className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
-                            booking.order_status === "confirmed" || booking.order_status === "checked_in"
+                            booking.payment_status === "paid"
                               ? "bg-stat-green-light text-stat-green"
+                              : booking.payment_status === "deposit_paid"
+                              ? "bg-stat-blue-light text-stat-blue"
                               : "bg-stat-coral-light text-stat-coral"
                           }`}
                         >
-                          {getStatusLabel(booking.order_status)}
+                          {getPaymentStatusLabel(booking.payment_status)}
                         </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        <a 
+                          href={`/admin/orders/${booking.id}`}
+                          className="text-primary hover:underline"
+                        >
+                          查看
+                        </a>
                       </td>
                     </tr>
                   ))
