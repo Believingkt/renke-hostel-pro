@@ -143,6 +143,7 @@ const BookingFlow = () => {
   const [petCount, setPetCount] = useState(0);
   const [isPetPolicyDialogOpen, setIsPetPolicyDialogOpen] = useState(false);
   const [bbqMealsByDate, setBbqMealsByDate] = useState<Record<string, number>>({});
+  const [hiddenBbqDates, setHiddenBbqDates] = useState<Set<string>>(new Set());
   const [isBbqDetailsDialogOpen, setIsBbqDetailsDialogOpen] = useState(false);
   const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
   
@@ -1367,7 +1368,10 @@ const BookingFlow = () => {
                                 <p className="text-xs text-muted-foreground mt-1">基本人數（平日12人，假日18人），上限30人</p>
                               </div>
                               <Button
-                                onClick={() => setBbqMealsByDate({})}
+                                onClick={() => {
+                                  setBbqMealsByDate({});
+                                  setHiddenBbqDates(new Set());
+                                }}
                                 variant="ghost"
                                 size="sm"
                                 className="text-destructive hover:text-destructive hover:bg-destructive/10"
@@ -1382,7 +1386,7 @@ const BookingFlow = () => {
                             <div className="border-t pt-4">
                               <Label className="text-sm font-semibold mb-3 block">選擇用餐日期及人數</Label>
                               <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
-                                {getStayDates().map((dateStr) => {
+                                {getStayDates().filter(dateStr => !hiddenBbqDates.has(dateStr)).map((dateStr) => {
                                   const date = new Date(dateStr);
                                   const currentCount = bbqMealsByDate[dateStr] || 0;
                                   const isWeekendDate = isWeekend(date);
@@ -1408,25 +1412,24 @@ const BookingFlow = () => {
                                             基本人數 {minCount} 人
                                           </p>
                                         )}
-                                      </div>
-                                       <div className="flex items-center gap-2">
-                                        {currentCount > 0 && (
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setBbqMealsByDate(prev => {
-                                                const newData = { ...prev };
-                                                delete newData[dateStr];
-                                                return newData;
-                                              });
-                                            }}
-                                            className="w-8 h-8 rounded-lg text-destructive hover:bg-destructive/10 transition-colors flex items-center justify-center"
-                                            title="清除此日期"
-                                          >
-                                            <X className="h-4 w-4" />
-                                          </button>
-                                        )}
+                                       </div>
+                                        <div className="flex items-center gap-2">
+                                           <button
+                                             type="button"
+                                             onClick={(e) => {
+                                               e.stopPropagation();
+                                               setHiddenBbqDates(prev => new Set([...prev, dateStr]));
+                                               setBbqMealsByDate(prev => {
+                                                 const newData = { ...prev };
+                                                 delete newData[dateStr];
+                                                 return newData;
+                                               });
+                                             }}
+                                             className="w-8 h-8 rounded-lg text-destructive hover:bg-destructive/10 transition-colors flex items-center justify-center"
+                                             title="清除此日期"
+                                           >
+                                             <X className="h-4 w-4" />
+                                           </button>
                                         <button
                                           type="button"
                                           onClick={(e) => {
