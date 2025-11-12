@@ -26,6 +26,7 @@ import {
   X,
   ZoomIn,
   ShoppingBag,
+  Footprints,
 } from "lucide-react";
 import { z } from "zod";
 import { format } from "date-fns";
@@ -1504,7 +1505,10 @@ const BookingFlow = () => {
                             <p className="text-sm font-semibold">加購方案總計</p>
                             {petCount > 0 && (
                               <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">寵物方案 × {petCount} × {calculateNights()} 晚</span>
+                                <span className="text-muted-foreground flex items-center gap-1">
+                                  <Footprints className="h-4 w-4" />
+                                  寵物方案 × {petCount} × {calculateNights()} 晚
+                                </span>
                                 <span>NT$ {(petCount * 600 * calculateNights()).toLocaleString()}</span>
                               </div>
                             )}
