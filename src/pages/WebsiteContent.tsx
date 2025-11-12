@@ -281,6 +281,25 @@ const WebsiteContent = () => {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
+  // Addon plans state
+  const [petPlan, setPetPlan] = useState({
+    enabled: true,
+    pricePerUnit: 600,
+    maxQuantity: 2,
+    description: "每隻寵物",
+    detailedDescription: ""
+  });
+
+  const [mealPlan, setMealPlan] = useState({
+    enabled: true,
+    pricePerUnit: 900,
+    weekdayMinQuantity: 12,
+    weekendMinQuantity: 18,
+    maxQuantity: 30,
+    description: "每人每日",
+    detailedDescription: ""
+  });
+
   useEffect(() => {
     const tab = searchParams.get("tab");
     if (tab) {
@@ -417,6 +436,39 @@ const WebsiteContent = () => {
 
           if (photosData) {
             setPhotos(photosData);
+          }
+
+          // 加載加購方案設定
+          const { data: addonData } = await supabase
+            .from("addon_settings")
+            .select("*")
+            .eq("accommodation_id", infoData.id);
+
+          if (addonData) {
+            const petData = addonData.find(a => a.addon_type === 'pet');
+            const mealData = addonData.find(a => a.addon_type === 'meal');
+
+            if (petData) {
+              setPetPlan({
+                enabled: petData.enabled || true,
+                pricePerUnit: petData.price_per_unit,
+                maxQuantity: petData.max_quantity,
+                description: petData.unit_label || "每隻寵物",
+                detailedDescription: petData.detailed_description || ""
+              });
+            }
+
+            if (mealData) {
+              setMealPlan({
+                enabled: mealData.enabled || true,
+                pricePerUnit: mealData.price_per_unit,
+                weekdayMinQuantity: mealData.weekday_min_quantity || 12,
+                weekendMinQuantity: mealData.weekend_min_quantity || 18,
+                maxQuantity: mealData.max_quantity,
+                description: mealData.unit_label || "每人每日",
+                detailedDescription: mealData.detailed_description || ""
+              });
+            }
           }
         }
       } catch (error) {
@@ -922,6 +974,65 @@ const WebsiteContent = () => {
     })
   );
 
+  const handleSaveAddonPlans = async () => {
+    if (!accommodationId) {
+      toast.error('找不到旅宿資訊');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // 保存寵物方案
+      const { error: petError } = await supabase
+        .from("addon_settings")
+        .upsert({
+          accommodation_id: accommodationId,
+          addon_type: 'pet',
+          enabled: petPlan.enabled,
+          price_per_unit: petPlan.pricePerUnit,
+          min_quantity: 0,
+          max_quantity: petPlan.maxQuantity,
+          unit_label: petPlan.description,
+          description: `每隻 NT$ ${petPlan.pricePerUnit} / 每晚`,
+          detailed_description: petPlan.detailedDescription
+        }, {
+          onConflict: 'accommodation_id,addon_type'
+        });
+
+      if (petError) throw petError;
+
+      // 保存餐食方案
+      const { error: mealError } = await supabase
+        .from("addon_settings")
+        .upsert({
+          accommodation_id: accommodationId,
+          addon_type: 'meal',
+          enabled: mealPlan.enabled,
+          price_per_unit: mealPlan.pricePerUnit,
+          min_quantity: 0,
+          max_quantity: mealPlan.maxQuantity,
+          weekday_min_quantity: mealPlan.weekdayMinQuantity,
+          weekend_min_quantity: mealPlan.weekendMinQuantity,
+          unit_label: mealPlan.description,
+          description: `每人 NT$ ${mealPlan.pricePerUnit} / 每日`,
+          detailed_description: mealPlan.detailedDescription
+        }, {
+          onConflict: 'accommodation_id,addon_type'
+        });
+
+      if (mealError) throw mealError;
+
+      toast.success('加購方案設定已儲存');
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error saving addon plans:', error);
+      }
+      toast.error('儲存失敗，請稍後再試');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -935,6 +1046,7 @@ const WebsiteContent = () => {
         <TabsList>
           <TabsTrigger value="basic-info">基本資料</TabsTrigger>
           <TabsTrigger value="facilities">設施與服務</TabsTrigger>
+          <TabsTrigger value="addon-plans">加購方案</TabsTrigger>
           <TabsTrigger value="gallery">精選照片</TabsTrigger>
           <TabsTrigger value="location">交通 & 地圖</TabsTrigger>
           <TabsTrigger value="booking-info">訂房須知</TabsTrigger>
@@ -1197,6 +1309,163 @@ const WebsiteContent = () => {
 
           <div className="flex justify-end">
             <Button onClick={handleSaveFacilities} disabled={isSaving} size="lg">
+              {isSaving ? '保存中...' : '保存設定'}
+            </Button>
+          </div>
+        </TabsContent>
+
+        {/* 加購方案 Tab */}
+        <TabsContent value="addon-plans" className="space-y-6">
+          {/* 寵物方案 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>🐾 寵物方案</span>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="pet-enabled" className="text-sm font-normal">啟用</Label>
+                  <Switch
+                    id="pet-enabled"
+                    checked={petPlan.enabled}
+                    onCheckedChange={(checked) => setPetPlan({ ...petPlan, enabled: checked })}
+                  />
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label>價格 (每隻/每晚)</Label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">NT$</span>
+                    <Input
+                      type="number"
+                      value={petPlan.pricePerUnit}
+                      onChange={(e) => setPetPlan({ ...petPlan, pricePerUnit: parseInt(e.target.value) || 0 })}
+                      min="0"
+                      disabled={!petPlan.enabled}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>數量上限 (隻)</Label>
+                  <Input
+                    type="number"
+                    value={petPlan.maxQuantity}
+                    onChange={(e) => setPetPlan({ ...petPlan, maxQuantity: parseInt(e.target.value) || 0 })}
+                    min="1"
+                    disabled={!petPlan.enabled}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>簡短說明</Label>
+                <Input
+                  value={petPlan.description}
+                  onChange={(e) => setPetPlan({ ...petPlan, description: e.target.value })}
+                  placeholder="例如：每隻寵物"
+                  disabled={!petPlan.enabled}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>詳細說明（顯示在前台「詳細內容」按鈕中）</Label>
+                <Textarea
+                  value={petPlan.detailedDescription}
+                  onChange={(e) => setPetPlan({ ...petPlan, detailedDescription: e.target.value })}
+                  placeholder="請輸入寵物方案的詳細說明，包含注意事項、規則等..."
+                  rows={6}
+                  disabled={!petPlan.enabled}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 餐食方案 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>🍖 餐食方案</span>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="meal-enabled" className="text-sm font-normal">啟用</Label>
+                  <Switch
+                    id="meal-enabled"
+                    checked={mealPlan.enabled}
+                    onCheckedChange={(checked) => setMealPlan({ ...mealPlan, enabled: checked })}
+                  />
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label>價格 (每人/每日)</Label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">NT$</span>
+                    <Input
+                      type="number"
+                      value={mealPlan.pricePerUnit}
+                      onChange={(e) => setMealPlan({ ...mealPlan, pricePerUnit: parseInt(e.target.value) || 0 })}
+                      min="0"
+                      disabled={!mealPlan.enabled}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>數量上限 (人)</Label>
+                  <Input
+                    type="number"
+                    value={mealPlan.maxQuantity}
+                    onChange={(e) => setMealPlan({ ...mealPlan, maxQuantity: parseInt(e.target.value) || 0 })}
+                    min="1"
+                    disabled={!mealPlan.enabled}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label>平日基本人數</Label>
+                  <Input
+                    type="number"
+                    value={mealPlan.weekdayMinQuantity}
+                    onChange={(e) => setMealPlan({ ...mealPlan, weekdayMinQuantity: parseInt(e.target.value) || 0 })}
+                    min="0"
+                    disabled={!mealPlan.enabled}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>假日基本人數</Label>
+                  <Input
+                    type="number"
+                    value={mealPlan.weekendMinQuantity}
+                    onChange={(e) => setMealPlan({ ...mealPlan, weekendMinQuantity: parseInt(e.target.value) || 0 })}
+                    min="0"
+                    disabled={!mealPlan.enabled}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>簡短說明</Label>
+                <Input
+                  value={mealPlan.description}
+                  onChange={(e) => setMealPlan({ ...mealPlan, description: e.target.value })}
+                  placeholder="例如：每人每日"
+                  disabled={!mealPlan.enabled}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>詳細說明（顯示在前台「詳細內容」按鈕中）</Label>
+                <Textarea
+                  value={mealPlan.detailedDescription}
+                  onChange={(e) => setMealPlan({ ...mealPlan, detailedDescription: e.target.value })}
+                  placeholder="請輸入餐食方案的詳細說明，包含菜單內容、用餐時間等..."
+                  rows={6}
+                  disabled={!mealPlan.enabled}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="flex justify-end">
+            <Button onClick={handleSaveAddonPlans} disabled={isSaving} size="lg">
               {isSaving ? '保存中...' : '保存設定'}
             </Button>
           </div>

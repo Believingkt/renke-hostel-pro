@@ -171,6 +171,57 @@ export type Database = {
           },
         ]
       }
+      addon_settings: {
+        Row: {
+          accommodation_id: string
+          addon_type: string
+          created_at: string | null
+          description: string | null
+          detailed_description: string | null
+          enabled: boolean | null
+          id: string
+          max_quantity: number
+          min_quantity: number | null
+          price_per_unit: number
+          unit_label: string
+          updated_at: string | null
+          weekday_min_quantity: number | null
+          weekend_min_quantity: number | null
+        }
+        Insert: {
+          accommodation_id: string
+          addon_type: string
+          created_at?: string | null
+          description?: string | null
+          detailed_description?: string | null
+          enabled?: boolean | null
+          id?: string
+          max_quantity: number
+          min_quantity?: number | null
+          price_per_unit: number
+          unit_label: string
+          updated_at?: string | null
+          weekday_min_quantity?: number | null
+          weekend_min_quantity?: number | null
+        }
+        Update: {
+          accommodation_id?: string
+          addon_type?: string
+          created_at?: string | null
+          description?: string | null
+          detailed_description?: string | null
+          enabled?: boolean | null
+          id?: string
+          max_quantity?: number
+          min_quantity?: number | null
+          price_per_unit?: number
+          unit_label?: string
+          updated_at?: string | null
+          weekday_min_quantity?: number | null
+          weekend_min_quantity?: number | null
+        }
+        Relationships: []
+      }
       booking_settings: {
         Row: {
           accommodation_id: string | null
