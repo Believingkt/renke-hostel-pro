@@ -2117,11 +2117,11 @@ const BookingFlow = () => {
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 md:p-6">
-            <div className="space-y-3 md:space-y-4 text-sm md:text-base leading-relaxed whitespace-pre-wrap">
+            <div className="space-y-4 md:space-y-5 text-sm md:text-base [line-height:1.8] whitespace-pre-wrap">
               {petPlanSettings.detailedDescription || (
                 <>
                   <h3 className="text-lg md:text-xl font-semibold">寵物入住守則</h3>
-                  <div className="space-y-3 text-sm md:text-base leading-relaxed">
+                  <div className="space-y-4 text-sm md:text-base [line-height:1.8]">
                     <p className="text-[15px] md:text-base">僅開放毛孩進入指定之 2 棟 Villa 及公共區域。請於訂房時選擇加購毛孩方案。</p>
                     <p className="text-[15px] md:text-base">毛孩於辦理入住時，預先支付現金 2,000 元押金，退房確認房內各項設備正常後歸還。</p>
                     <div className="bg-primary/5 p-3 md:p-4 rounded-lg">
@@ -2158,7 +2158,7 @@ const BookingFlow = () => {
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 md:p-6">
-            <div className="space-y-3 md:space-y-4 text-sm md:text-base leading-relaxed whitespace-pre-wrap">
+            <div className="space-y-4 md:space-y-5 text-sm md:text-base [line-height:1.8] whitespace-pre-wrap">
               {mealPlanSettings.detailedDescription || (
                 <>
                   <div>
@@ -2167,7 +2167,7 @@ const BookingFlow = () => {
                   </div>
                   <div className="bg-muted/50 p-3 md:p-4 rounded-lg">
                     <h3 className="text-base md:text-lg font-semibold mb-3">📋 注意事項</h3>
-                    <ul className="space-y-2 text-sm md:text-base leading-relaxed list-none">
+                    <ul className="space-y-3 text-sm md:text-base [line-height:1.8] list-none">
                       <li className="flex gap-2">
                         <span className="text-primary font-semibold flex-shrink-0">•</span>
                         <span className="text-[15px] md:text-base">平日下限{mealPlanSettings.weekdayMinQuantity}人，假日下限{mealPlanSettings.weekendMinQuantity}人，上限{mealPlanSettings.maxQuantity}人</span>
