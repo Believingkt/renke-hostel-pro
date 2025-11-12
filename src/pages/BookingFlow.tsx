@@ -1399,6 +1399,19 @@ const BookingFlow = () => {
                                         )}
                                       </div>
                                       <div className="flex items-center gap-2">
+                                        {currentCount > 0 && (
+                                          <button
+                                            onClick={() => {
+                                              const newData = { ...bbqMealsByDate };
+                                              delete newData[dateStr];
+                                              setBbqMealsByDate(newData);
+                                            }}
+                                            className="w-8 h-8 rounded-lg text-destructive hover:bg-destructive/10 transition-colors flex items-center justify-center"
+                                            title="清除此日期"
+                                          >
+                                            <X className="h-4 w-4" />
+                                          </button>
+                                        )}
                                         <button
                                           onClick={() => {
                                             if (currentCount === 0) {
