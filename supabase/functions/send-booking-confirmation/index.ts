@@ -74,13 +74,13 @@ const handler = async (req: Request): Promise<Response> => {
           <style>
             body { font-family: 'Microsoft JhengHei', Arial, sans-serif; line-height: 1.6; color: #333; }
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .header { background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
             .content { background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; }
             .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
             .info-label { color: #666; font-weight: 500; }
             .info-value { color: #333; font-weight: 600; }
             .price-highlight { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
-            .total-price { font-size: 24px; color: #667eea; font-weight: bold; }
+            .total-price { font-size: 24px; color: #ff6b35; font-weight: bold; }
             .footer { background: #f8f9fa; padding: 20px; text-align: center; color: #666; border-radius: 0 0 10px 10px; }
             .notice { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px; }
           </style>
@@ -213,24 +213,24 @@ const handler = async (req: Request): Promise<Response> => {
                 </ul>
               </div>
 
-              <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #667eea;">
+              <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #ff6b35;">
                 <p style="margin: 0 0 15px 0; font-weight: 600; color: #333;">如有任何疑問，歡迎透過下列方式與我們聯繫：</p>
                 <div style="color: #666; line-height: 1.8;">
                   <p style="margin: 8px 0; display: flex; align-items: center;">
                     <span style="display: inline-block; width: 24px; margin-right: 8px;">📞</span>
-                    <span>聯絡電話：<a href="tel:0903178518" style="color: #667eea; text-decoration: none;">0903178518</a></span>
+                    <span>聯絡電話：<a href="tel:0903178518" style="color: #ff6b35; text-decoration: none;">0903178518</a></span>
                   </p>
                   <p style="margin: 8px 0; display: flex; align-items: center;">
                     <span style="display: inline-block; width: 24px; margin-right: 8px;">💬</span>
-                    <span>LINE 官方帳號：<a href="https://line.me/R/ti/p/@042deypa" style="color: #667eea; text-decoration: none;">@042deypa</a></span>
+                    <span>LINE 官方帳號：<a href="https://line.me/R/ti/p/@042deypa" style="color: #ff6b35; text-decoration: none;">@042deypa</a></span>
                   </p>
                   <p style="margin: 8px 0; display: flex; align-items: center;">
                     <span style="display: inline-block; width: 24px; margin-right: 8px;">📧</span>
-                    <span>電子郵件：<a href="mailto:sensan.inn@gmail.com" style="color: #667eea; text-decoration: none;">sensan.inn@gmail.com</a></span>
+                    <span>電子郵件：<a href="mailto:sensan.inn@gmail.com" style="color: #ff6b35; text-decoration: none;">sensan.inn@gmail.com</a></span>
                   </p>
                 </div>
               </div>
-              <p style="margin-top: 20px; font-size: 16px; font-weight: 500; color: #667eea;">期待您的光臨！</p>
+              <p style="margin-top: 20px; font-size: 16px; font-weight: 500; color: #ff6b35;">期待您的光臨！</p>
             </div>
 
             <div class="footer">
