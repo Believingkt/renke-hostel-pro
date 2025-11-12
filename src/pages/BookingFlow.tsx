@@ -1444,7 +1444,7 @@ const BookingFlow = () => {
                     )}
                   </>
                 ) : (
-                  <p className="text-sm text-muted-foreground">請先選擇房型</p>
+                  <p className="text-sm text-muted-foreground">請先選擇餐食方案</p>
                 )}
               </CardContent>
             </Card>
