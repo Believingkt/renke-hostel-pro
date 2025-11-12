@@ -24,6 +24,7 @@ import {
   Home,
   X,
   ZoomIn,
+  ShoppingBag,
 } from "lucide-react";
 import { z } from "zod";
 import { format } from "date-fns";
@@ -715,7 +716,7 @@ const BookingFlow = () => {
   const stepIndicators = [
     { key: "dates", label: "選擇日期", icon: Calendar },
     { key: "room", label: "選擇房型", icon: Home },
-    { key: "addons", label: "加購方案", icon: Users },
+    { key: "addons", label: "加購方案", icon: ShoppingBag },
     { key: "guest", label: "填寫資訊", icon: User },
     { key: "payment", label: "付款方式", icon: CreditCard },
     { key: "confirm", label: "確認訂單", icon: CheckCircle },
