@@ -76,7 +76,12 @@ const OrderDetail = () => {
 
         if (error) throw error;
         
-        setOrder(data);
+        if (data) {
+          setOrder({
+            ...data,
+            meal_plan_details: (data.meal_plan_details as any) || [],
+          } as OrderDetail);
+        }
       } catch (error) {
         console.error("Error fetching order:", error);
         toast({
