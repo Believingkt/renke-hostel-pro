@@ -1412,13 +1412,12 @@ const BookingFlow = () => {
                                        <div className="flex items-center gap-2">
                                         {currentCount > 0 && (
                                           <button
+                                            type="button"
                                             onClick={(e) => {
-                                              e.preventDefault();
-                                              console.log('清除日期:', dateStr, '當前狀態:', bbqMealsByDate);
+                                              e.stopPropagation();
                                               setBbqMealsByDate(prev => {
                                                 const newData = { ...prev };
                                                 delete newData[dateStr];
-                                                console.log('清除後:', newData);
                                                 return newData;
                                               });
                                             }}
@@ -1429,8 +1428,9 @@ const BookingFlow = () => {
                                           </button>
                                         )}
                                         <button
+                                          type="button"
                                           onClick={(e) => {
-                                            e.preventDefault();
+                                            e.stopPropagation();
                                             if (currentCount === 0) {
                                               return;
                                             }
@@ -1452,8 +1452,9 @@ const BookingFlow = () => {
                                         </button>
                                         <span className="w-10 text-center font-medium">{currentCount === 0 ? minCount : currentCount}</span>
                                         <button
+                                          type="button"
                                           onClick={(e) => {
-                                            e.preventDefault();
+                                            e.stopPropagation();
                                             const newCount = currentCount === 0 ? minCount : Math.min(maxCount, currentCount + 1);
                                             setBbqMealsByDate(prev => ({ ...prev, [dateStr]: newCount }));
                                           }}
