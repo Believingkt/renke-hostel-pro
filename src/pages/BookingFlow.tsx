@@ -761,7 +761,7 @@ const BookingFlow = () => {
       // 發送訂購確認郵件
       if (guestInfo.email) {
         try {
-          const { error: emailError } = await supabase.functions.invoke(
+          const { data: emailData, error: emailError } = await supabase.functions.invoke(
             "send-booking-confirmation",
             {
               body: {
@@ -783,6 +783,9 @@ const BookingFlow = () => {
           if (emailError) {
             console.error("發送確認郵件失敗:", emailError);
             // 不中斷流程，只記錄錯誤
+          } else if (emailData?.warning) {
+            console.warn("郵件發送警告:", emailData.warning);
+            // 有警告但不影響流程
           } else {
             console.log("確認郵件已發送至:", guestInfo.email);
           }
