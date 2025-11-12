@@ -1313,7 +1313,7 @@ const BookingFlow = () => {
                           <div>
                             <p className="font-medium">烤肉套餐</p>
                             <p className="text-sm text-muted-foreground">每人 NT$ 900 / 每日</p>
-                            <p className="text-xs text-muted-foreground mt-1">下限為基本人數（{totalGuests}人），上限30人</p>
+                            <p className="text-xs text-muted-foreground mt-1">下限為基本人數（平日12人，假日18人），上限30人</p>
                           </div>
 
                           {/* 日期選擇與人數設定 */}
@@ -1325,7 +1325,7 @@ const BookingFlow = () => {
                                   const date = new Date(dateStr);
                                   const currentCount = bbqMealsByDate[dateStr] || 0;
                                   const isWeekendDate = isWeekend(date);
-                                  const minCount = totalGuests;
+                                  const minCount = isWeekendDate ? 18 : 12;
                                   const maxCount = 30;
                                   
                                   return (
