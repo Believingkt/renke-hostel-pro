@@ -263,6 +263,18 @@ const BookingFlow = () => {
     }
   }, [checkInDate, checkOutDate, selectedMealPlan]);
 
+  // 當在選擇房型步驟且只有一個可用房型時，自動預選
+  useEffect(() => {
+    if (currentStep === "room" && checkInDate && checkOutDate) {
+      const availableRooms = getAvailableRooms();
+      
+      // 如果只有一個可用房型且尚未選擇房型，自動預選
+      if (availableRooms.length === 1 && !selectedRoom) {
+        setSelectedRoom(availableRooms[0]);
+      }
+    }
+  }, [currentStep, checkInDate, checkOutDate, selectedMealPlan, selectedRoom]);
+
   const calculateNights = () => {
     if (!checkInDateStr || !checkOutDateStr) return 0;
     const start = new Date(checkInDateStr);
