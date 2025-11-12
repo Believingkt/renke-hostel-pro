@@ -1821,84 +1821,160 @@ const BookingFlow = () => {
                 {/* Step 4: Payment */}
                 {currentStep === "payment" && (
                   <div className="space-y-6">
-                    {/* 折扣代碼欄位 */}
-                    <div className="space-y-4">
-                      <Label htmlFor="discountCode">折扣代碼（選填）</Label>
-                      {!appliedDiscount ? (
-                        <div className="flex gap-2">
-                          <Input
-                            id="discountCode"
-                            value={discountCode}
-                            onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
-                            placeholder="請輸入折扣代碼"
-                            className="h-12"
-                            maxLength={10}
-                            disabled={isValidatingCode}
-                          />
-                          <Button
-                            onClick={handleApplyDiscount}
-                            disabled={isValidatingCode || !discountCode.trim()}
-                            className="shrink-0"
-                          >
-                            {isValidatingCode ? "驗證中..." : "套用"}
-                          </Button>
-                        </div>
-                      ) : (
-                        <Card className="bg-primary/5 border-primary/20">
-                          <CardContent className="p-4 flex items-center justify-between">
-                            <div>
-                              <p className="font-medium">已套用折扣代碼：{appliedDiscount.code}</p>
-                              <p className="text-sm text-muted-foreground">
-                                折扣 {appliedDiscount.type === "percentage" 
-                                  ? `${appliedDiscount.value}%` 
-                                  : `NT$ ${appliedDiscount.value}`}
-                              </p>
-                            </div>
+                    {/* 折扣代碼卡片 */}
+                    <Card className="border-2">
+                      <CardHeader className="pb-4">
+                        <CardTitle className="text-lg font-bold flex items-center gap-2">
+                          <Badge className="h-5 w-5" />
+                          折扣代碼
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          如果您有折扣代碼，請在此輸入以享受優惠
+                        </p>
+                      </CardHeader>
+                      <CardContent>
+                        {!appliedDiscount ? (
+                          <div className="flex gap-2">
+                            <Input
+                              id="discountCode"
+                              value={discountCode}
+                              onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                              placeholder="請輸入折扣代碼"
+                              className="h-12 text-base"
+                              maxLength={10}
+                              disabled={isValidatingCode}
+                            />
                             <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={handleRemoveDiscount}
+                              onClick={handleApplyDiscount}
+                              disabled={isValidatingCode || !discountCode.trim()}
+                              className="shrink-0 h-12 px-6"
+                              size="lg"
                             >
-                              移除
+                              {isValidatingCode ? "驗證中..." : "套用"}
                             </Button>
-                          </CardContent>
-                        </Card>
-                      )}
-                    </div>
+                          </div>
+                        ) : (
+                          <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="bg-primary/20 rounded-full p-2">
+                                  <CheckCircle className="h-5 w-5 text-primary" />
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-base">已套用折扣代碼：{appliedDiscount.code}</p>
+                                  <p className="text-sm text-muted-foreground mt-0.5">
+                                    折扣 {appliedDiscount.type === "percentage" 
+                                      ? `${appliedDiscount.value}%` 
+                                      : `NT$ ${appliedDiscount.value.toLocaleString()}`}
+                                  </p>
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleRemoveDiscount}
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <X className="h-4 w-4 mr-1" />
+                                移除
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
 
-                    <Separator />
+                    {/* 付款方式卡片 */}
+                    <Card className="border-2">
+                      <CardHeader className="pb-4">
+                        <CardTitle className="text-lg font-bold flex items-center gap-2">
+                          <CreditCard className="h-5 w-5 text-primary" />
+                          付款方式
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          請選擇您偏好的付款方式
+                        </p>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {Array.isArray(bookingSettings?.payment_methods) && bookingSettings.payment_methods.length > 0 ? (
+                          bookingSettings.payment_methods.map((method: string) => (
+                            <div
+                              key={method}
+                              className={`cursor-pointer transition-all rounded-lg border-2 p-4 hover:border-primary/50 ${
+                                paymentMethod === method
+                                  ? "border-primary bg-primary/5 shadow-sm"
+                                  : "border-border bg-card"
+                              }`}
+                              onClick={() => setPaymentMethod(method)}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className={`rounded-full p-2 ${
+                                  paymentMethod === method
+                                    ? "bg-primary/20"
+                                    : "bg-muted"
+                                }`}>
+                                  <CreditCard className={`h-5 w-5 ${
+                                    paymentMethod === method
+                                      ? "text-primary"
+                                      : "text-muted-foreground"
+                                  }`} />
+                                </div>
+                                <span className={`font-medium text-base ${
+                                  paymentMethod === method
+                                    ? "text-foreground"
+                                    : "text-foreground/80"
+                                }`}>
+                                  {method}
+                                </span>
+                                {paymentMethod === method && (
+                                  <CheckCircle className="h-5 w-5 text-primary ml-auto" />
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-center py-6 text-muted-foreground">
+                            <p className="text-sm">目前沒有可用的付款方式</p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
 
-                    <div className="space-y-4">
-                      <p className="text-sm text-muted-foreground">
-                        請選擇您的付款方式
-                      </p>
-                      {Array.isArray(bookingSettings?.payment_methods) && bookingSettings.payment_methods.map((method: string) => (
-                        <Card
-                          key={method}
-                          className={`cursor-pointer transition-all hover:shadow-md ${
-                            paymentMethod === method
-                              ? "border-2 border-primary shadow-md"
-                              : "border"
-                          }`}
-                          onClick={() => setPaymentMethod(method)}
-                        >
-                          <CardContent className="p-4 flex items-center gap-3">
-                            <CreditCard className="h-5 w-5 text-primary" />
-                            <span className="font-medium">{method}</span>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
+                    {/* 訂金說明 */}
                     {bookingSettings?.use_deposit && (
-                      <Card className="bg-primary/5 border-primary/20">
-                        <CardContent className="p-4">
-                          <p className="text-sm">
-                            <strong>訂金說明：</strong>
-                            訂房時需支付 {bookingSettings.deposit_percentage}% 訂金，
-                            剩餘款項請於入住當天支付
-                          </p>
-                        </CardContent>
-                      </Card>
+                      <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                        <div className="flex gap-3">
+                          <div className="bg-primary/20 rounded-full p-2 h-fit">
+                            <CreditCard className="h-5 w-5 text-primary" />
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-sm font-semibold text-foreground">
+                              訂金說明
+                            </p>
+                            <p className="text-xs text-muted-foreground leading-relaxed">
+                              訂房時需支付 <span className="font-semibold text-primary">{bookingSettings.deposit_percentage}%</span> 訂金，
+                              剩餘款項請於入住當天支付
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 提示資訊 */}
+                    {paymentMethod && (
+                      <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                        <div className="flex gap-3">
+                          <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium text-foreground">
+                              付款方式已選擇
+                            </p>
+                            <p className="text-xs text-muted-foreground leading-relaxed">
+                              您已選擇「{paymentMethod}」作為付款方式，請確認後繼續下一步
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     )}
                   </div>
                 )}
