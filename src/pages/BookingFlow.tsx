@@ -706,7 +706,7 @@ const BookingFlow = () => {
         const addonNotes = [];
         const nights = calculateNights();
         if (petCount > 0) {
-          addonNotes.push(`毛孩方案 × ${petCount} × ${nights} 晚 (NT$ ${petCount * petPlanSettings.pricePerUnit * nights})`);
+          addonNotes.push(`寵物方案 × ${petCount} × ${nights} 晚 (NT$ ${petCount * petPlanSettings.pricePerUnit * nights})`);
         }
         if (hasBbqMeals) {
           const bbqDetails = Object.entries(bbqMealsByDate)
@@ -717,7 +717,7 @@ const BookingFlow = () => {
             })
             .join('\n');
           const totalBbq = Object.values(bbqMealsByDate).reduce((sum, count) => sum + (count * mealPlanSettings.pricePerUnit), 0);
-          addonNotes.push(`烤肉套餐 (NT$ ${totalBbq}):\n${bbqDetails}`);
+          addonNotes.push(`餐食方案 (NT$ ${totalBbq}):\n${bbqDetails}`);
         }
         const addonText = `\n\n【加購方案】\n${addonNotes.join('\n')}`;
         orderNotes = orderNotes ? orderNotes + addonText : addonText.trim();
@@ -1802,11 +1802,11 @@ const BookingFlow = () => {
                             <div>
                               <p className="text-sm text-muted-foreground mb-2">加購方案</p>
                               {petCount > 0 && (
-                                <p className="font-medium mb-2">🐾 毛孩方案 × {petCount} × {calculateNights()} 晚</p>
+                                <p className="font-medium mb-2">🐾 寵物方案 × {petCount} × {calculateNights()} 晚</p>
                               )}
                               {Object.entries(bbqMealsByDate).filter(([_, count]) => count > 0).length > 0 && (
                                 <div className="space-y-1">
-                                  <p className="font-medium">🍖 烤肉套餐</p>
+                                  <p className="font-medium">🍖 餐食方案</p>
                                   {Object.entries(bbqMealsByDate)
                                     .filter(([_, count]) => count > 0)
                                     .map(([dateStr, count]) => (
@@ -1976,7 +1976,7 @@ const BookingFlow = () => {
                           {petCount > 0 && (
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">
-                                🐾 毛孩方案 × {petCount} × {calculateNights()} 晚
+                                🐾 寵物方案 × {petCount} × {calculateNights()} 晚
                               </span>
                               <span className="font-medium">
                                 NT$ {(petCount * petPlanSettings.pricePerUnit * calculateNights()).toLocaleString()}
@@ -1986,7 +1986,7 @@ const BookingFlow = () => {
                           {Object.entries(bbqMealsByDate).filter(([_, count]) => count > 0).map(([dateStr, count]) => (
                             <div key={dateStr} className="flex justify-between">
                               <span className="text-muted-foreground">
-                                🍖 {format(new Date(dateStr), "MM/dd")} 烤肉套餐 × {count} 人
+                                🍖 {format(new Date(dateStr), "MM/dd")} 餐食方案 × {count} 人
                               </span>
                               <span className="font-medium">
                                 NT$ {(count * mealPlanSettings.pricePerUnit).toLocaleString()}
