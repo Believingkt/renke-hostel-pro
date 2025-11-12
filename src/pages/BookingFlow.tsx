@@ -1409,13 +1409,15 @@ const BookingFlow = () => {
                                           </p>
                                         )}
                                       </div>
-                                      <div className="flex items-center gap-2">
+                                       <div className="flex items-center gap-2">
                                         {currentCount > 0 && (
                                           <button
                                             onClick={() => {
-                                              const newData = { ...bbqMealsByDate };
-                                              delete newData[dateStr];
-                                              setBbqMealsByDate(newData);
+                                              setBbqMealsByDate(prev => {
+                                                const newData = { ...prev };
+                                                delete newData[dateStr];
+                                                return newData;
+                                              });
                                             }}
                                             className="w-8 h-8 rounded-lg text-destructive hover:bg-destructive/10 transition-colors flex items-center justify-center"
                                             title="清除此日期"
@@ -1426,16 +1428,17 @@ const BookingFlow = () => {
                                         <button
                                           onClick={() => {
                                             if (currentCount === 0) {
-                                              // 未選擇時不做任何事
                                               return;
                                             }
                                             const newCount = currentCount - 1;
                                             if (newCount < minCount) {
-                                              const newData = { ...bbqMealsByDate };
-                                              delete newData[dateStr];
-                                              setBbqMealsByDate(newData);
+                                              setBbqMealsByDate(prev => {
+                                                const newData = { ...prev };
+                                                delete newData[dateStr];
+                                                return newData;
+                                              });
                                             } else {
-                                              setBbqMealsByDate({ ...bbqMealsByDate, [dateStr]: newCount });
+                                              setBbqMealsByDate(prev => ({ ...prev, [dateStr]: newCount }));
                                             }
                                           }}
                                           disabled={currentCount === 0}
@@ -1447,7 +1450,7 @@ const BookingFlow = () => {
                                         <button
                                           onClick={() => {
                                             const newCount = currentCount === 0 ? minCount : Math.min(maxCount, currentCount + 1);
-                                            setBbqMealsByDate({ ...bbqMealsByDate, [dateStr]: newCount });
+                                            setBbqMealsByDate(prev => ({ ...prev, [dateStr]: newCount }));
                                           }}
                                           disabled={currentCount >= maxCount}
                                           className="w-8 h-8 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium disabled:opacity-50 disabled:cursor-not-allowed"
