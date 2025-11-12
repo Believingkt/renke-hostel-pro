@@ -416,7 +416,8 @@ const BookingFlow = () => {
   };
 
   const calculateAddonsTotal = () => {
-    return (petCount * 600) + (bbqMealCount * 900);
+    const nights = calculateNights();
+    return (petCount * 600 * nights) + (bbqMealCount * 900);
   };
 
   const calculateFinalTotal = () => {
@@ -592,8 +593,9 @@ const BookingFlow = () => {
       let orderNotes = guestInfo.notes || "";
       if (petCount > 0 || bbqMealCount > 0) {
         const addonNotes = [];
+        const nights = calculateNights();
         if (petCount > 0) {
-          addonNotes.push(`毛孩方案 × ${petCount} (NT$ ${petCount * 600})`);
+          addonNotes.push(`毛孩方案 × ${petCount} × ${nights} 晚 (NT$ ${petCount * 600 * nights})`);
         }
         if (bbqMealCount > 0) {
           addonNotes.push(`烤肉套餐 × ${bbqMealCount} 人 (NT$ ${bbqMealCount * 900})`);
@@ -1189,7 +1191,7 @@ const BookingFlow = () => {
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="font-medium">攜帶寵物</p>
-                            <p className="text-sm text-muted-foreground">每隻 NT$ 600 / 住宿期間</p>
+                            <p className="text-sm text-muted-foreground">每隻 NT$ 600 / 每晚</p>
                             <p className="text-xs text-muted-foreground mt-1">上限 2 隻</p>
                           </div>
                           <div className="flex items-center gap-3">
@@ -1213,7 +1215,8 @@ const BookingFlow = () => {
                         {petCount > 0 && (
                           <div className="bg-primary/5 p-3 rounded-lg">
                             <p className="text-sm font-medium">
-                              小計：NT$ {(petCount * 600).toLocaleString()}
+                              小計：NT$ {(petCount * 600 * calculateNights()).toLocaleString()}
+                              {checkInDate && checkOutDate && ` (${calculateNights()} 晚)`}
                             </p>
                           </div>
                         )}
@@ -1270,8 +1273,8 @@ const BookingFlow = () => {
                             <p className="text-sm font-semibold">加購方案總計</p>
                             {petCount > 0 && (
                               <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">毛孩方案 × {petCount}</span>
-                                <span>NT$ {(petCount * 600).toLocaleString()}</span>
+                                <span className="text-muted-foreground">毛孩方案 × {petCount} × {calculateNights()} 晚</span>
+                                <span>NT$ {(petCount * 600 * calculateNights()).toLocaleString()}</span>
                               </div>
                             )}
                             {bbqMealCount > 0 && (
@@ -1283,7 +1286,7 @@ const BookingFlow = () => {
                             <Separator />
                             <div className="flex justify-between font-semibold text-base">
                               <span>加購小計</span>
-                              <span className="text-primary">NT$ {((petCount * 600) + (bbqMealCount * 900)).toLocaleString()}</span>
+                              <span className="text-primary">NT$ {((petCount * 600 * calculateNights()) + (bbqMealCount * 900)).toLocaleString()}</span>
                             </div>
                           </div>
                         </CardContent>
@@ -1681,10 +1684,10 @@ const BookingFlow = () => {
                           {petCount > 0 && (
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">
-                                🐾 毛孩方案 × {petCount}
+                                🐾 毛孩方案 × {petCount} × {calculateNights()} 晚
                               </span>
                               <span className="font-medium">
-                                NT$ {(petCount * 600).toLocaleString()}
+                                NT$ {(petCount * 600 * calculateNights()).toLocaleString()}
                               </span>
                             </div>
                           )}
@@ -1817,7 +1820,7 @@ const BookingFlow = () => {
           <div className="space-y-6">
             <div>
               <h2 className="text-2xl font-bold mb-2">🐾 毛孩方案</h2>
-              <p className="text-lg text-primary font-semibold">每隻 NT$ 600 / 住宿期間</p>
+              <p className="text-lg text-primary font-semibold">每隻 NT$ 600 / 每晚</p>
             </div>
 
             <Separator />
