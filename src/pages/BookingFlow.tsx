@@ -148,6 +148,22 @@ const BookingFlow = () => {
   const [isBbqDetailsDialogOpen, setIsBbqDetailsDialogOpen] = useState(false);
   const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
   
+  // 加購方案設定
+  const [petPlanSettings, setPetPlanSettings] = useState({
+    enabled: true,
+    pricePerUnit: 600,
+    maxQuantity: 2,
+    detailedDescription: ""
+  });
+  const [mealPlanSettings, setMealPlanSettings] = useState({
+    enabled: true,
+    pricePerUnit: 900,
+    weekdayMinQuantity: 12,
+    weekendMinQuantity: 18,
+    maxQuantity: 30,
+    detailedDescription: ""
+  });
+  
   // 將 context 日期轉換為字串格式，並提供預設值
   const checkInDateStr = checkInDate ? format(checkInDate, "yyyy-MM-dd") : "";
   const checkOutDateStr = checkOutDate ? format(checkOutDate, "yyyy-MM-dd") : "";
@@ -176,6 +192,37 @@ const BookingFlow = () => {
         
         if (settingsData) {
           setBookingSettings(settingsData);
+        }
+
+        // 載入加購方案設定
+        const { data: addonData } = await supabase
+          .from("addon_settings")
+          .select("*")
+          .eq("accommodation_id", accommodationId);
+
+        if (addonData) {
+          const petData = addonData.find(a => a.addon_type === 'pet');
+          const mealData = addonData.find(a => a.addon_type === 'meal');
+
+          if (petData) {
+            setPetPlanSettings({
+              enabled: petData.enabled || false,
+              pricePerUnit: petData.price_per_unit,
+              maxQuantity: petData.max_quantity,
+              detailedDescription: petData.detailed_description || ""
+            });
+          }
+
+          if (mealData) {
+            setMealPlanSettings({
+              enabled: mealData.enabled || false,
+              pricePerUnit: mealData.price_per_unit,
+              weekdayMinQuantity: mealData.weekday_min_quantity || 12,
+              weekendMinQuantity: mealData.weekend_min_quantity || 18,
+              maxQuantity: mealData.max_quantity,
+              detailedDescription: mealData.detailed_description || ""
+            });
+          }
         }
 
         // 獲取房型資料，包括照片和設施
@@ -464,8 +511,8 @@ const BookingFlow = () => {
 
   const calculateAddonsTotal = () => {
     const nights = calculateNights();
-    const bbqTotal = Object.values(bbqMealsByDate).reduce((sum, count) => sum + (count * 900), 0);
-    return (petCount * 600 * nights) + bbqTotal;
+    const bbqTotal = Object.values(bbqMealsByDate).reduce((sum, count) => sum + (count * mealPlanSettings.pricePerUnit), 0);
+    return (petCount * petPlanSettings.pricePerUnit * nights) + bbqTotal;
   };
 
   const calculateFinalTotal = () => {
@@ -657,17 +704,17 @@ const BookingFlow = () => {
         const addonNotes = [];
         const nights = calculateNights();
         if (petCount > 0) {
-          addonNotes.push(`毛孩方案 × ${petCount} × ${nights} 晚 (NT$ ${petCount * 600 * nights})`);
+          addonNotes.push(`毛孩方案 × ${petCount} × ${nights} 晚 (NT$ ${petCount * petPlanSettings.pricePerUnit * nights})`);
         }
         if (hasBbqMeals) {
           const bbqDetails = Object.entries(bbqMealsByDate)
             .filter(([_, count]) => count > 0)
             .map(([dateStr, count]) => {
               const dateFormatted = format(new Date(dateStr), "MM/dd", { locale: zhTW });
-              return `  - ${dateFormatted}: ${count} 人 (NT$ ${count * 900})`;
+              return `  - ${dateFormatted}: ${count} 人 (NT$ ${count * mealPlanSettings.pricePerUnit})`;
             })
             .join('\n');
-          const totalBbq = Object.values(bbqMealsByDate).reduce((sum, count) => sum + (count * 900), 0);
+          const totalBbq = Object.values(bbqMealsByDate).reduce((sum, count) => sum + (count * mealPlanSettings.pricePerUnit), 0);
           addonNotes.push(`烤肉套餐 (NT$ ${totalBbq}):\n${bbqDetails}`);
         }
         const addonText = `\n\n【加購方案】\n${addonNotes.join('\n')}`;
@@ -1241,6 +1288,7 @@ const BookingFlow = () => {
                 {currentStep === "addons" && (
                   <div className="space-y-6">
                     {/* 毛孩方案 */}
+                    {petPlanSettings.enabled && (
                     <Card>
                       <CardHeader>
                         <div className="flex items-center justify-between">
@@ -1269,16 +1317,16 @@ const BookingFlow = () => {
                               <ShoppingBag className="mr-2 h-4 w-4" />
                               加購寵物方案
                             </Button>
-                            <p className="text-sm text-muted-foreground mt-3">每隻 NT$ 600 / 每晚，上限 2 隻</p>
+                            <p className="text-sm text-muted-foreground mt-3">每隻 NT$ {petPlanSettings.pricePerUnit} / 每晚，上限 {petPlanSettings.maxQuantity} 隻</p>
                           </div>
                         ) : (
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="font-medium">攜帶寵物</p>
-                                <p className="text-sm text-muted-foreground">每隻 NT$ 600 / 每晚</p>
-                                <p className="text-xs text-muted-foreground mt-1">上限 2 隻</p>
-                              </div>
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="font-medium">攜帶寵物</p>
+                                  <p className="text-sm text-muted-foreground">每隻 NT$ {petPlanSettings.pricePerUnit} / 每晚</p>
+                                  <p className="text-xs text-muted-foreground mt-1">上限 {petPlanSettings.maxQuantity} 隻</p>
+                                </div>
                               <Button
                                 onClick={() => setPetCount(0)}
                                 variant="ghost"
@@ -1299,8 +1347,8 @@ const BookingFlow = () => {
                               </button>
                               <span className="w-8 text-center font-medium text-lg">{petCount}</span>
                               <button
-                                onClick={() => setPetCount(Math.min(2, petCount + 1))}
-                                disabled={petCount >= 2}
+                                onClick={() => setPetCount(Math.min(petPlanSettings.maxQuantity, petCount + 1))}
+                                disabled={petCount >= petPlanSettings.maxQuantity}
                                 className="w-10 h-10 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                               >
                                 +
@@ -1311,15 +1359,17 @@ const BookingFlow = () => {
                         {petCount > 0 && (
                           <div className="bg-primary/5 p-3 rounded-lg">
                             <p className="text-sm font-medium">
-                              小計：NT$ {(petCount * 600 * calculateNights()).toLocaleString()}
+                              小計：NT$ {(petCount * petPlanSettings.pricePerUnit * calculateNights()).toLocaleString()}
                               {checkInDate && checkOutDate && ` (${calculateNights()} 晚)`}
                             </p>
                           </div>
                         )}
                       </CardContent>
                     </Card>
+                    )}
 
                     {/* 烤肉套餐加購 */}
+                    {mealPlanSettings.enabled && (
                     <Card>
                       <CardHeader>
                         <div className="flex items-center justify-between">
@@ -1341,14 +1391,14 @@ const BookingFlow = () => {
                           <div className="text-center py-4">
                             <Button
                               onClick={() => {
-                                const dates = getStayDates();
+                                  const dates = getStayDates();
                                 if (dates.length > 0) {
                                   // 為所有住宿日期添加餐食方案
                                   const newBbqMeals: Record<string, number> = {};
                                   dates.forEach(dateStr => {
                                     const date = new Date(dateStr);
                                     const isWeekendDate = isWeekend(date);
-                                    const minCount = isWeekendDate ? 18 : 12;
+                                    const minCount = isWeekendDate ? mealPlanSettings.weekendMinQuantity : mealPlanSettings.weekdayMinQuantity;
                                     newBbqMeals[dateStr] = minCount;
                                   });
                                   setBbqMealsByDate(newBbqMeals);
@@ -1362,16 +1412,16 @@ const BookingFlow = () => {
                               <ShoppingBag className="mr-2 h-4 w-4" />
                               加購餐食方案
                             </Button>
-                            <p className="text-sm text-muted-foreground mt-3">每人 NT$ 900 / 每日</p>
-                            <p className="text-xs text-muted-foreground">基本人數（平日12人，假日18人），上限30人</p>
+                            <p className="text-sm text-muted-foreground mt-3">每人 NT$ {mealPlanSettings.pricePerUnit} / 每日</p>
+                            <p className="text-xs text-muted-foreground">基本人數（平日{mealPlanSettings.weekdayMinQuantity}人，假日{mealPlanSettings.weekendMinQuantity}人），上限{mealPlanSettings.maxQuantity}人</p>
                           </div>
                         ) : (
                           <div className="space-y-4">
                             <div className="flex items-center justify-between">
                               <div>
                                 <p className="font-medium">餐食方案</p>
-                                <p className="text-sm text-muted-foreground">每人 NT$ 900 / 每日</p>
-                                <p className="text-xs text-muted-foreground mt-1">基本人數（平日12人，假日18人），上限30人</p>
+                                <p className="text-sm text-muted-foreground">每人 NT$ {mealPlanSettings.pricePerUnit} / 每日</p>
+                                <p className="text-xs text-muted-foreground mt-1">基本人數（平日{mealPlanSettings.weekdayMinQuantity}人，假日{mealPlanSettings.weekendMinQuantity}人），上限{mealPlanSettings.maxQuantity}人</p>
                               </div>
                               <Button
                                 onClick={() => {
@@ -1397,8 +1447,8 @@ const BookingFlow = () => {
                                   const date = new Date(dateStr);
                                   const currentCount = bbqMealsByDate[dateStr] || 0;
                                   const isWeekendDate = isWeekend(date);
-                                  const minCount = isWeekendDate ? 18 : 12;
-                                  const maxCount = 30;
+                                  const minCount = isWeekendDate ? mealPlanSettings.weekendMinQuantity : mealPlanSettings.weekdayMinQuantity;
+                                  const maxCount = mealPlanSettings.maxQuantity;
                                   
                                   return (
                                     <div
@@ -1412,7 +1462,7 @@ const BookingFlow = () => {
                                         </Label>
                                         {currentCount > 0 ? (
                                           <p className="text-xs text-muted-foreground mt-1">
-                                            NT$ {(currentCount * 900).toLocaleString()}
+                                            NT$ {(currentCount * mealPlanSettings.pricePerUnit).toLocaleString()}
                                           </p>
                                         ) : (
                                           <p className="text-xs text-muted-foreground mt-1">
@@ -1477,7 +1527,7 @@ const BookingFlow = () => {
                         {Object.values(bbqMealsByDate).some(count => count > 0) && (
                           <div className="bg-primary/5 p-3 rounded-lg">
                             <p className="text-sm font-medium">
-                              小計：NT$ {Object.values(bbqMealsByDate).reduce((sum, count) => sum + (count * 900), 0).toLocaleString()}
+                              小計：NT$ {Object.values(bbqMealsByDate).reduce((sum, count) => sum + (count * mealPlanSettings.pricePerUnit), 0).toLocaleString()}
                               <span className="text-muted-foreground ml-2">
                                 ({Object.keys(bbqMealsByDate).length} 天)
                               </span>
@@ -1486,9 +1536,10 @@ const BookingFlow = () => {
                         )}
                       </CardContent>
                     </Card>
+                    )}
 
                     {/* 加購總計 */}
-                    {(petCount > 0 || Object.values(bbqMealsByDate).some(count => count > 0)) && (
+                    {((petPlanSettings.enabled && petCount > 0) || (mealPlanSettings.enabled && Object.values(bbqMealsByDate).some(count => count > 0))) && (
                       <Card className="bg-muted/50 border-primary/20">
                         <CardContent className="p-4">
                           <div className="space-y-2">
@@ -1498,7 +1549,7 @@ const BookingFlow = () => {
                                 <span className="text-muted-foreground">
                                   🐾 寵物方案 × {petCount} × {calculateNights()} 晚
                                 </span>
-                                <span>NT$ {(petCount * 600 * calculateNights()).toLocaleString()}</span>
+                                <span>NT$ {(petCount * petPlanSettings.pricePerUnit * calculateNights()).toLocaleString()}</span>
                               </div>
                             )}
                             {Object.entries(bbqMealsByDate).filter(([_, count]) => count > 0).map(([dateStr, count]) => (
@@ -1506,7 +1557,7 @@ const BookingFlow = () => {
                                 <span className="text-muted-foreground">
                                   🍖 {format(new Date(dateStr), "MM/dd")} 餐食方案 × {count} 人
                                 </span>
-                                <span>NT$ {(count * 900).toLocaleString()}</span>
+                                <span>NT$ {(count * mealPlanSettings.pricePerUnit).toLocaleString()}</span>
                               </div>
                             ))}
                             <Separator />
@@ -1923,7 +1974,7 @@ const BookingFlow = () => {
                                 🐾 毛孩方案 × {petCount} × {calculateNights()} 晚
                               </span>
                               <span className="font-medium">
-                                NT$ {(petCount * 600 * calculateNights()).toLocaleString()}
+                                NT$ {(petCount * petPlanSettings.pricePerUnit * calculateNights()).toLocaleString()}
                               </span>
                             </div>
                           )}
@@ -1933,7 +1984,7 @@ const BookingFlow = () => {
                                 🍖 {format(new Date(dateStr), "MM/dd")} 烤肉套餐 × {count} 人
                               </span>
                               <span className="font-medium">
-                                NT$ {(count * 900).toLocaleString()}
+                                NT$ {(count * mealPlanSettings.pricePerUnit).toLocaleString()}
                               </span>
                             </div>
                           ))}
@@ -2056,108 +2107,30 @@ const BookingFlow = () => {
           <div className="space-y-6">
             <div>
               <h2 className="text-2xl font-bold mb-2">🐾 毛孩方案</h2>
-              <p className="text-lg text-primary font-semibold">每隻 NT$ 600 / 每晚</p>
+              <p className="text-lg text-primary font-semibold">每隻 NT$ {petPlanSettings.pricePerUnit} / 每晚</p>
             </div>
 
             <Separator />
 
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold">寵物入住守則</h3>
-              
-              <div className="space-y-3 text-sm leading-relaxed">
-                <p>僅開放毛孩進入指定之 2 棟 Villa 及公共區域。請於訂房時選擇加購毛孩方案。</p>
-                
-                <p>毛孩於辦理入住時，預先支付現金 2,000 元押金，退房確認房內各項設備正常後歸還。</p>
-
-                <div className="bg-primary/5 p-4 rounded-lg">
-                  <h4 className="font-semibold mb-2">寵物專屬備品：</h4>
-                  <p>園區提供寵物餐碗、寵物行軍床、寵物零食。</p>
-                </div>
-
-                <div className="bg-destructive/10 p-4 rounded-lg border border-destructive/20">
-                  <p className="font-semibold text-destructive">
-                    若違反下述規範，家長則須支付 5,000 元罰金。
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <Separator />
-
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold">毛孩守則</h3>
-              
-              <ul className="space-y-3 text-sm leading-relaxed list-none">
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold min-w-[1.5rem]">•</span>
-                  <span>接待寵物以犬、貓為主，其他寵物請與我們聯繫確認。</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold min-w-[1.5rem]">•</span>
-                  <span>本園區因地理環境良好，會有野生動物出沒，如:獼猴、山豬、山羌，如出現需保持冷靜並盡速隔離毛孩。</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold min-w-[1.5rem]">•</span>
-                  <span>入住前請先將毛孩洗澡與除蚤完成，保護毛孩請施打完成狂犬病疫苗 (於入住時出示接種證明)。</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold min-w-[1.5rem]">•</span>
-                  <span>天性較有攻擊性的犬種暫不接待，如:比特犬、藏獒、日本土佐犬、紐波利頓犬、阿根廷杜告犬、巴西菲勒犬等。</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold min-w-[1.5rem]">•</span>
-                  <span>若毛孩出現攻擊行為、連續吠叫，且家長無法即時制止，森山寫照有權不接待並不予退費。</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold min-w-[1.5rem]">•</span>
-                  <span>毛孩於園區內及廁所大小便後請立即清理，共同維護毛孩貴賓擁有舒適的環境。</span>
-                </li>
-              </ul>
-            </div>
-
-            <Separator />
-
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold">Villa 及公共交誼區公約</h3>
-              
-              <ul className="space-y-3 text-sm leading-relaxed list-none">
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold min-w-[1.5rem]">•</span>
-                  <span>狗狗貓貓請於專屬軟墊休息，不與家長同床。</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold min-w-[1.5rem]">•</span>
-                  <span>住宿內部空間有限僅入住兩隻中小型犬種，若為大型犬建議一隻為上限。</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold min-w-[1.5rem]">•</span>
-                  <span>房內不開放毛孩洗澡、不吹毛及梳毛，進房前務必擦腳。</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold min-w-[1.5rem]">•</span>
-                  <span>攜帶毛孩入住，確認毛孩的指甲不過長，防止毛孩的抓傷設施行為。</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold min-w-[1.5rem]">•</span>
-                  <span>禁止單獨留毛孩於公共交誼區或房內。</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold min-w-[1.5rem]">•</span>
-                  <span>進入園區後，須繫上牽繩、推車或運輸籠。</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold min-w-[1.5rem]">•</span>
-                  <span>目前不提供毛孩餐食，須請家長攜帶毛孩最愛的食物。</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold min-w-[1.5rem]">•</span>
-                  <span>若毛孩之間打架受傷以及毛孩咬傷旅客或他人毛孩，請雙方互相自行處理協調，由家長負擔相關責任，毛孩之行為由家長全權負責。</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold min-w-[1.5rem]">•</span>
-                  <span>若毛孩造成房內設施毀損髒汙，或造成攻擊行為導致人員受傷或有違本住宿公約之約定，家長必須負擔後續相關賠償責任。</span>
-                </li>
-              </ul>
+            <div className="space-y-4 text-sm leading-relaxed whitespace-pre-wrap">
+              {petPlanSettings.detailedDescription || (
+                <>
+                  <h3 className="text-xl font-semibold">寵物入住守則</h3>
+                  <div className="space-y-3 text-sm leading-relaxed">
+                    <p>僅開放毛孩進入指定之 2 棟 Villa 及公共區域。請於訂房時選擇加購毛孩方案。</p>
+                    <p>毛孩於辦理入住時，預先支付現金 2,000 元押金，退房確認房內各項設備正常後歸還。</p>
+                    <div className="bg-primary/5 p-4 rounded-lg">
+                      <h4 className="font-semibold mb-2">寵物專屬備品：</h4>
+                      <p>園區提供寵物餐碗、寵物行軍床、寵物零食。</p>
+                    </div>
+                    <div className="bg-destructive/10 p-4 rounded-lg border border-destructive/20">
+                      <p className="font-semibold text-destructive">
+                        若違反下述規範，家長則須支付 5,000 元罰金。
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="flex justify-end pt-4">
@@ -2174,123 +2147,34 @@ const BookingFlow = () => {
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold mb-2">🍖 餐食加購</h2>
-              <p className="text-lg text-muted-foreground font-semibold mb-1">森山寫照 X 燃甄 RAN RAN</p>
-              <p className="text-xl font-bold text-primary">炭火饗之夜 Evening Dining Set</p>
-              <p className="text-lg text-primary font-semibold mt-2">專屬晚宴方案 $900／位</p>
+              <h2 className="text-2xl font-bold mb-2">🍖 餐食方案</h2>
+              <p className="text-lg text-primary font-semibold">每人 NT$ {mealPlanSettings.pricePerUnit} / 每日</p>
             </div>
 
             <Separator />
 
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold">菜單內容</h3>
-              
-              <ul className="space-y-2 text-sm leading-relaxed list-none">
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold">•</span>
-                  <span>醬燒豬里肌肉</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold">•</span>
-                  <span>炭烤古早味香腸</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold">•</span>
-                  <span>燃鹽鹹豬肉</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold">•</span>
-                  <span>鮮嫩爆汁去骨雞腿排</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold">•</span>
-                  <span>美國Prime骰子牛肋條</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold">•</span>
-                  <span>燃鹽烤時令鮮蝦</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold">•</span>
-                  <span>鹽烤鯖魚</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold">•</span>
-                  <span>鹽烤挪威鱈魚</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold">•</span>
-                  <span>古早味豆干</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold">•</span>
-                  <span>米血糕</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold">•</span>
-                  <span>花枝丸</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold">•</span>
-                  <span>炭烤古早味糯米腸</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold">•</span>
-                  <span>炭烤手工夾燒羅</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold">•</span>
-                  <span>燃鹽獨家烤豆包</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold">•</span>
-                  <span>季節時蔬組合（依市場／季節彈性調整）</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold">•</span>
-                  <span>彩椒、杏鮑菇</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold">•</span>
-                  <span>蘆筍、玉米筍</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold">•</span>
-                  <span>香菇、櫛瓜</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold">•</span>
-                  <span>韓式泡菜</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold">•</span>
-                  <span>美味鮮奶可口餐包</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold">•</span>
-                  <span>蛤蜊味噌湯</span>
-                </li>
-              </ul>
-            </div>
-
-            <Separator />
-
-            <div className="bg-muted/50 p-4 rounded-lg">
-              <h3 className="text-lg font-semibold mb-3">📋 注意事項</h3>
-              <ul className="space-y-2 text-sm leading-relaxed list-none">
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold">•</span>
-                  <span>平日下限12人，假日下限18人，上限30人</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold">•</span>
-                  <span>需於訂房時預約，現場恕不接受臨時加購</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-primary font-semibold">•</span>
-                  <span>菜單內容可能因季節及市場供應而有所調整</span>
-                </li>
-              </ul>
+            <div className="space-y-4 text-sm leading-relaxed whitespace-pre-wrap">
+              {mealPlanSettings.detailedDescription || (
+                <>
+                  <div>
+                    <p className="text-lg text-muted-foreground font-semibold mb-1">森山寫照 X 燃甄 RAN RAN</p>
+                    <p className="text-xl font-bold text-primary">炭火饗之夜 Evening Dining Set</p>
+                  </div>
+                  <div className="bg-muted/50 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold mb-3">📋 注意事項</h3>
+                    <ul className="space-y-2 text-sm leading-relaxed list-none">
+                      <li className="flex gap-2">
+                        <span className="text-primary font-semibold">•</span>
+                        <span>平日下限{mealPlanSettings.weekdayMinQuantity}人，假日下限{mealPlanSettings.weekendMinQuantity}人，上限{mealPlanSettings.maxQuantity}人</span>
+                      </li>
+                      <li className="flex gap-2">
+                        <span className="text-primary font-semibold">•</span>
+                        <span>需於訂房時預約，現場恕不接受臨時加購</span>
+                      </li>
+                    </ul>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="flex justify-end pt-4">
