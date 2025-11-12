@@ -90,7 +90,7 @@ interface BookingSettings {
   payment_methods: any;
 }
 
-type BookingStep = "room" | "dates" | "guest" | "payment" | "confirm";
+type BookingStep = "dates" | "room" | "guest" | "payment" | "confirm";
 
 const BookingFlow = () => {
   const navigate = useNavigate();
@@ -105,7 +105,7 @@ const BookingFlow = () => {
     guests: contextGuests = { adults: 2, children: 0 }
   } = useAccommodation();
   
-  const [currentStep, setCurrentStep] = useState<BookingStep>("room");
+  const [currentStep, setCurrentStep] = useState<BookingStep>("dates"); // 改為先選日期
   const [bookingSettings, setBookingSettings] = useState<BookingSettings | null>(null);
   const [accommodationName, setAccommodationName] = useState("森山寫照");
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
@@ -237,10 +237,11 @@ const BookingFlow = () => {
       if (room) {
         setSelectedRoom(room);
         // 如果有指定 step 參數且為有效步驟，則使用該步驟
-        if (step && ["room", "dates", "guest", "payment", "confirm"].includes(step)) {
+        if (step && ["dates", "room", "guest", "payment", "confirm"].includes(step)) {
           setCurrentStep(step as BookingStep);
         } else {
-          setCurrentStep("dates");
+          // 從房型頁面跳轉，已選擇房型，跳到填寫資訊步驟
+          setCurrentStep("guest");
         }
       }
     }
@@ -440,15 +441,6 @@ const BookingFlow = () => {
 
   const handleNextStep = () => {
     // 驗證當前步驟
-    if (currentStep === "room" && !selectedRoom) {
-      toast({
-        title: "請選擇房型",
-        description: "請先選擇一個房型以繼續",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     if (currentStep === "dates") {
       if (!checkInDateStr || !checkOutDateStr) {
         toast({
@@ -466,24 +458,15 @@ const BookingFlow = () => {
         });
         return;
       }
-      
-      // 驗證選擇的房型是否適用於選擇的日期
-      if (selectedRoom) {
-        const availableRooms = getAvailableRooms();
-        const isRoomAvailable = availableRooms.some(room => room.id === selectedRoom.id);
-        
-        if (!isRoomAvailable) {
-          setSelectedRoom(null);
-          toast({
-            title: "房型不適用",
-            description: "您選擇的房型在此日期範圍內無法預訂，請重新選擇房型",
-            variant: "destructive",
-          });
-          // 返回房型選擇步驟
-          setCurrentStep("room");
-          return;
-        }
-      }
+    }
+    
+    if (currentStep === "room" && !selectedRoom) {
+      toast({
+        title: "請選擇房型",
+        description: "請先選擇一個房型以繼續",
+        variant: "destructive",
+      });
+      return;
     }
 
     if (currentStep === "guest") {
@@ -520,7 +503,7 @@ const BookingFlow = () => {
     }
 
     // 切換到下一步
-    const steps: BookingStep[] = ["room", "dates", "guest", "payment", "confirm"];
+    const steps: BookingStep[] = ["dates", "room", "guest", "payment", "confirm"];
     const currentIndex = steps.indexOf(currentStep);
     if (currentIndex < steps.length - 1) {
       setCurrentStep(steps[currentIndex + 1]);
@@ -528,7 +511,7 @@ const BookingFlow = () => {
   };
 
   const handlePrevStep = () => {
-    const steps: BookingStep[] = ["room", "dates", "guest", "payment", "confirm"];
+    const steps: BookingStep[] = ["dates", "room", "guest", "payment", "confirm"];
     const currentIndex = steps.indexOf(currentStep);
     if (currentIndex > 0) {
       setCurrentStep(steps[currentIndex - 1]);
@@ -677,8 +660,8 @@ const BookingFlow = () => {
   }
 
   const stepIndicators = [
-    { key: "room", label: "選擇房型", icon: Home },
     { key: "dates", label: "選擇日期", icon: Calendar },
+    { key: "room", label: "選擇房型", icon: Home },
     { key: "guest", label: "填寫資訊", icon: User },
     { key: "payment", label: "付款方式", icon: CreditCard },
     { key: "confirm", label: "確認訂單", icon: CheckCircle },
@@ -1308,7 +1291,7 @@ const BookingFlow = () => {
 
             {/* Navigation Buttons */}
             <div className="flex gap-4 mt-6">
-              {currentStep !== "room" && (
+              {currentStep !== "dates" && (
                 <Button
                   variant="outline"
                   onClick={handlePrevStep}
