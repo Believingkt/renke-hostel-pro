@@ -738,12 +738,69 @@ const BookingFlow = () => {
       
       const mealPlanTotalPrice = mealPlanDetailsData.reduce((sum, detail) => sum + detail.price, 0);
 
+      // 處理客戶資料（創建或更新）
+      let customerId: string | null = null;
+      try {
+        // 先查詢是否已有此客戶（使用 email 或 phone）
+        const { data: existingCustomer } = await supabase
+          .from("customers")
+          .select("id, visit_count")
+          .eq("accommodation_id", accommodationId)
+          .or(`email.eq.${guestInfo.email || ''},phone.eq.${guestInfo.phone}`)
+          .maybeSingle();
+
+        if (existingCustomer) {
+          // 更新現有客戶資料
+          const { data: updatedCustomer, error: updateError } = await supabase
+            .from("customers")
+            .update({
+              name: guestInfo.name,
+              phone: guestInfo.phone,
+              email: guestInfo.email || null,
+              visit_count: (existingCustomer.visit_count || 0) + 1,
+            })
+            .eq("id", existingCustomer.id)
+            .select()
+            .single();
+
+          if (updateError) {
+            console.error("更新客戶資料錯誤:", updateError);
+          } else {
+            customerId = updatedCustomer.id;
+          }
+        } else {
+          // 創建新客戶
+          const { data: newCustomer, error: createError } = await supabase
+            .from("customers")
+            .insert([{
+              accommodation_id: accommodationId,
+              name: guestInfo.name,
+              phone: guestInfo.phone,
+              email: guestInfo.email || null,
+              first_order_date: checkInDateStr,
+              visit_count: 1,
+            }])
+            .select()
+            .single();
+
+          if (createError) {
+            console.error("創建客戶資料錯誤:", createError);
+          } else {
+            customerId = newCustomer.id;
+          }
+        }
+      } catch (error) {
+        console.error("處理客戶資料時發生錯誤:", error);
+        // 繼續創建訂單，即使客戶資料處理失敗
+      }
+
       // 建立訂單
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .insert([{
           accommodation_id: accommodationId,
           room_type_id: selectedRoom.id,
+          customer_id: customerId,
           order_number: "", // 由資料庫 trigger 自動生成
           guest_name: guestInfo.name,
           guest_phone: guestInfo.phone,
