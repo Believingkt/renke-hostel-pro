@@ -285,13 +285,13 @@ const BookingFlow = () => {
     }
   }, [checkInDate, checkOutDate, selectedMealPlan]);
 
-  // 當在選擇房型步驟且只有一個可用房型時，自動預選
+  // 當在選擇房型步驟時，自動預選第一個可用房型
   useEffect(() => {
-    if (currentStep === "room" && checkInDate && checkOutDate) {
+    if (currentStep === "room" && checkInDate && checkOutDate && !selectedRoom) {
       const availableRooms = getAvailableRooms();
       
-      // 如果只有一個可用房型且尚未選擇房型，自動預選
-      if (availableRooms.length === 1 && !selectedRoom) {
+      // 如果有可用房型且尚未選擇房型，自動預選第一個
+      if (availableRooms.length > 0) {
         setSelectedRoom(availableRooms[0]);
       }
     }
