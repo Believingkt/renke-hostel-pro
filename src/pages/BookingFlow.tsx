@@ -1244,7 +1244,7 @@ const BookingFlow = () => {
                       <CardHeader>
                         <div className="flex items-center justify-between">
                           <CardTitle className="text-lg flex items-center gap-2">
-                            🐾 毛孩方案
+                            🐾 寵物方案
                           </CardTitle>
                           <Button
                             variant="ghost"
@@ -1266,7 +1266,7 @@ const BookingFlow = () => {
                               className="w-full"
                             >
                               <ShoppingBag className="mr-2 h-4 w-4" />
-                              加購毛孩方案
+                              加購寵物方案
                             </Button>
                             <p className="text-sm text-muted-foreground mt-3">每隻 NT$ 600 / 每晚，上限 2 隻</p>
                           </div>
@@ -1303,7 +1303,7 @@ const BookingFlow = () => {
                               className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
                             >
                               <X className="mr-2 h-4 w-4" />
-                              清除毛孩方案
+                              清除寵物方案
                             </Button>
                           </>
                         )}
@@ -1323,7 +1323,7 @@ const BookingFlow = () => {
                       <CardHeader>
                         <div className="flex items-center justify-between">
                           <CardTitle className="text-lg flex items-center gap-2">
-                            🍖 烤肉套餐
+                            🍖 餐食方案
                           </CardTitle>
                           <Button
                             variant="ghost"
@@ -1354,7 +1354,7 @@ const BookingFlow = () => {
                               className="w-full"
                             >
                               <ShoppingBag className="mr-2 h-4 w-4" />
-                              加購烤肉套餐
+                              加購餐食方案
                             </Button>
                             <p className="text-sm text-muted-foreground mt-3">每人 NT$ 900 / 每日</p>
                             <p className="text-xs text-muted-foreground">基本人數（平日12人，假日18人），上限30人</p>
@@ -1363,7 +1363,7 @@ const BookingFlow = () => {
                           <div className="space-y-4">
                             <div className="flex items-center justify-between">
                               <div>
-                                <p className="font-medium">烤肉套餐</p>
+                                <p className="font-medium">餐食方案</p>
                                 <p className="text-sm text-muted-foreground">每人 NT$ 900 / 每日</p>
                                 <p className="text-xs text-muted-foreground mt-1">基本人數（平日12人，假日18人），上限30人</p>
                               </div>
