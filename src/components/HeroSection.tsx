@@ -8,10 +8,11 @@ import Autoplay from "embla-carousel-autoplay";
 import { Calendar as CalendarIcon, Users, Search } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
+import { format, isSaturday } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useAccommodation } from "@/contexts/AccommodationContext";
+import { supabase } from "@/integrations/supabase/client";
 import heroSlide1 from "@/assets/hero-slide-1.jpg";
 import heroSlide2 from "@/assets/hero-slide-2.jpg";
 import heroSlide3 from "@/assets/hero-slide-3.jpg";
@@ -33,6 +34,41 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
   const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set([0]));
   const [isCheckInDateOpen, setIsCheckInDateOpen] = useState(false);
   const [isCheckOutDateOpen, setIsCheckOutDateOpen] = useState(false);
+  const [publicHolidays, setPublicHolidays] = useState<Date[]>([]);
+
+  // 載入國定假日
+  useEffect(() => {
+    const loadPublicHolidays = async () => {
+      const { data: accommodations } = await supabase
+        .from('accommodation_info')
+        .select('id')
+        .limit(1)
+        .single();
+
+      if (accommodations?.id) {
+        const { data: holidays } = await supabase
+          .from('public_holidays')
+          .select('holiday_date')
+          .eq('accommodation_id', accommodations.id);
+
+        if (holidays) {
+          setPublicHolidays(holidays.map(h => new Date(h.holiday_date)));
+        }
+      }
+    };
+
+    loadPublicHolidays();
+  }, []);
+
+  // 檢查是否為假日（星期六或國定假日）
+  const isHoliday = (date: Date) => {
+    if (isSaturday(date)) return true;
+    return publicHolidays.some(holiday => 
+      holiday.getFullYear() === date.getFullYear() &&
+      holiday.getMonth() === date.getMonth() &&
+      holiday.getDate() === date.getDate()
+    );
+  };
 
   useEffect(() => {
     if (!carouselApi) return;
@@ -224,23 +260,41 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
                     </button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={checkInDate}
-                      onSelect={(date) => {
-                        setCheckInDate(date);
-                        if (date) {
-                          setIsCheckInDateOpen(false);
-                          // 選完入住日期後自動打開退房日期選擇器
-                          setTimeout(() => {
-                            setIsCheckOutDateOpen(true);
-                          }, 100);
-                        }
-                      }}
-                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                      initialFocus
-                      className={cn("p-3 pointer-events-auto")}
-                    />
+                    <div className="p-3">
+                      <Calendar
+                        mode="single"
+                        selected={checkInDate}
+                        onSelect={(date) => {
+                          setCheckInDate(date);
+                          if (date) {
+                            setIsCheckInDateOpen(false);
+                            // 選完入住日期後自動打開退房日期選擇器
+                            setTimeout(() => {
+                              setIsCheckOutDateOpen(true);
+                            }, 100);
+                          }
+                        }}
+                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                        modifiers={{
+                          holiday: (date) => isHoliday(date)
+                        }}
+                        modifiersClassNames={{
+                          holiday: "bg-primary/10 text-primary font-semibold rounded-md"
+                        }}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                      <div className="flex items-center gap-4 mt-3 pt-3 border-t text-xs">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 bg-primary/10 rounded-md border border-primary/20"></div>
+                          <span className="text-muted-foreground">假日定價</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 bg-background rounded-md border border-border"></div>
+                          <span className="text-muted-foreground">平日定價</span>
+                        </div>
+                      </div>
+                    </div>
                   </PopoverContent>
                 </Popover>
 
@@ -258,25 +312,43 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
                     </button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={checkOutDate}
-                      onSelect={(date) => {
-                        setCheckOutDate(date);
-                        // 選完退房日期後自動關閉
-                        if (date) {
-                          setIsCheckOutDateOpen(false);
-                        }
-                      }}
-                      disabled={(date) => {
-                        const today = new Date(new Date().setHours(0, 0, 0, 0));
-                        if (date < today) return true;
-                        if (checkInDate && date <= checkInDate) return true;
-                        return false;
-                      }}
-                      initialFocus
-                      className={cn("p-3 pointer-events-auto")}
-                    />
+                    <div className="p-3">
+                      <Calendar
+                        mode="single"
+                        selected={checkOutDate}
+                        onSelect={(date) => {
+                          setCheckOutDate(date);
+                          // 選完退房日期後自動關閉
+                          if (date) {
+                            setIsCheckOutDateOpen(false);
+                          }
+                        }}
+                        disabled={(date) => {
+                          const today = new Date(new Date().setHours(0, 0, 0, 0));
+                          if (date < today) return true;
+                          if (checkInDate && date <= checkInDate) return true;
+                          return false;
+                        }}
+                        modifiers={{
+                          holiday: (date) => isHoliday(date)
+                        }}
+                        modifiersClassNames={{
+                          holiday: "bg-primary/10 text-primary font-semibold rounded-md"
+                        }}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                      <div className="flex items-center gap-4 mt-3 pt-3 border-t text-xs">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 bg-primary/10 rounded-md border border-primary/20"></div>
+                          <span className="text-muted-foreground">假日定價</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 bg-background rounded-md border border-border"></div>
+                          <span className="text-muted-foreground">平日定價</span>
+                        </div>
+                      </div>
+                    </div>
                   </PopoverContent>
                 </Popover>
 
