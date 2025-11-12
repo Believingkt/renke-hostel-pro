@@ -274,13 +274,15 @@ const BookingFlow = () => {
       const isWeekendDay = isWeekend(currentDate);
       let pricePerNight = 0;
       
-      if (isWeekendDay) {
-        pricePerNight = selectedMealPlan === "2_meals" 
-          ? (selectedRoom.weekend_2_meals_price || 0)
-          : (selectedRoom.weekend_3_meals_price || 0);
+      if (selectedMealPlan === "2_meals") {
+        // 優先使用週末價格，如果沒有設定則回退到平日價格
+        pricePerNight = isWeekendDay 
+          ? (selectedRoom.weekend_2_meals_price || selectedRoom.weekday_2_meals_price || 0)
+          : (selectedRoom.weekday_2_meals_price || 0);
       } else {
-        pricePerNight = selectedMealPlan === "2_meals"
-          ? (selectedRoom.weekday_2_meals_price || 0)
+        // 優先使用週末價格，如果沒有設定則回退到平日價格
+        pricePerNight = isWeekendDay
+          ? (selectedRoom.weekend_3_meals_price || selectedRoom.weekday_3_meals_price || 0)
           : (selectedRoom.weekday_3_meals_price || 0);
       }
       
