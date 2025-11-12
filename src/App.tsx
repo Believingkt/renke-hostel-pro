@@ -22,38 +22,47 @@ import OgImagePreview from "./pages/OgImagePreview";
 import PublicHolidays from "./pages/PublicHolidays";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AccommodationProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route element={<ConditionalLayout />}>
-            <Route path="/" element={<Index />} />
-            <Route path="/booking" element={<BookingFlow />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/change-password" element={<ChangePassword />} />
-            <Route path="/hq" element={<Headquarters />} />
-            <Route path="/admin" element={<Dashboard />} />
-            <Route path="/admin/reception" element={<Reception />} />
-            <Route path="/admin/website-content" element={<WebsiteContent />} />
-            <Route path="/admin/faq" element={<Faq />} />
-            <Route path="/admin/orders" element={<Orders />} />
-            <Route path="/admin/orders/:orderId" element={<OrderDetail />} />
-            <Route path="/admin/pricing" element={<Pricing />} />
-            <Route path="/admin/accounts" element={<Accounts />} />
-            <Route path="/admin/discount-codes" element={<KolDiscount />} />
-            <Route path="/admin/user-roles" element={<UserRoles />} />
-            <Route path="/admin/customers" element={<Customers />} />
-            <Route path="/admin/public-holidays" element={<PublicHolidays />} />
-            <Route path="/og-preview" element={<OgImagePreview />} />
-            <Route path="*" element={<NotFound />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </AccommodationProvider>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AccommodationProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route element={<ConditionalLayout />}>
+              <Route path="/" element={<Index />} />
+              <Route path="/booking" element={<BookingFlow />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/change-password" element={<ChangePassword />} />
+              <Route path="/hq" element={<Headquarters />} />
+              <Route path="/admin" element={<Dashboard />} />
+              <Route path="/admin/reception" element={<Reception />} />
+              <Route path="/admin/website-content" element={<WebsiteContent />} />
+              <Route path="/admin/faq" element={<Faq />} />
+              <Route path="/admin/orders" element={<Orders />} />
+              <Route path="/admin/orders/:orderId" element={<OrderDetail />} />
+              <Route path="/admin/pricing" element={<Pricing />} />
+              <Route path="/admin/accounts" element={<Accounts />} />
+              <Route path="/admin/discount-codes" element={<KolDiscount />} />
+              <Route path="/admin/user-roles" element={<UserRoles />} />
+              <Route path="/admin/customers" element={<Customers />} />
+              <Route path="/admin/public-holidays" element={<PublicHolidays />} />
+              <Route path="/og-preview" element={<OgImagePreview />} />
+              <Route path="*" element={<NotFound />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </AccommodationProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;
