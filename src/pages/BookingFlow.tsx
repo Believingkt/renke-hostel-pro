@@ -143,6 +143,7 @@ const BookingFlow = () => {
   const [petCount, setPetCount] = useState(0);
   const [isPetPolicyDialogOpen, setIsPetPolicyDialogOpen] = useState(false);
   const [bbqMealsByDate, setBbqMealsByDate] = useState<Record<string, number>>({});
+  const [isBbqDetailsDialogOpen, setIsBbqDetailsDialogOpen] = useState(false);
   
   // 將 context 日期轉換為字串格式，並提供預設值
   const checkInDateStr = checkInDate ? format(checkInDate, "yyyy-MM-dd") : "";
@@ -1271,9 +1272,19 @@ const BookingFlow = () => {
                     {/* 烤肉套餐加購 */}
                     <Card>
                       <CardHeader>
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          🍖 餐食加購
-                        </CardTitle>
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg flex items-center gap-2">
+                            🍖 餐食加購
+                          </CardTitle>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setIsBbqDetailsDialogOpen(true)}
+                            className="text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+                          >
+                            詳細內容
+                          </Button>
+                        </div>
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <div className="space-y-4">
@@ -2042,6 +2053,165 @@ const BookingFlow = () => {
 
             <div className="flex justify-end pt-4">
               <Button onClick={() => setIsPetPolicyDialogOpen(false)} className="w-full sm:w-auto">
+                我了解了
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 餐食加購詳細內容對話框 */}
+      <Dialog open={isBbqDetailsDialogOpen} onOpenChange={setIsBbqDetailsDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold mb-2">🍖 餐食加購</h2>
+              <p className="text-lg text-muted-foreground font-semibold mb-1">森山寫照 X 燃甄 RAN RAN</p>
+              <p className="text-xl font-bold text-primary">炭火饗之夜 Evening Dining Set</p>
+              <p className="text-lg text-primary font-semibold mt-2">專屬晚宴方案 $900／位</p>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+              <h3 className="text-xl font-semibold">菜單內容</h3>
+              
+              <div className="grid gap-3">
+                <div className="bg-primary/5 p-4 rounded-lg">
+                  <h4 className="font-semibold mb-3 text-primary">🥩 肉品系列</h4>
+                  <ul className="space-y-2 text-sm leading-relaxed list-none">
+                    <li className="flex gap-2">
+                      <span className="text-primary font-semibold">•</span>
+                      <span>醬燒豬里肌肉</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-primary font-semibold">•</span>
+                      <span>炭烤古早味香腸</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-primary font-semibold">•</span>
+                      <span>燃鹽鹹豬肉</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-primary font-semibold">•</span>
+                      <span>鮮嫩爆汁去骨雞腿排</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-primary font-semibold">•</span>
+                      <span>美國Prime骰子牛肋條</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="bg-primary/5 p-4 rounded-lg">
+                  <h4 className="font-semibold mb-3 text-primary">🦐 海鮮系列</h4>
+                  <ul className="space-y-2 text-sm leading-relaxed list-none">
+                    <li className="flex gap-2">
+                      <span className="text-primary font-semibold">•</span>
+                      <span>燃鹽烤時令鮮蝦</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-primary font-semibold">•</span>
+                      <span>鹽烤鯖魚</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-primary font-semibold">•</span>
+                      <span>鹽烤挪威鱈魚</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="bg-primary/5 p-4 rounded-lg">
+                  <h4 className="font-semibold mb-3 text-primary">🥘 特色料理</h4>
+                  <ul className="space-y-2 text-sm leading-relaxed list-none">
+                    <li className="flex gap-2">
+                      <span className="text-primary font-semibold">•</span>
+                      <span>古早味豆干</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-primary font-semibold">•</span>
+                      <span>米血糕</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-primary font-semibold">•</span>
+                      <span>花枝丸</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-primary font-semibold">•</span>
+                      <span>炭烤古早味糯米腸</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-primary font-semibold">•</span>
+                      <span>炭烤手工夾燒羅</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-primary font-semibold">•</span>
+                      <span>燃鹽獨家烤豆包</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="bg-primary/5 p-4 rounded-lg">
+                  <h4 className="font-semibold mb-3 text-primary">🥬 季節時蔬</h4>
+                  <p className="text-sm text-muted-foreground mb-2">（依市場／季節彈性調整）</p>
+                  <ul className="space-y-2 text-sm leading-relaxed list-none">
+                    <li className="flex gap-2">
+                      <span className="text-primary font-semibold">•</span>
+                      <span>彩椒、杏鮑菇</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-primary font-semibold">•</span>
+                      <span>蘆筍、玉米筍</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-primary font-semibold">•</span>
+                      <span>香菇、櫛瓜</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="bg-primary/5 p-4 rounded-lg">
+                  <h4 className="font-semibold mb-3 text-primary">🍚 配菜與湯品</h4>
+                  <ul className="space-y-2 text-sm leading-relaxed list-none">
+                    <li className="flex gap-2">
+                      <span className="text-primary font-semibold">•</span>
+                      <span>韓式泡菜</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-primary font-semibold">•</span>
+                      <span>美味鮮奶可口餐包</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-primary font-semibold">•</span>
+                      <span>蛤蜊味噌湯</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="bg-muted/50 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold mb-3">📋 注意事項</h3>
+              <ul className="space-y-2 text-sm leading-relaxed list-none">
+                <li className="flex gap-2">
+                  <span className="text-primary font-semibold">•</span>
+                  <span>平日下限12人，假日下限18人，上限30人</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-primary font-semibold">•</span>
+                  <span>需於訂房時預約，現場恕不接受臨時加購</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-primary font-semibold">•</span>
+                  <span>菜單內容可能因季節及市場供應而有所調整</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="flex justify-end pt-4">
+              <Button onClick={() => setIsBbqDetailsDialogOpen(false)} className="w-full sm:w-auto">
                 我了解了
               </Button>
             </div>
