@@ -1504,14 +1504,14 @@ const BookingFlow = () => {
                             <p className="text-sm font-semibold">加購方案總計</p>
                             {petCount > 0 && (
                               <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">毛孩方案 × {petCount} × {calculateNights()} 晚</span>
+                                <span className="text-muted-foreground">寵物方案 × {petCount} × {calculateNights()} 晚</span>
                                 <span>NT$ {(petCount * 600 * calculateNights()).toLocaleString()}</span>
                               </div>
                             )}
                             {Object.entries(bbqMealsByDate).filter(([_, count]) => count > 0).map(([dateStr, count]) => (
                               <div key={dateStr} className="flex justify-between text-sm">
                                 <span className="text-muted-foreground">
-                                  🍖 {format(new Date(dateStr), "MM/dd")} 烤肉套餐 × {count} 人
+                                  🍖 {format(new Date(dateStr), "MM/dd")} 餐食方案 × {count} 人
                                 </span>
                                 <span>NT$ {(count * 900).toLocaleString()}</span>
                               </div>
