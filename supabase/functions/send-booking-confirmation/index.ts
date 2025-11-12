@@ -74,13 +74,13 @@ const handler = async (req: Request): Promise<Response> => {
           <style>
             body { font-family: 'Microsoft JhengHei', Arial, sans-serif; line-height: 1.6; color: #333; }
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .header { background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
             .content { background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; }
             .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
             .info-label { color: #666; font-weight: 500; }
             .info-value { color: #333; font-weight: 600; }
             .price-highlight { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
-            .total-price { font-size: 24px; color: #667eea; font-weight: bold; }
+            .total-price { font-size: 24px; color: #ff6b35; font-weight: bold; }
             .footer { background: #f8f9fa; padding: 20px; text-align: center; color: #666; border-radius: 0 0 10px 10px; }
             .notice { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px; }
           </style>
