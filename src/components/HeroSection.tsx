@@ -310,7 +310,7 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
                           </button>
                           <span className="w-8 text-center font-medium">{guests.adults}</span>
                           <button
-                            onClick={() => setGuests({ ...guests, adults: Math.min(10, guests.adults + 1) })}
+                            onClick={() => setGuests({ ...guests, adults: Math.min(18, guests.adults + 1) })}
                             className="w-10 h-10 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium"
                           >
                             +
