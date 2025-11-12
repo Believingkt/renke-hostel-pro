@@ -144,6 +144,7 @@ const BookingFlow = () => {
   const [isPetPolicyDialogOpen, setIsPetPolicyDialogOpen] = useState(false);
   const [bbqMealsByDate, setBbqMealsByDate] = useState<Record<string, number>>({});
   const [hiddenBbqDates, setHiddenBbqDates] = useState<Set<string>>(new Set());
+  const [isBbqMealsExpanded, setIsBbqMealsExpanded] = useState(false);
   const [isBbqDetailsDialogOpen, setIsBbqDetailsDialogOpen] = useState(false);
   const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
   
@@ -1336,7 +1337,7 @@ const BookingFlow = () => {
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-4">
-                        {!Object.values(bbqMealsByDate).some(count => count > 0) ? (
+                        {!isBbqMealsExpanded ? (
                           <div className="text-center py-4">
                             <Button
                               onClick={() => {
@@ -1347,6 +1348,7 @@ const BookingFlow = () => {
                                   const isWeekendDate = isWeekend(date);
                                   const minCount = isWeekendDate ? 18 : 12;
                                   setBbqMealsByDate({ [firstDate]: minCount });
+                                  setIsBbqMealsExpanded(true);
                                 }
                               }}
                               variant="outline"
@@ -1371,6 +1373,7 @@ const BookingFlow = () => {
                                 onClick={() => {
                                   setBbqMealsByDate({});
                                   setHiddenBbqDates(new Set());
+                                  setIsBbqMealsExpanded(false);
                                 }}
                                 variant="ghost"
                                 size="sm"
