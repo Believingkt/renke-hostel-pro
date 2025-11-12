@@ -1982,53 +1982,79 @@ const BookingFlow = () => {
                 {/* Step 5: Confirmation */}
                 {currentStep === "confirm" && (
                   <div className="space-y-6">
-                    <Card className="bg-muted/30">
-                      <CardHeader>
-                        <CardTitle className="text-lg">訂房資訊</CardTitle>
+                    {/* 訂房資訊卡片 */}
+                    <Card className="border-2">
+                      <CardHeader className="pb-4">
+                        <CardTitle className="text-lg font-bold flex items-center gap-2">
+                          <Home className="h-5 w-5 text-primary" />
+                          訂房資訊
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          請確認您的訂房資訊是否正確
+                        </p>
                       </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div>
-                          <p className="text-sm text-muted-foreground">房型</p>
-                          <p className="font-medium">{selectedRoom?.name}</p>
+                      <CardContent className="space-y-5">
+                        <div className="p-4 bg-muted/50 rounded-lg">
+                          <p className="text-xs text-muted-foreground mb-1">房型</p>
+                          <p className="font-semibold text-base">{selectedRoom?.name}</p>
                         </div>
-                        <Separator />
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-sm text-muted-foreground">入住日期</p>
-                            <p className="font-medium">{checkInDateStr}</p>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="p-4 bg-muted/50 rounded-lg">
+                            <p className="text-xs text-muted-foreground mb-1">入住日期</p>
+                            <p className="font-medium text-sm">{format(new Date(checkInDateStr), "yyyy/MM/dd (E)", { locale: zhTW })}</p>
                           </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">退房日期</p>
-                            <p className="font-medium">{checkOutDateStr}</p>
+                          <div className="p-4 bg-muted/50 rounded-lg">
+                            <p className="text-xs text-muted-foreground mb-1">退房日期</p>
+                            <p className="font-medium text-sm">{format(new Date(checkOutDateStr), "yyyy/MM/dd (E)", { locale: zhTW })}</p>
                           </div>
                         </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">入住人數</p>
-                          <p className="font-medium">{totalGuests} 人</p>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="p-4 bg-muted/50 rounded-lg">
+                            <p className="text-xs text-muted-foreground mb-1">入住人數</p>
+                            <p className="font-medium text-sm">{totalGuests} 人</p>
+                          </div>
+                          <div className="p-4 bg-muted/50 rounded-lg">
+                            <p className="text-xs text-muted-foreground mb-1">餐食方案</p>
+                            <p className="font-medium text-sm">{selectedMealPlan === "2_meals" ? "一泊二食" : "一泊三食"}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">餐食方案</p>
-                          <p className="font-medium">{selectedMealPlan === "2_meals" ? "一泊二食" : "一泊三食"}</p>
-                        </div>
+
                         {(petCount > 0 || Object.values(bbqMealsByDate).some(count => count > 0)) && (
                           <>
                             <Separator />
-                            <div>
-                              <p className="text-sm text-muted-foreground mb-2">加購方案</p>
+                            <div className="space-y-3">
+                              <p className="text-sm font-semibold flex items-center gap-2">
+                                <ShoppingBag className="h-4 w-4 text-primary" />
+                                加購方案
+                              </p>
                               {petCount > 0 && (
-                                <p className="font-medium mb-2">🐾 寵物方案 × {petCount} × {calculateNights()} 晚</p>
+                                <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm">🐾 寵物方案</span>
+                                    <span className="text-sm font-medium">{petCount} 隻 × {calculateNights()} 晚</span>
+                                  </div>
+                                </div>
                               )}
                               {Object.entries(bbqMealsByDate).filter(([_, count]) => count > 0).length > 0 && (
-                                <div className="space-y-1">
-                                  <p className="font-medium">🍖 餐食方案</p>
-                                  {Object.entries(bbqMealsByDate)
-                                    .filter(([_, count]) => count > 0)
-                                    .map(([dateStr, count]) => (
-                                      <p key={dateStr} className="text-xs text-muted-foreground ml-4">
-                                        {format(new Date(dateStr), "MM/dd")}: {count} 人
-                                      </p>
-                                    ))
-                                  }
+                                <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg space-y-2">
+                                  <p className="text-sm font-medium flex items-center gap-2">
+                                    🍖 餐食方案
+                                  </p>
+                                  <div className="space-y-1 pl-4">
+                                    {Object.entries(bbqMealsByDate)
+                                      .filter(([_, count]) => count > 0)
+                                      .map(([dateStr, count]) => (
+                                        <div key={dateStr} className="flex justify-between text-xs">
+                                          <span className="text-muted-foreground">
+                                            {format(new Date(dateStr), "yyyy/MM/dd (E)", { locale: zhTW })}
+                                          </span>
+                                          <span className="font-medium">{count} 人</span>
+                                        </div>
+                                      ))
+                                    }
+                                  </div>
                                 </div>
                               )}
                             </div>
@@ -2037,40 +2063,98 @@ const BookingFlow = () => {
                       </CardContent>
                     </Card>
 
-                    <Card className="bg-muted/30">
-                      <CardHeader>
-                        <CardTitle className="text-lg">旅客資訊</CardTitle>
+                    {/* 旅客資訊卡片 */}
+                    <Card className="border-2">
+                      <CardHeader className="pb-4">
+                        <CardTitle className="text-lg font-bold flex items-center gap-2">
+                          <User className="h-5 w-5 text-primary" />
+                          旅客資訊
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          確認聯絡資訊無誤
+                        </p>
                       </CardHeader>
                       <CardContent className="space-y-3">
-                        <div>
-                          <p className="text-sm text-muted-foreground">姓名</p>
-                          <p className="font-medium">{guestInfo.name}</p>
+                        <div className="grid grid-cols-1 gap-3">
+                          <div className="p-4 bg-muted/50 rounded-lg">
+                            <p className="text-xs text-muted-foreground mb-1">姓名</p>
+                            <p className="font-medium text-sm">{guestInfo.name}</p>
+                          </div>
+                          <div className="p-4 bg-muted/50 rounded-lg">
+                            <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                              <Phone className="h-3 w-3" />
+                              手機號碼
+                            </p>
+                            <p className="font-medium text-sm">{guestInfo.phone}</p>
+                          </div>
+                          <div className="p-4 bg-muted/50 rounded-lg">
+                            <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                              <Mail className="h-3 w-3" />
+                              電子郵件
+                            </p>
+                            <p className="font-medium text-sm break-all">{guestInfo.email}</p>
+                          </div>
+                          {guestInfo.address && (
+                            <div className="p-4 bg-muted/50 rounded-lg">
+                              <p className="text-xs text-muted-foreground mb-1">聯絡地址</p>
+                              <p className="font-medium text-sm">{guestInfo.address}</p>
+                            </div>
+                          )}
+                          {guestInfo.notes && (
+                            <div className="p-4 bg-muted/50 rounded-lg">
+                              <p className="text-xs text-muted-foreground mb-1">備註</p>
+                              <p className="font-medium text-sm leading-relaxed">{guestInfo.notes}</p>
+                            </div>
+                          )}
                         </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">手機</p>
-                          <p className="font-medium">{guestInfo.phone}</p>
+                      </CardContent>
+                    </Card>
+
+                    {/* 付款方式卡片 */}
+                    <Card className="border-2">
+                      <CardHeader className="pb-4">
+                        <CardTitle className="text-lg font-bold flex items-center gap-2">
+                          <CreditCard className="h-5 w-5 text-primary" />
+                          付款方式
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          確認您選擇的付款方式
+                        </p>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="p-4 bg-muted/50 rounded-lg">
+                          <p className="font-medium text-base">{paymentMethod}</p>
                         </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">電子郵件</p>
-                          <p className="font-medium">{guestInfo.email}</p>
-                        </div>
-                        {guestInfo.notes && (
-                          <div>
-                            <p className="text-sm text-muted-foreground">備註</p>
-                            <p className="font-medium">{guestInfo.notes}</p>
+                        {appliedDiscount && (
+                          <div className="mt-3 p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                            <div className="flex items-center gap-2">
+                              <Badge className="h-4 w-4 text-primary" />
+                              <div>
+                                <p className="text-xs text-muted-foreground">已套用折扣代碼</p>
+                                <p className="font-medium text-sm">{appliedDiscount.code}</p>
+                              </div>
+                            </div>
                           </div>
                         )}
                       </CardContent>
                     </Card>
 
-                    <Card className="bg-muted/30">
-                      <CardHeader>
-                        <CardTitle className="text-lg">付款方式</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="font-medium">{paymentMethod}</p>
-                      </CardContent>
-                    </Card>
+                    {/* 重要提醒 */}
+                    <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                      <div className="flex gap-3">
+                        <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                        <div className="space-y-2">
+                          <p className="text-sm font-semibold text-foreground">
+                            請確認所有資訊
+                          </p>
+                          <ul className="text-xs text-muted-foreground space-y-1 leading-relaxed">
+                            <li>• 確認訂房資訊、旅客資訊及付款方式無誤後，點擊「確認訂房」</li>
+                            <li>• 我們會寄送訂單確認信至您的電子郵件</li>
+                            <li>• 如需修改，請點擊「上一步」返回編輯</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </CardContent>
