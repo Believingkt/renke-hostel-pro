@@ -1675,96 +1675,145 @@ const BookingFlow = () => {
                 {/* Step 4: Guest Info */}
                 {currentStep === "guest" && (
                   <div className="space-y-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="name" className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-primary" />
-                        姓名 <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="name"
-                        value={guestInfo.name}
-                        onChange={(e) => {
-                          setGuestInfo({ ...guestInfo, name: e.target.value });
-                          setErrors({ ...errors, name: "" });
-                        }}
-                        placeholder="請輸入您的姓名"
-                        className={`h-12 ${errors.name ? "border-destructive" : ""}`}
-                        maxLength={50}
-                      />
-                      {errors.name && (
-                        <p className="text-xs text-destructive">{errors.name}</p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="phone" className="flex items-center gap-2">
-                        <Phone className="h-4 w-4 text-primary" />
-                        手機號碼 <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        value={guestInfo.phone}
-                        onChange={(e) => {
-                          setGuestInfo({ ...guestInfo, phone: e.target.value });
-                          setErrors({ ...errors, phone: "" });
-                        }}
-                        placeholder="0912345678"
-                        className={`h-12 ${errors.phone ? "border-destructive" : ""}`}
-                        maxLength={10}
-                      />
-                      {errors.phone && (
-                        <p className="text-xs text-destructive">{errors.phone}</p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email" className="flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-primary" />
-                        電子郵件 <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={guestInfo.email}
-                        onChange={(e) => {
-                          setGuestInfo({ ...guestInfo, email: e.target.value });
-                          setErrors({ ...errors, email: "" });
-                        }}
-                        placeholder="example@email.com"
-                        className={`h-12 ${errors.email ? "border-destructive" : ""}`}
-                        maxLength={100}
-                      />
-                      {errors.email && (
-                        <p className="text-xs text-destructive">{errors.email}</p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="address">聯絡地址（選填）</Label>
-                      <Input
-                        id="address"
-                        value={guestInfo.address}
-                        onChange={(e) =>
-                          setGuestInfo({ ...guestInfo, address: e.target.value })
-                        }
-                        placeholder="請輸入您的聯絡地址"
-                        className="h-12"
-                        maxLength={200}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="notes">備註（選填）</Label>
-                      <Textarea
-                        id="notes"
-                        value={guestInfo.notes}
-                        onChange={(e) =>
-                          setGuestInfo({ ...guestInfo, notes: e.target.value })
-                        }
-                        placeholder="如有特殊需求，請在此說明"
-                        rows={4}
-                        maxLength={500}
-                      />
-                      <p className="text-xs text-muted-foreground text-right">
-                        {guestInfo.notes.length} / 500
-                      </p>
+                    {/* 基本資料卡片 */}
+                    <Card className="border-2">
+                      <CardHeader className="pb-4">
+                        <CardTitle className="text-lg font-bold flex items-center gap-2">
+                          <User className="h-5 w-5 text-primary" />
+                          基本資料
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          請填寫您的基本聯絡資訊，以便我們與您確認訂房細節
+                        </p>
+                      </CardHeader>
+                      <CardContent className="space-y-5">
+                        <div className="space-y-2">
+                          <Label htmlFor="name" className="text-sm font-medium">
+                            姓名 <span className="text-destructive">*</span>
+                          </Label>
+                          <Input
+                            id="name"
+                            value={guestInfo.name}
+                            onChange={(e) => {
+                              setGuestInfo({ ...guestInfo, name: e.target.value });
+                              setErrors({ ...errors, name: "" });
+                            }}
+                            placeholder="請輸入您的姓名"
+                            className={`h-12 ${errors.name ? "border-destructive" : ""}`}
+                            maxLength={50}
+                          />
+                          {errors.name && (
+                            <p className="text-xs text-destructive mt-1">{errors.name}</p>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="phone" className="text-sm font-medium">
+                            手機號碼 <span className="text-destructive">*</span>
+                          </Label>
+                          <Input
+                            id="phone"
+                            type="tel"
+                            value={guestInfo.phone}
+                            onChange={(e) => {
+                              setGuestInfo({ ...guestInfo, phone: e.target.value });
+                              setErrors({ ...errors, phone: "" });
+                            }}
+                            placeholder="0912345678"
+                            className={`h-12 ${errors.phone ? "border-destructive" : ""}`}
+                            maxLength={10}
+                          />
+                          {errors.phone && (
+                            <p className="text-xs text-destructive mt-1">{errors.phone}</p>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="email" className="text-sm font-medium">
+                            電子郵件 <span className="text-destructive">*</span>
+                          </Label>
+                          <Input
+                            id="email"
+                            type="email"
+                            value={guestInfo.email}
+                            onChange={(e) => {
+                              setGuestInfo({ ...guestInfo, email: e.target.value });
+                              setErrors({ ...errors, email: "" });
+                            }}
+                            placeholder="example@email.com"
+                            className={`h-12 ${errors.email ? "border-destructive" : ""}`}
+                            maxLength={100}
+                          />
+                          {errors.email && (
+                            <p className="text-xs text-destructive mt-1">{errors.email}</p>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* 其他資訊卡片 */}
+                    <Card className="border-2">
+                      <CardHeader className="pb-4">
+                        <CardTitle className="text-lg font-bold flex items-center gap-2">
+                          <Home className="h-5 w-5 text-primary" />
+                          其他資訊
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          選填項目，可幫助我們提供更好的服務
+                        </p>
+                      </CardHeader>
+                      <CardContent className="space-y-5">
+                        <div className="space-y-2">
+                          <Label htmlFor="address" className="text-sm font-medium">
+                            聯絡地址（選填）
+                          </Label>
+                          <Input
+                            id="address"
+                            value={guestInfo.address}
+                            onChange={(e) =>
+                              setGuestInfo({ ...guestInfo, address: e.target.value })
+                            }
+                            placeholder="請輸入您的聯絡地址"
+                            className="h-12"
+                            maxLength={200}
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="notes" className="text-sm font-medium">
+                            備註（選填）
+                          </Label>
+                          <Textarea
+                            id="notes"
+                            value={guestInfo.notes}
+                            onChange={(e) =>
+                              setGuestInfo({ ...guestInfo, notes: e.target.value })
+                            }
+                            placeholder="如有特殊需求，請在此說明"
+                            rows={5}
+                            maxLength={500}
+                            className="resize-none"
+                          />
+                          <p className="text-xs text-muted-foreground text-right">
+                            {guestInfo.notes.length} / 500
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* 提示資訊 */}
+                    <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                      <div className="flex gap-3">
+                        <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-foreground">
+                            請確保資料正確
+                          </p>
+                          <p className="text-xs text-muted-foreground leading-relaxed">
+                            我們會透過您提供的聯絡方式寄送訂單確認信，並在入住前與您聯繫確認相關細節
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
