@@ -1322,7 +1322,7 @@ const BookingFlow = () => {
                       <CardHeader>
                         <div className="flex items-center justify-between">
                           <CardTitle className="text-lg flex items-center gap-2">
-                            🍖 餐食加購
+                            🍖 烤肉套餐
                           </CardTitle>
                           <Button
                             variant="ghost"
