@@ -1360,10 +1360,21 @@ const BookingFlow = () => {
                           </div>
                         ) : (
                           <div className="space-y-4">
-                            <div>
-                              <p className="font-medium">烤肉套餐</p>
-                              <p className="text-sm text-muted-foreground">每人 NT$ 900 / 每日</p>
-                              <p className="text-xs text-muted-foreground mt-1">基本人數（平日12人，假日18人），上限30人</p>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium">烤肉套餐</p>
+                                <p className="text-sm text-muted-foreground">每人 NT$ 900 / 每日</p>
+                                <p className="text-xs text-muted-foreground mt-1">基本人數（平日12人，假日18人），上限30人</p>
+                              </div>
+                              <Button
+                                onClick={() => setBbqMealsByDate({})}
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <X className="mr-2 h-4 w-4" />
+                                清除全部
+                              </Button>
                             </div>
 
                             {/* 日期選擇與人數設定 */}
@@ -1450,15 +1461,6 @@ const BookingFlow = () => {
                               </div>
                             </div>
                             )}
-                            <Button
-                              onClick={() => setBbqMealsByDate({})}
-                              variant="ghost"
-                              size="sm"
-                              className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
-                            >
-                              <X className="mr-2 h-4 w-4" />
-                              清除餐食加購
-                            </Button>
                           </div>
                         )}
 
