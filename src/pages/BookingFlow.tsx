@@ -308,26 +308,42 @@ const BookingFlow = () => {
     return roomTypes.filter(room => {
       const mealPlanType = selectedMealPlan === "2_meals" ? "2_meals" : "3_meals";
       
-      // 如果有平日，檢查平日價格
-      if (hasWeekday) {
-        const weekdayPrice = mealPlanType === "2_meals" 
-          ? room.weekday_2_meals_price 
-          : room.weekday_3_meals_price;
-        
-        if (!weekdayPrice || weekdayPrice === 0) return false;
+      // 取得房型的平日和週末價格
+      const weekdayPrice = mealPlanType === "2_meals" 
+        ? room.weekday_2_meals_price 
+        : room.weekday_3_meals_price;
+      const weekendPrice = mealPlanType === "2_meals"
+        ? room.weekend_2_meals_price
+        : room.weekend_3_meals_price;
+      
+      // 檢查是否為純週末或純平日
+      const isPureWeekend = hasWeekend && !hasWeekday;
+      const isPureWeekday = hasWeekday && !hasWeekend;
+      
+      // 如果是純週末，必須有週末價格
+      if (isPureWeekend) {
+        if (!weekendPrice || weekendPrice === 0) {
+          return false;
+        }
       }
       
-      // 如果有週末，檢查週末價格（可以回退到平日價格）
-      if (hasWeekend) {
-        const weekendPrice = mealPlanType === "2_meals"
-          ? room.weekend_2_meals_price
-          : room.weekend_3_meals_price;
-        const weekdayPrice = mealPlanType === "2_meals"
-          ? room.weekday_2_meals_price
-          : room.weekday_3_meals_price;
-        
-        // 週末價格或平日價格至少要有一個
-        if ((!weekendPrice || weekendPrice === 0) && (!weekdayPrice || weekdayPrice === 0)) {
+      // 如果是純平日，必須有平日價格
+      if (isPureWeekday) {
+        if (!weekdayPrice || weekdayPrice === 0) {
+          return false;
+        }
+      }
+      
+      // 如果是混合（既有平日又有週末）
+      if (hasWeekday && hasWeekend) {
+        // 必須有平日價格
+        if (!weekdayPrice || weekdayPrice === 0) {
+          return false;
+        }
+        // 週末價格可以回退到平日價格
+        const hasValidWeekendPrice = weekendPrice && weekendPrice > 0;
+        const hasValidWeekdayPrice = weekdayPrice && weekdayPrice > 0;
+        if (!hasValidWeekendPrice && !hasValidWeekdayPrice) {
           return false;
         }
       }
