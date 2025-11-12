@@ -144,6 +144,7 @@ const BookingFlow = () => {
   const [isPetPolicyDialogOpen, setIsPetPolicyDialogOpen] = useState(false);
   const [bbqMealsByDate, setBbqMealsByDate] = useState<Record<string, number>>({});
   const [isBbqDetailsDialogOpen, setIsBbqDetailsDialogOpen] = useState(false);
+  const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
   
   // 將 context 日期轉換為字串格式，並提供預設值
   const checkInDateStr = checkInDate ? format(checkInDate, "yyyy-MM-dd") : "";
@@ -222,6 +223,16 @@ const BookingFlow = () => {
           }));
           
           setRoomTypes(roomTypesWithPhotos);
+        }
+
+        // 獲取國定假日資料
+        const { data: holidaysData } = await supabase
+          .from("public_holidays")
+          .select("holiday_date")
+          .eq("accommodation_id", accommodationId);
+
+        if (holidaysData) {
+          setPublicHolidays(holidaysData.map(h => h.holiday_date));
         }
       } catch (error) {
         if (import.meta.env.DEV) {
@@ -315,9 +326,20 @@ const BookingFlow = () => {
     setBbqMealsByDate({});
   }, [checkInDateStr, checkOutDateStr]);
 
+  // 檢查是否為星期六
+  const isSaturday = (date: Date) => {
+    return date.getDay() === 6;
+  };
+
+  // 檢查是否為國定假日
+  const isPublicHoliday = (date: Date) => {
+    const dateStr = format(date, "yyyy-MM-dd");
+    return publicHolidays.includes(dateStr);
+  };
+
+  // 檢查是否為假日（星期六或國定假日）
   const isWeekend = (date: Date) => {
-    const day = date.getDay();
-    return day === 5 || day === 6; // 五、六為假日
+    return isSaturday(date) || isPublicHoliday(date);
   };
 
   // 檢查日期範圍內是否包含平日或週末

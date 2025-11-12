@@ -483,6 +483,41 @@ export type Database = {
         }
         Relationships: []
       }
+      public_holidays: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          holiday_date: string
+          holiday_name: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          holiday_date: string
+          holiday_name: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          holiday_date?: string
+          holiday_name?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_holidays_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_amenities: {
         Row: {
           amenity_icon: string | null

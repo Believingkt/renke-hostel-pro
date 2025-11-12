@@ -55,6 +55,7 @@ const menuItems = [
       { title: "價格管理", url: "/admin/pricing?tab=basic" },
       { title: "客房設施", url: "/admin/pricing?tab=facilities" },
       { title: "庫存管理", url: "/admin/pricing?tab=inventory" },
+      { title: "國定假日", url: "/admin/public-holidays" },
     ]
   },
   { title: "顧客資料", url: "/admin/customers", icon: UserCircle },
