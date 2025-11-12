@@ -24,7 +24,7 @@ export function ConditionalLayout() {
     } else if (isAuthPage) {
       document.title = "登入 - 人客多 PMS 管理系統";
     } else {
-      document.title = "旅館管理系統";
+      document.title = "森山寫照 - 山間的寧靜時光";
     }
   }, [isAdminPage, isAuthPage, isFrontendPage]);
 
