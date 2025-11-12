@@ -1179,9 +1179,9 @@ const BookingFlow = () => {
                             variant="ghost"
                             size="sm"
                             onClick={() => setIsPetPolicyDialogOpen(true)}
-                            className="text-primary hover:text-primary/80"
+                            className="text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
                           >
-                            查看詳情
+                            寵物入住守則
                           </Button>
                         </div>
                       </CardHeader>
