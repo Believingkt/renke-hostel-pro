@@ -351,13 +351,12 @@ const Dashboard = () => {
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">入住日期</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">退房日期</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">付款狀態</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">操作</th>
                 </tr>
               </thead>
               <tbody>
                 {recentBookings.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-muted-foreground">
+                    <td colSpan={6} className="py-12 text-center text-muted-foreground">
                       暫無資料
                     </td>
                   </tr>
@@ -388,14 +387,6 @@ const Dashboard = () => {
                         >
                           {getPaymentStatusLabel(booking.payment_status)}
                         </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        <a 
-                          href={`/admin/orders/${booking.id}`}
-                          className="text-primary hover:underline"
-                        >
-                          查看
-                        </a>
                       </td>
                     </tr>
                   ))
