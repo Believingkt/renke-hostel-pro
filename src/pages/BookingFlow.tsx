@@ -133,6 +133,8 @@ const BookingFlow = () => {
   const [selectedImageRoom, setSelectedImageRoom] = useState<RoomType | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckInDateOpen, setIsCheckInDateOpen] = useState(false);
+  const [isCheckOutDateOpen, setIsCheckOutDateOpen] = useState(false);
   
   // 將 context 日期轉換為字串格式，並提供預設值
   const checkInDateStr = checkInDate ? format(checkInDate, "yyyy-MM-dd") : "";
@@ -933,7 +935,7 @@ const BookingFlow = () => {
                           <Calendar className="h-4 w-4 text-primary" />
                           入住日期
                         </Label>
-                        <Popover>
+                        <Popover open={isCheckInDateOpen} onOpenChange={setIsCheckInDateOpen}>
                           <PopoverTrigger asChild>
                             <button className="flex items-center h-16 px-4 border-2 border-border rounded-lg bg-background hover:border-primary/50 transition-colors text-left w-full">
                               <Calendar className="h-5 w-5 text-muted-foreground mr-3 flex-shrink-0" />
@@ -949,7 +951,16 @@ const BookingFlow = () => {
                             <CalendarComponent
                               mode="single"
                               selected={checkInDate}
-                              onSelect={setCheckInDate}
+                              onSelect={(date) => {
+                                setCheckInDate(date);
+                                if (date) {
+                                  setIsCheckInDateOpen(false);
+                                  // 選完入住日期後自動打開退房日期選擇器
+                                  setTimeout(() => {
+                                    setIsCheckOutDateOpen(true);
+                                  }, 100);
+                                }
+                              }}
                               disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                               initialFocus
                               className={cn("p-3 pointer-events-auto")}
@@ -967,7 +978,7 @@ const BookingFlow = () => {
                           <Calendar className="h-4 w-4 text-primary" />
                           退房日期
                         </Label>
-                        <Popover>
+                        <Popover open={isCheckOutDateOpen} onOpenChange={setIsCheckOutDateOpen}>
                           <PopoverTrigger asChild>
                             <button className="flex items-center h-16 px-4 border-2 border-border rounded-lg bg-background hover:border-primary/50 transition-colors text-left w-full">
                               <Calendar className="h-5 w-5 text-muted-foreground mr-3 flex-shrink-0" />
@@ -983,7 +994,13 @@ const BookingFlow = () => {
                             <CalendarComponent
                               mode="single"
                               selected={checkOutDate}
-                              onSelect={setCheckOutDate}
+                              onSelect={(date) => {
+                                setCheckOutDate(date);
+                                // 選完退房日期後自動關閉
+                                if (date) {
+                                  setIsCheckOutDateOpen(false);
+                                }
+                              }}
                               disabled={(date) => {
                                 const today = new Date(new Date().setHours(0, 0, 0, 0));
                                 if (date < today) return true;
