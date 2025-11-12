@@ -723,6 +723,21 @@ const BookingFlow = () => {
         orderNotes = orderNotes ? orderNotes + addonText : addonText.trim();
       }
 
+      // 準備加購方案資訊
+      const nights = calculateNights();
+      const petPlanPrice = petCount > 0 ? petCount * petPlanSettings.pricePerUnit * nights : 0;
+      
+      const mealPlanDetailsData = Object.entries(bbqMealsByDate)
+        .filter(([_, count]) => count > 0)
+        .map(([dateStr, count]) => ({
+          date: dateStr,
+          count: count,
+          pricePerUnit: mealPlanSettings.pricePerUnit,
+          price: count * mealPlanSettings.pricePerUnit
+        }));
+      
+      const mealPlanTotalPrice = mealPlanDetailsData.reduce((sum, detail) => sum + detail.price, 0);
+
       // 建立訂單
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
@@ -747,6 +762,10 @@ const BookingFlow = () => {
           payment_status: bookingSettings?.use_deposit ? "unpaid" : "unpaid",
           order_status: "pending",
           notes: orderNotes || null,
+          pet_count: petCount,
+          pet_plan_price: petPlanPrice,
+          meal_plan_details: mealPlanDetailsData,
+          meal_plan_total: mealPlanTotalPrice,
         }])
         .select()
         .single();
@@ -761,19 +780,11 @@ const BookingFlow = () => {
       // 發送訂購確認郵件
       if (guestInfo.email) {
         try {
-          // 準備加購方案資訊
-          const nights = calculateNights();
-          const petPlanPrice = petCount > 0 ? petCount * petPlanSettings.pricePerUnit * nights : 0;
-          
-          const mealPlanDetails = Object.entries(bbqMealsByDate)
-            .filter(([_, count]) => count > 0)
-            .map(([dateStr, count]) => ({
-              date: format(new Date(dateStr), "MM/dd"),
-              count: count,
-              price: count * mealPlanSettings.pricePerUnit
-            }));
-          
-          const mealPlanTotal = mealPlanDetails.reduce((sum, detail) => sum + detail.price, 0);
+          const mealPlanDetailsForEmail = mealPlanDetailsData.map(detail => ({
+            date: format(new Date(detail.date), "MM/dd"),
+            count: detail.count,
+            price: detail.price
+          }));
 
           const { data: emailData, error: emailError } = await supabase.functions.invoke(
             "send-booking-confirmation",
@@ -792,8 +803,8 @@ const BookingFlow = () => {
                 paymentMethod: paymentMethod,
                 petCount: petCount > 0 ? petCount : undefined,
                 petPlanPrice: petPlanPrice > 0 ? petPlanPrice : undefined,
-                mealPlanDetails: mealPlanDetails.length > 0 ? mealPlanDetails : undefined,
-                mealPlanTotal: mealPlanTotal > 0 ? mealPlanTotal : undefined,
+                mealPlanDetails: mealPlanDetailsForEmail.length > 0 ? mealPlanDetailsForEmail : undefined,
+                mealPlanTotal: mealPlanTotalPrice > 0 ? mealPlanTotalPrice : undefined,
               },
             }
           );
