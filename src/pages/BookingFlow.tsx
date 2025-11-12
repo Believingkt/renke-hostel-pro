@@ -761,6 +761,20 @@ const BookingFlow = () => {
       // 發送訂購確認郵件
       if (guestInfo.email) {
         try {
+          // 準備加購方案資訊
+          const nights = calculateNights();
+          const petPlanPrice = petCount > 0 ? petCount * petPlanSettings.pricePerUnit * nights : 0;
+          
+          const mealPlanDetails = Object.entries(bbqMealsByDate)
+            .filter(([_, count]) => count > 0)
+            .map(([dateStr, count]) => ({
+              date: format(new Date(dateStr), "MM/dd"),
+              count: count,
+              price: count * mealPlanSettings.pricePerUnit
+            }));
+          
+          const mealPlanTotal = mealPlanDetails.reduce((sum, detail) => sum + detail.price, 0);
+
           const { data: emailData, error: emailError } = await supabase.functions.invoke(
             "send-booking-confirmation",
             {
@@ -776,6 +790,10 @@ const BookingFlow = () => {
                 finalPrice: finalPrice,
                 depositAmount: depositAmount,
                 paymentMethod: paymentMethod,
+                petCount: petCount > 0 ? petCount : undefined,
+                petPlanPrice: petPlanPrice > 0 ? petPlanPrice : undefined,
+                mealPlanDetails: mealPlanDetails.length > 0 ? mealPlanDetails : undefined,
+                mealPlanTotal: mealPlanTotal > 0 ? mealPlanTotal : undefined,
               },
             }
           );
