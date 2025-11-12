@@ -213,8 +213,24 @@ const handler = async (req: Request): Promise<Response> => {
                 </ul>
               </div>
 
-              <p style="margin-top: 30px;">如有任何疑問，歡迎隨時與我們聯繫。</p>
-              <p style="margin-top: 20px;">期待您的光臨！</p>
+              <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #667eea;">
+                <p style="margin: 0 0 15px 0; font-weight: 600; color: #333;">如有任何疑問，歡迎透過下列方式與我們聯繫：</p>
+                <div style="color: #666; line-height: 1.8;">
+                  <p style="margin: 8px 0; display: flex; align-items: center;">
+                    <span style="display: inline-block; width: 24px; margin-right: 8px;">📞</span>
+                    <span>聯絡電話：<a href="tel:0903178518" style="color: #667eea; text-decoration: none;">0903178518</a></span>
+                  </p>
+                  <p style="margin: 8px 0; display: flex; align-items: center;">
+                    <span style="display: inline-block; width: 24px; margin-right: 8px;">💬</span>
+                    <span>LINE 官方帳號：<a href="https://line.me/R/ti/p/@042deypa" style="color: #667eea; text-decoration: none;">@042deypa</a></span>
+                  </p>
+                  <p style="margin: 8px 0; display: flex; align-items: center;">
+                    <span style="display: inline-block; width: 24px; margin-right: 8px;">📧</span>
+                    <span>電子郵件：<a href="mailto:sensan.inn@gmail.com" style="color: #667eea; text-decoration: none;">sensan.inn@gmail.com</a></span>
+                  </p>
+                </div>
+              </div>
+              <p style="margin-top: 20px; font-size: 16px; font-weight: 500; color: #667eea;">期待您的光臨！</p>
             </div>
 
             <div class="footer">
