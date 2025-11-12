@@ -1270,30 +1270,41 @@ const BookingFlow = () => {
                             <p className="text-sm text-muted-foreground mt-3">每隻 NT$ 600 / 每晚，上限 2 隻</p>
                           </div>
                         ) : (
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-medium">攜帶寵物</p>
-                              <p className="text-sm text-muted-foreground">每隻 NT$ 600 / 每晚</p>
-                              <p className="text-xs text-muted-foreground mt-1">上限 2 隻</p>
+                          <>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium">攜帶寵物</p>
+                                <p className="text-sm text-muted-foreground">每隻 NT$ 600 / 每晚</p>
+                                <p className="text-xs text-muted-foreground mt-1">上限 2 隻</p>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <button
+                                  onClick={() => setPetCount(Math.max(0, petCount - 1))}
+                                  disabled={petCount === 0}
+                                  className="w-10 h-10 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  -
+                                </button>
+                                <span className="w-8 text-center font-medium text-lg">{petCount}</span>
+                                <button
+                                  onClick={() => setPetCount(Math.min(2, petCount + 1))}
+                                  disabled={petCount >= 2}
+                                  className="w-10 h-10 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  +
+                                </button>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-3">
-                              <button
-                                onClick={() => setPetCount(Math.max(0, petCount - 1))}
-                                disabled={petCount === 0}
-                                className="w-10 h-10 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                -
-                              </button>
-                              <span className="w-8 text-center font-medium text-lg">{petCount}</span>
-                              <button
-                                onClick={() => setPetCount(Math.min(2, petCount + 1))}
-                                disabled={petCount >= 2}
-                                className="w-10 h-10 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                +
-                              </button>
-                            </div>
-                          </div>
+                            <Button
+                              onClick={() => setPetCount(0)}
+                              variant="ghost"
+                              size="sm"
+                              className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <X className="mr-2 h-4 w-4" />
+                              清除毛孩方案
+                            </Button>
+                          </>
                         )}
                         {petCount > 0 && (
                           <div className="bg-primary/5 p-3 rounded-lg">
@@ -1426,6 +1437,15 @@ const BookingFlow = () => {
                               </div>
                             </div>
                             )}
+                            <Button
+                              onClick={() => setBbqMealsByDate({})}
+                              variant="ghost"
+                              size="sm"
+                              className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <X className="mr-2 h-4 w-4" />
+                              清除餐食加購
+                            </Button>
                           </div>
                         )}
 
