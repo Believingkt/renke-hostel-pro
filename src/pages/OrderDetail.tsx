@@ -9,6 +9,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
+interface MealPlanDetail {
+  date: string;
+  count: number;
+  pricePerUnit: number;
+  price: number;
+}
+
 interface OrderDetail {
   id: string;
   order_number: string;
@@ -32,6 +39,10 @@ interface OrderDetail {
   notes: string | null;
   order_date: string;
   room_assigned: boolean;
+  pet_count: number;
+  pet_plan_price: number;
+  meal_plan_details: MealPlanDetail[];
+  meal_plan_total: number;
   room_types: {
     name: string;
     name_en: string | null;
@@ -61,7 +72,7 @@ const OrderDetail = () => {
             )
           `)
           .eq("id", orderId)
-          .single();
+          .maybeSingle();
 
         if (error) throw error;
         
@@ -319,6 +330,67 @@ const OrderDetail = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* 加購方案 */}
+      {(order.pet_count > 0 || order.meal_plan_total > 0) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>加購方案</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {order.pet_count > 0 && (
+              <>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">🐾 寵物方案</span>
+                    <Badge variant="outline">{order.pet_count} 隻 × {nights} 晚</Badge>
+                  </div>
+                  <div className="flex justify-between items-center pl-4">
+                    <span className="text-sm text-muted-foreground">小計</span>
+                    <span className="font-medium">NT$ {order.pet_plan_price.toLocaleString()}</span>
+                  </div>
+                </div>
+                {order.meal_plan_total > 0 && <Separator />}
+              </>
+            )}
+            
+            {order.meal_plan_total > 0 && order.meal_plan_details && order.meal_plan_details.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">🍖 烤肉餐食方案</span>
+                </div>
+                <div className="pl-4 space-y-2">
+                  {order.meal_plan_details.map((detail, index) => (
+                    <div key={index} className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground">
+                        {format(new Date(detail.date), "yyyy/MM/dd")} - {detail.count} 份
+                      </span>
+                      <span className="font-medium">NT$ {detail.price.toLocaleString()}</span>
+                    </div>
+                  ))}
+                  <Separator className="my-2" />
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">小計</span>
+                    <span className="font-medium">NT$ {order.meal_plan_total.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {(order.pet_count > 0 || order.meal_plan_total > 0) && (
+              <>
+                <Separator />
+                <div className="flex justify-between items-center pt-2">
+                  <span className="text-sm font-semibold">加購總計</span>
+                  <span className="font-bold text-lg text-primary">
+                    NT$ {(order.pet_plan_price + order.meal_plan_total).toLocaleString()}
+                  </span>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* 備註 */}
       {order.notes && (
