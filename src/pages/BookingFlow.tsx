@@ -246,6 +246,22 @@ const BookingFlow = () => {
     }
   }, [searchParams, roomTypes, selectedRoom]);
 
+  // 當日期或餐食方案改變時，檢查已選擇的房型是否仍然適用
+  useEffect(() => {
+    if (selectedRoom && checkInDate && checkOutDate) {
+      const availableRooms = getAvailableRooms();
+      const isRoomAvailable = availableRooms.some(room => room.id === selectedRoom.id);
+      
+      if (!isRoomAvailable) {
+        setSelectedRoom(null);
+        toast({
+          title: "房型已變更為不可訂",
+          description: "由於日期或餐食方案變更，您選擇的房型已無法預訂",
+        });
+      }
+    }
+  }, [checkInDate, checkOutDate, selectedMealPlan]);
+
   const calculateNights = () => {
     if (!checkInDateStr || !checkOutDateStr) return 0;
     const start = new Date(checkInDateStr);
@@ -257,6 +273,66 @@ const BookingFlow = () => {
   const isWeekend = (date: Date) => {
     const day = date.getDay();
     return day === 5 || day === 6; // 五、六為假日
+  };
+
+  // 檢查日期範圍內是否包含平日或週末
+  const getDateRangeInfo = () => {
+    if (!checkInDate || !checkOutDate) return { hasWeekday: false, hasWeekend: false };
+    
+    const nights = calculateNights();
+    let hasWeekday = false;
+    let hasWeekend = false;
+    const start = new Date(checkInDateStr);
+    
+    for (let i = 0; i < nights; i++) {
+      const currentDate = new Date(start);
+      currentDate.setDate(start.getDate() + i);
+      
+      if (isWeekend(currentDate)) {
+        hasWeekend = true;
+      } else {
+        hasWeekday = true;
+      }
+    }
+    
+    return { hasWeekday, hasWeekend };
+  };
+
+  // 根據選擇的日期篩選可用房型
+  const getAvailableRooms = () => {
+    if (!checkInDate || !checkOutDate) return roomTypes;
+    
+    const { hasWeekday, hasWeekend } = getDateRangeInfo();
+    
+    return roomTypes.filter(room => {
+      const mealPlanType = selectedMealPlan === "2_meals" ? "2_meals" : "3_meals";
+      
+      // 如果有平日，檢查平日價格
+      if (hasWeekday) {
+        const weekdayPrice = mealPlanType === "2_meals" 
+          ? room.weekday_2_meals_price 
+          : room.weekday_3_meals_price;
+        
+        if (!weekdayPrice || weekdayPrice === 0) return false;
+      }
+      
+      // 如果有週末，檢查週末價格（可以回退到平日價格）
+      if (hasWeekend) {
+        const weekendPrice = mealPlanType === "2_meals"
+          ? room.weekend_2_meals_price
+          : room.weekend_3_meals_price;
+        const weekdayPrice = mealPlanType === "2_meals"
+          ? room.weekday_2_meals_price
+          : room.weekday_3_meals_price;
+        
+        // 週末價格或平日價格至少要有一個
+        if ((!weekendPrice || weekendPrice === 0) && (!weekdayPrice || weekdayPrice === 0)) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
   };
 
   const calculateTotal = () => {
@@ -389,6 +465,24 @@ const BookingFlow = () => {
           variant: "destructive",
         });
         return;
+      }
+      
+      // 驗證選擇的房型是否適用於選擇的日期
+      if (selectedRoom) {
+        const availableRooms = getAvailableRooms();
+        const isRoomAvailable = availableRooms.some(room => room.id === selectedRoom.id);
+        
+        if (!isRoomAvailable) {
+          setSelectedRoom(null);
+          toast({
+            title: "房型不適用",
+            description: "您選擇的房型在此日期範圍內無法預訂，請重新選擇房型",
+            variant: "destructive",
+          });
+          // 返回房型選擇步驟
+          setCurrentStep("room");
+          return;
+        }
       }
     }
 
@@ -671,7 +765,17 @@ const BookingFlow = () => {
                 {/* Step 1: Room Selection */}
                 {currentStep === "room" && (
                   <div className="space-y-4">
-                    {roomTypes.map((room) => (
+                    {checkInDate && checkOutDate && getAvailableRooms().length === 0 && (
+                      <div className="bg-muted p-6 rounded-lg text-center">
+                        <p className="text-muted-foreground mb-2">
+                          您選擇的日期範圍內，目前沒有可訂的房型。
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          請返回上一步重新選擇日期，或聯繫我們了解更多資訊。
+                        </p>
+                      </div>
+                    )}
+                    {(checkInDate && checkOutDate ? getAvailableRooms() : roomTypes).map((room) => (
                       <Card
                         key={room.id}
                         className={`cursor-pointer transition-all hover:shadow-md overflow-hidden ${
