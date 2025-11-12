@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import {
   Calendar,
@@ -142,6 +143,7 @@ const BookingFlow = () => {
   const [petCount, setPetCount] = useState(0);
   const [bbqMealCount, setBbqMealCount] = useState(0);
   const [isPetPolicyDialogOpen, setIsPetPolicyDialogOpen] = useState(false);
+  const [selectedBbqDates, setSelectedBbqDates] = useState<string[]>([]);
   
   // 將 context 日期轉換為字串格式，並提供預設值
   const checkInDateStr = checkInDate ? format(checkInDate, "yyyy-MM-dd") : "";
@@ -292,6 +294,27 @@ const BookingFlow = () => {
     return Math.ceil(diff / (1000 * 3600 * 24));
   };
 
+  // 獲取住宿期間的所有日期
+  const getStayDates = () => {
+    if (!checkInDate || !checkOutDate) return [];
+    const dates: string[] = [];
+    const start = new Date(checkInDate);
+    const nights = calculateNights();
+    
+    for (let i = 0; i < nights; i++) {
+      const currentDate = new Date(start);
+      currentDate.setDate(start.getDate() + i);
+      dates.push(format(currentDate, "yyyy-MM-dd"));
+    }
+    
+    return dates;
+  };
+
+  // 當日期變更時，清空已選擇的烤肉日期
+  useEffect(() => {
+    setSelectedBbqDates([]);
+  }, [checkInDateStr, checkOutDateStr]);
+
   const isWeekend = (date: Date) => {
     const day = date.getDay();
     return day === 5 || day === 6; // 五、六為假日
@@ -417,7 +440,7 @@ const BookingFlow = () => {
 
   const calculateAddonsTotal = () => {
     const nights = calculateNights();
-    return (petCount * 600 * nights) + (bbqMealCount * 900);
+    return (petCount * 600 * nights) + (bbqMealCount * 900 * selectedBbqDates.length);
   };
 
   const calculateFinalTotal = () => {
@@ -511,6 +534,18 @@ const BookingFlow = () => {
       return;
     }
 
+    if (currentStep === "addons") {
+      // 驗證加購方案
+      if (bbqMealCount > 0 && selectedBbqDates.length === 0) {
+        toast({
+          title: "請選擇用餐日期",
+          description: "您已選擇烤肉套餐，請選擇至少一個用餐日期",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     if (currentStep === "guest") {
       // 驗證客人資訊
       try {
@@ -591,14 +626,15 @@ const BookingFlow = () => {
 
       // 準備訂單備註（包含加購資訊）
       let orderNotes = guestInfo.notes || "";
-      if (petCount > 0 || bbqMealCount > 0) {
+      if (petCount > 0 || (bbqMealCount > 0 && selectedBbqDates.length > 0)) {
         const addonNotes = [];
         const nights = calculateNights();
         if (petCount > 0) {
           addonNotes.push(`毛孩方案 × ${petCount} × ${nights} 晚 (NT$ ${petCount * 600 * nights})`);
         }
-        if (bbqMealCount > 0) {
-          addonNotes.push(`烤肉套餐 × ${bbqMealCount} 人 (NT$ ${bbqMealCount * 900})`);
+        if (bbqMealCount > 0 && selectedBbqDates.length > 0) {
+          const bbqDatesStr = selectedBbqDates.map(d => format(new Date(d), "MM/dd", { locale: zhTW })).join(", ");
+          addonNotes.push(`烤肉套餐 × ${bbqMealCount} 人 × ${selectedBbqDates.length} 天 (${bbqDatesStr}) (NT$ ${bbqMealCount * 900 * selectedBbqDates.length})`);
         }
         const addonText = `\n\n【加購方案】\n${addonNotes.join('\n')}`;
         orderNotes = orderNotes ? orderNotes + addonText : addonText.trim();
@@ -1231,34 +1267,84 @@ const BookingFlow = () => {
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">烤肉套餐</p>
-                            <p className="text-sm text-muted-foreground">每人 NT$ 900</p>
-                            <p className="text-xs text-muted-foreground mt-1">上限 18 人</p>
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-medium">烤肉套餐</p>
+                              <p className="text-sm text-muted-foreground">每人 NT$ 900</p>
+                              <p className="text-xs text-muted-foreground mt-1">上限 18 人</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <button
+                                onClick={() => setBbqMealCount(Math.max(0, bbqMealCount - 1))}
+                                disabled={bbqMealCount === 0}
+                                className="w-10 h-10 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                -
+                              </button>
+                              <span className="w-8 text-center font-medium text-lg">{bbqMealCount}</span>
+                              <button
+                                onClick={() => setBbqMealCount(Math.min(18, bbqMealCount + 1))}
+                                disabled={bbqMealCount >= 18}
+                                className="w-10 h-10 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                +
+                              </button>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <button
-                              onClick={() => setBbqMealCount(Math.max(0, bbqMealCount - 1))}
-                              disabled={bbqMealCount === 0}
-                              className="w-10 h-10 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              -
-                            </button>
-                            <span className="w-8 text-center font-medium text-lg">{bbqMealCount}</span>
-                            <button
-                              onClick={() => setBbqMealCount(Math.min(18, bbqMealCount + 1))}
-                              disabled={bbqMealCount >= 18}
-                              className="w-10 h-10 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              +
-                            </button>
-                          </div>
+
+                          {/* 日期選擇 */}
+                          {bbqMealCount > 0 && checkInDate && checkOutDate && (
+                            <div className="border-t pt-4">
+                              <Label className="text-sm font-semibold mb-3 block">選擇用餐日期</Label>
+                              <div className="space-y-2 max-h-60 overflow-y-auto">
+                                {getStayDates().map((dateStr) => {
+                                  const date = new Date(dateStr);
+                                  const isSelected = selectedBbqDates.includes(dateStr);
+                                  
+                                  return (
+                                    <div
+                                      key={dateStr}
+                                      className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors cursor-pointer"
+                                      onClick={() => {
+                                        if (isSelected) {
+                                          setSelectedBbqDates(selectedBbqDates.filter(d => d !== dateStr));
+                                        } else {
+                                          setSelectedBbqDates([...selectedBbqDates, dateStr]);
+                                        }
+                                      }}
+                                    >
+                                      <Checkbox
+                                        checked={isSelected}
+                                        onCheckedChange={(checked) => {
+                                          if (checked) {
+                                            setSelectedBbqDates([...selectedBbqDates, dateStr]);
+                                          } else {
+                                            setSelectedBbqDates(selectedBbqDates.filter(d => d !== dateStr));
+                                          }
+                                        }}
+                                      />
+                                      <Label className="flex-1 cursor-pointer text-sm">
+                                        {format(date, "yyyy/MM/dd (E)", { locale: zhTW })}
+                                      </Label>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              {selectedBbqDates.length === 0 && (
+                                <p className="text-xs text-destructive mt-2">請至少選擇一個用餐日期</p>
+                              )}
+                            </div>
+                          )}
                         </div>
-                        {bbqMealCount > 0 && (
+
+                        {bbqMealCount > 0 && selectedBbqDates.length > 0 && (
                           <div className="bg-primary/5 p-3 rounded-lg">
                             <p className="text-sm font-medium">
-                              小計：NT$ {(bbqMealCount * 900).toLocaleString()}
+                              小計：NT$ {(bbqMealCount * 900 * selectedBbqDates.length).toLocaleString()}
+                              <span className="text-muted-foreground ml-2">
+                                ({bbqMealCount} 人 × {selectedBbqDates.length} 天)
+                              </span>
                             </p>
                           </div>
                         )}
@@ -1277,23 +1363,25 @@ const BookingFlow = () => {
                                 <span>NT$ {(petCount * 600 * calculateNights()).toLocaleString()}</span>
                               </div>
                             )}
-                            {bbqMealCount > 0 && (
+                            {bbqMealCount > 0 && selectedBbqDates.length > 0 && (
                               <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">烤肉套餐 × {bbqMealCount}</span>
-                                <span>NT$ {(bbqMealCount * 900).toLocaleString()}</span>
+                                <span className="text-muted-foreground">
+                                  烤肉套餐 × {bbqMealCount} 人 × {selectedBbqDates.length} 天
+                                </span>
+                                <span>NT$ {(bbqMealCount * 900 * selectedBbqDates.length).toLocaleString()}</span>
                               </div>
                             )}
                             <Separator />
                             <div className="flex justify-between font-semibold text-base">
                               <span>加購小計</span>
-                              <span className="text-primary">NT$ {((petCount * 600 * calculateNights()) + (bbqMealCount * 900)).toLocaleString()}</span>
+                              <span className="text-primary">NT$ {((petCount * 600 * calculateNights()) + (bbqMealCount * 900 * selectedBbqDates.length)).toLocaleString()}</span>
                             </div>
                           </div>
                         </CardContent>
                       </Card>
                     )}
 
-                    {(petCount === 0 && bbqMealCount === 0) && (
+                    {(petCount === 0 && (bbqMealCount === 0 || selectedBbqDates.length === 0)) && (
                       <div className="text-center py-8 text-muted-foreground">
                         <p>您可以選擇加購方案，或直接進入下一步</p>
                       </div>
@@ -1514,16 +1602,21 @@ const BookingFlow = () => {
                           <p className="text-sm text-muted-foreground">餐食方案</p>
                           <p className="font-medium">{selectedMealPlan === "2_meals" ? "一泊二食" : "一泊三食"}</p>
                         </div>
-                        {(petCount > 0 || bbqMealCount > 0) && (
+                        {(petCount > 0 || (bbqMealCount > 0 && selectedBbqDates.length > 0)) && (
                           <>
                             <Separator />
                             <div>
                               <p className="text-sm text-muted-foreground mb-2">加購方案</p>
                               {petCount > 0 && (
-                                <p className="font-medium">🐾 毛孩方案 × {petCount}</p>
+                                <p className="font-medium">🐾 毛孩方案 × {petCount} × {calculateNights()} 晚</p>
                               )}
-                              {bbqMealCount > 0 && (
-                                <p className="font-medium">🍖 烤肉套餐 × {bbqMealCount} 人</p>
+                              {bbqMealCount > 0 && selectedBbqDates.length > 0 && (
+                                <div>
+                                  <p className="font-medium">🍖 烤肉套餐 × {bbqMealCount} 人 × {selectedBbqDates.length} 天</p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    用餐日期：{selectedBbqDates.map(d => format(new Date(d), "MM/dd")).join(", ")}
+                                  </p>
+                                </div>
                               )}
                             </div>
                           </>
@@ -1691,13 +1784,13 @@ const BookingFlow = () => {
                               </span>
                             </div>
                           )}
-                          {bbqMealCount > 0 && (
+                          {bbqMealCount > 0 && selectedBbqDates.length > 0 && (
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">
-                                🍖 烤肉套餐 × {bbqMealCount} 人
+                                🍖 烤肉套餐 × {bbqMealCount} 人 × {selectedBbqDates.length} 天
                               </span>
                               <span className="font-medium">
-                                NT$ {(bbqMealCount * 900).toLocaleString()}
+                                NT$ {(bbqMealCount * 900 * selectedBbqDates.length).toLocaleString()}
                               </span>
                             </div>
                           )}
