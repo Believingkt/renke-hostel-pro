@@ -20,6 +20,10 @@ interface BookingConfirmationRequest {
   finalPrice: number;
   depositAmount: number;
   paymentMethod: string;
+  petCount?: number;
+  petPlanPrice?: number;
+  mealPlanDetails?: Array<{ date: string; count: number; price: number }>;
+  mealPlanTotal?: number;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -41,6 +45,10 @@ const handler = async (req: Request): Promise<Response> => {
       finalPrice,
       depositAmount,
       paymentMethod,
+      petCount,
+      petPlanPrice,
+      mealPlanDetails,
+      mealPlanTotal,
     }: BookingConfirmationRequest = await req.json();
 
     console.log("Sending booking confirmation email to:", guestEmail);
@@ -120,6 +128,59 @@ const handler = async (req: Request): Promise<Response> => {
                   </tr>
                 </table>
               </div>
+
+              ${petCount || mealPlanDetails?.length ? `
+              <div style="margin: 30px 0; background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                <h3 style="margin: 0 0 15px 0; color: #333; font-size: 18px; font-weight: 600;">📦 加購方案</h3>
+                ${petCount ? `
+                <div style="border-bottom: 1px solid #e0e0e0; padding-bottom: 12px; margin-bottom: 12px;">
+                  <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                      <td style="color: #333; padding: 8px 0;">
+                        <span style="font-size: 16px;">🐾 寵物方案</span>
+                      </td>
+                      <td style="text-align: right; color: #333; font-weight: 600; padding: 8px 0;">
+                        NT$ ${petPlanPrice?.toLocaleString()}
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+                ` : ''}
+                ${mealPlanDetails && mealPlanDetails.length > 0 ? `
+                <div>
+                  <div style="color: #333; font-size: 16px; margin-bottom: 8px;">🍖 餐食方案</div>
+                  ${mealPlanDetails.map(detail => `
+                    <div style="padding-left: 20px; margin: 6px 0;">
+                      <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                          <td style="color: #666; font-size: 14px; padding: 4px 0;">
+                            ${detail.date} - ${detail.count} 人
+                          </td>
+                          <td style="text-align: right; color: #666; font-size: 14px; padding: 4px 0;">
+                            NT$ ${detail.price.toLocaleString()}
+                          </td>
+                        </tr>
+                      </table>
+                    </div>
+                  `).join('')}
+                  ${mealPlanTotal ? `
+                  <div style="border-top: 1px solid #e0e0e0; padding-top: 8px; margin-top: 8px;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                      <tr>
+                        <td style="color: #333; font-weight: 600; padding: 4px 0;">
+                          餐食方案小計
+                        </td>
+                        <td style="text-align: right; color: #333; font-weight: 600; padding: 4px 0;">
+                          NT$ ${mealPlanTotal.toLocaleString()}
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+                  ` : ''}
+                </div>
+                ` : ''}
+              </div>
+              ` : ''}
 
               <div class="price-highlight">
                 <table style="width: 100%; border-collapse: collapse;">
