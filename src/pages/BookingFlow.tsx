@@ -141,6 +141,7 @@ const BookingFlow = () => {
   // 加購方案
   const [petCount, setPetCount] = useState(0);
   const [bbqMealCount, setBbqMealCount] = useState(0);
+  const [isPetPolicyDialogOpen, setIsPetPolicyDialogOpen] = useState(false);
   
   // 將 context 日期轉換為字串格式，並提供預設值
   const checkInDateStr = checkInDate ? format(checkInDate, "yyyy-MM-dd") : "";
@@ -1170,9 +1171,19 @@ const BookingFlow = () => {
                     {/* 毛孩方案 */}
                     <Card>
                       <CardHeader>
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          🐾 毛孩方案
-                        </CardTitle>
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg flex items-center gap-2">
+                            🐾 毛孩方案
+                          </CardTitle>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setIsPetPolicyDialogOpen(true)}
+                            className="text-primary hover:text-primary/80"
+                          >
+                            查看詳情
+                          </Button>
+                        </div>
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <div className="flex items-center justify-between">
@@ -1796,6 +1807,125 @@ const BookingFlow = () => {
                 </Button>
               </>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 毛孩方案詳情對話框 */}
+      <Dialog open={isPetPolicyDialogOpen} onOpenChange={setIsPetPolicyDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold mb-2">🐾 毛孩方案</h2>
+              <p className="text-lg text-primary font-semibold">每隻 NT$ 600 / 住宿期間</p>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+              <h3 className="text-xl font-semibold">寵物入住守則</h3>
+              
+              <div className="space-y-3 text-sm leading-relaxed">
+                <p>僅開放毛孩進入指定之 2 棟 Villa 及公共區域。請於訂房時選擇加購毛孩方案。</p>
+                
+                <p>毛孩於辦理入住時，預先支付現金 2,000 元押金，退房確認房內各項設備正常後歸還。</p>
+
+                <div className="bg-primary/5 p-4 rounded-lg">
+                  <h4 className="font-semibold mb-2">寵物專屬備品：</h4>
+                  <p>園區提供寵物餐碗、寵物行軍床、寵物零食。</p>
+                </div>
+
+                <div className="bg-destructive/10 p-4 rounded-lg border border-destructive/20">
+                  <p className="font-semibold text-destructive">
+                    若違反下述規範，家長則須支付 5,000 元罰金。
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+              <h3 className="text-xl font-semibold">毛孩守則</h3>
+              
+              <ul className="space-y-3 text-sm leading-relaxed list-none">
+                <li className="flex gap-2">
+                  <span className="text-primary font-semibold min-w-[1.5rem]">•</span>
+                  <span>接待寵物以犬、貓為主，其他寵物請與我們聯繫確認。</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-primary font-semibold min-w-[1.5rem]">•</span>
+                  <span>本園區因地理環境良好，會有野生動物出沒，如:獼猴、山豬、山羌，如出現需保持冷靜並盡速隔離毛孩。</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-primary font-semibold min-w-[1.5rem]">•</span>
+                  <span>入住前請先將毛孩洗澡與除蚤完成，保護毛孩請施打完成狂犬病疫苗 (於入住時出示接種證明)。</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-primary font-semibold min-w-[1.5rem]">•</span>
+                  <span>天性較有攻擊性的犬種暫不接待，如:比特犬、藏獒、日本土佐犬、紐波利頓犬、阿根廷杜告犬、巴西菲勒犬等。</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-primary font-semibold min-w-[1.5rem]">•</span>
+                  <span>若毛孩出現攻擊行為、連續吠叫，且家長無法即時制止，森山寫照有權不接待並不予退費。</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-primary font-semibold min-w-[1.5rem]">•</span>
+                  <span>毛孩於園區內及廁所大小便後請立即清理，共同維護毛孩貴賓擁有舒適的環境。</span>
+                </li>
+              </ul>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+              <h3 className="text-xl font-semibold">Villa 及公共交誼區公約</h3>
+              
+              <ul className="space-y-3 text-sm leading-relaxed list-none">
+                <li className="flex gap-2">
+                  <span className="text-primary font-semibold min-w-[1.5rem]">•</span>
+                  <span>狗狗貓貓請於專屬軟墊休息，不與家長同床。</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-primary font-semibold min-w-[1.5rem]">•</span>
+                  <span>住宿內部空間有限僅入住兩隻中小型犬種，若為大型犬建議一隻為上限。</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-primary font-semibold min-w-[1.5rem]">•</span>
+                  <span>房內不開放毛孩洗澡、不吹毛及梳毛，進房前務必擦腳。</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-primary font-semibold min-w-[1.5rem]">•</span>
+                  <span>攜帶毛孩入住，確認毛孩的指甲不過長，防止毛孩的抓傷設施行為。</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-primary font-semibold min-w-[1.5rem]">•</span>
+                  <span>禁止單獨留毛孩於公共交誼區或房內。</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-primary font-semibold min-w-[1.5rem]">•</span>
+                  <span>進入園區後，須繫上牽繩、推車或運輸籠。</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-primary font-semibold min-w-[1.5rem]">•</span>
+                  <span>目前不提供毛孩餐食，須請家長攜帶毛孩最愛的食物。</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-primary font-semibold min-w-[1.5rem]">•</span>
+                  <span>若毛孩之間打架受傷以及毛孩咬傷旅客或他人毛孩，請雙方互相自行處理協調，由家長負擔相關責任，毛孩之行為由家長全權負責。</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-primary font-semibold min-w-[1.5rem]">•</span>
+                  <span>若毛孩造成房內設施毀損髒汙，或造成攻擊行為導致人員受傷或有違本住宿公約之約定，家長必須負擔後續相關賠償責任。</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="flex justify-end pt-4">
+              <Button onClick={() => setIsPetPolicyDialogOpen(false)} className="w-full sm:w-auto">
+                我了解了
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
