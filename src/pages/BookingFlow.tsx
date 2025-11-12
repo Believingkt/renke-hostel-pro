@@ -1280,7 +1280,7 @@ const BookingFlow = () => {
                           <div>
                             <p className="font-medium">烤肉套餐</p>
                             <p className="text-sm text-muted-foreground">每人 NT$ 900 / 每日</p>
-                            <p className="text-xs text-muted-foreground mt-1">每日上限 18 人</p>
+                            <p className="text-xs text-muted-foreground mt-1">平日下限12人，假日下限18人，上限30人</p>
                           </div>
 
                           {/* 日期選擇與人數設定 */}
@@ -1291,6 +1291,9 @@ const BookingFlow = () => {
                                 {getStayDates().map((dateStr) => {
                                   const date = new Date(dateStr);
                                   const currentCount = bbqMealsByDate[dateStr] || 0;
+                                  const isWeekendDate = isWeekend(date);
+                                  const minCount = isWeekendDate ? 18 : 12;
+                                  const maxCount = 30;
                                   
                                   return (
                                     <div
@@ -1300,18 +1303,23 @@ const BookingFlow = () => {
                                       <div className="flex-1">
                                         <Label className="text-sm font-medium">
                                           {format(date, "yyyy/MM/dd (E)", { locale: zhTW })}
+                                          {isWeekendDate && <Badge variant="secondary" className="ml-2 text-xs">假日</Badge>}
                                         </Label>
-                                        {currentCount > 0 && (
+                                        {currentCount > 0 ? (
                                           <p className="text-xs text-muted-foreground mt-1">
                                             NT$ {(currentCount * 900).toLocaleString()}
+                                          </p>
+                                        ) : (
+                                          <p className="text-xs text-muted-foreground mt-1">
+                                            下限 {minCount} 人
                                           </p>
                                         )}
                                       </div>
                                       <div className="flex items-center gap-2">
                                         <button
                                           onClick={() => {
-                                            const newCount = Math.max(0, currentCount - 1);
-                                            if (newCount === 0) {
+                                            const newCount = currentCount - 1;
+                                            if (newCount < minCount) {
                                               const newData = { ...bbqMealsByDate };
                                               delete newData[dateStr];
                                               setBbqMealsByDate(newData);
@@ -1327,10 +1335,10 @@ const BookingFlow = () => {
                                         <span className="w-10 text-center font-medium">{currentCount}</span>
                                         <button
                                           onClick={() => {
-                                            const newCount = Math.min(18, currentCount + 1);
+                                            const newCount = currentCount === 0 ? minCount : Math.min(maxCount, currentCount + 1);
                                             setBbqMealsByDate({ ...bbqMealsByDate, [dateStr]: newCount });
                                           }}
-                                          disabled={currentCount >= 18}
+                                          disabled={currentCount >= maxCount}
                                           className="w-8 h-8 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                           +
