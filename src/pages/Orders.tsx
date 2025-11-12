@@ -367,28 +367,19 @@ const Orders = () => {
                         訂單編號
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                        訂購日期
+                        訂購時間
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
                         訂購人
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                        入住
+                        入住日期
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                        退房
+                        退房日期
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
                         付款狀態
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                        價格
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                        已收
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                        訂單備註
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
                         操作
@@ -398,7 +389,7 @@ const Orders = () => {
                   <tbody>
                     {filteredOrders.length === 0 ? (
                       <tr>
-                        <td colSpan={9} className="py-12 text-center text-muted-foreground">
+                        <td colSpan={7} className="py-12 text-center text-muted-foreground">
                           暫無資料
                         </td>
                       </tr>
@@ -413,14 +404,11 @@ const Orders = () => {
                               {order.order_number}
                             </Link>
                           </td>
-                          <td className="px-4 py-3 text-sm">{format(new Date(order.order_date), "yyyy-MM-dd")}</td>
+                          <td className="px-4 py-3 text-sm">{format(new Date(order.order_date), "yyyy-MM-dd HH:mm")}</td>
                           <td className="px-4 py-3 text-sm">{order.guest_name}</td>
                           <td className="px-4 py-3 text-sm">{order.check_in_date}</td>
                           <td className="px-4 py-3 text-sm">{order.check_out_date}</td>
                           <td className="px-4 py-3 text-sm">{getPaymentStatusBadge(order.payment_status)}</td>
-                          <td className="px-4 py-3 text-sm">NT$ {order.final_price.toLocaleString()}</td>
-                          <td className="px-4 py-3 text-sm">NT$ {order.paid_amount.toLocaleString()}</td>
-                          <td className="px-4 py-3 text-sm">{order.notes || '-'}</td>
                           <td className="px-4 py-3 text-sm">
                             <Button
                               variant="outline"
