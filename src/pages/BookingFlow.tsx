@@ -1344,7 +1344,7 @@ const BookingFlow = () => {
                                           </p>
                                         ) : (
                                           <p className="text-xs text-muted-foreground mt-1">
-                                            下限 {minCount} 人
+                                            基本人數 {minCount} 人
                                           </p>
                                         )}
                                       </div>
