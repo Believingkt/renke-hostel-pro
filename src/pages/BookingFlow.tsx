@@ -40,6 +40,8 @@ import {
   Dialog,
   DialogContent,
   DialogClose,
+  DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Popover,
@@ -2106,15 +2108,15 @@ const BookingFlow = () => {
 
       {/* 毛孩方案詳情對話框 */}
       <Dialog open={isPetPolicyDialogOpen} onOpenChange={setIsPetPolicyDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold mb-2">🐾 毛孩方案</h2>
-              <p className="text-lg text-primary font-semibold">每隻 NT$ {petPlanSettings.pricePerUnit} / 每晚</p>
-            </div>
+        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col gap-0 p-0">
+          <div className="p-6 border-b">
+            <DialogTitle className="text-2xl font-bold mb-2">🐾 毛孩方案</DialogTitle>
+            <DialogDescription className="text-lg text-primary font-semibold">
+              每隻 NT$ {petPlanSettings.pricePerUnit} / 每晚
+            </DialogDescription>
+          </div>
 
-            <Separator />
-
+          <div className="flex-1 overflow-y-auto p-6">
             <div className="space-y-4 text-sm leading-relaxed whitespace-pre-wrap">
               {petPlanSettings.detailedDescription || (
                 <>
@@ -2135,27 +2137,27 @@ const BookingFlow = () => {
                 </>
               )}
             </div>
+          </div>
 
-            <div className="flex justify-end pt-4">
-              <Button onClick={() => setIsPetPolicyDialogOpen(false)} className="w-full sm:w-auto">
-                我了解了
-              </Button>
-            </div>
+          <div className="p-6 border-t bg-muted/30">
+            <Button onClick={() => setIsPetPolicyDialogOpen(false)} className="w-full">
+              我了解了
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
 
       {/* 餐食加購詳細內容對話框 */}
       <Dialog open={isBbqDetailsDialogOpen} onOpenChange={setIsBbqDetailsDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold mb-2">🍖 餐食方案</h2>
-              <p className="text-lg text-primary font-semibold">每人 NT$ {mealPlanSettings.pricePerUnit} / 每日</p>
-            </div>
+        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col gap-0 p-0">
+          <div className="p-6 border-b">
+            <DialogTitle className="text-2xl font-bold mb-2">🍖 餐食方案</DialogTitle>
+            <DialogDescription className="text-lg text-primary font-semibold">
+              每人 NT$ {mealPlanSettings.pricePerUnit} / 每日
+            </DialogDescription>
+          </div>
 
-            <Separator />
-
+          <div className="flex-1 overflow-y-auto p-6">
             <div className="space-y-4 text-sm leading-relaxed whitespace-pre-wrap">
               {mealPlanSettings.detailedDescription || (
                 <>
@@ -2179,12 +2181,12 @@ const BookingFlow = () => {
                 </>
               )}
             </div>
+          </div>
 
-            <div className="flex justify-end pt-4">
-              <Button onClick={() => setIsBbqDetailsDialogOpen(false)} className="w-full sm:w-auto">
-                我了解了
-              </Button>
-            </div>
+          <div className="p-6 border-t bg-muted/30">
+            <Button onClick={() => setIsBbqDetailsDialogOpen(false)} className="w-full">
+              我了解了
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
