@@ -297,14 +297,28 @@ const Dashboard = () => {
           <CardHeader>
             <CardTitle className="text-lg md:text-xl">營收統計</CardTitle>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={revenueData}>
+          <CardContent className="px-2 md:px-6">
+            <ResponsiveContainer width="100%" height={250} className="md:h-[300px]">
+              <BarChart data={revenueData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="month" className="text-xs" />
-                <YAxis className="text-xs" />
-                <Tooltip />
-                <Legend />
+                <XAxis 
+                  dataKey="month" 
+                  tick={{ fontSize: 11 }}
+                  className="md:text-xs"
+                />
+                <YAxis 
+                  tick={{ fontSize: 11 }}
+                  className="md:text-xs"
+                  width={40}
+                />
+                <Tooltip 
+                  contentStyle={{ fontSize: '12px' }}
+                  labelStyle={{ fontSize: '12px' }}
+                />
+                <Legend 
+                  wrapperStyle={{ fontSize: '12px' }}
+                  iconSize={12}
+                />
                 <Bar dataKey="營收" fill="hsl(var(--chart-1))" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -315,20 +329,35 @@ const Dashboard = () => {
           <CardHeader>
             <CardTitle className="text-lg md:text-xl">訂房趨勢</CardTitle>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={bookingData}>
+          <CardContent className="px-2 md:px-6">
+            <ResponsiveContainer width="100%" height={250} className="md:h-[300px]">
+              <LineChart data={bookingData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="month" className="text-xs" />
-                <YAxis className="text-xs" />
-                <Tooltip />
-                <Legend />
+                <XAxis 
+                  dataKey="month" 
+                  tick={{ fontSize: 11 }}
+                  className="md:text-xs"
+                />
+                <YAxis 
+                  tick={{ fontSize: 11 }}
+                  className="md:text-xs"
+                  width={40}
+                />
+                <Tooltip 
+                  contentStyle={{ fontSize: '12px' }}
+                  labelStyle={{ fontSize: '12px' }}
+                />
+                <Legend 
+                  wrapperStyle={{ fontSize: '12px' }}
+                  iconSize={12}
+                />
                 <Line 
                   type="monotone" 
                   dataKey="訂房數" 
                   stroke="hsl(var(--chart-3))" 
-                  strokeWidth={3}
-                  dot={{ fill: "hsl(var(--chart-3))", r: 5 }}
+                  strokeWidth={2}
+                  dot={{ fill: "hsl(var(--chart-3))", r: 4 }}
+                  className="md:stroke-[3]"
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -336,63 +365,73 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      <Card className="shadow-card px-2 md:px-0 mx-2 md:mx-0">
+      <Card className="shadow-card mx-2 md:mx-0">
         <CardHeader>
           <CardTitle className="text-lg md:text-xl">近期訂房</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto scrollbar-thin -mx-2 md:mx-0">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">訂單編號</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">訂購時間</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">訂購人</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">入住日期</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">退房日期</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">付款狀態</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentBookings.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-12 text-center text-muted-foreground">
-                      暫無資料
-                    </td>
+        <CardContent className="px-0 md:px-6">
+          <div className="overflow-x-auto">
+            <div className="min-w-[640px]">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="px-3 md:px-4 py-3 text-left text-xs md:text-sm font-medium text-muted-foreground whitespace-nowrap">訂單編號</th>
+                    <th className="px-3 md:px-4 py-3 text-left text-xs md:text-sm font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">訂購時間</th>
+                    <th className="px-3 md:px-4 py-3 text-left text-xs md:text-sm font-medium text-muted-foreground whitespace-nowrap">訂購人</th>
+                    <th className="px-3 md:px-4 py-3 text-left text-xs md:text-sm font-medium text-muted-foreground whitespace-nowrap">入住日期</th>
+                    <th className="px-3 md:px-4 py-3 text-left text-xs md:text-sm font-medium text-muted-foreground whitespace-nowrap hidden sm:table-cell">退房日期</th>
+                    <th className="px-3 md:px-4 py-3 text-left text-xs md:text-sm font-medium text-muted-foreground whitespace-nowrap">付款狀態</th>
                   </tr>
-                ) : (
-                  recentBookings.map((booking) => (
-                    <tr key={booking.id} className="border-b transition-colors hover:bg-muted/50">
-                      <td className="px-4 py-3 text-sm font-medium">
-                        <Link 
-                          to={`/admin/orders/${booking.id}`}
-                          className="text-primary hover:underline"
-                        >
-                          {booking.order_number}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 text-sm">{format(new Date(booking.order_date), 'yyyy-MM-dd HH:mm')}</td>
-                      <td className="px-4 py-3 text-sm">{booking.guest_name}</td>
-                      <td className="px-4 py-3 text-sm">{format(new Date(booking.check_in_date), 'yyyy-MM-dd')}</td>
-                      <td className="px-4 py-3 text-sm">{format(new Date(booking.check_out_date), 'yyyy-MM-dd')}</td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
-                            booking.payment_status === "paid"
-                              ? "bg-stat-green-light text-stat-green"
-                              : booking.payment_status === "deposit_paid"
-                              ? "bg-stat-blue-light text-stat-blue"
-                              : "bg-stat-coral-light text-stat-coral"
-                          }`}
-                        >
-                          {getPaymentStatusLabel(booking.payment_status)}
-                        </span>
+                </thead>
+                <tbody>
+                  {recentBookings.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-muted-foreground text-sm">
+                        暫無資料
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    recentBookings.map((booking) => (
+                      <tr key={booking.id} className="border-b transition-colors hover:bg-muted/50">
+                        <td className="px-3 md:px-4 py-3 text-xs md:text-sm font-medium">
+                          <Link 
+                            to={`/admin/orders/${booking.id}`}
+                            className="text-primary hover:underline whitespace-nowrap"
+                          >
+                            {booking.order_number}
+                          </Link>
+                        </td>
+                        <td className="px-3 md:px-4 py-3 text-xs md:text-sm whitespace-nowrap hidden md:table-cell">
+                          {format(new Date(booking.order_date), 'yyyy-MM-dd HH:mm')}
+                        </td>
+                        <td className="px-3 md:px-4 py-3 text-xs md:text-sm whitespace-nowrap">
+                          {booking.guest_name}
+                        </td>
+                        <td className="px-3 md:px-4 py-3 text-xs md:text-sm whitespace-nowrap">
+                          {format(new Date(booking.check_in_date), 'yyyy-MM-dd')}
+                        </td>
+                        <td className="px-3 md:px-4 py-3 text-xs md:text-sm whitespace-nowrap hidden sm:table-cell">
+                          {format(new Date(booking.check_out_date), 'yyyy-MM-dd')}
+                        </td>
+                        <td className="px-3 md:px-4 py-3 whitespace-nowrap">
+                          <span
+                            className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold whitespace-nowrap ${
+                              booking.payment_status === "paid"
+                                ? "bg-stat-green-light text-stat-green"
+                                : booking.payment_status === "deposit_paid"
+                                ? "bg-stat-blue-light text-stat-blue"
+                                : "bg-stat-coral-light text-stat-coral"
+                            }`}
+                          >
+                            {getPaymentStatusLabel(booking.payment_status)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </CardContent>
       </Card>
