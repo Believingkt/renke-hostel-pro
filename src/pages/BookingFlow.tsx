@@ -1360,8 +1360,34 @@ const BookingFlow = () => {
                 <CardTitle className="text-lg">訂單摘要</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* 日期資訊 - 在所有步驟都顯示 */}
+                {checkInDate && checkOutDate && (
+                  <>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">入住日期</span>
+                        <span className="font-medium">{checkInDateStr}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">退房日期</span>
+                        <span className="font-medium">{checkOutDateStr}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">住宿天數</span>
+                        <span className="font-medium">{calculateNights()} 晚</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">入住人數</span>
+                        <span className="font-medium">{totalGuests} 人</span>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* 房型資訊 - 選擇房型後顯示 */}
                 {selectedRoom ? (
                   <>
+                    <Separator />
                     {/* 房型照片 */}
                     {selectedRoom.room_photos && selectedRoom.room_photos.length > 0 && (
                       <div className="rounded-lg overflow-hidden">
@@ -1376,27 +1402,10 @@ const BookingFlow = () => {
                       <p className="text-sm text-muted-foreground mb-1">房型</p>
                       <p className="font-medium">{selectedRoom.name}</p>
                     </div>
-                    {checkInDate && checkOutDate && (
+                    
+                    {/* 價格資訊 - 選擇餐食方案後顯示 */}
+                    {selectedMealPlan ? (
                       <>
-                        <Separator />
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">入住</span>
-                            <span>{checkInDateStr}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">退房</span>
-                            <span>{checkOutDateStr}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">住宿天數</span>
-                            <span>{calculateNights()} 晚</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">入住人數</span>
-                            <span>{totalGuests} 人</span>
-                          </div>
-                        </div>
                         <Separator />
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
@@ -1441,11 +1450,27 @@ const BookingFlow = () => {
                           </>
                         )}
                       </>
+                    ) : (
+                      <>
+                        <Separator />
+                        <div className="bg-muted/50 p-4 rounded-lg text-center">
+                          <p className="text-sm text-muted-foreground">
+                            請選擇餐食方案以查看價格
+                          </p>
+                        </div>
+                      </>
                     )}
                   </>
-                ) : (
-                  <p className="text-sm text-muted-foreground">請先選擇餐食方案</p>
-                )}
+                ) : currentStep === "room" ? (
+                  <>
+                    <Separator />
+                    <div className="bg-muted/50 p-4 rounded-lg text-center">
+                      <p className="text-sm text-muted-foreground">
+                        請選擇房型以繼續
+                      </p>
+                    </div>
+                  </>
+                ) : null}
               </CardContent>
             </Card>
           </div>
