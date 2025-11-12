@@ -1343,11 +1343,15 @@ const BookingFlow = () => {
                               onClick={() => {
                                 const dates = getStayDates();
                                 if (dates.length > 0) {
-                                  const firstDate = dates[0];
-                                  const date = new Date(firstDate);
-                                  const isWeekendDate = isWeekend(date);
-                                  const minCount = isWeekendDate ? 18 : 12;
-                                  setBbqMealsByDate({ [firstDate]: minCount });
+                                  // 為所有住宿日期添加餐食方案
+                                  const newBbqMeals: Record<string, number> = {};
+                                  dates.forEach(dateStr => {
+                                    const date = new Date(dateStr);
+                                    const isWeekendDate = isWeekend(date);
+                                    const minCount = isWeekendDate ? 18 : 12;
+                                    newBbqMeals[dateStr] = minCount;
+                                  });
+                                  setBbqMealsByDate(newBbqMeals);
                                   setIsBbqMealsExpanded(true);
                                 }
                               }}
