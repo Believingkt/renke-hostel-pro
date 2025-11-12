@@ -1441,21 +1441,12 @@ const BookingFlow = () => {
                                           type="button"
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            if (currentCount === 0) {
-                                              return;
-                                            }
                                             const newCount = currentCount - 1;
-                                            if (newCount < minCount) {
-                                              setBbqMealsByDate(prev => {
-                                                const newData = { ...prev };
-                                                delete newData[dateStr];
-                                                return newData;
-                                              });
-                                            } else {
+                                            if (newCount >= minCount) {
                                               setBbqMealsByDate(prev => ({ ...prev, [dateStr]: newCount }));
                                             }
                                           }}
-                                          disabled={currentCount === 0}
+                                          disabled={currentCount === 0 || currentCount === minCount}
                                           className="w-8 h-8 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                           -
