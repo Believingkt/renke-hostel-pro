@@ -90,7 +90,7 @@ interface BookingSettings {
   payment_methods: any;
 }
 
-type BookingStep = "dates" | "room" | "guest" | "payment" | "confirm";
+type BookingStep = "dates" | "room" | "addons" | "guest" | "payment" | "confirm";
 
 const BookingFlow = () => {
   const navigate = useNavigate();
@@ -136,6 +136,10 @@ const BookingFlow = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCheckInDateOpen, setIsCheckInDateOpen] = useState(false);
   const [isCheckOutDateOpen, setIsCheckOutDateOpen] = useState(false);
+  
+  // 加購方案
+  const [petCount, setPetCount] = useState(0);
+  const [bbqMealCount, setBbqMealCount] = useState(0);
   
   // 將 context 日期轉換為字串格式，並提供預設值
   const checkInDateStr = checkInDate ? format(checkInDate, "yyyy-MM-dd") : "";
@@ -240,7 +244,7 @@ const BookingFlow = () => {
       if (room) {
         setSelectedRoom(room);
         // 如果有指定 step 參數且為有效步驟，則使用該步驟
-        if (step && ["dates", "room", "guest", "payment", "confirm"].includes(step)) {
+        if (step && ["dates", "room", "addons", "guest", "payment", "confirm"].includes(step)) {
           setCurrentStep(step as BookingStep);
         } else {
           // 從房型頁面跳轉，已選擇房型，跳到填寫資訊步驟
@@ -409,8 +413,12 @@ const BookingFlow = () => {
     return appliedDiscount.value;
   };
 
+  const calculateAddonsTotal = () => {
+    return (petCount * 600) + (bbqMealCount * 900);
+  };
+
   const calculateFinalTotal = () => {
-    return Math.max(0, calculateTotal() - calculateDiscount());
+    return Math.max(0, calculateTotal() + calculateAddonsTotal() - calculateDiscount());
   };
 
   const calculateDeposit = () => {
@@ -534,7 +542,7 @@ const BookingFlow = () => {
     }
 
     // 切換到下一步
-    const steps: BookingStep[] = ["dates", "room", "guest", "payment", "confirm"];
+    const steps: BookingStep[] = ["dates", "room", "addons", "guest", "payment", "confirm"];
     const currentIndex = steps.indexOf(currentStep);
     if (currentIndex < steps.length - 1) {
       setCurrentStep(steps[currentIndex + 1]);
@@ -542,7 +550,7 @@ const BookingFlow = () => {
   };
 
   const handlePrevStep = () => {
-    const steps: BookingStep[] = ["dates", "room", "guest", "payment", "confirm"];
+    const steps: BookingStep[] = ["dates", "room", "addons", "guest", "payment", "confirm"];
     const currentIndex = steps.indexOf(currentStep);
     if (currentIndex > 0) {
       setCurrentStep(steps[currentIndex - 1]);
@@ -578,6 +586,20 @@ const BookingFlow = () => {
         checkOut: checkOutDateStr,
       });
 
+      // 準備訂單備註（包含加購資訊）
+      let orderNotes = guestInfo.notes || "";
+      if (petCount > 0 || bbqMealCount > 0) {
+        const addonNotes = [];
+        if (petCount > 0) {
+          addonNotes.push(`毛孩方案 × ${petCount} (NT$ ${petCount * 600})`);
+        }
+        if (bbqMealCount > 0) {
+          addonNotes.push(`烤肉套餐 × ${bbqMealCount} 人 (NT$ ${bbqMealCount * 900})`);
+        }
+        const addonText = `\n\n【加購方案】\n${addonNotes.join('\n')}`;
+        orderNotes = orderNotes ? orderNotes + addonText : addonText.trim();
+      }
+
       // 建立訂單
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
@@ -601,7 +623,7 @@ const BookingFlow = () => {
           payment_method: paymentMethod,
           payment_status: bookingSettings?.use_deposit ? "unpaid" : "unpaid",
           order_status: "pending",
-          notes: guestInfo.notes || null,
+          notes: orderNotes || null,
         }])
         .select()
         .single();
@@ -693,6 +715,7 @@ const BookingFlow = () => {
   const stepIndicators = [
     { key: "dates", label: "選擇日期", icon: Calendar },
     { key: "room", label: "選擇房型", icon: Home },
+    { key: "addons", label: "加購方案", icon: Users },
     { key: "guest", label: "填寫資訊", icon: User },
     { key: "payment", label: "付款方式", icon: CreditCard },
     { key: "confirm", label: "確認訂單", icon: CheckCircle },
@@ -770,6 +793,7 @@ const BookingFlow = () => {
                 <CardTitle className="text-2xl">
                   {currentStep === "room" && "選擇房型"}
                   {currentStep === "dates" && "選擇入住日期"}
+                  {currentStep === "addons" && "加購方案"}
                   {currentStep === "guest" && "填寫旅客資訊"}
                   {currentStep === "payment" && "選擇付款方式"}
                   {currentStep === "confirm" && "確認訂單"}
@@ -1139,7 +1163,130 @@ const BookingFlow = () => {
                   </div>
                 )}
 
-                {/* Step 3: Guest Info */}
+                {/* Step 3: Add-ons */}
+                {currentStep === "addons" && (
+                  <div className="space-y-6">
+                    {/* 毛孩方案 */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          🐾 毛孩方案
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">攜帶寵物</p>
+                            <p className="text-sm text-muted-foreground">每隻 NT$ 600 / 住宿期間</p>
+                            <p className="text-xs text-muted-foreground mt-1">上限 2 隻</p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={() => setPetCount(Math.max(0, petCount - 1))}
+                              disabled={petCount === 0}
+                              className="w-10 h-10 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              -
+                            </button>
+                            <span className="w-8 text-center font-medium text-lg">{petCount}</span>
+                            <button
+                              onClick={() => setPetCount(Math.min(2, petCount + 1))}
+                              disabled={petCount >= 2}
+                              className="w-10 h-10 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                        {petCount > 0 && (
+                          <div className="bg-primary/5 p-3 rounded-lg">
+                            <p className="text-sm font-medium">
+                              小計：NT$ {(petCount * 600).toLocaleString()}
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* 烤肉套餐加購 */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          🍖 餐食加購
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">烤肉套餐</p>
+                            <p className="text-sm text-muted-foreground">每人 NT$ 900</p>
+                            <p className="text-xs text-muted-foreground mt-1">上限 18 人</p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={() => setBbqMealCount(Math.max(0, bbqMealCount - 1))}
+                              disabled={bbqMealCount === 0}
+                              className="w-10 h-10 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              -
+                            </button>
+                            <span className="w-8 text-center font-medium text-lg">{bbqMealCount}</span>
+                            <button
+                              onClick={() => setBbqMealCount(Math.min(18, bbqMealCount + 1))}
+                              disabled={bbqMealCount >= 18}
+                              className="w-10 h-10 rounded-lg border-2 border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                        {bbqMealCount > 0 && (
+                          <div className="bg-primary/5 p-3 rounded-lg">
+                            <p className="text-sm font-medium">
+                              小計：NT$ {(bbqMealCount * 900).toLocaleString()}
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* 加購總計 */}
+                    {(petCount > 0 || bbqMealCount > 0) && (
+                      <Card className="bg-muted/50 border-primary/20">
+                        <CardContent className="p-4">
+                          <div className="space-y-2">
+                            <p className="text-sm font-semibold">加購方案總計</p>
+                            {petCount > 0 && (
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">毛孩方案 × {petCount}</span>
+                                <span>NT$ {(petCount * 600).toLocaleString()}</span>
+                              </div>
+                            )}
+                            {bbqMealCount > 0 && (
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">烤肉套餐 × {bbqMealCount}</span>
+                                <span>NT$ {(bbqMealCount * 900).toLocaleString()}</span>
+                              </div>
+                            )}
+                            <Separator />
+                            <div className="flex justify-between font-semibold text-base">
+                              <span>加購小計</span>
+                              <span className="text-primary">NT$ {((petCount * 600) + (bbqMealCount * 900)).toLocaleString()}</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {(petCount === 0 && bbqMealCount === 0) && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <p>您可以選擇加購方案，或直接進入下一步</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Step 4: Guest Info */}
                 {currentStep === "guest" && (
                   <div className="space-y-6">
                     <div className="space-y-2">
@@ -1352,6 +1499,20 @@ const BookingFlow = () => {
                           <p className="text-sm text-muted-foreground">餐食方案</p>
                           <p className="font-medium">{selectedMealPlan === "2_meals" ? "一泊二食" : "一泊三食"}</p>
                         </div>
+                        {(petCount > 0 || bbqMealCount > 0) && (
+                          <>
+                            <Separator />
+                            <div>
+                              <p className="text-sm text-muted-foreground mb-2">加購方案</p>
+                              {petCount > 0 && (
+                                <p className="font-medium">🐾 毛孩方案 × {petCount}</p>
+                              )}
+                              {bbqMealCount > 0 && (
+                                <p className="font-medium">🍖 烤肉套餐 × {bbqMealCount} 人</p>
+                              )}
+                            </div>
+                          </>
+                        )}
                       </CardContent>
                     </Card>
 
@@ -1505,6 +1666,26 @@ const BookingFlow = () => {
                               NT$ {calculateTotal().toLocaleString()}
                             </span>
                           </div>
+                          {petCount > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">
+                                🐾 毛孩方案 × {petCount}
+                              </span>
+                              <span className="font-medium">
+                                NT$ {(petCount * 600).toLocaleString()}
+                              </span>
+                            </div>
+                          )}
+                          {bbqMealCount > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">
+                                🍖 烤肉套餐 × {bbqMealCount} 人
+                              </span>
+                              <span className="font-medium">
+                                NT$ {(bbqMealCount * 900).toLocaleString()}
+                              </span>
+                            </div>
+                          )}
                           {appliedDiscount && (
                             <div className="flex justify-between text-primary">
                               <span>折扣 ({appliedDiscount.code})</span>
