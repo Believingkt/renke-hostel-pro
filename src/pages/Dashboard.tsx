@@ -7,6 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info } from "lucide-react";
 import { useSubdomain } from "@/hooks/use-subdomain";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import { Link } from "react-router-dom";
 
 import {
   LineChart,
@@ -363,7 +364,14 @@ const Dashboard = () => {
                 ) : (
                   recentBookings.map((booking) => (
                     <tr key={booking.id} className="border-b transition-colors hover:bg-muted/50">
-                      <td className="px-4 py-3 text-sm font-medium">{booking.order_number}</td>
+                      <td className="px-4 py-3 text-sm font-medium">
+                        <Link 
+                          to={`/admin/orders/${booking.id}`}
+                          className="text-primary hover:underline"
+                        >
+                          {booking.order_number}
+                        </Link>
+                      </td>
                       <td className="px-4 py-3 text-sm">{format(new Date(booking.order_date), 'yyyy-MM-dd HH:mm')}</td>
                       <td className="px-4 py-3 text-sm">{booking.guest_name}</td>
                       <td className="px-4 py-3 text-sm">{format(new Date(booking.check_in_date), 'yyyy-MM-dd')}</td>
