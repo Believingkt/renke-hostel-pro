@@ -1412,10 +1412,13 @@ const BookingFlow = () => {
                                        <div className="flex items-center gap-2">
                                         {currentCount > 0 && (
                                           <button
-                                            onClick={() => {
+                                            onClick={(e) => {
+                                              e.preventDefault();
+                                              console.log('清除日期:', dateStr, '當前狀態:', bbqMealsByDate);
                                               setBbqMealsByDate(prev => {
                                                 const newData = { ...prev };
                                                 delete newData[dateStr];
+                                                console.log('清除後:', newData);
                                                 return newData;
                                               });
                                             }}
@@ -1426,7 +1429,8 @@ const BookingFlow = () => {
                                           </button>
                                         )}
                                         <button
-                                          onClick={() => {
+                                          onClick={(e) => {
+                                            e.preventDefault();
                                             if (currentCount === 0) {
                                               return;
                                             }
@@ -1448,7 +1452,8 @@ const BookingFlow = () => {
                                         </button>
                                         <span className="w-10 text-center font-medium">{currentCount === 0 ? minCount : currentCount}</span>
                                         <button
-                                          onClick={() => {
+                                          onClick={(e) => {
+                                            e.preventDefault();
                                             const newCount = currentCount === 0 ? minCount : Math.min(maxCount, currentCount + 1);
                                             setBbqMealsByDate(prev => ({ ...prev, [dateStr]: newCount }));
                                           }}
