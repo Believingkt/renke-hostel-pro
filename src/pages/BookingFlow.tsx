@@ -701,29 +701,8 @@ const BookingFlow = () => {
         checkOut: checkOutDateStr,
       });
 
-      // 準備訂單備註（包含加購資訊）
+      // 準備訂單備註（不包含加購資訊）
       let orderNotes = guestInfo.notes || "";
-      const hasBbqMeals = Object.keys(bbqMealsByDate).length > 0 && Object.values(bbqMealsByDate).some(count => count > 0);
-      if (petCount > 0 || hasBbqMeals) {
-        const addonNotes = [];
-        const nights = calculateNights();
-        if (petCount > 0) {
-          addonNotes.push(`寵物方案 × ${petCount} × ${nights} 晚 (NT$ ${petCount * petPlanSettings.pricePerUnit * nights})`);
-        }
-        if (hasBbqMeals) {
-          const bbqDetails = Object.entries(bbqMealsByDate)
-            .filter(([_, count]) => count > 0)
-            .map(([dateStr, count]) => {
-              const dateFormatted = format(new Date(dateStr), "MM/dd", { locale: zhTW });
-              return `  - ${dateFormatted}: ${count} 人 (NT$ ${count * mealPlanSettings.pricePerUnit})`;
-            })
-            .join('\n');
-          const totalBbq = Object.values(bbqMealsByDate).reduce((sum, count) => sum + (count * mealPlanSettings.pricePerUnit), 0);
-          addonNotes.push(`餐食方案 (NT$ ${totalBbq}):\n${bbqDetails}`);
-        }
-        const addonText = `\n\n【加購方案】\n${addonNotes.join('\n')}`;
-        orderNotes = orderNotes ? orderNotes + addonText : addonText.trim();
-      }
 
       // 準備加購方案資訊
       const nights = calculateNights();
