@@ -13,6 +13,7 @@ import { OrdersTable } from "@/components/orders/OrdersTable";
 import { EditOrderDialog } from "@/components/orders/EditOrderDialog";
 import { Button } from "@/components/ui/button";
 import { Filter } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -30,6 +31,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
+import { EmptyState } from "@/components/EmptyState";
 
 const Orders = () => {
   const [searchParams] = useSearchParams();
@@ -423,16 +425,24 @@ const Orders = () => {
               </div>
 
               {/* 訂單表格 */}
-                <OrdersTable 
-                  orders={paginatedOrders} 
-                  onEditOrder={handleEditOrder}
-                  sortField={sortField}
-                  sortDirection={sortDirection}
-                  onSort={handleSort}
+              {filteredOrders.length === 0 ? (
+                <EmptyState
+                  icon={ShoppingCart}
+                  title="尚無訂單資料"
+                  description="目前沒有符合條件的訂單，請調整篩選條件或等待新訂單"
                 />
+              ) : (
+                <>
+                  <OrdersTable 
+                    orders={paginatedOrders} 
+                    onEditOrder={handleEditOrder}
+                    sortField={sortField}
+                    sortDirection={sortDirection}
+                    onSort={handleSort}
+                  />
 
-                {/* 分頁資訊和控制 */}
-                {filteredOrders.length > 0 && (
+                  {/* 分頁資訊和控制 */}
+                  {filteredOrders.length > 0 && (
                   <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="text-sm text-muted-foreground">
                       顯示 {startIndex + 1}-{Math.min(endIndex, filteredOrders.length)} 筆，
@@ -483,6 +493,8 @@ const Orders = () => {
                     )}
                   </div>
                 )}
+              </>
+            )}
             </CardContent>
           </Card>
         </TabsContent>
