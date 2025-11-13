@@ -436,18 +436,24 @@ const OrderSearch = () => {
                         <span>訂單總額</span>
                         <span className="font-medium">NT$ {orderData.total_price.toLocaleString()}</span>
                       </div>
+                      <Separator />
+                      <div className="flex justify-between text-base font-semibold">
+                        <span>最終金額</span>
+                        <span className="text-primary">NT$ {orderData.final_price.toLocaleString()}</span>
+                      </div>
+                      <Separator />
                       <div className="flex justify-between text-sm">
                         <span>應付訂金</span>
                         <span className="font-medium">NT$ {orderData.deposit_amount.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span>已付金額</span>
-                        <span className="font-medium text-primary">NT$ {orderData.paid_amount.toLocaleString()}</span>
+                        <span className="font-medium text-green-600">NT$ {orderData.paid_amount.toLocaleString()}</span>
                       </div>
                       <Separator />
                       <div className="flex justify-between text-base font-semibold">
-                        <span>最終金額</span>
-                        <span className="text-primary">NT$ {orderData.final_price.toLocaleString()}</span>
+                        <span>應付餘額</span>
+                        <span className="text-destructive">NT$ {(orderData.final_price - orderData.paid_amount).toLocaleString()}</span>
                       </div>
                     </div>
                   </div>
