@@ -264,72 +264,101 @@ const Dashboard = () => {
         />
       </div>
 
-      <div className="grid gap-4 md:gap-6 lg:grid-cols-2 px-2 md:px-0">
+      <div className="grid gap-3 md:gap-6 lg:grid-cols-2 px-2 md:px-0">
         <Card className="shadow-card hover:shadow-card-hover transition-base">
-          <CardHeader>
-            <CardTitle className="text-lg md:text-xl">營收統計</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base md:text-lg lg:text-xl">營收統計</CardTitle>
           </CardHeader>
-          <CardContent className="px-2 md:px-6">
-            <ResponsiveContainer width="100%" height={250} className="md:h-[300px]">
-              <BarChart data={revenueData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+          <CardContent className="px-1 md:px-6 pb-4">
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart 
+                data={revenueData} 
+                margin={{ top: 5, right: 5, left: -20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" opacity={0.3} />
                 <XAxis 
                   dataKey="month" 
-                  tick={{ fontSize: 11 }}
-                  className="md:text-xs"
+                  tick={{ fontSize: 10 }}
+                  stroke="hsl(var(--muted-foreground))"
+                  tickMargin={8}
                 />
                 <YAxis 
-                  tick={{ fontSize: 11 }}
-                  className="md:text-xs"
-                  width={40}
+                  tick={{ fontSize: 10 }}
+                  stroke="hsl(var(--muted-foreground))"
+                  width={35}
+                  tickMargin={5}
                 />
                 <Tooltip 
-                  contentStyle={{ fontSize: '12px' }}
-                  labelStyle={{ fontSize: '12px' }}
+                  contentStyle={{ 
+                    fontSize: '13px',
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    padding: '8px 12px'
+                  }}
+                  labelStyle={{ fontSize: '13px', fontWeight: 600 }}
+                  cursor={{ fill: 'hsl(var(--muted))', opacity: 0.2 }}
                 />
                 <Legend 
-                  wrapperStyle={{ fontSize: '12px' }}
-                  iconSize={12}
+                  wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
+                  iconSize={10}
                 />
-                <Bar dataKey="營收" fill="hsl(var(--chart-1))" radius={[8, 8, 0, 0]} />
+                <Bar 
+                  dataKey="營收" 
+                  fill="hsl(var(--chart-1))" 
+                  radius={[6, 6, 0, 0]}
+                  maxBarSize={50}
+                />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
         <Card className="shadow-card hover:shadow-card-hover transition-base">
-          <CardHeader>
-            <CardTitle className="text-lg md:text-xl">訂房趨勢</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base md:text-lg lg:text-xl">訂房趨勢</CardTitle>
           </CardHeader>
-          <CardContent className="px-2 md:px-6">
-            <ResponsiveContainer width="100%" height={250} className="md:h-[300px]">
-              <LineChart data={bookingData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+          <CardContent className="px-1 md:px-6 pb-4">
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart 
+                data={bookingData} 
+                margin={{ top: 5, right: 5, left: -20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" opacity={0.3} />
                 <XAxis 
                   dataKey="month" 
-                  tick={{ fontSize: 11 }}
-                  className="md:text-xs"
+                  tick={{ fontSize: 10 }}
+                  stroke="hsl(var(--muted-foreground))"
+                  tickMargin={8}
                 />
                 <YAxis 
-                  tick={{ fontSize: 11 }}
-                  className="md:text-xs"
-                  width={40}
+                  tick={{ fontSize: 10 }}
+                  stroke="hsl(var(--muted-foreground))"
+                  width={35}
+                  tickMargin={5}
                 />
                 <Tooltip 
-                  contentStyle={{ fontSize: '12px' }}
-                  labelStyle={{ fontSize: '12px' }}
+                  contentStyle={{ 
+                    fontSize: '13px',
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    padding: '8px 12px'
+                  }}
+                  labelStyle={{ fontSize: '13px', fontWeight: 600 }}
+                  cursor={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1 }}
                 />
                 <Legend 
-                  wrapperStyle={{ fontSize: '12px' }}
-                  iconSize={12}
+                  wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
+                  iconSize={10}
                 />
                 <Line 
                   type="monotone" 
                   dataKey="訂房數" 
                   stroke="hsl(var(--chart-3))" 
-                  strokeWidth={2}
-                  dot={{ fill: "hsl(var(--chart-3))", r: 4 }}
-                  className="md:stroke-[3]"
+                  strokeWidth={2.5}
+                  dot={{ fill: "hsl(var(--chart-3))", r: 5, strokeWidth: 2, stroke: 'hsl(var(--background))' }}
+                  activeDot={{ r: 7, strokeWidth: 2 }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -339,35 +368,55 @@ const Dashboard = () => {
 
       <div className="px-2 md:px-0">
         <Card className="shadow-card hover:shadow-card-hover transition-base">
-          <CardHeader>
-            <CardTitle className="text-lg md:text-xl">房型入住率（近30天）</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base md:text-lg lg:text-xl">房型入住率（近30天）</CardTitle>
           </CardHeader>
-          <CardContent className="px-2 md:px-6">
-            <ResponsiveContainer width="100%" height={250} className="md:h-[300px]">
-              <BarChart data={occupancyData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+          <CardContent className="px-1 md:px-6 pb-4">
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart 
+                data={occupancyData} 
+                margin={{ top: 5, right: 5, left: -20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" opacity={0.3} />
                 <XAxis 
                   dataKey="roomType" 
-                  tick={{ fontSize: 11 }}
-                  className="md:text-xs"
+                  tick={{ fontSize: 10 }}
+                  stroke="hsl(var(--muted-foreground))"
+                  tickMargin={8}
+                  angle={-15}
+                  textAnchor="end"
+                  height={60}
                 />
                 <YAxis 
-                  tick={{ fontSize: 11 }}
-                  className="md:text-xs"
-                  width={40}
+                  tick={{ fontSize: 10 }}
+                  stroke="hsl(var(--muted-foreground))"
+                  width={35}
+                  tickMargin={5}
                   domain={[0, 100]}
-                  label={{ value: '%', angle: -90, position: 'insideLeft', fontSize: 11 }}
+                  tickFormatter={(value) => `${value}%`}
                 />
                 <Tooltip 
-                  contentStyle={{ fontSize: '12px' }}
-                  labelStyle={{ fontSize: '12px' }}
-                  formatter={(value: number) => `${value}%`}
+                  contentStyle={{ 
+                    fontSize: '13px',
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    padding: '8px 12px'
+                  }}
+                  labelStyle={{ fontSize: '13px', fontWeight: 600 }}
+                  formatter={(value: number) => [`${value}%`, '入住率']}
+                  cursor={{ fill: 'hsl(var(--muted))', opacity: 0.2 }}
                 />
                 <Legend 
-                  wrapperStyle={{ fontSize: '12px' }}
-                  iconSize={12}
+                  wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
+                  iconSize={10}
                 />
-                <Bar dataKey="入住率" fill="hsl(var(--chart-2))" radius={[8, 8, 0, 0]} />
+                <Bar 
+                  dataKey="入住率" 
+                  fill="hsl(var(--chart-2))" 
+                  radius={[6, 6, 0, 0]}
+                  maxBarSize={50}
+                />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
