@@ -459,10 +459,10 @@ const OrderSearch = () => {
                     </p>
                   </div>
 
-                  <div className="text-center space-y-3 pt-2">
+                  <div className="text-center pt-2">
                     <Button 
+                      className="w-full"
                       onClick={() => window.open("https://line.me/R/ti/p/@042deypa", "_blank")}
-                      className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white"
                     >
                       開啟 LINE
                     </Button>
