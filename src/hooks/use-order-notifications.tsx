@@ -3,21 +3,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useSubdomain } from "./use-subdomain";
 
-export const useOrderNotifications = () => {
+export const useOrderNotifications = (enabled: boolean = true) => {
   const { accommodationId } = useSubdomain();
 
   useEffect(() => {
-    if (!accommodationId) return;
+    if (!accommodationId || !enabled) return;
 
     const saveNotification = async (title: string, description: string, type: string, orderId?: string) => {
       try {
-        await supabase.from("notifications").insert({
+        const { error } = await (supabase as any).from("notifications").insert({
           accommodation_id: accommodationId,
           title,
           description,
           type,
           order_id: orderId || null,
         });
+        
+        if (error) console.error("Error saving notification:", error);
       } catch (error) {
         console.error("Error saving notification:", error);
       }
