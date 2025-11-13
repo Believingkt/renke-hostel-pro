@@ -358,6 +358,19 @@ const OrderSearch = () => {
                       如有任何問題，請直接聯繫住宿業者，或撥打訂房確認信中的聯絡電話。
                     </p>
                   </div>
+
+                  <div className="text-center space-y-3 pt-2">
+                    <p className="text-sm text-muted-foreground">
+                      若您想取消或修改日期，請聯絡我們。
+                    </p>
+                    <Button 
+                      variant="outline"
+                      onClick={() => window.open("https://line.me/R/ti/p/@042deypa", "_blank")}
+                      className="w-full sm:w-auto"
+                    >
+                      聯絡我們
+                    </Button>
+                  </div>
                 </div>
               </>
             )}
