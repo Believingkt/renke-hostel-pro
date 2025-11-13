@@ -12,6 +12,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { ImageViewerPortal } from "./ImageViewerPortal";
+import { OptimizedImage } from "./OptimizedImage";
 import roomDeluxe from "@/assets/room-deluxe.jpg";
 import roomSuite from "@/assets/room-suite.jpg";
 import roomStandard from "@/assets/room-standard.jpg";
@@ -125,15 +126,14 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
                     className="relative cursor-pointer group/image h-full"
                     onClick={() => handleImageClick(index)}
                   >
-                    <img 
-                      src={image} 
-                      alt={`${room.name} - ${index + 1}`}
+                    <OptimizedImage
+                      src={image}
+                      alt={`${room.name} - 房型照片 ${index + 1}`}
                       className="w-full h-full object-cover"
-                      loading="lazy"
-                      decoding="async"
                       width="800"
                       height="600"
-                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      priority={index === 0} // 第一張優先載入
                     />
                     <div className="absolute top-3 md:top-4 right-3 md:right-4 bg-black/40 hover:bg-black/60 p-1.5 md:p-2 rounded-full transition-colors z-10">
                       <ZoomIn className="h-4 w-4 md:h-5 md:w-5 text-white" />

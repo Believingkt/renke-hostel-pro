@@ -13,6 +13,7 @@ import { zhTW } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { supabase } from "@/integrations/supabase/client";
+import { OptimizedImage } from "@/components/OptimizedImage";
 import heroSlide1 from "@/assets/hero-slide-1.jpg";
 import heroSlide2 from "@/assets/hero-slide-2.jpg";
 import heroSlide3 from "@/assets/hero-slide-3.jpg";
@@ -132,13 +133,11 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
           <CarouselContent className="-ml-0">
             <CarouselItem className="pl-0">
               <div className="relative h-[500px] md:h-[700px] w-full bg-gradient-to-br from-muted to-muted/50">
-                <img 
-                  src={heroSlide1} 
-                  alt="山景 1"
-                  className="w-full h-full object-cover transition-opacity duration-700 brightness-110"
-                  loading="eager"
-                  fetchPriority="high"
-                  decoding="sync"
+                <OptimizedImage
+                  src={heroSlide1}
+                  alt="森山寫照 - 山間日式豪華露營體驗"
+                  className="w-full h-full object-cover brightness-110"
+                  priority
                   width="1920"
                   height="1080"
                   sizes="100vw"
@@ -160,64 +159,60 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
             </CarouselItem>
             <CarouselItem className="pl-0">
               <div className="relative h-[500px] md:h-[700px] w-full bg-muted">
-                {loadedImages.has(1) ? (
-                  <img 
-                    src={heroSlide2} 
-                    alt="山景 2"
-                    className="w-full h-full object-cover transition-opacity duration-700 brightness-110"
-                    loading="lazy"
-                    decoding="async"
-                    width="1920"
-                    height="1080"
-                    sizes="100vw"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-muted animate-pulse" />
+                {loadedImages.has(1) && (
+                  <>
+                    <OptimizedImage
+                      src={heroSlide2}
+                      alt="森山寫照 - 群山環抱的寧靜住宿空間"
+                      className="w-full h-full object-cover brightness-110"
+                      width="1920"
+                      height="1080"
+                      sizes="100vw"
+                    />
+                    <div className="absolute inset-0 bg-black/40 transition-all duration-700 flex items-center justify-center">
+                      <div className="text-center text-white space-y-2 md:space-y-4 max-w-4xl px-4 pb-32 md:pb-56">
+                        <h1 className="text-3xl md:text-7xl font-bold animate-fade-in drop-shadow-lg">
+                          {accommodationName}
+                        </h1>
+                        <p className="text-lg md:text-3xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.2s" }}>
+                          山間的寧靜時光
+                        </p>
+                        <p className="text-base md:text-xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.4s" }}>
+                          體驗日式美學與自然的完美融合
+                        </p>
+                      </div>
+                    </div>
+                  </>
                 )}
-                <div className="absolute inset-0 bg-black/40 transition-all duration-700 flex items-center justify-center">
-                  <div className="text-center text-white space-y-2 md:space-y-4 max-w-4xl px-4 pb-32 md:pb-56">
-                    <h1 className="text-3xl md:text-7xl font-bold animate-fade-in drop-shadow-lg">
-                      {accommodationName}
-                    </h1>
-                    <p className="text-lg md:text-3xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.2s" }}>
-                      山間的寧靜時光
-                    </p>
-                    <p className="text-base md:text-xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.4s" }}>
-                      體驗日式美學與自然的完美融合
-                    </p>
-                  </div>
-                </div>
               </div>
             </CarouselItem>
             <CarouselItem className="pl-0">
               <div className="relative h-[500px] md:h-[700px] w-full bg-muted">
-                {loadedImages.has(2) ? (
-                  <img 
-                    src={heroSlide3} 
-                    alt="山景 3"
-                    className="w-full h-full object-cover transition-opacity duration-700 brightness-110"
-                    loading="lazy"
-                    decoding="async"
-                    width="1920"
-                    height="1080"
-                    sizes="100vw"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-muted animate-pulse" />
+                {loadedImages.has(2) && (
+                  <>
+                    <OptimizedImage
+                      src={heroSlide3}
+                      alt="森山寫照 - 日式美學與自然完美融合"
+                      className="w-full h-full object-cover brightness-110"
+                      width="1920"
+                      height="1080"
+                      sizes="100vw"
+                    />
+                    <div className="absolute inset-0 bg-black/40 transition-all duration-700 flex items-center justify-center">
+                      <div className="text-center text-white space-y-2 md:space-y-4 max-w-4xl px-4 pb-32 md:pb-56">
+                        <h1 className="text-3xl md:text-7xl font-bold animate-fade-in drop-shadow-lg">
+                          {accommodationName}
+                        </h1>
+                        <p className="text-lg md:text-3xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.2s" }}>
+                          山間的寧靜時光
+                        </p>
+                        <p className="text-base md:text-xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.4s" }}>
+                          體驗日式美學與自然的完美融合
+                        </p>
+                      </div>
+                    </div>
+                  </>
                 )}
-                <div className="absolute inset-0 bg-black/40 transition-all duration-700 flex items-center justify-center">
-                  <div className="text-center text-white space-y-2 md:space-y-4 max-w-4xl px-4 pb-32 md:pb-56">
-                    <h1 className="text-3xl md:text-7xl font-bold animate-fade-in drop-shadow-lg">
-                      {accommodationName}
-                    </h1>
-                    <p className="text-lg md:text-3xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.2s" }}>
-                      山間的寧靜時光
-                    </p>
-                    <p className="text-base md:text-xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.4s" }}>
-                      體驗日式美學與自然的完美融合
-                    </p>
-                  </div>
-                </div>
               </div>
             </CarouselItem>
           </CarouselContent>
