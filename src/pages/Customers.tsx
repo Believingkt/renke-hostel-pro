@@ -14,6 +14,7 @@ import { z } from "zod";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
+import { CustomerQuickPreview } from "@/components/customers/CustomerQuickPreview";
 
 // Validation schema for customer inputs
 const customerSchema = z.object({
@@ -384,7 +385,11 @@ const Customers = () => {
                     {filteredCustomers.map((customer, index) => (
                       <TableRow key={customer.id}>
                         <TableCell className="font-medium">{index + 1}</TableCell>
-                        <TableCell>{customer.name}</TableCell>
+                        <TableCell>
+                          <CustomerQuickPreview customer={customer}>
+                            <span className="cursor-help hover:text-primary transition-colors">{customer.name}</span>
+                          </CustomerQuickPreview>
+                        </TableCell>
                         <TableCell>{customer.phone || "-"}</TableCell>
                         <TableCell>{customer.email || "-"}</TableCell>
                         <TableCell>{formatDate(customer.first_order_date)}</TableCell>
