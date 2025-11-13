@@ -465,7 +465,7 @@ const OrderSearch = () => {
                       onClick={() => window.open("https://line.me/R/ti/p/@042deypa", "_blank")}
                     >
                       <MessageCircle className="mr-2 h-4 w-4" />
-                      開啟 LINE
+                      LINE 官方帳號
                     </Button>
                   </div>
                 </div>
