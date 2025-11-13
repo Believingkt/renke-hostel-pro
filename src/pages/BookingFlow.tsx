@@ -1483,7 +1483,7 @@ const BookingFlow = () => {
                         >
                           <CardContent className="p-4 text-center">
                             <p className="font-semibold mb-1">一泊二食</p>
-                            <p className="text-xs text-muted-foreground">含早餐、晚餐</p>
+                            <p className="text-xs text-muted-foreground">含早餐、下午茶</p>
                           </CardContent>
                         </Card>
                         <Card 
@@ -1496,7 +1496,7 @@ const BookingFlow = () => {
                         >
                           <CardContent className="p-4 text-center">
                             <p className="font-semibold mb-1">一泊三食</p>
-                            <p className="text-xs text-muted-foreground">含早、午、晚餐</p>
+                            <p className="text-xs text-muted-foreground">含早餐、下午茶、晚餐</p>
                           </CardContent>
                         </Card>
                       </div>
