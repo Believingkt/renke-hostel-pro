@@ -76,7 +76,7 @@ All colors MUST be HSL.
 
   /* Admin theme - Blue & Orange colors */
   .admin-theme {
-    --primary: 203 79% 43%;
+    --primary: 203 78% 43%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 203 70% 94%;
@@ -90,30 +90,30 @@ All colors MUST be HSL.
 
     --border: 203 30% 90%;
     --input: 203 30% 92%;
-    --ring: 203 79% 43%;
+    --ring: 203 78% 43%;
 
-    --hero-gradient-start: 203 79% 43%;
+    --hero-gradient-start: 203 78% 43%;
     --hero-gradient-end: 19 82% 51%;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 220 15% 30%;
-    --sidebar-primary: 203 79% 43%;
+    --sidebar-primary: 203 78% 43%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 203 40% 96%;
     --sidebar-accent-foreground: 220 15% 20%;
     --sidebar-border: 203 20% 92%;
-    --sidebar-ring: 203 79% 43%;
+    --sidebar-ring: 203 78% 43%;
 
     --stat-coral: 0 84% 60%;
     --stat-coral-light: 0 84% 95%;
-    --stat-green: 203 79% 43%;
-    --stat-green-light: 203 79% 95%;
-    --stat-blue: 203 79% 43%;
-    --stat-blue-light: 203 79% 95%;
+    --stat-green: 203 78% 43%;
+    --stat-green-light: 203 78% 95%;
+    --stat-blue: 203 78% 43%;
+    --stat-blue-light: 203 78% 95%;
     --stat-purple: 271 81% 56%;
     --stat-purple-light: 271 81% 95%;
 
-    --chart-1: 203 79% 43%;
+    --chart-1: 203 78% 43%;
     --chart-2: 19 82% 51%;
     --chart-3: 0 84% 60%;
     --chart-4: 45 93% 58%;
