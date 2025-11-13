@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Bell, Check, CheckCheck, Trash2, RefreshCw } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, isToday, isYesterday, format } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -157,6 +157,33 @@ const Notifications = () => {
     }
   };
 
+  // 按日期分組通知
+  const groupNotificationsByDate = (notifications: Notification[]) => {
+    const groups: {
+      today: Notification[];
+      yesterday: Notification[];
+      earlier: Notification[];
+    } = {
+      today: [],
+      yesterday: [],
+      earlier: []
+    };
+
+    notifications.forEach(notification => {
+      const date = new Date(notification.created_at);
+      if (isToday(date)) {
+        groups.today.push(notification);
+      } else if (isYesterday(date)) {
+        groups.yesterday.push(notification);
+      } else {
+        groups.earlier.push(notification);
+      }
+    });
+
+    return groups;
+  };
+
+  const groupedNotifications = groupNotificationsByDate(notifications);
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   if (loading) {
@@ -232,8 +259,12 @@ const Notifications = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
-          {notifications.map((notification) => (
+        <div className="space-y-6">
+          {/* 今天的通知 */}
+          {groupedNotifications.today.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-muted-foreground px-1">今天</h3>
+              {groupedNotifications.today.map((notification) => (
             <Card 
               key={notification.id}
               className={`transition-all hover:shadow-md cursor-pointer ${
@@ -277,10 +308,7 @@ const Notifications = () => {
                     
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span>
-                        {formatDistanceToNow(new Date(notification.created_at), {
-                          addSuffix: true,
-                          locale: zhTW,
-                        })}
+                        {format(new Date(notification.created_at), "HH:mm")}
                       </span>
                       
                       {!notification.is_read && (
@@ -302,7 +330,157 @@ const Notifications = () => {
                 </div>
               </CardContent>
             </Card>
-          ))}
+              ))}
+            </div>
+          )}
+
+          {/* 昨天的通知 */}
+          {groupedNotifications.yesterday.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-muted-foreground px-1">昨天</h3>
+              {groupedNotifications.yesterday.map((notification) => (
+            <Card 
+              key={notification.id}
+              className={`transition-all hover:shadow-md cursor-pointer ${
+                !notification.is_read ? 'bg-accent/10 border-primary/20' : ''
+              }`}
+              onClick={() => handleNotificationClick(notification)}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-start gap-4">
+                  <div className="text-2xl mt-1">
+                    {getNotificationIcon(notification.type)}
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <h3 className="font-semibold text-base flex items-center gap-2">
+                        {notification.title}
+                        {!notification.is_read && (
+                          <Badge variant="default" className="text-xs">
+                            新
+                          </Badge>
+                        )}
+                      </h3>
+                      
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteNotification(notification.id);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    
+                    <p className="text-sm text-muted-foreground whitespace-pre-line mb-2">
+                      {notification.description}
+                    </p>
+                    
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <span>
+                        {format(new Date(notification.created_at), "HH:mm")}
+                      </span>
+                      
+                      {!notification.is_read && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            markAsRead(notification.id);
+                          }}
+                        >
+                          <Check className="h-3 w-3 mr-1" />
+                          標為已讀
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+              ))}
+            </div>
+          )}
+
+          {/* 更早的通知 */}
+          {groupedNotifications.earlier.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-muted-foreground px-1">更早</h3>
+              {groupedNotifications.earlier.map((notification) => (
+            <Card 
+              key={notification.id}
+              className={`transition-all hover:shadow-md cursor-pointer ${
+                !notification.is_read ? 'bg-accent/10 border-primary/20' : ''
+              }`}
+              onClick={() => handleNotificationClick(notification)}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-start gap-4">
+                  <div className="text-2xl mt-1">
+                    {getNotificationIcon(notification.type)}
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <h3 className="font-semibold text-base flex items-center gap-2">
+                        {notification.title}
+                        {!notification.is_read && (
+                          <Badge variant="default" className="text-xs">
+                            新
+                          </Badge>
+                        )}
+                      </h3>
+                      
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteNotification(notification.id);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    
+                    <p className="text-sm text-muted-foreground whitespace-pre-line mb-2">
+                      {notification.description}
+                    </p>
+                    
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <span>
+                        {format(new Date(notification.created_at), "yyyy/MM/dd HH:mm", { locale: zhTW })}
+                      </span>
+                      
+                      {!notification.is_read && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            markAsRead(notification.id);
+                          }}
+                        >
+                          <Check className="h-3 w-3 mr-1" />
+                          標為已讀
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
