@@ -174,30 +174,30 @@ export function QuickFilters({ quickFilter, onFilterChange, getFilterCount }: Qu
           onClick={() => onFilterChange("upcoming")}
           className={`relative group flex flex-col items-start p-4 rounded-xl border-2 transition-all duration-300 ${
             quickFilter === "upcoming"
-              ? "border-green-500 bg-green-50 shadow-lg scale-[1.02]"
-              : "border-border bg-card hover:border-green-300 hover:shadow-md"
+              ? "border-success bg-success-light shadow-lg scale-[1.02]"
+              : "border-border bg-card hover:border-success/30 hover:shadow-md"
           }`}
         >
           <div className="flex items-center justify-between w-full mb-3">
             <div className={`p-2.5 rounded-lg transition-colors ${
               quickFilter === "upcoming"
-                ? "bg-green-500"
-                : "bg-green-100 group-hover:bg-green-200"
+                ? "bg-success"
+                : "bg-success-light group-hover:bg-success/20"
             }`}>
               <CalendarClock className={`h-5 w-5 ${
-                quickFilter === "upcoming" ? "text-white" : "text-green-600"
+                quickFilter === "upcoming" ? "text-white" : "text-success"
               }`} />
             </div>
             {getFilterCount("upcoming") > 0 && (
               <span className={`text-2xl font-bold transition-colors ${
-                quickFilter === "upcoming" ? "text-green-600" : "text-muted-foreground"
+                quickFilter === "upcoming" ? "text-success" : "text-muted-foreground"
               }`}>
                 {getFilterCount("upcoming")}
               </span>
             )}
           </div>
           <span className={`text-sm font-medium transition-colors ${
-            quickFilter === "upcoming" ? "text-green-700" : "text-foreground"
+            quickFilter === "upcoming" ? "text-success" : "text-foreground"
           }`}>
             即將到來
           </span>
