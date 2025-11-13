@@ -418,7 +418,7 @@ const Orders = () => {
                         onClear={clearAllFilters}
                       />
                       <Button 
-                        className="w-full mt-4" 
+                        className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white" 
                         onClick={() => setFilterDrawerOpen(false)}
                       >
                         套用篩選
