@@ -11,6 +11,16 @@ import { QuickFilters } from "@/components/orders/QuickFilters";
 import { OrderFilters } from "@/components/orders/OrderFilters";
 import { OrdersTable } from "@/components/orders/OrdersTable";
 import { EditOrderDialog } from "@/components/orders/EditOrderDialog";
+import { Button } from "@/components/ui/button";
+import { Filter } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import {
   Pagination,
   PaginationContent,
@@ -51,6 +61,9 @@ const Orders = () => {
   // 分頁狀態
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
+  
+  // 篩選抽屜狀態
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -348,22 +361,72 @@ const Orders = () => {
                 getFilterCount={getQuickFilterCount}
               />
 
-              {/* 篩選區域 */}
-              <OrderFilters
-                dateType={dateType}
-                startDate={startDate}
-                endDate={endDate}
-                paymentStatus={paymentStatus}
-                orderStatus={orderStatus}
-                searchKeyword={searchKeyword}
-                onDateTypeChange={setDateType}
-                onStartDateChange={setStartDate}
-                onEndDateChange={setEndDate}
-                onPaymentStatusChange={setPaymentStatus}
-                onOrderStatusChange={setOrderStatus}
-                onSearchKeywordChange={setSearchKeyword}
-                onClear={clearAllFilters}
-              />
+              {/* 桌面版篩選區域 */}
+              <div className="hidden md:block">
+                <OrderFilters
+                  dateType={dateType}
+                  startDate={startDate}
+                  endDate={endDate}
+                  paymentStatus={paymentStatus}
+                  orderStatus={orderStatus}
+                  searchKeyword={searchKeyword}
+                  onDateTypeChange={setDateType}
+                  onStartDateChange={setStartDate}
+                  onEndDateChange={setEndDate}
+                  onPaymentStatusChange={setPaymentStatus}
+                  onOrderStatusChange={setOrderStatus}
+                  onSearchKeywordChange={setSearchKeyword}
+                  onClear={clearAllFilters}
+                />
+              </div>
+
+              {/* 行動版篩選按鈕 */}
+              <div className="md:hidden">
+                <Sheet open={filterDrawerOpen} onOpenChange={setFilterDrawerOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" className="w-full">
+                      <Filter className="w-4 h-4 mr-2" />
+                      進階篩選
+                      {(startDate || endDate || paymentStatus || orderStatus || searchKeyword) && (
+                        <span className="ml-2 bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">
+                          已套用
+                        </span>
+                      )}
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="bottom" className="h-[85vh] overflow-y-auto">
+                    <SheetHeader>
+                      <SheetTitle>進階篩選</SheetTitle>
+                      <SheetDescription>
+                        設定篩選條件來找到您要的訂單
+                      </SheetDescription>
+                    </SheetHeader>
+                    <div className="mt-6">
+                      <OrderFilters
+                        dateType={dateType}
+                        startDate={startDate}
+                        endDate={endDate}
+                        paymentStatus={paymentStatus}
+                        orderStatus={orderStatus}
+                        searchKeyword={searchKeyword}
+                        onDateTypeChange={setDateType}
+                        onStartDateChange={setStartDate}
+                        onEndDateChange={setEndDate}
+                        onPaymentStatusChange={setPaymentStatus}
+                        onOrderStatusChange={setOrderStatus}
+                        onSearchKeywordChange={setSearchKeyword}
+                        onClear={clearAllFilters}
+                      />
+                      <Button 
+                        className="w-full mt-4" 
+                        onClick={() => setFilterDrawerOpen(false)}
+                      >
+                        套用篩選
+                      </Button>
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              </div>
 
               {/* 訂單表格 */}
                 <OrdersTable 
