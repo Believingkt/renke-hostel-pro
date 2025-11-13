@@ -168,6 +168,10 @@ const Orders = () => {
     setFilteredOrders(filtered);
   };
 
+  useEffect(() => {
+    applyFilters();
+  }, [orders, startDate, endDate, paymentStatus, orderStatus, searchKeyword, quickFilter]);
+
   // 清除所有篩選條件
   const clearFilters = () => {
     setQuickFilter("");
