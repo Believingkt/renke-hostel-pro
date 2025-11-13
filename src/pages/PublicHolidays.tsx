@@ -34,8 +34,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Calendar, Plus, Trash2, CalendarDays, Edit, Download, Filter, TrendingUp } from "lucide-react";
-import { format, getYear, startOfYear, endOfYear } from "date-fns";
+import { Calendar, Plus, Trash2, CalendarDays, Edit, Download, Filter, TrendingUp, LayoutGrid, List } from "lucide-react";
+import { format, getYear, startOfYear, endOfYear, isSameDay, addMonths, subMonths } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -52,6 +52,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface PublicHoliday {
   id: string;
@@ -95,6 +96,8 @@ const PublicHolidays = () => {
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [isEditDatePickerOpen, setIsEditDatePickerOpen] = useState(false);
   const [selectedYear, setSelectedYear] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
   const currentYear = new Date().getFullYear();
 
   useEffect(() => {
@@ -314,6 +317,42 @@ const PublicHolidays = () => {
     return Array.from(years).sort((a, b) => b - a);
   }, [holidays]);
 
+  // 獲取當前月份的假日
+  const monthHolidays = useMemo(() => {
+    return holidays.filter(holiday => {
+      const holidayDate = new Date(holiday.holiday_date);
+      return holidayDate.getMonth() === calendarMonth.getMonth() &&
+             holidayDate.getFullYear() === calendarMonth.getFullYear();
+    });
+  }, [holidays, calendarMonth]);
+
+  // 檢查某日期是否為假日
+  const getHolidayForDate = (date: Date) => {
+    return holidays.find(holiday => 
+      isSameDay(new Date(holiday.holiday_date), date)
+    );
+  };
+
+  // 處理日曆日期點擊
+  const handleCalendarDayClick = (date: Date | undefined) => {
+    if (!date) return;
+    
+    const existingHoliday = getHolidayForDate(date);
+    if (existingHoliday) {
+      // 如果已經是假日，打開編輯對話框
+      setSelectedHoliday(existingHoliday);
+      setEditHoliday({
+        name: existingHoliday.holiday_name,
+        date: new Date(existingHoliday.holiday_date),
+      });
+      setIsEditDialogOpen(true);
+    } else {
+      // 如果不是假日，打開新增對話框並預設日期
+      setNewHoliday({ name: "", date });
+      setIsAddDialogOpen(true);
+    }
+  };
+
   if (subdomainLoading || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -375,20 +414,34 @@ const PublicHolidays = () => {
               </CardDescription>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Select value={selectedYear} onValueChange={setSelectedYear}>
-                <SelectTrigger className="w-[140px]">
-                  <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="篩選年份" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">所有年份</SelectItem>
-                  {availableYears.map(year => (
-                    <SelectItem key={year} value={year.toString()}>
-                      {year} 年
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "list" | "calendar")} className="w-auto">
+                <TabsList>
+                  <TabsTrigger value="list" className="gap-2">
+                    <List className="h-4 w-4" />
+                    列表
+                  </TabsTrigger>
+                  <TabsTrigger value="calendar" className="gap-2">
+                    <LayoutGrid className="h-4 w-4" />
+                    月曆
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+              {viewMode === "list" && (
+                <Select value={selectedYear} onValueChange={setSelectedYear}>
+                  <SelectTrigger className="w-[140px]">
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="篩選年份" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">所有年份</SelectItem>
+                    {availableYears.map(year => (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year} 年
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               <Button variant="outline" onClick={() => setIsBatchDialogOpen(true)}>
                 <Download className="h-4 w-4 mr-2" />
                 批量導入
@@ -465,32 +518,35 @@ const PublicHolidays = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {holidays.length === 0 ? (
-            <div className="text-center py-16 px-4">
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 mb-4">
-                <CalendarDays className="h-10 w-10 text-primary" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">尚未設定國定假日</h3>
-              <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
-                開始新增假日日期，系統將自動套用假日定價
-              </p>
-              <div className="flex gap-2 justify-center">
-                <Button onClick={() => setIsAddDialogOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  新增第一個假日
-                </Button>
-                <Button variant="outline" onClick={() => setIsBatchDialogOpen(true)}>
-                  <Download className="h-4 w-4 mr-2" />
-                  批量導入
-                </Button>
-              </div>
-            </div>
-          ) : filteredHolidays.length === 0 ? (
-            <div className="text-center py-12">
-              <Filter className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">此年份沒有假日資料</p>
-            </div>
-          ) : (
+          {viewMode === "list" ? (
+            // 列表檢視
+            <>
+              {holidays.length === 0 ? (
+                <div className="text-center py-16 px-4">
+                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 mb-4">
+                    <CalendarDays className="h-10 w-10 text-primary" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">尚未設定國定假日</h3>
+                  <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+                    開始新增假日日期，系統將自動套用假日定價
+                  </p>
+                  <div className="flex gap-2 justify-center">
+                    <Button onClick={() => setIsAddDialogOpen(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      新增第一個假日
+                    </Button>
+                    <Button variant="outline" onClick={() => setIsBatchDialogOpen(true)}>
+                      <Download className="h-4 w-4 mr-2" />
+                      批量導入
+                    </Button>
+                  </div>
+                </div>
+              ) : filteredHolidays.length === 0 ? (
+                <div className="text-center py-12">
+                  <Filter className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">此年份沒有假日資料</p>
+                </div>
+              ) : (
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
@@ -561,6 +617,90 @@ const PublicHolidays = () => {
                   })}
                 </TableBody>
               </Table>
+            </div>
+              )}
+            </>
+          ) : (
+            // 月曆檢視
+            <div className="space-y-4">
+              <div className="flex items-center justify-between px-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCalendarMonth(subMonths(calendarMonth, 1))}
+                >
+                  上個月
+                </Button>
+                <h3 className="text-lg font-semibold">
+                  {format(calendarMonth, "yyyy年MM月", { locale: zhTW })}
+                </h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCalendarMonth(addMonths(calendarMonth, 1))}
+                >
+                  下個月
+                </Button>
+              </div>
+
+              {monthHolidays.length > 0 && (
+                <div className="flex flex-wrap gap-2 px-2">
+                  <span className="text-sm text-muted-foreground">本月假日：</span>
+                  {monthHolidays.map(holiday => (
+                    <Badge key={holiday.id} variant="secondary" className="cursor-pointer" onClick={() => {
+                      setSelectedHoliday(holiday);
+                      setEditHoliday({
+                        name: holiday.holiday_name,
+                        date: new Date(holiday.holiday_date),
+                      });
+                      setIsEditDialogOpen(true);
+                    }}>
+                      {holiday.holiday_name} ({format(new Date(holiday.holiday_date), "MM/dd")})
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex justify-center">
+                <CalendarComponent
+                  mode="single"
+                  month={calendarMonth}
+                  onMonthChange={setCalendarMonth}
+                  locale={zhTW}
+                  className="rounded-md border p-3 pointer-events-auto"
+                  modifiers={{
+                    holiday: (date) => !!getHolidayForDate(date),
+                  }}
+                  modifiersStyles={{
+                    holiday: {
+                      backgroundColor: 'hsl(var(--primary) / 0.1)',
+                      color: 'hsl(var(--primary))',
+                      fontWeight: 'bold',
+                      border: '2px solid hsl(var(--primary))',
+                    }
+                  }}
+                  onDayClick={handleCalendarDayClick}
+                  components={{
+                    DayContent: ({ date }) => {
+                      const holiday = getHolidayForDate(date);
+                      return (
+                        <div className="relative w-full h-full flex flex-col items-center justify-center">
+                          <span>{format(date, "d")}</span>
+                          {holiday && (
+                            <span className="absolute bottom-0 text-[8px] font-medium truncate max-w-full px-0.5">
+                              {holiday.holiday_name}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    }
+                  }}
+                />
+              </div>
+
+              <div className="text-center text-sm text-muted-foreground px-2">
+                <p>點擊日期可新增或編輯假日</p>
+              </div>
             </div>
           )}
         </CardContent>
