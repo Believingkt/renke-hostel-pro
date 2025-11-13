@@ -146,15 +146,15 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
             <CarouselNext className="right-2" />
           </Carousel>
         </div>
-      <CardContent className="p-4 md:p-6 flex flex-col flex-1 min-h-0">
-        <h3 className="text-xl md:text-2xl font-bold mb-2 text-foreground">{room.name}</h3>
+      <CardContent className="p-4 md:p-5 lg:p-6 flex flex-col flex-1 min-h-0">
+        <h3 className="text-lg md:text-xl lg:text-2xl font-bold mb-2 text-foreground">{room.name}</h3>
         
-        <div className="space-y-3 mb-5">
+        <div className="space-y-2 md:space-y-3 mb-4 md:mb-5">
           {(room.room_count || room.quad_room_count || room.double_room_count) && (
-            <div className="text-base text-foreground/80 font-medium leading-relaxed">
+            <div className="text-sm md:text-base text-foreground/80 font-medium leading-relaxed">
               {room.room_count && room.room_count > 0 && <span className="font-semibold">{room.room_count} 間房</span>}
               {((room.quad_room_count && room.quad_room_count > 0) || (room.double_room_count && room.double_room_count > 0)) && (
-                <span className="ml-2 text-muted-foreground">
+                <span className="ml-2 text-muted-foreground text-xs md:text-sm">
                   (
                   {room.quad_room_count && room.quad_room_count > 0 && <span>四人房 {room.quad_room_count} 間</span>}
                   {room.quad_room_count && room.quad_room_count > 0 && room.double_room_count && room.double_room_count > 0 && <span>、</span>}
@@ -164,13 +164,13 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
               )}
             </div>
           )}
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <div className="flex items-center gap-3 md:gap-4 text-xs md:text-sm text-muted-foreground">
             <div className="flex items-center gap-1.5">
-              <Users className="h-4 w-4" />
+              <Users className="h-3.5 w-3.5 md:h-4 md:w-4" />
               <span className="font-medium">{room.capacity} 人</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="h-3.5 w-3.5 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
               </svg>
               <span className="font-medium">{room.size_sqm} ㎡</span>
@@ -178,12 +178,12 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
           </div>
         </div>
         
-        <p className="text-sm mb-5 text-muted-foreground leading-relaxed h-12 overflow-hidden">{room.description}</p>
+        <p className="text-xs md:text-sm mb-4 md:mb-5 text-muted-foreground leading-relaxed h-10 md:h-12 overflow-hidden">{room.description}</p>
 
-        <div className="flex flex-wrap gap-2 h-16 content-start overflow-hidden">
+        <div className="flex flex-wrap gap-1.5 md:gap-2 h-14 md:h-16 content-start overflow-hidden">
           {amenities.length > 0 ? (
             amenities.map((amenity, index) => (
-              <span key={index} className="px-3 py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md h-fit whitespace-nowrap">
+              <span key={index} className="px-2 md:px-3 py-0.5 md:py-1 bg-secondary/50 text-secondary-foreground text-xs rounded-md h-fit whitespace-nowrap">
                 {amenity}
               </span>
             ))
@@ -193,15 +193,15 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
         </div>
         
         <div className="pt-3 border-t mt-3">
-          <div className="space-y-3 md:min-h-[200px]">
+          <div className="space-y-2 md:space-y-3 md:min-h-[180px] lg:min-h-[200px]">
             {room.weekdayPricing && (
               <div>
-                <p className="text-xs font-semibold text-foreground mb-2">平日</p>
+                <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">平日</p>
                 <div className="space-y-1">
                   {room.weekdayPricing.map((option, idx) => (
                     <div key={idx} className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">{option.type}</span>
-                      <span className="font-semibold text-xl text-primary">NT$ {option.price.toLocaleString()}</span>
+                      <span className="text-xs md:text-sm text-muted-foreground">{option.type}</span>
+                      <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {option.price.toLocaleString()}</span>
                     </div>
                   ))}
                 </div>
@@ -209,12 +209,12 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
             )}
             {room.weekendPricing && (
               <div>
-                <p className="text-xs font-semibold text-foreground mb-2">假日</p>
+                <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">假日</p>
                 <div className="space-y-1">
                   {room.weekendPricing.map((option, idx) => (
                     <div key={idx} className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">{option.type}</span>
-                      <span className="font-semibold text-xl text-primary">NT$ {option.price.toLocaleString()}</span>
+                      <span className="text-xs md:text-sm text-muted-foreground">{option.type}</span>
+                      <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {option.price.toLocaleString()}</span>
                     </div>
                   ))}
                 </div>
@@ -222,7 +222,7 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
             )}
           </div>
           <Link to={`/booking?roomId=${room.id}&step=dates`}>
-            <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg h-10 font-medium mt-4">
+            <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg h-9 md:h-10 font-medium mt-3 md:mt-4 text-sm md:text-base">
               立即預訂
             </Button>
           </Link>
@@ -267,15 +267,15 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
   }));
 
   return (
-    <section id="rooms" className="py-12 md:py-20 bg-secondary/20">
-      <div className="container mx-auto px-4">
+    <section id="rooms" className="py-12 md:py-16 lg:py-20 bg-secondary/20">
+      <div className="container mx-auto px-4 md:px-6">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-3 md:mb-4">房型導覽</h2>
-          <p className="text-center text-muted-foreground text-base md:text-lg mb-8 md:mb-16">
+          <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-3 lg:mb-4">房型導覽</h2>
+          <p className="text-center text-muted-foreground text-base md:text-base lg:text-lg mb-8 md:mb-12 lg:mb-16 max-w-3xl mx-auto">
             精心設計的客房空間，讓您在山林間享受寧靜舒適的住宿體驗
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6 items-stretch">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6 lg:gap-6 items-stretch">
             {displayRooms.map((room) => (
               <RoomCard key={room.id} room={room} />
             ))}

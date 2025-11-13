@@ -51,11 +51,11 @@ const FaqSection = () => {
   }
 
   return (
-    <section id="faq" className="py-12 md:py-20 bg-background">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-12 md:mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-3 md:mb-4">常見問題</h2>
-          <p className="text-center text-muted-foreground mb-0 text-base md:text-lg">
+    <section id="faq" className="py-12 md:py-16 lg:py-20 bg-background">
+      <div className="container mx-auto px-4 md:px-6">
+        <div className="text-center mb-10 md:mb-12 lg:mb-16">
+          <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-3 lg:mb-4">常見問題</h2>
+          <p className="text-center text-muted-foreground mb-0 text-base md:text-base lg:text-lg max-w-3xl mx-auto">
             關於住宿的常見問題解答
           </p>
         </div>
@@ -68,10 +68,10 @@ const FaqSection = () => {
                 value={faq.id}
                 className={index === faqs.length - 1 ? "border-b-0" : ""}
               >
-                <AccordionTrigger className="text-left hover:no-underline px-5 md:px-6 py-4 md:py-5 text-sm md:text-base font-normal">
+                <AccordionTrigger className="text-left hover:no-underline px-4 md:px-5 lg:px-6 py-3.5 md:py-4 lg:py-5 text-sm md:text-sm lg:text-base font-normal">
                   {faq.question}
                 </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground px-5 md:px-6 pb-4 md:pb-5 pt-0 text-xs md:text-sm leading-relaxed">
+                <AccordionContent className="text-muted-foreground px-4 md:px-5 lg:px-6 pb-3.5 md:pb-4 lg:pb-5 pt-0 text-xs md:text-sm lg:text-sm leading-relaxed">
                   {faq.answer}
                 </AccordionContent>
               </AccordionItem>

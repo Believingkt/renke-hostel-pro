@@ -22,28 +22,28 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
   };
 
   return (
-    <section id="booking-info" className="py-12 md:py-20 bg-background">
-      <div className="container mx-auto px-4">
+    <section id="booking-info" className="py-12 md:py-16 lg:py-20 bg-background">
+      <div className="container mx-auto px-4 md:px-6">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12 md:mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-center mb-3 md:mb-4">
+          <div className="text-center mb-10 md:mb-12 lg:mb-16">
+            <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-3 lg:mb-4">
               訂房須知
             </h2>
-            <p className="text-center text-muted-foreground text-base md:text-lg mb-0 max-w-2xl mx-auto">
+            <p className="text-center text-muted-foreground text-base md:text-base lg:text-lg mb-0 max-w-2xl mx-auto">
               為確保愉快的住宿體驗，請詳閱以下相關資訊
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 lg:gap-6">
             <Card className="group hover:shadow-lg transition-all duration-300 border border-border/50 bg-card">
-              <CardContent className="p-5 md:p-6">
+              <CardContent className="p-5 md:p-6 lg:p-6">
                 <div className="flex items-center gap-2.5 mb-3 md:mb-4">
                   <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <Clock className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+                    <Clock className="h-5 w-5 md:h-5 md:w-5 lg:h-6 lg:w-6 text-primary" />
                   </div>
-                  <h3 className="font-semibold text-base md:text-lg">入住時間</h3>
+                  <h3 className="font-semibold text-base md:text-base lg:text-lg">入住時間</h3>
                 </div>
-                <div className="space-y-0.5 text-sm md:text-sm text-muted-foreground">
+                <div className="space-y-0.5 text-sm md:text-sm lg:text-sm text-muted-foreground">
                   <div className="flex items-center gap-2 py-1.5">
                     <span className="font-medium text-foreground">入住：</span>
                     <span>{bookingSettings?.check_in_time} 之後</span>
@@ -57,14 +57,14 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
             </Card>
 
             <Card className="group hover:shadow-lg transition-all duration-300 border border-border/50 bg-card">
-              <CardContent className="p-5 md:p-6">
+              <CardContent className="p-5 md:p-6 lg:p-6">
                 <div className="flex items-center gap-2.5 mb-3 md:mb-4">
                   <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <CreditCard className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+                    <CreditCard className="h-5 w-5 md:h-5 md:w-5 lg:h-6 lg:w-6 text-primary" />
                   </div>
-                  <h3 className="font-semibold text-base md:text-lg">付款方式</h3>
+                  <h3 className="font-semibold text-base md:text-base lg:text-lg">付款方式</h3>
                 </div>
-                <div className="space-y-0.5 text-sm md:text-sm text-muted-foreground">
+                <div className="space-y-0.5 text-sm md:text-sm lg:text-sm text-muted-foreground">
                   {Array.isArray(bookingSettings?.payment_methods)
                     ? bookingSettings.payment_methods.map((method: string, index: number) => (
                         <div key={index} className="flex items-center gap-2 py-1.5">
@@ -78,13 +78,13 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
               </CardContent>
             </Card>
 
-            <Card className="group hover:shadow-lg transition-all duration-300 border border-border/50 bg-card">
-              <CardContent className="p-5 md:p-6">
+            <Card className="group hover:shadow-lg transition-all duration-300 border border-border/50 bg-card md:col-span-2 lg:col-span-1">
+              <CardContent className="p-5 md:p-6 lg:p-6">
                 <div className="flex items-center gap-2.5 mb-3 md:mb-4">
                   <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <FileText className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+                    <FileText className="h-5 w-5 md:h-5 md:w-5 lg:h-6 lg:w-6 text-primary" />
                   </div>
-                  <h3 className="font-semibold text-base md:text-lg">取消政策</h3>
+                  <h3 className="font-semibold text-base md:text-base lg:text-lg">取消政策</h3>
                 </div>
                 <div className="space-y-0.5 text-sm md:text-sm text-muted-foreground">
                   {bookingSettings?.cancellation_policy?.split('\n').map((line: string, index: number) => (
