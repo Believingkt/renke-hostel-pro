@@ -402,8 +402,12 @@ export type Database = {
       orders: {
         Row: {
           accommodation_id: string
+          cancelled_at: string | null
           check_in_date: string
           check_out_date: string
+          checked_in_at: string | null
+          checked_out_at: string | null
+          confirmed_at: string | null
           created_at: string | null
           customer_id: string | null
           deposit_amount: number | null
@@ -417,6 +421,8 @@ export type Database = {
           guest_phone: string
           id: string
           meal_plan: string | null
+          meal_plan_details: Json | null
+          meal_plan_total: number | null
           notes: string | null
           order_date: string | null
           order_number: string
@@ -424,6 +430,8 @@ export type Database = {
           paid_amount: number | null
           payment_method: string | null
           payment_status: string
+          pet_count: number | null
+          pet_plan_price: number | null
           room_assigned: boolean | null
           room_type_id: string | null
           total_price: number
@@ -431,8 +439,12 @@ export type Database = {
         }
         Insert: {
           accommodation_id: string
+          cancelled_at?: string | null
           check_in_date: string
           check_out_date: string
+          checked_in_at?: string | null
+          checked_out_at?: string | null
+          confirmed_at?: string | null
           created_at?: string | null
           customer_id?: string | null
           deposit_amount?: number | null
@@ -446,6 +458,8 @@ export type Database = {
           guest_phone: string
           id?: string
           meal_plan?: string | null
+          meal_plan_details?: Json | null
+          meal_plan_total?: number | null
           notes?: string | null
           order_date?: string | null
           order_number: string
@@ -453,6 +467,8 @@ export type Database = {
           paid_amount?: number | null
           payment_method?: string | null
           payment_status?: string
+          pet_count?: number | null
+          pet_plan_price?: number | null
           room_assigned?: boolean | null
           room_type_id?: string | null
           total_price: number
@@ -460,8 +476,12 @@ export type Database = {
         }
         Update: {
           accommodation_id?: string
+          cancelled_at?: string | null
           check_in_date?: string
           check_out_date?: string
+          checked_in_at?: string | null
+          checked_out_at?: string | null
+          confirmed_at?: string | null
           created_at?: string | null
           customer_id?: string | null
           deposit_amount?: number | null
@@ -475,6 +495,8 @@ export type Database = {
           guest_phone?: string
           id?: string
           meal_plan?: string | null
+          meal_plan_details?: Json | null
+          meal_plan_total?: number | null
           notes?: string | null
           order_date?: string | null
           order_number?: string
@@ -482,6 +504,8 @@ export type Database = {
           paid_amount?: number | null
           payment_method?: string | null
           payment_status?: string
+          pet_count?: number | null
+          pet_plan_price?: number | null
           room_assigned?: boolean | null
           room_type_id?: string | null
           total_price?: number

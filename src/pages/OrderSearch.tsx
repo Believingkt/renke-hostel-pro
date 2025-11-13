@@ -29,6 +29,10 @@ interface OrderData {
   deposit_amount: number;
   paid_amount: number;
   final_price: number;
+  confirmed_at: string | null;
+  checked_in_at: string | null;
+  checked_out_at: string | null;
+  cancelled_at: string | null;
   room_types: {
     name: string;
   };
@@ -76,7 +80,23 @@ const OrderSearch = () => {
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  const getOrderStatusSteps = (currentStatus: string) => {
+  const getOrderStatusSteps = (currentStatus: string, orderData: OrderData | null) => {
+    const getStepTimestamp = (status: string) => {
+      if (!orderData) return null;
+      switch (status) {
+        case "pending":
+          return orderData.order_date;
+        case "confirmed":
+          return orderData.confirmed_at;
+        case "checked_in":
+          return orderData.checked_in_at;
+        case "checked_out":
+          return orderData.checked_out_at;
+        default:
+          return null;
+      }
+    };
+
     const steps = [
       { status: "pending", label: "訂單建立", icon: Clock, description: "等待確認" },
       { status: "confirmed", label: "訂單確認", icon: CheckCircle2, description: "已確認訂單" },
@@ -90,6 +110,7 @@ const OrderSearch = () => {
 
     return steps.map((step, index) => ({
       ...step,
+      timestamp: getStepTimestamp(step.status),
       isCompleted: !isCancelled && index <= currentIndex,
       isActive: !isCancelled && index === currentIndex,
       isCancelled,
@@ -130,6 +151,10 @@ const OrderSearch = () => {
           deposit_amount,
           paid_amount,
           final_price,
+          confirmed_at,
+          checked_in_at,
+          checked_out_at,
+          cancelled_at,
           room_types (
             name
           )
@@ -291,7 +316,9 @@ const OrderSearch = () => {
                           </div>
                         </div>
                         <p className="font-medium text-destructive mt-3">訂單已取消</p>
-                        <p className="text-sm text-muted-foreground mt-1">此訂單已被取消</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {orderData.cancelled_at && format(new Date(orderData.cancelled_at), "yyyy年MM月dd日 HH:mm", { locale: zhTW })}
+                        </p>
                       </div>
                     ) : (
                       <div className="relative">
@@ -299,13 +326,13 @@ const OrderSearch = () => {
                         <div className="absolute top-6 left-0 right-0 h-0.5 bg-border hidden md:block" />
                         <div className="absolute top-6 left-0 h-0.5 bg-primary hidden md:block transition-all duration-500" 
                           style={{ 
-                            width: `${(getOrderStatusSteps(orderData.order_status).filter(s => s.isCompleted).length - 1) / 3 * 100}%` 
+                            width: `${(getOrderStatusSteps(orderData.order_status, orderData).filter(s => s.isCompleted).length - 1) / 3 * 100}%` 
                           }} 
                         />
                         
                         {/* Steps */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-2 relative">
-                          {getOrderStatusSteps(orderData.order_status).map((step, index) => {
+                          {getOrderStatusSteps(orderData.order_status, orderData).map((step, index) => {
                             const Icon = step.icon;
                             return (
                               <div key={step.status} className="flex flex-col items-center text-center">
@@ -325,9 +352,14 @@ const OrderSearch = () => {
                                 `}>
                                   {step.label}
                                 </p>
-                                <p className="text-xs text-muted-foreground hidden md:block">
+                                <p className="text-xs text-muted-foreground hidden md:block mb-1">
                                   {step.description}
                                 </p>
+                                {step.timestamp && step.isCompleted && (
+                                  <p className="text-xs text-muted-foreground">
+                                    {format(new Date(step.timestamp), "MM/dd HH:mm", { locale: zhTW })}
+                                  </p>
+                                )}
                               </div>
                             );
                           })}
