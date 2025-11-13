@@ -10,21 +10,27 @@ interface QuickFiltersProps {
 }
 
 export function QuickFilters({ quickFilter, onFilterChange, getFilterCount }: QuickFiltersProps) {
+  const hasActiveFilter = quickFilter !== "";
+  
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <Label className="text-base font-semibold">快速篩選</Label>
-        {quickFilter && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onFilterChange("")}
-            className="gap-2 text-muted-foreground hover:text-foreground"
-          >
-            <X className="h-4 w-4" />
-            清除篩選
-          </Button>
-        )}
+        <Button
+          variant={hasActiveFilter ? "destructive" : "outline"}
+          size="sm"
+          onClick={() => onFilterChange("")}
+          disabled={!hasActiveFilter}
+          className={`gap-2 transition-all ${
+            hasActiveFilter 
+              ? "shadow-md" 
+              : "opacity-50"
+          }`}
+        >
+          <X className="h-4 w-4" />
+          <span className="hidden sm:inline">清除篩選</span>
+          <span className="sm:hidden">清除</span>
+        </Button>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         {/* 今日入住 */}
