@@ -883,7 +883,9 @@ const BookingFlow = () => {
 
       toast({
         title: "訂房成功！",
-        description: `訂單編號：${orderData.order_number}`,
+        description: guestInfo.email 
+          ? `訂單編號：${orderData.order_number}\n訂房確認信已發送至 ${guestInfo.email}`
+          : `訂單編號：${orderData.order_number}`,
       });
 
       setTimeout(() => {
