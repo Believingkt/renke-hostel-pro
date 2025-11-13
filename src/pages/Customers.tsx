@@ -13,6 +13,7 @@ import { useAccommodation } from "@/contexts/AccommodationContext";
 import { z } from "zod";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { EmptyState } from "@/components/EmptyState";
+import { ErrorState } from "@/components/ErrorState";
 
 // Validation schema for customer inputs
 const customerSchema = z.object({
@@ -60,6 +61,7 @@ const Customers = () => {
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [deleteCustomerId, setDeleteCustomerId] = useState<string | null>(null);
@@ -96,6 +98,7 @@ const Customers = () => {
     if (!currentAccommodationId) return;
     
     setIsLoading(true);
+    setError(null);
     try {
       const { data, error } = await supabase
         .from("customers")
@@ -107,7 +110,9 @@ const Customers = () => {
       setCustomers(data || []);
       setFilteredCustomers(data || []);
     } catch (error: any) {
-      toast.error("載入顧客資料失敗：" + error.message);
+      console.error("Error loading customers:", error);
+      setError(error.message || "載入顧客資料失敗");
+      toast.error("載入顧客資料失敗");
     } finally {
       setIsLoading(false);
     }
@@ -228,6 +233,12 @@ const Customers = () => {
     <div className="space-y-4 md:space-y-6">
       {isLoading ? (
         <TableSkeleton rows={10} columns={7} showSearch showFilters={false} />
+      ) : error ? (
+        <ErrorState
+          title="無法載入顧客資料"
+          message={error}
+          onRetry={loadCustomers}
+        />
       ) : (
         <>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">

@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Trash2, Plus, UserPlus, ShieldCheck } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
+import { ErrorState } from "@/components/ErrorState";
 
 interface UserRole {
   id: string;
@@ -46,6 +47,7 @@ export default function UserRoles() {
   const { currentAccommodationId } = useAccommodation();
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserRole, setNewUserRole] = useState<"hotel_admin" | "staff">("staff");
 
@@ -60,6 +62,7 @@ export default function UserRoles() {
 
     try {
       setIsLoading(true);
+      setError(null);
       const { data, error } = await supabase
         .from('user_roles')
         .select('*')
@@ -71,6 +74,7 @@ export default function UserRoles() {
       if (import.meta.env.DEV) {
         console.error('Error loading user roles:', error);
       }
+      setError(error instanceof Error ? error.message : "載入用戶權限失敗");
       toast.error('載入用戶權限失敗');
     } finally {
       setIsLoading(false);
@@ -235,6 +239,12 @@ export default function UserRoles() {
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
             </div>
+          ) : error ? (
+            <ErrorState
+              title="無法載入用戶權限"
+              message={error}
+              onRetry={loadUserRoles}
+            />
           ) : userRoles.length === 0 ? (
             <EmptyState
               icon={ShieldCheck}

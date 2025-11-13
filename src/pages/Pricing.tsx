@@ -11,6 +11,7 @@ import { RoomTypeForm } from "@/components/RoomTypeForm";
 import { RoomFacilitiesForm } from "@/components/RoomFacilitiesForm";
 import { TabsSkeleton } from "@/components/skeletons/TabsSkeleton";
 import { EmptyState } from "@/components/EmptyState";
+import { ErrorState } from "@/components/ErrorState";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -150,6 +151,7 @@ const Pricing = () => {
   
   const [roomTypes, setRoomTypes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingRoomType, setEditingRoomType] = useState<any>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -325,6 +327,12 @@ const Pricing = () => {
               <CardContent>
                 {isLoading ? (
                   <TabsSkeleton />
+                ) : error ? (
+                  <ErrorState
+                    title="無法載入房型資料"
+                    message={error}
+                    onRetry={loadRoomTypes}
+                  />
                 ) : roomTypes.length === 0 ? (
                   <EmptyState
                     icon={Hotel}
