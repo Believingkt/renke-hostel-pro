@@ -74,47 +74,47 @@ All colors MUST be HSL.
     --chart-5: 271 81% 56%;
   }
 
-  /* Admin theme - Orange & Blue colors */
+  /* Admin theme - Blue & Orange colors */
   .admin-theme {
-    --primary: 25 95% 53%;
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 25 90% 94%;
+    --secondary: 217 90% 94%;
     --secondary-foreground: 220 15% 20%;
 
-    --muted: 25 40% 96%;
+    --muted: 217 40% 96%;
     --muted-foreground: 220 10% 50%;
 
-    --accent: 217 91% 60%;
+    --accent: 25 95% 53%;
     --accent-foreground: 0 0% 100%;
 
-    --border: 25 30% 90%;
-    --input: 25 30% 92%;
-    --ring: 25 95% 53%;
+    --border: 217 30% 90%;
+    --input: 217 30% 92%;
+    --ring: 217 91% 60%;
 
-    --hero-gradient-start: 25 95% 53%;
-    --hero-gradient-end: 217 91% 60%;
+    --hero-gradient-start: 217 91% 60%;
+    --hero-gradient-end: 25 95% 53%;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 220 15% 30%;
-    --sidebar-primary: 25 95% 53%;
+    --sidebar-primary: 217 91% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 25 40% 96%;
+    --sidebar-accent: 217 40% 96%;
     --sidebar-accent-foreground: 220 15% 20%;
-    --sidebar-border: 25 20% 92%;
+    --sidebar-border: 217 20% 92%;
     --sidebar-ring: 217 91% 60%;
 
     --stat-coral: 0 84% 60%;
     --stat-coral-light: 0 84% 95%;
-    --stat-green: 25 95% 53%;
-    --stat-green-light: 25 95% 95%;
+    --stat-green: 217 91% 60%;
+    --stat-green-light: 217 91% 95%;
     --stat-blue: 217 91% 60%;
     --stat-blue-light: 217 91% 95%;
     --stat-purple: 271 81% 56%;
     --stat-purple-light: 271 81% 95%;
 
-    --chart-1: 25 95% 53%;
-    --chart-2: 217 91% 60%;
+    --chart-1: 217 91% 60%;
+    --chart-2: 25 95% 53%;
     --chart-3: 0 84% 60%;
     --chart-4: 45 93% 58%;
     --chart-5: 271 81% 56%;
