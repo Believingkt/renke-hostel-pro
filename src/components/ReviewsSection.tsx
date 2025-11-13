@@ -32,45 +32,45 @@ const ReviewsSection = () => {
   const totalReviews = 4;
 
   return (
-    <section className="py-12 md:py-20 bg-secondary/20">
-      <div className="container mx-auto px-4">
+    <section className="py-12 md:py-16 lg:py-20 bg-secondary/20">
+      <div className="container mx-auto px-4 md:px-6">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-3 md:mb-4">旅客評價</h2>
-          <p className="text-center text-muted-foreground text-base md:text-lg mb-8 md:mb-16">來自真實旅客的住宿體驗分享</p>
+          <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-3 lg:mb-4">旅客評價</h2>
+          <p className="text-center text-muted-foreground text-base md:text-base lg:text-lg mb-8 md:mb-12 lg:mb-16 max-w-3xl mx-auto">來自真實旅客的住宿體驗分享</p>
           
           {/* Rating Summary */}
-          <div className="text-center mb-6 md:mb-8">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <span className="text-3xl md:text-4xl font-bold text-primary">{averageRating}</span>
+          <div className="text-center mb-6 md:mb-7 lg:mb-8">
+            <div className="flex items-center justify-center gap-2 md:gap-3 mb-2">
+              <span className="text-3xl md:text-4xl lg:text-4xl font-bold text-primary">{averageRating}</span>
               <div className="flex gap-0.5 md:gap-1">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Star
                     key={star}
-                    className="w-6 h-6 md:w-8 md:h-8 fill-primary text-primary"
+                    className="w-6 h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 fill-primary text-primary"
                   />
                 ))}
               </div>
             </div>
-            <p className="text-sm md:text-base text-muted-foreground">來自 {totalReviews} 則評論</p>
+            <p className="text-sm md:text-sm lg:text-base text-muted-foreground">來自 {totalReviews} 則評論</p>
           </div>
 
           {/* Reviews Grid */}
-          <div className="grid md:grid-cols-2 gap-5 md:gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 lg:gap-6">
             {reviews.map((review, index) => (
               <div
                 key={index}
-                className="bg-card p-5 md:p-6 rounded-lg border border-border/50 hover:shadow-lg transition-all duration-300"
+                className="bg-card p-5 md:p-6 lg:p-6 rounded-lg border border-border/50 hover:shadow-lg transition-all duration-300"
               >
-                <div className="flex items-start justify-between mb-3 md:mb-4">
+                <div className="flex items-start justify-between mb-3 md:mb-3 lg:mb-4">
                   <div>
-                    <h3 className="font-semibold text-base md:text-lg">{review.name}</h3>
-                    <p className="text-xs md:text-sm text-muted-foreground">{review.date}</p>
+                    <h3 className="font-semibold text-base md:text-base lg:text-lg">{review.name}</h3>
+                    <p className="text-xs md:text-sm lg:text-sm text-muted-foreground mt-1">{review.date}</p>
                   </div>
                   <div className="flex gap-0.5">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Star
                         key={star}
-                        className={`w-4 h-4 md:w-5 md:h-5 ${
+                        className={`w-4 h-4 md:w-4 md:h-4 lg:w-5 lg:h-5 ${
                           star <= review.rating
                             ? "fill-primary text-primary"
                             : "fill-muted text-muted"
@@ -79,7 +79,7 @@ const ReviewsSection = () => {
                     ))}
                   </div>
                 </div>
-                <p className="text-sm md:text-base text-foreground leading-relaxed">{review.comment}</p>
+                <p className="text-sm md:text-sm lg:text-base text-foreground leading-relaxed">{review.comment}</p>
               </div>
             ))}
           </div>
