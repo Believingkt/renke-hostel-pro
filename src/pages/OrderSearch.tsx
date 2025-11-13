@@ -460,9 +460,6 @@ const OrderSearch = () => {
                   </div>
 
                   <div className="text-center space-y-3 pt-2">
-                    <p className="text-sm text-muted-foreground">
-                      若您想取消或修改日期，請聯絡我們。
-                    </p>
                     <Button 
                       variant="outline"
                       onClick={() => window.open("https://line.me/R/ti/p/@042deypa", "_blank")}
