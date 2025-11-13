@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, ZoomIn, Info } from "lucide-react";
+import { Users, ZoomIn } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
   Tooltip,
@@ -206,19 +206,16 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
                 <div className="space-y-1">
                   {room.weekdayPricing.map((option, idx) => (
                     <div key={idx} className="flex justify-between items-center">
-                      <div className="flex items-center gap-1">
-                        <span className="text-sm text-muted-foreground">{option.type}</span>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="h-3.5 w-3.5 text-muted-foreground/60 cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>{option.type === "一泊二食" ? "早餐、下午茶" : "早餐、下午茶、晚餐"}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-sm text-muted-foreground cursor-help">{option.type}</span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{option.type === "一泊二食" ? "早餐、下午茶" : "早餐、下午茶、晚餐"}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                       <span className="font-semibold text-xl text-primary">NT$ {option.price.toLocaleString()}</span>
                     </div>
                   ))}
@@ -231,19 +228,16 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
                 <div className="space-y-1">
                   {room.weekendPricing.map((option, idx) => (
                     <div key={idx} className="flex justify-between items-center">
-                      <div className="flex items-center gap-1">
-                        <span className="text-sm text-muted-foreground">{option.type}</span>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="h-3.5 w-3.5 text-muted-foreground/60 cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>{option.type === "一泊二食" ? "早餐、下午茶" : "早餐、下午茶、晚餐"}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-sm text-muted-foreground cursor-help">{option.type}</span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{option.type === "一泊二食" ? "早餐、下午茶" : "早餐、下午茶、晚餐"}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                       <span className="font-semibold text-xl text-primary">NT$ {option.price.toLocaleString()}</span>
                     </div>
                   ))}
