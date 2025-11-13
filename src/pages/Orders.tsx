@@ -223,14 +223,34 @@ const Orders = () => {
   };
 
   const getPaymentStatusBadge = (status: string) => {
-    const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-      unpaid: { label: "未付款", variant: "destructive" },
-      deposit_paid: { label: "已付訂金", variant: "outline" },
-      paid: { label: "已付清", variant: "default" },
-      overdue: { label: "已逾期", variant: "destructive" },
+    const statusMap: Record<string, { label: string; className: string }> = {
+      unpaid: { label: "未付款", className: "bg-red-100 text-red-700 border-red-200" },
+      deposit_paid: { label: "已付訂金", className: "bg-orange-100 text-orange-700 border-orange-200" },
+      paid: { label: "已付清", className: "bg-green-100 text-green-700 border-green-200" },
+      overdue: { label: "已逾期", className: "bg-red-100 text-red-700 border-red-200" },
     };
-    const config = statusMap[status] || { label: status, variant: "outline" };
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+    const config = statusMap[status] || { label: status, className: "bg-muted text-muted-foreground border-border" };
+    return (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${config.className}`}>
+        {config.label}
+      </span>
+    );
+  };
+
+  const getOrderStatusBadge = (status: string) => {
+    const statusMap: Record<string, { label: string; className: string }> = {
+      pending: { label: "待確認", className: "bg-yellow-100 text-yellow-700 border-yellow-200" },
+      confirmed: { label: "已確認", className: "bg-blue-100 text-blue-700 border-blue-200" },
+      checked_in: { label: "已入住", className: "bg-purple-100 text-purple-700 border-purple-200" },
+      checked_out: { label: "已退房", className: "bg-gray-100 text-gray-700 border-gray-200" },
+      cancelled: { label: "已取消", className: "bg-red-100 text-red-700 border-red-200" },
+    };
+    const config = statusMap[status] || { label: status, className: "bg-muted text-muted-foreground border-border" };
+    return (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${config.className}`}>
+        {config.label}
+      </span>
+    );
   };
 
   const getOrderStatusLabel = (status: string) => {
@@ -671,6 +691,9 @@ const Orders = () => {
                         退房日期
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
+                        訂單狀態
+                      </th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
                         付款狀態
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
@@ -681,7 +704,7 @@ const Orders = () => {
                   <tbody>
                     {filteredOrders.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="py-12 text-center text-muted-foreground">
+                        <td colSpan={8} className="py-12 text-center text-muted-foreground">
                           暫無資料
                         </td>
                       </tr>
@@ -700,6 +723,7 @@ const Orders = () => {
                           <td className="px-4 py-3 text-sm">{order.guest_name}</td>
                           <td className="px-4 py-3 text-sm">{order.check_in_date}</td>
                           <td className="px-4 py-3 text-sm">{order.check_out_date}</td>
+                          <td className="px-4 py-3 text-sm">{getOrderStatusBadge(order.order_status)}</td>
                           <td className="px-4 py-3 text-sm">{getPaymentStatusBadge(order.payment_status)}</td>
                           <td className="px-4 py-3 text-sm">
                             <Button
