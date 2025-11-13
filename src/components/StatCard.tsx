@@ -19,19 +19,19 @@ const variantStyles = {
 
 export function StatCard({ title, value, change, icon: Icon, variant }: StatCardProps) {
   return (
-    <Card className="p-6 transition-all hover:shadow-lg">
-      <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <div className="flex items-baseline gap-2">
-            <h3 className="text-3xl font-bold tracking-tight">{value}</h3>
+    <Card className="p-4 md:p-6 transition-all hover:shadow-lg">
+      <div className="flex items-center justify-between gap-3">
+        <div className="space-y-1 md:space-y-2 flex-1 min-w-0">
+          <p className="text-xs md:text-sm font-medium text-muted-foreground truncate">{title}</p>
+          <div className="flex items-baseline gap-1 md:gap-2 flex-wrap">
+            <h3 className="text-xl md:text-2xl lg:text-3xl font-bold tracking-tight">{value}</h3>
             {change && (
-              <span className="text-sm font-medium text-primary">{change}</span>
+              <span className="text-xs md:text-sm font-medium text-primary whitespace-nowrap">{change}</span>
             )}
           </div>
         </div>
-        <div className={cn("rounded-2xl p-4", variantStyles[variant])}>
-          <Icon className="h-8 w-8" />
+        <div className={cn("rounded-xl p-3 md:rounded-2xl md:p-4 flex-shrink-0", variantStyles[variant])}>
+          <Icon className="h-6 w-6 md:h-8 md:w-8" />
         </div>
       </div>
     </Card>
