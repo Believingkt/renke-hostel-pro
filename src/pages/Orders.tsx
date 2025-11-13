@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { Calendar } from "lucide-react";
+import { Calendar, Eraser } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSubdomain } from "@/hooks/use-subdomain";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface Order {
   id: string;
@@ -52,6 +53,10 @@ const Orders = () => {
   });
   const [isSaving, setIsSaving] = useState(false);
   
+  // 清理備註對話框狀態
+  const [cleanNotesDialogOpen, setCleanNotesDialogOpen] = useState(false);
+  const [isCleaning, setIsCleaning] = useState(false);
+  
   // 篩選條件
   const [dateType, setDateType] = useState("check_in");
   const [startDate, setStartDate] = useState("");
@@ -68,36 +73,36 @@ const Orders = () => {
   }, [searchParams]);
 
   // 載入訂單資料
-  useEffect(() => {
+  const fetchOrders = async () => {
     if (!accommodationId) return;
     
-    const fetchOrders = async () => {
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from("orders")
-          .select(`
-            *,
-            room_types (
-              name
-            )
-          `)
-          .eq("accommodation_id", accommodationId)
-          .order("order_date", { ascending: false });
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("orders")
+        .select(`
+          *,
+          room_types (
+            name
+          )
+        `)
+        .eq("accommodation_id", accommodationId)
+        .order("order_date", { ascending: false });
 
-        if (error) throw error;
-        
-        if (data) {
-          setOrders(data);
-          setFilteredOrders(data);
-        }
-      } catch (error) {
-        console.error("Error fetching orders:", error);
-      } finally {
-        setLoading(false);
+      if (error) throw error;
+      
+      if (data) {
+        setOrders(data);
+        setFilteredOrders(data);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchOrders();
   }, [accommodationId]);
 
@@ -177,6 +182,48 @@ const Orders = () => {
       notes: order.notes || "",
     });
     setEditDialogOpen(true);
+  };
+
+  const handleCleanOrderNotes = async () => {
+    if (!accommodationId) return;
+
+    try {
+      setIsCleaning(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast({
+          title: "錯誤",
+          description: "請先登入",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('clean-order-notes', {
+        body: { accommodationId },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "清理成功",
+        description: `已成功清理 ${data.updatedCount} 筆訂單備註`,
+      });
+
+      // 重新載入訂單資料
+      await fetchOrders();
+      setCleanNotesDialogOpen(false);
+    } catch (error) {
+      console.error("Error cleaning order notes:", error);
+      toast({
+        title: "清理失敗",
+        description: error instanceof Error ? error.message : "清理訂單備註時發生錯誤",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCleaning(false);
+    }
   };
 
   const handleSaveEdit = async () => {
@@ -264,7 +311,18 @@ const Orders = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl md:text-3xl font-bold tracking-tight">訂單資訊</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">訂單資訊</h1>
+        <Button 
+          variant="outline" 
+          onClick={() => setCleanNotesDialogOpen(true)}
+          className="gap-2"
+          size="sm"
+        >
+          <Eraser className="h-4 w-4" />
+          清理舊訂單備註
+        </Button>
+      </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsContent value="list">
@@ -534,6 +592,27 @@ const Orders = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* 清理備註確認對話框 */}
+      <AlertDialog open={cleanNotesDialogOpen} onOpenChange={setCleanNotesDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認清理訂單備註</AlertDialogTitle>
+            <AlertDialogDescription>
+              此操作將移除所有訂單備註中的【加購方案】區塊內容。此操作無法復原，確定要繼續嗎？
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isCleaning}>取消</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleCleanOrderNotes}
+              disabled={isCleaning}
+            >
+              {isCleaning ? "清理中..." : "確認清理"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       
     </div>
