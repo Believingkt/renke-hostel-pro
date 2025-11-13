@@ -223,7 +223,7 @@ const Customers = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">顧客資料</h1>
@@ -245,7 +245,7 @@ const Customers = () => {
                 新增顧客
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{editingCustomer ? "編輯顧客" : "新增顧客"}</DialogTitle>
                 <DialogDescription>填寫顧客的基本資料</DialogDescription>
@@ -334,61 +334,136 @@ const Customers = () => {
               {searchQuery ? "查無符合的顧客資料" : "尚無顧客資料"}
             </div>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-20">編號</TableHead>
-                    <TableHead>姓名</TableHead>
-                    <TableHead>手機號碼</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>首筆訂單日</TableHead>
-                    <TableHead className="text-center">來訪次數</TableHead>
-                    <TableHead className="w-32 text-right">操作</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredCustomers.map((customer, index) => (
-                    <TableRow key={customer.id}>
-                      <TableCell className="font-medium">{index + 1}</TableCell>
-                      <TableCell>{customer.name}</TableCell>
-                      <TableCell>{customer.phone || "-"}</TableCell>
-                      <TableCell>{customer.email || "-"}</TableCell>
-                      <TableCell>{formatDate(customer.first_order_date)}</TableCell>
-                      <TableCell className="text-center">{customer.visit_count}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
+            <>
+              {/* Desktop table view */}
+              <div className="hidden md:block rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-20">編號</TableHead>
+                      <TableHead>姓名</TableHead>
+                      <TableHead>手機號碼</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>首筆訂單日</TableHead>
+                      <TableHead className="text-center">來訪次數</TableHead>
+                      <TableHead className="w-32 text-right">操作</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredCustomers.map((customer, index) => (
+                      <TableRow key={customer.id}>
+                        <TableCell className="font-medium">{index + 1}</TableCell>
+                        <TableCell>{customer.name}</TableCell>
+                        <TableCell>{customer.phone || "-"}</TableCell>
+                        <TableCell>{customer.email || "-"}</TableCell>
+                        <TableCell>{formatDate(customer.first_order_date)}</TableCell>
+                        <TableCell className="text-center">{customer.visit_count}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => toast.info("訂單詳情功能開發中")}
+                              title="查看訂單詳情"
+                            >
+                              <FileText className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleOpenDialog(customer)}
+                              title="編輯顧客"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setDeleteCustomerId(customer.id)}
+                              title="刪除顧客"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile card view */}
+              <div className="md:hidden space-y-3 p-4">
+                {filteredCustomers.map((customer, index) => (
+                  <Card key={customer.id} className="shadow-sm">
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs text-muted-foreground">#{index + 1}</span>
+                            <h3 className="font-semibold text-base truncate">{customer.name}</h3>
+                          </div>
+                          <div className="space-y-1 text-sm">
+                            {customer.phone && (
+                              <div className="flex items-center gap-2 text-muted-foreground">
+                                <span className="text-xs">手機</span>
+                                <span>{customer.phone}</span>
+                              </div>
+                            )}
+                            {customer.email && (
+                              <div className="flex items-center gap-2 text-muted-foreground truncate">
+                                <span className="text-xs">Email</span>
+                                <span className="truncate">{customer.email}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between pt-2 border-t">
+                        <div className="flex gap-4 text-sm">
+                          <div>
+                            <span className="text-muted-foreground text-xs">首筆訂單</span>
+                            <p className="font-medium">{formatDate(customer.first_order_date)}</p>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground text-xs">來訪次數</span>
+                            <p className="font-medium">{customer.visit_count}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex gap-1">
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-9 w-9"
                             onClick={() => toast.info("訂單詳情功能開發中")}
-                            title="查看訂單詳情"
                           >
                             <FileText className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-9 w-9"
                             onClick={() => handleOpenDialog(customer)}
-                            title="編輯顧客"
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-9 w-9"
                             onClick={() => setDeleteCustomerId(customer.id)}
-                            title="刪除顧客"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
