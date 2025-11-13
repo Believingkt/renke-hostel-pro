@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubdomain } from "@/hooks/use-subdomain";
@@ -34,8 +34,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Calendar, Plus, Trash2, CalendarDays } from "lucide-react";
-import { format } from "date-fns";
+import { Calendar, Plus, Trash2, CalendarDays, Edit, Download, Filter, TrendingUp } from "lucide-react";
+import { format, getYear, startOfYear, endOfYear } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -44,6 +44,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
 interface PublicHoliday {
   id: string;
@@ -52,6 +60,19 @@ interface PublicHoliday {
   created_at: string;
 }
 
+// 常見假日模板
+const COMMON_HOLIDAYS = [
+  { name: "元旦", month: 1, day: 1 },
+  { name: "農曆春節", month: 2, day: 1 }, // 示例日期
+  { name: "和平紀念日", month: 2, day: 28 },
+  { name: "兒童節", month: 4, day: 4 },
+  { name: "清明節", month: 4, day: 5 },
+  { name: "勞動節", month: 5, day: 1 },
+  { name: "端午節", month: 6, day: 10 }, // 示例日期
+  { name: "中秋節", month: 9, day: 29 }, // 示例日期
+  { name: "國慶日", month: 10, day: 10 },
+];
+
 const PublicHolidays = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -59,13 +80,22 @@ const PublicHolidays = () => {
   const [holidays, setHolidays] = useState<PublicHoliday[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isBatchDialogOpen, setIsBatchDialogOpen] = useState(false);
   const [selectedHoliday, setSelectedHoliday] = useState<PublicHoliday | null>(null);
   const [newHoliday, setNewHoliday] = useState({
     name: "",
     date: undefined as Date | undefined,
   });
+  const [editHoliday, setEditHoliday] = useState({
+    name: "",
+    date: undefined as Date | undefined,
+  });
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [isEditDatePickerOpen, setIsEditDatePickerOpen] = useState(false);
+  const [selectedYear, setSelectedYear] = useState<string>("all");
+  const currentYear = new Date().getFullYear();
 
   useEffect(() => {
     if (subdomainLoading || !accommodationId) return;
@@ -141,6 +171,55 @@ const PublicHolidays = () => {
     }
   };
 
+  const handleEditHoliday = async () => {
+    if (!selectedHoliday) return;
+    
+    if (!editHoliday.name.trim()) {
+      toast({
+        title: "請輸入假日名稱",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!editHoliday.date) {
+      toast({
+        title: "請選擇日期",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("public_holidays")
+        .update({
+          holiday_name: editHoliday.name.trim(),
+          holiday_date: format(editHoliday.date, "yyyy-MM-dd"),
+        })
+        .eq("id", selectedHoliday.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "更新成功",
+        description: "國定假日已更新",
+      });
+
+      setIsEditDialogOpen(false);
+      setSelectedHoliday(null);
+      setEditHoliday({ name: "", date: undefined });
+      loadHolidays();
+    } catch (error) {
+      console.error("Error updating holiday:", error);
+      toast({
+        title: "更新失敗",
+        description: "無法更新國定假日",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDeleteHoliday = async () => {
     if (!selectedHoliday) return;
 
@@ -170,6 +249,71 @@ const PublicHolidays = () => {
     }
   };
 
+  const handleBatchImport = async (year: number) => {
+    try {
+      const holidaysToImport = COMMON_HOLIDAYS.map(holiday => ({
+        accommodation_id: accommodationId,
+        holiday_name: holiday.name,
+        holiday_date: `${year}-${String(holiday.month).padStart(2, '0')}-${String(holiday.day).padStart(2, '0')}`,
+      }));
+
+      const { error } = await supabase
+        .from("public_holidays")
+        .insert(holidaysToImport);
+
+      if (error) throw error;
+
+      toast({
+        title: "批量導入成功",
+        description: `已成功導入 ${year} 年常見假日`,
+      });
+
+      setIsBatchDialogOpen(false);
+      loadHolidays();
+    } catch (error) {
+      console.error("Error batch importing holidays:", error);
+      toast({
+        title: "批量導入失敗",
+        description: "部分假日可能已存在或發生錯誤",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // 篩選後的假日列表
+  const filteredHolidays = useMemo(() => {
+    if (selectedYear === "all") return holidays;
+    return holidays.filter(holiday => {
+      const year = getYear(new Date(holiday.holiday_date));
+      return year === parseInt(selectedYear);
+    });
+  }, [holidays, selectedYear]);
+
+  // 統計資訊
+  const stats = useMemo(() => {
+    const currentYearHolidays = holidays.filter(holiday => {
+      const year = getYear(new Date(holiday.holiday_date));
+      return year === currentYear;
+    });
+    
+    const upcomingHolidays = holidays.filter(holiday => {
+      const date = new Date(holiday.holiday_date);
+      return date >= new Date();
+    });
+
+    return {
+      total: holidays.length,
+      currentYear: currentYearHolidays.length,
+      upcoming: upcomingHolidays.length,
+    };
+  }, [holidays, currentYear]);
+
+  // 獲取所有年份
+  const availableYears = useMemo(() => {
+    const years = new Set(holidays.map(h => getYear(new Date(h.holiday_date))));
+    return Array.from(years).sort((a, b) => b - a);
+  }, [holidays]);
+
   if (subdomainLoading || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -182,10 +326,45 @@ const PublicHolidays = () => {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-6xl">
+    <div className="container mx-auto py-8 px-4 max-w-7xl space-y-6">
+      {/* 統計卡片 */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">總假日數</CardTitle>
+            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.total}</div>
+            <p className="text-xs text-muted-foreground">所有已設定的假日</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">{currentYear} 年假日</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.currentYear}</div>
+            <p className="text-xs text-muted-foreground">今年度假日數量</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">即將到來</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.upcoming}</div>
+            <p className="text-xs text-muted-foreground">尚未到來的假日</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 主要內容卡片 */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <CardTitle className="flex items-center gap-2">
                 <CalendarDays className="h-6 w-6 text-primary" />
@@ -195,130 +374,310 @@ const PublicHolidays = () => {
                 管理假日定價的國定假日日期（假日定價包含：星期六 + 國定假日）
               </CardDescription>
             </div>
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  新增假日
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>新增國定假日</DialogTitle>
-                  <DialogDescription>
-                    新增假日日期後，該日期將使用假日定價
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="holidayName">假日名稱</Label>
-                    <Input
-                      id="holidayName"
-                      placeholder="例如：春節、中秋節"
-                      value={newHoliday.name}
-                      onChange={(e) =>
-                        setNewHoliday({ ...newHoliday, name: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>假日日期</Label>
-                    <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !newHoliday.date && "text-muted-foreground"
-                          )}
-                        >
-                          <Calendar className="mr-2 h-4 w-4" />
-                          {newHoliday.date ? (
-                            format(newHoliday.date, "PPP", { locale: zhTW })
-                          ) : (
-                            <span>選擇日期</span>
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <CalendarComponent
-                          mode="single"
-                          selected={newHoliday.date}
-                          onSelect={(date) => {
-                            setNewHoliday({ ...newHoliday, date });
-                            setIsDatePickerOpen(false);
-                          }}
-                          locale={zhTW}
-                          className={cn("p-3 pointer-events-auto")}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                    取消
+            <div className="flex flex-wrap gap-2">
+              <Select value={selectedYear} onValueChange={setSelectedYear}>
+                <SelectTrigger className="w-[140px]">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="篩選年份" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">所有年份</SelectItem>
+                  {availableYears.map(year => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year} 年
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" onClick={() => setIsBatchDialogOpen(true)}>
+                <Download className="h-4 w-4 mr-2" />
+                批量導入
+              </Button>
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    新增假日
                   </Button>
-                  <Button onClick={handleAddHoliday}>新增</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>新增國定假日</DialogTitle>
+                    <DialogDescription>
+                      新增假日日期後，該日期將使用假日定價
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="holidayName">假日名稱</Label>
+                      <Input
+                        id="holidayName"
+                        placeholder="例如：春節、中秋節"
+                        value={newHoliday.name}
+                        onChange={(e) =>
+                          setNewHoliday({ ...newHoliday, name: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>假日日期</Label>
+                      <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !newHoliday.date && "text-muted-foreground"
+                            )}
+                          >
+                            <Calendar className="mr-2 h-4 w-4" />
+                            {newHoliday.date ? (
+                              format(newHoliday.date, "PPP", { locale: zhTW })
+                            ) : (
+                              <span>選擇日期</span>
+                            )}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarComponent
+                            mode="single"
+                            selected={newHoliday.date}
+                            onSelect={(date) => {
+                              setNewHoliday({ ...newHoliday, date });
+                              setIsDatePickerOpen(false);
+                            }}
+                            locale={zhTW}
+                            className={cn("p-3 pointer-events-auto")}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                      取消
+                    </Button>
+                    <Button onClick={handleAddHoliday}>新增</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
           {holidays.length === 0 ? (
+            <div className="text-center py-16 px-4">
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 mb-4">
+                <CalendarDays className="h-10 w-10 text-primary" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">尚未設定國定假日</h3>
+              <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+                開始新增假日日期，系統將自動套用假日定價
+              </p>
+              <div className="flex gap-2 justify-center">
+                <Button onClick={() => setIsAddDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  新增第一個假日
+                </Button>
+                <Button variant="outline" onClick={() => setIsBatchDialogOpen(true)}>
+                  <Download className="h-4 w-4 mr-2" />
+                  批量導入
+                </Button>
+              </div>
+            </div>
+          ) : filteredHolidays.length === 0 ? (
             <div className="text-center py-12">
-              <CalendarDays className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground mb-4">尚未設定國定假日</p>
-              <Button onClick={() => setIsAddDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                新增第一個假日
-              </Button>
+              <Filter className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">此年份沒有假日資料</p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>假日名稱</TableHead>
-                  <TableHead>日期</TableHead>
-                  <TableHead>星期</TableHead>
-                  <TableHead className="text-right">操作</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {holidays.map((holiday) => {
-                  const date = new Date(holiday.holiday_date);
-                  const dayOfWeek = format(date, "EEEE", { locale: zhTW });
-                  
-                  return (
-                    <TableRow key={holiday.id}>
-                      <TableCell className="font-medium">
-                        {holiday.holiday_name}
-                      </TableCell>
-                      <TableCell>
-                        {format(date, "PPP", { locale: zhTW })}
-                      </TableCell>
-                      <TableCell>{dayOfWeek}</TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedHoliday(holiday);
-                            setIsDeleteDialogOpen(true);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="font-semibold">假日名稱</TableHead>
+                    <TableHead className="font-semibold">日期</TableHead>
+                    <TableHead className="font-semibold">星期</TableHead>
+                    <TableHead className="font-semibold">年份</TableHead>
+                    <TableHead className="text-right font-semibold">操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredHolidays.map((holiday) => {
+                    const date = new Date(holiday.holiday_date);
+                    const dayOfWeek = format(date, "EEEE", { locale: zhTW });
+                    const year = getYear(date);
+                    const isPast = date < new Date();
+                    
+                    return (
+                      <TableRow key={holiday.id} className="hover:bg-muted/50 transition-colors">
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            {holiday.holiday_name}
+                            {isPast && (
+                              <Badge variant="secondary" className="text-xs">
+                                已過
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {format(date, "yyyy年MM月dd日", { locale: zhTW })}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{dayOfWeek}</Badge>
+                        </TableCell>
+                        <TableCell>{year}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedHoliday(holiday);
+                                setEditHoliday({
+                                  name: holiday.holiday_name,
+                                  date: new Date(holiday.holiday_date),
+                                });
+                                setIsEditDialogOpen(true);
+                              }}
+                            >
+                              <Edit className="h-4 w-4 text-primary" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedHoliday(holiday);
+                                setIsDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
+
+      {/* 編輯對話框 */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>編輯國定假日</DialogTitle>
+            <DialogDescription>
+              更新假日資訊
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="editHolidayName">假日名稱</Label>
+              <Input
+                id="editHolidayName"
+                placeholder="例如：春節、中秋節"
+                value={editHoliday.name}
+                onChange={(e) =>
+                  setEditHoliday({ ...editHoliday, name: e.target.value })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>假日日期</Label>
+              <Popover open={isEditDatePickerOpen} onOpenChange={setIsEditDatePickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !editHoliday.date && "text-muted-foreground"
+                    )}
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {editHoliday.date ? (
+                      format(editHoliday.date, "PPP", { locale: zhTW })
+                    ) : (
+                      <span>選擇日期</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={editHoliday.date}
+                    onSelect={(date) => {
+                      setEditHoliday({ ...editHoliday, date });
+                      setIsEditDatePickerOpen(false);
+                    }}
+                    locale={zhTW}
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              取消
+            </Button>
+            <Button onClick={handleEditHoliday}>更新</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 批量導入對話框 */}
+      <Dialog open={isBatchDialogOpen} onOpenChange={setIsBatchDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>批量導入常見假日</DialogTitle>
+            <DialogDescription>
+              選擇年份後，系統將自動導入該年度的常見國定假日
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {[currentYear - 1, currentYear, currentYear + 1].map(year => (
+                <Button
+                  key={year}
+                  variant="outline"
+                  className="h-auto py-4 flex flex-col items-center gap-2"
+                  onClick={() => handleBatchImport(year)}
+                >
+                  <CalendarDays className="h-5 w-5" />
+                  <span className="font-semibold">{year} 年</span>
+                  <span className="text-xs text-muted-foreground">
+                    導入 {COMMON_HOLIDAYS.length} 個假日
+                  </span>
+                </Button>
+              ))}
+            </div>
+            <div className="rounded-lg border p-4 bg-muted/50">
+              <p className="text-sm font-medium mb-2">將導入以下假日：</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm text-muted-foreground">
+                {COMMON_HOLIDAYS.map(holiday => (
+                  <div key={holiday.name} className="flex items-center gap-1">
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                    {holiday.name}
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground mt-3">
+                ⚠️ 注意：農曆假日的日期為示例日期，請在導入後手動調整為正確日期
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBatchDialogOpen(false)}>
+              關閉
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
