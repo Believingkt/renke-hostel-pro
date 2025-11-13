@@ -33,7 +33,8 @@ const Notifications = () => {
 
     try {
       setLoading(true);
-      let query = supabase
+      
+      let query = (supabase as any)
         .from("notifications")
         .select("*")
         .eq("accommodation_id", accommodationId)
@@ -65,7 +66,7 @@ const Notifications = () => {
 
   const markAsRead = async (id: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("notifications")
         .update({ is_read: true })
         .eq("id", id);
@@ -84,7 +85,7 @@ const Notifications = () => {
     if (!accommodationId) return;
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("notifications")
         .update({ is_read: true })
         .eq("accommodation_id", accommodationId)
@@ -110,7 +111,7 @@ const Notifications = () => {
 
   const deleteNotification = async (id: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("notifications")
         .delete()
         .eq("id", id);

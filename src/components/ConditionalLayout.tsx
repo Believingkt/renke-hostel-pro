@@ -19,10 +19,8 @@ export function ConditionalLayout() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // 啟用訂單即時通知（僅在後台頁面）
-  if (isAdminPage && session) {
-    useOrderNotifications();
-  }
+  // 啟用訂單即時通知（僅在後台頁面且已登入時）
+  useOrderNotifications(isAdminPage && !!session);
 
   useEffect(() => {
     if (isAdminPage) {
