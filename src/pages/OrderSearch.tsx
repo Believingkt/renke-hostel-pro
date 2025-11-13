@@ -119,7 +119,7 @@ const OrderSearch = () => {
 
   const handleSearch = async () => {
     if (!orderNumber.trim() || !phone.trim()) {
-      toast.error("請輸入訂單編號和電話號碼");
+      toast.error("請輸入訂單編號和手機號碼");
       return;
     }
 
@@ -167,7 +167,7 @@ const OrderSearch = () => {
       if (error) throw error;
 
       if (!data) {
-        toast.error("查無此訂單，請確認訂單編號和電話號碼是否正確");
+        toast.error("查無此訂單，請確認訂單編號和手機號碼是否正確");
         return;
       }
 
@@ -217,7 +217,7 @@ const OrderSearch = () => {
               訂單查詢
             </CardTitle>
             <CardDescription>
-              請輸入您的訂單編號和訂房時使用的電話號碼
+              請輸入您的訂單編號和訂房時使用的手機號碼
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -234,10 +234,10 @@ const OrderSearch = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">電話號碼</Label>
+                <Label htmlFor="phone">手機號碼</Label>
                 <Input
                   id="phone"
-                  placeholder="請輸入訂房時填寫的電話號碼"
+                  placeholder="請輸入訂房時填寫的手機號碼"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   onKeyPress={handleKeyPress}
@@ -278,7 +278,7 @@ const OrderSearch = () => {
                     </p>
                     <ul className="text-sm text-yellow-700 dark:text-yellow-300 text-left space-y-1 max-w-md mx-auto">
                       <li>• 訂單編號是否輸入正確</li>
-                      <li>• 電話號碼是否為訂房時填寫的號碼</li>
+                      <li>• 手機號碼是否為訂房時填寫的號碼</li>
                       <li>• 訂單是否屬於此住宿業者</li>
                     </ul>
                   </div>
