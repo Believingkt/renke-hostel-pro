@@ -21,7 +21,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Plus } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Trash2, Plus, UserPlus, ShieldCheck } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
 
 interface UserRole {
   id: string;
@@ -225,9 +236,15 @@ export default function UserRoles() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
             </div>
           ) : userRoles.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              目前沒有任何用戶
-            </div>
+            <EmptyState
+              icon={ShieldCheck}
+              title="尚無用戶權限"
+              description="開始新增用戶權限，讓團隊成員能夠協助管理系統"
+              action={{
+                label: "新增第一個用戶",
+                onClick: () => document.getElementById('new-user-email')?.focus()
+              }}
+            />
           ) : (
             <>
               {/* Desktop table view */}

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
+import { EmptyState } from "@/components/EmptyState";
 import {
   Table,
   TableBody,
@@ -551,30 +552,21 @@ const PublicHolidays = () => {
             // 列表檢視
             <>
               {holidays.length === 0 ? (
-                <div className="text-center py-16 px-4">
-                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 mb-4">
-                    <CalendarDays className="h-10 w-10 text-primary" />
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2">尚未設定國定假日</h3>
-                  <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
-                    開始新增假日日期，系統將自動套用假日定價
-                  </p>
-                  <div className="flex gap-2 justify-center">
-                    <Button onClick={() => setIsAddDialogOpen(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      新增第一個假日
-                    </Button>
-                    <Button variant="outline" onClick={() => setIsBatchDialogOpen(true)}>
-                      <Download className="h-4 w-4 mr-2" />
-                      批量導入
-                    </Button>
-                  </div>
-                </div>
+                <EmptyState
+                  icon={CalendarDays}
+                  title="尚未設定假日"
+                  description="開始新增假日日期，系統將自動套用假日定價"
+                  action={{
+                    label: "新增第一個假日",
+                    onClick: () => setIsAddDialogOpen(true)
+                  }}
+                />
               ) : filteredHolidays.length === 0 ? (
-                <div className="text-center py-12">
-                  <Filter className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">此年份沒有假日資料</p>
-                </div>
+                <EmptyState
+                  icon={Filter}
+                  title="此年份沒有假日"
+                  description="選擇的年份沒有設定任何假日資料"
+                />
               ) : (
             <div className="rounded-md border">
               <Table>

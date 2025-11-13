@@ -6,12 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Search, FileText } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, FileText, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { z } from "zod";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
+import { EmptyState } from "@/components/EmptyState";
 
 // Validation schema for customer inputs
 const customerSchema = z.object({
@@ -335,9 +336,23 @@ const Customers = () => {
           {isLoading && filteredCustomers.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">載入中...</div>
           ) : filteredCustomers.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              {searchQuery ? "查無符合的顧客資料" : "尚無顧客資料"}
-            </div>
+            searchQuery ? (
+              <EmptyState
+                icon={Search}
+                title="查無符合的顧客"
+                description={`找不到符合「${searchQuery}」的顧客資料，請嘗試其他關鍵字`}
+              />
+            ) : (
+              <EmptyState
+                icon={Users}
+                title="尚無顧客資料"
+                description="開始新增您的第一位顧客，建立完整的顧客資料庫"
+                action={{
+                  label: "新增顧客",
+                  onClick: () => handleOpenDialog()
+                }}
+              />
+            )
           ) : (
             <>
               {/* Desktop table view */}

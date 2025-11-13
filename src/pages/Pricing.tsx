@@ -3,13 +3,14 @@ import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, GripVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, GripVertical, Hotel } from "lucide-react";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { RoomTypeForm } from "@/components/RoomTypeForm";
 import { RoomFacilitiesForm } from "@/components/RoomFacilitiesForm";
 import { TabsSkeleton } from "@/components/skeletons/TabsSkeleton";
+import { EmptyState } from "@/components/EmptyState";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -325,9 +326,15 @@ const Pricing = () => {
                 {isLoading ? (
                   <TabsSkeleton />
                 ) : roomTypes.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    尚無房型資料，請點擊「新增房型」開始建立
-                  </div>
+                  <EmptyState
+                    icon={Hotel}
+                    title="尚無房型資料"
+                    description="開始新增您的第一個房型，建立完整的住宿資訊"
+                    action={{
+                      label: "新增房型",
+                      onClick: handleAddNew
+                    }}
+                  />
                 ) : (
                   <DndContext
                     sensors={sensors}
