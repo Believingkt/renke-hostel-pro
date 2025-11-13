@@ -1,4 +1,4 @@
-import { Hotel, Users, Calendar, DollarSign } from "lucide-react";
+import { Hotel, Users, Calendar, DollarSign, Radio } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEffect, useState } from "react";
@@ -8,6 +8,8 @@ import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { Link } from "react-router-dom";
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 import { ErrorState } from "@/components/ErrorState";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 
 import {
   LineChart,
@@ -56,6 +58,8 @@ const Dashboard = () => {
   const { accommodationId } = useSubdomain();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isLiveUpdating, setIsLiveUpdating] = useState(false);
+  const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date());
   
   // 統計數據
   const [totalRooms, setTotalRooms] = useState(0);
@@ -224,6 +228,49 @@ const Dashboard = () => {
   useEffect(() => {
     if (!accommodationId) return;
     fetchData();
+
+    // 設置即時訂閱
+    console.log('Setting up realtime subscription for orders');
+    const channel = supabase
+      .channel('dashboard-orders-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+          filter: `accommodation_id=eq.${accommodationId}`
+        },
+        (payload) => {
+          console.log('Realtime order change detected:', payload);
+          setIsLiveUpdating(true);
+          setLastUpdateTime(new Date());
+          
+          // 顯示通知
+          if (payload.eventType === 'INSERT') {
+            toast.success('新訂單已加入', {
+              description: '儀表板數據已自動更新'
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            toast.info('訂單已更新', {
+              description: '儀表板數據已自動更新'
+            });
+          }
+          
+          // 重新獲取數據
+          fetchData().then(() => {
+            setTimeout(() => setIsLiveUpdating(false), 1000);
+          });
+        }
+      )
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+      });
+
+    return () => {
+      console.log('Cleaning up realtime subscription');
+      supabase.removeChannel(channel);
+    };
   }, [accommodationId]);
 
   if (loading) {
@@ -242,8 +289,20 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6 md:space-y-8">
-      <div className="px-2 md:px-0">
+      <div className="px-2 md:px-0 flex items-center justify-between">
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">營運分析</h1>
+        <div className="flex items-center gap-2">
+          <Badge 
+            variant={isLiveUpdating ? "default" : "secondary"} 
+            className={`transition-all ${isLiveUpdating ? 'animate-pulse' : ''}`}
+          >
+            <Radio className={`w-3 h-3 mr-1 ${isLiveUpdating ? 'animate-spin' : ''}`} />
+            {isLiveUpdating ? '更新中...' : '即時監控'}
+          </Badge>
+          <span className="text-xs text-muted-foreground hidden sm:inline">
+            最後更新: {format(lastUpdateTime, 'HH:mm:ss')}
+          </span>
+        </div>
       </div>
 
       <div className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-4 px-2 md:px-0">
@@ -253,6 +312,7 @@ const Dashboard = () => {
           change="+0%"
           icon={Hotel}
           variant="coral"
+          isUpdating={isLiveUpdating}
         />
         <StatCard
           title="本月訂房"
@@ -260,6 +320,7 @@ const Dashboard = () => {
           change={bookingsChange}
           icon={Calendar}
           variant="green"
+          isUpdating={isLiveUpdating}
         />
         <StatCard
           title="住客人數"
@@ -267,6 +328,7 @@ const Dashboard = () => {
           change={guestsChange}
           icon={Users}
           variant="blue"
+          isUpdating={isLiveUpdating}
         />
         <StatCard
           title="本月營收"
@@ -274,6 +336,7 @@ const Dashboard = () => {
           change={revenueChange}
           icon={DollarSign}
           variant="purple"
+          isUpdating={isLiveUpdating}
         />
       </div>
 
