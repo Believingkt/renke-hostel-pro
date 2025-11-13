@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { Calendar, X } from "lucide-react";
+import { Calendar, X, Home, DoorOpen, Clock, CreditCard, CalendarClock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
@@ -348,90 +348,191 @@ const Orders = () => {
           <Card>
             <CardContent className="pt-6 space-y-6">
               {/* 快速篩選標籤 */}
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">快速篩選</Label>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant={quickFilter === "today_checkin" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handleQuickFilter("today_checkin")}
-                    className="gap-2"
-                  >
-                    今日入住
-                    {getQuickFilterCount("today_checkin") > 0 && (
-                      <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-xs">
-                        {getQuickFilterCount("today_checkin")}
-                      </Badge>
-                    )}
-                  </Button>
-                  
-                  <Button
-                    variant={quickFilter === "today_checkout" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handleQuickFilter("today_checkout")}
-                    className="gap-2"
-                  >
-                    今日退房
-                    {getQuickFilterCount("today_checkout") > 0 && (
-                      <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-xs">
-                        {getQuickFilterCount("today_checkout")}
-                      </Badge>
-                    )}
-                  </Button>
-                  
-                  <Button
-                    variant={quickFilter === "pending" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handleQuickFilter("pending")}
-                    className="gap-2"
-                  >
-                    待確認
-                    {getQuickFilterCount("pending") > 0 && (
-                      <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-xs">
-                        {getQuickFilterCount("pending")}
-                      </Badge>
-                    )}
-                  </Button>
-                  
-                  <Button
-                    variant={quickFilter === "unpaid" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handleQuickFilter("unpaid")}
-                    className="gap-2"
-                  >
-                    未付款
-                    {getQuickFilterCount("unpaid") > 0 && (
-                      <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-xs">
-                        {getQuickFilterCount("unpaid")}
-                      </Badge>
-                    )}
-                  </Button>
-                  
-                  <Button
-                    variant={quickFilter === "upcoming" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handleQuickFilter("upcoming")}
-                    className="gap-2"
-                  >
-                    即將到來 (7天內)
-                    {getQuickFilterCount("upcoming") > 0 && (
-                      <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-xs">
-                        {getQuickFilterCount("upcoming")}
-                      </Badge>
-                    )}
-                  </Button>
-
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-semibold">快速篩選</Label>
                   {quickFilter && (
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setQuickFilter("")}
-                      className="gap-2"
+                      className="gap-2 text-muted-foreground hover:text-foreground"
                     >
                       <X className="h-4 w-4" />
-                      清除快速篩選
+                      清除篩選
                     </Button>
                   )}
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                  {/* 今日入住 */}
+                  <button
+                    onClick={() => handleQuickFilter("today_checkin")}
+                    className={`relative group flex flex-col items-start p-4 rounded-xl border-2 transition-all duration-300 ${
+                      quickFilter === "today_checkin"
+                        ? "border-blue-500 bg-blue-50 shadow-lg scale-[1.02]"
+                        : "border-border bg-card hover:border-blue-300 hover:shadow-md"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full mb-3">
+                      <div className={`p-2.5 rounded-lg transition-colors ${
+                        quickFilter === "today_checkin"
+                          ? "bg-blue-500"
+                          : "bg-blue-100 group-hover:bg-blue-200"
+                      }`}>
+                        <Home className={`h-5 w-5 ${
+                          quickFilter === "today_checkin" ? "text-white" : "text-blue-600"
+                        }`} />
+                      </div>
+                      {getQuickFilterCount("today_checkin") > 0 && (
+                        <span className={`text-2xl font-bold transition-colors ${
+                          quickFilter === "today_checkin" ? "text-blue-600" : "text-muted-foreground"
+                        }`}>
+                          {getQuickFilterCount("today_checkin")}
+                        </span>
+                      )}
+                    </div>
+                    <span className={`text-sm font-medium transition-colors ${
+                      quickFilter === "today_checkin" ? "text-blue-700" : "text-foreground"
+                    }`}>
+                      今日入住
+                    </span>
+                  </button>
+
+                  {/* 今日退房 */}
+                  <button
+                    onClick={() => handleQuickFilter("today_checkout")}
+                    className={`relative group flex flex-col items-start p-4 rounded-xl border-2 transition-all duration-300 ${
+                      quickFilter === "today_checkout"
+                        ? "border-purple-500 bg-purple-50 shadow-lg scale-[1.02]"
+                        : "border-border bg-card hover:border-purple-300 hover:shadow-md"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full mb-3">
+                      <div className={`p-2.5 rounded-lg transition-colors ${
+                        quickFilter === "today_checkout"
+                          ? "bg-purple-500"
+                          : "bg-purple-100 group-hover:bg-purple-200"
+                      }`}>
+                        <DoorOpen className={`h-5 w-5 ${
+                          quickFilter === "today_checkout" ? "text-white" : "text-purple-600"
+                        }`} />
+                      </div>
+                      {getQuickFilterCount("today_checkout") > 0 && (
+                        <span className={`text-2xl font-bold transition-colors ${
+                          quickFilter === "today_checkout" ? "text-purple-600" : "text-muted-foreground"
+                        }`}>
+                          {getQuickFilterCount("today_checkout")}
+                        </span>
+                      )}
+                    </div>
+                    <span className={`text-sm font-medium transition-colors ${
+                      quickFilter === "today_checkout" ? "text-purple-700" : "text-foreground"
+                    }`}>
+                      今日退房
+                    </span>
+                  </button>
+
+                  {/* 待確認 */}
+                  <button
+                    onClick={() => handleQuickFilter("pending")}
+                    className={`relative group flex flex-col items-start p-4 rounded-xl border-2 transition-all duration-300 ${
+                      quickFilter === "pending"
+                        ? "border-orange-500 bg-orange-50 shadow-lg scale-[1.02]"
+                        : "border-border bg-card hover:border-orange-300 hover:shadow-md"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full mb-3">
+                      <div className={`p-2.5 rounded-lg transition-colors ${
+                        quickFilter === "pending"
+                          ? "bg-orange-500"
+                          : "bg-orange-100 group-hover:bg-orange-200"
+                      }`}>
+                        <Clock className={`h-5 w-5 ${
+                          quickFilter === "pending" ? "text-white" : "text-orange-600"
+                        }`} />
+                      </div>
+                      {getQuickFilterCount("pending") > 0 && (
+                        <span className={`text-2xl font-bold transition-colors ${
+                          quickFilter === "pending" ? "text-orange-600" : "text-muted-foreground"
+                        }`}>
+                          {getQuickFilterCount("pending")}
+                        </span>
+                      )}
+                    </div>
+                    <span className={`text-sm font-medium transition-colors ${
+                      quickFilter === "pending" ? "text-orange-700" : "text-foreground"
+                    }`}>
+                      待確認
+                    </span>
+                  </button>
+
+                  {/* 未付款 */}
+                  <button
+                    onClick={() => handleQuickFilter("unpaid")}
+                    className={`relative group flex flex-col items-start p-4 rounded-xl border-2 transition-all duration-300 ${
+                      quickFilter === "unpaid"
+                        ? "border-red-500 bg-red-50 shadow-lg scale-[1.02]"
+                        : "border-border bg-card hover:border-red-300 hover:shadow-md"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full mb-3">
+                      <div className={`p-2.5 rounded-lg transition-colors ${
+                        quickFilter === "unpaid"
+                          ? "bg-red-500"
+                          : "bg-red-100 group-hover:bg-red-200"
+                      }`}>
+                        <CreditCard className={`h-5 w-5 ${
+                          quickFilter === "unpaid" ? "text-white" : "text-red-600"
+                        }`} />
+                      </div>
+                      {getQuickFilterCount("unpaid") > 0 && (
+                        <span className={`text-2xl font-bold transition-colors ${
+                          quickFilter === "unpaid" ? "text-red-600" : "text-muted-foreground"
+                        }`}>
+                          {getQuickFilterCount("unpaid")}
+                        </span>
+                      )}
+                    </div>
+                    <span className={`text-sm font-medium transition-colors ${
+                      quickFilter === "unpaid" ? "text-red-700" : "text-foreground"
+                    }`}>
+                      未付款
+                    </span>
+                  </button>
+
+                  {/* 即將到來 */}
+                  <button
+                    onClick={() => handleQuickFilter("upcoming")}
+                    className={`relative group flex flex-col items-start p-4 rounded-xl border-2 transition-all duration-300 ${
+                      quickFilter === "upcoming"
+                        ? "border-green-500 bg-green-50 shadow-lg scale-[1.02]"
+                        : "border-border bg-card hover:border-green-300 hover:shadow-md"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full mb-3">
+                      <div className={`p-2.5 rounded-lg transition-colors ${
+                        quickFilter === "upcoming"
+                          ? "bg-green-500"
+                          : "bg-green-100 group-hover:bg-green-200"
+                      }`}>
+                        <CalendarClock className={`h-5 w-5 ${
+                          quickFilter === "upcoming" ? "text-white" : "text-green-600"
+                        }`} />
+                      </div>
+                      {getQuickFilterCount("upcoming") > 0 && (
+                        <span className={`text-2xl font-bold transition-colors ${
+                          quickFilter === "upcoming" ? "text-green-600" : "text-muted-foreground"
+                        }`}>
+                          {getQuickFilterCount("upcoming")}
+                        </span>
+                      )}
+                    </div>
+                    <span className={`text-sm font-medium transition-colors ${
+                      quickFilter === "upcoming" ? "text-green-700" : "text-foreground"
+                    }`}>
+                      即將到來
+                    </span>
+                  </button>
                 </div>
               </div>
 
