@@ -271,4 +271,104 @@ All colors MUST be HSL.
   .room-carousel-content {
     margin-left: 0 !important;
   }
+
+  /* 行動裝置觸控優化 */
+  .touch-manipulation {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .touch-friendly {
+    @apply min-h-[44px] min-w-[44px] touch-manipulation;
+  }
 }
+
+/* 行動裝置特定優化 */
+@media (hover: none) and (pointer: coarse) {
+  /* 增加觸控目標大小 */
+  button:not(.no-touch-enlarge), 
+  a:not(.no-touch-enlarge) {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* 改善滾動體驗 */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* 禁用點擊延遲 */
+  a, button, input, textarea, select {
+    touch-action: manipulation;
+  }
+}
+
+/* 小螢幕優化 */
+@media (max-width: 640px) {
+  html {
+    font-size: 15px;
+  }
+
+  /* 防止 iOS Safari 自動縮放 */
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="password"],
+  input[type="number"],
+  input[type="date"],
+  textarea,
+  select {
+    font-size: 16px;
+  }
+
+  /* 對話框響應式優化 */
+  [role="dialog"] {
+    max-width: 95vw !important;
+    margin: 0.5rem;
+  }
+}
+
+/* 響應式表格優化 */
+@media (max-width: 768px) {
+  .responsive-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* iOS 特定優化 */
+@supports (-webkit-touch-callout: none) {
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="password"],
+  input[type="number"],
+  textarea {
+    -webkit-appearance: none;
+    border-radius: 0;
+  }
+}
+
+/* Scrollbar 樣式優化（桌面） */
+@media (min-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+  }
+}
+

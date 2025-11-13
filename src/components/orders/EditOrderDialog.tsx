@@ -47,7 +47,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="max-w-[95vw] sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>編輯訂單</DialogTitle>
         </DialogHeader>
