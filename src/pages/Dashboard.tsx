@@ -341,9 +341,16 @@ const Dashboard = () => {
       </div>
 
       <div className="grid gap-4 md:gap-6 lg:grid-cols-2 px-2 md:px-0">
-        <Card className="shadow-card hover:shadow-card-hover transition-base">
+        <Card className={`shadow-card hover:shadow-card-hover transition-all duration-300 ${isLiveUpdating ? 'ring-2 ring-chart-1/50' : ''}`}>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base md:text-lg lg:text-xl">營收統計</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base md:text-lg lg:text-xl">營收統計</CardTitle>
+              {isLiveUpdating && (
+                <Badge variant="secondary" className="animate-pulse text-xs">
+                  更新中
+                </Badge>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="px-2 md:px-6 pb-4">
             <ResponsiveContainer width="100%" height={220}>
@@ -384,15 +391,26 @@ const Dashboard = () => {
                   fill="hsl(var(--chart-1))" 
                   radius={[6, 6, 0, 0]}
                   maxBarSize={50}
+                  isAnimationActive={true}
+                  animationDuration={800}
+                  animationBegin={0}
+                  animationEasing="ease-in-out"
                 />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        <Card className="shadow-card hover:shadow-card-hover transition-base">
+        <Card className={`shadow-card hover:shadow-card-hover transition-all duration-300 ${isLiveUpdating ? 'ring-2 ring-chart-3/50' : ''}`}>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base md:text-lg lg:text-xl">訂房趨勢</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base md:text-lg lg:text-xl">訂房趨勢</CardTitle>
+              {isLiveUpdating && (
+                <Badge variant="secondary" className="animate-pulse text-xs">
+                  更新中
+                </Badge>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="px-1 md:px-6 pb-4">
             <ResponsiveContainer width="100%" height={220}>
@@ -435,6 +453,10 @@ const Dashboard = () => {
                   strokeWidth={2.5}
                   dot={{ fill: "hsl(var(--chart-3))", r: 5, strokeWidth: 2, stroke: 'hsl(var(--background))' }}
                   activeDot={{ r: 7, strokeWidth: 2 }}
+                  isAnimationActive={true}
+                  animationDuration={800}
+                  animationBegin={0}
+                  animationEasing="ease-in-out"
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -443,9 +465,16 @@ const Dashboard = () => {
       </div>
 
       <div className="px-2 md:px-0">
-        <Card className="shadow-card hover:shadow-card-hover transition-base">
+        <Card className={`shadow-card hover:shadow-card-hover transition-all duration-300 ${isLiveUpdating ? 'ring-2 ring-chart-2/50' : ''}`}>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base md:text-lg lg:text-xl">房型入住率（近30天）</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base md:text-lg lg:text-xl">房型入住率（近30天）</CardTitle>
+              {isLiveUpdating && (
+                <Badge variant="secondary" className="animate-pulse text-xs">
+                  更新中
+                </Badge>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="px-1 md:px-6 pb-4">
             <ResponsiveContainer width="100%" height={220}>
@@ -492,6 +521,10 @@ const Dashboard = () => {
                   fill="hsl(var(--chart-2))" 
                   radius={[6, 6, 0, 0]}
                   maxBarSize={50}
+                  isAnimationActive={true}
+                  animationDuration={800}
+                  animationBegin={0}
+                  animationEasing="ease-in-out"
                 />
               </BarChart>
             </ResponsiveContainer>
