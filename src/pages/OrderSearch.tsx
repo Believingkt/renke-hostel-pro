@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Search, ArrowLeft, Calendar, Users, Phone, Mail, CreditCard, BanknoteIcon, CheckCircle2, Clock, Home, LogOut, MessageCircle } from "lucide-react";
+import { Search, ArrowLeft, Calendar, Users, Phone, Mail, CreditCard, BanknoteIcon, CheckCircle2, Clock, Home, LogOut, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { zhTW } from "date-fns/locale";
@@ -464,7 +464,7 @@ const OrderSearch = () => {
                       className="w-full"
                       onClick={() => window.open("https://line.me/R/ti/p/@042deypa", "_blank")}
                     >
-                      <MessageCircle className="mr-2 h-4 w-4" />
+                      <MessageSquare className="mr-2 h-4 w-4" />
                       開啟 LINE
                     </Button>
                   </div>
