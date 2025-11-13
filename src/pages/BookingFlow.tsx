@@ -29,6 +29,9 @@ import {
 } from "lucide-react";
 import { z } from "zod";
 import { format } from "date-fns";
+import { detectBookingConflict } from "@/utils/bookingConflictDetection";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 import {
   Carousel,
   CarouselContent,
@@ -689,6 +692,36 @@ const BookingFlow = () => {
     setIsSubmitting(true);
 
     try {
+      // 執行衝突檢測
+      console.log("開始衝突檢測...");
+      const conflictResult = await detectBookingConflict(
+        selectedRoom.id,
+        checkInDateStr,
+        checkOutDateStr,
+        accommodationId,
+        undefined,
+        {
+          guestName: guestInfo.name,
+          guestPhone: guestInfo.phone,
+          guestEmail: guestInfo.email
+        }
+      );
+
+      // 如果檢測到衝突，顯示錯誤並阻止訂單創建
+      if (conflictResult.hasConflict) {
+        setIsSubmitting(false);
+        toast({
+          title: conflictResult.conflictType === 'duplicate' ? "檢測到重複訂房" : "房間已被預訂",
+          description: conflictResult.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // 如果有警告（房間數量不多），顯示警告但允許繼續
+      if (conflictResult.message && conflictResult.availableRooms && conflictResult.availableRooms <= 2) {
+        console.log("房間數量提醒:", conflictResult.message);
+      }
       const totalPrice = calculateTotal();
       const discountAmount = calculateDiscount();
       const finalPrice = calculateFinalTotal();
