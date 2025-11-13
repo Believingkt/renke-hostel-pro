@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { RoomTypeForm } from "@/components/RoomTypeForm";
 import { RoomFacilitiesForm } from "@/components/RoomFacilitiesForm";
+import { TabsSkeleton } from "@/components/skeletons/TabsSkeleton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -322,9 +323,7 @@ const Pricing = () => {
               </CardHeader>
               <CardContent>
                 {isLoading ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    載入中...
-                  </div>
+                  <TabsSkeleton />
                 ) : roomTypes.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     尚無房型資料，請點擊「新增房型」開始建立

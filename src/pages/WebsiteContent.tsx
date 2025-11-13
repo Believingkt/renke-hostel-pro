@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { TabsSkeleton } from "@/components/skeletons/TabsSkeleton";
 
 // 定義所有設施項目
 const facilitiesData = {
