@@ -275,7 +275,7 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
             精心設計的客房空間，讓您在山林間享受寧靜舒適的住宿體驗
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6 lg:gap-6 items-stretch">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6 lg:gap-6 items-stretch">
             {displayRooms.map((room) => (
               <RoomCard key={room.id} room={room} />
             ))}
