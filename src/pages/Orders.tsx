@@ -352,20 +352,6 @@ const Orders = () => {
                 <Label className="text-sm font-medium">快速篩選</Label>
                 <div className="flex flex-wrap gap-2">
                   <Button
-                    variant={quickFilter === "pending" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handleQuickFilter("pending")}
-                    className="gap-2"
-                  >
-                    待確認
-                    {getQuickFilterCount("pending") > 0 && (
-                      <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-xs">
-                        {getQuickFilterCount("pending")}
-                      </Badge>
-                    )}
-                  </Button>
-                  
-                  <Button
                     variant={quickFilter === "today_checkin" ? "default" : "outline"}
                     size="sm"
                     onClick={() => handleQuickFilter("today_checkin")}
@@ -389,6 +375,20 @@ const Orders = () => {
                     {getQuickFilterCount("today_checkout") > 0 && (
                       <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-xs">
                         {getQuickFilterCount("today_checkout")}
+                      </Badge>
+                    )}
+                  </Button>
+                  
+                  <Button
+                    variant={quickFilter === "pending" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handleQuickFilter("pending")}
+                    className="gap-2"
+                  >
+                    待確認
+                    {getQuickFilterCount("pending") > 0 && (
+                      <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-xs">
+                        {getQuickFilterCount("pending")}
                       </Badge>
                     )}
                   </Button>
