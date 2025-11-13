@@ -238,7 +238,7 @@ const Orders = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl md:text-3xl font-bold tracking-tight">訂單查詢</h1>
+      <h1 className="text-2xl md:text-3xl font-bold tracking-tight">訂單資訊</h1>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsContent value="list">
