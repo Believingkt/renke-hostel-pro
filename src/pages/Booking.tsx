@@ -25,7 +25,7 @@ import {
   Mail,
   Mountain,
   Sparkles,
-  HeartHandshake,
+  UserCheck,
   Camera,
   Wifi,
   ParkingCircle,
@@ -287,7 +287,7 @@ const Booking = () => {
               {[
                 { icon: Mountain, title: "山林環抱", desc: "坐落於群山之間，遠離喧囂，享受大自然的靜謐" },
                 { icon: Sparkles, title: "日式美學", desc: "融合傳統日式設計與現代舒適，打造獨特住宿體驗" },
-                { icon: HeartHandshake, title: "管家服務", desc: "客製化的管家服務，一天僅接待 1 組貴賓" },
+                { icon: UserCheck, title: "管家服務", desc: "客製化的管家服務，一天僅接待 1 組貴賓" },
                 { icon: Camera, title: "寫真棚拍", desc: "森山寫照用專業攝影替您紀錄珍貴的親友相聚時光" },
               ].map((item, index) => (
                 <Card key={index} className="hover:shadow-lg transition-shadow">
