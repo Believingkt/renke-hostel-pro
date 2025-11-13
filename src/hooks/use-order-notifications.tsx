@@ -9,6 +9,20 @@ export const useOrderNotifications = () => {
   useEffect(() => {
     if (!accommodationId) return;
 
+    const saveNotification = async (title: string, description: string, type: string, orderId?: string) => {
+      try {
+        await supabase.from("notifications").insert({
+          accommodation_id: accommodationId,
+          title,
+          description,
+          type,
+          order_id: orderId || null,
+        });
+      } catch (error) {
+        console.error("Error saving notification:", error);
+      }
+    };
+
     const channel = supabase
       .channel('order-notifications')
       .on(
@@ -21,11 +35,16 @@ export const useOrderNotifications = () => {
         },
         (payload) => {
           const order = payload.new as any;
+          const title = "🎉 新訂單通知";
+          const description = `訂單編號：${order.order_number}\n客戶：${order.guest_name}\n金額：$${order.final_price.toLocaleString()}`;
+          
           toast({
-            title: "🎉 新訂單通知",
-            description: `訂單編號：${order.order_number}\n客戶：${order.guest_name}\n金額：$${order.final_price.toLocaleString()}`,
+            title,
+            description,
             duration: 10000,
           });
+
+          saveNotification(title, description, 'new_order', order.id);
         }
       )
       .on(
@@ -50,20 +69,30 @@ export const useOrderNotifications = () => {
               'cancelled': '已取消'
             };
             
+            const title = "📋 訂單狀態更新";
+            const description = `訂單編號：${newOrder.order_number}\n狀態：${statusMap[oldOrder.order_status] || oldOrder.order_status} → ${statusMap[newOrder.order_status] || newOrder.order_status}`;
+            
             toast({
-              title: "📋 訂單狀態更新",
-              description: `訂單編號：${newOrder.order_number}\n狀態：${statusMap[oldOrder.order_status] || oldOrder.order_status} → ${statusMap[newOrder.order_status] || newOrder.order_status}`,
+              title,
+              description,
               duration: 8000,
             });
+
+            saveNotification(title, description, 'status_update', newOrder.id);
           }
           
           // 付款狀態改變時通知
           if (oldOrder.payment_status !== newOrder.payment_status && newOrder.payment_status === 'paid') {
+            const title = "💰 付款完成";
+            const description = `訂單編號：${newOrder.order_number}\n已收到款項：$${newOrder.paid_amount.toLocaleString()}`;
+            
             toast({
-              title: "💰 付款完成",
-              description: `訂單編號：${newOrder.order_number}\n已收到款項：$${newOrder.paid_amount.toLocaleString()}`,
+              title,
+              description,
               duration: 8000,
             });
+
+            saveNotification(title, description, 'payment', newOrder.id);
           }
         }
       )

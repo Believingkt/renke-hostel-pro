@@ -21,6 +21,7 @@ import Headquarters from "./pages/Headquarters";
 import Customers from "./pages/Customers";
 import OgImagePreview from "./pages/OgImagePreview";
 import PublicHolidays from "./pages/PublicHolidays";
+import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -56,6 +57,7 @@ function App() {
               <Route path="/admin/discount-codes" element={<KolDiscount />} />
               <Route path="/admin/user-roles" element={<UserRoles />} />
               <Route path="/admin/customers" element={<Customers />} />
+              <Route path="/admin/notifications" element={<Notifications />} />
               <Route path="/admin/public-holidays" element={<PublicHolidays />} />
               <Route path="/og-preview" element={<OgImagePreview />} />
               <Route path="*" element={<NotFound />} />
