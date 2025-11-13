@@ -264,19 +264,19 @@ const OrderSearch = () => {
             </div>
 
             {searchAttempted && !orderData && !isSearching && (
-              <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6 text-center">
+              <div className="bg-warning-light border border-warning/20 rounded-lg p-6 text-center">
                 <div className="flex flex-col items-center gap-3">
-                  <div className="rounded-full bg-yellow-100 dark:bg-yellow-900/30 p-3">
-                    <Search className="h-8 w-8 text-yellow-600 dark:text-yellow-500" />
+                  <div className="rounded-full bg-warning/10 p-3">
+                    <Search className="h-8 w-8 text-warning" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-yellow-900 dark:text-yellow-100 mb-2">
+                    <h3 className="text-lg font-semibold text-warning mb-2">
                       查無此訂單
                     </h3>
-                    <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-3">
+                    <p className="text-sm text-warning/80 mb-3">
                       請確認以下資訊是否正確：
                     </p>
-                    <ul className="text-sm text-yellow-700 dark:text-yellow-300 text-left space-y-1 max-w-md mx-auto">
+                    <ul className="text-sm text-warning/70 text-left space-y-1 max-w-md mx-auto">
                       <li>• 訂單編號是否輸入正確</li>
                       <li>• 手機號碼是否為訂房時填寫的號碼</li>
                       <li>• 訂單是否屬於此住宿業者</li>
@@ -448,7 +448,7 @@ const OrderSearch = () => {
                       </div>
                       <div className="flex justify-between text-sm">
                         <span>已付金額</span>
-                        <span className="font-medium text-green-600">NT$ {orderData.paid_amount.toLocaleString()}</span>
+                        <span className="font-medium text-success">NT$ {orderData.paid_amount.toLocaleString()}</span>
                       </div>
                       <Separator />
                       <div className="flex justify-between text-base font-semibold">
