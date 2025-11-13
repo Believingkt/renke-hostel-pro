@@ -35,6 +35,10 @@ const Orders = () => {
   const [paymentStatus, setPaymentStatus] = useState("");
   const [orderStatus, setOrderStatus] = useState("");
   const [searchKeyword, setSearchKeyword] = useState("");
+  
+  // 排序狀態
+  const [sortField, setSortField] = useState<keyof Order | "">("");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -143,12 +147,33 @@ const Orders = () => {
       );
     }
 
+    // 排序
+    if (sortField) {
+      filtered.sort((a, b) => {
+        let aValue = a[sortField];
+        let bValue = b[sortField];
+
+        // 處理特殊欄位
+        if (sortField === "order_date" || sortField === "check_in_date" || sortField === "check_out_date") {
+          aValue = new Date(aValue as string).getTime();
+          bValue = new Date(bValue as string).getTime();
+        }
+
+        if (aValue === null || aValue === undefined) return 1;
+        if (bValue === null || bValue === undefined) return -1;
+
+        if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+        if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+        return 0;
+      });
+    }
+
     setFilteredOrders(filtered);
   };
 
   useEffect(() => {
     applyFilters();
-  }, [orders, startDate, endDate, paymentStatus, orderStatus, searchKeyword, quickFilter]);
+  }, [orders, startDate, endDate, paymentStatus, orderStatus, searchKeyword, quickFilter, sortField, sortDirection]);
 
   // 快速篩選處理
   const handleQuickFilter = (filter: QuickFilterType) => {
@@ -171,6 +196,20 @@ const Orders = () => {
     setPaymentStatus("");
     setOrderStatus("");
     setSearchKeyword("");
+    setSortField("");
+    setSortDirection("desc");
+  };
+
+  // 處理排序
+  const handleSort = (field: keyof Order) => {
+    if (sortField === field) {
+      // 切換排序方向
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      // 新欄位，預設降序
+      setSortField(field);
+      setSortDirection("desc");
+    }
   };
 
   // 計算快速篩選的數量
@@ -307,10 +346,13 @@ const Orders = () => {
               />
 
               {/* 訂單表格 */}
-              <OrdersTable
-                orders={filteredOrders}
-                onEditOrder={handleEditOrder}
-              />
+                <OrdersTable 
+                  orders={filteredOrders} 
+                  onEditOrder={handleEditOrder}
+                  sortField={sortField}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
+                />
             </CardContent>
           </Card>
         </TabsContent>

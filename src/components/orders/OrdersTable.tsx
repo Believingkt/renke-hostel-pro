@@ -3,33 +3,48 @@ import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { Order } from "@/types/order";
 import { getPaymentStatusConfig, getOrderStatusConfig } from "@/utils/orderHelpers";
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 interface OrdersTableProps {
   orders: Order[];
   onEditOrder: (order: Order) => void;
+  sortField: keyof Order | "";
+  sortDirection: "asc" | "desc";
+  onSort: (field: keyof Order) => void;
 }
 
-export function OrdersTable({ orders, onEditOrder }: OrdersTableProps) {
+export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onSort }: OrdersTableProps) {
+  const getSortIcon = (field: keyof Order) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="w-4 h-4 ml-1 opacity-50" />;
+    }
+    return sortDirection === "asc" 
+      ? <ArrowUp className="w-4 h-4 ml-1" />
+      : <ArrowDown className="w-4 h-4 ml-1" />;
+  };
+
+  const SortableHeader = ({ field, children }: { field: keyof Order; children: React.ReactNode }) => (
+    <th 
+      className="px-4 py-3 text-left text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors select-none"
+      onClick={() => onSort(field)}
+    >
+      <div className="flex items-center">
+        {children}
+        {getSortIcon(field)}
+      </div>
+    </th>
+  );
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
         <thead>
           <tr className="border-b">
-            <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-              訂單編號
-            </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-              訂購時間
-            </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-              訂購人
-            </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-              入住日期
-            </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-              退房日期
-            </th>
+            <SortableHeader field="order_number">訂單編號</SortableHeader>
+            <SortableHeader field="order_date">訂購時間</SortableHeader>
+            <SortableHeader field="guest_name">訂購人</SortableHeader>
+            <SortableHeader field="check_in_date">入住日期</SortableHeader>
+            <SortableHeader field="check_out_date">退房日期</SortableHeader>
             <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
               訂單狀態
             </th>
