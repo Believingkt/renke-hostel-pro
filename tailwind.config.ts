@@ -98,11 +98,66 @@ export default {
           "4": "hsl(var(--chart-4))",
           "5": "hsl(var(--chart-5))",
         },
+        forest: {
+          deep: "hsl(var(--forest-deep))",
+          "deep-foreground": "hsl(var(--forest-deep-foreground))",
+          DEFAULT: "hsl(var(--forest))",
+          foreground: "hsl(var(--forest-foreground))",
+          light: "hsl(var(--forest-light))",
+          "light-foreground": "hsl(var(--forest-light-foreground))",
+        },
+        moss: {
+          DEFAULT: "hsl(var(--moss))",
+          foreground: "hsl(var(--moss-foreground))",
+        },
+        sage: {
+          DEFAULT: "hsl(var(--sage))",
+          foreground: "hsl(var(--sage-foreground))",
+        },
+        wood: {
+          DEFAULT: "hsl(var(--wood))",
+          foreground: "hsl(var(--wood-foreground))",
+          light: "hsl(var(--wood-light))",
+          "light-foreground": "hsl(var(--wood-light-foreground))",
+        },
+        earth: {
+          DEFAULT: "hsl(var(--earth))",
+          foreground: "hsl(var(--earth-foreground))",
+        },
+        stone: {
+          DEFAULT: "hsl(var(--stone))",
+          foreground: "hsl(var(--stone-foreground))",
+          light: "hsl(var(--stone-light))",
+          "light-foreground": "hsl(var(--stone-light-foreground))",
+        },
+        sunrise: {
+          DEFAULT: "hsl(var(--sunrise))",
+          foreground: "hsl(var(--sunrise-foreground))",
+        },
+        mist: {
+          DEFAULT: "hsl(var(--mist))",
+          foreground: "hsl(var(--mist-foreground))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      backgroundImage: {
+        "gradient-forest": "var(--gradient-forest)",
+        "gradient-earth": "var(--gradient-earth)",
+        "gradient-mountain": "var(--gradient-mountain)",
+        "gradient-sunrise": "var(--gradient-sunrise)",
+        "gradient-mist": "var(--gradient-mist)",
+      },
+      boxShadow: {
+        soft: "var(--shadow-soft)",
+        elevated: "var(--shadow-elevated)",
+        deep: "var(--shadow-deep)",
+        "glow-forest": "var(--glow-forest)",
+        "glow-warm": "var(--glow-warm)",
+        "glow-subtle": "var(--glow-subtle)",
       },
       keyframes: {
         "accordion-down": {
