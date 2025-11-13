@@ -22,22 +22,6 @@ import {
   Legend,
 } from "recharts";
 
-interface Order {
-  id: string;
-  order_number: string;
-  guest_name: string;
-  check_in_date: string;
-  check_out_date: string;
-  order_status: string;
-  payment_status: string;
-  final_price: number;
-  guest_count: number;
-  order_date: string;
-  room_types: {
-    name: string;
-  } | null;
-}
-
 const revenueData = [
   { month: "1月", "2025年": 45000, "2024年": 38000 },
   { month: "2月", "2025年": 52000, "2024年": 43000 },
@@ -86,7 +70,6 @@ const Dashboard = () => {
   // 圖表數據
   const [revenueData, setRevenueData] = useState<any[]>([]);
   const [bookingData, setBookingData] = useState<any[]>([]);
-  const [recentBookings, setRecentBookings] = useState<Order[]>([]);
 
   useEffect(() => {
     const getCachedSession = async () => {
@@ -198,9 +181,6 @@ const Dashboard = () => {
           
           setRevenueData(monthlyData.map(m => ({ month: m.month, "營收": m.revenue })));
           setBookingData(monthlyData.map(m => ({ month: m.month, "訂房數": m.bookings })));
-          
-          // 近期訂房（最近10筆）
-          setRecentBookings(ordersData.slice(0, 10));
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -211,27 +191,6 @@ const Dashboard = () => {
 
     fetchData();
   }, [accommodationId]);
-
-  const getStatusLabel = (status: string) => {
-    const statusMap: Record<string, string> = {
-      pending: "待確認",
-      confirmed: "已確認",
-      checked_in: "已入住",
-      checked_out: "已退房",
-      cancelled: "已取消",
-    };
-    return statusMap[status] || status;
-  };
-
-  const getPaymentStatusLabel = (status: string) => {
-    const statusMap: Record<string, string> = {
-      unpaid: "未付款",
-      deposit_paid: "已付訂金",
-      paid: "已付清",
-      overdue: "已逾期",
-    };
-    return statusMap[status] || status;
-  };
 
   if (loading) {
     return (
@@ -364,79 +323,6 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
-
-      <Card className="shadow-card mx-2 md:mx-0">
-        <CardHeader>
-          <CardTitle className="text-lg md:text-xl">近期訂房</CardTitle>
-        </CardHeader>
-        <CardContent className="px-0 md:px-6">
-          <div className="overflow-x-auto">
-            <div className="min-w-[640px]">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="px-3 md:px-4 py-3 text-left text-xs md:text-sm font-medium text-muted-foreground whitespace-nowrap">訂單編號</th>
-                    <th className="px-3 md:px-4 py-3 text-left text-xs md:text-sm font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">訂購時間</th>
-                    <th className="px-3 md:px-4 py-3 text-left text-xs md:text-sm font-medium text-muted-foreground whitespace-nowrap">訂購人</th>
-                    <th className="px-3 md:px-4 py-3 text-left text-xs md:text-sm font-medium text-muted-foreground whitespace-nowrap">入住日期</th>
-                    <th className="px-3 md:px-4 py-3 text-left text-xs md:text-sm font-medium text-muted-foreground whitespace-nowrap hidden sm:table-cell">退房日期</th>
-                    <th className="px-3 md:px-4 py-3 text-left text-xs md:text-sm font-medium text-muted-foreground whitespace-nowrap">付款狀態</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentBookings.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="py-12 text-center text-muted-foreground text-sm">
-                        暫無資料
-                      </td>
-                    </tr>
-                  ) : (
-                    recentBookings.map((booking) => (
-                      <tr key={booking.id} className="border-b transition-colors hover:bg-muted/50">
-                        <td className="px-3 md:px-4 py-3 text-xs md:text-sm font-medium">
-                          <Link 
-                            to={`/admin/orders/${booking.id}`}
-                            className="text-primary hover:underline whitespace-nowrap"
-                          >
-                            {booking.order_number}
-                          </Link>
-                        </td>
-                        <td className="px-3 md:px-4 py-3 text-xs md:text-sm whitespace-nowrap hidden md:table-cell">
-                          {format(new Date(booking.order_date), 'yyyy-MM-dd HH:mm')}
-                        </td>
-                        <td className="px-3 md:px-4 py-3 text-xs md:text-sm whitespace-nowrap">
-                          {booking.guest_name}
-                        </td>
-                        <td className="px-3 md:px-4 py-3 text-xs md:text-sm whitespace-nowrap">
-                          {format(new Date(booking.check_in_date), 'yyyy-MM-dd')}
-                        </td>
-                        <td className="px-3 md:px-4 py-3 text-xs md:text-sm whitespace-nowrap hidden sm:table-cell">
-                          {format(new Date(booking.check_out_date), 'yyyy-MM-dd')}
-                        </td>
-                        <td className="px-3 md:px-4 py-3 whitespace-nowrap">
-                          <span
-                            className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold whitespace-nowrap ${
-                              booking.payment_status === "paid"
-                                ? "bg-stat-green-light text-stat-green"
-                                : booking.payment_status === "deposit_paid"
-                                ? "bg-stat-blue-light text-stat-blue"
-                                : "bg-stat-coral-light text-stat-coral"
-                            }`}
-                          >
-                            {getPaymentStatusLabel(booking.payment_status)}
-                          </span>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      
     </div>
   );
 };
