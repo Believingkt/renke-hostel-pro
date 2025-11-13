@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubdomain } from "@/hooks/use-subdomain";
 import { Button } from "@/components/ui/button";
@@ -76,6 +76,7 @@ const COMMON_HOLIDAYS = [
 
 const PublicHolidays = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { accommodationId, isLoading: subdomainLoading } = useSubdomain();
   const [holidays, setHolidays] = useState<PublicHoliday[]>([]);
@@ -366,6 +367,26 @@ const PublicHolidays = () => {
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl space-y-6">
+      {/* 物件管理導航 */}
+      <Card>
+        <CardContent className="pt-6">
+          <Tabs value="public-holidays" onValueChange={(value) => {
+            if (value === "rooms") navigate("/admin/pricing?tab=rooms");
+            else if (value === "pricing") navigate("/admin/pricing?tab=basic");
+            else if (value === "facilities") navigate("/admin/pricing?tab=facilities");
+            else if (value === "inventory") navigate("/admin/pricing?tab=inventory");
+          }}>
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="rooms">房型管理</TabsTrigger>
+              <TabsTrigger value="pricing">價格管理</TabsTrigger>
+              <TabsTrigger value="facilities">客房設施</TabsTrigger>
+              <TabsTrigger value="inventory">庫存管理</TabsTrigger>
+              <TabsTrigger value="public-holidays">國定假日</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </CardContent>
+      </Card>
+
       {/* 統計卡片 */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
