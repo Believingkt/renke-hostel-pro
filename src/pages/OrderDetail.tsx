@@ -104,10 +104,10 @@ const OrderDetail = () => {
 
   const getPaymentStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; className: string }> = {
-      unpaid: { label: "未付款", className: "bg-red-100 text-red-700 border-red-200" },
-      deposit_paid: { label: "已付訂金", className: "bg-orange-100 text-orange-700 border-orange-200" },
-      paid: { label: "已付清", className: "bg-green-100 text-green-700 border-green-200" },
-      overdue: { label: "已逾期", className: "bg-red-100 text-red-700 border-red-200" },
+      unpaid: { label: "未付款", className: "bg-error-light text-error border-error/20" },
+      deposit_paid: { label: "已付訂金", className: "bg-warning-light text-warning border-warning/20" },
+      paid: { label: "已付清", className: "bg-success-light text-success border-success/20" },
+      overdue: { label: "已逾期", className: "bg-error-light text-error border-error/20" },
     };
     const config = statusMap[status] || { label: status, className: "bg-muted text-muted-foreground border-border" };
     return (
@@ -119,11 +119,11 @@ const OrderDetail = () => {
 
   const getOrderStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; className: string }> = {
-      pending: { label: "待確認", className: "bg-yellow-100 text-yellow-700 border-yellow-200" },
+      pending: { label: "待確認", className: "bg-warning-light text-warning border-warning/20" },
       confirmed: { label: "已確認", className: "bg-primary/10 text-primary border-primary/20" },
-      checked_in: { label: "已入住", className: "bg-purple-100 text-purple-700 border-purple-200" },
-      checked_out: { label: "已退房", className: "bg-gray-100 text-gray-700 border-gray-200" },
-      cancelled: { label: "已取消", className: "bg-red-100 text-red-700 border-red-200" },
+      checked_in: { label: "已入住", className: "bg-info-light text-info border-info/20" },
+      checked_out: { label: "已退房", className: "bg-muted text-muted-foreground border-border" },
+      cancelled: { label: "已取消", className: "bg-error-light text-error border-error/20" },
     };
     const config = statusMap[status] || { label: status, className: "bg-muted text-muted-foreground border-border" };
     return (

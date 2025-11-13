@@ -104,6 +104,27 @@ All colors MUST be HSL.
     --sidebar-border: 203 20% 92%;
     --sidebar-ring: 203 78% 43%;
 
+    /* Status colors */
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    --success-light: 142 71% 96%;
+    --success-dark: 142 71% 38%;
+    
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --warning-light: 38 92% 95%;
+    --warning-dark: 38 92% 40%;
+    
+    --error: 0 84% 60%;
+    --error-foreground: 0 0% 100%;
+    --error-light: 0 84% 96%;
+    --error-dark: 0 84% 50%;
+    
+    --info: 271 81% 56%;
+    --info-foreground: 0 0% 100%;
+    --info-light: 271 81% 96%;
+    --info-dark: 271 81% 48%;
+
     --stat-coral: 0 84% 60%;
     --stat-coral-light: 0 84% 95%;
     --stat-green: 203 78% 43%;
