@@ -182,13 +182,13 @@ export default function UserRoles() {
 
       <Card>
         <CardHeader>
-          <CardTitle>新增用戶</CardTitle>
+          <CardTitle className="text-lg md:text-xl">新增用戶</CardTitle>
           <CardDescription>
             為現有用戶新增此旅館的存取權限
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <Input
               placeholder="用戶 Email"
               value={newUserEmail}
@@ -196,7 +196,7 @@ export default function UserRoles() {
               className="flex-1"
             />
             <Select value={newUserRole} onValueChange={(value: "hotel_admin" | "staff") => setNewUserRole(value)}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -204,7 +204,7 @@ export default function UserRoles() {
                 <SelectItem value="staff">員工</SelectItem>
               </SelectContent>
             </Select>
-            <Button onClick={handleAddUser}>
+            <Button onClick={handleAddUser} className="w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
               新增
             </Button>
@@ -214,7 +214,7 @@ export default function UserRoles() {
 
       <Card>
         <CardHeader>
-          <CardTitle>現有用戶</CardTitle>
+          <CardTitle className="text-lg md:text-xl">現有用戶</CardTitle>
           <CardDescription>
             目前擁有此旅館存取權限的用戶
           </CardDescription>
@@ -229,48 +229,100 @@ export default function UserRoles() {
               目前沒有任何用戶
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>用戶 ID</TableHead>
-                  <TableHead>角色</TableHead>
-                  <TableHead>建立時間</TableHead>
-                  <TableHead className="text-right">操作</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Desktop table view */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>用戶 ID</TableHead>
+                      <TableHead>角色</TableHead>
+                      <TableHead>建立時間</TableHead>
+                      <TableHead className="text-right">操作</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {userRoles.map((userRole) => (
+                      <TableRow key={userRole.id}>
+                        <TableCell className="font-mono text-sm">{userRole.user_id}</TableCell>
+                        <TableCell>
+                          <Select
+                            value={userRole.role}
+                            onValueChange={(value) => handleUpdateRole(userRole.id, value as "super_admin" | "hotel_admin" | "staff")}
+                          >
+                            <SelectTrigger className="w-[180px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="super_admin">超級管理員</SelectItem>
+                              <SelectItem value="hotel_admin">旅館管理員</SelectItem>
+                              <SelectItem value="staff">員工</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>{new Date(userRole.created_at).toLocaleDateString('zh-TW')}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteRole(userRole.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile card view */}
+              <div className="md:hidden space-y-3">
                 {userRoles.map((userRole) => (
-                  <TableRow key={userRole.id}>
-                    <TableCell className="font-mono text-sm">{userRole.user_id}</TableCell>
-                    <TableCell>
-                      <Select
-                        value={userRole.role}
-                        onValueChange={(value) => handleUpdateRole(userRole.id, value as "super_admin" | "hotel_admin" | "staff")}
-                      >
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="super_admin">超級管理員</SelectItem>
-                          <SelectItem value="hotel_admin">旅館管理員</SelectItem>
-                          <SelectItem value="staff">員工</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>{new Date(userRole.created_at).toLocaleDateString('zh-TW')}</TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteRole(userRole.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+                  <Card key={userRole.id} className="shadow-sm">
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0 space-y-2">
+                          <div>
+                            <span className="text-xs text-muted-foreground">用戶 ID</span>
+                            <p className="font-mono text-sm truncate">{userRole.user_id}</p>
+                          </div>
+                          <div>
+                            <span className="text-xs text-muted-foreground">建立時間</span>
+                            <p className="text-sm">{new Date(userRole.created_at).toLocaleDateString('zh-TW')}</p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-9 w-9 flex-shrink-0"
+                          onClick={() => handleDeleteRole(userRole.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                      
+                      <div className="pt-2 border-t">
+                        <Label className="text-xs text-muted-foreground">角色</Label>
+                        <Select
+                          value={userRole.role}
+                          onValueChange={(value) => handleUpdateRole(userRole.id, value as "super_admin" | "hotel_admin" | "staff")}
+                        >
+                          <SelectTrigger className="w-full mt-1">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="super_admin">超級管理員</SelectItem>
+                            <SelectItem value="hotel_admin">旅館管理員</SelectItem>
+                            <SelectItem value="staff">員工</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </CardContent>
+                  </Card>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
