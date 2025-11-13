@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Mail } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -55,6 +55,7 @@ const OrderDetail = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<OrderDetail | null>(null);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   useEffect(() => {
     if (!orderId) return;
@@ -123,6 +124,67 @@ const OrderDetail = () => {
     return statusMap[status] || status;
   };
 
+  const handleResendConfirmation = async () => {
+    if (!order || !order.guest_email) {
+      toast({
+        title: "無法發送郵件",
+        description: "此訂單沒有電子郵件地址",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSendingEmail(true);
+    try {
+      const mealPlanDetailsForEmail = (order.meal_plan_details || []).map(detail => ({
+        date: format(new Date(detail.date), "MM/dd"),
+        count: detail.count,
+        price: detail.price
+      }));
+
+      const { error: emailError } = await supabase.functions.invoke(
+        "send-booking-confirmation",
+        {
+          body: {
+            guestName: order.guest_name,
+            guestEmail: order.guest_email,
+            orderNumber: order.order_number,
+            roomName: order.room_types?.name || "房型資訊不完整",
+            checkInDate: order.check_in_date,
+            checkOutDate: order.check_out_date,
+            guestCount: order.guest_count,
+            mealPlan: order.meal_plan || "2_meals",
+            finalPrice: order.final_price,
+            depositAmount: order.deposit_amount,
+            paymentMethod: order.payment_method || "未指定",
+            petCount: order.pet_count > 0 ? order.pet_count : undefined,
+            petPlanPrice: order.pet_plan_price > 0 ? order.pet_plan_price : undefined,
+            mealPlanDetails: mealPlanDetailsForEmail.length > 0 ? mealPlanDetailsForEmail : undefined,
+            mealPlanTotal: order.meal_plan_total > 0 ? order.meal_plan_total : undefined,
+          },
+        }
+      );
+
+      if (emailError) {
+        throw emailError;
+      }
+
+      toast({
+        title: "郵件發送成功",
+        description: `確認信已重新發送至 ${order.guest_email}`,
+      });
+    } catch (error) {
+      console.error("重發確認郵件失敗:", error);
+      toast({
+        title: "郵件發送失敗",
+        description: "無法發送確認郵件，請稍後再試",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -159,11 +221,23 @@ const OrderDetail = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/admin/orders")}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">訂單詳情</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/admin/orders")}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">訂單詳情</h1>
+        </div>
+        {order.guest_email && (
+          <Button 
+            variant="outline" 
+            onClick={handleResendConfirmation}
+            disabled={isSendingEmail}
+          >
+            <Mail className="h-4 w-4 mr-2" />
+            {isSendingEmail ? "發送中..." : "重發確認信"}
+          </Button>
+        )}
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
