@@ -455,7 +455,7 @@ const OrderSearch = () => {
                   <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4 text-sm text-blue-900 dark:text-blue-100">
                     <p className="font-medium mb-1">溫馨提醒</p>
                     <p className="text-blue-800 dark:text-blue-200">
-                      若需要取消訂單或修改訂房日期，請點擊下方按鈕，透過 LINE 聯絡我們。
+                      如需取消訂單或修改日期，請點擊下方按鈕與我們聯繫。
                     </p>
                   </div>
 
