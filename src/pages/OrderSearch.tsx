@@ -41,6 +41,7 @@ const OrderSearch = () => {
   const [phone, setPhone] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [orderData, setOrderData] = useState<OrderData | null>(null);
+  const [searchAttempted, setSearchAttempted] = useState(false);
 
   const getOrderStatusLabel = (status: string) => {
     const statusMap: Record<string, string> = {
@@ -88,6 +89,7 @@ const OrderSearch = () => {
 
     setIsSearching(true);
     setOrderData(null);
+    setSearchAttempted(true);
 
     try {
       const { data, error } = await supabase
@@ -215,6 +217,29 @@ const OrderSearch = () => {
                 )}
               </Button>
             </div>
+
+            {searchAttempted && !orderData && !isSearching && (
+              <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6 text-center">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="rounded-full bg-yellow-100 dark:bg-yellow-900/30 p-3">
+                    <Search className="h-8 w-8 text-yellow-600 dark:text-yellow-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-yellow-900 dark:text-yellow-100 mb-2">
+                      查無此訂單
+                    </h3>
+                    <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-3">
+                      請確認以下資訊是否正確：
+                    </p>
+                    <ul className="text-sm text-yellow-700 dark:text-yellow-300 text-left space-y-1 max-w-md mx-auto">
+                      <li>• 訂單編號是否輸入正確</li>
+                      <li>• 電話號碼是否為訂房時填寫的號碼</li>
+                      <li>• 訂單是否屬於此住宿業者</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {orderData && (
               <>
