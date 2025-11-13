@@ -213,6 +213,20 @@ const handler = async (req: Request): Promise<Response> => {
                 </ul>
               </div>
 
+              <div style="margin-top: 30px; padding: 25px; background: linear-gradient(135deg, #fff5f0 0%, #ffe8dc 100%); border-radius: 12px; border: 2px solid #ff6b35; text-align: center;">
+                <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: 700; color: #ff6b35;">📋 查詢訂單資訊</p>
+                <p style="margin: 0 0 20px 0; color: #666; font-size: 14px; line-height: 1.6;">
+                  您可以隨時透過以下連結查詢您的訂單狀態、付款記錄及住宿詳情
+                </p>
+                <a href="https://sensan.lovable.app/order-search?orderNumber=${orderNumber}" 
+                   style="display: inline-block; padding: 14px 40px; background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);">
+                  🔍 立即查詢訂單
+                </a>
+                <p style="margin: 15px 0 0 0; color: #999; font-size: 12px;">
+                  訂單編號：${orderNumber}
+                </p>
+              </div>
+
               <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #ff6b35;">
                 <p style="margin: 0 0 15px 0; font-weight: 600; color: #333;">如有任何疑問，歡迎透過下列方式與我們聯繫：</p>
                 <div style="color: #666; line-height: 1.8;">
