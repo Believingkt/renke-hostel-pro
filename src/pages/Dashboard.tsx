@@ -7,6 +7,7 @@ import { useSubdomain } from "@/hooks/use-subdomain";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { Link } from "react-router-dom";
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
+import { ErrorState } from "@/components/ErrorState";
 
 import {
   LineChart,
@@ -54,6 +55,7 @@ const bookingData = [
 const Dashboard = () => {
   const { accommodationId } = useSubdomain();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   // 統計數據
   const [totalRooms, setTotalRooms] = useState(0);
@@ -69,15 +71,13 @@ const Dashboard = () => {
   const [bookingData, setBookingData] = useState<any[]>([]);
   const [occupancyData, setOccupancyData] = useState<any[]>([]);
 
-  useEffect(() => {
-    if (!accommodationId) return;
-    
-    const fetchData = async () => {
-      try {
-        setLoading(true);
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
         
-        // 獲取房型總數
-        const { data: roomTypesData } = await supabase
+      // 獲取房型總數
+      const { data: roomTypesData } = await supabase
           .from("room_types")
           .select("id, name, room_count")
           .eq("accommodation_id", accommodationId);
@@ -215,16 +215,29 @@ const Dashboard = () => {
         }
       } catch (error) {
         console.error("Error fetching data:", error);
+        setError(error instanceof Error ? error.message : "載入數據時發生錯誤");
       } finally {
         setLoading(false);
       }
     };
 
+  useEffect(() => {
+    if (!accommodationId) return;
     fetchData();
   }, [accommodationId]);
 
   if (loading) {
     return <DashboardSkeleton />;
+  }
+
+  if (error) {
+    return (
+      <ErrorState
+        title="無法載入儀表板"
+        message={error}
+        onRetry={fetchData}
+      />
+    );
   }
 
   return (

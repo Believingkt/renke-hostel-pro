@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { EmptyState } from "@/components/EmptyState";
+import { ErrorState } from "@/components/ErrorState";
 import {
   Table,
   TableBody,
@@ -83,6 +84,7 @@ const PublicHolidays = () => {
   const { accommodationId, isLoading: subdomainLoading } = useSubdomain();
   const [holidays, setHolidays] = useState<PublicHoliday[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -113,6 +115,7 @@ const PublicHolidays = () => {
 
     try {
       setIsLoading(true);
+      setError(null);
       const { data, error } = await supabase
         .from("public_holidays")
         .select("*")
@@ -123,6 +126,7 @@ const PublicHolidays = () => {
       setHolidays(data || []);
     } catch (error) {
       console.error("Error loading holidays:", error);
+      setError(error instanceof Error ? error.message : "載入假日資料失敗");
       toast({
         title: "載入失敗",
         description: "無法載入國定假日資料",
@@ -372,6 +376,16 @@ const PublicHolidays = () => {
       <div className="space-y-6">
         <TableSkeleton rows={10} columns={4} showSearch={false} showFilters />
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <ErrorState
+        title="無法載入假日資料"
+        message={error}
+        onRetry={loadHolidays}
+      />
     );
   }
 

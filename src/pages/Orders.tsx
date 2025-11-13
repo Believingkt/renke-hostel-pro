@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/pagination";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { EmptyState } from "@/components/EmptyState";
+import { ErrorState } from "@/components/ErrorState";
 
 const Orders = () => {
   const [searchParams] = useSearchParams();
@@ -39,6 +40,7 @@ const Orders = () => {
   const { accommodationId } = useSubdomain();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   
@@ -81,6 +83,7 @@ const Orders = () => {
     
     try {
       setLoading(true);
+      setError(null);
       const { data, error } = await supabase
         .from("orders")
         .select(`
@@ -100,6 +103,7 @@ const Orders = () => {
       }
     } catch (error) {
       console.error("Error fetching orders:", error);
+      setError(error instanceof Error ? error.message : "載入訂單時發生錯誤");
     } finally {
       setLoading(false);
     }
@@ -338,6 +342,16 @@ const Orders = () => {
 
   if (loading) {
     return <TableSkeleton rows={20} columns={8} showSearch showFilters />;
+  }
+
+  if (error) {
+    return (
+      <ErrorState
+        title="無法載入訂單"
+        message={error}
+        onRetry={fetchOrders}
+      />
+    );
   }
 
   return (
