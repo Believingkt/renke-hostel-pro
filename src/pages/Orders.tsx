@@ -184,13 +184,37 @@ const Orders = () => {
 
     setIsSaving(true);
     try {
+      // 準備更新資料
+      const updateData: any = {
+        order_status: editForm.order_status,
+        payment_status: editForm.payment_status,
+        notes: editForm.notes || null,
+      };
+
+      // 如果訂單狀態改變，自動記錄時間戳
+      const now = new Date().toISOString();
+      const statusChanged = editingOrder.order_status !== editForm.order_status;
+      
+      if (statusChanged) {
+        switch (editForm.order_status) {
+          case "confirmed":
+            updateData.confirmed_at = now;
+            break;
+          case "checked_in":
+            updateData.checked_in_at = now;
+            break;
+          case "checked_out":
+            updateData.checked_out_at = now;
+            break;
+          case "cancelled":
+            updateData.cancelled_at = now;
+            break;
+        }
+      }
+
       const { error } = await supabase
         .from("orders")
-        .update({
-          order_status: editForm.order_status,
-          payment_status: editForm.payment_status,
-          notes: editForm.notes || null,
-        })
+        .update(updateData)
         .eq("id", editingOrder.id);
 
       if (error) throw error;
@@ -208,7 +232,9 @@ const Orders = () => {
 
       toast({
         title: "更新成功",
-        description: "訂單資訊已更新",
+        description: statusChanged 
+          ? "訂單狀態已更新，並已自動記錄時間" 
+          : "訂單資訊已更新",
       });
 
       setEditDialogOpen(false);
