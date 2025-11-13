@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Mountain, Sparkles, UserCog, Camera } from "lucide-react";
+import { Mountain, Sparkles, HeartHandshake, Camera } from "lucide-react";
 
 interface AboutSectionProps {
   description?: string;
@@ -19,7 +19,7 @@ const AboutSection = ({ description = "園區坐落於群山下，在砂紋蜿�
             {[
               { icon: Mountain, title: "山林環抱", desc: "坐落於群山之間，遠離喧囂，享受大自然的靜謐" },
               { icon: Sparkles, title: "日式美學", desc: "融合傳統日式設計與現代舒適，打造獨特住宿體驗" },
-              { icon: UserCog, title: "管家服務", desc: "客製化的管家服務，一天僅接待 1 組貴賓" },
+              { icon: HeartHandshake, title: "管家服務", desc: "客製化的管家服務，一天僅接待 1 組貴賓" },
               { icon: Camera, title: "寫真棚拍", desc: "森山寫照用專業攝影替您紀錄珍貴的親友相聚時光" },
             ].map((item, index) => (
               <Card key={index} className="hover:shadow-lg transition-all duration-300 border border-border/50 bg-card">
