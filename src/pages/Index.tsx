@@ -12,6 +12,7 @@ import LocationSection from "@/components/LocationSection";
 import FaqSection from "@/components/FaqSection";
 import ReviewsSection from "@/components/ReviewsSection";
 import Footer from "@/components/Footer";
+import { FrontendSkeleton } from "@/components/skeletons/FrontendSkeleton";
 
 interface AccommodationData {
   info: {
@@ -152,7 +153,7 @@ const Index = () => {
   };
 
   if (!data) {
-    return null;
+    return <FrontendSkeleton />;
   }
 
   return (
