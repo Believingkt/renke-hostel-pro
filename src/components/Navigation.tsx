@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu } from "lucide-react";
+import { Menu, Search } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import sensanLogo from "@/assets/sensan-logo-10.png";
@@ -45,6 +45,12 @@ const Navigation = ({ accommodationName = "森山寫照", onNavigate }: Navigati
           <button onClick={() => onNavigate("faq")} className="text-xs lg:text-sm hover:text-primary transition-colors whitespace-nowrap px-1 lg:px-2">
             常見問題
           </button>
+          <Link to="/order-search">
+            <Button variant="outline" className="text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4">
+              <Search className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2" />
+              查詢訂單
+            </Button>
+          </Link>
           <Link to="/booking">
             <Button className="bg-primary hover:bg-primary/90 text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4">
               立即預訂
@@ -101,8 +107,18 @@ const Navigation = ({ accommodationName = "森山寫照", onNavigate }: Navigati
                 </button>
               </nav>
               
-              {/* 底部訂房按鈕 */}
-              <div className="p-6">
+              {/* 底部按鈕 */}
+              <div className="p-6 space-y-3">
+                <Link to="/order-search" className="block">
+                  <Button 
+                    variant="outline"
+                    className="w-full h-12 text-base font-medium rounded-lg"
+                    onClick={() => setOpen(false)}
+                  >
+                    <Search className="h-4 w-4 mr-2" />
+                    查詢訂單
+                  </Button>
+                </Link>
                 <Link to="/booking" className="block">
                   <Button 
                     className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-12 text-base font-medium rounded-lg shadow-lg"

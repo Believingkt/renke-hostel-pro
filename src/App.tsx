@@ -6,6 +6,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ChangePassword from "./pages/ChangePassword";
 import BookingFlow from "./pages/BookingFlow";
+import OrderSearch from "./pages/OrderSearch";
 import Dashboard from "./pages/Dashboard";
 import Reception from "./pages/Reception";
 import WebsiteContent from "./pages/WebsiteContent";
@@ -40,6 +41,7 @@ function App() {
             <Route element={<ConditionalLayout />}>
               <Route path="/" element={<Index />} />
               <Route path="/booking" element={<BookingFlow />} />
+              <Route path="/order-search" element={<OrderSearch />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/change-password" element={<ChangePassword />} />
               <Route path="/hq" element={<Headquarters />} />
