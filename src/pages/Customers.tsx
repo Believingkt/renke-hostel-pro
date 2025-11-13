@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { z } from "zod";
+import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 
 // Validation schema for customer inputs
 const customerSchema = z.object({
@@ -224,7 +225,11 @@ const Customers = () => {
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      {isLoading ? (
+        <TableSkeleton rows={10} columns={7} showSearch showFilters={false} />
+      ) : (
+        <>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">顧客資料</h1>
         </div>
@@ -482,6 +487,8 @@ const Customers = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+        </>
+      )}
     </div>
   );
 };

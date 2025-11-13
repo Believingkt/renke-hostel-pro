@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import {
   Table,
   TableBody,
@@ -361,6 +362,14 @@ const PublicHolidays = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">載入中...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <TableSkeleton rows={10} columns={4} showSearch={false} showFilters />
       </div>
     );
   }

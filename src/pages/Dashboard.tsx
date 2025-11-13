@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSubdomain } from "@/hooks/use-subdomain";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { Link } from "react-router-dom";
+import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 
 import {
   LineChart,
@@ -223,14 +224,7 @@ const Dashboard = () => {
   }, [accommodationId]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-          <p className="text-sm text-muted-foreground">載入中...</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (
