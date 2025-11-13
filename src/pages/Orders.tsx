@@ -394,24 +394,24 @@ const Orders = () => {
               <div className="md:hidden">
                 <Sheet open={filterDrawerOpen} onOpenChange={setFilterDrawerOpen}>
                   <SheetTrigger asChild>
-                    <Button variant="outline" className="w-full">
-                      <Filter className="w-4 h-4 mr-2" />
-                      進階篩選
+                    <Button variant="outline" className="w-full h-12 touch-manipulation">
+                      <Filter className="w-5 h-5 mr-2" />
+                      <span className="text-base">進階篩選</span>
                       {(startDate || endDate || paymentStatus || orderStatus || searchKeyword) && (
-                        <span className="ml-2 bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">
+                        <span className="ml-2 bg-primary text-primary-foreground rounded-full px-2.5 py-1 text-xs font-medium">
                           已套用
                         </span>
                       )}
                     </Button>
                   </SheetTrigger>
                   <SheetContent side="bottom" className="h-[85vh] overflow-y-auto">
-                    <SheetHeader>
-                      <SheetTitle>進階篩選</SheetTitle>
-                      <SheetDescription>
+                    <SheetHeader className="pb-4">
+                      <SheetTitle className="text-lg">進階篩選</SheetTitle>
+                      <SheetDescription className="text-sm">
                         設定篩選條件來找到您要的訂單
                       </SheetDescription>
                     </SheetHeader>
-                    <div className="mt-6">
+                    <div className="mt-6 pb-6">
                       <OrderFilters
                         dateType={dateType}
                         startDate={startDate}
@@ -428,7 +428,7 @@ const Orders = () => {
                         onClear={clearAllFilters}
                       />
                       <Button 
-                        className="w-full mt-4" 
+                        className="w-full h-12 mt-6 text-base touch-manipulation" 
                         onClick={() => setFilterDrawerOpen(false)}
                       >
                         套用篩選
@@ -457,19 +457,19 @@ const Orders = () => {
 
                   {/* 分頁資訊和控制 */}
                   {filteredOrders.length > 0 && (
-                  <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="text-sm text-muted-foreground">
+                  <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="text-sm md:text-base text-muted-foreground order-2 sm:order-1">
                       顯示 {startIndex + 1}-{Math.min(endIndex, filteredOrders.length)} 筆，
                       共 {filteredOrders.length} 筆訂單
                     </div>
                     
                     {totalPages > 1 && (
-                      <Pagination>
-                        <PaginationContent>
+                      <Pagination className="order-1 sm:order-2">
+                        <PaginationContent className="gap-1">
                           <PaginationItem>
                             <PaginationPrevious 
                               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                              className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                              className={`h-10 min-w-[44px] touch-manipulation ${currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
                             />
                           </PaginationItem>
                           
@@ -484,12 +484,12 @@ const Orders = () => {
                               <PaginationItem key={page}>
                                 {/* 顯示省略號 */}
                                 {index > 0 && array[index - 1] !== page - 1 && (
-                                  <span className="px-2">...</span>
+                                  <span className="px-1 md:px-2 text-muted-foreground">...</span>
                                 )}
                                 <PaginationLink
                                   onClick={() => setCurrentPage(page)}
                                   isActive={currentPage === page}
-                                  className="cursor-pointer"
+                                  className="h-10 min-w-[44px] touch-manipulation cursor-pointer"
                                 >
                                   {page}
                                 </PaginationLink>
@@ -499,7 +499,7 @@ const Orders = () => {
                           <PaginationItem>
                             <PaginationNext 
                               onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                              className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                              className={`h-10 min-w-[44px] touch-manipulation ${currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
                             />
                           </PaginationItem>
                         </PaginationContent>

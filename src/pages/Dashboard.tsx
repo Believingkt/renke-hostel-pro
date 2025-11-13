@@ -277,12 +277,12 @@ const Dashboard = () => {
         />
       </div>
 
-      <div className="grid gap-3 md:gap-6 lg:grid-cols-2 px-2 md:px-0">
+      <div className="grid gap-4 md:gap-6 lg:grid-cols-2 px-2 md:px-0">
         <Card className="shadow-card hover:shadow-card-hover transition-base">
           <CardHeader className="pb-3">
             <CardTitle className="text-base md:text-lg lg:text-xl">營收統計</CardTitle>
           </CardHeader>
-          <CardContent className="px-1 md:px-6 pb-4">
+          <CardContent className="px-2 md:px-6 pb-4">
             <ResponsiveContainer width="100%" height={220}>
               <BarChart 
                 data={revenueData} 
@@ -303,18 +303,18 @@ const Dashboard = () => {
                 />
                 <Tooltip 
                   contentStyle={{ 
-                    fontSize: '13px',
+                    fontSize: '12px',
                     backgroundColor: 'hsl(var(--card))',
                     border: '1px solid hsl(var(--border))',
                     borderRadius: '8px',
-                    padding: '8px 12px'
+                    padding: '6px 10px'
                   }}
-                  labelStyle={{ fontSize: '13px', fontWeight: 600 }}
+                  labelStyle={{ fontSize: '12px', fontWeight: 600 }}
                   cursor={{ fill: 'hsl(var(--muted))', opacity: 0.2 }}
                 />
                 <Legend 
-                  wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
-                  iconSize={10}
+                  wrapperStyle={{ fontSize: '10px', paddingTop: '8px' }}
+                  iconSize={8}
                 />
                 <Bar 
                   dataKey="營收" 

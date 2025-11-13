@@ -86,25 +86,27 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
-      <div className="flex h-14 md:h-16 items-center justify-between px-4 md:px-6">
-        <div className="flex items-center gap-4">
-          <SidebarTrigger />
+      <div className="flex h-16 md:h-16 items-center justify-between px-4 md:px-6 gap-2">
+        <div className="flex items-center gap-2 md:gap-4">
+          <SidebarTrigger className="h-10 w-10" />
         </div>
         
-        <div className="flex items-center gap-2 md:gap-4">
-          <AccommodationSelector />
+        <div className="flex items-center gap-1 md:gap-3">
+          <div className="hidden sm:block">
+            <AccommodationSelector />
+          </div>
           
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 md:h-10 md:w-10 relative"
+            className="h-11 w-11 relative touch-manipulation"
             onClick={() => navigate('/admin/notifications')}
           >
-            <Bell className="h-5 w-5 md:h-6 md:w-6" />
+            <Bell className="h-5 w-5" />
             {unreadCount > 0 && (
               <Badge 
                 variant="destructive" 
-                className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px]"
               >
                 {unreadCount > 9 ? '9+' : unreadCount}
               </Badge>
@@ -113,14 +115,14 @@ export function Header() {
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-9 w-9 md:h-10 md:w-10">
-                <UserCircle className="h-5 w-5 md:h-6 md:w-6" />
+              <Button variant="ghost" size="icon" className="h-11 w-11 touch-manipulation">
+                <UserCircle className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer">
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer py-3">
                 <LogOut className="mr-2 h-4 w-4" />
-                登出
+                <span className="text-base">登出</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

@@ -102,6 +102,7 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                       <Button
                         variant="outline"
                         size="sm"
+                        className="h-9 touch-manipulation"
                         onClick={() => onEditOrder(order)}
                       >
                         編輯
@@ -187,8 +188,8 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                   {/* 編輯按鈕 */}
                   <Button
                     variant="outline"
-                    size="sm"
-                    className="w-full"
+                    size="default"
+                    className="w-full h-11 touch-manipulation"
                     onClick={() => onEditOrder(order)}
                   >
                     編輯訂單
