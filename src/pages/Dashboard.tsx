@@ -70,6 +70,7 @@ const Dashboard = () => {
   // 圖表數據
   const [revenueData, setRevenueData] = useState<any[]>([]);
   const [bookingData, setBookingData] = useState<any[]>([]);
+  const [occupancyData, setOccupancyData] = useState<any[]>([]);
 
   useEffect(() => {
     const getCachedSession = async () => {
@@ -92,7 +93,7 @@ const Dashboard = () => {
         // 獲取房型總數
         const { data: roomTypesData } = await supabase
           .from("room_types")
-          .select("room_count")
+          .select("id, name, room_count")
           .eq("accommodation_id", accommodationId);
         
         const totalRoomCount = roomTypesData?.reduce((sum, rt) => sum + (rt.room_count || 0), 0) || 0;
@@ -181,6 +182,50 @@ const Dashboard = () => {
           
           setRevenueData(monthlyData.map(m => ({ month: m.month, "營收": m.revenue })));
           setBookingData(monthlyData.map(m => ({ month: m.month, "訂房數": m.bookings })));
+          
+          // 計算房型入住率（過去30天）
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+          
+          const recentOrders = ordersData.filter(o => {
+            const orderDate = new Date(o.order_date);
+            return orderDate >= thirtyDaysAgo;
+          });
+          
+          // 按房型分組計算入住率
+          const occupancyByRoomType: { [key: string]: { totalNights: number, roomCount: number, roomTypeName: string } } = {};
+          
+          recentOrders.forEach(order => {
+            const checkIn = new Date(order.check_in_date);
+            const checkOut = new Date(order.check_out_date);
+            const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
+            
+            if (order.room_type_id) {
+              if (!occupancyByRoomType[order.room_type_id]) {
+                const roomType = roomTypesData?.find(rt => rt.id === order.room_type_id);
+                occupancyByRoomType[order.room_type_id] = {
+                  totalNights: 0,
+                  roomCount: roomType?.room_count || 0,
+                  roomTypeName: order.room_types?.name || '未知房型'
+                };
+              }
+              occupancyByRoomType[order.room_type_id].totalNights += nights;
+            }
+          });
+          
+          // 計算入住率百分比
+          const occupancyArray = Object.entries(occupancyByRoomType).map(([roomTypeId, data]) => {
+            const maxPossibleNights = data.roomCount * 30; // 30天
+            const occupancyRate = maxPossibleNights > 0 
+              ? ((data.totalNights / maxPossibleNights) * 100).toFixed(1)
+              : "0";
+            return {
+              roomType: data.roomTypeName,
+              入住率: parseFloat(occupancyRate)
+            };
+          }).sort((a, b) => b.入住率 - a.入住率);
+          
+          setOccupancyData(occupancyArray);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -319,6 +364,43 @@ const Dashboard = () => {
                   className="md:stroke-[3]"
                 />
               </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="px-2 md:px-0">
+        <Card className="shadow-card hover:shadow-card-hover transition-base">
+          <CardHeader>
+            <CardTitle className="text-lg md:text-xl">房型入住率（近30天）</CardTitle>
+          </CardHeader>
+          <CardContent className="px-2 md:px-6">
+            <ResponsiveContainer width="100%" height={250} className="md:h-[300px]">
+              <BarChart data={occupancyData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis 
+                  dataKey="roomType" 
+                  tick={{ fontSize: 11 }}
+                  className="md:text-xs"
+                />
+                <YAxis 
+                  tick={{ fontSize: 11 }}
+                  className="md:text-xs"
+                  width={40}
+                  domain={[0, 100]}
+                  label={{ value: '%', angle: -90, position: 'insideLeft', fontSize: 11 }}
+                />
+                <Tooltip 
+                  contentStyle={{ fontSize: '12px' }}
+                  labelStyle={{ fontSize: '12px' }}
+                  formatter={(value: number) => `${value}%`}
+                />
+                <Legend 
+                  wrapperStyle={{ fontSize: '12px' }}
+                  iconSize={12}
+                />
+                <Bar dataKey="入住率" fill="hsl(var(--chart-2))" radius={[8, 8, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
