@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { Calendar } from "lucide-react";
+import { Calendar, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubdomain } from "@/hooks/use-subdomain";
-import { format } from "date-fns";
+import { format, isToday, addDays } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
 interface Order {
@@ -51,6 +51,9 @@ const Orders = () => {
     notes: "",
   });
   const [isSaving, setIsSaving] = useState(false);
+  
+  // 快速篩選
+  const [quickFilter, setQuickFilter] = useState<string>("");
   
   // 篩選條件
   const [dateType, setDateType] = useState("check_in");
@@ -105,8 +108,36 @@ const Orders = () => {
   const applyFilters = () => {
     let filtered = [...orders];
 
-    // 日期篩選
-    if (startDate && endDate) {
+    // 快速篩選
+    const today = format(new Date(), "yyyy-MM-dd");
+    const next7Days = format(addDays(new Date(), 7), "yyyy-MM-dd");
+
+    if (quickFilter) {
+      switch (quickFilter) {
+        case "pending":
+          filtered = filtered.filter(order => order.order_status === "pending");
+          break;
+        case "today_checkin":
+          filtered = filtered.filter(order => order.check_in_date === today);
+          break;
+        case "today_checkout":
+          filtered = filtered.filter(order => order.check_out_date === today);
+          break;
+        case "unpaid":
+          filtered = filtered.filter(order => order.payment_status === "unpaid");
+          break;
+        case "upcoming":
+          filtered = filtered.filter(order => 
+            order.check_in_date >= today && 
+            order.check_in_date <= next7Days &&
+            order.order_status !== "cancelled"
+          );
+          break;
+      }
+    }
+
+    // 日期篩選（只在沒有快速篩選時套用）
+    if (!quickFilter && startDate && endDate) {
       filtered = filtered.filter(order => {
         const compareDate = dateType === "check_in" 
           ? order.check_in_date 
@@ -139,12 +170,52 @@ const Orders = () => {
 
   // 清除所有篩選條件
   const clearFilters = () => {
+    setQuickFilter("");
     setStartDate("");
     setEndDate("");
     setPaymentStatus("");
     setOrderStatus("");
     setSearchKeyword("");
     setFilteredOrders(orders);
+  };
+
+  // 快速篩選處理
+  const handleQuickFilter = (filter: string) => {
+    if (quickFilter === filter) {
+      setQuickFilter("");
+    } else {
+      setQuickFilter(filter);
+      // 清除其他篩選條件
+      setStartDate("");
+      setEndDate("");
+      setPaymentStatus("");
+      setOrderStatus("");
+    }
+  };
+
+  // 計算快速篩選的數量
+  const getQuickFilterCount = (filter: string) => {
+    const today = format(new Date(), "yyyy-MM-dd");
+    const next7Days = format(addDays(new Date(), 7), "yyyy-MM-dd");
+
+    switch (filter) {
+      case "pending":
+        return orders.filter(order => order.order_status === "pending").length;
+      case "today_checkin":
+        return orders.filter(order => order.check_in_date === today).length;
+      case "today_checkout":
+        return orders.filter(order => order.check_out_date === today).length;
+      case "unpaid":
+        return orders.filter(order => order.payment_status === "unpaid").length;
+      case "upcoming":
+        return orders.filter(order => 
+          order.check_in_date >= today && 
+          order.check_in_date <= next7Days &&
+          order.order_status !== "cancelled"
+        ).length;
+      default:
+        return 0;
+    }
   };
 
   const getPaymentStatusBadge = (status: string) => {
@@ -272,6 +343,94 @@ const Orders = () => {
         <TabsContent value="list">
           <Card>
             <CardContent className="pt-6 space-y-6">
+              {/* 快速篩選標籤 */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">快速篩選</Label>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant={quickFilter === "pending" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handleQuickFilter("pending")}
+                    className="gap-2"
+                  >
+                    待確認
+                    {getQuickFilterCount("pending") > 0 && (
+                      <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-xs">
+                        {getQuickFilterCount("pending")}
+                      </Badge>
+                    )}
+                  </Button>
+                  
+                  <Button
+                    variant={quickFilter === "today_checkin" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handleQuickFilter("today_checkin")}
+                    className="gap-2"
+                  >
+                    今日入住
+                    {getQuickFilterCount("today_checkin") > 0 && (
+                      <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-xs">
+                        {getQuickFilterCount("today_checkin")}
+                      </Badge>
+                    )}
+                  </Button>
+                  
+                  <Button
+                    variant={quickFilter === "today_checkout" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handleQuickFilter("today_checkout")}
+                    className="gap-2"
+                  >
+                    今日退房
+                    {getQuickFilterCount("today_checkout") > 0 && (
+                      <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-xs">
+                        {getQuickFilterCount("today_checkout")}
+                      </Badge>
+                    )}
+                  </Button>
+                  
+                  <Button
+                    variant={quickFilter === "unpaid" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handleQuickFilter("unpaid")}
+                    className="gap-2"
+                  >
+                    未付款
+                    {getQuickFilterCount("unpaid") > 0 && (
+                      <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-xs">
+                        {getQuickFilterCount("unpaid")}
+                      </Badge>
+                    )}
+                  </Button>
+                  
+                  <Button
+                    variant={quickFilter === "upcoming" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handleQuickFilter("upcoming")}
+                    className="gap-2"
+                  >
+                    即將到來 (7天內)
+                    {getQuickFilterCount("upcoming") > 0 && (
+                      <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-xs">
+                        {getQuickFilterCount("upcoming")}
+                      </Badge>
+                    )}
+                  </Button>
+
+                  {quickFilter && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setQuickFilter("")}
+                      className="gap-2"
+                    >
+                      <X className="h-4 w-4" />
+                      清除快速篩選
+                    </Button>
+                  )}
+                </div>
+              </div>
+
               {/* 篩選區域 */}
               <div className="grid grid-cols-12 gap-4">
                 {/* 日期區間 */}
