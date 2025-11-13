@@ -8,6 +8,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Header } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
+import { useOrderNotifications } from "@/hooks/use-order-notifications";
 
 export function ConditionalLayout() {
   const location = useLocation();
@@ -17,6 +18,11 @@ export function ConditionalLayout() {
   
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // 啟用訂單即時通知（僅在後台頁面）
+  if (isAdminPage && session) {
+    useOrderNotifications();
+  }
 
   useEffect(() => {
     if (isAdminPage) {
