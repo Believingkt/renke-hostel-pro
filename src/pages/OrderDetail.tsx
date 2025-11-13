@@ -229,58 +229,60 @@ const OrderDetail = () => {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/admin/orders")}>
-            <ArrowLeft className="h-5 w-5" />
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-center gap-2 md:gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/admin/orders")} className="h-9 w-9 md:h-10 md:w-10">
+            <ArrowLeft className="h-4 w-4 md:h-5 md:w-5" />
           </Button>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">訂單詳情</h1>
+          <h1 className="text-xl md:text-2xl lg:text-3xl font-bold tracking-tight">訂單詳情</h1>
         </div>
         {order.guest_email && (
           <Button 
             variant="outline" 
             onClick={handleResendConfirmation}
             disabled={isSendingEmail}
+            className="w-full sm:w-auto text-sm"
           >
             <Mail className="h-4 w-4 mr-2" />
-            {isSendingEmail ? "發送中..." : "重發確認信"}
+            <span className="hidden sm:inline">{isSendingEmail ? "發送中..." : "重發確認信"}</span>
+            <span className="sm:hidden">{isSendingEmail ? "發送中..." : "重發信件"}</span>
           </Button>
         )}
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
         {/* 訂單基本資訊 */}
         <Card>
-          <CardHeader>
-            <CardTitle>訂單資訊</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base md:text-lg">訂單資訊</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">訂單編號</span>
-              <span className="font-medium">{order.order_number}</span>
+          <CardContent className="space-y-3">
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">訂單編號</span>
+              <span className="font-medium text-sm md:text-base text-right break-all">{order.order_number}</span>
             </div>
             <Separator />
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">訂購日期</span>
-              <span className="font-medium">{format(new Date(order.order_date), "yyyy-MM-dd HH:mm")}</span>
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">訂購日期</span>
+              <span className="font-medium text-sm md:text-base text-right">{format(new Date(order.order_date), "yyyy-MM-dd HH:mm")}</span>
             </div>
             <Separator />
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">訂單狀態</span>
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">訂單狀態</span>
               {getOrderStatusBadge(order.order_status)}
             </div>
             <Separator />
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">付款狀態</span>
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">付款狀態</span>
               {getPaymentStatusBadge(order.payment_status)}
             </div>
             {order.payment_method && (
               <>
                 <Separator />
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">付款方式</span>
-                  <span className="font-medium">{order.payment_method}</span>
+                <div className="flex justify-between items-center gap-2">
+                  <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">付款方式</span>
+                  <span className="font-medium text-sm md:text-base">{order.payment_method}</span>
                 </div>
               </>
             )}
@@ -289,34 +291,34 @@ const OrderDetail = () => {
 
         {/* 訂購人資訊 */}
         <Card>
-          <CardHeader>
-            <CardTitle>訂購人資訊</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base md:text-lg">訂購人資訊</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">姓名</span>
-              <span className="font-medium">{order.guest_name}</span>
+          <CardContent className="space-y-3">
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">姓名</span>
+              <span className="font-medium text-sm md:text-base">{order.guest_name}</span>
             </div>
             <Separator />
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">電話</span>
-              <span className="font-medium">{order.guest_phone}</span>
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">電話</span>
+              <span className="font-medium text-sm md:text-base">{order.guest_phone}</span>
             </div>
             {order.guest_email && (
               <>
                 <Separator />
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Email</span>
-                  <span className="font-medium text-sm">{order.guest_email}</span>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-2">
+                  <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">Email</span>
+                  <span className="font-medium text-xs md:text-sm break-all sm:text-right">{order.guest_email}</span>
                 </div>
               </>
             )}
             {order.guest_address && (
               <>
                 <Separator />
-                <div className="flex justify-between items-start">
-                  <span className="text-sm text-muted-foreground">地址</span>
-                  <span className="font-medium text-sm text-right max-w-[60%]">{order.guest_address}</span>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 sm:gap-2">
+                  <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">地址</span>
+                  <span className="font-medium text-xs md:text-sm break-words sm:text-right sm:max-w-[60%]">{order.guest_address}</span>
                 </div>
               </>
             )}
@@ -325,47 +327,47 @@ const OrderDetail = () => {
 
         {/* 住宿資訊 */}
         <Card>
-          <CardHeader>
-            <CardTitle>住宿資訊</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base md:text-lg">住宿資訊</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">房型</span>
-              <span className="font-medium">{order.room_types?.name || "-"}</span>
+          <CardContent className="space-y-3">
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">房型</span>
+              <span className="font-medium text-sm md:text-base text-right">{order.room_types?.name || "-"}</span>
             </div>
             <Separator />
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">入住日期</span>
-              <span className="font-medium">{order.check_in_date}</span>
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">入住日期</span>
+              <span className="font-medium text-sm md:text-base">{order.check_in_date}</span>
             </div>
             <Separator />
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">退房日期</span>
-              <span className="font-medium">{order.check_out_date}</span>
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">退房日期</span>
+              <span className="font-medium text-sm md:text-base">{order.check_out_date}</span>
             </div>
             <Separator />
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">住宿天數</span>
-              <span className="font-medium">{nights} 晚</span>
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">住宿天數</span>
+              <span className="font-medium text-sm md:text-base">{nights} 晚</span>
             </div>
             <Separator />
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">入住人數</span>
-              <span className="font-medium">{order.guest_count} 人</span>
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">入住人數</span>
+              <span className="font-medium text-sm md:text-base">{order.guest_count} 人</span>
             </div>
             {order.meal_plan && (
               <>
                 <Separator />
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">餐食方案</span>
-                  <span className="font-medium">{order.meal_plan}</span>
+                <div className="flex justify-between items-center gap-2">
+                  <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">餐食方案</span>
+                  <span className="font-medium text-sm md:text-base text-right">{order.meal_plan}</span>
                 </div>
               </>
             )}
             <Separator />
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">房間分配</span>
-              <Badge variant={order.room_assigned ? "default" : "secondary"}>
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">房間分配</span>
+              <Badge variant={order.room_assigned ? "default" : "secondary"} className="text-xs">
                 {order.room_assigned ? "已分配" : "未分配"}
               </Badge>
             </div>
@@ -374,48 +376,48 @@ const OrderDetail = () => {
 
         {/* 價格資訊 */}
         <Card>
-          <CardHeader>
-            <CardTitle>價格明細</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base md:text-lg">價格明細</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">原始金額</span>
-              <span className="font-medium">NT$ {order.total_price.toLocaleString()}</span>
+          <CardContent className="space-y-3">
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">原始金額</span>
+              <span className="font-medium text-sm md:text-base">NT$ {order.total_price.toLocaleString()}</span>
             </div>
             {order.discount_amount > 0 && (
               <>
                 <Separator />
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">折扣金額</span>
-                  <span className="font-medium text-destructive">- NT$ {order.discount_amount.toLocaleString()}</span>
+                <div className="flex justify-between items-center gap-2">
+                  <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">折扣金額</span>
+                  <span className="font-medium text-sm md:text-base text-destructive">- NT$ {order.discount_amount.toLocaleString()}</span>
                 </div>
                 {order.discount_code && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">折扣碼</span>
-                    <Badge variant="outline">{order.discount_code}</Badge>
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">折扣碼</span>
+                    <Badge variant="outline" className="text-xs">{order.discount_code}</Badge>
                   </div>
                 )}
               </>
             )}
             <Separator />
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-semibold">最終金額</span>
-              <span className="font-bold text-lg">NT$ {order.final_price.toLocaleString()}</span>
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-xs md:text-sm font-semibold">最終金額</span>
+              <span className="font-bold text-base md:text-lg">NT$ {order.final_price.toLocaleString()}</span>
             </div>
             <Separator />
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">訂金金額</span>
-              <span className="font-medium">NT$ {order.deposit_amount.toLocaleString()}</span>
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">訂金金額</span>
+              <span className="font-medium text-sm md:text-base">NT$ {order.deposit_amount.toLocaleString()}</span>
             </div>
             <Separator />
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">已付金額</span>
-              <span className="font-medium text-primary">NT$ {order.paid_amount.toLocaleString()}</span>
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">已付金額</span>
+              <span className="font-medium text-sm md:text-base text-primary">NT$ {order.paid_amount.toLocaleString()}</span>
             </div>
             <Separator />
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">待付金額</span>
-              <span className="font-medium text-destructive">
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">待付金額</span>
+              <span className="font-medium text-sm md:text-base text-destructive">
                 NT$ {(order.final_price - order.paid_amount).toLocaleString()}
               </span>
             </div>
@@ -425,22 +427,22 @@ const OrderDetail = () => {
 
       {/* 加購方案 */}
       <Card>
-        <CardHeader>
-          <CardTitle>加購方案</CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base md:text-lg">加購方案</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3">
           {(order.pet_count > 0 || order.meal_plan_total > 0) ? (
             <>
               {order.pet_count > 0 && (
                 <>
                   <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">🐾 寵物方案</span>
-                      <Badge variant="outline">{order.pet_count} 隻 × {nights} 晚</Badge>
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="text-xs md:text-sm font-medium">🐾 寵物方案</span>
+                      <Badge variant="outline" className="text-xs">{order.pet_count} 隻 × {nights} 晚</Badge>
                     </div>
-                    <div className="flex justify-between items-center pl-4">
-                      <span className="text-sm text-muted-foreground">小計</span>
-                      <span className="font-medium">NT$ {order.pet_plan_price.toLocaleString()}</span>
+                    <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
+                      <span className="text-xs md:text-sm text-muted-foreground">小計</span>
+                      <span className="font-medium text-sm md:text-base">NT$ {order.pet_plan_price.toLocaleString()}</span>
                     </div>
                   </div>
                   {order.meal_plan_total > 0 && <Separator />}
@@ -449,38 +451,38 @@ const OrderDetail = () => {
               
               {order.meal_plan_total > 0 && order.meal_plan_details && order.meal_plan_details.length > 0 && (
                 <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">🍖 烤肉餐食方案</span>
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="text-xs md:text-sm font-medium">🍖 烤肉餐食方案</span>
                   </div>
-                  <div className="pl-4 space-y-2">
+                  <div className="pl-2 md:pl-4 space-y-2">
                     {order.meal_plan_details.map((detail, index) => (
-                      <div key={index} className="flex justify-between items-center text-sm">
-                        <span className="text-muted-foreground">
+                      <div key={index} className="flex justify-between items-center gap-2 text-xs md:text-sm">
+                        <span className="text-muted-foreground flex-shrink-0">
                           {format(new Date(detail.date), "yyyy/MM/dd")} - {detail.count} 份
                         </span>
                         <span className="font-medium">NT$ {detail.price.toLocaleString()}</span>
                       </div>
                     ))}
                     <Separator className="my-2" />
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">小計</span>
-                      <span className="font-medium">NT$ {order.meal_plan_total.toLocaleString()}</span>
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="text-xs md:text-sm text-muted-foreground">小計</span>
+                      <span className="font-medium text-sm md:text-base">NT$ {order.meal_plan_total.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
               )}
               
               <Separator />
-              <div className="flex justify-between items-center pt-2">
-                <span className="text-sm font-semibold">加購總計</span>
-                <span className="font-bold text-lg text-primary">
+              <div className="flex justify-between items-center gap-2 pt-2">
+                <span className="text-xs md:text-sm font-semibold">加購總計</span>
+                <span className="font-bold text-base md:text-lg text-primary">
                   NT$ {(order.pet_plan_price + order.meal_plan_total).toLocaleString()}
                 </span>
               </div>
             </>
           ) : (
-            <div className="text-center py-6">
-              <p className="text-sm text-muted-foreground">此訂單無加購方案</p>
+            <div className="text-center py-4 md:py-6">
+              <p className="text-xs md:text-sm text-muted-foreground">此訂單無加購方案</p>
             </div>
           )}
         </CardContent>
@@ -489,11 +491,11 @@ const OrderDetail = () => {
       {/* 備註 */}
       {order.notes && (
         <Card>
-          <CardHeader>
-            <CardTitle>訂單備註</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base md:text-lg">訂單備註</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm whitespace-pre-wrap">{order.notes}</p>
+            <p className="text-xs md:text-sm whitespace-pre-wrap break-words">{order.notes}</p>
           </CardContent>
         </Card>
       )}
