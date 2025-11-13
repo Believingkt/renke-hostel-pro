@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { Order } from "@/types/order";
 import { getPaymentStatusConfig, getOrderStatusConfig } from "@/utils/orderHelpers";
 import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign } from "lucide-react";
+import { OrderQuickPreview } from "./OrderQuickPreview";
 
 interface OrdersTableProps {
   orders: Order[];
@@ -74,12 +75,14 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                 return (
                   <tr key={order.id} className="border-b hover:bg-muted/50">
                     <td className="px-4 py-3 text-sm">
-                      <Link 
-                        to={`/admin/orders/${order.id}`}
-                        className="text-primary hover:underline font-medium"
-                      >
-                        {order.order_number}
-                      </Link>
+                      <OrderQuickPreview order={order}>
+                        <Link 
+                          to={`/admin/orders/${order.id}`}
+                          className="text-primary hover:underline font-medium"
+                        >
+                          {order.order_number}
+                        </Link>
+                      </OrderQuickPreview>
                     </td>
                     <td className="px-4 py-3 text-sm">{format(new Date(order.order_date), "yyyy-MM-dd HH:mm")}</td>
                     <td className="px-4 py-3 text-sm">{order.guest_name}</td>
