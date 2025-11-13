@@ -181,7 +181,7 @@ const OrderSearch = () => {
                 <Label htmlFor="orderNumber">訂單編號</Label>
                 <Input
                   id="orderNumber"
-                  placeholder="例如：ORD-20250113-XXXX"
+                  placeholder="請輸入訂房確認通知信提供的訂單編號"
                   value={orderNumber}
                   onChange={(e) => setOrderNumber(e.target.value)}
                   onKeyPress={handleKeyPress}
