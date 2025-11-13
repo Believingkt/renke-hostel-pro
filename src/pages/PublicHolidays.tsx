@@ -622,84 +622,137 @@ const PublicHolidays = () => {
             </>
           ) : (
             // 月曆檢視
-            <div className="space-y-4">
-              <div className="flex items-center justify-between px-2">
+            <div className="space-y-6">
+              {/* 月份導航 */}
+              <div className="flex items-center justify-between px-4">
                 <Button
                   variant="outline"
-                  size="sm"
                   onClick={() => setCalendarMonth(subMonths(calendarMonth, 1))}
+                  className="gap-2"
                 >
+                  <Calendar className="h-4 w-4" />
                   上個月
                 </Button>
-                <h3 className="text-lg font-semibold">
-                  {format(calendarMonth, "yyyy年MM月", { locale: zhTW })}
-                </h3>
+                <div className="text-center">
+                  <h3 className="text-2xl font-bold">
+                    {format(calendarMonth, "yyyy年MM月", { locale: zhTW })}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    共 {monthHolidays.length} 個假日
+                  </p>
+                </div>
                 <Button
                   variant="outline"
-                  size="sm"
                   onClick={() => setCalendarMonth(addMonths(calendarMonth, 1))}
+                  className="gap-2"
                 >
                   下個月
+                  <Calendar className="h-4 w-4" />
                 </Button>
               </div>
 
+              {/* 本月假日列表 */}
               {monthHolidays.length > 0 && (
-                <div className="flex flex-wrap gap-2 px-2">
-                  <span className="text-sm text-muted-foreground">本月假日：</span>
-                  {monthHolidays.map(holiday => (
-                    <Badge key={holiday.id} variant="secondary" className="cursor-pointer" onClick={() => {
-                      setSelectedHoliday(holiday);
-                      setEditHoliday({
-                        name: holiday.holiday_name,
-                        date: new Date(holiday.holiday_date),
-                      });
-                      setIsEditDialogOpen(true);
-                    }}>
-                      {holiday.holiday_name} ({format(new Date(holiday.holiday_date), "MM/dd")})
-                    </Badge>
-                  ))}
+                <div className="bg-primary/5 rounded-lg p-4 border border-primary/20">
+                  <p className="text-sm font-medium mb-3 flex items-center gap-2">
+                    <CalendarDays className="h-4 w-4 text-primary" />
+                    本月假日
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {monthHolidays.map(holiday => (
+                      <Badge 
+                        key={holiday.id} 
+                        variant="secondary" 
+                        className="cursor-pointer hover:bg-secondary/80 transition-colors px-3 py-1.5 text-sm"
+                        onClick={() => {
+                          setSelectedHoliday(holiday);
+                          setEditHoliday({
+                            name: holiday.holiday_name,
+                            date: new Date(holiday.holiday_date),
+                          });
+                          setIsEditDialogOpen(true);
+                        }}
+                      >
+                        <CalendarDays className="h-3 w-3 mr-1" />
+                        {holiday.holiday_name} ({format(new Date(holiday.holiday_date), "MM/dd")})
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
               )}
 
-              <div className="flex justify-center">
-                <CalendarComponent
-                  mode="single"
-                  month={calendarMonth}
-                  onMonthChange={setCalendarMonth}
-                  locale={zhTW}
-                  className="rounded-md border p-3 pointer-events-auto"
-                  modifiers={{
-                    holiday: (date) => !!getHolidayForDate(date),
-                  }}
-                  modifiersStyles={{
-                    holiday: {
-                      backgroundColor: 'hsl(var(--primary) / 0.1)',
-                      color: 'hsl(var(--primary))',
-                      fontWeight: 'bold',
-                      border: '2px solid hsl(var(--primary))',
-                    }
-                  }}
-                  onDayClick={handleCalendarDayClick}
-                  components={{
-                    DayContent: ({ date }) => {
-                      const holiday = getHolidayForDate(date);
-                      return (
-                        <div className="relative w-full h-full flex flex-col items-center justify-center">
-                          <span>{format(date, "d")}</span>
-                          {holiday && (
-                            <span className="absolute bottom-0 text-[8px] font-medium truncate max-w-full px-0.5">
-                              {holiday.holiday_name}
+              {/* 月曆主體 */}
+              <div className="overflow-x-auto">
+                <div className="min-w-[600px] max-w-4xl mx-auto">
+                  <CalendarComponent
+                    mode="single"
+                    month={calendarMonth}
+                    onMonthChange={setCalendarMonth}
+                    locale={zhTW}
+                    className="rounded-lg border-2 shadow-sm w-full"
+                    classNames={{
+                      months: "w-full",
+                      month: "w-full",
+                      caption: "hidden", // 隱藏預設標題，我們自己做了
+                      table: "w-full border-collapse",
+                      head_row: "flex w-full",
+                      head_cell: "text-muted-foreground rounded-md flex-1 font-semibold text-sm h-12 flex items-center justify-center bg-muted/50",
+                      row: "flex w-full mt-1",
+                      cell: "flex-1 relative p-0 text-center focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent",
+                      day: "h-20 w-full p-2 font-normal hover:bg-accent hover:text-accent-foreground rounded-md transition-colors cursor-pointer flex flex-col items-center justify-start gap-1",
+                      day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
+                      day_today: "bg-accent text-accent-foreground font-bold ring-2 ring-primary ring-offset-2",
+                      day_outside: "text-muted-foreground opacity-30",
+                      day_disabled: "text-muted-foreground opacity-50",
+                      day_hidden: "invisible",
+                    }}
+                    modifiers={{
+                      holiday: (date) => !!getHolidayForDate(date),
+                    }}
+                    modifiersClassNames={{
+                      holiday: "bg-primary/10 text-primary font-bold border-2 border-primary hover:bg-primary/20",
+                    }}
+                    onDayClick={handleCalendarDayClick}
+                    components={{
+                      DayContent: ({ date }) => {
+                        const holiday = getHolidayForDate(date);
+                        const isToday = isSameDay(date, new Date());
+                        return (
+                          <div className="w-full h-full flex flex-col items-center justify-start gap-1">
+                            <span className={cn("text-lg", isToday && "font-bold")}>
+                              {format(date, "d")}
                             </span>
-                          )}
-                        </div>
-                      );
-                    }
-                  }}
-                />
+                            {holiday && (
+                              <div className="w-full px-1">
+                                <div className="text-[10px] font-semibold truncate bg-primary/20 rounded px-1 py-0.5 leading-tight">
+                                  {holiday.holiday_name}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+                    }}
+                  />
+                </div>
               </div>
 
-              <div className="text-center text-sm text-muted-foreground px-2">
-                <p>點擊日期可新增或編輯假日</p>
+              {/* 說明文字 */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 bg-muted/30 rounded-lg border">
+                <div className="flex items-center gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded border-2 border-primary bg-primary/10" />
+                    <span className="text-muted-foreground">國定假日</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded ring-2 ring-primary bg-accent" />
+                    <span className="text-muted-foreground">今天</span>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground flex items-center gap-2">
+                  <Edit className="h-3.5 w-3.5" />
+                  點擊日期可新增或編輯假日
+                </p>
               </div>
             </div>
           )}
