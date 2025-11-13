@@ -290,19 +290,11 @@ const OrderSearch = () => {
               <>
                 <Separator />
                 <div className="space-y-6 pt-2">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold mb-1">訂單資訊</h3>
-                      <p className="text-sm text-muted-foreground">
-                        訂單編號：{orderData.order_number}
-                      </p>
-                    </div>
-                    <div className="flex flex-col gap-2 items-end">
-                      <Badge variant={getOrderStatusVariant(orderData.order_status)}>
-                        {getOrderStatusLabel(orderData.order_status)}
-                      </Badge>
-                      {getPaymentStatusBadge(orderData.payment_status)}
-                    </div>
+                  <div>
+                    <h3 className="text-lg font-semibold mb-1">訂單資訊</h3>
+                    <p className="text-sm text-muted-foreground">
+                      訂單編號：{orderData.order_number}
+                    </p>
                   </div>
 
                   {/* Order Status Timeline */}
