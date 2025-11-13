@@ -251,3 +251,31 @@ All colors MUST be HSL.
     margin-left: 0 !important;
   }
 }
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  
+  .min-h-screen {
+    min-height: auto !important;
+  }
+  
+  .bg-gradient-to-b {
+    background: white !important;
+  }
+  
+  .shadow-lg {
+    box-shadow: none !important;
+  }
+  
+  @page {
+    margin: 1cm;
+  }
+}

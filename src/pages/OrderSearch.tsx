@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Search, ArrowLeft, Calendar, Users, Phone, Mail, CreditCard, BanknoteIcon, CheckCircle2, Clock, Home, LogOut, MessageCircle } from "lucide-react";
+import { Search, ArrowLeft, Calendar, Users, Phone, Mail, CreditCard, BanknoteIcon, CheckCircle2, Clock, Home, LogOut, MessageCircle, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { zhTW } from "date-fns/locale";
@@ -187,6 +187,10 @@ const OrderSearch = () => {
     }
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   if (subdomainLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -201,14 +205,15 @@ const OrderSearch = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 py-8 px-4">
       <div className="max-w-2xl mx-auto">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/")}
-          className="mb-6"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          返回首頁
-        </Button>
+        <div className="no-print mb-6">
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/")}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            返回首頁
+          </Button>
+        </div>
 
         <Card className="shadow-lg">
           <CardHeader className="text-center">
@@ -221,7 +226,7 @@ const OrderSearch = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-4">
+            <div className="space-y-4 no-print">
               <div className="space-y-2">
                 <Label htmlFor="orderNumber">訂單編號</Label>
                 <Input
@@ -290,11 +295,22 @@ const OrderSearch = () => {
               <>
                 <Separator />
                 <div className="space-y-6 pt-2">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-1">訂單資訊</h3>
-                    <p className="text-sm text-muted-foreground">
-                      訂單編號：{orderData.order_number}
-                    </p>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold mb-1">訂單資訊</h3>
+                      <p className="text-sm text-muted-foreground">
+                        訂單編號：{orderData.order_number}
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handlePrint}
+                      className="no-print"
+                    >
+                      <Printer className="mr-2 h-4 w-4" />
+                      列印
+                    </Button>
                   </div>
 
                   {/* Order Status Timeline */}
@@ -452,14 +468,14 @@ const OrderSearch = () => {
                     </div>
                   </div>
 
-                  <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4 text-sm text-blue-900 dark:text-blue-100">
+                  <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4 text-sm text-blue-900 dark:text-blue-100 no-print">
                     <p className="font-medium mb-1">溫馨提醒</p>
                     <p className="text-blue-800 dark:text-blue-200">
                       如需取消訂單或修改日期，請點擊下方按鈕與我們聯繫。
                     </p>
                   </div>
 
-                  <div className="text-center pt-2">
+                  <div className="text-center pt-2 no-print">
                     <Button 
                       className="w-full"
                       onClick={() => window.open("https://line.me/R/ti/p/@042deypa", "_blank")}
