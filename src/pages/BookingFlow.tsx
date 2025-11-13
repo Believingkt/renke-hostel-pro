@@ -140,6 +140,8 @@ const BookingFlow = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCheckInDateOpen, setIsCheckInDateOpen] = useState(false);
   const [isCheckOutDateOpen, setIsCheckOutDateOpen] = useState(false);
+  const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [successOrderData, setSuccessOrderData] = useState<any>(null);
   
   // 加購方案
   const [petCount, setPetCount] = useState(0);
@@ -835,6 +837,7 @@ const BookingFlow = () => {
       console.log("訂單建立成功:", orderData);
 
       // 發送訂購確認郵件
+      let emailSent = false;
       if (guestInfo.email) {
         try {
           const mealPlanDetailsForEmail = mealPlanDetailsData.map(detail => ({
@@ -868,29 +871,28 @@ const BookingFlow = () => {
 
           if (emailError) {
             console.error("發送確認郵件失敗:", emailError);
-            // 不中斷流程，只記錄錯誤
+            emailSent = false;
           } else if (emailData?.warning) {
             console.warn("郵件發送警告:", emailData.warning);
-            // 有警告但不影響流程
+            emailSent = false;
           } else {
             console.log("確認郵件已發送至:", guestInfo.email);
+            emailSent = true;
           }
         } catch (emailError) {
           console.error("發送確認郵件時發生錯誤:", emailError);
-          // 不中斷流程
+          emailSent = false;
         }
       }
 
-      toast({
-        title: "訂房成功！",
-        description: guestInfo.email 
-          ? `訂單編號：${orderData.order_number}\n訂房確認信已發送至 ${guestInfo.email}`
-          : `訂單編號：${orderData.order_number}`,
+      // 設置成功狀態，顯示成功頁面
+      setSuccessOrderData({
+        ...orderData,
+        roomName: selectedRoom.name,
+        emailSent,
+        nights: calculateNights(),
       });
-
-      setTimeout(() => {
-        navigate("/");
-      }, 2000);
+      setBookingSuccess(true);
     } catch (error) {
       console.error("Error creating order:", error);
       toast({
@@ -952,53 +954,188 @@ const BookingFlow = () => {
         </div>
       </header>
 
-      {/* Progress Indicator */}
-      <div className="border-b bg-card">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between max-w-4xl mx-auto">
-            {stepIndicators.map((step, index) => {
-              const Icon = step.icon;
-              const isActive = index === currentStepIndex;
-              const isCompleted = index < currentStepIndex;
-              
-              return (
-                <div key={step.key} className="flex items-center flex-1">
-                  <div className="flex flex-col items-center flex-1">
-                    <div
-                      className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors ${
-                        isCompleted
-                          ? "bg-primary border-primary text-primary-foreground"
-                          : isActive
-                          ? "border-primary text-primary"
-                          : "border-muted text-muted-foreground"
-                      }`}
-                    >
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <span
-                      className={`mt-2 text-xs font-medium hidden sm:block ${
-                        isActive ? "text-primary" : "text-muted-foreground"
-                      }`}
-                    >
-                      {step.label}
-                    </span>
+      {bookingSuccess && successOrderData ? (
+        /* 訂房成功頁面 */
+        <div className="container mx-auto px-4 py-12">
+          <div className="max-w-2xl mx-auto">
+            <Card className="border-2 border-primary/20 shadow-lg">
+              <CardContent className="pt-12 pb-8 px-6 md:px-12">
+                {/* 成功圖示 */}
+                <div className="flex justify-center mb-6">
+                  <div className="rounded-full bg-primary/10 p-6">
+                    <CheckCircle className="h-16 w-16 text-primary" />
                   </div>
-                  {index < stepIndicators.length - 1 && (
-                    <div
-                      className={`h-0.5 flex-1 mx-2 transition-colors ${
-                        isCompleted ? "bg-primary" : "bg-muted"
-                      }`}
-                    />
-                  )}
                 </div>
-              );
-            })}
+
+                {/* 標題 */}
+                <h1 className="text-3xl font-bold text-center mb-2">訂房成功！</h1>
+                <p className="text-center text-muted-foreground mb-8">
+                  您的訂單已成功建立
+                </p>
+
+                <Separator className="mb-6" />
+
+                {/* 訂單編號 */}
+                <div className="bg-primary/5 rounded-lg p-6 mb-6">
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground mb-2">訂單編號</p>
+                    <p className="text-2xl font-bold text-primary">{successOrderData.order_number}</p>
+                  </div>
+                </div>
+
+                {/* 確認信狀態 */}
+                {successOrderData.guest_email && (
+                  <div className={`rounded-lg p-4 mb-6 ${
+                    successOrderData.emailSent 
+                      ? 'bg-primary/10 border border-primary/20' 
+                      : 'bg-muted border border-border'
+                  }`}>
+                    <div className="flex items-start gap-3">
+                      <Mail className={`h-5 w-5 mt-0.5 flex-shrink-0 ${
+                        successOrderData.emailSent ? 'text-primary' : 'text-muted-foreground'
+                      }`} />
+                      <div className="flex-1">
+                        <p className="font-medium mb-1">
+                          {successOrderData.emailSent ? '確認信已發送' : '確認信發送失敗'}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {successOrderData.emailSent 
+                            ? `訂房確認信已發送至 ${successOrderData.guest_email}` 
+                            : '郵件發送失敗，但您的訂單已成功建立。如有需要，請聯繫我們。'
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 訂單摘要 */}
+                <div className="space-y-4 mb-8">
+                  <h3 className="font-semibold text-lg">訂單摘要</h3>
+                  
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between items-center py-2 border-b">
+                      <span className="text-muted-foreground">房型</span>
+                      <span className="font-medium">{successOrderData.roomName}</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center py-2 border-b">
+                      <span className="text-muted-foreground">入住日期</span>
+                      <span className="font-medium">{successOrderData.check_in_date}</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center py-2 border-b">
+                      <span className="text-muted-foreground">退房日期</span>
+                      <span className="font-medium">{successOrderData.check_out_date}</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center py-2 border-b">
+                      <span className="text-muted-foreground">住宿天數</span>
+                      <span className="font-medium">{successOrderData.nights} 晚</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center py-2 border-b">
+                      <span className="text-muted-foreground">入住人數</span>
+                      <span className="font-medium">{successOrderData.guest_count} 人</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center py-3 bg-primary/5 px-4 rounded-lg mt-4">
+                      <span className="font-semibold">總金額</span>
+                      <span className="font-bold text-lg text-primary">
+                        NT$ {successOrderData.final_price?.toLocaleString()}
+                      </span>
+                    </div>
+                    
+                    {bookingSettings?.use_deposit && (
+                      <div className="flex justify-between items-center py-2 px-4 bg-muted/50 rounded-lg">
+                        <span className="text-muted-foreground">訂金金額</span>
+                        <span className="font-medium">
+                          NT$ {successOrderData.deposit_amount?.toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 提醒資訊 */}
+                <div className="bg-muted/50 rounded-lg p-4 mb-8">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    我們會在入住前與您聯繫確認相關細節。如有任何問題，請隨時與我們聯絡。
+                  </p>
+                </div>
+
+                {/* 操作按鈕 */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => navigate("/")}
+                  >
+                    返回首頁
+                  </Button>
+                  <Button 
+                    className="flex-1"
+                    onClick={() => {
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                      navigate("/");
+                    }}
+                  >
+                    查看更多房型
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
-      </div>
+      ) : (
+        <>
+          {/* Progress Indicator */}
+          <div className="border-b bg-card">
+            <div className="container mx-auto px-4 py-6">
+              <div className="flex items-center justify-between max-w-4xl mx-auto">
+                {stepIndicators.map((step, index) => {
+                  const Icon = step.icon;
+                  const isActive = index === currentStepIndex;
+                  const isCompleted = index < currentStepIndex;
+                  
+                  return (
+                    <div key={step.key} className="flex items-center flex-1">
+                      <div className="flex flex-col items-center flex-1">
+                        <div
+                          className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors ${
+                            isCompleted
+                              ? "bg-primary border-primary text-primary-foreground"
+                              : isActive
+                              ? "border-primary text-primary"
+                              : "border-muted text-muted-foreground"
+                          }`}
+                        >
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <span
+                          className={`mt-2 text-xs font-medium hidden sm:block ${
+                            isActive ? "text-primary" : "text-muted-foreground"
+                          }`}
+                        >
+                          {step.label}
+                        </span>
+                      </div>
+                      {index < stepIndicators.length - 1 && (
+                        <div
+                          className={`h-0.5 flex-1 mx-2 transition-colors ${
+                            isCompleted ? "bg-primary" : "bg-muted"
+                          }`}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
 
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-8">
+          {/* Main Content */}
+          <div className="container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-[2fr_1fr] gap-8">
           {/* Left: Form Content */}
           <div className="w-full">
@@ -2353,6 +2490,8 @@ const BookingFlow = () => {
           </div>
         </div>
       </div>
+      </>
+      )}
 
       {/* 圖片放大對話框 */}
       <Dialog open={isImageDialogOpen} onOpenChange={setIsImageDialogOpen}>
