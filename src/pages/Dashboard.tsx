@@ -3,8 +3,6 @@ import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info } from "lucide-react";
 import { useSubdomain } from "@/hooks/use-subdomain";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { Link } from "react-router-dom";
@@ -53,8 +51,6 @@ const bookingData = [
 ];
 
 const Dashboard = () => {
-  const [userId, setUserId] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
   const { accommodationId } = useSubdomain();
   const [loading, setLoading] = useState(true);
   
@@ -71,17 +67,6 @@ const Dashboard = () => {
   const [revenueData, setRevenueData] = useState<any[]>([]);
   const [bookingData, setBookingData] = useState<any[]>([]);
   const [occupancyData, setOccupancyData] = useState<any[]>([]);
-
-  useEffect(() => {
-    const getCachedSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUserId(session.user.id);
-        setUserEmail(session.user.email || null);
-      }
-    };
-    getCachedSession();
-  }, []);
 
   useEffect(() => {
     if (!accommodationId) return;
@@ -253,17 +238,6 @@ const Dashboard = () => {
       <div className="px-2 md:px-0">
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">營運分析</h1>
       </div>
-
-      {userId && (
-        <Alert className="mx-2 md:mx-0">
-          <Info className="h-4 w-4" />
-          <AlertTitle>您的用戶資訊</AlertTitle>
-          <AlertDescription className="mt-2 space-y-1">
-            <p className="text-sm"><strong>Email:</strong> {userEmail}</p>
-            <p className="text-sm font-mono break-all"><strong>User ID:</strong> {userId}</p>
-          </AlertDescription>
-        </Alert>
-      )}
 
       <div className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-4 px-2 md:px-0">
         <StatCard
