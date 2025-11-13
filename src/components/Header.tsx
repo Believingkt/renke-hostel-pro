@@ -25,14 +25,14 @@ export function Header() {
 
     const fetchUnreadCount = async () => {
       try {
-        const { data, error } = await (supabase as any)
+        const { count, error } = await (supabase as any)
           .from("notifications")
           .select("*", { count: 'exact', head: true })
           .eq("accommodation_id", accommodationId)
           .eq("is_read", false);
 
-        if (!error && data !== null) {
-          setUnreadCount(data.length || 0);
+        if (!error && count !== null) {
+          setUnreadCount(count);
         }
       } catch (error) {
         console.error("Error fetching unread count:", error);
