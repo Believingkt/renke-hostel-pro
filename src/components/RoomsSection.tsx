@@ -113,7 +113,7 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
 
   return (
     <div className="h-full">
-      <Card className="overflow-hidden hover:shadow-elevated transition-all duration-300 group border-sage/20 rounded-xl bg-card flex flex-col h-full hover:border-forest-light/40">
+      <Card className="overflow-hidden hover:shadow-xl transition-shadow group border rounded-xl bg-card flex flex-col h-full">
         <div className="aspect-[16/10] md:aspect-[4/3] overflow-hidden relative bg-muted flex-shrink-0">
           <Carousel 
             className="w-full h-full"
@@ -201,7 +201,7 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
                   {room.weekdayPricing.map((option, idx) => (
                     <div key={idx} className="flex justify-between items-center">
                       <span className="text-xs md:text-sm text-muted-foreground">{option.type}</span>
-                     <span className="font-semibold text-lg md:text-xl lg:text-xl text-forest">NT$ {option.price.toLocaleString()}</span>
+                      <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {option.price.toLocaleString()}</span>
                     </div>
                   ))}
                 </div>
@@ -214,7 +214,7 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
                   {room.weekendPricing.map((option, idx) => (
                     <div key={idx} className="flex justify-between items-center">
                       <span className="text-xs md:text-sm text-muted-foreground">{option.type}</span>
-                      <span className="font-semibold text-lg md:text-xl lg:text-xl text-forest">NT$ {option.price.toLocaleString()}</span>
+                      <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {option.price.toLocaleString()}</span>
                     </div>
                   ))}
                 </div>
@@ -222,7 +222,7 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
             )}
           </div>
           <Link to={`/booking?roomId=${room.id}&step=dates`}>
-            <Button className="w-full bg-gradient-forest hover:shadow-glow-forest text-white rounded-lg h-9 md:h-10 font-medium mt-3 md:mt-4 text-sm md:text-base transition-all">
+            <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg h-9 md:h-10 font-medium mt-3 md:mt-4 text-sm md:text-base">
               立即預訂
             </Button>
           </Link>
@@ -267,7 +267,7 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
   }));
 
   return (
-    <section id="rooms" className="py-12 md:py-16 lg:py-20 bg-gradient-to-b from-mist/30 to-background">
+    <section id="rooms" className="py-12 md:py-16 lg:py-20 bg-secondary/20">
       <div className="container mx-auto px-4 md:px-6">
         <div className="max-w-7xl mx-auto">
           <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-3 lg:mb-4">房型導覽</h2>

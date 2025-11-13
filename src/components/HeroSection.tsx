@@ -142,7 +142,7 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
                   height="1080"
                   sizes="100vw"
                 />
-                <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-forest-deep/40 to-black/60 flex items-center justify-center transition-all duration-700">
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center transition-all duration-700">
                   <div className="text-center text-white space-y-2 md:space-y-4 max-w-4xl px-4 pb-32 md:pb-56">
                     <h1 className="text-3xl md:text-7xl font-bold animate-fade-in drop-shadow-lg">
                       {accommodationName}
@@ -169,7 +169,7 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
                       height="1080"
                       sizes="100vw"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-forest-deep/40 to-black/60 transition-all duration-700 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/40 transition-all duration-700 flex items-center justify-center">
                       <div className="text-center text-white space-y-2 md:space-y-4 max-w-4xl px-4 pb-32 md:pb-56">
                         <h1 className="text-3xl md:text-7xl font-bold animate-fade-in drop-shadow-lg">
                           {accommodationName}
@@ -198,7 +198,7 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
                       height="1080"
                       sizes="100vw"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-forest-deep/40 to-black/60 transition-all duration-700 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/40 transition-all duration-700 flex items-center justify-center">
                       <div className="text-center text-white space-y-2 md:space-y-4 max-w-4xl px-4 pb-32 md:pb-56">
                         <h1 className="text-3xl md:text-7xl font-bold animate-fade-in drop-shadow-lg">
                           {accommodationName}
@@ -414,7 +414,7 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
 
               {/* 搜尋按鈕 */}
               <Link to="/booking" className="block">
-                <Button className="w-full bg-gradient-forest hover:shadow-glow-forest text-white text-sm md:text-base h-11 md:h-14 font-medium rounded-lg shadow-elevated hover:shadow-deep transition-all">
+                <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-sm md:text-base h-11 md:h-14 font-medium rounded-lg shadow-md hover:shadow-lg transition-all">
                   <Search className="mr-2 h-5 w-5" />
                   搜尋空房
                 </Button>

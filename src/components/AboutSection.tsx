@@ -7,7 +7,7 @@ interface AboutSectionProps {
 
 const AboutSection = ({ description = "園區坐落於群山下，在砂紋蜿蜒的庭園中，遇見一座靜心園林。以「一泊二食，全區獨享」的隱奢理念為起點，誠摯邀請您展開一場自然、舒眠與慢活的豪華露營體驗。" }: AboutSectionProps) => {
   return (
-    <section className="py-12 md:py-16 lg:py-20 bg-gradient-to-b from-stone-light/20 to-background">
+    <section className="py-12 md:py-16 lg:py-20 bg-background">
       <div className="container mx-auto px-4 md:px-6">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-3 lg:mb-4">自然中的秘境 X 宿泊空間</h2>
@@ -22,10 +22,10 @@ const AboutSection = ({ description = "園區坐落於群山下，在砂紋蜿�
               { icon: UserCheck, title: "管家服務", desc: "客製化的管家服務，一天僅接待 1 組貴賓" },
               { icon: Camera, title: "寫真棚拍", desc: "森山寫照用專業攝影替您紀錄珍貴的親友相聚時光" },
             ].map((item, index) => (
-              <Card key={index} className="hover:shadow-elevated transition-all duration-300 border-wood-light/30 bg-gradient-to-br from-card to-wood-light/5 hover:border-wood/40">
+              <Card key={index} className="hover:shadow-lg transition-all duration-300 border border-border/50 bg-card">
                 <CardContent className="p-5 md:p-6 lg:p-8 text-center">
-                  <div className="w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 mx-auto mb-3 md:mb-4 lg:mb-6 rounded-full bg-gradient-earth/10 flex items-center justify-center shadow-soft">
-                    <item.icon className="h-8 w-8 md:h-10 md:w-10 lg:h-12 lg:w-12 text-earth" strokeWidth={1.5} />
+                  <div className="w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 mx-auto mb-3 md:mb-4 lg:mb-6 rounded-full bg-primary/10 flex items-center justify-center">
+                    <item.icon className="h-8 w-8 md:h-10 md:w-10 lg:h-12 lg:w-12 text-primary" strokeWidth={1.5} />
                   </div>
                   <h3 className="font-semibold text-base md:text-lg lg:text-xl mb-2 md:mb-2 lg:mb-3 text-foreground">{item.title}</h3>
                   <p className="text-xs md:text-sm lg:text-base text-muted-foreground leading-relaxed">{item.desc}</p>
