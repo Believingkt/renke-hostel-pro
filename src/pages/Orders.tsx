@@ -1,40 +1,19 @@
 import { useState, useEffect } from "react";
-import { useSearchParams, Link } from "react-router-dom";
-import { Calendar, X, Home, DoorOpen, Clock, CreditCard, CalendarClock } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubdomain } from "@/hooks/use-subdomain";
-import { format, isToday, addDays } from "date-fns";
+import { format, addDays } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-
-interface Order {
-  id: string;
-  order_number: string;
-  guest_name: string;
-  check_in_date: string;
-  check_out_date: string;
-  order_status: string;
-  payment_status: string;
-  final_price: number;
-  paid_amount: number;
-  notes: string | null;
-  order_date: string;
-  room_types: {
-    name: string;
-  } | null;
-}
-
+import { Order, QuickFilterType } from "@/types/order";
+import { QuickFilters } from "@/components/orders/QuickFilters";
+import { OrderFilters } from "@/components/orders/OrderFilters";
+import { OrdersTable } from "@/components/orders/OrdersTable";
+import { EditOrderDialog } from "@/components/orders/EditOrderDialog";
 
 const Orders = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "list");
   const { accommodationId } = useSubdomain();
   const { toast } = useToast();
@@ -45,15 +24,9 @@ const Orders = () => {
   // 編輯對話框狀態
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
-  const [editForm, setEditForm] = useState({
-    order_status: "",
-    payment_status: "",
-    notes: "",
-  });
-  const [isSaving, setIsSaving] = useState(false);
   
   // 快速篩選
-  const [quickFilter, setQuickFilter] = useState<string>("");
+  const [quickFilter, setQuickFilter] = useState<QuickFilterType>("");
   
   // 篩選條件
   const [dateType, setDateType] = useState("check_in");
@@ -136,14 +109,18 @@ const Orders = () => {
       }
     }
 
-    // 日期篩選（只在沒有快速篩選時套用）
-    if (!quickFilter && startDate && endDate) {
-      filtered = filtered.filter(order => {
-        const compareDate = dateType === "check_in" 
-          ? order.check_in_date 
-          : format(new Date(order.order_date), "yyyy-MM-dd");
-        return compareDate >= startDate && compareDate <= endDate;
-      });
+    // 日期篩選
+    if (startDate && endDate) {
+      if (dateType === "check_in") {
+        filtered = filtered.filter(
+          order => order.check_in_date >= startDate && order.check_in_date <= endDate
+        );
+      } else if (dateType === "order") {
+        filtered = filtered.filter(
+          order => format(new Date(order.order_date), "yyyy-MM-dd") >= startDate &&
+                   format(new Date(order.order_date), "yyyy-MM-dd") <= endDate
+        );
+      }
     }
 
     // 付款狀態篩選
@@ -157,11 +134,12 @@ const Orders = () => {
     }
 
     // 關鍵字搜尋
-    if (searchKeyword.trim()) {
+    if (searchKeyword) {
       const keyword = searchKeyword.toLowerCase();
-      filtered = filtered.filter(order => 
+      filtered = filtered.filter(order =>
         order.order_number.toLowerCase().includes(keyword) ||
-        order.guest_name.toLowerCase().includes(keyword)
+        order.guest_name.toLowerCase().includes(keyword) ||
+        order.guest_phone.includes(keyword)
       );
     }
 
@@ -172,29 +150,27 @@ const Orders = () => {
     applyFilters();
   }, [orders, startDate, endDate, paymentStatus, orderStatus, searchKeyword, quickFilter]);
 
-  // 清除所有篩選條件
-  const clearFilters = () => {
+  // 快速篩選處理
+  const handleQuickFilter = (filter: QuickFilterType) => {
+    setQuickFilter(filter === quickFilter ? "" : filter);
+    // 清除其他篩選條件
+    if (filter !== quickFilter) {
+      setStartDate("");
+      setEndDate("");
+      setPaymentStatus("");
+      setOrderStatus("");
+      setSearchKeyword("");
+    }
+  };
+
+  // 清除所有篩選
+  const clearAllFilters = () => {
     setQuickFilter("");
     setStartDate("");
     setEndDate("");
     setPaymentStatus("");
     setOrderStatus("");
     setSearchKeyword("");
-    setFilteredOrders(orders);
-  };
-
-  // 快速篩選處理
-  const handleQuickFilter = (filter: string) => {
-    if (quickFilter === filter) {
-      setQuickFilter("");
-    } else {
-      setQuickFilter(filter);
-      // 清除其他篩選條件
-      setStartDate("");
-      setEndDate("");
-      setPaymentStatus("");
-      setOrderStatus("");
-    }
   };
 
   // 計算快速篩選的數量
@@ -222,76 +198,28 @@ const Orders = () => {
     }
   };
 
-  const getPaymentStatusBadge = (status: string) => {
-    const statusMap: Record<string, { label: string; className: string }> = {
-      unpaid: { label: "未付款", className: "bg-red-100 text-red-700 border-red-200" },
-      deposit_paid: { label: "已付訂金", className: "bg-orange-100 text-orange-700 border-orange-200" },
-      paid: { label: "已付清", className: "bg-green-100 text-green-700 border-green-200" },
-      overdue: { label: "已逾期", className: "bg-red-100 text-red-700 border-red-200" },
-    };
-    const config = statusMap[status] || { label: status, className: "bg-muted text-muted-foreground border-border" };
-    return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${config.className}`}>
-        {config.label}
-      </span>
-    );
-  };
-
-  const getOrderStatusBadge = (status: string) => {
-    const statusMap: Record<string, { label: string; className: string }> = {
-      pending: { label: "待確認", className: "bg-yellow-100 text-yellow-700 border-yellow-200" },
-      confirmed: { label: "已確認", className: "bg-blue-100 text-blue-700 border-blue-200" },
-      checked_in: { label: "已入住", className: "bg-purple-100 text-purple-700 border-purple-200" },
-      checked_out: { label: "已退房", className: "bg-gray-100 text-gray-700 border-gray-200" },
-      cancelled: { label: "已取消", className: "bg-red-100 text-red-700 border-red-200" },
-    };
-    const config = statusMap[status] || { label: status, className: "bg-muted text-muted-foreground border-border" };
-    return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${config.className}`}>
-        {config.label}
-      </span>
-    );
-  };
-
-  const getOrderStatusLabel = (status: string) => {
-    const statusMap: Record<string, string> = {
-      pending: "待確認",
-      confirmed: "已確認",
-      checked_in: "已入住",
-      checked_out: "已退房",
-      cancelled: "已取消",
-    };
-    return statusMap[status] || status;
-  };
-
   const handleEditOrder = (order: Order) => {
     setEditingOrder(order);
-    setEditForm({
-      order_status: order.order_status,
-      payment_status: order.payment_status,
-      notes: order.notes || "",
-    });
     setEditDialogOpen(true);
   };
 
-  const handleSaveEdit = async () => {
+  const handleSaveEdit = async (form: { order_status: string; payment_status: string; notes: string }) => {
     if (!editingOrder) return;
 
-    setIsSaving(true);
     try {
       // 準備更新資料
       const updateData: any = {
-        order_status: editForm.order_status,
-        payment_status: editForm.payment_status,
-        notes: editForm.notes || null,
+        order_status: form.order_status,
+        payment_status: form.payment_status,
+        notes: form.notes || null,
       };
 
       // 如果訂單狀態改變，自動記錄時間戳
       const now = new Date().toISOString();
-      const statusChanged = editingOrder.order_status !== editForm.order_status;
+      const statusChanged = editingOrder.order_status !== form.order_status;
       
       if (statusChanged) {
-        switch (editForm.order_status) {
+        switch (form.order_status) {
           case "confirmed":
             updateData.confirmed_at = now;
             break;
@@ -314,35 +242,22 @@ const Orders = () => {
 
       if (error) throw error;
 
-      // 更新本地狀態
-      const updatedOrders = orders.map(order =>
-        order.id === editingOrder.id
-          ? { ...order, ...editForm }
-          : order
-      );
-      setOrders(updatedOrders);
-      setFilteredOrders(updatedOrders.filter(order => 
-        filteredOrders.find(fo => fo.id === order.id)
-      ));
+      // 重新載入訂單
+      await fetchOrders();
 
       toast({
         title: "更新成功",
-        description: statusChanged 
-          ? "訂單狀態已更新，並已自動記錄時間" 
-          : "訂單資訊已更新",
+        description: "訂單資訊已更新",
       });
 
       setEditDialogOpen(false);
-      setEditingOrder(null);
     } catch (error) {
       console.error("Error updating order:", error);
       toast({
         title: "更新失敗",
-        description: "無法更新訂單，請稍後再試",
+        description: "無法更新訂單資訊",
         variant: "destructive",
       });
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -368,464 +283,46 @@ const Orders = () => {
           <Card>
             <CardContent className="pt-6 space-y-6">
               {/* 快速篩選標籤 */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label className="text-base font-semibold">快速篩選</Label>
-                  {quickFilter && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setQuickFilter("")}
-                      className="gap-2 text-muted-foreground hover:text-foreground"
-                    >
-                      <X className="h-4 w-4" />
-                      清除篩選
-                    </Button>
-                  )}
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                  {/* 今日入住 */}
-                  <button
-                    onClick={() => handleQuickFilter("today_checkin")}
-                    className={`relative group flex flex-col items-start p-4 rounded-xl border-2 transition-all duration-300 ${
-                      quickFilter === "today_checkin"
-                        ? "border-blue-500 bg-blue-50 shadow-lg scale-[1.02]"
-                        : "border-border bg-card hover:border-blue-300 hover:shadow-md"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between w-full mb-3">
-                      <div className={`p-2.5 rounded-lg transition-colors ${
-                        quickFilter === "today_checkin"
-                          ? "bg-blue-500"
-                          : "bg-blue-100 group-hover:bg-blue-200"
-                      }`}>
-                        <Home className={`h-5 w-5 ${
-                          quickFilter === "today_checkin" ? "text-white" : "text-blue-600"
-                        }`} />
-                      </div>
-                      {getQuickFilterCount("today_checkin") > 0 && (
-                        <span className={`text-2xl font-bold transition-colors ${
-                          quickFilter === "today_checkin" ? "text-blue-600" : "text-muted-foreground"
-                        }`}>
-                          {getQuickFilterCount("today_checkin")}
-                        </span>
-                      )}
-                    </div>
-                    <span className={`text-sm font-medium transition-colors ${
-                      quickFilter === "today_checkin" ? "text-blue-700" : "text-foreground"
-                    }`}>
-                      今日入住
-                    </span>
-                  </button>
-
-                  {/* 今日退房 */}
-                  <button
-                    onClick={() => handleQuickFilter("today_checkout")}
-                    className={`relative group flex flex-col items-start p-4 rounded-xl border-2 transition-all duration-300 ${
-                      quickFilter === "today_checkout"
-                        ? "border-purple-500 bg-purple-50 shadow-lg scale-[1.02]"
-                        : "border-border bg-card hover:border-purple-300 hover:shadow-md"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between w-full mb-3">
-                      <div className={`p-2.5 rounded-lg transition-colors ${
-                        quickFilter === "today_checkout"
-                          ? "bg-purple-500"
-                          : "bg-purple-100 group-hover:bg-purple-200"
-                      }`}>
-                        <DoorOpen className={`h-5 w-5 ${
-                          quickFilter === "today_checkout" ? "text-white" : "text-purple-600"
-                        }`} />
-                      </div>
-                      {getQuickFilterCount("today_checkout") > 0 && (
-                        <span className={`text-2xl font-bold transition-colors ${
-                          quickFilter === "today_checkout" ? "text-purple-600" : "text-muted-foreground"
-                        }`}>
-                          {getQuickFilterCount("today_checkout")}
-                        </span>
-                      )}
-                    </div>
-                    <span className={`text-sm font-medium transition-colors ${
-                      quickFilter === "today_checkout" ? "text-purple-700" : "text-foreground"
-                    }`}>
-                      今日退房
-                    </span>
-                  </button>
-
-                  {/* 待確認 */}
-                  <button
-                    onClick={() => handleQuickFilter("pending")}
-                    className={`relative group flex flex-col items-start p-4 rounded-xl border-2 transition-all duration-300 ${
-                      quickFilter === "pending"
-                        ? "border-orange-500 bg-orange-50 shadow-lg scale-[1.02]"
-                        : "border-border bg-card hover:border-orange-300 hover:shadow-md"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between w-full mb-3">
-                      <div className={`p-2.5 rounded-lg transition-colors ${
-                        quickFilter === "pending"
-                          ? "bg-orange-500"
-                          : "bg-orange-100 group-hover:bg-orange-200"
-                      }`}>
-                        <Clock className={`h-5 w-5 ${
-                          quickFilter === "pending" ? "text-white" : "text-orange-600"
-                        }`} />
-                      </div>
-                      {getQuickFilterCount("pending") > 0 && (
-                        <span className={`text-2xl font-bold transition-colors ${
-                          quickFilter === "pending" ? "text-orange-600" : "text-muted-foreground"
-                        }`}>
-                          {getQuickFilterCount("pending")}
-                        </span>
-                      )}
-                    </div>
-                    <span className={`text-sm font-medium transition-colors ${
-                      quickFilter === "pending" ? "text-orange-700" : "text-foreground"
-                    }`}>
-                      待確認
-                    </span>
-                  </button>
-
-                  {/* 未付款 */}
-                  <button
-                    onClick={() => handleQuickFilter("unpaid")}
-                    className={`relative group flex flex-col items-start p-4 rounded-xl border-2 transition-all duration-300 ${
-                      quickFilter === "unpaid"
-                        ? "border-red-500 bg-red-50 shadow-lg scale-[1.02]"
-                        : "border-border bg-card hover:border-red-300 hover:shadow-md"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between w-full mb-3">
-                      <div className={`p-2.5 rounded-lg transition-colors ${
-                        quickFilter === "unpaid"
-                          ? "bg-red-500"
-                          : "bg-red-100 group-hover:bg-red-200"
-                      }`}>
-                        <CreditCard className={`h-5 w-5 ${
-                          quickFilter === "unpaid" ? "text-white" : "text-red-600"
-                        }`} />
-                      </div>
-                      {getQuickFilterCount("unpaid") > 0 && (
-                        <span className={`text-2xl font-bold transition-colors ${
-                          quickFilter === "unpaid" ? "text-red-600" : "text-muted-foreground"
-                        }`}>
-                          {getQuickFilterCount("unpaid")}
-                        </span>
-                      )}
-                    </div>
-                    <span className={`text-sm font-medium transition-colors ${
-                      quickFilter === "unpaid" ? "text-red-700" : "text-foreground"
-                    }`}>
-                      未付款
-                    </span>
-                  </button>
-
-                  {/* 即將到來 */}
-                  <button
-                    onClick={() => handleQuickFilter("upcoming")}
-                    className={`relative group flex flex-col items-start p-4 rounded-xl border-2 transition-all duration-300 ${
-                      quickFilter === "upcoming"
-                        ? "border-green-500 bg-green-50 shadow-lg scale-[1.02]"
-                        : "border-border bg-card hover:border-green-300 hover:shadow-md"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between w-full mb-3">
-                      <div className={`p-2.5 rounded-lg transition-colors ${
-                        quickFilter === "upcoming"
-                          ? "bg-green-500"
-                          : "bg-green-100 group-hover:bg-green-200"
-                      }`}>
-                        <CalendarClock className={`h-5 w-5 ${
-                          quickFilter === "upcoming" ? "text-white" : "text-green-600"
-                        }`} />
-                      </div>
-                      {getQuickFilterCount("upcoming") > 0 && (
-                        <span className={`text-2xl font-bold transition-colors ${
-                          quickFilter === "upcoming" ? "text-green-600" : "text-muted-foreground"
-                        }`}>
-                          {getQuickFilterCount("upcoming")}
-                        </span>
-                      )}
-                    </div>
-                    <span className={`text-sm font-medium transition-colors ${
-                      quickFilter === "upcoming" ? "text-green-700" : "text-foreground"
-                    }`}>
-                      即將到來
-                    </span>
-                  </button>
-                </div>
-              </div>
+              <QuickFilters
+                quickFilter={quickFilter}
+                onFilterChange={handleQuickFilter}
+                getFilterCount={getQuickFilterCount}
+              />
 
               {/* 篩選區域 */}
-              <div className="grid grid-cols-12 gap-4">
-                {/* 日期區間 */}
-                <div className="col-span-6">
-                  <Label className="text-sm mb-2 block">日期區間</Label>
-                  <div className="flex items-center gap-2">
-                    <select 
-                      className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      value={dateType}
-                      onChange={(e) => setDateType(e.target.value)}
-                    >
-                      <option value="check_in">入住日期</option>
-                      <option value="order">訂購日期</option>
-                    </select>
-                    <Button variant="ghost" size="icon" className="h-10 w-10">
-                      <Calendar className="h-4 w-4" />
-                    </Button>
-                    <Input
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      className="h-10"
-                    />
-                    <span className="text-muted-foreground">-</span>
-                    <Input
-                      type="date"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      className="h-10"
-                    />
-                  </div>
-                </div>
-
-                {/* 付款狀態 */}
-                <div className="col-span-2">
-                  <Label className="text-sm mb-2 block">付款狀態</Label>
-                  <select 
-                    className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    value={paymentStatus}
-                    onChange={(e) => setPaymentStatus(e.target.value)}
-                  >
-                    <option value="">(全部)</option>
-                    <option value="unpaid">未付款</option>
-                    <option value="deposit_paid">已付訂金</option>
-                    <option value="paid">已付清</option>
-                    <option value="overdue">已逾期</option>
-                  </select>
-                </div>
-
-                {/* 訂單狀態 */}
-                <div className="col-span-2">
-                  <Label className="text-sm mb-2 block">訂單狀態</Label>
-                  <select 
-                    className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    value={orderStatus}
-                    onChange={(e) => setOrderStatus(e.target.value)}
-                  >
-                    <option value="">(全部)</option>
-                    <option value="pending">待確認</option>
-                    <option value="confirmed">已確認</option>
-                    <option value="checked_in">已入住</option>
-                    <option value="checked_out">已退房</option>
-                    <option value="cancelled">已取消</option>
-                  </select>
-                </div>
-
-                {/* 搜尋按鈕 */}
-                <div className="col-span-2 flex items-end">
-                  <Button 
-                    className="w-full h-10 bg-orange-600 hover:bg-orange-700"
-                    onClick={applyFilters}
-                  >
-                    搜尋
-                  </Button>
-                </div>
-              </div>
-
-              {/* 搜尋欄 */}
-              <div className="grid grid-cols-12 gap-4">
-                <div className="col-span-8">
-                  <Label className="text-sm mb-2 block">關鍵字</Label>
-                  <div className="relative">
-                    <Input
-                      className="h-10 pr-20"
-                      placeholder="請輸入訂單編號或訂購人名稱"
-                      value={searchKeyword}
-                      onChange={(e) => setSearchKeyword(e.target.value)}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          applyFilters();
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
-                <div className="col-span-2 flex items-end">
-                  <Button 
-                    variant="outline"
-                    className="w-full h-10"
-                    onClick={clearFilters}
-                  >
-                    清除
-                  </Button>
-                </div>
-                <div className="col-span-2 flex items-end">
-                  <Button 
-                    className="w-full h-10 bg-orange-600 hover:bg-orange-700"
-                    onClick={applyFilters}
-                  >
-                    搜尋
-                  </Button>
-                </div>
-              </div>
+              <OrderFilters
+                dateType={dateType}
+                startDate={startDate}
+                endDate={endDate}
+                paymentStatus={paymentStatus}
+                orderStatus={orderStatus}
+                searchKeyword={searchKeyword}
+                onDateTypeChange={setDateType}
+                onStartDateChange={setStartDate}
+                onEndDateChange={setEndDate}
+                onPaymentStatusChange={setPaymentStatus}
+                onOrderStatusChange={setOrderStatus}
+                onSearchKeywordChange={setSearchKeyword}
+                onClear={clearAllFilters}
+              />
 
               {/* 訂單表格 */}
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                        訂單編號
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                        訂購時間
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                        訂購人
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                        入住日期
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                        退房日期
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                        訂單狀態
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                        付款狀態
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                        操作
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredOrders.length === 0 ? (
-                      <tr>
-                        <td colSpan={8} className="py-12 text-center text-muted-foreground">
-                          暫無資料
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredOrders.map((order) => (
-                        <tr key={order.id} className="border-b hover:bg-muted/50">
-                          <td className="px-4 py-3 text-sm">
-                            <Link 
-                              to={`/admin/orders/${order.id}`}
-                              className="text-primary hover:underline font-medium"
-                            >
-                              {order.order_number}
-                            </Link>
-                          </td>
-                          <td className="px-4 py-3 text-sm">{format(new Date(order.order_date), "yyyy-MM-dd HH:mm")}</td>
-                          <td className="px-4 py-3 text-sm">{order.guest_name}</td>
-                          <td className="px-4 py-3 text-sm">{order.check_in_date}</td>
-                          <td className="px-4 py-3 text-sm">{order.check_out_date}</td>
-                          <td className="px-4 py-3 text-sm">{getOrderStatusBadge(order.order_status)}</td>
-                          <td className="px-4 py-3 text-sm">{getPaymentStatusBadge(order.payment_status)}</td>
-                          <td className="px-4 py-3 text-sm">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEditOrder(order)}
-                            >
-                              編輯
-                            </Button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              <OrdersTable
+                orders={filteredOrders}
+                onEditOrder={handleEditOrder}
+              />
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
 
       {/* 編輯訂單對話框 */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>編輯訂單</DialogTitle>
-          </DialogHeader>
-          {editingOrder && (
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>訂單編號</Label>
-                <Input value={editingOrder.order_number} disabled />
-              </div>
-              <div className="space-y-2">
-                <Label>訂購人</Label>
-                <Input value={editingOrder.guest_name} disabled />
-              </div>
-              <div className="space-y-2">
-                <Label>訂單狀態</Label>
-                <Select
-                  value={editForm.order_status}
-                  onValueChange={(value) => setEditForm({ ...editForm, order_status: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">待確認</SelectItem>
-                    <SelectItem value="confirmed">已確認</SelectItem>
-                    <SelectItem value="checked_in">已入住</SelectItem>
-                    <SelectItem value="checked_out">已退房</SelectItem>
-                    <SelectItem value="cancelled">已取消</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>付款狀態</Label>
-                <Select
-                  value={editForm.payment_status}
-                  onValueChange={(value) => setEditForm({ ...editForm, payment_status: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="unpaid">未付款</SelectItem>
-                    <SelectItem value="deposit_paid">已付訂金</SelectItem>
-                    <SelectItem value="paid">已付清</SelectItem>
-                    <SelectItem value="overdue">已逾期</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>訂單備註</Label>
-                <Textarea
-                  value={editForm.notes}
-                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
-                  placeholder="輸入訂單備註..."
-                  rows={4}
-                />
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setEditDialogOpen(false)}
-              disabled={isSaving}
-            >
-              取消
-            </Button>
-            <Button
-              onClick={handleSaveEdit}
-              disabled={isSaving}
-            >
-              {isSaving ? "儲存中..." : "儲存"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      
+      <EditOrderDialog
+        open={editDialogOpen}
+        order={editingOrder}
+        onOpenChange={setEditDialogOpen}
+        onSave={handleSaveEdit}
+      />
     </div>
   );
 };
