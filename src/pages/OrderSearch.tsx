@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Search, ArrowLeft, Calendar, Users, Phone, Mail, CreditCard, BanknoteIcon } from "lucide-react";
+import { Search, ArrowLeft, Calendar, Users, Phone, Mail, CreditCard, BanknoteIcon, CheckCircle2, Clock, Home, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { zhTW } from "date-fns/locale";
@@ -74,6 +74,26 @@ const OrderSearch = () => {
     };
     const config = statusConfig[status] || { label: status, variant: "outline" };
     return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
+
+  const getOrderStatusSteps = (currentStatus: string) => {
+    const steps = [
+      { status: "pending", label: "訂單建立", icon: Clock, description: "等待確認" },
+      { status: "confirmed", label: "訂單確認", icon: CheckCircle2, description: "已確認訂單" },
+      { status: "checked_in", label: "已入住", icon: Home, description: "已辦理入住" },
+      { status: "checked_out", label: "已退房", icon: LogOut, description: "完成住宿" },
+    ];
+
+    const statusOrder = ["pending", "confirmed", "checked_in", "checked_out"];
+    const currentIndex = statusOrder.indexOf(currentStatus);
+    const isCancelled = currentStatus === "cancelled";
+
+    return steps.map((step, index) => ({
+      ...step,
+      isCompleted: !isCancelled && index <= currentIndex,
+      isActive: !isCancelled && index === currentIndex,
+      isCancelled,
+    }));
   };
 
   const handleSearch = async () => {
@@ -258,6 +278,62 @@ const OrderSearch = () => {
                       </Badge>
                       {getPaymentStatusBadge(orderData.payment_status)}
                     </div>
+                  </div>
+
+                  {/* Order Status Timeline */}
+                  <div className="bg-muted/30 rounded-lg p-6">
+                    <h4 className="font-semibold mb-4 text-center">訂單狀態追蹤</h4>
+                    {orderData.order_status === "cancelled" ? (
+                      <div className="text-center py-4">
+                        <div className="inline-flex items-center gap-2 text-destructive">
+                          <div className="rounded-full bg-destructive/10 p-3">
+                            <Search className="h-6 w-6" />
+                          </div>
+                        </div>
+                        <p className="font-medium text-destructive mt-3">訂單已取消</p>
+                        <p className="text-sm text-muted-foreground mt-1">此訂單已被取消</p>
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        {/* Timeline line */}
+                        <div className="absolute top-6 left-0 right-0 h-0.5 bg-border hidden md:block" />
+                        <div className="absolute top-6 left-0 h-0.5 bg-primary hidden md:block transition-all duration-500" 
+                          style={{ 
+                            width: `${(getOrderStatusSteps(orderData.order_status).filter(s => s.isCompleted).length - 1) / 3 * 100}%` 
+                          }} 
+                        />
+                        
+                        {/* Steps */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-2 relative">
+                          {getOrderStatusSteps(orderData.order_status).map((step, index) => {
+                            const Icon = step.icon;
+                            return (
+                              <div key={step.status} className="flex flex-col items-center text-center">
+                                <div className={`
+                                  relative rounded-full p-3 mb-2 transition-all duration-300
+                                  ${step.isCompleted 
+                                    ? 'bg-primary text-primary-foreground shadow-lg' 
+                                    : 'bg-muted text-muted-foreground'
+                                  }
+                                  ${step.isActive ? 'ring-4 ring-primary/20 scale-110' : ''}
+                                `}>
+                                  <Icon className="h-5 w-5" />
+                                </div>
+                                <p className={`
+                                  text-sm font-medium mb-1
+                                  ${step.isCompleted ? 'text-foreground' : 'text-muted-foreground'}
+                                `}>
+                                  {step.label}
+                                </p>
+                                <p className="text-xs text-muted-foreground hidden md:block">
+                                  {step.description}
+                                </p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
