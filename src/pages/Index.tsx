@@ -13,6 +13,8 @@ import FaqSection from "@/components/FaqSection";
 import ReviewsSection from "@/components/ReviewsSection";
 import Footer from "@/components/Footer";
 import { FrontendSkeleton } from "@/components/skeletons/FrontendSkeleton";
+import { StructuredData } from "@/components/StructuredData";
+import { SEOHead } from "@/components/SEOHead";
 
 interface AccommodationData {
   info: {
@@ -158,6 +160,32 @@ const Index = () => {
 
   return (
     <div className="min-h-screen">
+      {/* SEO Meta 標籤 */}
+      <SEOHead
+        title={`${data.info.name} - 山林中的日式豪華住宿體驗`}
+        description={data.info.description || "體驗山林中的寧靜時光，融合日式美學與自然的完美住宿空間。提供一泊二食、管家服務，打造專屬的度假體驗。"}
+        keywords={[
+          data.info.name,
+          "豪華露營",
+          "日式民宿",
+          "山林住宿",
+          "一泊二食",
+          "管家服務",
+          "度假",
+          "寫真拍攝",
+          data.info.address.includes("南投") ? "南投住宿" : "台灣住宿",
+          data.info.address.includes("南投") ? "南投民宿" : "民宿"
+        ]}
+      />
+      
+      {/* 結構化資料 */}
+      <StructuredData
+        accommodationInfo={data.info}
+        roomTypes={data.roomTypes}
+        averageRating={4.8}
+        reviewCount={4}
+      />
+
       <Navigation 
         accommodationName={data.info.name}
         onNavigate={scrollToSection} 
