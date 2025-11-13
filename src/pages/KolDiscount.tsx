@@ -310,7 +310,7 @@ const KolDiscount = () => {
                                 className="h-8 w-8"
                                 onClick={() => handleSaveLimit(item.id)}
                               >
-                                <Check className="h-4 w-4 text-green-600" />
+                                <Check className="h-4 w-4 text-success" />
                               </Button>
                               <Button
                                 variant="ghost"
@@ -412,7 +412,7 @@ const KolDiscount = () => {
                                   className="h-8 w-8"
                                   onClick={() => handleSaveLimit(item.id)}
                                 >
-                                  <Check className="h-4 w-4 text-green-600" />
+                                  <Check className="h-4 w-4 text-success" />
                                 </Button>
                                 <Button
                                   variant="ghost"
