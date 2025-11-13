@@ -458,9 +458,9 @@ const OrderSearch = () => {
                     </div>
                   </div>
 
-                  <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4 text-sm text-blue-900 dark:text-blue-100">
-                    <p className="font-medium mb-1">溫馨提醒</p>
-                    <p className="text-blue-800 dark:text-blue-200">
+                  <div className="bg-primary/5 dark:bg-primary/10 rounded-lg p-4 text-sm">
+                    <p className="font-medium mb-1 text-primary">溫馨提醒</p>
+                    <p className="text-primary/80">
                       如需取消訂單或修改日期，請點擊下方按鈕與我們聯繫。
                     </p>
                   </div>

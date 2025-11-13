@@ -120,7 +120,7 @@ const OrderDetail = () => {
   const getOrderStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; className: string }> = {
       pending: { label: "待確認", className: "bg-yellow-100 text-yellow-700 border-yellow-200" },
-      confirmed: { label: "已確認", className: "bg-blue-100 text-blue-700 border-blue-200" },
+      confirmed: { label: "已確認", className: "bg-primary/10 text-primary border-primary/20" },
       checked_in: { label: "已入住", className: "bg-purple-100 text-purple-700 border-purple-200" },
       checked_out: { label: "已退房", className: "bg-gray-100 text-gray-700 border-gray-200" },
       cancelled: { label: "已取消", className: "bg-red-100 text-red-700 border-red-200" },

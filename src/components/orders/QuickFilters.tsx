@@ -38,30 +38,30 @@ export function QuickFilters({ quickFilter, onFilterChange, getFilterCount }: Qu
           onClick={() => onFilterChange("today_checkin")}
           className={`relative group flex flex-col items-start p-4 rounded-xl border-2 transition-all duration-300 ${
             quickFilter === "today_checkin"
-              ? "border-blue-500 bg-blue-50 shadow-lg scale-[1.02]"
-              : "border-border bg-card hover:border-blue-300 hover:shadow-md"
+              ? "border-primary bg-primary/5 shadow-lg scale-[1.02]"
+              : "border-border bg-card hover:border-primary/30 hover:shadow-md"
           }`}
         >
           <div className="flex items-center justify-between w-full mb-3">
             <div className={`p-2.5 rounded-lg transition-colors ${
               quickFilter === "today_checkin"
-                ? "bg-blue-500"
-                : "bg-blue-100 group-hover:bg-blue-200"
+                ? "bg-primary"
+                : "bg-primary/10 group-hover:bg-primary/20"
             }`}>
               <Home className={`h-5 w-5 ${
-                quickFilter === "today_checkin" ? "text-white" : "text-blue-600"
+                quickFilter === "today_checkin" ? "text-white" : "text-primary"
               }`} />
             </div>
             {getFilterCount("today_checkin") > 0 && (
               <span className={`text-2xl font-bold transition-colors ${
-                quickFilter === "today_checkin" ? "text-blue-600" : "text-muted-foreground"
+                quickFilter === "today_checkin" ? "text-primary" : "text-muted-foreground"
               }`}>
                 {getFilterCount("today_checkin")}
               </span>
             )}
           </div>
           <span className={`text-sm font-medium transition-colors ${
-            quickFilter === "today_checkin" ? "text-blue-700" : "text-foreground"
+            quickFilter === "today_checkin" ? "text-primary" : "text-foreground"
           }`}>
             今日入住
           </span>
