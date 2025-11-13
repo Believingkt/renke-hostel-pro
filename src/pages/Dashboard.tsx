@@ -60,6 +60,7 @@ const Dashboard = () => {
   const [error, setError] = useState<string | null>(null);
   const [isLiveUpdating, setIsLiveUpdating] = useState(false);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date());
+  const [comparisonMode, setComparisonMode] = useState<'lastYear' | 'lastMonth'>('lastYear');
   
   // 統計數據
   const [totalRooms, setTotalRooms] = useState(0);
@@ -147,14 +148,17 @@ const Dashboard = () => {
           setGuestsChange(`${Number(guestChange) >= 0 ? '+' : ''}${guestChange}%`);
           setRevenueChange(`${Number(revChange) >= 0 ? '+' : ''}${revChange}%`);
           
-          // 生成過去12個月的圖表數據
+          // 生成過去12個月的圖表數據（今年）
           const monthlyData = [];
+          const lastYearData = [];
+          
           for (let i = 11; i >= 0; i--) {
             const monthDate = subMonths(now, i);
             const monthStart = startOfMonth(monthDate);
             const monthEnd = endOfMonth(monthDate);
             const monthLabel = format(monthDate, 'M月');
             
+            // 今年數據
             const monthOrders = ordersData.filter(o => {
               const orderDate = new Date(o.order_date);
               return orderDate >= monthStart && orderDate <= monthEnd;
@@ -163,15 +167,85 @@ const Dashboard = () => {
             const revenue = monthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
             const bookingCount = monthOrders.length;
             
+            // 去年同期數據
+            const lastYearMonthStart = subMonths(monthStart, 12);
+            const lastYearMonthEnd = subMonths(monthEnd, 12);
+            const lastYearOrders = ordersData.filter(o => {
+              const orderDate = new Date(o.order_date);
+              return orderDate >= lastYearMonthStart && orderDate <= lastYearMonthEnd;
+            });
+            
+            const lastYearRevenue = lastYearOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+            const lastYearBookingCount = lastYearOrders.length;
+            
             monthlyData.push({
               month: monthLabel,
               revenue: revenue,
               bookings: bookingCount,
+              lastYearRevenue: lastYearRevenue,
+              lastYearBookings: lastYearBookingCount,
             });
           }
           
-          setRevenueData(monthlyData.map(m => ({ month: m.month, "營收": m.revenue })));
-          setBookingData(monthlyData.map(m => ({ month: m.month, "訂房數": m.bookings })));
+          // 上月對比數據
+          const lastMonthData = [];
+          for (let i = 11; i >= 0; i--) {
+            const monthDate = subMonths(now, i);
+            const prevMonthDate = subMonths(monthDate, 1);
+            const monthStart = startOfMonth(monthDate);
+            const monthEnd = endOfMonth(monthDate);
+            const prevMonthStart = startOfMonth(prevMonthDate);
+            const prevMonthEnd = endOfMonth(prevMonthDate);
+            const monthLabel = format(monthDate, 'M月');
+            
+            const monthOrders = ordersData.filter(o => {
+              const orderDate = new Date(o.order_date);
+              return orderDate >= monthStart && orderDate <= monthEnd;
+            });
+            
+            const prevMonthOrders = ordersData.filter(o => {
+              const orderDate = new Date(o.order_date);
+              return orderDate >= prevMonthStart && orderDate <= prevMonthEnd;
+            });
+            
+            const revenue = monthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+            const bookingCount = monthOrders.length;
+            const prevRevenue = prevMonthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+            const prevBookingCount = prevMonthOrders.length;
+            
+            lastMonthData.push({
+              month: monthLabel,
+              revenue: revenue,
+              bookings: bookingCount,
+              prevRevenue: prevRevenue,
+              prevBookings: prevBookingCount,
+            });
+          }
+          
+          // 根據對比模式設置數據
+          if (comparisonMode === 'lastYear') {
+            setRevenueData(monthlyData.map(m => ({ 
+              month: m.month, 
+              "今年": m.revenue,
+              "去年": m.lastYearRevenue
+            })));
+            setBookingData(monthlyData.map(m => ({ 
+              month: m.month, 
+              "今年": m.bookings,
+              "去年": m.lastYearBookings
+            })));
+          } else {
+            setRevenueData(lastMonthData.map(m => ({ 
+              month: m.month, 
+              "本月": m.revenue,
+              "上月": m.prevRevenue
+            })));
+            setBookingData(lastMonthData.map(m => ({ 
+              month: m.month, 
+              "本月": m.bookings,
+              "上月": m.prevBookings
+            })));
+          }
           
           // 計算房型入住率（過去30天）
           const thirtyDaysAgo = new Date();
@@ -271,7 +345,7 @@ const Dashboard = () => {
       console.log('Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
-  }, [accommodationId]);
+  }, [accommodationId, comparisonMode]);
 
   if (loading) {
     return <DashboardSkeleton />;
@@ -289,9 +363,31 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6 md:space-y-8">
-      <div className="px-2 md:px-0 flex items-center justify-between">
+      <div className="px-2 md:px-0 flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">營運分析</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+            <button
+              onClick={() => setComparisonMode('lastYear')}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
+                comparisonMode === 'lastYear'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              去年同期
+            </button>
+            <button
+              onClick={() => setComparisonMode('lastMonth')}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
+                comparisonMode === 'lastMonth'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              上月對比
+            </button>
+          </div>
           <Badge 
             variant={isLiveUpdating ? "default" : "secondary"} 
             className={`transition-all ${isLiveUpdating ? 'animate-pulse' : ''}`}
@@ -387,13 +483,23 @@ const Dashboard = () => {
                   iconSize={8}
                 />
                 <Bar 
-                  dataKey="營收" 
+                  dataKey={comparisonMode === 'lastYear' ? '今年' : '本月'}
                   fill="hsl(var(--chart-1))" 
                   radius={[6, 6, 0, 0]}
-                  maxBarSize={50}
+                  maxBarSize={40}
                   isAnimationActive={true}
                   animationDuration={800}
                   animationBegin={0}
+                  animationEasing="ease-in-out"
+                />
+                <Bar 
+                  dataKey={comparisonMode === 'lastYear' ? '去年' : '上月'}
+                  fill="hsl(var(--chart-4))" 
+                  radius={[6, 6, 0, 0]}
+                  maxBarSize={40}
+                  isAnimationActive={true}
+                  animationDuration={800}
+                  animationBegin={100}
                   animationEasing="ease-in-out"
                 />
               </BarChart>
@@ -448,7 +554,7 @@ const Dashboard = () => {
                 />
                 <Line 
                   type="monotone" 
-                  dataKey="訂房數" 
+                  dataKey={comparisonMode === 'lastYear' ? '今年' : '本月'}
                   stroke="hsl(var(--chart-3))" 
                   strokeWidth={2.5}
                   dot={{ fill: "hsl(var(--chart-3))", r: 5, strokeWidth: 2, stroke: 'hsl(var(--background))' }}
@@ -456,6 +562,19 @@ const Dashboard = () => {
                   isAnimationActive={true}
                   animationDuration={800}
                   animationBegin={0}
+                  animationEasing="ease-in-out"
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey={comparisonMode === 'lastYear' ? '去年' : '上月'}
+                  stroke="hsl(var(--chart-5))" 
+                  strokeWidth={2}
+                  strokeDasharray="5 5"
+                  dot={{ fill: "hsl(var(--chart-5))", r: 4, strokeWidth: 2, stroke: 'hsl(var(--background))' }}
+                  activeDot={{ r: 6, strokeWidth: 2 }}
+                  isAnimationActive={true}
+                  animationDuration={800}
+                  animationBegin={100}
                   animationEasing="ease-in-out"
                 />
               </LineChart>
