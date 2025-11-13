@@ -9,8 +9,7 @@ import {
   ChevronDown,
   Globe,
   Building,
-  UserCircle,
-  Bell
+  UserCircle
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
@@ -34,7 +33,6 @@ const menuItems = [
   { title: "營運分析", url: "/admin", icon: BarChart3 },
   { title: "今日櫃檯", url: "/admin/reception", icon: Users },
   { title: "訂單資訊", url: "/admin/orders?tab=list", icon: ClipboardList },
-  { title: "通知中心", url: "/admin/notifications", icon: Bell },
   { 
     title: "官網內容", 
     url: "/admin/website-content", 
