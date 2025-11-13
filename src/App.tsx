@@ -8,7 +8,6 @@ import ChangePassword from "./pages/ChangePassword";
 import BookingFlow from "./pages/BookingFlow";
 import OrderSearch from "./pages/OrderSearch";
 import Dashboard from "./pages/Dashboard";
-import Reception from "./pages/Reception";
 import WebsiteContent from "./pages/WebsiteContent";
 import Faq from "./pages/Faq";
 import Orders from "./pages/Orders";
@@ -47,7 +46,6 @@ function App() {
               <Route path="/change-password" element={<ChangePassword />} />
               <Route path="/hq" element={<Headquarters />} />
               <Route path="/admin" element={<Dashboard />} />
-              <Route path="/admin/reception" element={<Reception />} />
               <Route path="/admin/website-content" element={<WebsiteContent />} />
               <Route path="/admin/faq" element={<Faq />} />
               <Route path="/admin/orders" element={<Orders />} />
