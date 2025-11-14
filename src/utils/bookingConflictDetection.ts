@@ -181,3 +181,79 @@ export const getAvailableRoomCount = async (
   
   return result.availableRooms || 0;
 };
+
+export interface AlternativeRoomSuggestion {
+  roomType: {
+    id: string;
+    name: string;
+    capacity: number;
+    base_price: number;
+    weekday_price: number | null;
+    weekend_price: number | null;
+    description: string | null;
+  };
+  availableRooms: number;
+  priceEstimate: number;
+}
+
+/**
+ * 獲取替代房型建議
+ * @param currentRoomTypeId 當前已滿的房型ID
+ * @param checkInDate 入住日期
+ * @param checkOutDate 退房日期
+ * @param accommodationId 住宿ID
+ * @param guestCount 客人數量
+ * @returns 可用的替代房型列表
+ */
+export const getAlternativeRoomSuggestions = async (
+  currentRoomTypeId: string,
+  checkInDate: string,
+  checkOutDate: string,
+  accommodationId: string,
+  guestCount: number = 2
+): Promise<AlternativeRoomSuggestion[]> => {
+  try {
+    // 獲取所有房型（排除當前房型）
+    const { data: roomTypes, error: roomTypesError } = await supabase
+      .from("room_types")
+      .select("id, name, capacity, base_price, weekday_price, weekend_price, description")
+      .eq("accommodation_id", accommodationId)
+      .neq("id", currentRoomTypeId)
+      .gte("capacity", guestCount) // 只推薦容量足夠的房型
+      .order("base_price", { ascending: true });
+
+    if (roomTypesError || !roomTypes) {
+      console.error("Error fetching room types:", roomTypesError);
+      return [];
+    }
+
+    // 檢查每個房型的可用性
+    const suggestions: AlternativeRoomSuggestion[] = [];
+    
+    for (const roomType of roomTypes) {
+      const conflictResult = await detectBookingConflict(
+        roomType.id,
+        checkInDate,
+        checkOutDate,
+        accommodationId
+      );
+
+      // 只推薦有空房的房型
+      if (!conflictResult.hasConflict && conflictResult.availableRooms && conflictResult.availableRooms > 0) {
+        // 估算價格（簡單使用基礎價格，實際應用中可能需要更複雜的計算）
+        const priceEstimate = roomType.weekday_price || roomType.base_price;
+        
+        suggestions.push({
+          roomType,
+          availableRooms: conflictResult.availableRooms,
+          priceEstimate
+        });
+      }
+    }
+
+    return suggestions;
+  } catch (error) {
+    console.error("Error getting alternative room suggestions:", error);
+    return [];
+  }
+};
