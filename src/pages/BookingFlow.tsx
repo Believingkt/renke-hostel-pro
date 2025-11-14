@@ -716,6 +716,19 @@ const BookingFlow = () => {
       if (conflictResult.hasConflict) {
         setIsSubmitting(false);
         
+        // 創建衝突通知給管理員
+        try {
+          await supabase.from('notifications').insert({
+            accommodation_id: accommodationId,
+            type: 'conflict',
+            title: conflictResult.conflictType === 'overbooked' ? '⚠️ 超額預訂警告' : '⚠️ 重複訂房警告',
+            description: `${conflictResult.message}\n\n訂房資訊：\n客人：${guestInfo.name}\n電話：${guestInfo.phone}\n${guestInfo.email ? `信箱：${guestInfo.email}\n` : ''}日期：${checkInDateStr} 至 ${checkOutDateStr}\n房型：${selectedRoom.name}\n人數：${totalGuests}人`,
+          });
+          console.log('衝突通知已發送給管理員');
+        } catch (notificationError) {
+          console.error('創建衝突通知失敗:', notificationError);
+        }
+        
         // 如果是超額預訂，獲取替代房型建議
         if (conflictResult.conflictType === 'overbooked') {
           console.log("獲取替代房型建議...");

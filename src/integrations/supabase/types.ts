@@ -399,6 +399,54 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          description: string
+          id: string
+          is_read: boolean
+          order_id: string | null
+          title: string
+          type: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          description: string
+          id?: string
+          is_read?: boolean
+          order_id?: string | null
+          title: string
+          type: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_read?: boolean
+          order_id?: string | null
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_accommodation"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_order"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           accommodation_id: string
