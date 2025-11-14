@@ -29,7 +29,8 @@ import {
 } from "lucide-react";
 import { z } from "zod";
 import { format } from "date-fns";
-import { detectBookingConflict } from "@/utils/bookingConflictDetection";
+import { detectBookingConflict, getAlternativeRoomSuggestions, AlternativeRoomSuggestion } from "@/utils/bookingConflictDetection";
+import { ConflictWarning } from "@/components/orders/ConflictWarning";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import {
@@ -145,6 +146,10 @@ const BookingFlow = () => {
   const [isCheckOutDateOpen, setIsCheckOutDateOpen] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [successOrderData, setSuccessOrderData] = useState<any>(null);
+  const [alternativeRooms, setAlternativeRooms] = useState<AlternativeRoomSuggestion[]>([]);
+  const [showAlternatives, setShowAlternatives] = useState(false);
+  const [conflictMessage, setConflictMessage] = useState("");
+  const [conflictType, setConflictType] = useState<'overbooked' | 'duplicate'>('overbooked');
   
   // 加購方案
   const [petCount, setPetCount] = useState(0);
@@ -710,6 +715,32 @@ const BookingFlow = () => {
       // 如果檢測到衝突，顯示錯誤並阻止訂單創建
       if (conflictResult.hasConflict) {
         setIsSubmitting(false);
+        
+        // 如果是超額預訂，獲取替代房型建議
+        if (conflictResult.conflictType === 'overbooked') {
+          console.log("獲取替代房型建議...");
+          const suggestions = await getAlternativeRoomSuggestions(
+            selectedRoom.id,
+            checkInDateStr,
+            checkOutDateStr,
+            accommodationId,
+            totalGuests
+          );
+          
+          if (suggestions.length > 0) {
+            setAlternativeRooms(suggestions);
+            setConflictMessage(conflictResult.message || "");
+            setConflictType('overbooked');
+            setShowAlternatives(true);
+            
+            toast({
+              title: "房間已被預訂",
+              description: "我們為您找到了其他可用房型，請查看推薦方案",
+            });
+            return;
+          }
+        }
+        
         toast({
           title: conflictResult.conflictType === 'duplicate' ? "檢測到重複訂房" : "房間已被預訂",
           description: conflictResult.message,
@@ -2593,6 +2624,55 @@ const BookingFlow = () => {
           <div className="p-4 md:p-6 border-t bg-muted/30">
             <Button onClick={() => setIsPetPolicyDialogOpen(false)} className="w-full h-11 md:h-10 text-base">
               我了解了
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 替代房型建議對話框 */}
+      <Dialog open={showAlternatives} onOpenChange={setShowAlternatives}>
+        <DialogContent className="max-w-2xl">
+          <DialogTitle className="text-xl font-bold">推薦其他可用房型</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
+            {conflictMessage}
+          </DialogDescription>
+          
+          <div className="mt-4">
+            <ConflictWarning
+              type={conflictType}
+              message="以下是我們為您推薦的其他可用房型："
+              alternativeRooms={alternativeRooms}
+              onSelectAlternative={(roomTypeId) => {
+                // 找到選中的房型
+                const selectedAlternative = roomTypes.find(r => r.id === roomTypeId);
+                if (selectedAlternative) {
+                  setSelectedRoom(selectedAlternative);
+                  setShowAlternatives(false);
+                  toast({
+                    title: "已切換房型",
+                    description: `已為您選擇 ${selectedAlternative.name}`,
+                  });
+                }
+              }}
+            />
+          </div>
+          
+          <div className="flex gap-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowAlternatives(false)}
+              className="flex-1"
+            >
+              取消訂房
+            </Button>
+            <Button
+              onClick={() => {
+                setShowAlternatives(false);
+                setCurrentStep("room");
+              }}
+              className="flex-1"
+            >
+              重新選擇房型
             </Button>
           </div>
         </DialogContent>

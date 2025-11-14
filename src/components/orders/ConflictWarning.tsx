@@ -1,7 +1,9 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, Users, Calendar } from "lucide-react";
+import { AlertTriangle, Users, Calendar, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
+import { AlternativeRoomSuggestion } from "@/utils/bookingConflictDetection";
 
 interface ConflictWarningProps {
   type: 'overbooked' | 'duplicate' | 'warning';
@@ -9,6 +11,8 @@ interface ConflictWarningProps {
   availableRooms?: number;
   bookedRooms?: number;
   conflictingOrders?: any[];
+  alternativeRooms?: AlternativeRoomSuggestion[];
+  onSelectAlternative?: (roomTypeId: string) => void;
 }
 
 export function ConflictWarning({ 
@@ -16,7 +20,9 @@ export function ConflictWarning({
   message, 
   availableRooms, 
   bookedRooms, 
-  conflictingOrders 
+  conflictingOrders,
+  alternativeRooms,
+  onSelectAlternative
 }: ConflictWarningProps) {
   const isError = type === 'overbooked' || type === 'duplicate';
   
@@ -59,6 +65,46 @@ export function ConflictWarning({
               {conflictingOrders.length > 3 && (
                 <p className="text-xs text-muted-foreground">...還有 {conflictingOrders.length - 3} 筆訂單</p>
               )}
+            </div>
+          </div>
+        )}
+
+        {alternativeRooms && alternativeRooms.length > 0 && type === 'overbooked' && (
+          <div className="mt-3 p-3 bg-primary/5 border border-primary/20 rounded-md">
+            <p className="text-sm font-medium mb-2 flex items-center gap-2">
+              <ArrowRight className="h-4 w-4" />
+              推薦替代房型
+            </p>
+            <div className="space-y-2">
+              {alternativeRooms.slice(0, 3).map((suggestion) => (
+                <div key={suggestion.roomType.id} className="flex items-center justify-between p-2 bg-background rounded border">
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">{suggestion.roomType.name}</p>
+                    <div className="flex gap-2 mt-1">
+                      <Badge variant="outline" className="text-xs">
+                        <Users className="h-3 w-3 mr-1" />
+                        可住 {suggestion.roomType.capacity} 人
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        剩 {suggestion.availableRooms} 間
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        NT$ {suggestion.priceEstimate.toLocaleString()}
+                      </Badge>
+                    </div>
+                  </div>
+                  {onSelectAlternative && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onSelectAlternative(suggestion.roomType.id)}
+                      className="ml-2"
+                    >
+                      選擇
+                    </Button>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         )}
