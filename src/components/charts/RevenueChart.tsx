@@ -21,10 +21,10 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
       ? ['今年', '去年'] 
       : ['本月', '上月'];
 
-  // 使用藍紫漸層配色
+  // 使用鮮豔的粉紅藍配色
   const chartColors = isCustomRange 
-    ? ["blue"]
-    : ["blue", "indigo"];
+    ? ["rose"]
+    : ["rose", "pink"];
 
   // 檢查是否有實際數據
   const hasRealData = data.some(d => 
