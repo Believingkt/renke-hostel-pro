@@ -403,11 +403,16 @@ const Dashboard = () => {
       )}
 
       <div className="grid gap-6 md:grid-cols-2 px-2 md:px-0">
-        <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold">營收統計</CardTitle>
+        <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-border/50">
+          <CardHeader className="pb-4 border-b border-border/50">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg font-semibold text-foreground">營收統計</CardTitle>
+              <span className="text-xs text-muted-foreground">
+                {customDateRange ? '自訂期間' : comparisonMode === 'lastYear' ? '年度對比' : '月度對比'}
+              </span>
+            </div>
           </CardHeader>
-          <CardContent className="pt-0">
+          <CardContent className="pt-6">
             <RevenueChart 
               data={finalRevenueData}
               comparisonMode={comparisonMode}
@@ -416,11 +421,16 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold">訂單趨勢</CardTitle>
+        <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-border/50">
+          <CardHeader className="pb-4 border-b border-border/50">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg font-semibold text-foreground">訂單趨勢</CardTitle>
+              <span className="text-xs text-muted-foreground">
+                {customDateRange ? '自訂期間' : comparisonMode === 'lastYear' ? '年度對比' : '月度對比'}
+              </span>
+            </div>
           </CardHeader>
-          <CardContent className="pt-0">
+          <CardContent className="pt-6">
             <BookingTrendsChart 
               data={finalBookingData}
               comparisonMode={comparisonMode}
@@ -430,11 +440,14 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      <Card className="overflow-hidden px-2 md:px-0 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold">房型入住率 (過去 30 天)</CardTitle>
+      <Card className="overflow-hidden px-2 md:px-0 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-border/50">
+        <CardHeader className="pb-4 border-b border-border/50">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold text-foreground">房型入住率</CardTitle>
+            <span className="text-xs text-muted-foreground">過去 30 天</span>
+          </div>
         </CardHeader>
-        <CardContent className="pt-0">
+        <CardContent className="pt-6">
           <OccupancyChart data={finalOccupancyData} />
         </CardContent>
       </Card>
