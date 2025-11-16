@@ -256,21 +256,23 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
             ))}
           </CarouselContent>
           
-          {/* 輪播指示器（圓點） */}
-          <div className="absolute bottom-24 md:bottom-32 left-1/2 transform -translate-x-1/2 flex gap-2 z-10">
-            {slides.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => carouselApi?.scrollTo(index)}
-                className={cn(
-                  "w-2 h-2 rounded-full transition-all duration-300",
-                  current === index 
-                    ? "bg-white w-8" 
-                    : "bg-white/50 hover:bg-white/75"
-                )}
-                aria-label={`前往第 ${index + 1} 張輪播圖`}
-              />
-            ))}
+          {/* 輪播指示器 */}
+          <div className="absolute bottom-20 md:bottom-28 left-1/2 -translate-x-1/2 z-20">
+            <div className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-black/30 backdrop-blur-md border border-white/10 shadow-lg">
+              {slides.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => carouselApi?.scrollTo(index)}
+                  className={cn(
+                    "h-2 rounded-full transition-all duration-500 ease-out",
+                    current === index 
+                      ? "w-8 bg-white shadow-[0_0_12px_rgba(255,255,255,0.6)]" 
+                      : "w-2 bg-white/40 hover:bg-white/60 hover:w-3"
+                  )}
+                  aria-label={`前往第 ${index + 1} 張輪播圖`}
+                />
+              ))}
+            </div>
           </div>
         </Carousel>
 
