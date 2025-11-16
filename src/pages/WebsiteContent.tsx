@@ -1649,6 +1649,10 @@ const WebsiteContent = () => {
                   <p className="text-sm text-muted-foreground">
                     最多可上傳 {MAX_HERO_PHOTOS} 張圖片，建議尺寸：1920x1080 像素，支援 JPG、PNG 格式
                   </p>
+                  <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                    <GripVertical className="h-3.5 w-3.5" />
+                    提示：點住圖片右上角的拖拽手柄，即可拖動調整輪播順序
+                  </p>
                 </div>
 
                 <div className="flex items-center gap-4">
