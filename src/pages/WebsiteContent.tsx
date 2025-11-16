@@ -247,8 +247,12 @@ const WebsiteContent = () => {
     instagram_url: "",
     threads_url: "",
     youtube_url: "",
-    tiktok_url: ""
+    tiktok_url: "",
+    header_logo_url: "",
+    footer_logo_url: ""
   });
+  const [uploadingHeaderLogo, setUploadingHeaderLogo] = useState(false);
+  const [uploadingFooterLogo, setUploadingFooterLogo] = useState(false);
   
   // 訂房須知狀態
   const [bookingInfo, setBookingInfo] = useState({
@@ -316,7 +320,7 @@ const WebsiteContent = () => {
         // 獲取 accommodation ID 和基本資料
         const { data: infoData } = await supabase
           .from("accommodation_info")
-          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url")
+          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url")
           .maybeSingle();
 
         if (infoData) {
@@ -334,7 +338,9 @@ const WebsiteContent = () => {
             instagram_url: infoData.instagram_url || "",
             threads_url: infoData.threads_url || "",
             youtube_url: infoData.youtube_url || "",
-            tiktok_url: infoData.tiktok_url || ""
+            tiktok_url: infoData.tiktok_url || "",
+            header_logo_url: infoData.header_logo_url || "",
+            footer_logo_url: infoData.footer_logo_url || ""
           });
 
           // 加載現有設施
@@ -802,6 +808,53 @@ const WebsiteContent = () => {
     setNearbyAttractions([...nearbyAttractions, { name: "", distance: "", description: "" }]);
   };
 
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>, logoType: 'header' | 'footer') => {
+    const file = event.target.files?.[0];
+    if (!file || !accommodationId) return;
+
+    const setUploading = logoType === 'header' ? setUploadingHeaderLogo : setUploadingFooterLogo;
+    setUploading(true);
+
+    try {
+      // 生成唯一檔案名
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${accommodationId}/${logoType}-logo-${Date.now()}.${fileExt}`;
+
+      // 上傳到 Supabase Storage
+      const { error: uploadError, data } = await supabase.storage
+        .from('logos')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) throw uploadError;
+
+      // 獲取公開 URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('logos')
+        .getPublicUrl(fileName);
+
+      // 更新狀態
+      if (logoType === 'header') {
+        setBasicInfo(prev => ({ ...prev, header_logo_url: publicUrl }));
+      } else {
+        setBasicInfo(prev => ({ ...prev, footer_logo_url: publicUrl }));
+      }
+
+      toast.success(`${logoType === 'header' ? '頁首' : '頁尾'} Logo 已上傳`);
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error uploading logo:', error);
+      }
+      toast.error('上傳失敗，請稍後再試');
+    } finally {
+      setUploading(false);
+      // 清除 input 值，允許重複上傳同一檔案
+      event.target.value = '';
+    }
+  };
+
   const handleSaveBasicInfo = async () => {
     if (!accommodationId) return;
     
@@ -820,7 +873,9 @@ const WebsiteContent = () => {
           instagram_url: basicInfo.instagram_url,
           threads_url: basicInfo.threads_url,
           youtube_url: basicInfo.youtube_url,
-          tiktok_url: basicInfo.tiktok_url
+          tiktok_url: basicInfo.tiktok_url,
+          header_logo_url: basicInfo.header_logo_url,
+          footer_logo_url: basicInfo.footer_logo_url
         })
         .eq("id", accommodationId);
 
@@ -1155,6 +1210,79 @@ const WebsiteContent = () => {
                   placeholder="請輸入完整 TikTok 網址"
                 />
               </div>
+
+              {/* 頁首 Logo */}
+              <div className="space-y-2">
+                <Label>頁首 Logo</Label>
+                <div className="flex items-center gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById('header-logo-upload')?.click()}
+                    disabled={uploadingHeaderLogo}
+                    className="flex items-center gap-2"
+                  >
+                    <Upload className="h-4 w-4" />
+                    {uploadingHeaderLogo ? "上傳中..." : "上傳頁首 Logo"}
+                  </Button>
+                  <input
+                    id="header-logo-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleLogoUpload(e, 'header')}
+                    className="hidden"
+                  />
+                  {basicInfo.header_logo_url && (
+                    <div className="relative w-32 h-16 border rounded overflow-hidden">
+                      <img 
+                        src={basicInfo.header_logo_url} 
+                        alt="頁首 Logo" 
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  建議尺寸：200x60 像素，支援 PNG、JPG 格式（透明背景請使用 PNG）
+                </p>
+              </div>
+
+              {/* 頁尾 Logo */}
+              <div className="space-y-2">
+                <Label>頁尾 Logo</Label>
+                <div className="flex items-center gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById('footer-logo-upload')?.click()}
+                    disabled={uploadingFooterLogo}
+                    className="flex items-center gap-2"
+                  >
+                    <Upload className="h-4 w-4" />
+                    {uploadingFooterLogo ? "上傳中..." : "上傳頁尾 Logo"}
+                  </Button>
+                  <input
+                    id="footer-logo-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleLogoUpload(e, 'footer')}
+                    className="hidden"
+                  />
+                  {basicInfo.footer_logo_url && (
+                    <div className="relative w-32 h-16 border rounded overflow-hidden">
+                      <img 
+                        src={basicInfo.footer_logo_url} 
+                        alt="頁尾 Logo" 
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  建議尺寸：200x60 像素，支援 PNG、JPG 格式（透明背景請使用 PNG）
+                </p>
+              </div>
+
               <Button onClick={handleSaveBasicInfo} disabled={isSaving}>
                 {isSaving ? "儲存中..." : "儲存變更"}
               </Button>

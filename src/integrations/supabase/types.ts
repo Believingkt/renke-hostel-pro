@@ -61,6 +61,8 @@ export type Database = {
           description: string | null
           email: string | null
           facebook_url: string | null
+          footer_logo_url: string | null
+          header_logo_url: string | null
           id: string
           instagram_url: string | null
           latitude: number | null
@@ -89,6 +91,8 @@ export type Database = {
           description?: string | null
           email?: string | null
           facebook_url?: string | null
+          footer_logo_url?: string | null
+          header_logo_url?: string | null
           id?: string
           instagram_url?: string | null
           latitude?: number | null
@@ -117,6 +121,8 @@ export type Database = {
           description?: string | null
           email?: string | null
           facebook_url?: string | null
+          footer_logo_url?: string | null
+          header_logo_url?: string | null
           id?: string
           instagram_url?: string | null
           latitude?: number | null
