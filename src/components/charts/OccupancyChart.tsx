@@ -1,4 +1,5 @@
-import { BarChart } from "@tremor/react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 interface OccupancyChartProps {
   data: Array<{
@@ -11,16 +12,10 @@ export const OccupancyChart = ({ data }: OccupancyChartProps) => {
   // 檢查是否有實際數據
   const hasRealData = data.some(d => d.occupancyRate > 0 && d.roomType !== '暫無數據');
 
-  // 數值格式化函數
-  const valueFormatter = (value: number) => {
-    if (!Number.isFinite(value)) return '0%';
-    return `${value.toFixed(1)}%`;
-  };
-
   // 如果沒有實際數據，顯示空狀態
   if (!hasRealData) {
     return (
-      <div className="flex items-center justify-center h-[280px] text-muted-foreground">
+      <div className="flex items-center justify-center h-[320px] text-muted-foreground">
         <div className="text-center">
           <p className="text-sm">暫無入住數據</p>
           <p className="text-xs mt-1">請新增訂單後查看統計</p>
@@ -29,26 +24,42 @@ export const OccupancyChart = ({ data }: OccupancyChartProps) => {
     );
   }
 
+  const chartConfig = {
+    occupancyRate: {
+      label: "入住率",
+      color: "hsl(var(--chart-1))",
+    },
+  };
+
   return (
     <div className="animate-fade-in px-2 py-4">
-      <BarChart
-        className="h-[320px]"
-        data={data}
-        index="roomType"
-        categories={["occupancyRate"]}
-        colors={["amber"]}
-        valueFormatter={valueFormatter}
-        yAxisWidth={90}
-        showLegend={false}
-        showGridLines={false}
-        showXAxis={true}
-        showYAxis={true}
-        layout="vertical"
-        animationDuration={800}
-        showAnimation={true}
-        autoMinValue={true}
-        showTooltip={true}
-      />
+      <ChartContainer config={chartConfig} className="h-[320px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+            <XAxis 
+              type="number" 
+              tickFormatter={(value) => `${value}%`}
+              className="text-xs"
+            />
+            <YAxis 
+              type="category" 
+              dataKey="roomType" 
+              width={90}
+              className="text-xs"
+            />
+            <ChartTooltip 
+              content={<ChartTooltipContent />}
+              formatter={(value: number) => [`${value.toFixed(1)}%`, "入住率"]}
+            />
+            <Bar 
+              dataKey="occupancyRate" 
+              fill="hsl(var(--chart-1))" 
+              radius={[0, 6, 6, 0]}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartContainer>
     </div>
   );
 };
