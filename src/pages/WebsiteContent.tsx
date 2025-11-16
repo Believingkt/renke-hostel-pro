@@ -50,6 +50,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { TabsSkeleton } from "@/components/skeletons/TabsSkeleton";
 import { LogoCropDialog } from "@/components/LogoCropDialog";
+import { HeroPhotoEditDialog } from "@/components/HeroPhotoEditDialog";
 
 // 定義所有設施項目
 const facilitiesData = {
@@ -180,15 +181,20 @@ interface Photo {
   id: string;
   photo_url: string;
   display_order: number;
+  title?: string | null;
+  subtitle?: string | null;
+  cta_text?: string | null;
+  cta_link?: string | null;
 }
 
 interface SortablePhotoItemProps {
   photo: Photo;
   index: number;
   onDelete: (photoId: string) => void;
+  onEdit?: (photo: Photo) => void;
 }
 
-const SortablePhotoItem = ({ photo, index, onDelete }: SortablePhotoItemProps) => {
+const SortablePhotoItem = ({ photo, index, onDelete, onEdit }: SortablePhotoItemProps) => {
   const {
     attributes,
     listeners,
@@ -216,6 +222,15 @@ const SortablePhotoItem = ({ photo, index, onDelete }: SortablePhotoItemProps) =
         className="w-full h-full object-cover"
       />
       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+        {onEdit && (
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => onEdit(photo)}
+          >
+            <Edit2 className="h-4 w-4" />
+          </Button>
+        )}
         <Button
           size="sm"
           variant="secondary"
@@ -306,6 +321,8 @@ const WebsiteContent = () => {
   // Hero carousel state
   const [heroPhotos, setHeroPhotos] = useState<Photo[]>([]);
   const [uploadingHeroPhoto, setUploadingHeroPhoto] = useState(false);
+  const [editingHeroPhoto, setEditingHeroPhoto] = useState<Photo | null>(null);
+  const [heroEditDialogOpen, setHeroEditDialogOpen] = useState(false);
   const MAX_HERO_PHOTOS = 5;
 
   // Addon plans state
@@ -1259,6 +1276,47 @@ const WebsiteContent = () => {
     }
   };
 
+  const handleEditHeroPhoto = (photo: Photo) => {
+    setEditingHeroPhoto(photo);
+    setHeroEditDialogOpen(true);
+  };
+
+  const handleSaveHeroPhotoText = async (photoId: string, data: {
+    title: string;
+    subtitle: string;
+    cta_text: string;
+    cta_link: string;
+  }) => {
+    try {
+      const { error } = await supabase
+        .from('accommodation_photos')
+        .update({
+          title: data.title || null,
+          subtitle: data.subtitle || null,
+          cta_text: data.cta_text || null,
+          cta_link: data.cta_link || null,
+        })
+        .eq('id', photoId);
+
+      if (error) throw error;
+
+      // 更新本地狀態
+      setHeroPhotos(heroPhotos.map(p => 
+        p.id === photoId 
+          ? { ...p, ...data }
+          : p
+      ));
+
+      toast.success('輪播圖文字已更新');
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error updating hero photo text:', error);
+      }
+      toast.error('更新失敗，請稍後再試');
+      throw error;
+    }
+  };
+
   const handleHeroPhotoDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
 
@@ -1639,6 +1697,7 @@ const WebsiteContent = () => {
                             photo={photo}
                             index={index}
                             onDelete={handleDeleteHeroPhoto}
+                            onEdit={handleEditHeroPhoto}
                           />
                         ))}
                       </div>
@@ -2482,6 +2541,14 @@ const WebsiteContent = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* 輪播圖文字編輯對話框 */}
+      <HeroPhotoEditDialog
+        open={heroEditDialogOpen}
+        onOpenChange={setHeroEditDialogOpen}
+        photo={editingHeroPhoto}
+        onSave={handleSaveHeroPhotoText}
+      />
     </div>
   );
 };
