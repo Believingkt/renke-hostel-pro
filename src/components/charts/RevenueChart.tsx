@@ -21,10 +21,10 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
       ? ['今年', '去年'] 
       : ['本月', '上月'];
 
-  // 使用設計系統的顏色
+  // 使用 Tremor 預設顏色名稱
   const chartColors = isCustomRange 
-    ? ["#2A7FC1"]  // blue - 對應 --chart-1 (203 78% 43%)
-    : ["#2A7FC1", "#F57C34"];  // blue + orange (203 78% 43%, 19 82% 51%)
+    ? ["blue"]
+    : ["blue", "orange"];
 
   // 檢查是否有實際數據
   const hasRealData = data.some(d => 

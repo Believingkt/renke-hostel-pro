@@ -21,10 +21,10 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
       ? ['今年', '去年'] 
       : ['本月', '上月'];
 
-  // 使用設計系統的顏色
+  // 使用 Tremor 預設顏色名稱
   const chartColors = isCustomRange 
-    ? ["#A855F7"]  // purple - 對應 --chart-5 (271 81% 56%)
-    : ["#A855F7", "#F57C34"];  // purple + orange
+    ? ["purple"]
+    : ["purple", "orange"];
 
   // 檢查是否有實際數據
   const hasRealData = data.some(d => 
