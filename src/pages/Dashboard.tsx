@@ -252,6 +252,7 @@ const Dashboard = () => {
   
   // Calculate max values for domains
   const maxRevenue = Math.max(
+    0, // Add 0 as minimum baseline
     ...finalRevenueData.flatMap(d => [
       d['今年'] || 0,
       d['去年'] || 0,
@@ -261,6 +262,7 @@ const Dashboard = () => {
     ].filter(v => Number.isFinite(v) && v > 0))
   );
   const maxBookings = Math.max(
+    0, // Add 0 as minimum baseline
     ...finalBookingData.flatMap(d => [
       d['今年'] || 0,
       d['去年'] || 0,
@@ -270,9 +272,13 @@ const Dashboard = () => {
     ].filter(v => Number.isFinite(v) && v > 0))
   );
   
-  // Set safe domain values
-  const revenueDomain = Number.isFinite(maxRevenue) && maxRevenue > 0 ? Math.ceil(maxRevenue * 1.2) : 10000;
-  const bookingDomain = Number.isFinite(maxBookings) && maxBookings > 0 ? Math.ceil(maxBookings * 1.2) : 50;
+  // Set safe domain values - ensure they're always valid positive numbers
+  const revenueDomain = (Number.isFinite(maxRevenue) && maxRevenue > 0) ? Math.ceil(maxRevenue * 1.2) : 10000;
+  const bookingDomain = (Number.isFinite(maxBookings) && maxBookings > 0) ? Math.ceil(maxBookings * 1.2) : 50;
+  
+  // Validate that domains are safe for recharts
+  const isRevenueChartSafe = Number.isFinite(revenueDomain) && revenueDomain > 0;
+  const isBookingChartSafe = Number.isFinite(bookingDomain) && bookingDomain > 0;
   
   // Debug: Log the final data being passed to charts
   console.log('Final chart data:', {
@@ -283,6 +289,8 @@ const Dashboard = () => {
     maxBookings,
     revenueDomain,
     bookingDomain,
+    isRevenueChartSafe,
+    isBookingChartSafe,
     revenueDataKeys: finalRevenueData.length > 0 ? Object.keys(finalRevenueData[0]) : [],
     bookingDataKeys: finalBookingData.length > 0 ? Object.keys(finalBookingData[0]) : [],
     revenueDataSample: finalRevenueData[0],
@@ -467,7 +475,8 @@ const Dashboard = () => {
         </Card>
       )}
 
-      <div className="grid gap-6 md:grid-cols-2 px-2 md:px-0">
+       <div className="grid gap-6 md:grid-cols-2 px-2 md:px-0">
+        {isRevenueChartSafe && (
         <Card className="overflow-hidden">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold">營收統計</CardTitle>
@@ -486,8 +495,6 @@ const Dashboard = () => {
                   stroke="hsl(var(--border))"
                   tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value.toString()}
                   domain={[0, revenueDomain]}
-                  allowDataOverflow={false}
-                  allowDecimals={false}
                 />
                 <Tooltip 
                   contentStyle={{
@@ -529,7 +536,9 @@ const Dashboard = () => {
             </ResponsiveContainer>
           </CardContent>
         </Card>
+        )}
 
+        {isBookingChartSafe && (
         <Card className="overflow-hidden">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold">訂單趨勢</CardTitle>
@@ -547,8 +556,6 @@ const Dashboard = () => {
                   tick={{ fontSize: chartFontSize, fill: 'hsl(var(--muted-foreground))' }}
                   stroke="hsl(var(--border))"
                   domain={[0, bookingDomain]}
-                  allowDataOverflow={false}
-                  allowDecimals={false}
                 />
                 <Tooltip 
                   contentStyle={{
@@ -594,6 +601,7 @@ const Dashboard = () => {
             </ResponsiveContainer>
           </CardContent>
         </Card>
+        )}
       </div>
 
       <Card className="overflow-hidden px-2 md:px-0">
