@@ -18,6 +18,7 @@ import KolDiscount from "./pages/KolDiscount";
 import UserRoles from "./pages/UserRoles";
 import Headquarters from "./pages/Headquarters";
 import Customers from "./pages/Customers";
+import CustomerOrders from "./pages/CustomerOrders";
 import OgImagePreview from "./pages/OgImagePreview";
 import PublicHolidays from "./pages/PublicHolidays";
 import Notifications from "./pages/Notifications";
@@ -55,6 +56,7 @@ function App() {
               <Route path="/admin/discount-codes" element={<KolDiscount />} />
               <Route path="/admin/user-roles" element={<UserRoles />} />
               <Route path="/admin/customers" element={<Customers />} />
+              <Route path="/admin/customers/:customerId/orders" element={<CustomerOrders />} />
               <Route path="/admin/notifications" element={<Notifications />} />
               <Route path="/admin/public-holidays" element={<PublicHolidays />} />
               <Route path="/og-preview" element={<OgImagePreview />} />
