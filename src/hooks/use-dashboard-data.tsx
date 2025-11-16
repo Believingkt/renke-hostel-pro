@@ -107,14 +107,23 @@ const fetchDashboardData = async (
   const lastMonthBookingCount = lastMonthOrders.length;
   const monthlyGuestCount = currentMonthOrders.reduce((sum, o) => sum + (o.guest_count || 0), 0);
   const lastMonthGuestCount = lastMonthOrders.reduce((sum, o) => sum + (o.guest_count || 0), 0);
-  const monthlyRev = currentMonthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
-  const lastMonthRev = lastMonthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+  // Validate and sum revenues, filtering out invalid values
+  const monthlyRev = currentMonthOrders.reduce((sum, o) => {
+    const price = Number(o.final_price);
+    return sum + (Number.isFinite(price) ? price : 0);
+  }, 0);
+  const lastMonthRev = lastMonthOrders.reduce((sum, o) => {
+    const price = Number(o.final_price);
+    return sum + (Number.isFinite(price) ? price : 0);
+  }, 0);
+  
+  console.log('Dashboard revenue check:', { monthlyRev, lastMonthRev, currentMonthOrdersCount: currentMonthOrders.length });
   
   // 計算變化百分比
   const bookingChange = lastMonthBookingCount > 0 
     ? ((monthlyBookingCount - lastMonthBookingCount) / lastMonthBookingCount * 100).toFixed(1)
     : "0";
-  const guestChange = lastMonthGuestCount > 0 
+  const guestChange = lastMonthGuestCount > 0
     ? ((monthlyGuestCount - lastMonthGuestCount) / lastMonthGuestCount * 100).toFixed(1)
     : "0";
   const revChange = lastMonthRev > 0
@@ -142,7 +151,10 @@ const fetchDashboardData = async (
       const monthKey = format(currentDate, 'yyyy-MM');
       const monthLabel = format(currentDate, 'yyyy/MM');
       const monthOrders = ordersByMonth.get(monthKey) || [];
-      const revenue = monthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+      const revenue = monthOrders.reduce((sum, o) => {
+        const price = Number(o.final_price);
+        return sum + (Number.isFinite(price) ? price : 0);
+      }, 0);
       
       monthlyData.push({
         month: monthLabel,
@@ -165,8 +177,14 @@ const fetchDashboardData = async (
       const monthOrders = ordersByMonth.get(monthKey) || [];
       const lastYearOrders = ordersByMonth.get(lastYearMonthKey) || [];
       
-      const revenue = monthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
-      const lastYearRevenue = lastYearOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+      const revenue = monthOrders.reduce((sum, o) => {
+        const price = Number(o.final_price);
+        return sum + (Number.isFinite(price) ? price : 0);
+      }, 0);
+      const lastYearRevenue = lastYearOrders.reduce((sum, o) => {
+        const price = Number(o.final_price);
+        return sum + (Number.isFinite(price) ? price : 0);
+      }, 0);
       
       monthlyData.push({
         month: monthLabel,
@@ -202,8 +220,14 @@ const fetchDashboardData = async (
       const monthOrders = ordersByMonth.get(monthKey) || [];
       const prevMonthOrders = ordersByMonth.get(prevMonthKey) || [];
       
-      const revenue = monthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
-      const prevRevenue = prevMonthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+      const revenue = monthOrders.reduce((sum, o) => {
+        const price = Number(o.final_price);
+        return sum + (Number.isFinite(price) ? price : 0);
+      }, 0);
+      const prevRevenue = prevMonthOrders.reduce((sum, o) => {
+        const price = Number(o.final_price);
+        return sum + (Number.isFinite(price) ? price : 0);
+      }, 0);
       
       lastMonthData.push({
         month: monthLabel,
@@ -356,16 +380,22 @@ const fetchDashboardData = async (
     ? [{ roomType: '暫無數據', occupancyRate: 0 }]
     : occupancyData;
   
+  const finalStats = {
+    totalRooms: Number.isFinite(totalRoomCount) ? totalRoomCount : 0,
+    monthlyBookings: Number.isFinite(monthlyBookingCount) ? monthlyBookingCount : 0,
+    totalGuests: Number.isFinite(monthlyGuestCount) ? monthlyGuestCount : 0,
+    monthlyRevenue: Number.isFinite(monthlyRev) ? monthlyRev : 0,
+    bookingsChange: `${Number(safeBookingChange) >= 0 ? '+' : ''}${safeBookingChange}%`,
+    guestsChange: `${Number(safeGuestChange) >= 0 ? '+' : ''}${safeGuestChange}%`,
+    revenueChange: `${Number(safeRevChange) >= 0 ? '+' : ''}${safeRevChange}%`,
+  };
+  
+  console.log('Dashboard final stats:', finalStats);
+  console.log('Revenue data sample:', revenueData.slice(0, 3));
+  console.log('Occupancy data:', finalOccupancyData);
+  
   return {
-    stats: {
-      totalRooms: totalRoomCount,
-      monthlyBookings: monthlyBookingCount,
-      totalGuests: monthlyGuestCount,
-      monthlyRevenue: Number.isFinite(monthlyRev) ? monthlyRev : 0,
-      bookingsChange: `${Number(safeBookingChange) >= 0 ? '+' : ''}${safeBookingChange}%`,
-      guestsChange: `${Number(safeGuestChange) >= 0 ? '+' : ''}${safeGuestChange}%`,
-      revenueChange: `${Number(safeRevChange) >= 0 ? '+' : ''}${safeRevChange}%`,
-    },
+    stats: finalStats,
     revenueData,
     bookingData,
     occupancyData: finalOccupancyData,
