@@ -421,16 +421,33 @@ All colors MUST be HSL.
   .tremor-Tooltip-root {
     background: hsl(var(--popover)) !important;
     border: 1px solid hsl(var(--border)) !important;
-    border-radius: 0.75rem !important;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+    border-radius: 0.5rem !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
     color: hsl(var(--popover-foreground)) !important;
-    animation: fade-in 0.2s ease-out;
-    padding: 0.75rem !important;
-    font-size: 0.875rem !important;
+    padding: 0.625rem 0.875rem !important;
+    font-size: 0.8125rem !important;
+    pointer-events: none !important;
+    z-index: 50 !important;
   }
 
   .tremor-Tooltip-content {
     font-weight: 500;
+    line-height: 1.5;
+  }
+
+  /* Tooltip 項目間距 */
+  .tremor-Tooltip-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.125rem 0;
+  }
+
+  /* Tooltip 顏色指示器 */
+  .tremor-Tooltip-colorBox {
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 0.125rem;
   }
 
   /* 優化 Legend 樣式 */
@@ -451,24 +468,43 @@ All colors MUST be HSL.
     color: hsl(var(--foreground));
   }
 
-  /* Chart Bar/Line Animation */
-  .tremor-BarChart-bar,
-  .tremor-LineChart-line {
-    transition: opacity 0.2s ease, transform 0.2s ease;
+  /* Chart Bar/Line Hover 優化 */
+  .tremor-BarChart-bar {
+    transition: opacity 0.15s ease, filter 0.15s ease;
+    cursor: pointer;
   }
 
   .tremor-BarChart-bar:hover {
-    opacity: 0.85;
+    opacity: 0.9;
+    filter: brightness(1.05);
+  }
+
+  /* Line Chart Hover 優化 */
+  .tremor-LineChart-line {
+    transition: stroke-width 0.15s ease;
   }
 
   /* 優化圖表標記點 */
   .tremor-LineChart-dot {
-    transition: r 0.2s ease, opacity 0.2s ease;
+    transition: r 0.15s ease, opacity 0.15s ease;
+    cursor: pointer;
   }
 
   .tremor-LineChart-dot:hover {
-    r: 6;
+    r: 5;
     opacity: 1;
+  }
+
+  /* 圖表互動區域 */
+  .recharts-surface {
+    overflow: visible !important;
+  }
+
+  /* 優化 hover 時的游標 */
+  .recharts-bar-rectangle:hover,
+  .recharts-line-curve:hover,
+  .recharts-dot:hover {
+    cursor: pointer;
   }
 }
 

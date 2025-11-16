@@ -70,8 +70,10 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
         showGridLines={true}
         showXAxis={true}
         showYAxis={true}
-        animationDuration={800}
+        animationDuration={600}
         showAnimation={true}
+        autoMinValue={true}
+        allowDecimals={false}
       />
     </div>
   );
