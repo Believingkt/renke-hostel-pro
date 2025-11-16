@@ -15,6 +15,7 @@ import OrderDetail from "./pages/OrderDetail";
 import Pricing from "./pages/Pricing";
 import Accounts from "./pages/Accounts";
 import KolDiscount from "./pages/KolDiscount";
+import DiscountCodeOrders from "./pages/DiscountCodeOrders";
 import UserRoles from "./pages/UserRoles";
 import Headquarters from "./pages/Headquarters";
 import Customers from "./pages/Customers";
@@ -54,6 +55,7 @@ function App() {
               <Route path="/admin/pricing" element={<Pricing />} />
               <Route path="/admin/accounts" element={<Accounts />} />
               <Route path="/admin/discount-codes" element={<KolDiscount />} />
+              <Route path="/admin/discount-codes/:discountCode/orders" element={<DiscountCodeOrders />} />
               <Route path="/admin/user-roles" element={<UserRoles />} />
               <Route path="/admin/customers" element={<Customers />} />
               <Route path="/admin/customers/:customerId/orders" element={<CustomerOrders />} />

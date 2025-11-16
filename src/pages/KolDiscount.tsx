@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -27,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, Copy, Pencil, Check, X } from "lucide-react";
+import { Plus, Trash2, Copy, Pencil, Check, X, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface DiscountCode {
@@ -41,6 +42,7 @@ interface DiscountCode {
 }
 
 const KolDiscount = () => {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [kolName, setKolName] = useState("");
   const [discountType, setDiscountType] = useState<"percentage" | "amount">("percentage");
@@ -337,13 +339,24 @@ const KolDiscount = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(item.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => navigate(`/admin/discount-codes/${item.code}/orders`)}
+                            title="查看訂單"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(item.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -439,14 +452,25 @@ const KolDiscount = () => {
                           </div>
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="shrink-0"
-                        onClick={() => handleDelete(item.id)}
-                      >
-                        <Trash2 className="h-5 w-5 text-destructive" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="shrink-0 h-8 w-8"
+                          onClick={() => navigate(`/admin/discount-codes/${item.code}/orders`)}
+                          title="查看訂單"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="shrink-0"
+                          onClick={() => handleDelete(item.id)}
+                        >
+                          <Trash2 className="h-5 w-5 text-destructive" />
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
