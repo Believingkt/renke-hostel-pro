@@ -28,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, Copy, Pencil, Check, X, Eye, Calendar as CalendarIcon, GripVertical } from "lucide-react";
+import { Plus, Trash2, Copy, Pencil, Check, X, Eye, Calendar as CalendarIcon, GripVertical, Files } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubdomain } from "@/hooks/use-subdomain";
@@ -85,6 +85,7 @@ const KolDiscount = () => {
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editingCode, setEditingCode] = useState<DiscountCode | null>(null);
+  const [copyingFrom, setCopyingFrom] = useState<DiscountCode | null>(null);
   const [name, setName] = useState("");
   const [discountType, setDiscountType] = useState<"percentage" | "amount">("percentage");
   const [discountValue, setDiscountValue] = useState("");
@@ -265,7 +266,7 @@ const KolDiscount = () => {
     }
   };
 
-  const handleCopyCode = (code: string) => {
+  const handleCopyCodeText = (code: string) => {
     navigator.clipboard.writeText(code);
     toast({
       title: "已複製折扣碼",
@@ -416,6 +417,39 @@ const KolDiscount = () => {
     }
   };
 
+  const handleCopyCode = (code: DiscountCode) => {
+    setCopyingFrom(code);
+    setName(`${code.name} (副本)`);
+    setDiscountType(code.discount_type);
+    setDiscountValue(code.discount_value.toString());
+    setUsageLimit(code.usage_limit.toString());
+    setValidFrom(new Date(code.valid_from));
+    setValidUntil(code.valid_until ? new Date(code.valid_until) : undefined);
+    setMinOrderAmount(code.min_order_amount > 0 ? code.min_order_amount.toString() : "");
+    setSelectedRoomTypes(code.applicable_room_types || []);
+    setApplicableDateFrom(code.applicable_date_from ? new Date(code.applicable_date_from) : undefined);
+    setApplicableDateTo(code.applicable_date_to ? new Date(code.applicable_date_to) : undefined);
+    setOpen(true);
+  };
+
+  const handleDialogClose = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (!isOpen) {
+      // 清除複製狀態和表單
+      setCopyingFrom(null);
+      setName("");
+      setDiscountValue("");
+      setUsageLimit("");
+      setDiscountType("percentage");
+      setValidFrom(new Date());
+      setValidUntil(undefined);
+      setMinOrderAmount("");
+      setSelectedRoomTypes([]);
+      setApplicableDateFrom(undefined);
+      setApplicableDateTo(undefined);
+    }
+  };
+
   const toggleActive = async (id: string, currentStatus: boolean) => {
     try {
       const { error } = await supabase
@@ -548,7 +582,7 @@ const KolDiscount = () => {
               variant="ghost"
               size="icon"
               className="h-8 w-8"
-              onClick={() => handleCopyCode(item.code)}
+              onClick={() => handleCopyCodeText(item.code)}
             >
               <Copy className="h-4 w-4" />
             </Button>
@@ -623,6 +657,15 @@ const KolDiscount = () => {
               variant="ghost"
               size="icon"
               className="h-8 w-8"
+              onClick={() => handleCopyCode(item)}
+              title="複製"
+            >
+              <Files className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
               onClick={() => handleOpenEdit(item)}
               title="編輯"
             >
@@ -678,7 +721,7 @@ const KolDiscount = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl md:text-3xl font-bold">折扣代碼管理</h1>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={handleDialogClose}>
           <DialogTrigger asChild>
             <Button className="gap-2">
               <Plus className="h-4 w-4" />
@@ -687,9 +730,12 @@ const KolDiscount = () => {
           </DialogTrigger>
           <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>新增折扣碼</DialogTitle>
+              <DialogTitle>{copyingFrom ? "複製折扣碼" : "新增折扣碼"}</DialogTitle>
               <DialogDescription>
-                填寫折扣碼資訊，系統將自動生成折扣碼
+                {copyingFrom 
+                  ? `複製自：${copyingFrom.code}，系統將自動生成新的折扣碼`
+                  : "填寫折扣碼資訊，系統將自動生成折扣碼"
+                }
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -1254,7 +1300,7 @@ const KolDiscount = () => {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8"
-                              onClick={() => handleCopyCode(item.code)}
+                              onClick={() => handleCopyCodeText(item.code)}
                             >
                               <Copy className="h-4 w-4" />
                             </Button>
@@ -1324,6 +1370,15 @@ const KolDiscount = () => {
                         </div>
                       </div>
                       <div className="flex flex-col gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="shrink-0 h-8 w-8"
+                          onClick={() => handleCopyCode(item)}
+                          title="複製"
+                        >
+                          <Files className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
