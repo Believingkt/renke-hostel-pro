@@ -332,6 +332,7 @@ export type Database = {
           created_at: string
           discount_type: string
           discount_value: number
+          display_order: number | null
           id: string
           is_active: boolean
           min_order_amount: number | null
@@ -351,6 +352,7 @@ export type Database = {
           created_at?: string
           discount_type: string
           discount_value: number
+          display_order?: number | null
           id?: string
           is_active?: boolean
           min_order_amount?: number | null
@@ -370,6 +372,7 @@ export type Database = {
           created_at?: string
           discount_type?: string
           discount_value?: number
+          display_order?: number | null
           id?: string
           is_active?: boolean
           min_order_amount?: number | null

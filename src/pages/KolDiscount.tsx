@@ -28,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, Copy, Pencil, Check, X, Eye, Calendar as CalendarIcon } from "lucide-react";
+import { Plus, Trash2, Copy, Pencil, Check, X, Eye, Calendar as CalendarIcon, GripVertical } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubdomain } from "@/hooks/use-subdomain";
@@ -40,6 +40,23 @@ import { cn } from "@/lib/utils";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface DiscountCode {
   id: string;
@@ -57,6 +74,7 @@ interface DiscountCode {
   applicable_room_types: string[];
   applicable_date_from: string | null;
   applicable_date_to: string | null;
+  display_order: number;
   created_at: string;
   updated_at: string;
 }
@@ -116,6 +134,7 @@ const KolDiscount = () => {
         .from("discount_codes")
         .select("*")
         .eq("accommodation_id", accommodationId)
+        .order("display_order", { ascending: true })
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -441,6 +460,207 @@ const KolDiscount = () => {
     }
 
     return <Badge variant="default" className="bg-green-600">有效</Badge>;
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    const oldIndex = discountCodes.findIndex((code) => code.id === active.id);
+    const newIndex = discountCodes.findIndex((code) => code.id === over.id);
+
+    const newOrder = arrayMove(discountCodes, oldIndex, newIndex);
+    setDiscountCodes(newOrder);
+
+    // 更新資料庫中的排序
+    try {
+      const updates = newOrder.map((code, index) => ({
+        id: code.id,
+        display_order: index + 1,
+      }));
+
+      for (const update of updates) {
+        await supabase
+          .from("discount_codes")
+          .update({ display_order: update.display_order })
+          .eq("id", update.id);
+      }
+
+      toast({
+        title: "排序已更新",
+      });
+    } catch (error) {
+      console.error("Error updating order:", error);
+      toast({
+        title: "排序更新失敗",
+        variant: "destructive",
+      });
+      // 恢復原始順序
+      fetchDiscountCodes();
+    }
+  };
+
+  // Sortable Row Component
+  const SortableRow = ({ item }: { item: DiscountCode }) => {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id: item.id });
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+      <TableRow ref={setNodeRef} style={style} key={item.id}>
+        <TableCell>
+          <button
+            className="cursor-grab active:cursor-grabbing touch-none"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="h-5 w-5 text-muted-foreground" />
+          </button>
+        </TableCell>
+        <TableCell className="font-medium">{item.name}</TableCell>
+        <TableCell>
+          <div className="flex items-center gap-2">
+            <code className="px-2 py-1 bg-muted rounded text-sm font-mono">
+              {item.code}
+            </code>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => handleCopyCode(item.code)}
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
+        </TableCell>
+        <TableCell>
+          {formatDiscount(item.discount_type, item.discount_value)}
+        </TableCell>
+        <TableCell>{item.used_count} 次</TableCell>
+        <TableCell>
+          <div className="flex items-center gap-2">
+            {editingLimitId === item.id ? (
+              <>
+                <Input
+                  type="number"
+                  min="1"
+                  value={editingLimitValue}
+                  onChange={(e) => setEditingLimitValue(e.target.value)}
+                  className="w-20 h-8"
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => handleSaveLimit(item.id)}
+                >
+                  <Check className="h-4 w-4 text-success" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={handleCancelEdit}
+                >
+                  <X className="h-4 w-4 text-destructive" />
+                </Button>
+              </>
+            ) : (
+              <>
+                <span>{item.usage_limit} 次</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => handleEditLimit(item.id, item.usage_limit)}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </>
+            )}
+          </div>
+        </TableCell>
+        <TableCell>
+          <div className="text-sm space-y-1">
+            <div>{format(new Date(item.valid_from), "yyyy/MM/dd")}</div>
+            {item.valid_until && (
+              <div className="text-muted-foreground">
+                至 {format(new Date(item.valid_until), "yyyy/MM/dd")}
+              </div>
+            )}
+            {!item.valid_until && (
+              <div className="text-muted-foreground">無期限</div>
+            )}
+          </div>
+        </TableCell>
+        <TableCell>
+          {getStatusBadge(item)}
+        </TableCell>
+        <TableCell>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => handleOpenEdit(item)}
+              title="編輯"
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => navigate(`/admin/discount-codes/${item.code}/orders`)}
+              title="查看訂單"
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => toggleActive(item.id, item.is_active)}
+              title={item.is_active ? "停用" : "啟用"}
+            >
+              {item.is_active ? (
+                <X className="h-4 w-4 text-orange-500" />
+              ) : (
+                <Check className="h-4 w-4 text-green-600" />
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleDelete(item.id)}
+            >
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </Button>
+          </div>
+        </TableCell>
+      </TableRow>
+    );
   };
 
   if (isLoading) {
@@ -970,6 +1190,7 @@ const KolDiscount = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12"></TableHead>
                   <TableHead>名稱</TableHead>
                   <TableHead>折扣碼</TableHead>
                   <TableHead>折扣</TableHead>
@@ -983,136 +1204,25 @@ const KolDiscount = () => {
               <TableBody>
                 {discountCodes.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       尚無折扣碼
                     </TableCell>
                   </TableRow>
                 ) : (
-                  discountCodes.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.name}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <code className="px-2 py-1 bg-muted rounded text-sm font-mono">
-                            {item.code}
-                          </code>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleCopyCode(item.code)}
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {formatDiscount(item.discount_type, item.discount_value)}
-                      </TableCell>
-                      <TableCell>{item.used_count} 次</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {editingLimitId === item.id ? (
-                            <>
-                              <Input
-                                type="number"
-                                min="1"
-                                value={editingLimitValue}
-                                onChange={(e) => setEditingLimitValue(e.target.value)}
-                                className="w-20 h-8"
-                              />
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => handleSaveLimit(item.id)}
-                              >
-                                <Check className="h-4 w-4 text-success" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={handleCancelEdit}
-                              >
-                                <X className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </>
-                          ) : (
-                            <>
-                              <span>{item.usage_limit} 次</span>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => handleEditLimit(item.id, item.usage_limit)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm space-y-1">
-                          <div>{format(new Date(item.valid_from), "yyyy/MM/dd")}</div>
-                          {item.valid_until && (
-                            <div className="text-muted-foreground">
-                              至 {format(new Date(item.valid_until), "yyyy/MM/dd")}
-                            </div>
-                          )}
-                          {!item.valid_until && (
-                            <div className="text-muted-foreground">無期限</div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {getStatusBadge(item)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleOpenEdit(item)}
-                            title="編輯"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => navigate(`/admin/discount-codes/${item.code}/orders`)}
-                            title="查看訂單"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => toggleActive(item.id, item.is_active)}
-                            title={item.is_active ? "停用" : "啟用"}
-                          >
-                            {item.is_active ? (
-                              <X className="h-4 w-4 text-orange-500" />
-                            ) : (
-                              <Check className="h-4 w-4 text-green-600" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(item.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext
+                      items={discountCodes.map(code => code.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {discountCodes.map((item) => (
+                        <SortableRow key={item.id} item={item} />
+                      ))}
+                    </SortableContext>
+                  </DndContext>
                 )}
               </TableBody>
             </Table>
