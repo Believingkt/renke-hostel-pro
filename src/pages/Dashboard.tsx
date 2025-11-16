@@ -254,7 +254,11 @@ const Dashboard = () => {
   console.log('Final chart data:', {
     revenueData: finalRevenueData,
     bookingData: finalBookingData,
-    occupancyData: finalOccupancyData
+    occupancyData: finalOccupancyData,
+    revenueDataKeys: finalRevenueData.length > 0 ? Object.keys(finalRevenueData[0]) : [],
+    bookingDataKeys: finalBookingData.length > 0 ? Object.keys(finalBookingData[0]) : [],
+    revenueDataSample: finalRevenueData[0],
+    bookingDataSample: finalBookingData[0],
   });
 
   const dashboardContent = (
@@ -453,8 +457,7 @@ const Dashboard = () => {
                   tick={{ fontSize: chartFontSize, fill: 'hsl(var(--muted-foreground))' }}
                   stroke="hsl(var(--border))"
                   tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value.toString()}
-                  domain={[0, 'dataMax+1000']}
-                  scale="linear"
+                  domain={[0, (dataMax: number) => (dataMax > 0 ? Math.ceil(dataMax * 1.1) : 1000)]}
                   allowDataOverflow={false}
                   allowDecimals={false}
                 />
@@ -515,8 +518,7 @@ const Dashboard = () => {
                 <YAxis 
                   tick={{ fontSize: chartFontSize, fill: 'hsl(var(--muted-foreground))' }}
                   stroke="hsl(var(--border))"
-                  domain={[0, 'dataMax+10']}
-                  scale="linear"
+                  domain={[0, (dataMax: number) => (dataMax > 0 ? Math.ceil(dataMax * 1.1) : 10)]}
                   allowDataOverflow={false}
                   allowDecimals={false}
                 />
