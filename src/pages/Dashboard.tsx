@@ -276,9 +276,13 @@ const Dashboard = () => {
   const revenueDomain = (Number.isFinite(maxRevenue) && maxRevenue > 0) ? Math.ceil(maxRevenue * 1.2) : 10000;
   const bookingDomain = (Number.isFinite(maxBookings) && maxBookings > 0) ? Math.ceil(maxBookings * 1.2) : 50;
   
+  // Extra validation - ensure domains are truly safe integers
+  const safeRevenueDomain = Number.isFinite(revenueDomain) && revenueDomain > 0 ? Math.floor(revenueDomain) : 10000;
+  const safeBookingDomain = Number.isFinite(bookingDomain) && bookingDomain > 0 ? Math.floor(bookingDomain) : 50;
+  
   // Validate that domains are safe for recharts
-  const isRevenueChartSafe = Number.isFinite(revenueDomain) && revenueDomain > 0;
-  const isBookingChartSafe = Number.isFinite(bookingDomain) && bookingDomain > 0;
+  const isRevenueChartSafe = Number.isFinite(safeRevenueDomain) && safeRevenueDomain > 0;
+  const isBookingChartSafe = Number.isFinite(safeBookingDomain) && safeBookingDomain > 0;
   
   // Debug: Log the final data being passed to charts
   console.log('Final chart data:', {
@@ -289,12 +293,12 @@ const Dashboard = () => {
     maxBookings,
     revenueDomain,
     bookingDomain,
+    safeRevenueDomain,
+    safeBookingDomain,
     isRevenueChartSafe,
     isBookingChartSafe,
     revenueDataKeys: finalRevenueData.length > 0 ? Object.keys(finalRevenueData[0]) : [],
     bookingDataKeys: finalBookingData.length > 0 ? Object.keys(finalBookingData[0]) : [],
-    revenueDataSample: finalRevenueData[0],
-    bookingDataSample: finalBookingData[0],
   });
 
   const dashboardContent = (
@@ -493,8 +497,12 @@ const Dashboard = () => {
                 <YAxis 
                   tick={{ fontSize: chartFontSize, fill: 'hsl(var(--muted-foreground))' }}
                   stroke="hsl(var(--border))"
-                  tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value.toString()}
-                  domain={[0, revenueDomain]}
+                  tickFormatter={(value) => {
+                    if (typeof value !== 'number' || !Number.isFinite(value)) return '0';
+                    return value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value.toString();
+                  }}
+                  domain={[0, Number(safeRevenueDomain)]}
+                  type="number"
                 />
                 <Tooltip 
                   contentStyle={{
@@ -555,7 +563,8 @@ const Dashboard = () => {
                 <YAxis 
                   tick={{ fontSize: chartFontSize, fill: 'hsl(var(--muted-foreground))' }}
                   stroke="hsl(var(--border))"
-                  domain={[0, bookingDomain]}
+                  domain={[0, Number(safeBookingDomain)]}
+                  type="number"
                 />
                 <Tooltip 
                   contentStyle={{
