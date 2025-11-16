@@ -12,6 +12,7 @@ import { RoomFacilitiesForm } from "@/components/RoomFacilitiesForm";
 import { TabsSkeleton } from "@/components/skeletons/TabsSkeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
+import PublicHolidays from "@/pages/PublicHolidays";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -295,11 +296,12 @@ const Pricing = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full max-w-2xl grid-cols-4">
+        <TabsList className="grid w-full max-w-2xl grid-cols-5">
           <TabsTrigger value="rooms">房型管理</TabsTrigger>
           <TabsTrigger value="basic">價格管理</TabsTrigger>
           <TabsTrigger value="facilities">客房設施</TabsTrigger>
           <TabsTrigger value="inventory">庫存管理</TabsTrigger>
+          <TabsTrigger value="holidays">國定假日</TabsTrigger>
         </TabsList>
 
         <TabsContent value="rooms" className="space-y-4">
@@ -413,6 +415,10 @@ const Pricing = () => {
               <p className="text-muted-foreground">庫存管理內容</p>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="holidays" className="space-y-4">
+          <PublicHolidays />
         </TabsContent>
       </Tabs>
 
