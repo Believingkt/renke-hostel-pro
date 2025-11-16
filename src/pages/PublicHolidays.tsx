@@ -446,7 +446,31 @@ const PublicHolidays = () => {
             </div>
             <div className="flex flex-wrap gap-2">
               <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "list" | "calendar")} className="w-auto">
-                <TabsList>
+                {/* 手機版：下拉選單 */}
+                <div className="md:hidden">
+                  <Select value={viewMode} onValueChange={(v) => setViewMode(v as "list" | "calendar")}>
+                    <SelectTrigger className="w-[140px] h-9 bg-background border-border/50">
+                      <SelectValue placeholder="選擇檢視" />
+                    </SelectTrigger>
+                    <SelectContent className="z-50 bg-background border-border">
+                      <SelectItem value="list">
+                        <div className="flex items-center gap-2">
+                          <List className="h-4 w-4" />
+                          <span>列表</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="calendar">
+                        <div className="flex items-center gap-2">
+                          <LayoutGrid className="h-4 w-4" />
+                          <span>月曆</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* 桌面版：Tab 列表 */}
+                <TabsList className="hidden md:flex">
                   <TabsTrigger value="list" className="gap-2">
                     <List className="h-4 w-4" />
                     列表
