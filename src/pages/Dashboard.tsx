@@ -1,6 +1,7 @@
-import { Hotel, Users, Calendar, DollarSign, Radio } from "lucide-react";
+import { Hotel, Users, Calendar, DollarSign, Radio, Zap } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubdomain } from "@/hooks/use-subdomain";
@@ -61,6 +62,7 @@ const Dashboard = () => {
   const [isLiveUpdating, setIsLiveUpdating] = useState(false);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date());
   const [comparisonMode, setComparisonMode] = useState<'lastYear' | 'lastMonth'>('lastYear');
+  const [isGenerating, setIsGenerating] = useState(false);
   
   // 統計數據
   const [totalRooms, setTotalRooms] = useState(0);
@@ -299,6 +301,34 @@ const Dashboard = () => {
       }
     };
 
+  const handleGenerateTestData = async () => {
+    if (!accommodationId) {
+      toast.error("無法取得住宿 ID");
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-test-orders', {
+        body: {
+          accommodationId,
+          count: 20,
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success(data.message || '成功生成測試數據');
+      // 重新載入數據
+      fetchData();
+    } catch (error) {
+      console.error('Error generating test data:', error);
+      toast.error('生成測試數據失敗');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   useEffect(() => {
     if (!accommodationId) return;
     fetchData();
@@ -366,6 +396,16 @@ const Dashboard = () => {
       <div className="px-2 md:px-0 flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">營運分析</h1>
         <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleGenerateTestData}
+            disabled={isGenerating}
+            className="gap-2"
+          >
+            <Zap className={`h-4 w-4 ${isGenerating ? 'animate-pulse' : ''}`} />
+            {isGenerating ? '生成中...' : '生成測試數據'}
+          </Button>
           <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
             <button
               onClick={() => setComparisonMode('lastYear')}

@@ -1,0 +1,184 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+interface TestOrderParams {
+  accommodationId: string;
+  count?: number;
+}
+
+Deno.serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    console.log('Starting test order generation...');
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    const { accommodationId, count = 20 }: TestOrderParams = await req.json();
+
+    if (!accommodationId) {
+      throw new Error('Accommodation ID is required');
+    }
+
+    console.log(`Generating ${count} test orders for accommodation ${accommodationId}`);
+
+    // 獲取現有房型
+    const { data: roomTypes, error: roomTypesError } = await supabaseClient
+      .from('room_types')
+      .select('id, name, base_price, weekday_price, weekend_price')
+      .eq('accommodation_id', accommodationId);
+
+    if (roomTypesError) throw roomTypesError;
+    if (!roomTypes || roomTypes.length === 0) {
+      throw new Error('No room types found for this accommodation');
+    }
+
+    console.log(`Found ${roomTypes.length} room types`);
+
+    // 生成測試顧客資料
+    const testCustomers = [];
+    const customerNames = [
+      '王小明', '李小華', '張志偉', '陳美玲', '林建宏',
+      '黃淑芬', '吳俊傑', '劉怡君', '鄭雅婷', '蔡宗翰',
+      '許家瑋', '謝佳穎', '周宜靜', '楊承翰', '賴思妤'
+    ];
+
+    for (let i = 0; i < Math.min(count, 15); i++) {
+      const customerData = {
+        accommodation_id: accommodationId,
+        name: customerNames[i % customerNames.length] + (i > 14 ? ` ${Math.floor(i / 15) + 1}` : ''),
+        phone: `09${String(Math.floor(Math.random() * 100000000)).padStart(8, '0')}`,
+        email: `customer${i + 1}@test.com`,
+        visit_count: Math.floor(Math.random() * 5) + 1,
+        notes: Math.random() > 0.7 ? '測試顧客資料' : null,
+      };
+      testCustomers.push(customerData);
+    }
+
+    // 插入測試顧客
+    const { data: insertedCustomers, error: customersError } = await supabaseClient
+      .from('customers')
+      .insert(testCustomers)
+      .select();
+
+    if (customersError) throw customersError;
+    console.log(`Created ${insertedCustomers.length} test customers`);
+
+    // 生成測試訂單
+    const testOrders = [];
+    const orderStatuses = ['pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled'];
+    const paymentStatuses = ['unpaid', 'partial', 'paid'];
+    const mealPlans = [null, '一泊一食', '一泊二食', '一泊三食'];
+
+    for (let i = 0; i < count; i++) {
+      const customer = insertedCustomers[i % insertedCustomers.length];
+      const roomType = roomTypes[Math.floor(Math.random() * roomTypes.length)];
+      
+      // 隨機生成過去6個月的訂單日期
+      const daysAgo = Math.floor(Math.random() * 180);
+      const orderDate = new Date();
+      orderDate.setDate(orderDate.getDate() - daysAgo);
+      
+      // 入住日期在訂單日期之後 1-30 天
+      const checkInDate = new Date(orderDate);
+      checkInDate.setDate(checkInDate.getDate() + Math.floor(Math.random() * 30) + 1);
+      
+      // 退房日期在入住日期之後 1-5 天
+      const checkOutDate = new Date(checkInDate);
+      checkOutDate.setDate(checkOutDate.getDate() + Math.floor(Math.random() * 4) + 1);
+      
+      const guestCount = Math.floor(Math.random() * 4) + 1;
+      const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // 計算價格
+      const basePrice = roomType.weekday_price || roomType.base_price;
+      const totalPrice = basePrice * nights;
+      const discountAmount = Math.random() > 0.7 ? Math.floor(totalPrice * 0.1) : 0;
+      const finalPrice = totalPrice - discountAmount;
+      
+      const orderStatus = orderStatuses[Math.floor(Math.random() * orderStatuses.length)];
+      const paymentStatus = orderStatus === 'cancelled' ? 'unpaid' : 
+                           paymentStatuses[Math.floor(Math.random() * paymentStatuses.length)];
+      
+      const paidAmount = paymentStatus === 'paid' ? finalPrice :
+                        paymentStatus === 'partial' ? Math.floor(finalPrice * 0.3) : 0;
+
+      const orderData = {
+        accommodation_id: accommodationId,
+        customer_id: customer.id,
+        room_type_id: roomType.id,
+        order_date: orderDate.toISOString(),
+        check_in_date: checkInDate.toISOString().split('T')[0],
+        check_out_date: checkOutDate.toISOString().split('T')[0],
+        guest_count: guestCount,
+        guest_name: customer.name,
+        guest_phone: customer.phone,
+        guest_email: customer.email,
+        total_price: totalPrice,
+        discount_amount: discountAmount,
+        final_price: finalPrice,
+        paid_amount: paidAmount,
+        deposit_amount: Math.floor(finalPrice * 0.3),
+        order_status: orderStatus,
+        payment_status: paymentStatus,
+        payment_method: Math.random() > 0.5 ? '現金' : '轉帳',
+        meal_plan: mealPlans[Math.floor(Math.random() * mealPlans.length)],
+        pet_count: Math.random() > 0.8 ? Math.floor(Math.random() * 2) + 1 : 0,
+        notes: Math.random() > 0.8 ? '測試訂單資料' : null,
+        confirmed_at: orderStatus !== 'pending' ? orderDate.toISOString() : null,
+        checked_in_at: ['checked_in', 'checked_out'].includes(orderStatus) ? checkInDate.toISOString() : null,
+        checked_out_at: orderStatus === 'checked_out' ? checkOutDate.toISOString() : null,
+        cancelled_at: orderStatus === 'cancelled' ? orderDate.toISOString() : null,
+      };
+      
+      testOrders.push(orderData);
+    }
+
+    // 插入測試訂單
+    const { data: insertedOrders, error: ordersError } = await supabaseClient
+      .from('orders')
+      .insert(testOrders)
+      .select();
+
+    if (ordersError) throw ordersError;
+    console.log(`Created ${insertedOrders.length} test orders`);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: `成功生成 ${insertedOrders.length} 筆測試訂單和 ${insertedCustomers.length} 位測試顧客`,
+        data: {
+          orders: insertedOrders.length,
+          customers: insertedCustomers.length,
+        },
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      }
+    );
+  } catch (error) {
+    console.error('Error generating test orders:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: errorMessage,
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      }
+    );
+  }
+});
