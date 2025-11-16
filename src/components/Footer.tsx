@@ -2,6 +2,8 @@ import { Separator } from "@/components/ui/separator";
 import { MapPin, Phone, Mail, Facebook, Instagram, Youtube } from "lucide-react";
 import sensanLogoWhite from "@/assets/sensan-logo-white.png";
 import lakezeLogoWhite from "@/assets/lakeze-logo-white.png";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface FooterProps {
   accommodationName?: string;
@@ -17,6 +19,28 @@ interface FooterProps {
 }
 
 const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl, instagramUrl, threadsUrl, youtubeUrl, tiktokUrl }: FooterProps) => {
+  const [footerLogoUrl, setFooterLogoUrl] = useState<string>("");
+
+  useEffect(() => {
+    const fetchFooterLogo = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("accommodation_info")
+          .select("footer_logo_url")
+          .maybeSingle();
+
+        if (!error && data?.footer_logo_url) {
+          setFooterLogoUrl(data.footer_logo_url);
+        }
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.error("Error fetching footer logo:", error);
+        }
+      }
+    };
+
+    fetchFooterLogo();
+  }, []);
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -33,7 +57,11 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
             {/* 左側 - Logo 與社交媒體 */}
             <div>
               <div className="mb-4 md:mb-6">
-                <img src={sensanLogoWhite} alt={accommodationName || "森山寫照"} className="h-12 md:h-16 w-auto" />
+                <img 
+                  src={footerLogoUrl || sensanLogoWhite} 
+                  alt={accommodationName || "森山寫照"} 
+                  className="h-12 md:h-16 w-auto object-contain" 
+                />
               </div>
               <div className="flex gap-4">
                 {facebookUrl && (
