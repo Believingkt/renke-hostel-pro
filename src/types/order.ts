@@ -7,6 +7,9 @@ export interface Order {
   check_out_date: string;
   order_status: string;
   payment_status: string;
+  total_price: number;
+  discount_amount: number;
+  discount_code: string | null;
   final_price: number;
   paid_amount: number;
   notes: string | null;

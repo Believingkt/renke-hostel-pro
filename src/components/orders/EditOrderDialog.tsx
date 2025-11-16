@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Tag, X } from "lucide-react";
 import { format, parseISO, isAfter, isBefore } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Order } from "@/types/order";
@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { detectBookingConflict } from "@/utils/bookingConflictDetection";
 import { useAccommodation } from "@/contexts/AccommodationContext";
+import { Badge } from "@/components/ui/badge";
 
 interface RoomType {
   id: string;
@@ -39,7 +40,9 @@ interface EditOrderDialogProps {
     room_type_id: string;
     guest_count: number;
     total_price: number;
+    discount_amount: number;
     final_price: number;
+    discount_code: string | null;
   }) => Promise<void>;
 }
 
@@ -50,7 +53,10 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [isValidating, setIsValidating] = useState(false);
   const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
-  const [calculatedPrice, setCalculatedPrice] = useState({ total: 0, final: 0 });
+  const [calculatedPrice, setCalculatedPrice] = useState({ total: 0, discount: 0, final: 0 });
+  const [discountCode, setDiscountCode] = useState("");
+  const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; type: "percentage" | "amount"; value: number } | null>(null);
+  const [isValidatingCode, setIsValidatingCode] = useState(false);
   const [editForm, setEditForm] = useState({
     order_status: "",
     payment_status: "",
@@ -102,6 +108,21 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
         room_type_id: order.room_types?.id || "",
         guest_count: order.guest_count,
       });
+      
+      // 載入現有的折扣碼
+      if (order.discount_code) {
+        setDiscountCode(order.discount_code);
+        setAppliedDiscount({
+          code: order.discount_code,
+          type: order.discount_amount && order.total_price 
+            ? (order.discount_amount / order.total_price > 1 ? "amount" : "percentage")
+            : "amount",
+          value: order.discount_amount || 0
+        });
+      } else {
+        setDiscountCode("");
+        setAppliedDiscount(null);
+      }
     }
   }, [order]);
 
@@ -123,16 +144,24 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
     return Math.ceil(diff / (1000 * 3600 * 24));
   };
 
+  const calculateDiscount = (total: number) => {
+    if (!appliedDiscount) return 0;
+    if (appliedDiscount.type === "percentage") {
+      return Math.round(total * (appliedDiscount.value / 100));
+    }
+    return appliedDiscount.value;
+  };
+
   const calculatePrice = () => {
     if (!editForm.room_type_id || !editForm.check_in_date || !editForm.check_out_date) {
-      return { total: 0, final: 0 };
+      return { total: 0, discount: 0, final: 0 };
     }
 
     const selectedRoomType = roomTypes.find(r => r.id === editForm.room_type_id);
-    if (!selectedRoomType) return { total: 0, final: 0 };
+    if (!selectedRoomType) return { total: 0, discount: 0, final: 0 };
 
     const nights = calculateNights();
-    if (nights === 0) return { total: 0, final: 0 };
+    if (nights === 0) return { total: 0, discount: 0, final: 0 };
 
     let total = 0;
     const start = new Date(editForm.check_in_date);
@@ -153,14 +182,83 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
       total += pricePerNight;
     }
 
-    return { total, final: total };
+    const discount = calculateDiscount(total);
+    const final = Math.max(0, total - discount);
+
+    return { total, discount, final };
   };
 
-  // Recalculate price when dates or room type change
+  // Recalculate price when dates, room type, or discount change
   useEffect(() => {
     const newPrice = calculatePrice();
     setCalculatedPrice(newPrice);
-  }, [editForm.check_in_date, editForm.check_out_date, editForm.room_type_id, roomTypes, publicHolidays]);
+  }, [editForm.check_in_date, editForm.check_out_date, editForm.room_type_id, roomTypes, publicHolidays, appliedDiscount]);
+
+  const handleApplyDiscount = async () => {
+    if (!discountCode.trim() || !currentAccommodationId) {
+      toast({
+        title: "請輸入折扣代碼",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsValidatingCode(true);
+    
+    try {
+      const { data, error } = await supabase.rpc('validate_discount_code', {
+        p_code: discountCode.trim().toUpperCase(),
+        p_accommodation_id: currentAccommodationId,
+        p_order_amount: calculatedPrice.total,
+        p_room_type_id: editForm.room_type_id || null,
+        p_check_in_date: editForm.check_in_date || null
+      });
+
+      if (error) throw error;
+
+      const result = data[0];
+      
+      if (result.is_valid) {
+        setAppliedDiscount({
+          code: discountCode.trim().toUpperCase(),
+          type: result.discount_type as "percentage" | "amount",
+          value: result.discount_value
+        });
+        toast({
+          title: "折扣代碼已套用",
+          description: `已套用 ${
+            result.discount_type === "percentage"
+              ? `${result.discount_value}% 折扣`
+              : `NT$ ${result.discount_value} 折扣`
+          }`,
+        });
+      } else {
+        toast({
+          title: "折扣代碼無效",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error validating discount code:", error);
+      toast({
+        title: "驗證失敗",
+        description: "無法驗證折扣代碼，請稍後再試",
+        variant: "destructive",
+      });
+    } finally {
+      setIsValidatingCode(false);
+    }
+  };
+
+  const handleRemoveDiscount = () => {
+    setAppliedDiscount(null);
+    setDiscountCode("");
+    toast({
+      title: "已移除折扣",
+      description: "折扣代碼已清除",
+    });
+  };
 
   const handleSave = async () => {
     // Validate dates
@@ -248,7 +346,9 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
       await onSave({
         ...editForm,
         total_price: calculatedPrice.total,
+        discount_amount: calculatedPrice.discount,
         final_price: calculatedPrice.final,
+        discount_code: appliedDiscount?.code || null,
       });
       onOpenChange(false);
     } finally {
@@ -423,6 +523,51 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
             />
           </div>
 
+          {/* Discount Code Section */}
+          <div className="space-y-2 pt-4 border-t">
+            <Label className="flex items-center gap-2">
+              <Tag className="h-4 w-4" />
+              折扣碼
+            </Label>
+            {appliedDiscount ? (
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-sm py-2 px-3">
+                  {appliedDiscount.code} - 
+                  {appliedDiscount.type === "percentage" 
+                    ? ` ${appliedDiscount.value}% 折扣` 
+                    : ` NT$ ${appliedDiscount.value} 折扣`}
+                </Badge>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRemoveDiscount}
+                  className="h-8 w-8 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <Input
+                  value={discountCode}
+                  onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                  placeholder="輸入折扣代碼"
+                  className="flex-1"
+                  disabled={isValidatingCode}
+                />
+                <Button
+                  type="button"
+                  onClick={handleApplyDiscount}
+                  disabled={isValidatingCode || !discountCode.trim()}
+                  variant="outline"
+                >
+                  {isValidatingCode ? "驗證中..." : "套用"}
+                </Button>
+              </div>
+            )}
+          </div>
+
           {/* Price Display */}
           {calculatedPrice.total > 0 && (
             <div className="space-y-2 pt-4 border-t">
@@ -430,6 +575,16 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
                 <span className="text-sm text-muted-foreground">住宿天數</span>
                 <span className="font-medium">{calculateNights()} 晚</span>
               </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">小計</span>
+                <span className="font-medium">NT$ {calculatedPrice.total.toLocaleString()}</span>
+              </div>
+              {calculatedPrice.discount > 0 && (
+                <div className="flex justify-between items-center text-green-600">
+                  <span className="text-sm">折扣</span>
+                  <span className="font-medium">- NT$ {calculatedPrice.discount.toLocaleString()}</span>
+                </div>
+              )}
               <div className="flex justify-between items-center py-3 bg-primary/5 px-4 rounded-lg">
                 <span className="font-semibold">總金額</span>
                 <span className="font-bold text-lg text-primary">
