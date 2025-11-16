@@ -329,6 +329,7 @@ export type Database = {
         Row: {
           accommodation_id: string
           backup_type: string
+          compression_ratio: number | null
           created_at: string | null
           created_by: string | null
           customers_count: number | null
@@ -336,13 +337,16 @@ export type Database = {
           file_path: string
           file_size: number | null
           id: string
+          is_compressed: boolean | null
           orders_count: number | null
           status: string
+          uncompressed_size: number | null
           updated_at: string | null
         }
         Insert: {
           accommodation_id: string
           backup_type: string
+          compression_ratio?: number | null
           created_at?: string | null
           created_by?: string | null
           customers_count?: number | null
@@ -350,13 +354,16 @@ export type Database = {
           file_path: string
           file_size?: number | null
           id?: string
+          is_compressed?: boolean | null
           orders_count?: number | null
           status?: string
+          uncompressed_size?: number | null
           updated_at?: string | null
         }
         Update: {
           accommodation_id?: string
           backup_type?: string
+          compression_ratio?: number | null
           created_at?: string | null
           created_by?: string | null
           customers_count?: number | null
@@ -364,8 +371,10 @@ export type Database = {
           file_path?: string
           file_size?: number | null
           id?: string
+          is_compressed?: boolean | null
           orders_count?: number | null
           status?: string
+          uncompressed_size?: number | null
           updated_at?: string | null
         }
         Relationships: [
