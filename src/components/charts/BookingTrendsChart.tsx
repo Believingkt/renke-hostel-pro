@@ -21,10 +21,10 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
       ? ['今年', '去年'] 
       : ['本月', '上月'];
 
-  // 使用紫色系配色
+  // 使用綠青漸層配色
   const chartColors = isCustomRange 
-    ? ["violet"]
-    : ["violet", "purple"];
+    ? ["emerald"]
+    : ["emerald", "teal"];
 
   // 檢查是否有實際數據
   const hasRealData = data.some(d => 
@@ -50,9 +50,9 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
   }
 
   return (
-    <div className="animate-fade-in rounded-lg" key={`booking-chart-${comparisonMode}`}>
+    <div className="animate-fade-in" key={`booking-chart-${comparisonMode}`}>
       <LineChart
-        className="h-[300px]"
+        className="h-[280px]"
         data={data}
         index="month"
         categories={categories}
@@ -63,8 +63,8 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
         showGridLines={false}
         showXAxis={true}
         showYAxis={true}
-        curveType="natural"
-        animationDuration={600}
+        curveType="monotone"
+        animationDuration={800}
         connectNulls={true}
         showAnimation={true}
         autoMinValue={true}

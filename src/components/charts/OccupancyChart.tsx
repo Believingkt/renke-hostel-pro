@@ -30,13 +30,13 @@ export const OccupancyChart = ({ data }: OccupancyChartProps) => {
   }
 
   return (
-    <div className="animate-fade-in rounded-lg">
+    <div className="animate-fade-in">
       <BarChart
-        className="h-[300px]"
+        className="h-[280px]"
         data={data}
         index="roomType"
         categories={["occupancyRate"]}
-        colors={["emerald"]}
+        colors={["amber"]}
         valueFormatter={valueFormatter}
         yAxisWidth={80}
         showLegend={false}
@@ -44,7 +44,7 @@ export const OccupancyChart = ({ data }: OccupancyChartProps) => {
         showXAxis={true}
         showYAxis={true}
         layout="vertical"
-        animationDuration={600}
+        animationDuration={800}
         showAnimation={true}
         autoMinValue={true}
         showTooltip={true}

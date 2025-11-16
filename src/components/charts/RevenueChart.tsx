@@ -21,10 +21,10 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
       ? ['今年', '去年'] 
       : ['本月', '上月'];
 
-  // 使用漸層藍色系配色
+  // 使用藍紫漸層配色
   const chartColors = isCustomRange 
-    ? ["sky"]
-    : ["sky", "blue"];
+    ? ["blue"]
+    : ["blue", "indigo"];
 
   // 檢查是否有實際數據
   const hasRealData = data.some(d => 
@@ -57,9 +57,9 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
   }
 
   return (
-    <div className="animate-fade-in rounded-lg" key={`revenue-chart-${comparisonMode}`}>
+    <div className="animate-fade-in" key={`revenue-chart-${comparisonMode}`}>
       <BarChart
-        className="h-[300px]"
+        className="h-[280px]"
         data={data}
         index="month"
         categories={categories}
@@ -70,7 +70,7 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
         showGridLines={false}
         showXAxis={true}
         showYAxis={true}
-        animationDuration={600}
+        animationDuration={800}
         showAnimation={true}
         autoMinValue={true}
         allowDecimals={false}
