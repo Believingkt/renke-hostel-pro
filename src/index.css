@@ -420,12 +420,12 @@ All colors MUST be HSL.
   /* 優化 Tooltip 樣式 */
   .tremor-Tooltip-root {
     background: hsl(var(--popover) / 0.98) !important;
-    backdrop-filter: blur(8px) !important;
-    border: 1px solid hsl(var(--border) / 0.5) !important;
-    border-radius: 0.5rem !important;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+    backdrop-filter: blur(12px) saturate(180%) !important;
+    border: 1px solid hsl(var(--border) / 0.6) !important;
+    border-radius: 0.75rem !important;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.12) !important;
     color: hsl(var(--popover-foreground)) !important;
-    padding: 0.75rem 1rem !important;
+    padding: 0.875rem 1.125rem !important;
     font-size: 0.875rem !important;
     pointer-events: none !important;
     z-index: 50 !important;
@@ -437,20 +437,26 @@ All colors MUST be HSL.
     font-weight: 600;
     line-height: 1.6;
   }
+  
+  .tremor-Tooltip-content strong {
+    font-weight: 700;
+    color: hsl(var(--primary));
+  }
 
   /* Tooltip 項目間距 */
   .tremor-Tooltip-item {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.125rem 0;
+    gap: 0.625rem;
+    padding: 0.25rem 0;
   }
 
   /* Tooltip 顏色指示器 */
   .tremor-Tooltip-colorBox {
-    width: 0.75rem;
-    height: 0.75rem;
-    border-radius: 0.125rem;
+    width: 0.875rem;
+    height: 0.875rem;
+    border-radius: 0.25rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
 
   /* 優化 Legend 樣式 */
@@ -471,31 +477,71 @@ All colors MUST be HSL.
     color: hsl(var(--foreground));
   }
 
-  /* Chart Bar/Line Hover 優化 */
-  .tremor-BarChart-bar {
-    transition: opacity 0.15s ease, filter 0.15s ease;
+  /* Chart Bar Hover 優化 - 增加漸變和陰影效果 */
+  .tremor-BarChart-bar,
+  .recharts-bar-rectangle {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
+    rx: 4;
   }
 
-  .tremor-BarChart-bar:hover {
-    opacity: 0.9;
-    filter: brightness(1.05);
+  .tremor-BarChart-bar:hover,
+  .recharts-bar-rectangle:hover {
+    opacity: 0.85;
+    filter: brightness(1.1) saturate(1.2);
+    transform: translateY(-1px);
   }
 
-  /* Line Chart Hover 優化 */
-  .tremor-LineChart-line {
-    transition: stroke-width 0.15s ease;
+  /* Line Chart 優化 - 增加陰影效果 */
+  .tremor-LineChart-line,
+  .recharts-line-curve {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
   }
 
-  /* 優化圖表標記點 */
-  .tremor-LineChart-dot {
-    transition: r 0.15s ease, opacity 0.15s ease;
+  .tremor-LineChart-line:hover,
+  .recharts-line-curve:hover {
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+    stroke-width: 3 !important;
+  }
+
+  /* 優化圖表標記點 - 增加脈動效果 */
+  .tremor-LineChart-dot,
+  .recharts-dot {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
   }
 
-  .tremor-LineChart-dot:hover {
-    r: 5;
+  .tremor-LineChart-dot:hover,
+  .recharts-dot:hover {
+    r: 6 !important;
     opacity: 1;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.25));
+    animation: pulse-dot 0.6s ease-in-out;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+  }
+
+  /* 圖表網格線優化 */
+  .recharts-cartesian-grid-horizontal line,
+  .recharts-cartesian-grid-vertical line {
+    stroke: hsl(var(--border) / 0.3);
+    stroke-dasharray: 3 3;
+  }
+
+  /* 圖表軸線優化 */
+  .recharts-cartesian-axis-line {
+    stroke: hsl(var(--border) / 0.5);
+  }
+
+  .recharts-cartesian-axis-tick-value {
+    fill: hsl(var(--muted-foreground));
+    font-size: 0.75rem;
+    font-weight: 500;
   }
 
   /* 圖表互動區域 */
@@ -503,11 +549,10 @@ All colors MUST be HSL.
     overflow: visible !important;
   }
 
-  /* 優化 hover 時的游標 */
-  .recharts-bar-rectangle:hover,
-  .recharts-line-curve:hover,
-  .recharts-dot:hover {
-    cursor: pointer;
+  /* 圖表容器美化 */
+  .tremor-BarChart-root,
+  .tremor-LineChart-root {
+    border-radius: 0.75rem;
   }
 }
 
