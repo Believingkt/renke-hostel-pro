@@ -393,33 +393,39 @@ const PublicHolidays = () => {
     <div className="space-y-6">
       {/* 統計卡片 */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card>
+        <Card className="animate-fade-in hover-scale cursor-pointer transition-all duration-300 hover:shadow-lg hover:border-primary/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">總假日數</CardTitle>
-            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+            <CalendarDays className="h-4 w-4 text-muted-foreground animate-pulse" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
+            <div className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              {stats.total}
+            </div>
             <p className="text-xs text-muted-foreground">所有已設定的假日</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="animate-fade-in hover-scale cursor-pointer transition-all duration-300 hover:shadow-lg hover:border-primary/50" style={{ animationDelay: '0.1s' }}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{currentYear} 年假日</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <TrendingUp className="h-4 w-4 text-muted-foreground animate-pulse" style={{ animationDelay: '0.5s' }} />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.currentYear}</div>
+            <div className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              {stats.currentYear}
+            </div>
             <p className="text-xs text-muted-foreground">今年度假日數量</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="animate-fade-in hover-scale cursor-pointer transition-all duration-300 hover:shadow-lg hover:border-primary/50" style={{ animationDelay: '0.2s' }}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">即將到來</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <Calendar className="h-4 w-4 text-muted-foreground animate-pulse" style={{ animationDelay: '1s' }} />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.upcoming}</div>
+            <div className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              {stats.upcoming}
+            </div>
             <p className="text-xs text-muted-foreground">尚未到來的假日</p>
           </CardContent>
         </Card>
