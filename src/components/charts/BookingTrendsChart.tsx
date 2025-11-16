@@ -21,10 +21,10 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
       ? ['今年', '去年'] 
       : ['本月', '上月'];
 
-  // 使用更現代的漸變配色
+  // 使用紅橘配色配合 logo
   const chartColors = isCustomRange 
-    ? ["violet"]
-    : ["violet", "amber"];
+    ? ["rose"]
+    : ["rose", "orange"];
 
   // 檢查是否有實際數據
   const hasRealData = data.some(d => 
