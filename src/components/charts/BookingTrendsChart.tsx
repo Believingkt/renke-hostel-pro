@@ -50,19 +50,23 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
   }
 
   return (
-    <LineChart
-      className="h-[280px]"
-      data={data}
-      index="month"
-      categories={categories}
-      colors={chartColors}
-      valueFormatter={valueFormatter}
-      yAxisWidth={48}
-      showLegend={!isCustomRange}
-      showGridLines={true}
-      showXAxis={true}
-      showYAxis={true}
-      curveType="natural"
-    />
+    <div className="animate-fade-in">
+      <LineChart
+        className="h-[280px]"
+        data={data}
+        index="month"
+        categories={categories}
+        colors={chartColors}
+        valueFormatter={valueFormatter}
+        yAxisWidth={48}
+        showLegend={!isCustomRange}
+        showGridLines={true}
+        showXAxis={true}
+        showYAxis={true}
+        curveType="natural"
+        animationDuration={800}
+        connectNulls={true}
+      />
+    </div>
   );
 };

@@ -399,16 +399,19 @@ All colors MUST be HSL.
   /* Tremor Chart Customization */
   .tremor-Chart-root {
     font-family: inherit;
+    transition: all 0.3s ease;
   }
 
   .tremor-Chart-gridLine {
     stroke: hsl(var(--border));
     stroke-opacity: 0.2;
+    transition: stroke-opacity 0.2s ease;
   }
 
   .tremor-Chart-axisLabel {
     fill: hsl(var(--muted-foreground));
     font-size: 0.75rem;
+    transition: fill 0.2s ease;
   }
 
   .tremor-Tooltip-root {
@@ -417,6 +420,7 @@ All colors MUST be HSL.
     border-radius: 0.75rem !important;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
     color: hsl(var(--popover-foreground)) !important;
+    animation: fade-in 0.2s ease-out;
   }
 
   .tremor-Legend-root {
@@ -425,6 +429,22 @@ All colors MUST be HSL.
 
   .tremor-Legend-legendItem {
     color: hsl(var(--muted-foreground));
+    transition: color 0.2s ease;
+  }
+
+  .tremor-Legend-legendItem:hover {
+    color: hsl(var(--foreground));
+  }
+
+  /* Chart Bar/Line Animation */
+  .tremor-BarChart-bar,
+  .tremor-LineChart-line {
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .tremor-BarChart-bar:hover {
+    opacity: 0.8;
+    transform: translateY(-2px);
   }
 }
 

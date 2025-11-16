@@ -50,18 +50,21 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
   }
 
   return (
-    <BarChart
-      className="h-[280px]"
-      data={data}
-      index="month"
-      categories={categories}
-      colors={chartColors}
-      valueFormatter={valueFormatter}
-      yAxisWidth={48}
-      showLegend={!isCustomRange}
-      showGridLines={true}
-      showXAxis={true}
-      showYAxis={true}
-    />
+    <div className="animate-fade-in">
+      <BarChart
+        className="h-[280px]"
+        data={data}
+        index="month"
+        categories={categories}
+        colors={chartColors}
+        valueFormatter={valueFormatter}
+        yAxisWidth={48}
+        showLegend={!isCustomRange}
+        showGridLines={true}
+        showXAxis={true}
+        showYAxis={true}
+        animationDuration={800}
+      />
+    </div>
   );
 };
