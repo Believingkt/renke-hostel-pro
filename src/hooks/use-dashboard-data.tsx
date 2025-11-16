@@ -137,9 +137,9 @@ const fetchDashboardData = async (
     
     monthlyData.push({
       month: monthLabel,
-      revenue: revenue,
+      revenue: Number.isFinite(revenue) ? revenue : 0,
       bookings: monthOrders.length,
-      lastYearRevenue: lastYearRevenue,
+      lastYearRevenue: Number.isFinite(lastYearRevenue) ? lastYearRevenue : 0,
       lastYearBookings: lastYearOrders.length,
     });
   }
@@ -161,9 +161,9 @@ const fetchDashboardData = async (
     
     lastMonthData.push({
       month: monthLabel,
-      revenue: revenue,
+      revenue: Number.isFinite(revenue) ? revenue : 0,
       bookings: monthOrders.length,
-      prevRevenue: prevRevenue,
+      prevRevenue: Number.isFinite(prevRevenue) ? prevRevenue : 0,
       prevBookings: prevMonthOrders.length,
     });
   }
@@ -175,24 +175,24 @@ const fetchDashboardData = async (
   if (comparisonMode === 'lastYear') {
     revenueData = monthlyData.map(m => ({ 
       month: m.month, 
-      "今年": m.revenue,
-      "去年": m.lastYearRevenue
+      "今年": Number.isFinite(m.revenue) ? m.revenue : 0,
+      "去年": Number.isFinite(m.lastYearRevenue) ? m.lastYearRevenue : 0
     }));
     bookingData = monthlyData.map(m => ({ 
       month: m.month, 
-      "今年": m.bookings,
-      "去年": m.lastYearBookings
+      "今年": m.bookings || 0,
+      "去年": m.lastYearBookings || 0
     }));
   } else {
     revenueData = lastMonthData.map(m => ({ 
       month: m.month, 
-      "本月": m.revenue,
-      "上月": m.prevRevenue
+      "本月": Number.isFinite(m.revenue) ? m.revenue : 0,
+      "上月": Number.isFinite(m.prevRevenue) ? m.prevRevenue : 0
     }));
     bookingData = lastMonthData.map(m => ({ 
       month: m.month, 
-      "本月": m.bookings,
-      "上月": m.prevBookings
+      "本月": m.bookings || 0,
+      "上月": m.prevBookings || 0
     }));
   }
   
@@ -228,7 +228,7 @@ const fetchDashboardData = async (
   
   const occupancyData: OccupancyData[] = Object.values(occupancyByRoomType).map(data => ({
     roomType: data.roomTypeName,
-    occupancyRate: Math.min(100, Math.round((data.totalNights / (data.roomCount * 30)) * 100))
+    occupancyRate: Math.min(100, Math.round((data.totalNights / (data.roomCount * 30)) * 100)) || 0
   }));
   
   return {
@@ -236,7 +236,7 @@ const fetchDashboardData = async (
       totalRooms: totalRoomCount,
       monthlyBookings: monthlyBookingCount,
       totalGuests: monthlyGuestCount,
-      monthlyRevenue: monthlyRev,
+      monthlyRevenue: Number.isFinite(monthlyRev) ? monthlyRev : 0,
       bookingsChange: `${Number(bookingChange) >= 0 ? '+' : ''}${bookingChange}%`,
       guestsChange: `${Number(guestChange) >= 0 ? '+' : ''}${guestChange}%`,
       revenueChange: `${Number(revChange) >= 0 ? '+' : ''}${revChange}%`,
