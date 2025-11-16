@@ -24,6 +24,7 @@ interface ChartData {
   去年?: number;
   本月?: number;
   上月?: number;
+  本期?: number;
 }
 
 interface OccupancyData {
@@ -120,59 +121,135 @@ const fetchDashboardData = async (
     ? ((monthlyRev - lastMonthRev) / lastMonthRev * 100).toFixed(1)
     : "0";
   
-  // 生成過去12個月的圖表數據
-  const monthlyData: ChartData[] = [];
+  // 根據是否有自定義日期範圍來決定如何生成圖表數據
+  let monthlyData: ChartData[] = [];
   
-  for (let i = 11; i >= 0; i--) {
-    const monthDate = subMonths(now, i);
-    const monthKey = format(monthDate, 'yyyy-MM');
-    const lastYearMonthKey = format(subMonths(monthDate, 12), 'yyyy-MM');
-    const monthLabel = format(monthDate, 'M月');
+  if (customDateRange?.from && customDateRange?.to) {
+    // 自定義日期範圍：只顯示該範圍內的數據
+    const rangeStartKey = format(customDateRange.from, 'yyyy-MM');
+    const rangeEndKey = format(customDateRange.to, 'yyyy-MM');
     
-    const monthOrders = ordersByMonth.get(monthKey) || [];
-    const lastYearOrders = ordersByMonth.get(lastYearMonthKey) || [];
+    // 獲取該範圍內的所有月份
+    let currentDate = new Date(customDateRange.from);
+    const endDate = new Date(customDateRange.to);
     
-    const revenue = monthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
-    const lastYearRevenue = lastYearOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
-    
-    monthlyData.push({
-      month: monthLabel,
-      revenue: Number.isFinite(revenue) ? revenue : 0,
-      bookings: monthOrders.length,
-      lastYearRevenue: Number.isFinite(lastYearRevenue) ? lastYearRevenue : 0,
-      lastYearBookings: lastYearOrders.length,
-    });
+    while (currentDate <= endDate) {
+      const monthKey = format(currentDate, 'yyyy-MM');
+      const monthLabel = format(currentDate, 'yyyy/MM');
+      const monthOrders = ordersByMonth.get(monthKey) || [];
+      const revenue = monthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+      
+      monthlyData.push({
+        month: monthLabel,
+        revenue: Number.isFinite(revenue) ? revenue : 0,
+        bookings: monthOrders.length,
+        lastYearRevenue: 0,
+        lastYearBookings: 0,
+      });
+      
+      currentDate = new Date(currentDate.setMonth(currentDate.getMonth() + 1));
+    }
+  } else {
+    // 預設：生成過去12個月的圖表數據
+    for (let i = 11; i >= 0; i--) {
+      const monthDate = subMonths(now, i);
+      const monthKey = format(monthDate, 'yyyy-MM');
+      const lastYearMonthKey = format(subMonths(monthDate, 12), 'yyyy-MM');
+      const monthLabel = format(monthDate, 'M月');
+      
+      const monthOrders = ordersByMonth.get(monthKey) || [];
+      const lastYearOrders = ordersByMonth.get(lastYearMonthKey) || [];
+      
+      const revenue = monthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+      const lastYearRevenue = lastYearOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+      
+      monthlyData.push({
+        month: monthLabel,
+        revenue: Number.isFinite(revenue) ? revenue : 0,
+        bookings: monthOrders.length,
+        lastYearRevenue: Number.isFinite(lastYearRevenue) ? lastYearRevenue : 0,
+        lastYearBookings: lastYearOrders.length,
+      });
+    }
   }
   
   // 上月對比數據
   const lastMonthData: ChartData[] = [];
-  for (let i = 11; i >= 0; i--) {
-    const monthDate = subMonths(now, i);
-    const prevMonthDate = subMonths(monthDate, 1);
-    const monthKey = format(monthDate, 'yyyy-MM');
-    const prevMonthKey = format(prevMonthDate, 'yyyy-MM');
-    const monthLabel = format(monthDate, 'M月');
+  
+  if (customDateRange?.from && customDateRange?.to) {
+    // 自定義日期範圍：與前一個相同長度的時段對比
+    const rangeLength = Math.ceil((customDateRange.to.getTime() - customDateRange.from.getTime()) / (1000 * 60 * 60 * 24));
+    const prevRangeStart = new Date(customDateRange.from);
+    prevRangeStart.setDate(prevRangeStart.getDate() - rangeLength);
+    const prevRangeEnd = new Date(customDateRange.from);
+    prevRangeEnd.setDate(prevRangeEnd.getDate() - 1);
     
-    const monthOrders = ordersByMonth.get(monthKey) || [];
-    const prevMonthOrders = ordersByMonth.get(prevMonthKey) || [];
+    let currentDate = new Date(customDateRange.from);
+    const endDate = new Date(customDateRange.to);
     
-    const revenue = monthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
-    const prevRevenue = prevMonthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
-    
-    lastMonthData.push({
-      month: monthLabel,
-      revenue: Number.isFinite(revenue) ? revenue : 0,
-      bookings: monthOrders.length,
-      prevRevenue: Number.isFinite(prevRevenue) ? prevRevenue : 0,
-      prevBookings: prevMonthOrders.length,
-    });
+    while (currentDate <= endDate) {
+      const monthKey = format(currentDate, 'yyyy-MM');
+      const prevDate = new Date(currentDate);
+      prevDate.setMonth(prevDate.getMonth() - 1);
+      const prevMonthKey = format(prevDate, 'yyyy-MM');
+      const monthLabel = format(currentDate, 'yyyy/MM');
+      
+      const monthOrders = ordersByMonth.get(monthKey) || [];
+      const prevMonthOrders = ordersByMonth.get(prevMonthKey) || [];
+      
+      const revenue = monthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+      const prevRevenue = prevMonthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+      
+      lastMonthData.push({
+        month: monthLabel,
+        revenue: Number.isFinite(revenue) ? revenue : 0,
+        bookings: monthOrders.length,
+        prevRevenue: Number.isFinite(prevRevenue) ? prevRevenue : 0,
+        prevBookings: prevMonthOrders.length,
+      });
+      
+      currentDate = new Date(currentDate.setMonth(currentDate.getMonth() + 1));
+    }
+  } else {
+    // 預設：過去12個月的上月對比
+    for (let i = 11; i >= 0; i--) {
+      const monthDate = subMonths(now, i);
+      const prevMonthDate = subMonths(monthDate, 1);
+      const monthKey = format(monthDate, 'yyyy-MM');
+      const prevMonthKey = format(prevMonthDate, 'yyyy-MM');
+      const monthLabel = format(monthDate, 'M月');
+      
+      const monthOrders = ordersByMonth.get(monthKey) || [];
+      const prevMonthOrders = ordersByMonth.get(prevMonthKey) || [];
+      
+      const revenue = monthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+      const prevRevenue = prevMonthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+      
+      lastMonthData.push({
+        month: monthLabel,
+        revenue: Number.isFinite(revenue) ? revenue : 0,
+        bookings: monthOrders.length,
+        prevRevenue: Number.isFinite(prevRevenue) ? prevRevenue : 0,
+        prevBookings: prevMonthOrders.length,
+      });
+    }
   }
   
-  // 根據對比模式設置數據
+  // 根據對比模式設置數據，並確保至少有一個數據點
   let revenueData: ChartData[];
   let bookingData: ChartData[];
   
-  if (comparisonMode === 'lastYear') {
+  if (customDateRange?.from && customDateRange?.to) {
+    // 自定義範圍：簡化顯示，只顯示該範圍數據
+    revenueData = monthlyData.map(m => ({ 
+      month: m.month, 
+      "本期": Number.isFinite(m.revenue) ? m.revenue : 0,
+    }));
+    bookingData = monthlyData.map(m => ({ 
+      month: m.month, 
+      "本期": m.bookings || 0,
+    }));
+  } else if (comparisonMode === 'lastYear') {
     revenueData = monthlyData.map(m => ({ 
       month: m.month, 
       "今年": Number.isFinite(m.revenue) ? m.revenue : 0,
@@ -194,6 +271,14 @@ const fetchDashboardData = async (
       "本月": m.bookings || 0,
       "上月": m.prevBookings || 0
     }));
+  }
+  
+  // 確保數據不為空，至少有一個數據點
+  if (revenueData.length === 0) {
+    revenueData = [{ month: format(now, 'M月'), "本期": 0 }];
+  }
+  if (bookingData.length === 0) {
+    bookingData = [{ month: format(now, 'M月'), "本期": 0 }];
   }
   
   // 計算房型入住率（過去30天）

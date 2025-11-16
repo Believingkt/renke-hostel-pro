@@ -353,19 +353,21 @@ const Dashboard = () => {
                   iconType="rect"
                 />
                 <Bar 
-                  dataKey={comparisonMode === 'lastYear' ? "今年" : "本月"} 
+                  dataKey={dateRange ? "本期" : (comparisonMode === 'lastYear' ? "今年" : "本月")} 
                   fill="hsl(var(--chart-1))" 
                   radius={[8, 8, 0, 0]}
                   maxBarSize={isMobile ? 40 : 60}
                   minPointSize={5}
                 />
-                <Bar 
-                  dataKey={comparisonMode === 'lastYear' ? "去年" : "上月"} 
-                  fill="hsl(var(--chart-2))" 
-                  radius={[8, 8, 0, 0]}
-                  maxBarSize={isMobile ? 40 : 60}
-                  minPointSize={5}
-                />
+                {!dateRange && (
+                  <Bar 
+                    dataKey={comparisonMode === 'lastYear' ? "去年" : "上月"} 
+                    fill="hsl(var(--chart-2))" 
+                    radius={[8, 8, 0, 0]}
+                    maxBarSize={isMobile ? 40 : 60}
+                    minPointSize={5}
+                  />
+                )}
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -408,20 +410,22 @@ const Dashboard = () => {
                 />
                 <Line 
                   type="monotone" 
-                  dataKey={comparisonMode === 'lastYear' ? "今年" : "本月"} 
+                  dataKey={dateRange ? "本期" : (comparisonMode === 'lastYear' ? "今年" : "本月")} 
                   stroke="hsl(var(--chart-3))" 
                   strokeWidth={isMobile ? 3 : 2}
                   dot={{ r: isMobile ? 5 : 4, fill: 'hsl(var(--chart-3))', strokeWidth: 2 }}
                   activeDot={{ r: isMobile ? 8 : 6, strokeWidth: 2 }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey={comparisonMode === 'lastYear' ? "去年" : "上月"} 
-                  stroke="hsl(var(--chart-4))" 
-                  strokeWidth={isMobile ? 3 : 2}
-                  dot={{ r: isMobile ? 5 : 4, fill: 'hsl(var(--chart-4))', strokeWidth: 2 }}
-                  activeDot={{ r: isMobile ? 8 : 6, strokeWidth: 2 }}
-                />
+                {!dateRange && (
+                  <Line 
+                    type="monotone" 
+                    dataKey={comparisonMode === 'lastYear' ? "去年" : "上月"} 
+                    stroke="hsl(var(--chart-4))" 
+                    strokeWidth={isMobile ? 3 : 2}
+                    dot={{ r: isMobile ? 5 : 4, fill: 'hsl(var(--chart-4))', strokeWidth: 2 }}
+                    activeDot={{ r: isMobile ? 8 : 6, strokeWidth: 2 }}
+                  />
+                )}
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
