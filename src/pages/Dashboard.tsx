@@ -497,6 +497,51 @@ const Dashboard = () => {
             <CardTitle className="text-base font-semibold">營收統計</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
+            <div className="flex items-center justify-center h-[250px] text-muted-foreground">
+              <div className="text-center">
+                <p className="text-sm">暫無營收數據</p>
+                <p className="text-xs mt-1">請新增訂單後查看統計</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="overflow-hidden">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-semibold">訂單趨勢</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="flex items-center justify-center h-[250px] text-muted-foreground">
+              <div className="text-center">
+                <p className="text-sm">暫無訂單數據</p>
+                <p className="text-xs mt-1">請新增訂單後查看統計</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="overflow-hidden px-2 md:px-0">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold">房型入住率 (過去 30 天)</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="flex items-center justify-center h-[250px] text-muted-foreground">
+            <div className="text-center">
+              <p className="text-sm">暫無入住數據</p>
+              <p className="text-xs mt-1">請新增訂單後查看統計</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Charts temporarily disabled due to recharts NaN error with zero data
+      <div className="grid gap-6 md:grid-cols-2 px-2 md:px-0">
+        <Card className="overflow-hidden">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-semibold">營收統計</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
             {isRevenueChartSafe ? (
             <ResponsiveContainer width="100%" height={chartHeight}>
               <BarChart data={finalRevenueData} margin={chartMargin}>
@@ -644,54 +689,15 @@ const Dashboard = () => {
           <CardTitle className="text-base font-semibold">房型入住率 (過去 30 天)</CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
-          <ResponsiveContainer width="100%" height={chartHeight}>
-            <BarChart
-              data={finalOccupancyData} 
-              margin={occupancyChartMargin}
-              layout="horizontal"
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.2} />
-              <XAxis 
-                type="number"
-                domain={[0, 100]}
-                allowDataOverflow={false}
-                tick={{ fontSize: chartFontSize, fill: 'hsl(var(--muted-foreground))' }}
-                stroke="hsl(var(--border))"
-                label={{ value: '入住率 (%)', position: 'insideBottom', offset: 0, fontSize: chartFontSize }}
-              />
-              <YAxis 
-                dataKey="roomType" 
-                type="category"
-                tick={{ fontSize: chartFontSize, fill: 'hsl(var(--muted-foreground))' }}
-                stroke="hsl(var(--border))"
-                width={isMobile ? 80 : 100}
-              />
-              <Tooltip 
-                contentStyle={{
-                  backgroundColor: 'hsl(var(--popover))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '12px',
-                  fontSize: `${tooltipFontSize}px`,
-                  padding: isMobile ? '12px' : '10px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-                }}
-                cursor={{ fill: 'hsl(var(--accent) / 0.1)' }}
-                wrapperStyle={{ outline: 'none' }}
-                formatter={(value: number) => [`${value}%`, '入住率']}
-                allowEscapeViewBox={{ x: true, y: true }}
-              />
-              <Bar 
-                dataKey="occupancyRate" 
-                fill="hsl(var(--chart-5))" 
-                radius={[0, 8, 8, 0]}
-                maxBarSize={isMobile ? 32 : 40}
-                minPointSize={5}
-                isAnimationActive={false}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="flex items-center justify-center h-[250px] text-muted-foreground">
+            <div className="text-center">
+              <p className="text-sm">暫無入住數據</p>
+              <p className="text-xs mt-1">請新增訂單後查看統計</p>
+            </div>
+          </div>
         </CardContent>
       </Card>
+      */}
     </div>
   );
 
