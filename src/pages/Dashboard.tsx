@@ -250,6 +250,18 @@ const Dashboard = () => {
   }];
   const finalOccupancyData = safeOccupancyData.length > 0 ? safeOccupancyData : [{ roomType: '暫無數據', occupancyRate: 0 }];
   
+  // Check if there's any real data (not all zeros)
+  const hasRealRevenueData = finalRevenueData.some(d => 
+    (d['今年'] || 0) > 0 || (d['去年'] || 0) > 0 || 
+    (d['本月'] || 0) > 0 || (d['上月'] || 0) > 0 || 
+    (d['本期'] || 0) > 0
+  );
+  const hasRealBookingData = finalBookingData.some(d => 
+    (d['今年'] || 0) > 0 || (d['去年'] || 0) > 0 || 
+    (d['本月'] || 0) > 0 || (d['上月'] || 0) > 0 || 
+    (d['本期'] || 0) > 0
+  );
+  
   // Calculate max values for domains
   const maxRevenue = Math.max(
     0, // Add 0 as minimum baseline
@@ -280,9 +292,9 @@ const Dashboard = () => {
   const safeRevenueDomain = Number.isFinite(revenueDomain) && revenueDomain > 0 ? Math.floor(revenueDomain) : 10000;
   const safeBookingDomain = Number.isFinite(bookingDomain) && bookingDomain > 0 ? Math.floor(bookingDomain) : 50;
   
-  // Validate that domains are safe for recharts
-  const isRevenueChartSafe = Number.isFinite(safeRevenueDomain) && safeRevenueDomain > 0;
-  const isBookingChartSafe = Number.isFinite(safeBookingDomain) && safeBookingDomain > 0;
+  // Validate that domains are safe for recharts AND there's real data
+  const isRevenueChartSafe = hasRealRevenueData && Number.isFinite(safeRevenueDomain) && safeRevenueDomain > 0;
+  const isBookingChartSafe = hasRealBookingData && Number.isFinite(safeBookingDomain) && safeBookingDomain > 0;
   
   // Debug: Log the final data being passed to charts
   console.log('Final chart data:', {
@@ -480,12 +492,12 @@ const Dashboard = () => {
       )}
 
       <div className="grid gap-6 md:grid-cols-2 px-2 md:px-0">
-        {isRevenueChartSafe && (
         <Card className="overflow-hidden">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold">營收統計</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
+            {isRevenueChartSafe ? (
             <ResponsiveContainer width="100%" height={chartHeight}>
               <BarChart data={finalRevenueData} margin={chartMargin}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.2} />
@@ -542,16 +554,23 @@ const Dashboard = () => {
                 )}
               </BarChart>
             </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[250px] text-muted-foreground">
+                <div className="text-center">
+                  <p className="text-sm">暫無營收數據</p>
+                  <p className="text-xs mt-1">請新增訂單後查看統計</p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
-        )}
 
-        {isBookingChartSafe && (
         <Card className="overflow-hidden">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold">訂單趨勢</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
+            {isBookingChartSafe ? (
             <ResponsiveContainer width="100%" height={chartHeight}>
               <LineChart data={finalBookingData} margin={chartMargin}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.2} />
@@ -608,9 +627,16 @@ const Dashboard = () => {
                 )}
               </LineChart>
             </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[250px] text-muted-foreground">
+                <div className="text-center">
+                  <p className="text-sm">暫無訂單數據</p>
+                  <p className="text-xs mt-1">請新增訂單後查看統計</p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
-        )}
       </div>
 
       <Card className="overflow-hidden px-2 md:px-0">
