@@ -67,6 +67,9 @@ export const OccupancyChart = ({ data }: OccupancyChartProps) => {
               dataKey="occupancyRate" 
               fill="hsl(var(--chart-occupancy-primary))" 
               radius={[0, 6, 6, 0]}
+              animationDuration={1000}
+              animationBegin={0}
+              isAnimationActive={true}
             />
           </BarChart>
         </ResponsiveContainer>

@@ -116,6 +116,10 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
                 dataKey={category}
                 fill={index === 0 ? "hsl(var(--chart-revenue-primary))" : "hsl(var(--chart-revenue-secondary))"}
                 radius={[6, 6, 0, 0]}
+                animationDuration={1000}
+                animationBegin={index * 100}
+                isAnimationActive={true}
+                animationEasing="ease-in-out"
               />
             ))}
           </BarChart>
