@@ -14,6 +14,7 @@ import { TabsSkeleton } from "@/components/skeletons/TabsSkeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import PublicHolidays from "@/pages/PublicHolidays";
+import { InventoryCalendar } from "@/components/InventoryCalendar";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -412,17 +413,7 @@ const Pricing = () => {
         </TabsContent>
 
         <TabsContent value="inventory" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>庫存管理</CardTitle>
-              <CardDescription>
-                管理各房型的可售庫存數量
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">庫存管理內容</p>
-            </CardContent>
-          </Card>
+          <InventoryCalendar accommodationId={currentAccommodationId || ""} />
         </TabsContent>
 
         <TabsContent value="holidays" className="space-y-4">
