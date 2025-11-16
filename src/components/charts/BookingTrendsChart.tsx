@@ -1,4 +1,5 @@
-import { LineChart } from "@tremor/react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend } from "recharts";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 
 interface BookingTrendsChartProps {
   data: Array<{
@@ -21,26 +22,15 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
       ? ['今年', '去年'] 
       : ['本月', '上月'];
 
-  // 使用綠青漸層配色
-  const chartColors = isCustomRange 
-    ? ["emerald"]
-    : ["emerald", "teal"];
-
   // 檢查是否有實際數據
   const hasRealData = data.some(d => 
     categories.some(cat => (d[cat as keyof typeof d] as number || 0) > 0)
   );
 
-  // 數值格式化函數
-  const valueFormatter = (value: number) => {
-    if (!Number.isFinite(value)) return '0';
-    return `${value} 筆`;
-  };
-
   // 如果沒有實際數據，顯示空狀態
   if (!hasRealData) {
     return (
-      <div className="flex items-center justify-center h-[280px] text-muted-foreground">
+      <div className="flex items-center justify-center h-[320px] text-muted-foreground">
         <div className="text-center">
           <p className="text-sm">暫無訂單數據</p>
           <p className="text-xs mt-1">請新增訂單後查看統計</p>
@@ -49,28 +39,66 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
     );
   }
 
+  const chartConfig = isCustomRange ? {
+    本期: {
+      label: "本期",
+      color: "hsl(var(--chart-2))",
+    },
+  } : comparisonMode === 'lastYear' ? {
+    今年: {
+      label: "今年",
+      color: "hsl(var(--chart-2))",
+    },
+    去年: {
+      label: "去年",
+      color: "hsl(var(--chart-3))",
+    },
+  } : {
+    本月: {
+      label: "本月",
+      color: "hsl(var(--chart-2))",
+    },
+    上月: {
+      label: "上月",
+      color: "hsl(var(--chart-3))",
+    },
+  };
+
   return (
     <div className="animate-fade-in px-2 py-4" key={`booking-chart-${comparisonMode}`}>
-      <LineChart
-        className="h-[320px]"
-        data={data}
-        index="month"
-        categories={categories}
-        colors={chartColors}
-        valueFormatter={valueFormatter}
-        yAxisWidth={100}
-        showLegend={!isCustomRange}
-        showGridLines={false}
-        showXAxis={true}
-        showYAxis={true}
-        curveType="monotone"
-        animationDuration={800}
-        connectNulls={true}
-        showAnimation={true}
-        autoMinValue={true}
-        allowDecimals={false}
-        showTooltip={true}
-      />
+      <ChartContainer config={chartConfig} className="h-[320px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+            <XAxis 
+              dataKey="month" 
+              className="text-xs"
+            />
+            <YAxis 
+              width={100}
+              tickFormatter={(value) => `${value} 筆`}
+              className="text-xs"
+            />
+            <ChartTooltip 
+              content={<ChartTooltipContent />}
+              formatter={(value: number) => [`${value} 筆`]}
+            />
+            {!isCustomRange && <ChartLegend content={<ChartLegendContent />} />}
+            {categories.map((category, index) => (
+              <Line
+                key={category}
+                type="monotone"
+                dataKey={category}
+                stroke={index === 0 ? "hsl(var(--chart-2))" : "hsl(var(--chart-3))"}
+                strokeWidth={2.5}
+                dot={{ r: 4 }}
+                activeDot={{ r: 6 }}
+                connectNulls
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </ChartContainer>
     </div>
   );
 };
