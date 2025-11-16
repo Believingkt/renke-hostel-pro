@@ -437,145 +437,236 @@ const Dashboard = () => {
       </div>
 
       <div className="grid gap-4 md:gap-6 lg:grid-cols-2 px-2 md:px-0">
-        <Card className={`shadow-card hover:shadow-card-hover transition-all duration-300 ${isLiveUpdating ? 'ring-2 ring-chart-1/50' : ''}`}>
-          <CardHeader className="pb-3">
+        <Card className={`shadow-lg hover:shadow-xl transition-all duration-500 overflow-hidden border-border/50 ${isLiveUpdating ? 'ring-2 ring-chart-1/30 shadow-chart-1/20' : ''}`}>
+          <CardHeader className="pb-4 bg-gradient-to-br from-chart-1/5 to-transparent border-b border-border/50">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base md:text-lg lg:text-xl">營收統計</CardTitle>
+              <div>
+                <CardTitle className="text-base md:text-lg lg:text-xl font-semibold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                  營收統計
+                </CardTitle>
+                <p className="text-xs text-muted-foreground mt-1">Revenue Analysis</p>
+              </div>
               {isLiveUpdating && (
-                <Badge variant="secondary" className="animate-pulse text-xs">
+                <Badge variant="secondary" className="animate-pulse text-xs shadow-sm">
+                  <Radio className="w-3 h-3 mr-1" />
                   更新中
                 </Badge>
               )}
             </div>
           </CardHeader>
-          <CardContent className="px-2 md:px-6 pb-4">
-            <ResponsiveContainer width="100%" height={220}>
+          <CardContent className="px-3 md:px-6 pb-6 pt-4">
+            <ResponsiveContainer width="100%" height={280}>
               <BarChart 
                 data={revenueData} 
-                margin={{ top: 5, right: 5, left: -20, bottom: 5 }}
+                margin={{ top: 10, right: 10, left: -15, bottom: 5 }}
               >
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" opacity={0.3} />
+                <defs>
+                  <linearGradient id="colorRevenue1" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--chart-1))" stopOpacity={0.9} />
+                    <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0.7} />
+                  </linearGradient>
+                  <linearGradient id="colorRevenue2" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--chart-4))" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="hsl(var(--chart-4))" stopOpacity={0.5} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.2} vertical={false} />
                 <XAxis 
                   dataKey="month" 
-                  tick={{ fontSize: 10 }}
-                  stroke="hsl(var(--muted-foreground))"
-                  tickMargin={8}
+                  tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                  stroke="hsl(var(--border))"
+                  tickMargin={10}
+                  axisLine={{ strokeWidth: 1 }}
                 />
                 <YAxis 
-                  tick={{ fontSize: 10 }}
-                  stroke="hsl(var(--muted-foreground))"
-                  width={35}
-                  tickMargin={5}
+                  tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                  stroke="hsl(var(--border))"
+                  width={40}
+                  tickMargin={8}
+                  axisLine={{ strokeWidth: 1 }}
+                  tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
                 />
                 <Tooltip 
                   contentStyle={{ 
-                    fontSize: '12px',
-                    backgroundColor: 'hsl(var(--card))',
+                    fontSize: '13px',
+                    backgroundColor: 'hsl(var(--popover))',
                     border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    padding: '6px 10px'
+                    borderRadius: '12px',
+                    padding: '12px 16px',
+                    boxShadow: '0 8px 24px -4px hsl(var(--foreground) / 0.12)'
                   }}
-                  labelStyle={{ fontSize: '12px', fontWeight: 600 }}
-                  cursor={{ fill: 'hsl(var(--muted))', opacity: 0.2 }}
+                  labelStyle={{ 
+                    fontSize: '13px', 
+                    fontWeight: 600,
+                    color: 'hsl(var(--foreground))',
+                    marginBottom: '6px'
+                  }}
+                  formatter={(value: number) => [`$${value.toLocaleString()}`, '']}
+                  cursor={{ fill: 'hsl(var(--accent))', opacity: 0.1, radius: 4 }}
                 />
                 <Legend 
-                  wrapperStyle={{ fontSize: '10px', paddingTop: '8px' }}
-                  iconSize={8}
+                  wrapperStyle={{ 
+                    fontSize: '12px', 
+                    paddingTop: '16px',
+                    fontWeight: 500
+                  }}
+                  iconSize={12}
+                  iconType="circle"
                 />
                 <Bar 
                   dataKey={comparisonMode === 'lastYear' ? '今年' : '本月'}
-                  fill="hsl(var(--chart-1))" 
-                  radius={[6, 6, 0, 0]}
-                  maxBarSize={40}
+                  fill="url(#colorRevenue1)" 
+                  radius={[8, 8, 0, 0]}
+                  maxBarSize={45}
                   isAnimationActive={true}
-                  animationDuration={800}
+                  animationDuration={1000}
                   animationBegin={0}
-                  animationEasing="ease-in-out"
+                  animationEasing="ease-out"
                 />
                 <Bar 
                   dataKey={comparisonMode === 'lastYear' ? '去年' : '上月'}
-                  fill="hsl(var(--chart-4))" 
-                  radius={[6, 6, 0, 0]}
-                  maxBarSize={40}
+                  fill="url(#colorRevenue2)" 
+                  radius={[8, 8, 0, 0]}
+                  maxBarSize={45}
                   isAnimationActive={true}
-                  animationDuration={800}
-                  animationBegin={100}
-                  animationEasing="ease-in-out"
+                  animationDuration={1000}
+                  animationBegin={150}
+                  animationEasing="ease-out"
                 />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        <Card className={`shadow-card hover:shadow-card-hover transition-all duration-300 ${isLiveUpdating ? 'ring-2 ring-chart-3/50' : ''}`}>
-          <CardHeader className="pb-3">
+        <Card className={`shadow-lg hover:shadow-xl transition-all duration-500 overflow-hidden border-border/50 ${isLiveUpdating ? 'ring-2 ring-chart-3/30 shadow-chart-3/20' : ''}`}>
+          <CardHeader className="pb-4 bg-gradient-to-br from-chart-3/5 to-transparent border-b border-border/50">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base md:text-lg lg:text-xl">訂房趨勢</CardTitle>
+              <div>
+                <CardTitle className="text-base md:text-lg lg:text-xl font-semibold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                  訂房趨勢
+                </CardTitle>
+                <p className="text-xs text-muted-foreground mt-1">Booking Trends</p>
+              </div>
               {isLiveUpdating && (
-                <Badge variant="secondary" className="animate-pulse text-xs">
+                <Badge variant="secondary" className="animate-pulse text-xs shadow-sm">
+                  <Radio className="w-3 h-3 mr-1" />
                   更新中
                 </Badge>
               )}
             </div>
           </CardHeader>
-          <CardContent className="px-1 md:px-6 pb-4">
-            <ResponsiveContainer width="100%" height={220}>
+          <CardContent className="px-3 md:px-6 pb-6 pt-4">
+            <ResponsiveContainer width="100%" height={280}>
               <LineChart 
                 data={bookingData} 
-                margin={{ top: 5, right: 5, left: -20, bottom: 5 }}
+                margin={{ top: 10, right: 10, left: -15, bottom: 5 }}
               >
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" opacity={0.3} />
+                <defs>
+                  <linearGradient id="colorBooking1" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--chart-3))" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="hsl(var(--chart-3))" stopOpacity={0.05} />
+                  </linearGradient>
+                  <linearGradient id="colorBooking2" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--chart-5))" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="hsl(var(--chart-5))" stopOpacity={0.02} />
+                  </linearGradient>
+                  <filter id="shadow1">
+                    <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="hsl(var(--chart-3))" floodOpacity="0.3" />
+                  </filter>
+                  <filter id="shadow2">
+                    <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="hsl(var(--chart-5))" floodOpacity="0.2" />
+                  </filter>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.2} vertical={false} />
                 <XAxis 
                   dataKey="month" 
-                  tick={{ fontSize: 10 }}
-                  stroke="hsl(var(--muted-foreground))"
-                  tickMargin={8}
+                  tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                  stroke="hsl(var(--border))"
+                  tickMargin={10}
+                  axisLine={{ strokeWidth: 1 }}
                 />
                 <YAxis 
-                  tick={{ fontSize: 10 }}
-                  stroke="hsl(var(--muted-foreground))"
-                  width={35}
-                  tickMargin={5}
+                  tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                  stroke="hsl(var(--border))"
+                  width={40}
+                  tickMargin={8}
+                  axisLine={{ strokeWidth: 1 }}
                 />
                 <Tooltip 
                   contentStyle={{ 
                     fontSize: '13px',
-                    backgroundColor: 'hsl(var(--card))',
+                    backgroundColor: 'hsl(var(--popover))',
                     border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    padding: '8px 12px'
+                    borderRadius: '12px',
+                    padding: '12px 16px',
+                    boxShadow: '0 8px 24px -4px hsl(var(--foreground) / 0.12)'
                   }}
-                  labelStyle={{ fontSize: '13px', fontWeight: 600 }}
-                  cursor={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1 }}
+                  labelStyle={{ 
+                    fontSize: '13px', 
+                    fontWeight: 600,
+                    color: 'hsl(var(--foreground))',
+                    marginBottom: '6px'
+                  }}
+                  formatter={(value: number) => [`${value} 筆`, '']}
+                  cursor={{ stroke: 'hsl(var(--border))', strokeWidth: 2, strokeDasharray: '5 5' }}
                 />
                 <Legend 
-                  wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
-                  iconSize={10}
+                  wrapperStyle={{ 
+                    fontSize: '12px', 
+                    paddingTop: '16px',
+                    fontWeight: 500
+                  }}
+                  iconSize={12}
+                  iconType="circle"
                 />
                 <Line 
                   type="monotone" 
                   dataKey={comparisonMode === 'lastYear' ? '今年' : '本月'}
                   stroke="hsl(var(--chart-3))" 
-                  strokeWidth={2.5}
-                  dot={{ fill: "hsl(var(--chart-3))", r: 5, strokeWidth: 2, stroke: 'hsl(var(--background))' }}
-                  activeDot={{ r: 7, strokeWidth: 2 }}
+                  strokeWidth={3}
+                  dot={{ 
+                    fill: "hsl(var(--chart-3))", 
+                    r: 5, 
+                    strokeWidth: 3, 
+                    stroke: 'hsl(var(--background))',
+                    filter: 'url(#shadow1)'
+                  }}
+                  activeDot={{ 
+                    r: 8, 
+                    strokeWidth: 3,
+                    fill: 'hsl(var(--chart-3))',
+                    stroke: 'hsl(var(--background))'
+                  }}
                   isAnimationActive={true}
-                  animationDuration={800}
+                  animationDuration={1200}
                   animationBegin={0}
-                  animationEasing="ease-in-out"
+                  animationEasing="ease-out"
+                  fill="url(#colorBooking1)"
                 />
                 <Line 
                   type="monotone" 
                   dataKey={comparisonMode === 'lastYear' ? '去年' : '上月'}
                   stroke="hsl(var(--chart-5))" 
-                  strokeWidth={2}
-                  strokeDasharray="5 5"
-                  dot={{ fill: "hsl(var(--chart-5))", r: 4, strokeWidth: 2, stroke: 'hsl(var(--background))' }}
-                  activeDot={{ r: 6, strokeWidth: 2 }}
+                  strokeWidth={2.5}
+                  strokeDasharray="6 4"
+                  dot={{ 
+                    fill: "hsl(var(--chart-5))", 
+                    r: 4, 
+                    strokeWidth: 2, 
+                    stroke: 'hsl(var(--background))',
+                    filter: 'url(#shadow2)'
+                  }}
+                  activeDot={{ 
+                    r: 7, 
+                    strokeWidth: 2,
+                    fill: 'hsl(var(--chart-5))',
+                    stroke: 'hsl(var(--background))'
+                  }}
                   isAnimationActive={true}
-                  animationDuration={800}
-                  animationBegin={100}
-                  animationEasing="ease-in-out"
+                  animationDuration={1200}
+                  animationBegin={200}
+                  animationEasing="ease-out"
+                  fill="url(#colorBooking2)"
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -584,66 +675,91 @@ const Dashboard = () => {
       </div>
 
       <div className="px-2 md:px-0">
-        <Card className={`shadow-card hover:shadow-card-hover transition-all duration-300 ${isLiveUpdating ? 'ring-2 ring-chart-2/50' : ''}`}>
-          <CardHeader className="pb-3">
+        <Card className={`shadow-lg hover:shadow-xl transition-all duration-500 overflow-hidden border-border/50 ${isLiveUpdating ? 'ring-2 ring-chart-2/30 shadow-chart-2/20' : ''}`}>
+          <CardHeader className="pb-4 bg-gradient-to-br from-chart-2/5 to-transparent border-b border-border/50">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base md:text-lg lg:text-xl">房型入住率（近30天）</CardTitle>
+              <div>
+                <CardTitle className="text-base md:text-lg lg:text-xl font-semibold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                  房型入住率（近30天）
+                </CardTitle>
+                <p className="text-xs text-muted-foreground mt-1">Room Occupancy Rate</p>
+              </div>
               {isLiveUpdating && (
-                <Badge variant="secondary" className="animate-pulse text-xs">
+                <Badge variant="secondary" className="animate-pulse text-xs shadow-sm">
+                  <Radio className="w-3 h-3 mr-1" />
                   更新中
                 </Badge>
               )}
             </div>
           </CardHeader>
-          <CardContent className="px-1 md:px-6 pb-4">
-            <ResponsiveContainer width="100%" height={220}>
+          <CardContent className="px-3 md:px-6 pb-6 pt-4">
+            <ResponsiveContainer width="100%" height={280}>
               <BarChart 
                 data={occupancyData} 
-                margin={{ top: 5, right: 5, left: -20, bottom: 5 }}
+                margin={{ top: 10, right: 10, left: -15, bottom: 5 }}
               >
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" opacity={0.3} />
+                <defs>
+                  <linearGradient id="colorOccupancy" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--chart-2))" stopOpacity={0.9} />
+                    <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0.6} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.2} vertical={false} />
                 <XAxis 
                   dataKey="roomType" 
-                  tick={{ fontSize: 10 }}
-                  stroke="hsl(var(--muted-foreground))"
-                  tickMargin={8}
-                  angle={-15}
+                  tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                  stroke="hsl(var(--border))"
+                  tickMargin={10}
+                  angle={-12}
                   textAnchor="end"
-                  height={60}
+                  height={65}
+                  axisLine={{ strokeWidth: 1 }}
                 />
                 <YAxis 
-                  tick={{ fontSize: 10 }}
-                  stroke="hsl(var(--muted-foreground))"
-                  width={35}
-                  tickMargin={5}
+                  tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                  stroke="hsl(var(--border))"
+                  width={40}
+                  tickMargin={8}
                   domain={[0, 100]}
                   tickFormatter={(value) => `${value}%`}
+                  axisLine={{ strokeWidth: 1 }}
                 />
                 <Tooltip 
                   contentStyle={{ 
                     fontSize: '13px',
-                    backgroundColor: 'hsl(var(--card))',
+                    backgroundColor: 'hsl(var(--popover))',
                     border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    padding: '8px 12px'
+                    borderRadius: '12px',
+                    padding: '12px 16px',
+                    boxShadow: '0 8px 24px -4px hsl(var(--foreground) / 0.12)'
                   }}
-                  labelStyle={{ fontSize: '13px', fontWeight: 600 }}
+                  labelStyle={{ 
+                    fontSize: '13px', 
+                    fontWeight: 600,
+                    color: 'hsl(var(--foreground))',
+                    marginBottom: '6px'
+                  }}
                   formatter={(value: number) => [`${value}%`, '入住率']}
-                  cursor={{ fill: 'hsl(var(--muted))', opacity: 0.2 }}
+                  cursor={{ fill: 'hsl(var(--accent))', opacity: 0.1, radius: 4 }}
                 />
                 <Legend 
-                  wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
-                  iconSize={10}
+                  wrapperStyle={{ 
+                    fontSize: '12px', 
+                    paddingTop: '16px',
+                    fontWeight: 500
+                  }}
+                  iconSize={12}
+                  iconType="circle"
                 />
                 <Bar 
                   dataKey="入住率" 
-                  fill="hsl(var(--chart-2))" 
-                  radius={[6, 6, 0, 0]}
-                  maxBarSize={50}
+                  fill="url(#colorOccupancy)" 
+                  radius={[8, 8, 0, 0]}
+                  maxBarSize={55}
                   isAnimationActive={true}
-                  animationDuration={800}
+                  animationDuration={1000}
                   animationBegin={0}
-                  animationEasing="ease-in-out"
+                  animationEasing="ease-out"
                 />
               </BarChart>
             </ResponsiveContainer>
