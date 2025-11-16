@@ -19,19 +19,6 @@ import PullToRefresh from "react-simple-pull-to-refresh";
 import { DateRangePicker } from "@/components/DateRangePicker";
 import { DateRange } from "react-day-picker";
 
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from "recharts";
-
 const Dashboard = () => {
   const { accommodationId } = useSubdomain();
   const isMobile = useIsMobile();
