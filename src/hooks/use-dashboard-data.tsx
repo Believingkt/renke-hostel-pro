@@ -40,11 +40,23 @@ interface DashboardData {
 
 const fetchDashboardData = async (
   accommodationId: string,
-  comparisonMode: 'lastYear' | 'lastMonth'
+  comparisonMode: 'lastYear' | 'lastMonth',
+  customDateRange?: { from: Date; to: Date }
 ): Promise<DashboardData> => {
   const now = new Date();
-  // 計算查詢範圍：最近 13 個月（包含去年同期數據）
-  const startDate = subMonths(now, 13);
+  
+  // 如果有自定義日期範圍，使用它；否則使用預設的最近 13 個月
+  let startDate: Date;
+  let endDate: Date;
+  
+  if (customDateRange?.from && customDateRange?.to) {
+    startDate = customDateRange.from;
+    endDate = customDateRange.to;
+  } else {
+    // 計算查詢範圍：最近 13 個月（包含去年同期數據）
+    startDate = subMonths(now, 13);
+    endDate = now;
+  }
   
   // 平行查詢房型和訂單資料
   const [roomTypesResult, ordersResult] = await Promise.all([
@@ -57,6 +69,7 @@ const fetchDashboardData = async (
       .select("*, room_types(name)")
       .eq("accommodation_id", accommodationId)
       .gte("order_date", startDate.toISOString())
+      .lte("order_date", endDate.toISOString())
       .order("order_date", { ascending: false })
   ]);
   
@@ -236,13 +249,14 @@ const fetchDashboardData = async (
 
 export const useDashboardData = (
   accommodationId: string | null,
-  comparisonMode: 'lastYear' | 'lastMonth'
+  comparisonMode: 'lastYear' | 'lastMonth',
+  customDateRange?: { from: Date; to: Date }
 ) => {
   const queryClient = useQueryClient();
   
   const query = useQuery({
-    queryKey: ['dashboard', accommodationId, comparisonMode],
-    queryFn: () => fetchDashboardData(accommodationId!, comparisonMode),
+    queryKey: ['dashboard', accommodationId, comparisonMode, customDateRange],
+    queryFn: () => fetchDashboardData(accommodationId!, comparisonMode, customDateRange),
     enabled: !!accommodationId,
     staleTime: 5 * 60 * 1000, // 資料在 5 分鐘內視為新鮮
     gcTime: 10 * 60 * 1000, // 快取保留 10 分鐘
