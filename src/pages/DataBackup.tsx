@@ -13,7 +13,8 @@ import {
   AlertCircle,
   CheckCircle2,
   FileArchive,
-  Calendar
+  Calendar,
+  Eraser
 } from "lucide-react";
 import { format } from "date-fns";
 import { zhTW } from "date-fns/locale";
@@ -52,6 +53,7 @@ const DataBackup = () => {
   const [creating, setCreating] = useState(false);
   const [restoring, setRestoring] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [cleaning, setCleaning] = useState(false);
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
   const [selectedBackup, setSelectedBackup] = useState<BackupLog | null>(null);
   const [clearExisting, setClearExisting] = useState(false);
@@ -181,6 +183,42 @@ const DataBackup = () => {
     }
   };
 
+  const handleCleanupOldBackups = async (dryRun: boolean = false) => {
+    try {
+      setCleaning(true);
+      const { data, error } = await supabase.functions.invoke('cleanup-old-backups', {
+        body: {
+          retentionDays: 30,
+          dryRun,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        if (dryRun) {
+          toast.info('清理預覽', {
+            description: data.message,
+          });
+        } else {
+          toast.success('清理完成', {
+            description: `已刪除 ${data.deleted} 個舊備份，釋放 ${data.spaceFreed} 空間`,
+          });
+          loadBackups();
+        }
+      } else {
+        throw new Error(data.error || '清理失敗');
+      }
+    } catch (error) {
+      console.error('Error cleaning up backups:', error);
+      toast.error('清理舊備份失敗', {
+        description: error instanceof Error ? error.message : '未知錯誤',
+      });
+    } finally {
+      setCleaning(false);
+    }
+  };
+
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -232,27 +270,51 @@ const DataBackup = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-            <div className="space-y-1">
-              <p className="font-medium">自動每日備份</p>
-              <p className="text-sm text-muted-foreground">
-                系統將在每天凌晨 2:00 自動備份資料
-              </p>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+              <div className="space-y-1">
+                <p className="font-medium">自動每日備份</p>
+                <p className="text-sm text-muted-foreground">
+                  系統將在每天凌晨 2:00 自動備份資料
+                </p>
+              </div>
+              <Badge variant="outline" className="gap-1">
+                <Clock className="h-3 w-3" />
+                已啟用
+              </Badge>
             </div>
-            <Badge variant="outline" className="gap-1">
-              <Clock className="h-3 w-3" />
-              已啟用
-            </Badge>
+
+            <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+              <div className="space-y-1">
+                <p className="font-medium">自動清理舊備份</p>
+                <p className="text-sm text-muted-foreground">
+                  系統將在每天凌晨 3:00 自動刪除超過 30 天的舊備份
+                </p>
+              </div>
+              <Badge variant="outline" className="gap-1">
+                <Clock className="h-3 w-3" />
+                已啟用
+              </Badge>
+            </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               onClick={handleCreateBackup}
-              disabled={creating || !accommodationId}
+              disabled={creating || cleaning || !accommodationId}
               className="gap-2"
             >
               <Download className="h-4 w-4" />
               {creating ? '備份中...' : '立即建立備份'}
+            </Button>
+            <Button
+              onClick={() => handleCleanupOldBackups(false)}
+              disabled={creating || cleaning || !accommodationId}
+              variant="outline"
+              className="gap-2"
+            >
+              <Eraser className="h-4 w-4" />
+              {cleaning ? '清理中...' : '清理舊備份'}
             </Button>
           </div>
         </CardContent>
@@ -265,7 +327,7 @@ const DataBackup = () => {
             備份歷史記錄
           </CardTitle>
           <CardDescription>
-            查看和管理所有備份檔案
+            查看和管理所有備份檔案（系統自動保留最近 30 天的備份）
           </CardDescription>
         </CardHeader>
         <CardContent>
