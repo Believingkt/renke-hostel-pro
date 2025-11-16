@@ -31,9 +31,16 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
     categories.some(cat => (d[cat as keyof typeof d] as number || 0) > 0)
   );
 
-  // 數值格式化函數
+  // 數值格式化函數 - 優化顯示
   const valueFormatter = (value: number) => {
     if (!Number.isFinite(value) || value === 0) return 'NT$ 0';
+    // 簡化大數字顯示
+    if (value >= 1000000) {
+      return `NT$ ${(value / 1000000).toFixed(1)}M`;
+    }
+    if (value >= 10000) {
+      return `NT$ ${(value / 1000).toFixed(0)}K`;
+    }
     return `NT$ ${value.toLocaleString()}`;
   };
 
@@ -58,7 +65,7 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
         categories={categories}
         colors={chartColors}
         valueFormatter={valueFormatter}
-        yAxisWidth={56}
+        yAxisWidth={72}
         showLegend={!isCustomRange}
         showGridLines={true}
         showXAxis={true}
