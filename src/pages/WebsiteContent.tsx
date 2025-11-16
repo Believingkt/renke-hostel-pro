@@ -1741,15 +1741,6 @@ const WebsiteContent = () => {
                   onChange={(e) => setBasicInfo({ ...basicInfo, name: e.target.value })}
                 />
               </div>
-              <div className="space-y-2">
-                <Label>描述</Label>
-                <Textarea 
-                  value={basicInfo.description}
-                  onChange={(e) => setBasicInfo({ ...basicInfo, description: e.target.value })}
-                  rows={4}
-                  placeholder="請輸入住宿描述..."
-                />
-              </div>
 
               {/* 特色說明編輯區塊 */}
               <div className="space-y-4 pt-6 border-t">
