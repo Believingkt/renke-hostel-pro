@@ -65,19 +65,32 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
   };
 
   return (
-    <div className="animate-fade-in px-2 py-4" key={`booking-chart-${comparisonMode}`}>
-      <ChartContainer config={chartConfig} className="h-[320px] w-full">
+    <div className="animate-fade-in px-1 py-2 sm:px-2 sm:py-4" key={`booking-chart-${comparisonMode}`}>
+      <ChartContainer config={chartConfig} className="h-[240px] sm:h-[280px] md:h-[320px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+          <LineChart 
+            data={data} 
+            margin={{ 
+              top: 5, 
+              right: 10, 
+              left: 5, 
+              bottom: 5 
+            }}
+          >
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
             <XAxis 
               dataKey="month" 
-              className="text-xs"
+              className="text-[10px] sm:text-xs"
+              tick={{ fontSize: 10 }}
+              angle={-45}
+              textAnchor="end"
+              height={60}
             />
             <YAxis 
-              width={100}
-              tickFormatter={(value) => `${value} 筆`}
-              className="text-xs"
+              width={50}
+              tickFormatter={(value) => `${value}`}
+              className="text-[10px] sm:text-xs"
+              tick={{ fontSize: 10 }}
             />
             <ChartTooltip 
               content={<ChartTooltipContent />}

@@ -598,6 +598,28 @@ All colors MUST be HSL.
     padding: 0.75rem !important;
   }
 
+  /* 響應式圖表優化 */
+  @media (max-width: 640px) {
+    .recharts-cartesian-axis-tick-value {
+      font-size: 0.625rem !important;
+    }
+    
+    .recharts-legend-item-text {
+      font-size: 0.75rem !important;
+    }
+    
+    .recharts-default-tooltip {
+      font-size: 0.75rem !important;
+      padding: 0.5rem !important;
+    }
+  }
+
+  @media (min-width: 641px) and (max-width: 768px) {
+    .recharts-cartesian-axis-tick-value {
+      font-size: 0.6875rem !important;
+    }
+  }
+
   /* 圖表互動區域 */
   .recharts-surface {
     overflow: visible !important;
