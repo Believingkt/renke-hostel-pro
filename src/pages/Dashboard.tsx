@@ -452,9 +452,11 @@ const Dashboard = () => {
                 <YAxis 
                   tick={{ fontSize: chartFontSize, fill: 'hsl(var(--muted-foreground))' }}
                   stroke="hsl(var(--border))"
-                  tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
-                  domain={[0, (dataMax) => Math.max(dataMax || 0, 1000)]}
+                  tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value.toString()}
+                  domain={[0, 'dataMax+1000']}
+                  scale="linear"
                   allowDataOverflow={false}
+                  allowDecimals={false}
                 />
                 <Tooltip 
                   contentStyle={{
@@ -480,6 +482,7 @@ const Dashboard = () => {
                   radius={[8, 8, 0, 0]}
                   maxBarSize={isMobile ? 40 : 60}
                   minPointSize={5}
+                  isAnimationActive={false}
                 />
                 {!dateRange && (
                   <Bar 
@@ -488,6 +491,7 @@ const Dashboard = () => {
                     radius={[8, 8, 0, 0]}
                     maxBarSize={isMobile ? 40 : 60}
                     minPointSize={5}
+                    isAnimationActive={false}
                   />
                 )}
               </BarChart>
@@ -511,8 +515,10 @@ const Dashboard = () => {
                 <YAxis 
                   tick={{ fontSize: chartFontSize, fill: 'hsl(var(--muted-foreground))' }}
                   stroke="hsl(var(--border))"
-                  domain={[0, (dataMax) => Math.max(dataMax || 0, 10)]}
+                  domain={[0, 'dataMax+10']}
+                  scale="linear"
                   allowDataOverflow={false}
+                  allowDecimals={false}
                 />
                 <Tooltip 
                   contentStyle={{
@@ -539,6 +545,8 @@ const Dashboard = () => {
                   strokeWidth={isMobile ? 3 : 2}
                   dot={{ r: isMobile ? 5 : 4, fill: 'hsl(var(--chart-3))', strokeWidth: 2 }}
                   activeDot={{ r: isMobile ? 8 : 6, strokeWidth: 2 }}
+                  isAnimationActive={false}
+                  connectNulls={false}
                 />
                 {!dateRange && (
                   <Line 
@@ -548,6 +556,8 @@ const Dashboard = () => {
                     strokeWidth={isMobile ? 3 : 2}
                     dot={{ r: isMobile ? 5 : 4, fill: 'hsl(var(--chart-4))', strokeWidth: 2 }}
                     activeDot={{ r: isMobile ? 8 : 6, strokeWidth: 2 }}
+                    isAnimationActive={false}
+                    connectNulls={false}
                   />
                 )}
               </LineChart>
@@ -603,6 +613,7 @@ const Dashboard = () => {
                 radius={[0, 8, 8, 0]}
                 maxBarSize={isMobile ? 32 : 40}
                 minPointSize={5}
+                isAnimationActive={false}
               />
             </BarChart>
           </ResponsiveContainer>
