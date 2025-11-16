@@ -271,7 +271,7 @@ const Dashboard = () => {
           value={`NT$ ${stats.monthlyRevenue.toLocaleString()}`}
           change={stats.revenueChange}
           icon={DollarSign}
-          variant="green"
+          variant="cyan"
           isUpdating={isLiveUpdating}
         />
       </div>

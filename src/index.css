@@ -17,30 +17,30 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 220 15% 20%;
 
-    --primary: 142 76% 36%;
+    --primary: 203 78% 43%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 142 70% 96%;
+    --secondary: 203 70% 94%;
     --secondary-foreground: 220 15% 20%;
 
-    --muted: 142 30% 96%;
+    --muted: 203 40% 96%;
     --muted-foreground: 220 10% 50%;
 
-    --accent: 142 76% 36%;
+    --accent: 19 82% 51%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 142 30% 90%;
-    --input: 142 30% 92%;
-    --ring: 142 76% 36%;
+    --border: 203 30% 90%;
+    --input: 203 30% 92%;
+    --ring: 203 78% 43%;
 
     --radius: 0.75rem;
 
     /* Custom design tokens */
-    --hero-gradient-start: 142 76% 36%;
-    --hero-gradient-end: 142 60% 50%;
+    --hero-gradient-start: 203 78% 43%;
+    --hero-gradient-end: 217 91% 60%;
     
     --card-hover: 0 0% 98%;
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -51,23 +51,23 @@ All colors MUST be HSL.
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 220 15% 30%;
-    --sidebar-primary: 142 76% 36%;
+    --sidebar-primary: 203 78% 43%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 142 30% 96%;
+    --sidebar-accent: 203 40% 96%;
     --sidebar-accent-foreground: 220 15% 20%;
-    --sidebar-border: 142 20% 92%;
-    --sidebar-ring: 142 76% 36%;
+    --sidebar-border: 203 20% 92%;
+    --sidebar-ring: 203 78% 43%;
 
     --stat-coral: 0 84% 60%;
     --stat-coral-light: 0 84% 95%;
-    --stat-green: 142 76% 36%;
-    --stat-green-light: 142 76% 95%;
+    --stat-cyan: 189 85% 45%;
+    --stat-cyan-light: 189 85% 95%;
     --stat-blue: 217 91% 60%;
     --stat-blue-light: 217 91% 95%;
     --stat-purple: 271 81% 56%;
     --stat-purple-light: 271 81% 95%;
 
-    --chart-1: 142 76% 36%;
+    --chart-1: 203 78% 43%;
     --chart-2: 217 91% 60%;
     --chart-3: 0 84% 60%;
     --chart-4: 45 93% 58%;
@@ -105,10 +105,10 @@ All colors MUST be HSL.
     --sidebar-ring: 203 78% 43%;
 
     /* Status colors */
-    --success: 142 71% 45%;
+    --success: 189 85% 45%;
     --success-foreground: 0 0% 100%;
-    --success-light: 142 71% 96%;
-    --success-dark: 142 71% 38%;
+    --success-light: 189 85% 96%;
+    --success-dark: 189 85% 38%;
     
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
@@ -127,8 +127,8 @@ All colors MUST be HSL.
 
     --stat-coral: 0 84% 60%;
     --stat-coral-light: 0 84% 95%;
-    --stat-green: 142 71% 45%;
-    --stat-green-light: 142 71% 95%;
+    --stat-cyan: 189 85% 45%;
+    --stat-cyan-light: 189 85% 95%;
     --stat-blue: 203 78% 43%;
     --stat-blue-light: 203 78% 95%;
     --stat-purple: 271 81% 56%;
@@ -151,7 +151,7 @@ All colors MUST be HSL.
     --popover: 220 20% 12%;
     --popover-foreground: 220 10% 95%;
 
-    --primary: 142 76% 36%;
+    --primary: 203 78% 43%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 15% 18%;
@@ -160,7 +160,7 @@ All colors MUST be HSL.
     --muted: 220 15% 18%;
     --muted-foreground: 220 10% 65%;
 
-    --accent: 142 76% 36%;
+    --accent: 19 82% 51%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
@@ -168,32 +168,32 @@ All colors MUST be HSL.
 
     --border: 220 15% 18%;
     --input: 220 15% 18%;
-    --ring: 142 76% 36%;
+    --ring: 203 78% 43%;
 
-    --hero-gradient-start: 142 76% 36%;
-    --hero-gradient-end: 142 60% 50%;
+    --hero-gradient-start: 203 78% 43%;
+    --hero-gradient-end: 217 91% 60%;
     
     --card-hover: 220 15% 20%;
 
     --sidebar-background: 220 20% 10%;
     --sidebar-foreground: 220 10% 95%;
-    --sidebar-primary: 142 76% 36%;
+    --sidebar-primary: 203 78% 43%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 15% 16%;
     --sidebar-accent-foreground: 220 10% 95%;
     --sidebar-border: 220 15% 16%;
-    --sidebar-ring: 142 76% 36%;
+    --sidebar-ring: 203 78% 43%;
 
     --stat-coral: 0 84% 60%;
     --stat-coral-light: 0 84% 25%;
-    --stat-green: 142 76% 36%;
-    --stat-green-light: 142 76% 25%;
+    --stat-cyan: 189 85% 55%;
+    --stat-cyan-light: 189 85% 25%;
     --stat-blue: 217 91% 60%;
     --stat-blue-light: 217 91% 25%;
     --stat-purple: 271 81% 56%;
     --stat-purple-light: 271 81% 25%;
 
-    --chart-1: 142 76% 36%;
+    --chart-1: 203 78% 43%;
     --chart-2: 217 91% 60%;
     --chart-3: 0 84% 60%;
     --chart-4: 45 93% 58%;

@@ -63,11 +63,11 @@ export function OrderQuickPreview({ order, children }: OrderQuickPreviewProps) {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">已付金額</span>
-                <span className="font-medium text-green-600">${order.paid_amount.toLocaleString()}</span>
+                <span className="font-medium text-cyan-600">${order.paid_amount.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">待付金額</span>
-                <span className={`font-medium ${balance > 0 ? 'text-orange-600' : 'text-green-600'}`}>
+                <span className={`font-medium ${balance > 0 ? 'text-orange-600' : 'text-cyan-600'}`}>
                   ${balance.toLocaleString()}
                 </span>
               </div>
