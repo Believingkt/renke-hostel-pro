@@ -21,6 +21,11 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
       ? ['今年', '去年'] 
       : ['本月', '上月'];
 
+  // 使用設計系統的顏色
+  const chartColors = isCustomRange 
+    ? ["#2A7FC1"]  // blue - 對應 --chart-1 (203 78% 43%)
+    : ["#2A7FC1", "#F57C34"];  // blue + orange (203 78% 43%, 19 82% 51%)
+
   // 檢查是否有實際數據
   const hasRealData = data.some(d => 
     categories.some(cat => (d[cat as keyof typeof d] as number || 0) > 0)
@@ -50,7 +55,7 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
       data={data}
       index="month"
       categories={categories}
-      colors={isCustomRange ? ["blue"] : ["blue", "orange"]}
+      colors={chartColors}
       valueFormatter={valueFormatter}
       yAxisWidth={48}
       showLegend={!isCustomRange}
