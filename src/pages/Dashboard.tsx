@@ -453,7 +453,7 @@ const Dashboard = () => {
                   tick={{ fontSize: chartFontSize, fill: 'hsl(var(--muted-foreground))' }}
                   stroke="hsl(var(--border))"
                   tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
-                  domain={[0, 'auto']}
+                  domain={[0, (dataMax) => Math.max(dataMax || 0, 1000)]}
                   allowDataOverflow={false}
                 />
                 <Tooltip 
@@ -511,7 +511,7 @@ const Dashboard = () => {
                 <YAxis 
                   tick={{ fontSize: chartFontSize, fill: 'hsl(var(--muted-foreground))' }}
                   stroke="hsl(var(--border))"
-                  domain={[0, 'auto']}
+                  domain={[0, (dataMax) => Math.max(dataMax || 0, 10)]}
                   allowDataOverflow={false}
                 />
                 <Tooltip 
