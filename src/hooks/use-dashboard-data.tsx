@@ -114,12 +114,17 @@ const fetchDashboardData = async (
   const bookingChange = lastMonthBookingCount > 0 
     ? ((monthlyBookingCount - lastMonthBookingCount) / lastMonthBookingCount * 100).toFixed(1)
     : "0";
-  const guestChange = lastMonthGuestCount > 0
+  const guestChange = lastMonthGuestCount > 0 
     ? ((monthlyGuestCount - lastMonthGuestCount) / lastMonthGuestCount * 100).toFixed(1)
     : "0";
   const revChange = lastMonthRev > 0
     ? ((monthlyRev - lastMonthRev) / lastMonthRev * 100).toFixed(1)
     : "0";
+    
+  // Ensure all numeric values are valid
+  const safeBookingChange = Number.isFinite(Number(bookingChange)) ? bookingChange : "0";
+  const safeGuestChange = Number.isFinite(Number(guestChange)) ? guestChange : "0";
+  const safeRevChange = Number.isFinite(Number(revChange)) ? revChange : "0";
   
   // 根據是否有自定義日期範圍來決定如何生成圖表數據
   let monthlyData: ChartData[] = [];
@@ -294,9 +299,25 @@ const fetchDashboardData = async (
   const occupancyByRoomType: { [key: string]: { totalNights: number, roomCount: number, roomTypeName: string } } = {};
   
   recentOrders.forEach(order => {
+    // Validate dates before calculation
+    if (!order.check_in_date || !order.check_out_date) {
+      return;
+    }
+    
     const checkIn = new Date(order.check_in_date);
     const checkOut = new Date(order.check_out_date);
+    
+    // Check if dates are valid
+    if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) {
+      return;
+    }
+    
     const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // Ensure nights is a valid positive number
+    if (!Number.isFinite(nights) || nights <= 0) {
+      return;
+    }
     
     if (order.room_type_id) {
       if (!occupancyByRoomType[order.room_type_id]) {
@@ -313,7 +334,17 @@ const fetchDashboardData = async (
   
   const occupancyData: OccupancyData[] = Object.values(occupancyByRoomType).map(data => {
     const roomCount = data.roomCount || 1; // Ensure roomCount is never 0
-    const rate = Math.round((data.totalNights / (roomCount * 30)) * 100);
+    const totalNights = data.totalNights || 0; // Ensure totalNights is a number
+    
+    // Ensure all values are valid numbers before calculation
+    if (!Number.isFinite(totalNights) || !Number.isFinite(roomCount) || roomCount === 0) {
+      return {
+        roomType: data.roomTypeName,
+        occupancyRate: 0
+      };
+    }
+    
+    const rate = Math.round((totalNights / (roomCount * 30)) * 100);
     return {
       roomType: data.roomTypeName,
       occupancyRate: Number.isFinite(rate) ? Math.min(100, rate) : 0
@@ -331,9 +362,9 @@ const fetchDashboardData = async (
       monthlyBookings: monthlyBookingCount,
       totalGuests: monthlyGuestCount,
       monthlyRevenue: Number.isFinite(monthlyRev) ? monthlyRev : 0,
-      bookingsChange: `${Number(bookingChange) >= 0 ? '+' : ''}${bookingChange}%`,
-      guestsChange: `${Number(guestChange) >= 0 ? '+' : ''}${guestChange}%`,
-      revenueChange: `${Number(revChange) >= 0 ? '+' : ''}${revChange}%`,
+      bookingsChange: `${Number(safeBookingChange) >= 0 ? '+' : ''}${safeBookingChange}%`,
+      guestsChange: `${Number(safeGuestChange) >= 0 ? '+' : ''}${safeGuestChange}%`,
+      revenueChange: `${Number(safeRevChange) >= 0 ? '+' : ''}${safeRevChange}%`,
     },
     revenueData,
     bookingData,
