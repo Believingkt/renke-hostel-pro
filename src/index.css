@@ -526,7 +526,7 @@ All colors MUST be HSL.
   /* Line Chart 優化 - 增加陰影效果和漸變 */
   .tremor-LineChart-line,
   .recharts-line-curve {
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.1));
     stroke-width: 2.5;
   }
@@ -540,10 +540,11 @@ All colors MUST be HSL.
   /* 優化圖表標記點 - 增加脈動和光暈效果 */
   .tremor-LineChart-dot,
   .recharts-dot {
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.2));
     stroke-width: 2;
+    animation: pulse-fade-in 0.6s ease-out;
   }
 
   .tremor-LineChart-dot:hover,
@@ -558,6 +559,33 @@ All colors MUST be HSL.
   @keyframes pulse-dot {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.2); }
+  }
+
+  @keyframes pulse-fade-in {
+    0% { 
+      opacity: 0;
+      transform: scale(0.8);
+    }
+    100% { 
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* 圖表容器進場動畫 */
+  .recharts-surface {
+    animation: chart-fade-in 0.6s ease-out;
+  }
+
+  @keyframes chart-fade-in {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   /* 圖表網格線優化 - 更細膩的虛線 */

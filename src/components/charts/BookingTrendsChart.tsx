@@ -107,6 +107,10 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                 dot={{ r: 4 }}
                 activeDot={{ r: 6 }}
                 connectNulls
+                animationDuration={1000}
+                animationBegin={index * 100}
+                isAnimationActive={true}
+                animationEasing="ease-in-out"
               />
             ))}
           </LineChart>
