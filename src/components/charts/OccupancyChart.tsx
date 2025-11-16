@@ -44,8 +44,9 @@ export const OccupancyChart = ({ data }: OccupancyChartProps) => {
         showXAxis={true}
         showYAxis={true}
         layout="vertical"
-        animationDuration={800}
+        animationDuration={600}
         showAnimation={true}
+        autoMinValue={true}
       />
     </div>
   );

@@ -64,9 +64,11 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
         showXAxis={true}
         showYAxis={true}
         curveType="natural"
-        animationDuration={800}
+        animationDuration={600}
         connectNulls={true}
         showAnimation={true}
+        autoMinValue={true}
+        allowDecimals={false}
       />
     </div>
   );
