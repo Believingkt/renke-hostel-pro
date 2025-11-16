@@ -419,10 +419,11 @@ All colors MUST be HSL.
 
   /* 優化 Tooltip 樣式 */
   .tremor-Tooltip-root {
-    background: hsl(var(--popover)) !important;
-    border: 1px solid hsl(var(--border)) !important;
+    background: hsl(var(--popover) / 0.98) !important;
+    backdrop-filter: blur(8px) !important;
+    border: 1px solid hsl(var(--border) / 0.5) !important;
     border-radius: 0.5rem !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
     color: hsl(var(--popover-foreground)) !important;
     padding: 0.625rem 0.875rem !important;
     font-size: 0.8125rem !important;
