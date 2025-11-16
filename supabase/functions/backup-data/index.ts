@@ -93,18 +93,33 @@ Deno.serve(async (req) => {
     };
 
     const backupJson = JSON.stringify(backupData, null, 2);
-    const backupBuffer = new TextEncoder().encode(backupJson);
+    const uncompressedSize = new TextEncoder().encode(backupJson).length;
+    
+    // Compress the data using gzip
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(backupJson));
+        controller.close();
+      }
+    });
+    
+    const compressedStream = stream.pipeThrough(new CompressionStream('gzip'));
+    const compressedBlob = await new Response(compressedStream).blob();
+    const compressedBuffer = await compressedBlob.arrayBuffer();
+    const compressedSize = compressedBuffer.byteLength;
+
+    console.log(`Compression: ${uncompressedSize} bytes -> ${compressedSize} bytes (${((1 - compressedSize / uncompressedSize) * 100).toFixed(1)}% reduction)`);
 
     // Create file path with timestamp
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const fileName = `backup_${accommodationId}_${timestamp}.json`;
+    const fileName = `backup_${accommodationId}_${timestamp}.json.gz`;
     const filePath = `${accommodationId}/${fileName}`;
 
     // Upload to storage
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('backups')
-      .upload(filePath, backupBuffer, {
-        contentType: 'application/json',
+      .upload(filePath, compressedBuffer, {
+        contentType: 'application/gzip',
         upsert: false,
       });
 
@@ -121,7 +136,7 @@ Deno.serve(async (req) => {
         accommodation_id: accommodationId,
         backup_type: backupType,
         file_path: filePath,
-        file_size: backupBuffer.length,
+        file_size: compressedSize,
         orders_count: orders?.length || 0,
         customers_count: customers?.length || 0,
         status: 'success',
@@ -142,7 +157,9 @@ Deno.serve(async (req) => {
           filePath,
           ordersCount: orders?.length || 0,
           customersCount: customers?.length || 0,
-          size: backupBuffer.length,
+          size: compressedSize,
+          uncompressedSize: uncompressedSize,
+          compressionRatio: ((1 - compressedSize / uncompressedSize) * 100).toFixed(1) + '%',
           timestamp: new Date().toISOString(),
         },
       }),
