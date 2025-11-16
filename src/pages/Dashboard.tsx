@@ -403,7 +403,7 @@ const Dashboard = () => {
       )}
 
       <div className="grid gap-6 md:grid-cols-2 px-2 md:px-0">
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold">營收統計</CardTitle>
           </CardHeader>
@@ -416,7 +416,7 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold">訂單趨勢</CardTitle>
           </CardHeader>
@@ -430,7 +430,7 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      <Card className="overflow-hidden px-2 md:px-0">
+      <Card className="overflow-hidden px-2 md:px-0 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold">房型入住率 (過去 30 天)</CardTitle>
         </CardHeader>

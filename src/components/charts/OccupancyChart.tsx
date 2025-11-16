@@ -30,19 +30,22 @@ export const OccupancyChart = ({ data }: OccupancyChartProps) => {
   }
 
   return (
-    <BarChart
-      className="h-[280px]"
-      data={data}
-      index="roomType"
-      categories={["occupancyRate"]}
-      colors={["cyan"]}
-      valueFormatter={valueFormatter}
-      yAxisWidth={48}
-      showLegend={false}
-      showGridLines={true}
-      showXAxis={true}
-      showYAxis={true}
-      layout="vertical"
-    />
+    <div className="animate-fade-in">
+      <BarChart
+        className="h-[280px]"
+        data={data}
+        index="roomType"
+        categories={["occupancyRate"]}
+        colors={["cyan"]}
+        valueFormatter={valueFormatter}
+        yAxisWidth={48}
+        showLegend={false}
+        showGridLines={true}
+        showXAxis={true}
+        showYAxis={true}
+        layout="vertical"
+        animationDuration={800}
+      />
+    </div>
   );
 };
