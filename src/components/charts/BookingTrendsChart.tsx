@@ -1,4 +1,4 @@
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 
 interface BookingTrendsChartProps {
@@ -42,25 +42,25 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
   const chartConfig = isCustomRange ? {
     本期: {
       label: "本期",
-      color: "hsl(var(--chart-2))",
+      color: "hsl(var(--chart-booking-primary))",
     },
   } : comparisonMode === 'lastYear' ? {
     今年: {
       label: "今年",
-      color: "hsl(var(--chart-2))",
+      color: "hsl(var(--chart-booking-primary))",
     },
     去年: {
       label: "去年",
-      color: "hsl(var(--chart-3))",
+      color: "hsl(var(--chart-booking-secondary))",
     },
   } : {
     本月: {
       label: "本月",
-      color: "hsl(var(--chart-2))",
+      color: "hsl(var(--chart-booking-primary))",
     },
     上月: {
       label: "上月",
-      color: "hsl(var(--chart-3))",
+      color: "hsl(var(--chart-booking-secondary))",
     },
   };
 
@@ -89,7 +89,7 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                 key={category}
                 type="monotone"
                 dataKey={category}
-                stroke={index === 0 ? "hsl(var(--chart-2))" : "hsl(var(--chart-3))"}
+                stroke={index === 0 ? "hsl(var(--chart-booking-primary))" : "hsl(var(--chart-booking-secondary))"}
                 strokeWidth={2.5}
                 dot={{ r: 4 }}
                 activeDot={{ r: 6 }}

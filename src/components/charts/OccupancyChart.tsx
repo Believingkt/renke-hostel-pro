@@ -27,7 +27,7 @@ export const OccupancyChart = ({ data }: OccupancyChartProps) => {
   const chartConfig = {
     occupancyRate: {
       label: "入住率",
-      color: "hsl(var(--chart-1))",
+      color: "hsl(var(--chart-occupancy-primary))",
     },
   };
 
@@ -54,7 +54,7 @@ export const OccupancyChart = ({ data }: OccupancyChartProps) => {
             />
             <Bar 
               dataKey="occupancyRate" 
-              fill="hsl(var(--chart-1))" 
+              fill="hsl(var(--chart-occupancy-primary))" 
               radius={[0, 6, 6, 0]}
             />
           </BarChart>

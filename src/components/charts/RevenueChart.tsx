@@ -55,25 +55,25 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
   const chartConfig = isCustomRange ? {
     本期: {
       label: "本期",
-      color: "hsl(var(--chart-4))",
+      color: "hsl(var(--chart-revenue-primary))",
     },
   } : comparisonMode === 'lastYear' ? {
     今年: {
       label: "今年",
-      color: "hsl(var(--chart-4))",
+      color: "hsl(var(--chart-revenue-primary))",
     },
     去年: {
       label: "去年",
-      color: "hsl(var(--chart-5))",
+      color: "hsl(var(--chart-revenue-secondary))",
     },
   } : {
     本月: {
       label: "本月",
-      color: "hsl(var(--chart-4))",
+      color: "hsl(var(--chart-revenue-primary))",
     },
     上月: {
       label: "上月",
-      color: "hsl(var(--chart-5))",
+      color: "hsl(var(--chart-revenue-secondary))",
     },
   };
 
@@ -101,7 +101,7 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
               <Bar
                 key={category}
                 dataKey={category}
-                fill={index === 0 ? "hsl(var(--chart-4))" : "hsl(var(--chart-5))"}
+                fill={index === 0 ? "hsl(var(--chart-revenue-primary))" : "hsl(var(--chart-revenue-secondary))"}
                 radius={[6, 6, 0, 0]}
               />
             ))}
