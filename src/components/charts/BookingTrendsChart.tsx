@@ -21,10 +21,10 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
       ? ['今年', '去年'] 
       : ['本月', '上月'];
 
-  // 使用 Tremor 預設顏色名稱
+  // 使用更現代的漸變配色
   const chartColors = isCustomRange 
-    ? ["purple"]
-    : ["purple", "orange"];
+    ? ["violet"]
+    : ["violet", "amber"];
 
   // 檢查是否有實際數據
   const hasRealData = data.some(d => 
@@ -50,9 +50,10 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
   }
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in relative">
+      <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-purple-500/5 rounded-lg pointer-events-none" />
       <LineChart
-        className="h-[300px]"
+        className="h-[300px] relative z-10"
         data={data}
         index="month"
         categories={categories}
