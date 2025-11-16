@@ -7,13 +7,13 @@ interface StatCardProps {
   value: string;
   change?: string;
   icon: LucideIcon;
-  variant: "coral" | "green" | "blue" | "purple";
+  variant: "coral" | "cyan" | "blue" | "purple";
   isUpdating?: boolean;
 }
 
 const variantStyles = {
   coral: "bg-stat-coral-light text-stat-coral",
-  green: "bg-stat-green-light text-stat-green",
+  cyan: "bg-stat-cyan-light text-stat-cyan",
   blue: "bg-stat-blue-light text-stat-blue",
   purple: "bg-stat-purple-light text-stat-purple",
 };

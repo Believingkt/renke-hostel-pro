@@ -60,8 +60,8 @@ export default {
         stat: {
           coral: "hsl(var(--stat-coral))",
           "coral-light": "hsl(var(--stat-coral-light))",
-          green: "hsl(var(--stat-green))",
-          "green-light": "hsl(var(--stat-green-light))",
+          cyan: "hsl(var(--stat-cyan))",
+          "cyan-light": "hsl(var(--stat-cyan-light))",
           blue: "hsl(var(--stat-blue))",
           "blue-light": "hsl(var(--stat-blue-light))",
           purple: "hsl(var(--stat-purple))",

@@ -135,7 +135,7 @@ export function ConflictDetector({ orders, accommodationId }: ConflictDetectorPr
               </Badge>
             )}
             {conflicts.length === 0 && lastCheckTime && (
-              <Badge variant="outline" className="text-green-600">
+              <Badge variant="outline" className="text-cyan-600">
                 <CheckCircle className="h-3 w-3 mr-1" />
                 無衝突
               </Badge>
