@@ -35,7 +35,7 @@ export const OccupancyChart = ({ data }: OccupancyChartProps) => {
       data={data}
       index="roomType"
       categories={["occupancyRate"]}
-      colors={["cyan"]}
+      colors={["teal"]}
       valueFormatter={valueFormatter}
       yAxisWidth={48}
       showLegend={false}
