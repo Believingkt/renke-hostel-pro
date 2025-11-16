@@ -36,6 +36,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { TabsSkeleton } from "@/components/skeletons/TabsSkeleton";
@@ -257,6 +267,8 @@ const WebsiteContent = () => {
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
   const [cropImageSrc, setCropImageSrc] = useState("");
   const [cropLogoType, setCropLogoType] = useState<'header' | 'footer'>('header');
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteLogoType, setDeleteLogoType] = useState<'header' | 'footer' | null>(null);
   
   // 訂房須知狀態
   const [bookingInfo, setBookingInfo] = useState({
@@ -916,10 +928,15 @@ const WebsiteContent = () => {
     }
   };
 
-  const handleLogoDelete = async (logoType: 'header' | 'footer') => {
-    if (!accommodationId) return;
+  const openDeleteConfirm = (logoType: 'header' | 'footer') => {
+    setDeleteLogoType(logoType);
+    setDeleteConfirmOpen(true);
+  };
 
-    const currentLogoUrl = logoType === 'header' ? basicInfo.header_logo_url : basicInfo.footer_logo_url;
+  const confirmLogoDelete = async () => {
+    if (!accommodationId || !deleteLogoType) return;
+
+    const currentLogoUrl = deleteLogoType === 'header' ? basicInfo.header_logo_url : basicInfo.footer_logo_url;
     if (!currentLogoUrl) return;
 
     try {
@@ -939,7 +956,7 @@ const WebsiteContent = () => {
       }
 
       // 從資料庫中清除 logo URL
-      const updateField = logoType === 'header' ? 'header_logo_url' : 'footer_logo_url';
+      const updateField = deleteLogoType === 'header' ? 'header_logo_url' : 'footer_logo_url';
       const { error: updateError } = await supabase
         .from('accommodation_info')
         .update({ [updateField]: null })
@@ -948,13 +965,15 @@ const WebsiteContent = () => {
       if (updateError) throw updateError;
 
       // 更新狀態
-      if (logoType === 'header') {
+      if (deleteLogoType === 'header') {
         setBasicInfo(prev => ({ ...prev, header_logo_url: '' }));
       } else {
         setBasicInfo(prev => ({ ...prev, footer_logo_url: '' }));
       }
 
-      toast.success(`${logoType === 'header' ? '頁首' : '頁尾'} Logo 已刪除`);
+      toast.success(`${deleteLogoType === 'header' ? '頁首' : '頁尾'} Logo 已刪除`);
+      setDeleteConfirmOpen(false);
+      setDeleteLogoType(null);
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error deleting logo:', error);
@@ -1353,7 +1372,7 @@ const WebsiteContent = () => {
                         type="button"
                         variant="outline"
                         size="icon"
-                        onClick={() => handleLogoDelete('header')}
+                        onClick={() => openDeleteConfirm('header')}
                         className="text-destructive hover:text-destructive"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -1400,7 +1419,7 @@ const WebsiteContent = () => {
                         type="button"
                         variant="outline"
                         size="icon"
-                        onClick={() => handleLogoDelete('footer')}
+                        onClick={() => openDeleteConfirm('footer')}
                         className="text-destructive hover:text-destructive"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -2214,6 +2233,40 @@ const WebsiteContent = () => {
         onCropComplete={handleCropComplete}
         logoType={cropLogoType}
       />
+
+      {/* Logo 刪除確認對話框 */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認刪除 Logo</AlertDialogTitle>
+            <AlertDialogDescription>
+              您確定要刪除{deleteLogoType === 'header' ? '頁首' : '頁尾'} Logo 嗎？此操作無法復原。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          {deleteLogoType && (
+            <div className="flex justify-center py-4">
+              <div className="relative w-48 h-24 border rounded overflow-hidden bg-muted">
+                <img
+                  src={deleteLogoType === 'header' ? basicInfo.header_logo_url : basicInfo.footer_logo_url}
+                  alt={`${deleteLogoType === 'header' ? '頁首' : '頁尾'} Logo 預覽`}
+                  className="w-full h-full object-contain"
+                />
+              </div>
+            </div>
+          )}
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmLogoDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              確認刪除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
