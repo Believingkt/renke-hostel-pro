@@ -231,9 +231,23 @@ const Dashboard = () => {
     safeRevenueData.some(d => (d['去年'] || d['上月'] || 0) > 0)
   );
   
-  // Ensure we always have at least one valid data point for charts
-  const finalRevenueData = safeRevenueData.length > 0 ? safeRevenueData : [{ month: format(new Date(), 'M月'), 本期: 0 }];
-  const finalBookingData = safeBookingData.length > 0 ? safeBookingData : [{ month: format(new Date(), 'M月'), 本期: 0 }];
+  // Ensure we always have at least one valid data point for charts with ALL keys initialized
+  const finalRevenueData = safeRevenueData.length > 0 ? safeRevenueData : [{ 
+    month: format(new Date(), 'M月'), 
+    今年: 0, 
+    去年: 0, 
+    本月: 0, 
+    上月: 0, 
+    本期: 0 
+  }];
+  const finalBookingData = safeBookingData.length > 0 ? safeBookingData : [{ 
+    month: format(new Date(), 'M月'), 
+    今年: 0, 
+    去年: 0, 
+    本月: 0, 
+    上月: 0, 
+    本期: 0 
+  }];
   const finalOccupancyData = safeOccupancyData.length > 0 ? safeOccupancyData : [{ roomType: '暫無數據', occupancyRate: 0 }];
   
   // Debug: Log the final data being passed to charts
