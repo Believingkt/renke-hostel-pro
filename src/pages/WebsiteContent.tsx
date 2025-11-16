@@ -39,6 +39,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { TabsSkeleton } from "@/components/skeletons/TabsSkeleton";
+import { LogoCropDialog } from "@/components/LogoCropDialog";
 
 // 定義所有設施項目
 const facilitiesData = {
@@ -253,6 +254,9 @@ const WebsiteContent = () => {
   });
   const [uploadingHeaderLogo, setUploadingHeaderLogo] = useState(false);
   const [uploadingFooterLogo, setUploadingFooterLogo] = useState(false);
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState("");
+  const [cropLogoType, setCropLogoType] = useState<'header' | 'footer'>('header');
   
   // 訂房須知狀態
   const [bookingInfo, setBookingInfo] = useState({
@@ -820,13 +824,34 @@ const WebsiteContent = () => {
       return;
     }
 
-    const setUploading = logoType === 'header' ? setUploadingHeaderLogo : setUploadingFooterLogo;
+    // 驗證文件格式
+    const validFormats = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+    if (!validFormats.includes(file.type)) {
+      toast.error('不支援的文件格式！請上傳 PNG、JPG、JPEG 或 WEBP 格式的圖片。');
+      event.target.value = '';
+      return;
+    }
+
+    // 創建圖片預覽 URL
+    const imageUrl = URL.createObjectURL(file);
+    setCropImageSrc(imageUrl);
+    setCropLogoType(logoType);
+    setCropDialogOpen(true);
+
+    // 清除 input 值
+    event.target.value = '';
+  };
+
+  const handleCropComplete = async (croppedImage: Blob) => {
+    if (!accommodationId) return;
+
+    const setUploading = cropLogoType === 'header' ? setUploadingHeaderLogo : setUploadingFooterLogo;
     setUploading(true);
 
     try {
-      // 驗證圖片尺寸
+      // 驗證裁剪後的圖片尺寸
       const img = new Image();
-      const imageUrl = URL.createObjectURL(file);
+      const imageUrl = URL.createObjectURL(croppedImage);
       
       await new Promise((resolve, reject) => {
         img.onload = resolve;
@@ -852,17 +877,18 @@ const WebsiteContent = () => {
 
       // 清理臨時 URL
       URL.revokeObjectURL(imageUrl);
+      URL.revokeObjectURL(cropImageSrc);
 
       // 生成唯一檔案名
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${accommodationId}/${logoType}-logo-${Date.now()}.${fileExt}`;
+      const fileName = `${accommodationId}/${cropLogoType}-logo-${Date.now()}.png`;
 
       // 上傳到 Supabase Storage
-      const { error: uploadError, data } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('logos')
-        .upload(fileName, file, {
+        .upload(fileName, croppedImage, {
           cacheControl: '3600',
-          upsert: true
+          upsert: true,
+          contentType: 'image/png'
         });
 
       if (uploadError) throw uploadError;
@@ -873,13 +899,13 @@ const WebsiteContent = () => {
         .getPublicUrl(fileName);
 
       // 更新狀態
-      if (logoType === 'header') {
+      if (cropLogoType === 'header') {
         setBasicInfo(prev => ({ ...prev, header_logo_url: publicUrl }));
       } else {
         setBasicInfo(prev => ({ ...prev, footer_logo_url: publicUrl }));
       }
 
-      toast.success(`${logoType === 'header' ? '頁首' : '頁尾'} Logo 已上傳`);
+      toast.success(`${cropLogoType === 'header' ? '頁首' : '頁尾'} Logo 已上傳`);
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error uploading logo:', error);
@@ -887,8 +913,6 @@ const WebsiteContent = () => {
       toast.error('上傳失敗，請稍後再試');
     } finally {
       setUploading(false);
-      // 清除 input 值，允許重複上傳同一檔案
-      event.target.value = '';
     }
   };
 
@@ -2181,6 +2205,15 @@ const WebsiteContent = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Logo 裁剪對話框 */}
+      <LogoCropDialog
+        open={cropDialogOpen}
+        onOpenChange={setCropDialogOpen}
+        imageSrc={cropImageSrc}
+        onCropComplete={handleCropComplete}
+        logoType={cropLogoType}
+      />
     </div>
   );
 };
