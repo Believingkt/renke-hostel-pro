@@ -142,9 +142,36 @@ const KolDiscount = () => {
   };
 
   const handleSubmit = async () => {
-    if (!name || !discountValue || !usageLimit || !accommodationId) {
+    if (!accommodationId) {
       toast({
-        title: "請填寫所有欄位",
+        title: "系統錯誤",
+        description: "無法取得住宿資訊",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!name.trim()) {
+      toast({
+        title: "請填寫折扣碼名稱",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!discountValue || parseFloat(discountValue) <= 0) {
+      toast({
+        title: "請填寫有效的折扣值",
+        description: "折扣值必須大於 0",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!usageLimit || parseInt(usageLimit) <= 0) {
+      toast({
+        title: "請填寫有效的使用次數上限",
+        description: "使用次數上限必須大於 0",
         variant: "destructive",
       });
       return;
@@ -289,9 +316,36 @@ const KolDiscount = () => {
   };
 
   const handleUpdateCode = async () => {
-    if (!name || !discountValue || !usageLimit || !editingCode) {
+    if (!editingCode) {
       toast({
-        title: "請填寫所有欄位",
+        title: "系統錯誤",
+        description: "無法取得折扣碼資訊",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!name.trim()) {
+      toast({
+        title: "請填寫折扣碼名稱",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!discountValue || parseFloat(discountValue) <= 0) {
+      toast({
+        title: "請填寫有效的折扣值",
+        description: "折扣值必須大於 0",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!usageLimit || parseInt(usageLimit) <= 0) {
+      toast({
+        title: "請填寫有效的使用次數上限",
+        description: "使用次數上限必須大於 0",
         variant: "destructive",
       });
       return;
