@@ -2,6 +2,9 @@ import { Hotel, Users, Calendar, DollarSign, Radio, Zap } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubdomain } from "@/hooks/use-subdomain";
@@ -63,6 +66,7 @@ const Dashboard = () => {
   const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date());
   const [comparisonMode, setComparisonMode] = useState<'lastYear' | 'lastMonth'>('lastYear');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [testDataCount, setTestDataCount] = useState(20);
   
   // 統計數據
   const [totalRooms, setTotalRooms] = useState(0);
@@ -307,12 +311,17 @@ const Dashboard = () => {
       return;
     }
 
+    if (testDataCount < 1 || testDataCount > 100) {
+      toast.error("請輸入 1-100 之間的數量");
+      return;
+    }
+
     setIsGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-test-orders', {
         body: {
           accommodationId,
-          count: 20,
+          count: testDataCount,
         },
       });
 
@@ -396,16 +405,49 @@ const Dashboard = () => {
       <div className="px-2 md:px-0 flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">營運分析</h1>
         <div className="flex items-center gap-2 flex-wrap">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleGenerateTestData}
-            disabled={isGenerating}
-            className="gap-2"
-          >
-            <Zap className={`h-4 w-4 ${isGenerating ? 'animate-pulse' : ''}`} />
-            {isGenerating ? '生成中...' : '生成測試數據'}
-          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isGenerating}
+                className="gap-2"
+              >
+                <Zap className={`h-4 w-4 ${isGenerating ? 'animate-pulse' : ''}`} />
+                {isGenerating ? '生成中...' : '生成測試數據'}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-72">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium leading-none">生成測試數據</h4>
+                  <p className="text-sm text-muted-foreground">
+                    選擇要生成的測試訂單數量（1-100）
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="test-count">訂單數量</Label>
+                  <Input
+                    id="test-count"
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={testDataCount}
+                    onChange={(e) => setTestDataCount(Number(e.target.value))}
+                    placeholder="輸入數量"
+                  />
+                </div>
+                <Button
+                  onClick={handleGenerateTestData}
+                  disabled={isGenerating}
+                  className="w-full gap-2"
+                >
+                  <Zap className="h-4 w-4" />
+                  {isGenerating ? '生成中...' : `生成 ${testDataCount} 筆資料`}
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
           <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
             <button
               onClick={() => setComparisonMode('lastYear')}

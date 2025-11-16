@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
     const testOrders = [];
     const orderStatuses = ['pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled'];
     const paymentStatuses = ['unpaid', 'partial', 'paid'];
-    const mealPlans = [null, '一泊一食', '一泊二食', '一泊三食'];
+    const mealPlans = [null, '2_meals', '3_meals'];
 
     for (let i = 0; i < count; i++) {
       const customer = insertedCustomers[i % insertedCustomers.length];
