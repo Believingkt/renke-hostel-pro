@@ -1,12 +1,21 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, User, Phone, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 interface RoomType {
   id: string;
@@ -20,6 +29,20 @@ interface BookingCount {
   booked_rooms: number;
 }
 
+interface Order {
+  id: string;
+  order_number: string;
+  guest_name: string;
+  guest_phone: string;
+  guest_email: string | null;
+  check_in_date: string;
+  check_out_date: string;
+  order_status: string;
+  payment_status: string;
+  final_price: number;
+  guest_count: number;
+}
+
 interface InventoryCalendarProps {
   accommodationId: string;
 }
@@ -29,6 +52,11 @@ export const InventoryCalendar = ({ accommodationId }: InventoryCalendarProps) =
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [bookingCounts, setBookingCounts] = useState<BookingCount[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedRoomType, setSelectedRoomType] = useState<RoomType | null>(null);
+  const [dialogOrders, setDialogOrders] = useState<Order[]>([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -116,6 +144,55 @@ export const InventoryCalendar = ({ accommodationId }: InventoryCalendarProps) =
     setCurrentDate(addMonths(currentDate, 1));
   };
 
+  const handleCellClick = async (date: Date, roomType: RoomType) => {
+    setSelectedDate(date);
+    setSelectedRoomType(roomType);
+    setDialogOpen(true);
+    setIsLoadingOrders(true);
+
+    try {
+      const dateStr = format(date, "yyyy-MM-dd");
+      
+      const { data, error } = await supabase
+        .from("orders")
+        .select("id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, order_status, payment_status, final_price, guest_count")
+        .eq("accommodation_id", accommodationId)
+        .eq("room_type_id", roomType.id)
+        .in("order_status", ["pending", "confirmed", "checked_in"])
+        .lte("check_in_date", dateStr)
+        .gt("check_out_date", dateStr)
+        .order("check_in_date");
+
+      if (error) throw error;
+      setDialogOrders(data || []);
+    } catch (error: any) {
+      console.error("載入訂單詳情時發生錯誤:", error);
+      toast.error("載入訂單詳情失敗");
+    } finally {
+      setIsLoadingOrders(false);
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+      pending: { label: "待確認", variant: "outline" },
+      confirmed: { label: "已確認", variant: "default" },
+      checked_in: { label: "已入住", variant: "secondary" },
+    };
+    const config = statusMap[status] || { label: status, variant: "outline" };
+    return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
+
+  const getPaymentBadge = (status: string) => {
+    const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+      unpaid: { label: "未付款", variant: "destructive" },
+      partial: { label: "部分付款", variant: "outline" },
+      paid: { label: "已付款", variant: "default" },
+    };
+    const config = statusMap[status] || { label: status, variant: "outline" };
+    return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -196,11 +273,12 @@ export const InventoryCalendar = ({ accommodationId }: InventoryCalendarProps) =
                     return (
                       <div
                         key={`${roomType.id}-${day.toISOString()}`}
-                        className={`text-center text-xs p-2 rounded transition-colors ${getAvailabilityColor(
+                        className={`text-center text-xs p-2 rounded transition-colors cursor-pointer hover:opacity-80 ${getAvailabilityColor(
                           booked,
                           total
                         )}`}
-                        title={`已訂: ${booked}/${total} 間\n可訂: ${available} 間`}
+                        title={`已訂: ${booked}/${total} 間\n可訂: ${available} 間\n點擊查看詳情`}
+                        onClick={() => handleCellClick(day, roomType)}
                       >
                         <div className="font-semibold">{booked}/{total}</div>
                         <div className="text-[10px] opacity-80">
@@ -232,6 +310,107 @@ export const InventoryCalendar = ({ accommodationId }: InventoryCalendarProps) =
           </div>
         )}
       </CardContent>
+
+      {/* 訂單詳情對話框 */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              {selectedDate && selectedRoomType && (
+                <>
+                  {format(selectedDate, "yyyy年M月d日 (EEEE)", { locale: zhTW })} - {selectedRoomType.name}
+                </>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              此房型在當天的所有預訂訂單
+            </DialogDescription>
+          </DialogHeader>
+
+          {isLoadingOrders ? (
+            <div className="space-y-3">
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-24 w-full" />
+            </div>
+          ) : dialogOrders.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>此日期沒有預訂記錄</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {dialogOrders.map((order) => (
+                <Card key={order.id} className="overflow-hidden">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <div className="font-semibold text-lg mb-1">
+                          訂單號: {order.order_number}
+                        </div>
+                        <div className="flex gap-2">
+                          {getStatusBadge(order.order_status)}
+                          {getPaymentBadge(order.payment_status)}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-primary">
+                          ${order.final_price.toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator className="my-3" />
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">客人姓名:</span>
+                          <span className="font-medium">{order.guest_name}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <Phone className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">聯絡電話:</span>
+                          <span className="font-medium">{order.guest_phone}</span>
+                        </div>
+                        {order.guest_email && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Mail className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-muted-foreground">電子郵件:</span>
+                            <span className="font-medium">{order.guest_email}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">入住日期:</span>
+                          <span className="font-medium">
+                            {format(new Date(order.check_in_date), "yyyy/MM/dd")}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">退房日期:</span>
+                          <span className="font-medium">
+                            {format(new Date(order.check_out_date), "yyyy/MM/dd")}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">入住人數:</span>
+                          <span className="font-medium">{order.guest_count} 人</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
