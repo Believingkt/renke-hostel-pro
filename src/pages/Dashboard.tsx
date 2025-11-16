@@ -403,8 +403,8 @@ const Dashboard = () => {
       )}
 
       <div className="grid gap-6 md:grid-cols-2 px-2 md:px-0">
-        <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-border/50">
-          <CardHeader className="pb-4 border-b border-border/50">
+        <Card className="overflow-hidden rounded-2xl shadow-card bg-card/50 backdrop-blur-sm border-border/40 transition-all duration-500 hover:shadow-card-hover hover:scale-[1.02] hover:bg-card/80">
+          <CardHeader className="pb-4 border-b border-border/30">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg font-semibold text-foreground">營收統計</CardTitle>
               <span className="text-xs text-muted-foreground">
@@ -422,8 +422,8 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-border/50">
-          <CardHeader className="pb-4 border-b border-border/50">
+        <Card className="overflow-hidden rounded-2xl shadow-card bg-card/50 backdrop-blur-sm border-border/40 transition-all duration-500 hover:shadow-card-hover hover:scale-[1.02] hover:bg-card/80">
+          <CardHeader className="pb-4 border-b border-border/30">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg font-semibold text-foreground">訂單趨勢</CardTitle>
               <span className="text-xs text-muted-foreground">
@@ -442,8 +442,8 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      <Card className="overflow-hidden px-2 md:px-0 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-border/50">
-        <CardHeader className="pb-4 border-b border-border/50">
+      <Card className="overflow-hidden rounded-2xl shadow-card bg-card/50 backdrop-blur-sm border-border/40 px-2 md:px-0 transition-all duration-500 hover:shadow-card-hover hover:scale-[1.02] hover:bg-card/80">
+        <CardHeader className="pb-4 border-b border-border/30">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg font-semibold text-foreground">房型入住率</CardTitle>
             <span className="text-xs text-muted-foreground">過去 30 天</span>
