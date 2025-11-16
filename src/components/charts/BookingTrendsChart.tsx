@@ -52,13 +52,13 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
   return (
     <div className="animate-fade-in">
       <LineChart
-        className="h-[280px]"
+        className="h-[300px]"
         data={data}
         index="month"
         categories={categories}
         colors={chartColors}
         valueFormatter={valueFormatter}
-        yAxisWidth={48}
+        yAxisWidth={56}
         showLegend={!isCustomRange}
         showGridLines={true}
         showXAxis={true}
@@ -66,6 +66,7 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
         curveType="natural"
         animationDuration={800}
         connectNulls={true}
+        showAnimation={true}
       />
     </div>
   );

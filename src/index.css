@@ -402,34 +402,49 @@ All colors MUST be HSL.
     transition: all 0.3s ease;
   }
 
+  /* 優化坐標軸文字 */
   .tremor-Chart-gridLine {
     stroke: hsl(var(--border));
-    stroke-opacity: 0.2;
+    stroke-opacity: 0.15;
     transition: stroke-opacity 0.2s ease;
   }
 
   .tremor-Chart-axisLabel {
     fill: hsl(var(--muted-foreground));
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
     transition: fill 0.2s ease;
   }
 
+  /* 優化 Tooltip 樣式 */
   .tremor-Tooltip-root {
     background: hsl(var(--popover)) !important;
     border: 1px solid hsl(var(--border)) !important;
     border-radius: 0.75rem !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
     color: hsl(var(--popover-foreground)) !important;
     animation: fade-in 0.2s ease-out;
+    padding: 0.75rem !important;
+    font-size: 0.875rem !important;
   }
 
+  .tremor-Tooltip-content {
+    font-weight: 500;
+  }
+
+  /* 優化 Legend 樣式 */
   .tremor-Legend-root {
     color: hsl(var(--foreground));
+    padding-top: 1rem;
   }
 
   .tremor-Legend-legendItem {
     color: hsl(var(--muted-foreground));
+    font-size: 0.8125rem;
+    font-weight: 500;
     transition: color 0.2s ease;
+    padding: 0.25rem 0.5rem;
   }
 
   .tremor-Legend-legendItem:hover {
@@ -443,8 +458,17 @@ All colors MUST be HSL.
   }
 
   .tremor-BarChart-bar:hover {
-    opacity: 0.8;
-    transform: translateY(-2px);
+    opacity: 0.85;
+  }
+
+  /* 優化圖表標記點 */
+  .tremor-LineChart-dot {
+    transition: r 0.2s ease, opacity 0.2s ease;
+  }
+
+  .tremor-LineChart-dot:hover {
+    r: 6;
+    opacity: 1;
   }
 }
 
