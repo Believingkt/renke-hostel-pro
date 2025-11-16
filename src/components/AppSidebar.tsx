@@ -117,7 +117,7 @@ export function AppSidebar() {
                         <SidebarMenuSub className="ml-4 border-l-2 border-sidebar-border px-0 space-y-1 mt-1">
                           {item.subItems.map((subItem) => (
                             <SidebarMenuSubItem key={subItem.title}>
-                              <SidebarMenuSubButton asChild className="h-10 px-4 pl-12">
+                              <SidebarMenuSubButton asChild className="h-10 px-4 pl-12 hover:bg-sidebar-accent/50 transition-colors">
                                 <NavLink 
                                   to={subItem.url}
                                   onClick={handleLinkClick}
