@@ -44,6 +44,14 @@ const Dashboard = () => {
   const tooltipFontSize = isMobile ? 11 : 13;
   const legendFontSize = isMobile ? 10 : 12;
   
+  // 響應式邊距
+  const chartMargin = isMobile 
+    ? { top: 5, right: 5, left: -10, bottom: 0 }
+    : { top: 15, right: 20, left: 0, bottom: 5 };
+  const occupancyChartMargin = isMobile
+    ? { top: 5, right: 5, left: -10, bottom: 15 }
+    : { top: 15, right: 20, left: 0, bottom: 25 };
+  
   // 使用 React Query hook 獲取儀表板資料
   const { 
     data: dashboardData, 
@@ -290,7 +298,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent className="pt-0">
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={revenueData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <BarChart data={revenueData} margin={chartMargin}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.2} />
                 <XAxis 
                   dataKey="month" 
@@ -338,7 +346,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent className="pt-0">
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={bookingData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <LineChart data={bookingData} margin={chartMargin}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.2} />
                 <XAxis 
                   dataKey="month" 
@@ -392,7 +400,7 @@ const Dashboard = () => {
           <ResponsiveContainer width="100%" height={300}>
             <BarChart 
               data={occupancyData} 
-              margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
+              margin={occupancyChartMargin}
               layout="horizontal"
             >
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.2} />
