@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,50 +28,78 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, Copy, Pencil, Check, X, Eye } from "lucide-react";
+import { Plus, Trash2, Copy, Pencil, Check, X, Eye, Calendar as CalendarIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useSubdomain } from "@/hooks/use-subdomain";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 
 interface DiscountCode {
   id: string;
-  kolName: string;
+  accommodation_id: string;
+  name: string;
   code: string;
-  discountType: "percentage" | "amount";
-  discountValue: number;
-  usageLimit: number;
-  usedCount: number;
+  discount_type: "percentage" | "amount";
+  discount_value: number;
+  usage_limit: number;
+  used_count: number;
+  valid_from: string;
+  valid_until: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 const KolDiscount = () => {
   const navigate = useNavigate();
+  const { accommodationId } = useSubdomain();
   const [open, setOpen] = useState(false);
-  const [kolName, setKolName] = useState("");
+  const [name, setName] = useState("");
   const [discountType, setDiscountType] = useState<"percentage" | "amount">("percentage");
   const [discountValue, setDiscountValue] = useState("");
   const [usageLimit, setUsageLimit] = useState("");
+  const [validFrom, setValidFrom] = useState<Date>(new Date());
+  const [validUntil, setValidUntil] = useState<Date | undefined>();
   const [editingLimitId, setEditingLimitId] = useState<string | null>(null);
   const [editingLimitValue, setEditingLimitValue] = useState("");
+  const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([
-    {
-      id: "1",
-      kolName: "小明",
-      code: "ABC12",
-      discountType: "percentage",
-      discountValue: 10,
-      usageLimit: 100,
-      usedCount: 23,
-    },
-    {
-      id: "2",
-      kolName: "小美",
-      code: "XYZ34",
-      discountType: "amount",
-      discountValue: 500,
-      usageLimit: 50,
-      usedCount: 8,
-    },
-  ]);
+  useEffect(() => {
+    if (accommodationId) {
+      fetchDiscountCodes();
+    }
+  }, [accommodationId]);
+
+  const fetchDiscountCodes = async () => {
+    if (!accommodationId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("discount_codes")
+        .select("*")
+        .eq("accommodation_id", accommodationId)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setDiscountCodes((data || []) as DiscountCode[]);
+    } catch (error) {
+      console.error("Error fetching discount codes:", error);
+      toast({
+        title: "載入失敗",
+        description: "無法載入折扣代碼列表",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const generateCode = () => {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -82,8 +110,8 @@ const KolDiscount = () => {
     return code;
   };
 
-  const handleSubmit = () => {
-    if (!kolName || !discountValue || !usageLimit) {
+  const handleSubmit = async () => {
+    if (!name || !discountValue || !usageLimit || !accommodationId) {
       toast({
         title: "請填寫所有欄位",
         variant: "destructive",
@@ -91,34 +119,65 @@ const KolDiscount = () => {
       return;
     }
 
-    const newCode: DiscountCode = {
-      id: Date.now().toString(),
-      kolName,
-      code: generateCode(),
-      discountType,
-      discountValue: parseFloat(discountValue),
-      usageLimit: parseInt(usageLimit),
-      usedCount: 0,
-    };
+    const code = generateCode();
 
-    setDiscountCodes([...discountCodes, newCode]);
-    setOpen(false);
-    setKolName("");
-    setDiscountValue("");
-    setUsageLimit("");
-    setDiscountType("percentage");
+    try {
+      const { error } = await supabase.from("discount_codes").insert({
+        accommodation_id: accommodationId,
+        name,
+        code,
+        discount_type: discountType,
+        discount_value: parseFloat(discountValue),
+        usage_limit: parseInt(usageLimit),
+        valid_from: validFrom.toISOString(),
+        valid_until: validUntil?.toISOString() || null,
+      });
 
-    toast({
-      title: "折扣碼新增成功",
-      description: `折扣碼：${newCode.code}`,
-    });
+      if (error) throw error;
+
+      toast({
+        title: "折扣碼新增成功",
+        description: `折扣碼：${code}`,
+      });
+
+      setOpen(false);
+      setName("");
+      setDiscountValue("");
+      setUsageLimit("");
+      setDiscountType("percentage");
+      setValidFrom(new Date());
+      setValidUntil(undefined);
+      fetchDiscountCodes();
+    } catch (error) {
+      console.error("Error creating discount code:", error);
+      toast({
+        title: "新增失敗",
+        description: "無法新增折扣代碼",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setDiscountCodes(discountCodes.filter((code) => code.id !== id));
-    toast({
-      title: "折扣碼已刪除",
-    });
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("discount_codes")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast({
+        title: "折扣碼已刪除",
+      });
+      fetchDiscountCodes();
+    } catch (error) {
+      console.error("Error deleting discount code:", error);
+      toast({
+        title: "刪除失敗",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCopyCode = (code: string) => {
@@ -138,7 +197,7 @@ const KolDiscount = () => {
     setEditingLimitValue(currentLimit.toString());
   };
 
-  const handleSaveLimit = (id: string) => {
+  const handleSaveLimit = async (id: string) => {
     const newLimit = parseInt(editingLimitValue);
     if (isNaN(newLimit) || newLimit < 1) {
       toast({
@@ -148,15 +207,26 @@ const KolDiscount = () => {
       return;
     }
 
-    setDiscountCodes(
-      discountCodes.map((code) =>
-        code.id === id ? { ...code, usageLimit: newLimit } : code
-      )
-    );
-    setEditingLimitId(null);
-    toast({
-      title: "使用次數上限已更新",
-    });
+    try {
+      const { error } = await supabase
+        .from("discount_codes")
+        .update({ usage_limit: newLimit })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast({
+        title: "使用次數已更新",
+      });
+      setEditingLimitId(null);
+      fetchDiscountCodes();
+    } catch (error) {
+      console.error("Error updating usage limit:", error);
+      toast({
+        title: "更新失敗",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCancelEdit = () => {
@@ -164,71 +234,124 @@ const KolDiscount = () => {
     setEditingLimitValue("");
   };
 
-  return (
-    <div className="space-y-4 md:space-y-6 p-4 md:p-0">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-          折扣代碼
-        </h1>
+  const toggleActive = async (id: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("discount_codes")
+        .update({ is_active: !currentStatus })
+        .eq("id", id);
 
+      if (error) throw error;
+
+      toast({
+        title: currentStatus ? "折扣碼已停用" : "折扣碼已啟用",
+      });
+      fetchDiscountCodes();
+    } catch (error) {
+      console.error("Error toggling status:", error);
+      toast({
+        title: "更新失敗",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getStatusBadge = (code: DiscountCode) => {
+    if (!code.is_active) {
+      return <Badge variant="secondary">已停用</Badge>;
+    }
+    
+    const now = new Date();
+    const validFrom = new Date(code.valid_from);
+    const validUntil = code.valid_until ? new Date(code.valid_until) : null;
+
+    if (now < validFrom) {
+      return <Badge variant="secondary">未生效</Badge>;
+    }
+    
+    if (validUntil && now > validUntil) {
+      return <Badge variant="destructive">已過期</Badge>;
+    }
+    
+    if (code.used_count >= code.usage_limit) {
+      return <Badge variant="destructive">已達上限</Badge>;
+    }
+
+    return <Badge variant="default" className="bg-green-600">有效</Badge>;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl md:text-3xl font-bold">折扣代碼管理</h1>
+        </div>
+        <TableSkeleton />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl md:text-3xl font-bold">折扣代碼管理</h1>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2 w-full md:w-auto">
+            <Button className="gap-2">
               <Plus className="h-4 w-4" />
-              新增折扣代碼
+              新增折扣碼
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>新增折扣代碼</DialogTitle>
+              <DialogTitle>新增折扣碼</DialogTitle>
               <DialogDescription>
-                設定名稱和折扣內容，系統將自動生成折扣碼
+                填寫折扣碼資訊，系統將自動生成折扣碼
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="kolName">名稱</Label>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">名稱</Label>
                 <Input
-                  id="kolName"
-                  value={kolName}
-                  onChange={(e) => setKolName(e.target.value)}
-                  placeholder="請輸入名稱"
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="例如：春季促銷、網紅合作"
                 />
               </div>
-              <div className="space-y-2">
+              <div className="grid gap-2">
                 <Label htmlFor="discountType">折扣類型</Label>
                 <Select
                   value={discountType}
-                  onValueChange={(value: "percentage" | "amount") =>
-                    setDiscountType(value)
+                  onValueChange={(value) =>
+                    setDiscountType(value as "percentage" | "amount")
                   }
                 >
-                  <SelectTrigger id="discountType">
+                  <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="percentage">折扣 %</SelectItem>
-                    <SelectItem value="amount">折扣金額</SelectItem>
+                    <SelectItem value="percentage">百分比</SelectItem>
+                    <SelectItem value="amount">固定金額</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
+              <div className="grid gap-2">
                 <Label htmlFor="discountValue">
-                  {discountType === "percentage" ? "折扣百分比" : "折扣金額"}
+                  折扣值 {discountType === "percentage" ? "(%)" : "(NT$)"}
                 </Label>
                 <Input
                   id="discountValue"
                   type="number"
+                  min="1"
                   value={discountValue}
                   onChange={(e) => setDiscountValue(e.target.value)}
                   placeholder={
-                    discountType === "percentage"
-                      ? "例如：10 代表 10%"
-                      : "例如：500 代表 NT$ 500"
+                    discountType === "percentage" ? "例如：10" : "例如：500"
                   }
                 />
               </div>
-              <div className="space-y-2">
+              <div className="grid gap-2">
                 <Label htmlFor="usageLimit">使用次數上限</Label>
                 <Input
                   id="usageLimit"
@@ -239,43 +362,101 @@ const KolDiscount = () => {
                   placeholder="例如：100"
                 />
               </div>
+              <div className="grid gap-2">
+                <Label>生效日期</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("justify-start text-left font-normal")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {format(validFrom, "yyyy/MM/dd")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={validFrom}
+                      onSelect={(date) => date && setValidFrom(date)}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="grid gap-2">
+                <Label>到期日期（選填）</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "justify-start text-left font-normal",
+                        !validUntil && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {validUntil ? format(validUntil, "yyyy/MM/dd") : "無期限"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={validUntil}
+                      onSelect={setValidUntil}
+                      initialFocus
+                      disabled={(date) => date < validFrom}
+                      className="pointer-events-auto"
+                    />
+                    {validUntil && (
+                      <div className="p-3 border-t">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => setValidUntil(undefined)}
+                        >
+                          清除到期日期
+                        </Button>
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>
-                取消
-              </Button>
-              <Button onClick={handleSubmit}>確認新增</Button>
+              <Button onClick={handleSubmit}>新增</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
 
       <Card>
-        <CardContent className="pt-6">
+        <CardContent className="p-0">
           {/* Desktop table view */}
-          <div className="hidden md:block">
+          <div className="hidden md:block overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>名稱</TableHead>
                   <TableHead>折扣碼</TableHead>
-                  <TableHead>折扣內容</TableHead>
-                  <TableHead>已使用次數</TableHead>
-                  <TableHead>使用次數上限</TableHead>
-                  <TableHead className="w-[100px]">操作</TableHead>
+                  <TableHead>折扣</TableHead>
+                  <TableHead>已使用</TableHead>
+                  <TableHead>使用上限</TableHead>
+                  <TableHead>有效期</TableHead>
+                  <TableHead>狀態</TableHead>
+                  <TableHead>操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {discountCodes.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       尚無折扣碼
                     </TableCell>
                   </TableRow>
                 ) : (
                   discountCodes.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.kolName}</TableCell>
+                      <TableCell className="font-medium">{item.name}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <code className="px-2 py-1 bg-muted rounded text-sm font-mono">
@@ -292,9 +473,9 @@ const KolDiscount = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {formatDiscount(item.discountType, item.discountValue)}
+                        {formatDiscount(item.discount_type, item.discount_value)}
                       </TableCell>
-                      <TableCell>{item.usedCount} 次</TableCell>
+                      <TableCell>{item.used_count} 次</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {editingLimitId === item.id ? (
@@ -325,18 +506,34 @@ const KolDiscount = () => {
                             </>
                           ) : (
                             <>
-                              <span>{item.usageLimit} 次</span>
+                              <span>{item.usage_limit} 次</span>
                               <Button
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8"
-                                onClick={() => handleEditLimit(item.id, item.usageLimit)}
+                                onClick={() => handleEditLimit(item.id, item.usage_limit)}
                               >
                                 <Pencil className="h-4 w-4" />
                               </Button>
                             </>
                           )}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm space-y-1">
+                          <div>{format(new Date(item.valid_from), "yyyy/MM/dd")}</div>
+                          {item.valid_until && (
+                            <div className="text-muted-foreground">
+                              至 {format(new Date(item.valid_until), "yyyy/MM/dd")}
+                            </div>
+                          )}
+                          {!item.valid_until && (
+                            <div className="text-muted-foreground">無期限</div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {getStatusBadge(item)}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
@@ -348,6 +545,19 @@ const KolDiscount = () => {
                             title="查看訂單"
                           >
                             <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => toggleActive(item.id, item.is_active)}
+                            title={item.is_active ? "停用" : "啟用"}
+                          >
+                            {item.is_active ? (
+                              <X className="h-4 w-4 text-orange-500" />
+                            ) : (
+                              <Check className="h-4 w-4 text-green-600" />
+                            )}
                           </Button>
                           <Button
                             variant="ghost"
@@ -366,7 +576,7 @@ const KolDiscount = () => {
           </div>
 
           {/* Mobile card view */}
-          <div className="md:hidden space-y-3">
+          <div className="md:hidden space-y-3 p-4">
             {discountCodes.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
                 尚無折扣碼
@@ -377,9 +587,9 @@ const KolDiscount = () => {
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 space-y-2 min-w-0">
-                        <div>
-                          <p className="text-xs text-muted-foreground">名稱</p>
-                          <p className="font-medium">{item.kolName}</p>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="font-medium">{item.name}</p>
+                          {getStatusBadge(item)}
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">折扣碼</p>
@@ -397,18 +607,26 @@ const KolDiscount = () => {
                             </Button>
                           </div>
                         </div>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div>
+                            <p className="text-xs text-muted-foreground">折扣</p>
+                            <p>{formatDiscount(item.discount_type, item.discount_value)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">已使用</p>
+                            <p>{item.used_count} / {item.usage_limit}</p>
+                          </div>
+                        </div>
                         <div>
-                          <p className="text-xs text-muted-foreground">折扣內容</p>
+                          <p className="text-xs text-muted-foreground">有效期</p>
                           <p className="text-sm">
-                            {formatDiscount(item.discountType, item.discountValue)}
+                            {format(new Date(item.valid_from), "yyyy/MM/dd")}
+                            {item.valid_until && ` - ${format(new Date(item.valid_until), "yyyy/MM/dd")}`}
+                            {!item.valid_until && " - 無期限"}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-muted-foreground">已使用次數</p>
-                          <p className="text-sm">{item.usedCount} 次</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">使用次數上限</p>
+                          <p className="text-xs text-muted-foreground mb-1">使用上限</p>
                           <div className="flex items-center gap-2">
                             {editingLimitId === item.id ? (
                               <>
@@ -438,12 +656,12 @@ const KolDiscount = () => {
                               </>
                             ) : (
                               <>
-                                <p className="text-sm">{item.usageLimit} 次</p>
+                                <p className="text-sm">{item.usage_limit} 次</p>
                                 <Button
                                   variant="ghost"
                                   size="icon"
                                   className="h-8 w-8"
-                                  onClick={() => handleEditLimit(item.id, item.usageLimit)}
+                                  onClick={() => handleEditLimit(item.id, item.usage_limit)}
                                 >
                                   <Pencil className="h-4 w-4" />
                                 </Button>
@@ -452,7 +670,7 @@ const KolDiscount = () => {
                           </div>
                         </div>
                       </div>
-                      <div className="flex gap-1">
+                      <div className="flex flex-col gap-1">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -461,6 +679,19 @@ const KolDiscount = () => {
                           title="查看訂單"
                         >
                           <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="shrink-0 h-8 w-8"
+                          onClick={() => toggleActive(item.id, item.is_active)}
+                          title={item.is_active ? "停用" : "啟用"}
+                        >
+                          {item.is_active ? (
+                            <X className="h-4 w-4 text-orange-500" />
+                          ) : (
+                            <Check className="h-4 w-4 text-green-600" />
+                          )}
                         </Button>
                         <Button
                           variant="ghost"

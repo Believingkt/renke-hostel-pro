@@ -537,7 +537,7 @@ const BookingFlow = () => {
   };
 
   const handleApplyDiscount = async () => {
-    if (!discountCode.trim()) {
+    if (!discountCode.trim() || !accommodationId) {
       toast({
         title: "請輸入折扣代碼",
         variant: "destructive",
@@ -547,37 +547,48 @@ const BookingFlow = () => {
 
     setIsValidatingCode(true);
     
-    // 模擬驗證折扣代碼（實際應該從後台 API 驗證）
-    // 這裡使用硬編碼的測試折扣碼
-    const testDiscounts = [
-      { code: "ABC12", type: "percentage" as const, value: 10 },
-      { code: "XYZ34", type: "amount" as const, value: 500 },
-    ];
+    try {
+      // 使用資料庫函數驗證折扣碼
+      const { data, error } = await supabase.rpc('validate_discount_code', {
+        p_code: discountCode.trim().toUpperCase(),
+        p_accommodation_id: accommodationId
+      });
 
-    const foundDiscount = testDiscounts.find(
-      (d) => d.code.toUpperCase() === discountCode.trim().toUpperCase()
-    );
+      if (error) throw error;
 
-    setTimeout(() => {
-      if (foundDiscount) {
-        setAppliedDiscount(foundDiscount);
+      const result = data[0];
+      
+      if (result.is_valid) {
+        setAppliedDiscount({
+          code: discountCode.trim().toUpperCase(),
+          type: result.discount_type as "percentage" | "amount",
+          value: result.discount_value
+        });
         toast({
           title: "折扣代碼已套用",
           description: `已套用 ${
-            foundDiscount.type === "percentage"
-              ? `${foundDiscount.value}% 折扣`
-              : `NT$ ${foundDiscount.value} 折扣`
+            result.discount_type === "percentage"
+              ? `${result.discount_value}% 折扣`
+              : `NT$ ${result.discount_value} 折扣`
           }`,
         });
       } else {
         toast({
           title: "折扣代碼無效",
-          description: "請檢查您的折扣代碼是否正確",
+          description: result.message,
           variant: "destructive",
         });
       }
+    } catch (error) {
+      console.error("Error validating discount code:", error);
+      toast({
+        title: "驗證失敗",
+        description: "無法驗證折扣代碼，請稍後再試",
+        variant: "destructive",
+      });
+    } finally {
       setIsValidatingCode(false);
-    }, 500);
+    }
   };
 
   const handleRemoveDiscount = () => {
