@@ -251,8 +251,14 @@ const fetchDashboardData = async (
       const monthOrders = ordersByMonth.get(monthKey) || [];
       const prevMonthOrders = ordersByMonth.get(prevMonthKey) || [];
       
-      const revenue = monthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
-      const prevRevenue = prevMonthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+      const revenue = monthOrders.reduce((sum, o) => {
+        const price = Number(o.final_price);
+        return sum + (Number.isFinite(price) ? price : 0);
+      }, 0);
+      const prevRevenue = prevMonthOrders.reduce((sum, o) => {
+        const price = Number(o.final_price);
+        return sum + (Number.isFinite(price) ? price : 0);
+      }, 0);
       
       lastMonthData.push({
         month: monthLabel,
