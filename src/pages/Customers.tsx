@@ -10,6 +10,7 @@ import { Plus, Pencil, Trash2, Search, FileText, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAccommodation } from "@/contexts/AccommodationContext";
+import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { EmptyState } from "@/components/EmptyState";
@@ -58,6 +59,7 @@ interface Customer {
 
 const Customers = () => {
   const { currentAccommodationId } = useAccommodation();
+  const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -394,12 +396,12 @@ const Customers = () => {
                         <TableCell>{customer.email || "-"}</TableCell>
                         <TableCell>{formatDate(customer.first_order_date)}</TableCell>
                         <TableCell className="text-center">{customer.visit_count}</TableCell>
-                        <TableCell className="text-right">
+                          <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => toast.info("訂單詳情功能開發中")}
+                              onClick={() => navigate(`/admin/customers/${customer.id}/orders`)}
                               title="查看訂單詳情"
                             >
                               <FileText className="h-4 w-4" />
@@ -473,7 +475,7 @@ const Customers = () => {
                             variant="ghost"
                             size="icon"
                             className="h-9 w-9"
-                            onClick={() => toast.info("訂單詳情功能開發中")}
+                            onClick={() => navigate(`/admin/customers/${customer.id}/orders`)}
                           >
                             <FileText className="h-4 w-4" />
                           </Button>
