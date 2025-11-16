@@ -199,6 +199,20 @@ const Dashboard = () => {
             onDateRangeChange={setDateRange}
             className="flex-1 md:flex-initial"
           />
+          {dateRange && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setDateRange({
+                from: startOfMonth(new Date()),
+                to: endOfMonth(new Date())
+              })}
+              className="gap-2"
+            >
+              <Calendar className="h-4 w-4" />
+              本月
+            </Button>
+          )}
           <Popover>
             <PopoverTrigger asChild>
               <Button
