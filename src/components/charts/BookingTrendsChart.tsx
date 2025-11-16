@@ -50,15 +50,15 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
   }
 
   return (
-    <div className="animate-fade-in" key={`booking-chart-${comparisonMode}`}>
+    <div className="animate-fade-in px-2 py-4" key={`booking-chart-${comparisonMode}`}>
       <LineChart
-        className="h-[280px]"
+        className="h-[320px]"
         data={data}
         index="month"
         categories={categories}
         colors={chartColors}
         valueFormatter={valueFormatter}
-        yAxisWidth={90}
+        yAxisWidth={100}
         showLegend={!isCustomRange}
         showGridLines={false}
         showXAxis={true}
