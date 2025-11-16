@@ -174,30 +174,32 @@ const Dashboard = () => {
     return <DashboardSkeleton />;
   }
 
-  const { stats, revenueData, bookingData, occupancyData } = dashboardData;
+  const { stats, revenueData = [], bookingData = [], occupancyData = [] } = dashboardData;
 
-  // Sanitize all chart data to prevent NaN values
-  const safeRevenueData = revenueData.map(item => ({
-    ...item,
-    今年: Number.isFinite(item.今年) ? item.今年 : 0,
-    去年: Number.isFinite(item.去年) ? item.去年 : 0,
-    本月: Number.isFinite(item.本月) ? item.本月 : 0,
-    上月: Number.isFinite(item.上月) ? item.上月 : 0,
-    本期: Number.isFinite(item.本期) ? item.本期 : 0,
-  }));
+  // Sanitize all chart data to prevent NaN values - only include properties that are actually numbers
+  const safeRevenueData = (revenueData || []).map(item => {
+    const sanitized: any = { month: item.month || '' };
+    if (item.今年 !== undefined) sanitized.今年 = Number.isFinite(Number(item.今年)) ? Number(item.今年) : 0;
+    if (item.去年 !== undefined) sanitized.去年 = Number.isFinite(Number(item.去年)) ? Number(item.去年) : 0;
+    if (item.本月 !== undefined) sanitized.本月 = Number.isFinite(Number(item.本月)) ? Number(item.本月) : 0;
+    if (item.上月 !== undefined) sanitized.上月 = Number.isFinite(Number(item.上月)) ? Number(item.上月) : 0;
+    if (item.本期 !== undefined) sanitized.本期 = Number.isFinite(Number(item.本期)) ? Number(item.本期) : 0;
+    return sanitized;
+  });
   
-  const safeBookingData = bookingData.map(item => ({
-    ...item,
-    今年: Number.isFinite(item.今年) ? item.今年 : 0,
-    去年: Number.isFinite(item.去年) ? item.去年 : 0,
-    本月: Number.isFinite(item.本月) ? item.本月 : 0,
-    上月: Number.isFinite(item.上月) ? item.上月 : 0,
-    本期: Number.isFinite(item.本期) ? item.本期 : 0,
-  }));
+  const safeBookingData = (bookingData || []).map(item => {
+    const sanitized: any = { month: item.month || '' };
+    if (item.今年 !== undefined) sanitized.今年 = Number.isFinite(Number(item.今年)) ? Number(item.今年) : 0;
+    if (item.去年 !== undefined) sanitized.去年 = Number.isFinite(Number(item.去年)) ? Number(item.去年) : 0;
+    if (item.本月 !== undefined) sanitized.本月 = Number.isFinite(Number(item.本月)) ? Number(item.本月) : 0;
+    if (item.上月 !== undefined) sanitized.上月 = Number.isFinite(Number(item.上月)) ? Number(item.上月) : 0;
+    if (item.本期 !== undefined) sanitized.本期 = Number.isFinite(Number(item.本期)) ? Number(item.本期) : 0;
+    return sanitized;
+  });
   
-  const safeOccupancyData = occupancyData.map(item => ({
-    ...item,
-    occupancyRate: Number.isFinite(item.occupancyRate) ? Math.min(100, Math.max(0, item.occupancyRate)) : 0,
+  const safeOccupancyData = (occupancyData || []).map(item => ({
+    roomType: item.roomType || '未知',
+    occupancyRate: Number.isFinite(Number(item.occupancyRate)) ? Math.min(100, Math.max(0, Number(item.occupancyRate))) : 0,
   }));
 
   const handleRefresh = async () => {
@@ -207,11 +209,23 @@ const Dashboard = () => {
     });
   };
 
-  // 檢查是否有數據
+  // 檢查是否有數據，如果沒有則提供最小有效數據集
   const hasData = safeRevenueData.length > 0 && (
     safeRevenueData.some(d => (d['今年'] || d['本月'] || d['本期'] || 0) > 0) ||
     safeRevenueData.some(d => (d['去年'] || d['上月'] || 0) > 0)
   );
+  
+  // Ensure we always have at least one valid data point for charts
+  const finalRevenueData = safeRevenueData.length > 0 ? safeRevenueData : [{ month: format(new Date(), 'M月'), 本期: 0 }];
+  const finalBookingData = safeBookingData.length > 0 ? safeBookingData : [{ month: format(new Date(), 'M月'), 本期: 0 }];
+  const finalOccupancyData = safeOccupancyData.length > 0 ? safeOccupancyData : [{ roomType: '暫無數據', occupancyRate: 0 }];
+  
+  // Debug: Log the final data being passed to charts
+  console.log('Final chart data:', {
+    revenueData: finalRevenueData,
+    bookingData: finalBookingData,
+    occupancyData: finalOccupancyData
+  });
 
   const dashboardContent = (
     <div className="space-y-6 md:space-y-8">
@@ -398,7 +412,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent className="pt-0">
             <ResponsiveContainer width="100%" height={chartHeight}>
-              <BarChart data={safeRevenueData} margin={chartMargin}>
+              <BarChart data={finalRevenueData} margin={chartMargin}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.2} />
                 <XAxis 
                   dataKey="month" 
@@ -457,7 +471,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent className="pt-0">
             <ResponsiveContainer width="100%" height={chartHeight}>
-              <LineChart data={safeBookingData} margin={chartMargin}>
+              <LineChart data={finalBookingData} margin={chartMargin}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.2} />
                 <XAxis 
                   dataKey="month" 
@@ -519,7 +533,7 @@ const Dashboard = () => {
         <CardContent className="pt-0">
           <ResponsiveContainer width="100%" height={chartHeight}>
             <BarChart 
-              data={safeOccupancyData} 
+              data={finalOccupancyData} 
               margin={occupancyChartMargin}
               layout="horizontal"
             >
