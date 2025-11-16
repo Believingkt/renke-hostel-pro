@@ -8,6 +8,7 @@ const corsHeaders = {
 interface TestOrderParams {
   accommodationId: string;
   count?: number;
+  year?: number; // 指定年份，例如 2024 表示生成去年的資料
 }
 
 Deno.serve(async (req) => {
@@ -24,7 +25,7 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { accommodationId, count = 20 }: TestOrderParams = await req.json();
+    const { accommodationId, count = 20, year }: TestOrderParams = await req.json();
 
     if (!accommodationId) {
       throw new Error('Accommodation ID is required');
@@ -84,10 +85,20 @@ Deno.serve(async (req) => {
       const customer = insertedCustomers[i % insertedCustomers.length];
       const roomType = roomTypes[Math.floor(Math.random() * roomTypes.length)];
       
-      // 隨機生成過去6個月的訂單日期
-      const daysAgo = Math.floor(Math.random() * 180);
-      const orderDate = new Date();
-      orderDate.setDate(orderDate.getDate() - daysAgo);
+      let orderDate: Date;
+      
+      if (year) {
+        // 如果指定了年份，生成該年份的隨機日期
+        const startOfYear = new Date(year, 0, 1);
+        const endOfYear = new Date(year, 11, 31);
+        const randomTime = startOfYear.getTime() + Math.random() * (endOfYear.getTime() - startOfYear.getTime());
+        orderDate = new Date(randomTime);
+      } else {
+        // 否則生成過去6個月的訂單日期
+        const daysAgo = Math.floor(Math.random() * 180);
+        orderDate = new Date();
+        orderDate.setDate(orderDate.getDate() - daysAgo);
+      }
       
       // 入住日期在訂單日期之後 1-30 天
       const checkInDate = new Date(orderDate);
