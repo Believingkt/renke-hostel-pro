@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
     // 生成測試訂單
     const testOrders = [];
     const orderStatuses = ['pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled'];
-    const paymentStatuses = ['unpaid', 'partial', 'paid'];
+    const paymentStatuses = ['unpaid', 'deposit_paid', 'paid'];
     const mealPlans = [null, '2_meals', '3_meals'];
 
     for (let i = 0; i < count; i++) {
@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
                            paymentStatuses[Math.floor(Math.random() * paymentStatuses.length)];
       
       const paidAmount = paymentStatus === 'paid' ? finalPrice :
-                        paymentStatus === 'partial' ? Math.floor(finalPrice * 0.3) : 0;
+                        paymentStatus === 'deposit_paid' ? Math.floor(finalPrice * 0.3) : 0;
 
       const orderData = {
         accommodation_id: accommodationId,
