@@ -391,58 +391,39 @@ const PublicHolidays = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">物件管理</h1>
-      </div>
-
-      <Tabs value="public-holidays" onValueChange={(value) => {
-        if (value === "rooms") navigate("/admin/pricing?tab=rooms");
-        else if (value === "basic") navigate("/admin/pricing?tab=basic");
-        else if (value === "facilities") navigate("/admin/pricing?tab=facilities");
-        else if (value === "inventory") navigate("/admin/pricing?tab=inventory");
-      }} className="w-full">
-        <TabsList className="grid w-full max-w-3xl grid-cols-5">
-          <TabsTrigger value="rooms">房型管理</TabsTrigger>
-          <TabsTrigger value="basic">價格管理</TabsTrigger>
-          <TabsTrigger value="facilities">客房設施</TabsTrigger>
-          <TabsTrigger value="inventory">庫存管理</TabsTrigger>
-          <TabsTrigger value="public-holidays">國定假日</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="public-holidays" className="space-y-6 mt-6">
-          {/* 統計卡片 */}
-          <div className="grid gap-4 md:grid-cols-3">
+      {/* 統計卡片 */}
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">總假日數</CardTitle>
             <CalendarDays className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
-              <p className="text-xs text-muted-foreground">所有已設定的假日</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{currentYear} 年假日</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.currentYear}</div>
-              <p className="text-xs text-muted-foreground">今年度假日數量</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">即將到來</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.upcoming}</div>
-              <p className="text-xs text-muted-foreground">尚未到來的假日</p>
-            </CardContent>
-          </Card>
-        </div>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.total}</div>
+            <p className="text-xs text-muted-foreground">所有已設定的假日</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">{currentYear} 年假日</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.currentYear}</div>
+            <p className="text-xs text-muted-foreground">今年度假日數量</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">即將到來</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.upcoming}</div>
+            <p className="text-xs text-muted-foreground">尚未到來的假日</p>
+          </CardContent>
+        </Card>
+      </div>
 
         {/* 主要內容卡片 */}
         <Card>
@@ -924,8 +905,6 @@ const PublicHolidays = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-        </TabsContent>
-      </Tabs>
     </div>
   );
 };
