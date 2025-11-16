@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { format } from "date-fns";
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, subMonths } from "date-fns";
 import { Calendar as CalendarIcon, X } from "lucide-react";
 import { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
 
 interface DateRangePickerProps {
   dateRange: DateRange | undefined;
@@ -25,6 +26,38 @@ export function DateRangePicker({ dateRange, onDateRangeChange, className }: Dat
     onDateRangeChange(undefined);
     setIsOpen(false);
   };
+
+  const handleQuickSelect = (range: DateRange) => {
+    onDateRangeChange(range);
+    setIsOpen(false);
+  };
+
+  const quickRanges = [
+    {
+      label: "今天",
+      range: { from: new Date(), to: new Date() }
+    },
+    {
+      label: "最近7天",
+      range: { from: subDays(new Date(), 6), to: new Date() }
+    },
+    {
+      label: "最近30天",
+      range: { from: subDays(new Date(), 29), to: new Date() }
+    },
+    {
+      label: "本週",
+      range: { from: startOfWeek(new Date(), { weekStartsOn: 1 }), to: endOfWeek(new Date(), { weekStartsOn: 1 }) }
+    },
+    {
+      label: "本月",
+      range: { from: startOfMonth(new Date()), to: endOfMonth(new Date()) }
+    },
+    {
+      label: "上月",
+      range: { from: startOfMonth(subMonths(new Date(), 1)), to: endOfMonth(subMonths(new Date(), 1)) }
+    },
+  ];
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -62,21 +95,42 @@ export function DateRangePicker({ dateRange, onDateRangeChange, className }: Dat
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
-        <Calendar
-          initialFocus
-          mode="range"
-          defaultMonth={dateRange?.from}
-          selected={dateRange}
-          onSelect={(range) => {
-            onDateRangeChange(range);
-            if (range?.from && range?.to) {
-              setIsOpen(false);
-            }
-          }}
-          numberOfMonths={2}
-          className={cn("p-3 pointer-events-auto")}
-          disabled={(date) => date > new Date()}
-        />
+        <div className="flex flex-col sm:flex-row">
+          {/* 快速選擇按鈕 */}
+          <div className="p-3 space-y-2 border-b sm:border-b-0 sm:border-r border-border">
+            <div className="text-xs font-semibold text-muted-foreground mb-2">快速選擇</div>
+            <div className="flex flex-row sm:flex-col gap-2">
+              {quickRanges.map((item) => (
+                <Button
+                  key={item.label}
+                  variant="ghost"
+                  size="sm"
+                  className="justify-start text-xs h-8 px-2 sm:w-28"
+                  onClick={() => handleQuickSelect(item.range)}
+                >
+                  {item.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+          
+          {/* 日曆選擇器 */}
+          <Calendar
+            initialFocus
+            mode="range"
+            defaultMonth={dateRange?.from}
+            selected={dateRange}
+            onSelect={(range) => {
+              onDateRangeChange(range);
+              if (range?.from && range?.to) {
+                setIsOpen(false);
+              }
+            }}
+            numberOfMonths={2}
+            className={cn("p-3 pointer-events-auto")}
+            disabled={(date) => date > new Date()}
+          />
+        </div>
       </PopoverContent>
     </Popover>
   );
