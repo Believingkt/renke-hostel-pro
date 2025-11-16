@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, subMonths } from "date-fns";
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, subDays, subMonths } from "date-fns";
 import { Calendar as CalendarIcon, X } from "lucide-react";
 import { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
@@ -56,6 +56,10 @@ export function DateRangePicker({ dateRange, onDateRangeChange, className }: Dat
     {
       label: "上月",
       range: { from: startOfMonth(subMonths(new Date(), 1)), to: endOfMonth(subMonths(new Date(), 1)) }
+    },
+    {
+      label: "今年",
+      range: { from: startOfYear(new Date()), to: endOfYear(new Date()) }
     },
   ];
 
