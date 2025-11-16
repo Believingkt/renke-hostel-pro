@@ -11,7 +11,9 @@ export interface Order {
   paid_amount: number;
   notes: string | null;
   order_date: string;
+  guest_count: number;
   room_types: {
+    id: string;
     name: string;
   } | null;
 }

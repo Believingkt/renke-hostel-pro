@@ -90,6 +90,7 @@ const Orders = () => {
         .select(`
           *,
           room_types (
+            id,
             name
           )
         `)
@@ -283,7 +284,15 @@ const Orders = () => {
     setEditDialogOpen(true);
   };
 
-  const handleSaveEdit = async (form: { order_status: string; payment_status: string; notes: string }) => {
+  const handleSaveEdit = async (form: { 
+    order_status: string; 
+    payment_status: string; 
+    notes: string;
+    check_in_date: string;
+    check_out_date: string;
+    room_type_id: string;
+    guest_count: number;
+  }) => {
     if (!editingOrder) return;
 
     try {
@@ -292,6 +301,11 @@ const Orders = () => {
         order_status: form.order_status,
         payment_status: form.payment_status,
         notes: form.notes || null,
+        check_in_date: form.check_in_date,
+        check_out_date: form.check_out_date,
+        room_type_id: form.room_type_id,
+        guest_count: form.guest_count,
+        updated_at: new Date().toISOString(),
       };
 
       // 如果訂單狀態改變，自動記錄時間戳
