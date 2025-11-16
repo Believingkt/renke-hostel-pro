@@ -855,6 +855,53 @@ const WebsiteContent = () => {
     }
   };
 
+  const handleLogoDelete = async (logoType: 'header' | 'footer') => {
+    if (!accommodationId) return;
+
+    const currentLogoUrl = logoType === 'header' ? basicInfo.header_logo_url : basicInfo.footer_logo_url;
+    if (!currentLogoUrl) return;
+
+    try {
+      // 從 URL 提取文件路徑
+      const urlParts = currentLogoUrl.split('/logos/');
+      if (urlParts.length > 1) {
+        const filePath = urlParts[1].split('?')[0]; // 移除查詢參數
+
+        // 從 storage 中刪除文件
+        const { error: deleteError } = await supabase.storage
+          .from('logos')
+          .remove([filePath]);
+
+        if (deleteError) {
+          console.error('Error deleting from storage:', deleteError);
+        }
+      }
+
+      // 從資料庫中清除 logo URL
+      const updateField = logoType === 'header' ? 'header_logo_url' : 'footer_logo_url';
+      const { error: updateError } = await supabase
+        .from('accommodation_info')
+        .update({ [updateField]: null })
+        .eq('id', accommodationId);
+
+      if (updateError) throw updateError;
+
+      // 更新狀態
+      if (logoType === 'header') {
+        setBasicInfo(prev => ({ ...prev, header_logo_url: '' }));
+      } else {
+        setBasicInfo(prev => ({ ...prev, footer_logo_url: '' }));
+      }
+
+      toast.success(`${logoType === 'header' ? '頁首' : '頁尾'} Logo 已刪除`);
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error deleting logo:', error);
+      }
+      toast.error('刪除失敗，請稍後再試');
+    }
+  };
+
   const handleSaveBasicInfo = async () => {
     if (!accommodationId) return;
     
@@ -1233,12 +1280,23 @@ const WebsiteContent = () => {
                     className="hidden"
                   />
                   {basicInfo.header_logo_url && (
-                    <div className="relative w-32 h-16 border rounded overflow-hidden">
-                      <img 
-                        src={basicInfo.header_logo_url} 
-                        alt="頁首 Logo" 
-                        className="w-full h-full object-contain"
-                      />
+                    <div className="flex items-center gap-2">
+                      <div className="relative w-32 h-16 border rounded overflow-hidden">
+                        <img 
+                          src={basicInfo.header_logo_url} 
+                          alt="頁首 Logo" 
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleLogoDelete('header')}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -1269,12 +1327,23 @@ const WebsiteContent = () => {
                     className="hidden"
                   />
                   {basicInfo.footer_logo_url && (
-                    <div className="relative w-32 h-16 border rounded overflow-hidden">
-                      <img 
-                        src={basicInfo.footer_logo_url} 
-                        alt="頁尾 Logo" 
-                        className="w-full h-full object-contain"
-                      />
+                    <div className="flex items-center gap-2">
+                      <div className="relative w-32 h-16 border rounded overflow-hidden">
+                        <img 
+                          src={basicInfo.footer_logo_url} 
+                          alt="頁尾 Logo" 
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleLogoDelete('footer')}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   )}
                 </div>
