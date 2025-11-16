@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Globe, Plus, Trash2, Edit2, GripVertical, MapPin, Image as ImageIcon, Upload } from "lucide-react";
+import { Globe, Plus, Trash2, Edit2, GripVertical, MapPin, Image as ImageIcon, Upload, Info, Wrench, Package, HelpCircle, Navigation } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -1044,14 +1044,56 @@ const WebsiteContent = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="basic-info">基本資料</TabsTrigger>
-          <TabsTrigger value="facilities">設施與服務</TabsTrigger>
-          <TabsTrigger value="addon-plans">加購方案</TabsTrigger>
-          <TabsTrigger value="gallery">精選照片</TabsTrigger>
-          <TabsTrigger value="location">交通 & 地圖</TabsTrigger>
-          <TabsTrigger value="booking-info">訂房須知</TabsTrigger>
-          <TabsTrigger value="faq">常見問題</TabsTrigger>
+        <TabsList className="grid w-full max-w-6xl grid-cols-7 h-14 bg-gradient-to-r from-muted/50 to-muted/30 p-1.5 rounded-xl border border-border/50">
+          <TabsTrigger 
+            value="basic-info" 
+            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground transition-all duration-300"
+          >
+            <Info className="h-4 w-4" />
+            <span className="font-medium">基本資料</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="facilities" 
+            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground transition-all duration-300"
+          >
+            <Wrench className="h-4 w-4" />
+            <span className="font-medium">設施服務</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="addon-plans" 
+            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground transition-all duration-300"
+          >
+            <Package className="h-4 w-4" />
+            <span className="font-medium">加購方案</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="gallery" 
+            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground transition-all duration-300"
+          >
+            <ImageIcon className="h-4 w-4" />
+            <span className="font-medium">精選照片</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="location" 
+            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground transition-all duration-300"
+          >
+            <Navigation className="h-4 w-4" />
+            <span className="font-medium">交通地圖</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="booking-info" 
+            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground transition-all duration-300"
+          >
+            <Globe className="h-4 w-4" />
+            <span className="font-medium">訂房須知</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="faq" 
+            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground transition-all duration-300"
+          >
+            <HelpCircle className="h-4 w-4" />
+            <span className="font-medium">常見問題</span>
+          </TabsTrigger>
         </TabsList>
 
         {/* 基本資料 Tab */}
