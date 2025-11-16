@@ -306,20 +306,20 @@ const Dashboard = () => {
           <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
             <button
               onClick={() => setComparisonMode('lastYear')}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-300 ${
                 comparisonMode === 'lastYear'
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-background text-foreground shadow-sm scale-105'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
               }`}
             >
               去年同期
             </button>
             <button
               onClick={() => setComparisonMode('lastMonth')}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-300 ${
                 comparisonMode === 'lastMonth'
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-background text-foreground shadow-sm scale-105'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
               }`}
             >
               上月對比
@@ -414,6 +414,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent className="pt-6">
             <RevenueChart 
+              key={`revenue-${comparisonMode}-${customDateRange ? 'custom' : 'standard'}`}
               data={finalRevenueData}
               comparisonMode={comparisonMode}
               isCustomRange={!!customDateRange}
@@ -432,6 +433,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent className="pt-6">
             <BookingTrendsChart 
+              key={`booking-${comparisonMode}-${customDateRange ? 'custom' : 'standard'}`}
               data={finalBookingData}
               comparisonMode={comparisonMode}
               isCustomRange={!!customDateRange}

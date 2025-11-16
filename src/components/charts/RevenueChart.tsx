@@ -57,7 +57,7 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
   }
 
   return (
-    <div className="animate-fade-in relative">
+    <div className="animate-fade-in relative" key={`revenue-chart-${comparisonMode}`}>
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 rounded-lg pointer-events-none" />
       <BarChart
         className="h-[300px] relative z-10"
