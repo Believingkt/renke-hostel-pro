@@ -293,7 +293,9 @@ const Orders = () => {
     room_type_id: string;
     guest_count: number;
     total_price: number;
+    discount_amount: number;
     final_price: number;
+    discount_code: string | null;
   }) => {
     if (!editingOrder) return;
 
@@ -308,6 +310,8 @@ const Orders = () => {
         room_type_id: form.room_type_id,
         guest_count: form.guest_count,
         total_price: form.total_price,
+        discount_amount: form.discount_amount,
+        discount_code: form.discount_code,
         final_price: form.final_price,
         updated_at: new Date().toISOString(),
       };
