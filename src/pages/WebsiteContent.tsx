@@ -816,6 +816,35 @@ const WebsiteContent = () => {
     setUploading(true);
 
     try {
+      // 驗證圖片尺寸
+      const img = new Image();
+      const imageUrl = URL.createObjectURL(file);
+      
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = imageUrl;
+      });
+
+      // 建議尺寸
+      const recommendedWidth = 200;
+      const recommendedHeight = 60;
+      const tolerance = 0.2; // 20% 容差
+
+      const widthDiff = Math.abs(img.width - recommendedWidth) / recommendedWidth;
+      const heightDiff = Math.abs(img.height - recommendedHeight) / recommendedHeight;
+
+      // 如果尺寸差異超過容差，顯示警告
+      if (widthDiff > tolerance || heightDiff > tolerance) {
+        toast.warning(
+          `圖片尺寸為 ${img.width}x${img.height} 像素，建議尺寸為 ${recommendedWidth}x${recommendedHeight} 像素。\n圖片仍會上傳，但可能影響顯示效果。`,
+          { duration: 5000 }
+        );
+      }
+
+      // 清理臨時 URL
+      URL.revokeObjectURL(imageUrl);
+
       // 生成唯一檔案名
       const fileExt = file.name.split('.').pop();
       const fileName = `${accommodationId}/${logoType}-logo-${Date.now()}.${fileExt}`;
