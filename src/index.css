@@ -370,5 +370,40 @@ All colors MUST be HSL.
   ::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.5);
   }
+
+  /* Tremor Chart Customization - 整合設計系統 */
+  .tremor-Chart-root {
+    font-family: inherit;
+  }
+
+  /* Tremor Grid & Axes */
+  .tremor-Chart-gridLine {
+    stroke: hsl(var(--border));
+    stroke-opacity: 0.2;
+  }
+
+  .tremor-Chart-axisLabel {
+    fill: hsl(var(--muted-foreground));
+    font-size: 0.75rem;
+  }
+
+  /* Tremor Tooltip */
+  .tremor-Tooltip-root {
+    background: hsl(var(--popover)) !important;
+    border: 1px solid hsl(var(--border)) !important;
+    border-radius: 0.75rem !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    color: hsl(var(--popover-foreground)) !important;
+  }
+
+  /* Tremor Legend */
+  .tremor-Legend-root {
+    color: hsl(var(--foreground));
+  }
+
+  .tremor-Legend-legendItem {
+    color: hsl(var(--muted-foreground));
+  }
 }
+
 
