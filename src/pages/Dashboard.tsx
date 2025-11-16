@@ -317,26 +317,33 @@ const Dashboard = () => {
                   contentStyle={{
                     backgroundColor: 'hsl(var(--popover))',
                     border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    fontSize: `${tooltipFontSize}px`
+                    borderRadius: '12px',
+                    fontSize: `${tooltipFontSize}px`,
+                    padding: isMobile ? '12px' : '10px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
                   }}
+                  cursor={{ fill: 'hsl(var(--accent) / 0.1)' }}
+                  wrapperStyle={{ outline: 'none' }}
                   formatter={(value: number) => [`NT$ ${value.toLocaleString()}`, '']}
+                  allowEscapeViewBox={{ x: true, y: true }}
                 />
                 <Legend 
-                  wrapperStyle={{ fontSize: `${legendFontSize}px` }}
+                  wrapperStyle={{ fontSize: `${legendFontSize}px`, paddingTop: isMobile ? '8px' : '12px' }}
                   iconType="rect"
                 />
                 <Bar 
                   dataKey={comparisonMode === 'lastYear' ? "今年" : "本月"} 
                   fill="hsl(var(--chart-1))" 
                   radius={[8, 8, 0, 0]}
-                  maxBarSize={60}
+                  maxBarSize={isMobile ? 40 : 60}
+                  minPointSize={5}
                 />
                 <Bar 
                   dataKey={comparisonMode === 'lastYear' ? "去年" : "上月"} 
                   fill="hsl(var(--chart-2))" 
                   radius={[8, 8, 0, 0]}
-                  maxBarSize={60}
+                  maxBarSize={isMobile ? 40 : 60}
+                  minPointSize={5}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -364,30 +371,35 @@ const Dashboard = () => {
                   contentStyle={{
                     backgroundColor: 'hsl(var(--popover))',
                     border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    fontSize: `${tooltipFontSize}px`
+                    borderRadius: '12px',
+                    fontSize: `${tooltipFontSize}px`,
+                    padding: isMobile ? '12px' : '10px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
                   }}
+                  cursor={{ stroke: 'hsl(var(--accent))', strokeWidth: 2, strokeDasharray: '5 5' }}
+                  wrapperStyle={{ outline: 'none' }}
                   formatter={(value: number) => [`${value} 筆訂單`, '']}
+                  allowEscapeViewBox={{ x: true, y: true }}
                 />
                 <Legend 
-                  wrapperStyle={{ fontSize: `${legendFontSize}px` }}
+                  wrapperStyle={{ fontSize: `${legendFontSize}px`, paddingTop: isMobile ? '8px' : '12px' }}
                   iconType="circle"
                 />
                 <Line 
                   type="monotone" 
                   dataKey={comparisonMode === 'lastYear' ? "今年" : "本月"} 
                   stroke="hsl(var(--chart-3))" 
-                  strokeWidth={2}
-                  dot={{ r: 4, fill: 'hsl(var(--chart-3))' }}
-                  activeDot={{ r: 6 }}
+                  strokeWidth={isMobile ? 3 : 2}
+                  dot={{ r: isMobile ? 5 : 4, fill: 'hsl(var(--chart-3))', strokeWidth: 2 }}
+                  activeDot={{ r: isMobile ? 8 : 6, strokeWidth: 2 }}
                 />
                 <Line 
                   type="monotone" 
                   dataKey={comparisonMode === 'lastYear' ? "去年" : "上月"} 
                   stroke="hsl(var(--chart-4))" 
-                  strokeWidth={2}
-                  dot={{ r: 4, fill: 'hsl(var(--chart-4))' }}
-                  activeDot={{ r: 6 }}
+                  strokeWidth={isMobile ? 3 : 2}
+                  dot={{ r: isMobile ? 5 : 4, fill: 'hsl(var(--chart-4))', strokeWidth: 2 }}
+                  activeDot={{ r: isMobile ? 8 : 6, strokeWidth: 2 }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -425,16 +437,22 @@ const Dashboard = () => {
                 contentStyle={{
                   backgroundColor: 'hsl(var(--popover))',
                   border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
-                  fontSize: `${tooltipFontSize}px`
+                  borderRadius: '12px',
+                  fontSize: `${tooltipFontSize}px`,
+                  padding: isMobile ? '12px' : '10px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
                 }}
+                cursor={{ fill: 'hsl(var(--accent) / 0.1)' }}
+                wrapperStyle={{ outline: 'none' }}
                 formatter={(value: number) => [`${value}%`, '入住率']}
+                allowEscapeViewBox={{ x: true, y: true }}
               />
               <Bar 
                 dataKey="occupancyRate" 
                 fill="hsl(var(--chart-5))" 
                 radius={[0, 8, 8, 0]}
-                maxBarSize={40}
+                maxBarSize={isMobile ? 32 : 40}
+                minPointSize={5}
               />
             </BarChart>
           </ResponsiveContainer>
