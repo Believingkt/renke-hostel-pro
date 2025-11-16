@@ -130,6 +130,8 @@ Deno.serve(async (req) => {
     console.log(`Backup uploaded to: ${filePath}`);
 
     // Log backup in database
+    const compressionRatio = parseFloat(((1 - compressedSize / uncompressedSize) * 100).toFixed(2));
+    
     const { error: logError } = await supabase
       .from('backup_logs')
       .insert({
@@ -137,6 +139,9 @@ Deno.serve(async (req) => {
         backup_type: backupType,
         file_path: filePath,
         file_size: compressedSize,
+        uncompressed_size: uncompressedSize,
+        compression_ratio: compressionRatio,
+        is_compressed: true,
         orders_count: orders?.length || 0,
         customers_count: customers?.length || 0,
         status: 'success',

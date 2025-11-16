@@ -14,7 +14,8 @@ import {
   CheckCircle2,
   FileArchive,
   Calendar,
-  Eraser
+  Eraser,
+  Archive
 } from "lucide-react";
 import { format } from "date-fns";
 import { zhTW } from "date-fns/locale";
@@ -39,6 +40,9 @@ interface BackupLog {
   backup_type: string;
   file_path: string;
   file_size: number;
+  uncompressed_size: number | null;
+  compression_ratio: number | null;
+  is_compressed: boolean | null;
   orders_count: number;
   customers_count: number;
   status: string;
@@ -101,7 +105,7 @@ const DataBackup = () => {
 
       if (data.success) {
         toast.success('備份建立成功', {
-          description: `已備份 ${data.backup.ordersCount} 筆訂單和 ${data.backup.customersCount} 筆客戶資料`,
+          description: `已備份 ${data.backup.ordersCount} 筆訂單和 ${data.backup.customersCount} 筆客戶資料\n壓縮率: ${data.backup.compressionRatio}`,
         });
         loadBackups();
       } else {
@@ -227,6 +231,24 @@ const DataBackup = () => {
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
 
+  const calculateTotalStats = () => {
+    const totalCompressedSize = backups.reduce((sum, b) => sum + (b.file_size || 0), 0);
+    const totalUncompressedSize = backups.reduce((sum, b) => sum + (b.uncompressed_size || b.file_size || 0), 0);
+    const avgCompressionRatio = backups.filter(b => b.compression_ratio).length > 0
+      ? backups.filter(b => b.compression_ratio).reduce((sum, b) => sum + (b.compression_ratio || 0), 0) / backups.filter(b => b.compression_ratio).length
+      : 0;
+    const spaceSaved = totalUncompressedSize - totalCompressedSize;
+
+    return {
+      totalCompressedSize,
+      totalUncompressedSize,
+      avgCompressionRatio,
+      spaceSaved,
+    };
+  };
+
+  const stats = calculateTotalStats();
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'success':
@@ -266,7 +288,7 @@ const DataBackup = () => {
             自動備份設置
           </CardTitle>
           <CardDescription>
-            系統會定期自動備份您的資料。您也可以隨時手動建立備份。
+            系統會定期自動備份您的資料，並使用 gzip 壓縮以節省儲存空間。您也可以隨時手動建立備份。
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -326,8 +348,31 @@ const DataBackup = () => {
             <FileArchive className="h-5 w-5" />
             備份歷史記錄
           </CardTitle>
-          <CardDescription>
-            查看和管理所有備份檔案（系統自動保留最近 30 天的備份）
+          <CardDescription className="space-y-2">
+            <div>查看和管理所有備份檔案（系統自動保留最近 30 天的備份）</div>
+            {backups.length > 0 && (
+              <div className="flex flex-wrap gap-3 pt-2 text-xs">
+                <span className="flex items-center gap-1">
+                  <Database className="h-3 w-3" />
+                  總備份數: {backups.length} 個
+                </span>
+                <span className="flex items-center gap-1">
+                  <FileArchive className="h-3 w-3" />
+                  使用空間: {formatFileSize(stats.totalCompressedSize)}
+                </span>
+                {stats.avgCompressionRatio > 0 && (
+                  <>
+                    <span className="flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3" />
+                      平均壓縮率: {stats.avgCompressionRatio.toFixed(1)}%
+                    </span>
+                    <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                      節省空間: {formatFileSize(stats.spaceSaved)}
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -354,11 +399,23 @@ const DataBackup = () => {
                       <Badge variant="outline">
                         {backup.backup_type === 'auto' ? '自動' : '手動'}
                       </Badge>
+                      {backup.is_compressed && (
+                        <Badge variant="secondary" className="gap-1">
+                          <Archive className="h-3 w-3" />
+                          已壓縮
+                        </Badge>
+                      )}
                     </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <span>訂單: {backup.orders_count} 筆</span>
                       <span>客戶: {backup.customers_count} 筆</span>
                       <span>大小: {formatFileSize(backup.file_size || 0)}</span>
+                      {backup.is_compressed && backup.compression_ratio && (
+                        <Badge variant="secondary" className="gap-1">
+                          <FileArchive className="h-3 w-3" />
+                          壓縮率 {backup.compression_ratio.toFixed(1)}%
+                        </Badge>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-2">
