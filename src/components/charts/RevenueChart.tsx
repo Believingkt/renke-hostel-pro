@@ -57,15 +57,15 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
   }
 
   return (
-    <div className="animate-fade-in" key={`revenue-chart-${comparisonMode}`}>
+    <div className="animate-fade-in px-2 py-4" key={`revenue-chart-${comparisonMode}`}>
       <BarChart
-        className="h-[280px]"
+        className="h-[320px]"
         data={data}
         index="month"
         categories={categories}
         colors={chartColors}
         valueFormatter={valueFormatter}
-        yAxisWidth={90}
+        yAxisWidth={100}
         showLegend={!isCustomRange}
         showGridLines={false}
         showXAxis={true}
