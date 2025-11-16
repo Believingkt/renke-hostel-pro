@@ -325,6 +325,59 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_logs: {
+        Row: {
+          accommodation_id: string
+          backup_type: string
+          created_at: string | null
+          created_by: string | null
+          customers_count: number | null
+          error_message: string | null
+          file_path: string
+          file_size: number | null
+          id: string
+          orders_count: number | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          accommodation_id: string
+          backup_type: string
+          created_at?: string | null
+          created_by?: string | null
+          customers_count?: number | null
+          error_message?: string | null
+          file_path: string
+          file_size?: number | null
+          id?: string
+          orders_count?: number | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          accommodation_id?: string
+          backup_type?: string
+          created_at?: string | null
+          created_by?: string | null
+          customers_count?: number | null
+          error_message?: string | null
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          orders_count?: number | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "backup_logs_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_settings: {
         Row: {
           accommodation_id: string | null

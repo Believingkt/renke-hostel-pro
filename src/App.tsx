@@ -29,6 +29,7 @@ const Customers = lazy(() => import("./pages/Customers"));
 const CustomerOrders = lazy(() => import("./pages/CustomerOrders"));
 const PublicHolidays = lazy(() => import("./pages/PublicHolidays"));
 const Notifications = lazy(() => import("./pages/Notifications"));
+const DataBackup = lazy(() => import("./pages/DataBackup"));
 
 // Auth 頁面保持即時載入（關鍵路徑）
 import Auth from "./pages/Auth";
@@ -169,6 +170,14 @@ function App() {
                   element={
                     <Suspense fallback={<DashboardSkeleton />}>
                       <PublicHolidays />
+                    </Suspense>
+                  } 
+                />
+                <Route 
+                  path="/admin/backup" 
+                  element={
+                    <Suspense fallback={<DashboardSkeleton />}>
+                      <DataBackup />
                     </Suspense>
                   } 
                 />
