@@ -11,7 +11,7 @@ export interface ConflictDetectionResult {
 }
 
 /**
- * 檢測訂房衝突
+ * 檢測訂房衝突 - 每個房型每天只能被預訂一次
  * @param roomTypeId 房型ID
  * @param checkInDate 入住日期
  * @param checkOutDate 退房日期
@@ -99,20 +99,14 @@ export const detectBookingConflict = async (
       }
     }
 
-    // 4. 檢測超額預訂 - 計算每一天的預訂數量
+    // 4. 檢測房型衝突 - 每個房型每天只能被預訂一次
     const checkIn = parseISO(checkInDate);
     const checkOut = parseISO(checkOutDate);
     
-    // 為每一天計算已預訂房間數
-    let maxBookedRooms = 0;
-    let currentDate = new Date(checkIn);
-    
-    while (currentDate < checkOut) {
-      let bookedRoomsForDay = 0;
-      
-      orders?.forEach((order) => {
-        const orderCheckIn = parseISO(order.check_in_date);
-        const orderCheckOut = parseISO(order.check_out_date);
+    // 檢查是否有任何訂單與新訂單的日期範圍重疊
+    const conflictingOrders = orders?.filter((order) => {
+      const orderCheckIn = parseISO(order.check_in_date);
+      const orderCheckOut = parseISO(order.check_out_date);
         
         // 檢查這一天是否在訂單的日期範圍內
         if (currentDate >= orderCheckIn && currentDate < orderCheckOut) {

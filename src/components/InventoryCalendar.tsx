@@ -130,10 +130,9 @@ export const InventoryCalendar = ({ accommodationId }: InventoryCalendarProps) =
     return booking?.booked_rooms || 0;
   };
 
-  const getAvailabilityColor = (booked: number, total: number): string => {
+  const getAvailabilityColor = (booked: number): string => {
     if (booked === 0) return "bg-success/20 text-success-foreground";
-    if (booked >= total) return "bg-destructive/20 text-destructive-foreground";
-    return "bg-warning/20 text-warning-foreground";
+    return "bg-destructive/20 text-destructive-foreground";
   };
 
   const handlePreviousMonth = () => {
@@ -267,22 +266,19 @@ export const InventoryCalendar = ({ accommodationId }: InventoryCalendarProps) =
                   </div>
                   {daysInMonth.map((day) => {
                     const booked = getBookingCount(day, roomType.id);
-                    const total = roomType.room_count || 1;
-                    const available = total - booked;
+                    const available = booked === 0 ? 1 : 0;
 
                     return (
                       <div
                         key={`${roomType.id}-${day.toISOString()}`}
                         className={`text-center text-xs p-2 rounded transition-colors cursor-pointer hover:opacity-80 ${getAvailabilityColor(
-                          booked,
-                          total
+                          booked
                         )}`}
-                        title={`已訂: ${booked}/${total} 間\n可訂: ${available} 間\n點擊查看詳情`}
+                        title={`${booked > 0 ? '已預訂' : '可預訂'}\n點擊查看詳情`}
                         onClick={() => handleCellClick(day, roomType)}
                       >
-                        <div className="font-semibold">{booked}/{total}</div>
-                        <div className="text-[10px] opacity-80">
-                          剩{available}
+                        <div className="font-semibold">
+                          {booked > 0 ? '已訂' : '可訂'}
                         </div>
                       </div>
                     );
@@ -296,15 +292,14 @@ export const InventoryCalendar = ({ accommodationId }: InventoryCalendarProps) =
               <span className="font-semibold">圖例：</span>
               <div className="flex items-center gap-2">
                 <div className="w-12 h-8 rounded bg-success/20 border border-success/30"></div>
-                <span>空房</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-12 h-8 rounded bg-warning/20 border border-warning/30"></div>
-                <span>部分預訂</span>
+                <span>可預訂</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-12 h-8 rounded bg-destructive/20 border border-destructive/30"></div>
-                <span>已滿房</span>
+                <span>已預訂</span>
+              </div>
+              <div className="mt-2 text-xs text-muted-foreground">
+                ※ 每個房型每天只能接受一筆訂單
               </div>
             </div>
           </div>
