@@ -296,38 +296,38 @@ const Pricing = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full max-w-4xl grid-cols-5 h-14 bg-gradient-to-r from-muted/50 to-muted/30 p-1.5 rounded-xl border border-border/50 shadow-sm">
+        <TabsList className="grid w-full max-w-4xl grid-cols-5 h-14 bg-gradient-to-r from-muted/50 to-muted/30 p-1.5 rounded-xl border border-border/50">
           <TabsTrigger 
             value="rooms" 
-            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-300"
+            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground transition-all duration-300"
           >
             <Hotel className="h-4 w-4" />
             <span className="font-medium">房型管理</span>
           </TabsTrigger>
           <TabsTrigger 
             value="basic" 
-            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-300"
+            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground transition-all duration-300"
           >
             <DollarSign className="h-4 w-4" />
             <span className="font-medium">價格管理</span>
           </TabsTrigger>
           <TabsTrigger 
             value="facilities" 
-            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-300"
+            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground transition-all duration-300"
           >
             <Wrench className="h-4 w-4" />
             <span className="font-medium">客房設施</span>
           </TabsTrigger>
           <TabsTrigger 
             value="inventory" 
-            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-300"
+            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground transition-all duration-300"
           >
             <Package className="h-4 w-4" />
             <span className="font-medium">庫存管理</span>
           </TabsTrigger>
           <TabsTrigger 
             value="holidays" 
-            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-300"
+            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground transition-all duration-300"
           >
             <Calendar className="h-4 w-4" />
             <span className="font-medium">國定假日</span>
