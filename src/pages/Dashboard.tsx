@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubdomain } from "@/hooks/use-subdomain";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { format } from "date-fns";
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 import { ErrorState } from "@/components/ErrorState";
@@ -30,12 +31,18 @@ import {
 
 const Dashboard = () => {
   const { accommodationId } = useSubdomain();
+  const isMobile = useIsMobile();
   const [isLiveUpdating, setIsLiveUpdating] = useState(false);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date());
   const [comparisonMode, setComparisonMode] = useState<'lastYear' | 'lastMonth'>('lastYear');
   const [isGenerating, setIsGenerating] = useState(false);
   const [testDataCount, setTestDataCount] = useState(20);
   const [useLastYear, setUseLastYear] = useState(false);
+  
+  // 響應式字體大小
+  const chartFontSize = isMobile ? 10 : 12;
+  const tooltipFontSize = isMobile ? 11 : 13;
+  const legendFontSize = isMobile ? 10 : 12;
   
   // 使用 React Query hook 獲取儀表板資料
   const { 
@@ -287,11 +294,11 @@ const Dashboard = () => {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.2} />
                 <XAxis 
                   dataKey="month" 
-                  tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                  tick={{ fontSize: chartFontSize, fill: 'hsl(var(--muted-foreground))' }}
                   stroke="hsl(var(--border))"
                 />
                 <YAxis 
-                  tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                  tick={{ fontSize: chartFontSize, fill: 'hsl(var(--muted-foreground))' }}
                   stroke="hsl(var(--border))"
                   tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
                 />
@@ -300,12 +307,12 @@ const Dashboard = () => {
                     backgroundColor: 'hsl(var(--popover))',
                     border: '1px solid hsl(var(--border))',
                     borderRadius: '8px',
-                    fontSize: '12px'
+                    fontSize: `${tooltipFontSize}px`
                   }}
                   formatter={(value: number) => [`NT$ ${value.toLocaleString()}`, '']}
                 />
                 <Legend 
-                  wrapperStyle={{ fontSize: '12px' }}
+                  wrapperStyle={{ fontSize: `${legendFontSize}px` }}
                   iconType="rect"
                 />
                 <Bar 
@@ -335,11 +342,11 @@ const Dashboard = () => {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.2} />
                 <XAxis 
                   dataKey="month" 
-                  tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                  tick={{ fontSize: chartFontSize, fill: 'hsl(var(--muted-foreground))' }}
                   stroke="hsl(var(--border))"
                 />
                 <YAxis 
-                  tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                  tick={{ fontSize: chartFontSize, fill: 'hsl(var(--muted-foreground))' }}
                   stroke="hsl(var(--border))"
                 />
                 <Tooltip 
@@ -347,12 +354,12 @@ const Dashboard = () => {
                     backgroundColor: 'hsl(var(--popover))',
                     border: '1px solid hsl(var(--border))',
                     borderRadius: '8px',
-                    fontSize: '12px'
+                    fontSize: `${tooltipFontSize}px`
                   }}
                   formatter={(value: number) => [`${value} 筆訂單`, '']}
                 />
                 <Legend 
-                  wrapperStyle={{ fontSize: '12px' }}
+                  wrapperStyle={{ fontSize: `${legendFontSize}px` }}
                   iconType="circle"
                 />
                 <Line 
@@ -392,23 +399,23 @@ const Dashboard = () => {
               <XAxis 
                 type="number"
                 domain={[0, 100]}
-                tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                tick={{ fontSize: chartFontSize, fill: 'hsl(var(--muted-foreground))' }}
                 stroke="hsl(var(--border))"
-                label={{ value: '入住率 (%)', position: 'insideBottom', offset: 0, fontSize: 12 }}
+                label={{ value: '入住率 (%)', position: 'insideBottom', offset: 0, fontSize: chartFontSize }}
               />
               <YAxis 
                 dataKey="roomType" 
                 type="category"
-                tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                tick={{ fontSize: chartFontSize, fill: 'hsl(var(--muted-foreground))' }}
                 stroke="hsl(var(--border))"
-                width={100}
+                width={isMobile ? 80 : 100}
               />
               <Tooltip 
                 contentStyle={{
                   backgroundColor: 'hsl(var(--popover))',
                   border: '1px solid hsl(var(--border))',
                   borderRadius: '8px',
-                  fontSize: '12px'
+                  fontSize: `${tooltipFontSize}px`
                 }}
                 formatter={(value: number) => [`${value}%`, '入住率']}
               />
