@@ -15,6 +15,7 @@ import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 import { ErrorState } from "@/components/ErrorState";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import PullToRefresh from "react-simple-pull-to-refresh";
 
 import {
   LineChart,
@@ -164,7 +165,14 @@ const Dashboard = () => {
 
   const { stats, revenueData, bookingData, occupancyData } = dashboardData;
 
-  return (
+  const handleRefresh = async () => {
+    await refreshData();
+    toast.success('數據已更新', {
+      description: '已載入最新資料'
+    });
+  };
+
+  const dashboardContent = (
     <div className="space-y-6 md:space-y-8">
       <div className="px-2 md:px-0 flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">營運分析</h1>
@@ -459,6 +467,30 @@ const Dashboard = () => {
         </CardContent>
       </Card>
     </div>
+  );
+
+  return (
+    <PullToRefresh
+      onRefresh={handleRefresh}
+      pullingContent={
+        <div className="flex justify-center py-4">
+          <div className="text-sm text-muted-foreground">下拉刷新...</div>
+        </div>
+      }
+      refreshingContent={
+        <div className="flex justify-center py-4">
+          <div className="flex items-center gap-2 text-sm text-primary">
+            <Radio className="w-4 h-4 animate-spin" />
+            更新中...
+          </div>
+        </div>
+      }
+      pullDownThreshold={80}
+      maxPullDownDistance={120}
+      resistance={2}
+    >
+      {dashboardContent}
+    </PullToRefresh>
   );
 };
 
