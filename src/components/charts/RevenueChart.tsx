@@ -74,6 +74,7 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
         showAnimation={true}
         autoMinValue={true}
         allowDecimals={false}
+        showTooltip={true}
       />
     </div>
   );
