@@ -176,6 +176,30 @@ const Dashboard = () => {
 
   const { stats, revenueData, bookingData, occupancyData } = dashboardData;
 
+  // Sanitize all chart data to prevent NaN values
+  const safeRevenueData = revenueData.map(item => ({
+    ...item,
+    今年: Number.isFinite(item.今年) ? item.今年 : 0,
+    去年: Number.isFinite(item.去年) ? item.去年 : 0,
+    本月: Number.isFinite(item.本月) ? item.本月 : 0,
+    上月: Number.isFinite(item.上月) ? item.上月 : 0,
+    本期: Number.isFinite(item.本期) ? item.本期 : 0,
+  }));
+  
+  const safeBookingData = bookingData.map(item => ({
+    ...item,
+    今年: Number.isFinite(item.今年) ? item.今年 : 0,
+    去年: Number.isFinite(item.去年) ? item.去年 : 0,
+    本月: Number.isFinite(item.本月) ? item.本月 : 0,
+    上月: Number.isFinite(item.上月) ? item.上月 : 0,
+    本期: Number.isFinite(item.本期) ? item.本期 : 0,
+  }));
+  
+  const safeOccupancyData = occupancyData.map(item => ({
+    ...item,
+    occupancyRate: Number.isFinite(item.occupancyRate) ? Math.min(100, Math.max(0, item.occupancyRate)) : 0,
+  }));
+
   const handleRefresh = async () => {
     await refreshData();
     toast.success('數據已更新', {
@@ -184,9 +208,9 @@ const Dashboard = () => {
   };
 
   // 檢查是否有數據
-  const hasData = revenueData.length > 0 && (
-    revenueData.some(d => (d['今年'] || d['本月'] || d['本期'] || 0) > 0) ||
-    revenueData.some(d => (d['去年'] || d['上月'] || 0) > 0)
+  const hasData = safeRevenueData.length > 0 && (
+    safeRevenueData.some(d => (d['今年'] || d['本月'] || d['本期'] || 0) > 0) ||
+    safeRevenueData.some(d => (d['去年'] || d['上月'] || 0) > 0)
   );
 
   const dashboardContent = (
@@ -374,7 +398,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent className="pt-0">
             <ResponsiveContainer width="100%" height={chartHeight}>
-              <BarChart data={revenueData} margin={chartMargin}>
+              <BarChart data={safeRevenueData} margin={chartMargin}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.2} />
                 <XAxis 
                   dataKey="month" 
@@ -385,6 +409,8 @@ const Dashboard = () => {
                   tick={{ fontSize: chartFontSize, fill: 'hsl(var(--muted-foreground))' }}
                   stroke="hsl(var(--border))"
                   tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                  domain={[0, 'auto']}
+                  allowDataOverflow={false}
                 />
                 <Tooltip 
                   contentStyle={{
@@ -431,7 +457,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent className="pt-0">
             <ResponsiveContainer width="100%" height={chartHeight}>
-              <LineChart data={bookingData} margin={chartMargin}>
+              <LineChart data={safeBookingData} margin={chartMargin}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.2} />
                 <XAxis 
                   dataKey="month" 
@@ -441,6 +467,8 @@ const Dashboard = () => {
                 <YAxis 
                   tick={{ fontSize: chartFontSize, fill: 'hsl(var(--muted-foreground))' }}
                   stroke="hsl(var(--border))"
+                  domain={[0, 'auto']}
+                  allowDataOverflow={false}
                 />
                 <Tooltip 
                   contentStyle={{
@@ -491,7 +519,7 @@ const Dashboard = () => {
         <CardContent className="pt-0">
           <ResponsiveContainer width="100%" height={chartHeight}>
             <BarChart 
-              data={occupancyData} 
+              data={safeOccupancyData} 
               margin={occupancyChartMargin}
               layout="horizontal"
             >
@@ -499,6 +527,7 @@ const Dashboard = () => {
               <XAxis 
                 type="number"
                 domain={[0, 100]}
+                allowDataOverflow={false}
                 tick={{ fontSize: chartFontSize, fill: 'hsl(var(--muted-foreground))' }}
                 stroke="hsl(var(--border))"
                 label={{ value: '入住率 (%)', position: 'insideBottom', offset: 0, fontSize: chartFontSize }}
