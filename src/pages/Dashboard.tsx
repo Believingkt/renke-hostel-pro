@@ -67,6 +67,7 @@ const Dashboard = () => {
   const [comparisonMode, setComparisonMode] = useState<'lastYear' | 'lastMonth'>('lastYear');
   const [isGenerating, setIsGenerating] = useState(false);
   const [testDataCount, setTestDataCount] = useState(20);
+  const [useLastYear, setUseLastYear] = useState(false);
   
   // 統計數據
   const [totalRooms, setTotalRooms] = useState(0);
@@ -318,11 +319,17 @@ const Dashboard = () => {
 
     setIsGenerating(true);
     try {
+      const requestBody: any = {
+        accommodationId,
+        count: testDataCount,
+      };
+      
+      if (useLastYear) {
+        requestBody.year = new Date().getFullYear() - 1;
+      }
+      
       const { data, error } = await supabase.functions.invoke('generate-test-orders', {
-        body: {
-          accommodationId,
-          count: testDataCount,
-        },
+        body: requestBody,
       });
 
       if (error) throw error;
@@ -436,6 +443,18 @@ const Dashboard = () => {
                     onChange={(e) => setTestDataCount(Number(e.target.value))}
                     placeholder="輸入數量"
                   />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="useLastYear"
+                    checked={useLastYear}
+                    onChange={(e) => setUseLastYear(e.target.checked)}
+                    className="h-4 w-4 rounded border-input"
+                  />
+                  <Label htmlFor="useLastYear" className="text-sm font-normal cursor-pointer">
+                    生成去年（{new Date().getFullYear() - 1}）的資料
+                  </Label>
                 </div>
                 <Button
                   onClick={handleGenerateTestData}
