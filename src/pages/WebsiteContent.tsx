@@ -254,6 +254,88 @@ const SortablePhotoItem = ({ photo, index, onDelete, onEdit }: SortablePhotoItem
   );
 };
 
+// 可排序的特色區塊項目
+interface SortableFeatureItemProps {
+  feature: any;
+  index: number;
+  onEdit: (feature: any) => void;
+  onDelete: (featureId: string) => void;
+}
+
+const SortableFeatureItem = ({ feature, index, onEdit, onDelete }: SortableFeatureItemProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: feature.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <Card ref={setNodeRef} style={style} className="relative">
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+            {feature.icon_type === 'lucide' ? (
+              <span className="text-primary text-sm">{feature.icon_name}</span>
+            ) : feature.icon_url ? (
+              <img src={feature.icon_url} alt="圖示" className="w-6 h-6 object-contain" />
+            ) : (
+              <span className="text-muted-foreground text-xs">無</span>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <div
+                {...attributes}
+                {...listeners}
+                className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded transition-colors"
+              >
+                <GripVertical className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <h4 className="font-semibold text-sm">{feature.title}</h4>
+            </div>
+            <p className="text-xs text-muted-foreground line-clamp-2">{feature.description}</p>
+            <div className="text-xs text-muted-foreground mt-1">順序: {feature.display_order + 1}</div>
+          </div>
+          <div className="flex gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => onEdit(feature)}
+            >
+              <Edit2 className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-destructive hover:text-destructive"
+              onClick={() => onDelete(feature.id)}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+        <GripVertical className="h-4 w-4 text-gray-700" />
+      </div>
+    </div>
+  );
+};
+
 const WebsiteContent = () => {
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("basic-info");
