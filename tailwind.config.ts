@@ -103,6 +103,21 @@ export default {
           "3": "hsl(var(--chart-3))",
           "4": "hsl(var(--chart-4))",
           "5": "hsl(var(--chart-5))",
+          revenue: {
+            primary: "hsl(var(--chart-revenue-primary))",
+            secondary: "hsl(var(--chart-revenue-secondary))",
+            bg: "hsl(var(--chart-revenue-bg))",
+          },
+          booking: {
+            primary: "hsl(var(--chart-booking-primary))",
+            secondary: "hsl(var(--chart-booking-secondary))",
+            bg: "hsl(var(--chart-booking-bg))",
+          },
+          occupancy: {
+            primary: "hsl(var(--chart-occupancy-primary))",
+            secondary: "hsl(var(--chart-occupancy-secondary))",
+            bg: "hsl(var(--chart-occupancy-bg))",
+          },
         },
       },
       borderRadius: {

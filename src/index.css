@@ -72,6 +72,21 @@ All colors MUST be HSL.
     --chart-3: 0 84% 60%;
     --chart-4: 45 93% 58%;
     --chart-5: 271 81% 56%;
+
+    /* 圖表語義化顏色 - 營收圖表（藍色系）*/
+    --chart-revenue-primary: 217 91% 60%;
+    --chart-revenue-secondary: 203 89% 53%;
+    --chart-revenue-bg: 217 91% 95%;
+    
+    /* 圖表語義化顏色 - 訂單趨勢（綠色系）*/
+    --chart-booking-primary: 142 76% 36%;
+    --chart-booking-secondary: 160 84% 39%;
+    --chart-booking-bg: 142 76% 95%;
+    
+    /* 圖表語義化顏色 - 入住率（琥珀色系）*/
+    --chart-occupancy-primary: 38 92% 50%;
+    --chart-occupancy-secondary: 45 93% 58%;
+    --chart-occupancy-bg: 45 93% 95%;
   }
 
   /* Admin theme - Blue & Orange colors */
@@ -139,6 +154,21 @@ All colors MUST be HSL.
     --chart-3: 0 84% 60%;
     --chart-4: 45 93% 58%;
     --chart-5: 271 81% 56%;
+
+    /* 圖表語義化顏色 - 營收圖表（藍色系）*/
+    --chart-revenue-primary: 217 91% 60%;
+    --chart-revenue-secondary: 203 89% 53%;
+    --chart-revenue-bg: 217 91% 95%;
+    
+    /* 圖表語義化顏色 - 訂單趨勢（綠色系）*/
+    --chart-booking-primary: 142 76% 36%;
+    --chart-booking-secondary: 160 84% 39%;
+    --chart-booking-bg: 142 76% 95%;
+    
+    /* 圖表語義化顏色 - 入住率（琥珀色系）*/
+    --chart-occupancy-primary: 38 92% 50%;
+    --chart-occupancy-secondary: 45 93% 58%;
+    --chart-occupancy-bg: 45 93% 95%;
   }
 
   .dark {
