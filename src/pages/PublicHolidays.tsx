@@ -56,6 +56,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ResponsiveTabs, TabItem } from "@/components/ResponsiveTabs";
 
 interface PublicHoliday {
   id: string;
@@ -446,40 +447,21 @@ const PublicHolidays = () => {
             </div>
             <div className="flex flex-wrap gap-2">
               <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "list" | "calendar")} className="w-auto">
-                {/* 手機版：下拉選單 */}
-                <div className="md:hidden">
-                  <Select value={viewMode} onValueChange={(v) => setViewMode(v as "list" | "calendar")}>
-                    <SelectTrigger className="w-[140px] h-9 bg-background border-border/50">
-                      <SelectValue placeholder="選擇檢視" />
-                    </SelectTrigger>
-                    <SelectContent className="z-50 bg-background border-border">
-                      <SelectItem value="list">
-                        <div className="flex items-center gap-2">
-                          <List className="h-4 w-4" />
-                          <span>列表</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="calendar">
-                        <div className="flex items-center gap-2">
-                          <LayoutGrid className="h-4 w-4" />
-                          <span>月曆</span>
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* 桌面版：Tab 列表 */}
-                <TabsList className="hidden md:flex">
-                  <TabsTrigger value="list" className="gap-2">
-                    <List className="h-4 w-4" />
-                    列表
-                  </TabsTrigger>
-                  <TabsTrigger value="calendar" className="gap-2">
-                    <LayoutGrid className="h-4 w-4" />
-                    月曆
-                  </TabsTrigger>
-                </TabsList>
+                <ResponsiveTabs
+                  tabs={[
+                    { value: "list", label: "列表", icon: List },
+                    { value: "calendar", label: "月曆", icon: LayoutGrid },
+                  ]}
+                  value={viewMode}
+                  onValueChange={(v) => setViewMode(v as "list" | "calendar")}
+                  mobileBreakpoint="md"
+                  showGradient={false}
+                  selectHeight="sm"
+                  selectWidth="w-[140px]"
+                  mobileClassName="mb-0"
+                  desktopClassName="w-auto"
+                  className="w-auto"
+                />
               </Tabs>
               {viewMode === "list" && (
                 <Select value={selectedYear} onValueChange={setSelectedYear}>
