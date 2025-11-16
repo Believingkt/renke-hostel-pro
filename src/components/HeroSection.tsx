@@ -266,8 +266,8 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
                   className={cn(
                     "h-2 rounded-full transition-all duration-500 ease-out",
                     current === index 
-                      ? "w-8 bg-white shadow-[0_0_12px_rgba(255,255,255,0.6)]" 
-                      : "w-2 bg-white/40 hover:bg-white/60 hover:w-3"
+                      ? "w-8 bg-white shadow-[0_0_20px_rgba(255,255,255,0.9),0_0_40px_rgba(255,255,255,0.5)]" 
+                      : "w-2 bg-white/50 hover:bg-white/70 hover:w-3 shadow-[0_0_8px_rgba(255,255,255,0.6)]"
                   )}
                   aria-label={`前往第 ${index + 1} 張輪播圖`}
                 />
