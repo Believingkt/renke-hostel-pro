@@ -548,10 +548,13 @@ const BookingFlow = () => {
     setIsValidatingCode(true);
     
     try {
-      // 使用資料庫函數驗證折扣碼
+      // 使用資料庫函數驗證折扣碼，傳遞訂單金額、房型和入住日期
       const { data, error } = await supabase.rpc('validate_discount_code', {
         p_code: discountCode.trim().toUpperCase(),
-        p_accommodation_id: accommodationId
+        p_accommodation_id: accommodationId,
+        p_order_amount: calculateTotal(),
+        p_room_type_id: selectedRoom?.id || null,
+        p_check_in_date: checkInDate ? format(checkInDate, "yyyy-MM-dd") : null
       });
 
       if (error) throw error;

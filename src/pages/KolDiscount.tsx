@@ -38,6 +38,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
+import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface DiscountCode {
   id: string;
@@ -51,6 +53,10 @@ interface DiscountCode {
   valid_from: string;
   valid_until: string | null;
   is_active: boolean;
+  min_order_amount: number;
+  applicable_room_types: string[];
+  applicable_date_from: string | null;
+  applicable_date_to: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -67,6 +73,11 @@ const KolDiscount = () => {
   const [usageLimit, setUsageLimit] = useState("");
   const [validFrom, setValidFrom] = useState<Date>(new Date());
   const [validUntil, setValidUntil] = useState<Date | undefined>();
+  const [minOrderAmount, setMinOrderAmount] = useState("");
+  const [selectedRoomTypes, setSelectedRoomTypes] = useState<string[]>([]);
+  const [applicableDateFrom, setApplicableDateFrom] = useState<Date | undefined>();
+  const [applicableDateTo, setApplicableDateTo] = useState<Date | undefined>();
+  const [roomTypes, setRoomTypes] = useState<Array<{ id: string; name: string }>>([]);
   const [editingLimitId, setEditingLimitId] = useState<string | null>(null);
   const [editingLimitValue, setEditingLimitValue] = useState("");
   const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([]);
@@ -76,8 +87,26 @@ const KolDiscount = () => {
   useEffect(() => {
     if (accommodationId) {
       fetchDiscountCodes();
+      fetchRoomTypes();
     }
   }, [accommodationId]);
+
+  const fetchRoomTypes = async () => {
+    if (!accommodationId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("room_types")
+        .select("id, name")
+        .eq("accommodation_id", accommodationId)
+        .order("display_order");
+
+      if (error) throw error;
+      setRoomTypes(data || []);
+    } catch (error) {
+      console.error("Error fetching room types:", error);
+    }
+  };
 
   const fetchDiscountCodes = async () => {
     if (!accommodationId) return;
@@ -133,6 +162,10 @@ const KolDiscount = () => {
         usage_limit: parseInt(usageLimit),
         valid_from: validFrom.toISOString(),
         valid_until: validUntil?.toISOString() || null,
+        min_order_amount: minOrderAmount ? parseInt(minOrderAmount) : 0,
+        applicable_room_types: selectedRoomTypes,
+        applicable_date_from: applicableDateFrom?.toISOString().split('T')[0] || null,
+        applicable_date_to: applicableDateTo?.toISOString().split('T')[0] || null,
       });
 
       if (error) throw error;
@@ -149,6 +182,10 @@ const KolDiscount = () => {
       setDiscountType("percentage");
       setValidFrom(new Date());
       setValidUntil(undefined);
+      setMinOrderAmount("");
+      setSelectedRoomTypes([]);
+      setApplicableDateFrom(undefined);
+      setApplicableDateTo(undefined);
       fetchDiscountCodes();
     } catch (error) {
       console.error("Error creating discount code:", error);
@@ -244,6 +281,10 @@ const KolDiscount = () => {
     setUsageLimit(code.usage_limit.toString());
     setValidFrom(new Date(code.valid_from));
     setValidUntil(code.valid_until ? new Date(code.valid_until) : undefined);
+    setMinOrderAmount(code.min_order_amount > 0 ? code.min_order_amount.toString() : "");
+    setSelectedRoomTypes(code.applicable_room_types || []);
+    setApplicableDateFrom(code.applicable_date_from ? new Date(code.applicable_date_from) : undefined);
+    setApplicableDateTo(code.applicable_date_to ? new Date(code.applicable_date_to) : undefined);
     setEditOpen(true);
   };
 
@@ -266,6 +307,10 @@ const KolDiscount = () => {
           usage_limit: parseInt(usageLimit),
           valid_from: validFrom.toISOString(),
           valid_until: validUntil?.toISOString() || null,
+          min_order_amount: minOrderAmount ? parseInt(minOrderAmount) : 0,
+          applicable_room_types: selectedRoomTypes,
+          applicable_date_from: applicableDateFrom?.toISOString().split('T')[0] || null,
+          applicable_date_to: applicableDateTo?.toISOString().split('T')[0] || null,
         })
         .eq("id", editingCode.id);
 
@@ -283,6 +328,10 @@ const KolDiscount = () => {
       setDiscountType("percentage");
       setValidFrom(new Date());
       setValidUntil(undefined);
+      setMinOrderAmount("");
+      setSelectedRoomTypes([]);
+      setApplicableDateFrom(undefined);
+      setApplicableDateTo(undefined);
       fetchDiscountCodes();
     } catch (error) {
       console.error("Error updating discount code:", error);
@@ -481,6 +530,123 @@ const KolDiscount = () => {
                   </PopoverContent>
                 </Popover>
               </div>
+              
+              <Separator className="my-2" />
+              <p className="text-sm font-medium">適用條件（選填）</p>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="minOrderAmount">最低消費金額 (NT$)</Label>
+                <Input
+                  id="minOrderAmount"
+                  type="number"
+                  min="0"
+                  value={minOrderAmount}
+                  onChange={(e) => setMinOrderAmount(e.target.value)}
+                  placeholder="例如：1000（0 表示無限制）"
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label>適用房型（不選表示全部房型適用）</Label>
+                <div className="border rounded-md p-3 max-h-40 overflow-y-auto space-y-2">
+                  {roomTypes.map((room) => (
+                    <div key={room.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`room-${room.id}`}
+                        checked={selectedRoomTypes.includes(room.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedRoomTypes([...selectedRoomTypes, room.id]);
+                          } else {
+                            setSelectedRoomTypes(selectedRoomTypes.filter(id => id !== room.id));
+                          }
+                        }}
+                      />
+                      <Label htmlFor={`room-${room.id}`} className="cursor-pointer">
+                        {room.name}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="grid gap-2">
+                <Label>適用入住日期範圍（選填）</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "justify-start text-left font-normal text-sm",
+                          !applicableDateFrom && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {applicableDateFrom ? format(applicableDateFrom, "yyyy/MM/dd") : "開始日期"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={applicableDateFrom}
+                        onSelect={setApplicableDateFrom}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                      {applicableDateFrom && (
+                        <div className="p-3 border-t">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full"
+                            onClick={() => setApplicableDateFrom(undefined)}
+                          >
+                            清除
+                          </Button>
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
+                  
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "justify-start text-left font-normal text-sm",
+                          !applicableDateTo && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {applicableDateTo ? format(applicableDateTo, "yyyy/MM/dd") : "結束日期"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={applicableDateTo}
+                        onSelect={setApplicableDateTo}
+                        initialFocus
+                        disabled={(date) => applicableDateFrom ? date < applicableDateFrom : false}
+                        className="pointer-events-auto"
+                      />
+                      {applicableDateTo && (
+                        <div className="p-3 border-t">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full"
+                            onClick={() => setApplicableDateTo(undefined)}
+                          >
+                            清除
+                          </Button>
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
             </div>
             <DialogFooter>
               <Button onClick={handleSubmit}>新增</Button>
@@ -615,6 +781,123 @@ const KolDiscount = () => {
                   )}
                 </PopoverContent>
               </Popover>
+            </div>
+            
+            <Separator className="my-2" />
+            <p className="text-sm font-medium">適用條件（選填）</p>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="edit-minOrderAmount">最低消費金額 (NT$)</Label>
+              <Input
+                id="edit-minOrderAmount"
+                type="number"
+                min="0"
+                value={minOrderAmount}
+                onChange={(e) => setMinOrderAmount(e.target.value)}
+                placeholder="例如：1000（0 表示無限制）"
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label>適用房型（不選表示全部房型適用）</Label>
+              <div className="border rounded-md p-3 max-h-40 overflow-y-auto space-y-2">
+                {roomTypes.map((room) => (
+                  <div key={room.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`edit-room-${room.id}`}
+                      checked={selectedRoomTypes.includes(room.id)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSelectedRoomTypes([...selectedRoomTypes, room.id]);
+                        } else {
+                          setSelectedRoomTypes(selectedRoomTypes.filter(id => id !== room.id));
+                        }
+                      }}
+                    />
+                    <Label htmlFor={`edit-room-${room.id}`} className="cursor-pointer">
+                      {room.name}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label>適用入住日期範圍（選填）</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "justify-start text-left font-normal text-sm",
+                        !applicableDateFrom && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {applicableDateFrom ? format(applicableDateFrom, "yyyy/MM/dd") : "開始日期"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={applicableDateFrom}
+                      onSelect={setApplicableDateFrom}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                    {applicableDateFrom && (
+                      <div className="p-3 border-t">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => setApplicableDateFrom(undefined)}
+                        >
+                          清除
+                        </Button>
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
+                
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "justify-start text-left font-normal text-sm",
+                        !applicableDateTo && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {applicableDateTo ? format(applicableDateTo, "yyyy/MM/dd") : "結束日期"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={applicableDateTo}
+                      onSelect={setApplicableDateTo}
+                      initialFocus
+                      disabled={(date) => applicableDateFrom ? date < applicableDateFrom : false}
+                      className="pointer-events-auto"
+                    />
+                    {applicableDateTo && (
+                      <div className="p-3 border-t">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => setApplicableDateTo(undefined)}
+                        >
+                          清除
+                        </Button>
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
           </div>
           <DialogFooter>
