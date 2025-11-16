@@ -52,6 +52,9 @@ const Dashboard = () => {
     ? { top: 5, right: 5, left: -10, bottom: 15 }
     : { top: 15, right: 20, left: 0, bottom: 25 };
   
+  // 響應式高度
+  const chartHeight = isMobile ? 250 : 320;
+  
   // 使用 React Query hook 獲取儀表板資料
   const { 
     data: dashboardData, 
@@ -297,7 +300,7 @@ const Dashboard = () => {
             <CardTitle className="text-base font-semibold">營收統計</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={chartHeight}>
               <BarChart data={revenueData} margin={chartMargin}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.2} />
                 <XAxis 
@@ -345,7 +348,7 @@ const Dashboard = () => {
             <CardTitle className="text-base font-semibold">訂單趨勢</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={chartHeight}>
               <LineChart data={bookingData} margin={chartMargin}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.2} />
                 <XAxis 
@@ -397,7 +400,7 @@ const Dashboard = () => {
           <CardTitle className="text-base font-semibold">房型入住率 (過去 30 天)</CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={chartHeight}>
             <BarChart 
               data={occupancyData} 
               margin={occupancyChartMargin}
