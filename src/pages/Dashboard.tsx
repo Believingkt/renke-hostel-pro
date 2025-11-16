@@ -385,7 +385,7 @@ const Dashboard = () => {
           <ResponsiveContainer width="100%" height={300}>
             <BarChart 
               data={occupancyData} 
-              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+              margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
               layout="horizontal"
             >
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.2} />
@@ -394,7 +394,7 @@ const Dashboard = () => {
                 domain={[0, 100]}
                 tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
                 stroke="hsl(var(--border))"
-                label={{ value: '入住率 (%)', position: 'insideBottom', offset: -5, fontSize: 12 }}
+                label={{ value: '入住率 (%)', position: 'insideBottom', offset: 0, fontSize: 12 }}
               />
               <YAxis 
                 dataKey="roomType" 
