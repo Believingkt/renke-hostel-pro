@@ -114,10 +114,10 @@ export function AppSidebar() {
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
                       <CollapsibleContent>
-                        <SidebarMenuSub>
+                        <SidebarMenuSub className="ml-0 border-l-0 px-0 space-y-1 mt-1">
                           {item.subItems.map((subItem) => (
                             <SidebarMenuSubItem key={subItem.title}>
-                              <SidebarMenuSubButton asChild>
+                              <SidebarMenuSubButton asChild className="h-10 px-4 pl-8">
                                 <NavLink 
                                   to={subItem.url}
                                   onClick={handleLinkClick}
