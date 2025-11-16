@@ -250,11 +250,39 @@ const Dashboard = () => {
   }];
   const finalOccupancyData = safeOccupancyData.length > 0 ? safeOccupancyData : [{ roomType: '暫無數據', occupancyRate: 0 }];
   
+  // Calculate max values for domains
+  const maxRevenue = Math.max(
+    ...finalRevenueData.flatMap(d => [
+      d['今年'] || 0,
+      d['去年'] || 0,
+      d['本月'] || 0,
+      d['上月'] || 0,
+      d['本期'] || 0
+    ].filter(v => Number.isFinite(v) && v > 0))
+  );
+  const maxBookings = Math.max(
+    ...finalBookingData.flatMap(d => [
+      d['今年'] || 0,
+      d['去年'] || 0,
+      d['本月'] || 0,
+      d['上月'] || 0,
+      d['本期'] || 0
+    ].filter(v => Number.isFinite(v) && v > 0))
+  );
+  
+  // Set safe domain values
+  const revenueDomain = Number.isFinite(maxRevenue) && maxRevenue > 0 ? Math.ceil(maxRevenue * 1.2) : 10000;
+  const bookingDomain = Number.isFinite(maxBookings) && maxBookings > 0 ? Math.ceil(maxBookings * 1.2) : 50;
+  
   // Debug: Log the final data being passed to charts
   console.log('Final chart data:', {
     revenueData: finalRevenueData,
     bookingData: finalBookingData,
     occupancyData: finalOccupancyData,
+    maxRevenue,
+    maxBookings,
+    revenueDomain,
+    bookingDomain,
     revenueDataKeys: finalRevenueData.length > 0 ? Object.keys(finalRevenueData[0]) : [],
     bookingDataKeys: finalBookingData.length > 0 ? Object.keys(finalBookingData[0]) : [],
     revenueDataSample: finalRevenueData[0],
@@ -457,7 +485,7 @@ const Dashboard = () => {
                   tick={{ fontSize: chartFontSize, fill: 'hsl(var(--muted-foreground))' }}
                   stroke="hsl(var(--border))"
                   tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value.toString()}
-                  domain={[0, (dataMax: number) => (dataMax > 0 ? Math.ceil(dataMax * 1.1) : 1000)]}
+                  domain={[0, revenueDomain]}
                   allowDataOverflow={false}
                   allowDecimals={false}
                 />
@@ -518,7 +546,7 @@ const Dashboard = () => {
                 <YAxis 
                   tick={{ fontSize: chartFontSize, fill: 'hsl(var(--muted-foreground))' }}
                   stroke="hsl(var(--border))"
-                  domain={[0, (dataMax: number) => (dataMax > 0 ? Math.ceil(dataMax * 1.1) : 10)]}
+                  domain={[0, bookingDomain]}
                   allowDataOverflow={false}
                   allowDecimals={false}
                 />
