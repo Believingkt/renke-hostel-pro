@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { z } from "zod";
 import { format } from "date-fns";
-import { detectBookingConflict, getAlternativeRoomSuggestions, AlternativeRoomSuggestion } from "@/utils/bookingConflictDetection";
+import { detectBookingConflict, getAlternativeRoomSuggestions, AlternativeRoomSuggestion, getAvailableRoomTypes } from "@/utils/bookingConflictDetection";
 import { ConflictWarning } from "@/components/orders/ConflictWarning";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
@@ -148,6 +148,7 @@ const BookingFlow = () => {
   const [successOrderData, setSuccessOrderData] = useState<any>(null);
   const [alternativeRooms, setAlternativeRooms] = useState<AlternativeRoomSuggestion[]>([]);
   const [showAlternatives, setShowAlternatives] = useState(false);
+  const [availableRoomTypeIds, setAvailableRoomTypeIds] = useState<string[]>([]);
   const [conflictMessage, setConflictMessage] = useState("");
   const [conflictType, setConflictType] = useState<'overbooked' | 'duplicate'>('overbooked');
   
@@ -332,19 +333,33 @@ const BookingFlow = () => {
 
   // 當日期或餐食方案改變時，檢查已選擇的房型是否仍然適用
   useEffect(() => {
-    if (selectedRoom && checkInDate && checkOutDate) {
-      const availableRooms = getAvailableRooms();
-      const isRoomAvailable = availableRooms.some(room => room.id === selectedRoom.id);
-      
-      if (!isRoomAvailable) {
-        setSelectedRoom(null);
-        toast({
-          title: "房型已變更為不可訂",
-          description: "由於日期或餐食方案變更，您選擇的房型已無法預訂",
-        });
+    const checkAvailability = async () => {
+      if (checkInDate && checkOutDate && accommodationId) {
+        const totalGuests = (contextGuests.adults || 0) + (contextGuests.children || 0);
+        const availableIds = await getAvailableRoomTypes(
+          checkInDateStr,
+          checkOutDateStr,
+          accommodationId,
+          totalGuests
+        );
+        setAvailableRoomTypeIds(availableIds);
+        
+        // 如果已選擇的房型不在可用列表中，清除選擇
+        if (selectedRoom && !availableIds.includes(selectedRoom.id)) {
+          setSelectedRoom(null);
+          toast({
+            title: "房型已被預訂",
+            description: "您選擇的房型在此日期已被預訂，請選擇其他房型",
+          });
+        }
+      } else {
+        // 如果沒有選擇日期，顯示所有房型
+        setAvailableRoomTypeIds([]);
       }
-    }
-  }, [checkInDate, checkOutDate, selectedMealPlan]);
+    };
+
+    checkAvailability();
+  }, [checkInDate, checkOutDate, selectedMealPlan, accommodationId, contextGuests]);
 
   // 當在選擇房型步驟時，自動預選第一個可用房型
   useEffect(() => {
@@ -433,6 +448,11 @@ const BookingFlow = () => {
     const { hasWeekday, hasWeekend } = getDateRangeInfo();
     
     return roomTypes.filter(room => {
+      // 首先檢查是否在可預訂的房型列表中（如果有日期選擇）
+      if (availableRoomTypeIds.length > 0 && !availableRoomTypeIds.includes(room.id)) {
+        return false;
+      }
+
       const mealPlanType = selectedMealPlan === "2_meals" ? "2_meals" : "3_meals";
       
       // 取得房型的平日和週末價格

@@ -77,27 +77,24 @@ export function ConflictWarning({
             </p>
             <div className="space-y-2">
               {alternativeRooms.slice(0, 3).map((suggestion) => (
-                <div key={suggestion.roomType.id} className="flex items-center justify-between p-2 bg-background rounded border">
+                <div key={suggestion.roomTypeId} className="flex items-center justify-between p-2 bg-background rounded border">
                   <div className="flex-1">
-                    <p className="font-medium text-sm">{suggestion.roomType.name}</p>
+                    <p className="font-medium text-sm">{suggestion.roomTypeName}</p>
                     <div className="flex gap-2 mt-1">
                       <Badge variant="outline" className="text-xs">
                         <Users className="h-3 w-3 mr-1" />
-                        可住 {suggestion.roomType.capacity} 人
+                        可住 {suggestion.capacity} 人
                       </Badge>
                       <Badge variant="outline" className="text-xs">
-                        剩 {suggestion.availableRooms} 間
-                      </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        NT$ {suggestion.priceEstimate.toLocaleString()}
+                        NT$ {suggestion.basePrice.toLocaleString()}
                       </Badge>
                     </div>
                   </div>
                   {onSelectAlternative && (
                     <Button
-                      size="sm"
                       variant="outline"
-                      onClick={() => onSelectAlternative(suggestion.roomType.id)}
+                      size="sm"
+                      onClick={() => onSelectAlternative(suggestion.roomTypeId)}
                       className="ml-2"
                     >
                       選擇
