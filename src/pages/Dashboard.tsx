@@ -19,6 +19,7 @@ import PullToRefresh from "react-simple-pull-to-refresh";
 import { DateRangePicker } from "@/components/DateRangePicker";
 import { DateRange } from "react-day-picker";
 import { RevenueChart } from "@/components/charts/RevenueChart";
+import { BookingTrendsChart } from "@/components/charts/BookingTrendsChart";
 
 const Dashboard = () => {
   const { accommodationId } = useSubdomain();
@@ -498,12 +499,11 @@ const Dashboard = () => {
             <CardTitle className="text-base font-semibold">訂單趨勢</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="flex items-center justify-center h-[250px] text-muted-foreground">
-              <div className="text-center">
-                <p className="text-sm">暫無訂單數據</p>
-                <p className="text-xs mt-1">請新增訂單後查看統計</p>
-              </div>
-            </div>
+            <BookingTrendsChart 
+              data={finalBookingData}
+              comparisonMode={comparisonMode}
+              isCustomRange={!!customDateRange}
+            />
           </CardContent>
         </Card>
       </div>
