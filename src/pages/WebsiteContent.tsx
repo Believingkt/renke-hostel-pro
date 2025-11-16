@@ -812,6 +812,14 @@ const WebsiteContent = () => {
     const file = event.target.files?.[0];
     if (!file || !accommodationId) return;
 
+    // 驗證文件大小（2MB = 2 * 1024 * 1024 bytes）
+    const maxSize = 2 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error(`文件大小超過限制！請上傳小於 2MB 的圖片。\n當前文件大小：${(file.size / 1024 / 1024).toFixed(2)} MB`);
+      event.target.value = '';
+      return;
+    }
+
     const setUploading = logoType === 'header' ? setUploadingHeaderLogo : setUploadingFooterLogo;
     setUploading(true);
 
