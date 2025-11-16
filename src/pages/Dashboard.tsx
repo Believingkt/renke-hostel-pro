@@ -16,6 +16,8 @@ import { ErrorState } from "@/components/ErrorState";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import PullToRefresh from "react-simple-pull-to-refresh";
+import { DateRangePicker } from "@/components/DateRangePicker";
+import { DateRange } from "react-day-picker";
 
 import {
   LineChart,
@@ -39,6 +41,12 @@ const Dashboard = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [testDataCount, setTestDataCount] = useState(20);
   const [useLastYear, setUseLastYear] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  
+  // 將 DateRange 轉換為 hook 需要的格式
+  const customDateRange = dateRange?.from && dateRange?.to 
+    ? { from: dateRange.from, to: dateRange.to }
+    : undefined;
   
   // 響應式字體大小
   const chartFontSize = isMobile ? 10 : 12;
@@ -62,7 +70,7 @@ const Dashboard = () => {
     isLoading, 
     error, 
     refreshData 
-  } = useDashboardData(accommodationId, comparisonMode);
+  } = useDashboardData(accommodationId, comparisonMode, customDateRange);
 
   const handleGenerateTestData = async () => {
     if (!accommodationId) {
@@ -174,9 +182,14 @@ const Dashboard = () => {
 
   const dashboardContent = (
     <div className="space-y-6 md:space-y-8">
-      <div className="px-2 md:px-0 flex items-center justify-between flex-wrap gap-3">
+      <div className="px-2 md:px-0 flex items-start md:items-center justify-between flex-col md:flex-row gap-3">
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">營運分析</h1>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap w-full md:w-auto">
+          <DateRangePicker 
+            dateRange={dateRange}
+            onDateRangeChange={setDateRange}
+            className="flex-1 md:flex-initial"
+          />
           <Popover>
             <PopoverTrigger asChild>
               <Button
