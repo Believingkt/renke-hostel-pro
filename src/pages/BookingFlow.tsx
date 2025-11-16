@@ -69,6 +69,37 @@ const guestInfoSchema = z.object({
   notes: z.string().trim().max(500, { message: "備註不能超過500個字元" }).optional(),
 });
 
+// 日期驗證 Schema
+const dateValidationSchema = z.object({
+  checkInDate: z.date({
+    required_error: "請選擇入住日期",
+    invalid_type_error: "入住日期格式無效",
+  }),
+  checkOutDate: z.date({
+    required_error: "請選擇退房日期",
+    invalid_type_error: "退房日期格式無效",
+  }),
+}).refine((data) => {
+  // 確保退房日期晚於入住日期
+  return data.checkOutDate > data.checkInDate;
+}, {
+  message: "退房日期必須晚於入住日期",
+  path: ["checkOutDate"],
+}).refine((data) => {
+  // 確保日期不是無效日期
+  return !isNaN(data.checkInDate.getTime()) && !isNaN(data.checkOutDate.getTime());
+}, {
+  message: "日期格式無效",
+  path: ["checkInDate"],
+}).refine((data) => {
+  // 確保至少住一晚
+  const nights = Math.ceil((data.checkOutDate.getTime() - data.checkInDate.getTime()) / (1000 * 60 * 60 * 24));
+  return nights >= 1;
+}, {
+  message: "至少需要住宿一晚",
+  path: ["checkOutDate"],
+});
+
 interface RoomType {
   id: string;
   name: string;
@@ -625,7 +656,8 @@ const BookingFlow = () => {
   const handleNextStep = () => {
     // 驗證當前步驟
     if (currentStep === "dates") {
-      if (!checkInDateStr || !checkOutDateStr) {
+      // 強化日期驗證
+      if (!checkInDate || !checkOutDate) {
         toast({
           title: "請選擇日期",
           description: "請選擇入住和退房日期",
@@ -633,7 +665,50 @@ const BookingFlow = () => {
         });
         return;
       }
-      if (new Date(checkOutDateStr) <= new Date(checkInDateStr)) {
+
+      // 使用 zod schema 驗證日期
+      try {
+        dateValidationSchema.parse({
+          checkInDate,
+          checkOutDate,
+        });
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          const errorMessage = error.errors[0]?.message || "日期驗證失敗";
+          toast({
+            title: "日期驗證失敗",
+            description: errorMessage,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+
+      // 額外檢查：確保日期字符串有效
+      if (!checkInDateStr || !checkOutDateStr) {
+        toast({
+          title: "日期格式錯誤",
+          description: "無法格式化日期，請重新選擇",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // 驗證日期字符串可以被正確解析
+      const checkInParsed = new Date(checkInDateStr);
+      const checkOutParsed = new Date(checkOutDateStr);
+      
+      if (isNaN(checkInParsed.getTime()) || isNaN(checkOutParsed.getTime())) {
+        toast({
+          title: "日期無效",
+          description: "選擇的日期無法被識別，請重新選擇",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // 確保解析後的日期順序正確
+      if (checkOutParsed <= checkInParsed) {
         toast({
           title: "日期錯誤",
           description: "退房日期必須晚於入住日期",
@@ -721,6 +796,81 @@ const BookingFlow = () => {
         description: "缺少必要資訊，請重新操作",
         variant: "destructive",
       });
+      return;
+    }
+
+    // 最終日期驗證 - 防止無效日期提交到數據庫
+    if (!checkInDate || !checkOutDate) {
+      toast({
+        title: "日期資料遺失",
+        description: "入住或退房日期遺失，請重新選擇",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // 驗證日期對象有效性
+    if (isNaN(checkInDate.getTime()) || isNaN(checkOutDate.getTime())) {
+      toast({
+        title: "日期無效",
+        description: "日期格式錯誤，請返回重新選擇日期",
+        variant: "destructive",
+      });
+      setCurrentStep("dates");
+      return;
+    }
+
+    // 使用 schema 再次驗證
+    try {
+      dateValidationSchema.parse({
+        checkInDate,
+        checkOutDate,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const errorMessage = error.errors[0]?.message || "日期驗證失敗";
+        toast({
+          title: "日期驗證失敗",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        setCurrentStep("dates");
+        return;
+      }
+    }
+
+    // 驗證日期字符串
+    if (!checkInDateStr || !checkOutDateStr) {
+      toast({
+        title: "日期格式錯誤",
+        description: "無法格式化日期，請返回重新選擇",
+        variant: "destructive",
+      });
+      setCurrentStep("dates");
+      return;
+    }
+
+    // 最後檢查：確保字符串可以被正確解析
+    const checkInParsed = new Date(checkInDateStr);
+    const checkOutParsed = new Date(checkOutDateStr);
+    
+    if (isNaN(checkInParsed.getTime()) || isNaN(checkOutParsed.getTime())) {
+      toast({
+        title: "日期資料損壞",
+        description: "日期資料已損壞，請返回重新選擇日期",
+        variant: "destructive",
+      });
+      setCurrentStep("dates");
+      return;
+    }
+
+    if (checkOutParsed <= checkInParsed) {
+      toast({
+        title: "日期順序錯誤",
+        description: "退房日期必須晚於入住日期，請返回修正",
+        variant: "destructive",
+      });
+      setCurrentStep("dates");
       return;
     }
 
@@ -1418,16 +1568,32 @@ const BookingFlow = () => {
                               mode="single"
                               selected={checkInDate}
                               onSelect={(date) => {
-                                setCheckInDate(date);
-                                if (date) {
-                                  setIsCheckInDateOpen(false);
-                                  // 選完入住日期後自動打開退房日期選擇器
+                                // 驗證選擇的日期
+                                if (date && !isNaN(date.getTime())) {
+                                  setCheckInDate(date);
+                                  // 自動關閉並打開退房日期選擇器
                                   setTimeout(() => {
+                                    setIsCheckInDateOpen(false);
+                                    // 如果退房日期早於或等於新的入住日期，清除退房日期
+                                    if (checkOutDate && checkOutDate <= date) {
+                                      setCheckOutDate(undefined);
+                                    }
                                     setIsCheckOutDateOpen(true);
                                   }, 100);
+                                } else {
+                                  toast({
+                                    title: "無效日期",
+                                    description: "選擇的日期無效，請重新選擇",
+                                    variant: "destructive",
+                                  });
                                 }
                               }}
-                              disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                              disabled={(date) => {
+                                // 禁用過去的日期
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+                                return date < today;
+                              }}
                               initialFocus
                               className={cn("p-3 pointer-events-auto")}
                             />
@@ -1461,14 +1627,34 @@ const BookingFlow = () => {
                               mode="single"
                               selected={checkOutDate}
                               onSelect={(date) => {
-                                setCheckOutDate(date);
-                                // 選完退房日期後自動關閉
-                                if (date) {
-                                  setIsCheckOutDateOpen(false);
+                                // 驗證選擇的日期
+                                if (date && !isNaN(date.getTime())) {
+                                  // 確保退房日期晚於入住日期
+                                  if (checkInDate && date <= checkInDate) {
+                                    toast({
+                                      title: "日期錯誤",
+                                      description: "退房日期必須晚於入住日期",
+                                      variant: "destructive",
+                                    });
+                                    return;
+                                  }
+                                  setCheckOutDate(date);
+                                  // 關閉日期選擇器
+                                  setTimeout(() => {
+                                    setIsCheckOutDateOpen(false);
+                                  }, 100);
+                                } else {
+                                  toast({
+                                    title: "無效日期",
+                                    description: "選擇的日期無效，請重新選擇",
+                                    variant: "destructive",
+                                  });
                                 }
                               }}
                               disabled={(date) => {
-                                const today = new Date(new Date().setHours(0, 0, 0, 0));
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+                                // 禁用過去的日期和入住日期當天及之前
                                 if (date < today) return true;
                                 if (checkInDate && date <= checkInDate) return true;
                                 return false;
