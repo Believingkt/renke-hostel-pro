@@ -32,6 +32,10 @@ interface HeroPhoto {
   id: string;
   photo_url: string;
   display_order: number;
+  title?: string | null;
+  subtitle?: string | null;
+  cta_text?: string | null;
+  cta_link?: string | null;
 }
 
 const defaultHeroImages = [heroSlide1, heroSlide2, heroSlide3];
@@ -47,10 +51,18 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
   const [heroPhotos, setHeroPhotos] = useState<HeroPhoto[]>([]);
   const [isLoadingPhotos, setIsLoadingPhotos] = useState(true);
 
-  // 使用數據庫圖片或默認圖片
-  const heroImages = heroPhotos.length > 0 
-    ? heroPhotos.map(p => p.photo_url)
-    : defaultHeroImages;
+  // 使用數據庫圖片或默認圖片，優先使用數據庫內容
+  const slides = heroPhotos.length > 0 
+    ? heroPhotos
+    : defaultHeroImages.map((img, index) => ({
+        id: `default-${index}`,
+        photo_url: img,
+        display_order: index + 1,
+        title: null,
+        subtitle: null,
+        cta_text: null,
+        cta_link: null
+      }));
 
   // 載入首頁輪播圖
   useEffect(() => {
@@ -72,7 +84,7 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
       try {
         const { data, error } = await supabase
           .from('accommodation_photos')
-          .select('id, photo_url, display_order')
+          .select('id, photo_url, display_order, title, subtitle, cta_text, cta_link')
           .eq('accommodation_id', accommodationId)
           .eq('photo_type', 'hero')
           .order('display_order');
@@ -136,7 +148,7 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
       setCurrent(index);
       
       // 延遲預載下一張圖片
-      const nextIndex = (index + 1) % heroImages.length;
+      const nextIndex = (index + 1) % slides.length;
       setTimeout(() => {
         setLoadedImages(prev => new Set([...prev, index, nextIndex]));
       }, 500);
@@ -186,12 +198,12 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
           setApi={setCarouselApi}
         >
           <CarouselContent className="-ml-0">
-            {heroImages.map((image, index) => (
-              <CarouselItem key={index} className="pl-0">
+            {slides.map((slide, index) => (
+              <CarouselItem key={slide.id} className="pl-0">
                 <div className="relative h-[500px] md:h-[700px] w-full bg-gradient-to-br from-muted to-muted/50">
                   <OptimizedImage
-                    src={image}
-                    alt={`${accommodationName} - 首頁輪播圖 ${index + 1}`}
+                    src={slide.photo_url}
+                    alt={slide.title || `${accommodationName} - 首頁輪播圖 ${index + 1}`}
                     className="w-full h-full object-cover brightness-110"
                     priority={index === 0}
                     width="1920"
@@ -201,14 +213,42 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center transition-all duration-700">
                     <div className="text-center text-white space-y-2 md:space-y-4 max-w-4xl px-4 pb-32 md:pb-56">
                       <h1 className="text-3xl md:text-7xl font-bold animate-fade-in drop-shadow-lg">
-                        {accommodationName}
+                        {slide.title || accommodationName}
                       </h1>
-                      <p className="text-lg md:text-3xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.2s" }}>
-                        山間的寧靜時光
-                      </p>
-                      <p className="text-base md:text-xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.4s" }}>
-                        體驗日式美學與自然的完美融合
-                      </p>
+                      {slide.subtitle && (
+                        <p className="text-lg md:text-3xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.2s" }}>
+                          {slide.subtitle}
+                        </p>
+                      )}
+                      {!slide.subtitle && (
+                        <>
+                          <p className="text-lg md:text-3xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.2s" }}>
+                            山間的寧靜時光
+                          </p>
+                          <p className="text-base md:text-xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.4s" }}>
+                            體驗日式美學與自然的完美融合
+                          </p>
+                        </>
+                      )}
+                      {slide.cta_text && slide.cta_link && (
+                        <div className="pt-4 animate-fade-in" style={{ animationDelay: "0.6s" }}>
+                          <Button
+                            asChild
+                            size="lg"
+                            className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all"
+                          >
+                            {slide.cta_link.startsWith('#') ? (
+                              <a href={slide.cta_link} className="inline-flex items-center gap-2">
+                                {slide.cta_text}
+                              </a>
+                            ) : (
+                              <Link to={slide.cta_link} className="inline-flex items-center gap-2">
+                                {slide.cta_text}
+                              </Link>
+                            )}
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -218,7 +258,7 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
           
           {/* 指示點 */}
           <div className="absolute bottom-24 md:bottom-32 left-1/2 transform -translate-x-1/2 flex gap-2 z-10">
-            {heroImages.map((_, index) => (
+            {slides.map((_, index) => (
               <button
                 key={index}
                 onClick={() => carouselApi?.scrollTo(index)}

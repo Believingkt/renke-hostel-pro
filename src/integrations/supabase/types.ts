@@ -149,26 +149,38 @@ export type Database = {
         Row: {
           accommodation_id: string | null
           created_at: string
+          cta_link: string | null
+          cta_text: string | null
           display_order: number | null
           id: string
           photo_type: string | null
           photo_url: string
+          subtitle: string | null
+          title: string | null
         }
         Insert: {
           accommodation_id?: string | null
           created_at?: string
+          cta_link?: string | null
+          cta_text?: string | null
           display_order?: number | null
           id?: string
           photo_type?: string | null
           photo_url: string
+          subtitle?: string | null
+          title?: string | null
         }
         Update: {
           accommodation_id?: string | null
           created_at?: string
+          cta_link?: string | null
+          cta_text?: string | null
           display_order?: number | null
           id?: string
           photo_type?: string | null
           photo_url?: string
+          subtitle?: string | null
+          title?: string | null
         }
         Relationships: [
           {
