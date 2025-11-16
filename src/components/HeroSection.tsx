@@ -258,7 +258,7 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
           
           {/* 輪播指示器 */}
           <div className="absolute bottom-16 md:bottom-24 left-1/2 -translate-x-1/2 z-20">
-            <div className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-black/10 backdrop-blur-sm border border-white/5 shadow-sm">
+            <div className="flex items-center gap-2 px-2 py-2">
               {slides.map((_, index) => (
                 <button
                   key={index}
