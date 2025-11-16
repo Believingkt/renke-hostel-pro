@@ -192,7 +192,7 @@ const Index = () => {
       />
       <main>
         <HeroSection accommodationName={data.info.name} />
-        <AboutSection description={data.info.description} />
+        <AboutSection description={data.info.description} accommodationId={data.info.id} />
         <RoomsSection roomTypes={data.roomTypes || []} />
         <FacilitiesSection facilities={data.facilities || []} />
         <PhotoGallerySection photos={data.photos || []} />

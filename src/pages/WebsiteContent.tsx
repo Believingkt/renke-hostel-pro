@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Globe, Plus, Trash2, Edit2, GripVertical, MapPin, Image as ImageIcon, Upload, Info, Wrench, Package, HelpCircle, Navigation } from "lucide-react";
+import { AboutFeatureForm } from "@/components/AboutFeatureForm";
 import { ResponsiveTabs, TabItem } from "@/components/ResponsiveTabs";
 import {
   DndContext,
@@ -344,6 +345,15 @@ const WebsiteContent = () => {
     detailedDescription: ""
   });
 
+  // About section state
+  const [aboutSection, setAboutSection] = useState({
+    sectionTitle: "自然中的秘境 X 宿泊空間",
+    sectionDescription: ""
+  });
+  const [aboutFeatures, setAboutFeatures] = useState<any[]>([]);
+  const [featureFormOpen, setFeatureFormOpen] = useState(false);
+  const [editingFeature, setEditingFeature] = useState<any | null>(null);
+
   useEffect(() => {
     const tab = searchParams.get("tab");
     if (tab) {
@@ -528,6 +538,31 @@ const WebsiteContent = () => {
                 detailedDescription: mealData.detailed_description || ""
               });
             }
+          }
+
+          // 加載特色說明
+          const { data: aboutData } = await supabase
+            .from("about_section")
+            .select("*")
+            .eq("accommodation_id", infoData.id)
+            .maybeSingle();
+
+          if (aboutData) {
+            setAboutSection({
+              sectionTitle: aboutData.section_title || "自然中的秘境 X 宿泊空間",
+              sectionDescription: aboutData.section_description || ""
+            });
+          }
+
+          // 加載特色區塊
+          const { data: featuresData } = await supabase
+            .from("about_features")
+            .select("*")
+            .eq("accommodation_id", infoData.id)
+            .order("display_order");
+
+          if (featuresData) {
+            setAboutFeatures(featuresData);
           }
         }
       } catch (error) {
@@ -1427,6 +1462,128 @@ const WebsiteContent = () => {
     }
   };
 
+  const handleSaveAboutSection = async () => {
+    if (!accommodationId) {
+      toast.error('找不到旅宿資訊');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // 保存特色說明主標題和描述
+      const { error: sectionError } = await supabase
+        .from("about_section")
+        .upsert({
+          accommodation_id: accommodationId,
+          section_title: aboutSection.sectionTitle,
+          section_description: aboutSection.sectionDescription
+        }, {
+          onConflict: 'accommodation_id'
+        });
+
+      if (sectionError) throw sectionError;
+
+      toast.success('特色說明已儲存');
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error saving about section:', error);
+      }
+      toast.error('儲存失敗，請稍後再試');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveFeature = async (feature: any) => {
+    if (!accommodationId) {
+      toast.error('找不到旅宿資訊');
+      return;
+    }
+
+    try {
+      if (feature.id) {
+        // 更新現有特色
+        const { error } = await supabase
+          .from("about_features")
+          .update({
+            title: feature.title,
+            description: feature.description,
+            icon_type: feature.icon_type,
+            icon_name: feature.icon_name,
+            icon_url: feature.icon_url,
+            display_order: feature.display_order
+          })
+          .eq("id", feature.id);
+
+        if (error) throw error;
+      } else {
+        // 新增特色
+        const { error } = await supabase
+          .from("about_features")
+          .insert({
+            accommodation_id: accommodationId,
+            title: feature.title,
+            description: feature.description,
+            icon_type: feature.icon_type,
+            icon_name: feature.icon_name,
+            icon_url: feature.icon_url,
+            display_order: aboutFeatures.length
+          });
+
+        if (error) throw error;
+      }
+
+      // 重新載入特色區塊
+      const { data: featuresData } = await supabase
+        .from("about_features")
+        .select("*")
+        .eq("accommodation_id", accommodationId)
+        .order("display_order");
+
+      if (featuresData) {
+        setAboutFeatures(featuresData);
+      }
+
+      toast.success(feature.id ? '特色已更新' : '特色已新增');
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error saving feature:', error);
+      }
+      toast.error('儲存失敗，請稍後再試');
+    }
+  };
+
+  const handleDeleteFeature = async (featureId: string) => {
+    if (!accommodationId) return;
+
+    try {
+      const { error } = await supabase
+        .from("about_features")
+        .delete()
+        .eq("id", featureId);
+
+      if (error) throw error;
+
+      // 重新載入特色區塊
+      const { data: featuresData } = await supabase
+        .from("about_features")
+        .select("*")
+        .eq("accommodation_id", accommodationId)
+        .order("display_order");
+
+      if (featuresData) {
+        setAboutFeatures(featuresData);
+      }
+
+      toast.success('特色已刪除');
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error deleting feature:', error);
+      }
+      toast.error('刪除失敗，請稍後再試');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -1474,6 +1631,111 @@ const WebsiteContent = () => {
                   rows={4}
                   placeholder="請輸入住宿描述..."
                 />
+              </div>
+
+              {/* 特色說明編輯區塊 */}
+              <div className="space-y-4 pt-6 border-t">
+                <div className="space-y-2">
+                  <Label>特色說明主標題</Label>
+                  <Input
+                    value={aboutSection.sectionTitle}
+                    onChange={(e) => setAboutSection({ ...aboutSection, sectionTitle: e.target.value })}
+                    placeholder="例如：自然中的秘境 X 宿泊空間"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>特色說明文字</Label>
+                  <Textarea
+                    value={aboutSection.sectionDescription}
+                    onChange={(e) => setAboutSection({ ...aboutSection, sectionDescription: e.target.value })}
+                    rows={3}
+                    placeholder="請輸入特色說明..."
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label>特色區塊（最多 4 個）</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (aboutFeatures.length >= 4) {
+                          toast.error('最多只能添加 4 個特色區塊');
+                          return;
+                        }
+                        setEditingFeature(null);
+                        setFeatureFormOpen(true);
+                      }}
+                      disabled={aboutFeatures.length >= 4}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      新增特色
+                    </Button>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {aboutFeatures.map((feature) => (
+                      <Card key={feature.id} className="relative">
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3">
+                            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                              {feature.icon_type === 'lucide' ? (
+                                <span className="text-primary text-sm">{feature.icon_name}</span>
+                              ) : feature.icon_url ? (
+                                <img src={feature.icon_url} alt="圖示" className="w-6 h-6 object-contain" />
+                              ) : (
+                                <span className="text-muted-foreground text-xs">無</span>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-sm mb-1">{feature.title}</h4>
+                              <p className="text-xs text-muted-foreground line-clamp-2">{feature.description}</p>
+                            </div>
+                            <div className="flex gap-1">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => {
+                                  setEditingFeature(feature);
+                                  setFeatureFormOpen(true);
+                                }}
+                              >
+                                <Edit2 className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:text-destructive"
+                                onClick={() => handleDeleteFeature(feature.id)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {aboutFeatures.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      尚未添加特色區塊，請點擊「新增特色」按鈕開始添加
+                    </div>
+                  )}
+                </div>
+
+                <Button 
+                  onClick={handleSaveAboutSection}
+                  disabled={isSaving}
+                  className="w-full"
+                >
+                  {isSaving ? '儲存中...' : '儲存特色說明'}
+                </Button>
               </div>
               <div className="space-y-2">
                 <Label>地址</Label>
@@ -2552,6 +2814,14 @@ const WebsiteContent = () => {
         onOpenChange={setHeroEditDialogOpen}
         photo={editingHeroPhoto}
         onSave={handleSaveHeroPhotoText}
+      />
+
+      {/* 特色區塊編輯對話框 */}
+      <AboutFeatureForm
+        open={featureFormOpen}
+        onOpenChange={setFeatureFormOpen}
+        feature={editingFeature}
+        onSave={handleSaveFeature}
       />
     </div>
   );

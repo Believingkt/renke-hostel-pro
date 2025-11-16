@@ -14,6 +14,88 @@ export type Database = {
   }
   public: {
     Tables: {
+      about_features: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          description: string
+          display_order: number
+          icon_name: string
+          icon_type: string
+          icon_url: string | null
+          id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          description: string
+          display_order?: number
+          icon_name: string
+          icon_type?: string
+          icon_url?: string | null
+          id?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          description?: string
+          display_order?: number
+          icon_name?: string
+          icon_type?: string
+          icon_url?: string | null
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "about_features_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      about_section: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          id: string
+          section_description: string | null
+          section_title: string
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          id?: string
+          section_description?: string | null
+          section_title?: string
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          id?: string
+          section_description?: string | null
+          section_title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "about_section_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accommodation_facilities: {
         Row: {
           accommodation_id: string | null
