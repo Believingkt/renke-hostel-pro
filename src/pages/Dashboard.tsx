@@ -311,8 +311,8 @@ const Dashboard = () => {
       return;
     }
 
-    if (testDataCount < 1 || testDataCount > 100) {
-      toast.error("請輸入 1-100 之間的數量");
+    if (testDataCount < 1 || testDataCount > 1000) {
+      toast.error("請輸入 1-1000 之間的數量");
       return;
     }
 
@@ -422,7 +422,7 @@ const Dashboard = () => {
                 <div className="space-y-2">
                   <h4 className="font-medium leading-none">生成測試數據</h4>
                   <p className="text-sm text-muted-foreground">
-                    選擇要生成的測試訂單數量（1-100）
+                    選擇要生成的測試訂單數量（1-1000）
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -431,7 +431,7 @@ const Dashboard = () => {
                     id="test-count"
                     type="number"
                     min="1"
-                    max="100"
+                    max="1000"
                     value={testDataCount}
                     onChange={(e) => setTestDataCount(Number(e.target.value))}
                     placeholder="輸入數量"
