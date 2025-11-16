@@ -254,6 +254,81 @@ const SortablePhotoItem = ({ photo, index, onDelete, onEdit }: SortablePhotoItem
   );
 };
 
+// 可排序的特色區塊項目
+interface SortableFeatureItemProps {
+  feature: any;
+  index: number;
+  onEdit: (feature: any) => void;
+  onDelete: (featureId: string) => void;
+}
+
+const SortableFeatureItem = ({ feature, index, onEdit, onDelete }: SortableFeatureItemProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: feature.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <Card ref={setNodeRef} style={style} className="relative">
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          <div
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded transition-colors flex-shrink-0"
+          >
+            <GripVertical className="h-5 w-5 text-muted-foreground" />
+          </div>
+          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+            {feature.icon_type === 'lucide' ? (
+              <span className="text-primary text-sm">{feature.icon_name}</span>
+            ) : feature.icon_url ? (
+              <img src={feature.icon_url} alt="圖示" className="w-6 h-6 object-contain" />
+            ) : (
+              <span className="text-muted-foreground text-xs">無</span>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <h4 className="font-semibold text-sm mb-1">{feature.title}</h4>
+            <p className="text-xs text-muted-foreground line-clamp-2">{feature.description}</p>
+            <div className="text-xs text-muted-foreground mt-1">順序: {feature.display_order + 1}</div>
+          </div>
+          <div className="flex gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => onEdit(feature)}
+            >
+              <Edit2 className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-destructive hover:text-destructive"
+              onClick={() => onDelete(feature.id)}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 const WebsiteContent = () => {
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("basic-info");
@@ -1584,6 +1659,49 @@ const WebsiteContent = () => {
     }
   };
 
+  const handleFeatureDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id || !accommodationId) {
+      return;
+    }
+
+    const oldIndex = aboutFeatures.findIndex((f) => f.id === active.id);
+    const newIndex = aboutFeatures.findIndex((f) => f.id === over.id);
+
+    const updatedFeatures = arrayMove(aboutFeatures, oldIndex, newIndex).map((feature, index) => ({
+      ...feature,
+      display_order: index,
+    }));
+
+    setAboutFeatures(updatedFeatures);
+
+    // 儲存到資料庫
+    try {
+      const updates = updatedFeatures.map((feature) =>
+        supabase
+          .from('about_features')
+          .update({ display_order: feature.display_order })
+          .eq('id', feature.id)
+      );
+
+      await Promise.all(updates);
+      toast.success('排序已更新');
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error updating feature order:', error);
+      }
+      toast.error('更新失敗，請稍後再試');
+      // 發生錯誤時重新載入
+      const { data } = await supabase
+        .from('about_features')
+        .select('*')
+        .eq('accommodation_id', accommodationId)
+        .order('display_order');
+      if (data) setAboutFeatures(data);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -1655,7 +1773,13 @@ const WebsiteContent = () => {
 
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <Label>特色區塊（最多 4 個）</Label>
+                    <div>
+                      <Label>特色區塊（最多 4 個）</Label>
+                      <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
+                        <GripVertical className="h-3.5 w-3.5" />
+                        提示：點住拖拽手柄即可調整特色區塊的顯示順序
+                      </p>
+                    </div>
                     <Button
                       type="button"
                       variant="outline"
@@ -1675,52 +1799,31 @@ const WebsiteContent = () => {
                     </Button>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {aboutFeatures.map((feature) => (
-                      <Card key={feature.id} className="relative">
-                        <CardContent className="p-4">
-                          <div className="flex items-start gap-3">
-                            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                              {feature.icon_type === 'lucide' ? (
-                                <span className="text-primary text-sm">{feature.icon_name}</span>
-                              ) : feature.icon_url ? (
-                                <img src={feature.icon_url} alt="圖示" className="w-6 h-6 object-contain" />
-                              ) : (
-                                <span className="text-muted-foreground text-xs">無</span>
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-semibold text-sm mb-1">{feature.title}</h4>
-                              <p className="text-xs text-muted-foreground line-clamp-2">{feature.description}</p>
-                            </div>
-                            <div className="flex gap-1">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => {
-                                  setEditingFeature(feature);
-                                  setFeatureFormOpen(true);
-                                }}
-                              >
-                                <Edit2 className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive hover:text-destructive"
-                                onClick={() => handleDeleteFeature(feature.id)}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleFeatureDragEnd}
+                  >
+                    <SortableContext
+                      items={aboutFeatures.map(f => f.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {aboutFeatures.map((feature, index) => (
+                          <SortableFeatureItem
+                            key={feature.id}
+                            feature={feature}
+                            index={index}
+                            onEdit={(f) => {
+                              setEditingFeature(f);
+                              setFeatureFormOpen(true);
+                            }}
+                            onDelete={handleDeleteFeature}
+                          />
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
 
                   {aboutFeatures.length === 0 && (
                     <div className="text-center py-8 text-muted-foreground">
