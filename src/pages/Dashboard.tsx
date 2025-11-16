@@ -475,43 +475,7 @@ const Dashboard = () => {
         </Card>
       )}
 
-       <div className="grid gap-6 md:grid-cols-2 px-2 md:px-0">
-        <Card className="overflow-hidden">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold">營收統計</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="flex items-center justify-center h-[250px] text-muted-foreground">
-              圖表載入中...
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="overflow-hidden">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold">訂單趨勢</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="flex items-center justify-center h-[250px] text-muted-foreground">
-              圖表載入中...
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="overflow-hidden px-2 md:px-0">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold">房型入住率 (過去 30 天)</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="flex items-center justify-center h-[250px] text-muted-foreground">
-            圖表載入中...
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Temporarily disabled charts - will fix data issues
-       <div className="grid gap-6 md:grid-cols-2 px-2 md:px-0 hidden">
+      <div className="grid gap-6 md:grid-cols-2 px-2 md:px-0">
         {isRevenueChartSafe && (
         <Card className="overflow-hidden">
           <CardHeader className="pb-3">
@@ -639,9 +603,7 @@ const Dashboard = () => {
         </Card>
         )}
       </div>
-      */}
 
-      {/* Temporarily disabled occupancy chart
       <Card className="overflow-hidden px-2 md:px-0">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold">房型入住率 (過去 30 天)</CardTitle>
@@ -695,7 +657,6 @@ const Dashboard = () => {
           </ResponsiveContainer>
         </CardContent>
       </Card>
-      */}
     </div>
   );
 
