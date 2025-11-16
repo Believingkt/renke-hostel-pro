@@ -69,6 +69,7 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
         showAnimation={true}
         autoMinValue={true}
         allowDecimals={false}
+        showTooltip={true}
       />
     </div>
   );

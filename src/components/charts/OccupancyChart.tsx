@@ -47,6 +47,7 @@ export const OccupancyChart = ({ data }: OccupancyChartProps) => {
         animationDuration={600}
         showAnimation={true}
         autoMinValue={true}
+        showTooltip={true}
       />
     </div>
   );
