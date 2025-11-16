@@ -303,6 +303,11 @@ const WebsiteContent = () => {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
+  // Hero carousel state
+  const [heroPhotos, setHeroPhotos] = useState<Photo[]>([]);
+  const [uploadingHeroPhoto, setUploadingHeroPhoto] = useState(false);
+  const MAX_HERO_PHOTOS = 5;
+
   // Addon plans state
   const [petPlan, setPetPlan] = useState({
     enabled: true,
@@ -451,11 +456,24 @@ const WebsiteContent = () => {
             }
           }
 
+          // 加載首頁輪播圖
+          const { data: heroPhotosData } = await supabase
+            .from("accommodation_photos")
+            .select("*")
+            .eq("accommodation_id", infoData.id)
+            .eq("photo_type", "hero")
+            .order("display_order");
+
+          if (heroPhotosData) {
+            setHeroPhotos(heroPhotosData);
+          }
+
           // 加載相簿照片
           const { data: photosData } = await supabase
             .from("accommodation_photos")
             .select("*")
             .eq("accommodation_id", infoData.id)
+            .eq("photo_type", "gallery")
             .order("display_order");
 
           if (photosData) {
@@ -1066,7 +1084,8 @@ const WebsiteContent = () => {
           {
             accommodation_id: accommodationId,
             photo_url: publicUrl,
-            display_order: maxOrder + 1
+            display_order: maxOrder + 1,
+            photo_type: 'gallery'
           }
         ])
         .select()
@@ -1146,8 +1165,141 @@ const WebsiteContent = () => {
         .from('accommodation_photos')
         .select('*')
         .eq('accommodation_id', accommodationId!)
+        .eq('photo_type', 'gallery')
         .order('display_order');
       if (data) setPhotos(data);
+    }
+  };
+
+  // Hero carousel handlers
+  const handleHeroPhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!accommodationId || !event.target.files || event.target.files.length === 0) {
+      return;
+    }
+
+    if (heroPhotos.length >= MAX_HERO_PHOTOS) {
+      toast.error(`最多只能上傳 ${MAX_HERO_PHOTOS} 張輪播圖`);
+      return;
+    }
+
+    setUploadingHeroPhoto(true);
+    try {
+      const file = event.target.files[0];
+
+      // 驗證文件大小（5MB）
+      const maxSize = 5 * 1024 * 1024;
+      if (file.size > maxSize) {
+        toast.error(`文件大小超過限制！請上傳小於 5MB 的圖片。\n當前文件大小：${(file.size / 1024 / 1024).toFixed(2)} MB`);
+        event.target.value = '';
+        return;
+      }
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `hero-${Date.now()}.${fileExt}`;
+      const filePath = `${accommodationId}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('room-photos')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('room-photos')
+        .getPublicUrl(filePath);
+
+      const maxOrder = heroPhotos.length > 0 
+        ? Math.max(...heroPhotos.map(p => p.display_order || 0)) 
+        : 0;
+
+      const { error: insertError, data: newPhoto } = await supabase
+        .from('accommodation_photos')
+        .insert([
+          {
+            accommodation_id: accommodationId,
+            photo_url: publicUrl,
+            display_order: maxOrder + 1,
+            photo_type: 'hero'
+          }
+        ])
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      setHeroPhotos([...heroPhotos, newPhoto]);
+      toast.success('輪播圖已上傳');
+      event.target.value = '';
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error uploading hero photo:', error);
+      }
+      toast.error('上傳失敗，請稍後再試');
+    } finally {
+      setUploadingHeroPhoto(false);
+    }
+  };
+
+  const handleDeleteHeroPhoto = async (photoId: string) => {
+    try {
+      const { error } = await supabase
+        .from('accommodation_photos')
+        .delete()
+        .eq('id', photoId);
+
+      if (error) throw error;
+
+      setHeroPhotos(heroPhotos.filter(p => p.id !== photoId));
+      toast.success('輪播圖已刪除');
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error deleting hero photo:', error);
+      }
+      toast.error('刪除失敗，請稍後再試');
+    }
+  };
+
+  const handleHeroPhotoDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id || !accommodationId) {
+      return;
+    }
+
+    const oldIndex = heroPhotos.findIndex((p) => p.id === active.id);
+    const newIndex = heroPhotos.findIndex((p) => p.id === over.id);
+
+    const updatedPhotos = arrayMove(heroPhotos, oldIndex, newIndex).map((photo, index) => ({
+      ...photo,
+      display_order: index + 1,
+    }));
+
+    setHeroPhotos(updatedPhotos);
+
+    // Save to database
+    try {
+      const updates = updatedPhotos.map((photo) =>
+        supabase
+          .from('accommodation_photos')
+          .update({ display_order: photo.display_order })
+          .eq('id', photo.id)
+      );
+
+      await Promise.all(updates);
+      toast.success('順序已更新');
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error updating hero photo order:', error);
+      }
+      toast.error('更新失敗，請稍後再試');
+      // Reload photos on error
+      const { data } = await supabase
+        .from('accommodation_photos')
+        .select('*')
+        .eq('accommodation_id', accommodationId!)
+        .eq('photo_type', 'hero')
+        .order('display_order');
+      if (data) setHeroPhotos(data);
     }
   };
 
@@ -1430,6 +1582,69 @@ const WebsiteContent = () => {
                 <p className="text-sm text-muted-foreground">
                   建議尺寸：200x60 像素，支援 PNG、JPG 格式（透明背景請使用 PNG）
                 </p>
+              </div>
+
+              {/* 首頁主視覺輪播圖 */}
+              <div className="space-y-4 pt-6 border-t">
+                <div className="space-y-2">
+                  <Label className="text-base font-semibold">首頁主視覺輪播圖</Label>
+                  <p className="text-sm text-muted-foreground">
+                    最多可上傳 {MAX_HERO_PHOTOS} 張圖片，建議尺寸：1920x1080 像素，支援 JPG、PNG 格式
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById('hero-photo-upload')?.click()}
+                    disabled={uploadingHeroPhoto || heroPhotos.length >= MAX_HERO_PHOTOS}
+                    className="flex items-center gap-2"
+                  >
+                    <Upload className="h-4 w-4" />
+                    {uploadingHeroPhoto ? "上傳中..." : heroPhotos.length >= MAX_HERO_PHOTOS ? "已達上限" : "上傳輪播圖"}
+                  </Button>
+                  <input
+                    id="hero-photo-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleHeroPhotoUpload}
+                    className="hidden"
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    ({heroPhotos.length}/{MAX_HERO_PHOTOS})
+                  </span>
+                </div>
+
+                {/* 輪播圖列表 */}
+                {heroPhotos.length === 0 ? (
+                  <div className="border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground">
+                    <ImageIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>尚無輪播圖，請點擊上方按鈕上傳</p>
+                  </div>
+                ) : (
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleHeroPhotoDragEnd}
+                  >
+                    <SortableContext
+                      items={heroPhotos.map(p => p.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {heroPhotos.map((photo, index) => (
+                          <SortablePhotoItem
+                            key={photo.id}
+                            photo={photo}
+                            index={index}
+                            onDelete={handleDeleteHeroPhoto}
+                          />
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                )}
               </div>
 
               <Button onClick={handleSaveBasicInfo} disabled={isSaving}>
