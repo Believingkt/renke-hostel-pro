@@ -65,8 +65,34 @@ Deno.serve(async (req) => {
       throw new Error(`Failed to download backup: ${downloadError.message}`);
     }
 
+    console.log(`Downloaded backup file: ${filePath}, size: ${fileData.size} bytes`);
+
+    // Check if file is gzip compressed (by file extension or content-type)
+    const isCompressed = filePath.endsWith('.gz') || filePath.endsWith('.gzip');
+    
+    let backupText: string;
+    
+    if (isCompressed) {
+      console.log('Decompressing gzip file...');
+      // Decompress the data
+      const compressedBuffer = await fileData.arrayBuffer();
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new Uint8Array(compressedBuffer));
+          controller.close();
+        }
+      });
+      
+      const decompressedStream = stream.pipeThrough(new DecompressionStream('gzip'));
+      const decompressedBlob = await new Response(decompressedStream).blob();
+      backupText = await decompressedBlob.text();
+      console.log('Decompression complete');
+    } else {
+      console.log('Reading uncompressed file...');
+      backupText = await fileData.text();
+    }
+
     // Parse backup data
-    const backupText = await fileData.text();
     const backupData = JSON.parse(backupText);
 
     if (!backupData.data || !backupData.accommodationId) {
