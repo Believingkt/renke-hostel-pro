@@ -17,13 +17,13 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 220 15% 20%;
 
-    --primary: 203 78% 43%;
+    --primary: 142 76% 36%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 203 70% 94%;
+    --secondary: 142 70% 94%;
     --secondary-foreground: 220 15% 20%;
 
-    --muted: 203 40% 96%;
+    --muted: 142 40% 96%;
     --muted-foreground: 220 10% 50%;
 
     --accent: 19 82% 51%;
@@ -32,15 +32,15 @@ All colors MUST be HSL.
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 203 30% 90%;
-    --input: 203 30% 92%;
-    --ring: 203 78% 43%;
+    --border: 142 30% 90%;
+    --input: 142 30% 92%;
+    --ring: 142 76% 36%;
 
     --radius: 0.75rem;
 
     /* Custom design tokens */
-    --hero-gradient-start: 203 78% 43%;
-    --hero-gradient-end: 217 91% 60%;
+    --hero-gradient-start: 142 76% 36%;
+    --hero-gradient-end: 160 84% 39%;
     
     --card-hover: 0 0% 98%;
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -51,12 +51,12 @@ All colors MUST be HSL.
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 220 15% 30%;
-    --sidebar-primary: 203 78% 43%;
+    --sidebar-primary: 142 76% 36%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 203 40% 96%;
+    --sidebar-accent: 142 40% 96%;
     --sidebar-accent-foreground: 220 15% 20%;
-    --sidebar-border: 203 20% 92%;
-    --sidebar-ring: 203 78% 43%;
+    --sidebar-border: 142 20% 92%;
+    --sidebar-ring: 142 76% 36%;
 
     --stat-coral: 0 84% 60%;
     --stat-coral-light: 0 84% 95%;
@@ -67,8 +67,8 @@ All colors MUST be HSL.
     --stat-purple: 271 81% 56%;
     --stat-purple-light: 271 81% 95%;
 
-    --chart-1: 203 78% 43%;
-    --chart-2: 217 91% 60%;
+    --chart-1: 142 76% 36%;
+    --chart-2: 160 84% 39%;
     --chart-3: 0 84% 60%;
     --chart-4: 45 93% 58%;
     --chart-5: 271 81% 56%;
