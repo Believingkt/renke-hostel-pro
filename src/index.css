@@ -484,12 +484,11 @@ All colors MUST be HSL.
     cursor: pointer;
     rx: 6;
     filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.08));
-    opacity: 0.85;
   }
 
   .tremor-BarChart-bar:hover,
   .recharts-bar-rectangle:hover {
-    opacity: 0.95;
+    opacity: 0.9;
     filter: brightness(1.15) saturate(1.3) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
     transform: translateY(-2px);
   }
@@ -498,16 +497,14 @@ All colors MUST be HSL.
   .tremor-LineChart-line,
   .recharts-line-curve {
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15));
-    stroke-width: 3;
-    opacity: 0.9;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.1));
+    stroke-width: 2.5;
   }
 
   .tremor-LineChart-line:hover,
   .recharts-line-curve:hover {
-    filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.25));
-    stroke-width: 4 !important;
-    opacity: 1;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.2));
+    stroke-width: 3.5 !important;
   }
 
   /* 優化圖表標記點 - 增加脈動和光暈效果 */
@@ -516,8 +513,7 @@ All colors MUST be HSL.
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.2));
-    stroke-width: 2.5;
-    opacity: 0.95;
+    stroke-width: 2;
   }
 
   .tremor-LineChart-dot:hover,
@@ -526,7 +522,7 @@ All colors MUST be HSL.
     opacity: 1;
     filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3)) drop-shadow(0 0 8px currentColor);
     animation: pulse-dot 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-    stroke-width: 3.5;
+    stroke-width: 3;
   }
 
   @keyframes pulse-dot {
