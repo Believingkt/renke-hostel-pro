@@ -256,7 +256,7 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
             ))}
           </CarouselContent>
           
-          {/* 指示點 */}
+          {/* 輪播指示器（圓點） */}
           <div className="absolute bottom-24 md:bottom-32 left-1/2 transform -translate-x-1/2 flex gap-2 z-10">
             {slides.map((_, index) => (
               <button
@@ -269,22 +269,6 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
                     : "bg-white/50 hover:bg-white/75"
                 )}
                 aria-label={`前往第 ${index + 1} 張輪播圖`}
-              />
-            ))}
-          </div>
-          
-          {/* 輪播指示器（圓點） - 在圖片底部 */}
-          <div className="absolute bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-40">
-            {[0, 1, 2].map((index) => (
-              <button
-                key={index}
-                onClick={() => carouselApi?.scrollTo(index)}
-                className={`h-2 rounded-full transition-all duration-500 ${
-                  current === index 
-                    ? "w-8 bg-white shadow-lg" 
-                    : "w-2 bg-white/50 hover:bg-white/75 hover:w-4"
-                }`}
-                aria-label={`切換到第 ${index + 1} 張圖片`}
               />
             ))}
           </div>
