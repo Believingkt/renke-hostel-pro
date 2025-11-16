@@ -34,6 +34,28 @@ const Navigation = ({ accommodationName = "森山寫照", onNavigate }: Navigati
     };
 
     fetchHeaderLogo();
+
+    // 訂閱 realtime 更新
+    const channel = supabase
+      .channel('accommodation-logo-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'accommodation_info'
+        },
+        (payload) => {
+          if (payload.new.header_logo_url) {
+            setHeaderLogoUrl(payload.new.header_logo_url);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const handleNavigate = (sectionId: string) => {

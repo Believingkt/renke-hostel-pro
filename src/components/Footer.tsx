@@ -40,6 +40,28 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
     };
 
     fetchFooterLogo();
+
+    // 訂閱 realtime 更新
+    const channel = supabase
+      .channel('footer-logo-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'accommodation_info'
+        },
+        (payload) => {
+          if (payload.new.footer_logo_url) {
+            setFooterLogoUrl(payload.new.footer_logo_url);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const scrollToSection = (sectionId: string) => {
