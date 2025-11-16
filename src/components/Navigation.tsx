@@ -1,9 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, Search } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import sensanLogo from "@/assets/sensan-logo-10.png";
+import { supabase } from "@/integrations/supabase/client";
 
 interface NavigationProps {
   accommodationName?: string;
@@ -12,6 +13,28 @@ interface NavigationProps {
 
 const Navigation = ({ accommodationName = "森山寫照", onNavigate }: NavigationProps) => {
   const [open, setOpen] = useState(false);
+  const [headerLogoUrl, setHeaderLogoUrl] = useState<string>("");
+
+  useEffect(() => {
+    const fetchHeaderLogo = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("accommodation_info")
+          .select("header_logo_url")
+          .maybeSingle();
+
+        if (!error && data?.header_logo_url) {
+          setHeaderLogoUrl(data.header_logo_url);
+        }
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.error("Error fetching header logo:", error);
+        }
+      }
+    };
+
+    fetchHeaderLogo();
+  }, []);
 
   const handleNavigate = (sectionId: string) => {
     onNavigate(sectionId);
@@ -22,7 +45,11 @@ const Navigation = ({ accommodationName = "森山寫照", onNavigate }: Navigati
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <button onClick={() => onNavigate("home")} className="flex items-center hover:opacity-80 transition-opacity">
-          <img src={sensanLogo} alt={accommodationName} className="h-14 w-auto" />
+          <img 
+            src={headerLogoUrl || sensanLogo} 
+            alt={accommodationName} 
+            className="h-14 w-auto object-contain" 
+          />
         </button>
         
         {/* Desktop Navigation */}
