@@ -39,11 +39,11 @@ const menuItems = [
     subItems: [
       { title: "基本資料", url: "/admin/website-content?tab=basic-info" },
       { title: "設施與服務", url: "/admin/website-content?tab=facilities" },
+      { title: "加購方案", url: "/admin/website-content?tab=add-on-plans" },
       { title: "精選照片", url: "/admin/website-content?tab=gallery" },
       { title: "交通 & 地圖", url: "/admin/website-content?tab=location" },
       { title: "訂房須知", url: "/admin/website-content?tab=booking-info" },
       { title: "常見問題", url: "/admin/website-content?tab=faq" },
-      { title: "加購方案", url: "/admin/website-content?tab=add-on-plans" },
     ]
   },
   { 
