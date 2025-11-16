@@ -1584,6 +1584,49 @@ const WebsiteContent = () => {
     }
   };
 
+  const handleFeatureDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id || !accommodationId) {
+      return;
+    }
+
+    const oldIndex = aboutFeatures.findIndex((f) => f.id === active.id);
+    const newIndex = aboutFeatures.findIndex((f) => f.id === over.id);
+
+    const updatedFeatures = arrayMove(aboutFeatures, oldIndex, newIndex).map((feature, index) => ({
+      ...feature,
+      display_order: index,
+    }));
+
+    setAboutFeatures(updatedFeatures);
+
+    // 儲存到資料庫
+    try {
+      const updates = updatedFeatures.map((feature) =>
+        supabase
+          .from('about_features')
+          .update({ display_order: feature.display_order })
+          .eq('id', feature.id)
+      );
+
+      await Promise.all(updates);
+      toast.success('排序已更新');
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error updating feature order:', error);
+      }
+      toast.error('更新失敗，請稍後再試');
+      // 發生錯誤時重新載入
+      const { data } = await supabase
+        .from('about_features')
+        .select('*')
+        .eq('accommodation_id', accommodationId)
+        .order('display_order');
+      if (data) setAboutFeatures(data);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
