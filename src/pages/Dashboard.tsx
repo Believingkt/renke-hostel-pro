@@ -178,7 +178,15 @@ const Dashboard = () => {
 
   // Sanitize all chart data to prevent NaN values - only include properties that are actually numbers
   const safeRevenueData = (revenueData || []).map(item => {
-    const sanitized: any = { month: item.month || '' };
+    const sanitized: any = { 
+      month: item.month || '',
+      今年: 0,
+      去年: 0,
+      本月: 0,
+      上月: 0,
+      本期: 0
+    };
+    // Only override with actual values if they exist and are finite
     if (item.今年 !== undefined) sanitized.今年 = Number.isFinite(Number(item.今年)) ? Number(item.今年) : 0;
     if (item.去年 !== undefined) sanitized.去年 = Number.isFinite(Number(item.去年)) ? Number(item.去年) : 0;
     if (item.本月 !== undefined) sanitized.本月 = Number.isFinite(Number(item.本月)) ? Number(item.本月) : 0;
@@ -188,7 +196,15 @@ const Dashboard = () => {
   });
   
   const safeBookingData = (bookingData || []).map(item => {
-    const sanitized: any = { month: item.month || '' };
+    const sanitized: any = { 
+      month: item.month || '',
+      今年: 0,
+      去年: 0,
+      本月: 0,
+      上月: 0,
+      本期: 0
+    };
+    // Only override with actual values if they exist and are finite
     if (item.今年 !== undefined) sanitized.今年 = Number.isFinite(Number(item.今年)) ? Number(item.今年) : 0;
     if (item.去年 !== undefined) sanitized.去年 = Number.isFinite(Number(item.去年)) ? Number(item.去年) : 0;
     if (item.本月 !== undefined) sanitized.本月 = Number.isFinite(Number(item.本月)) ? Number(item.本月) : 0;
