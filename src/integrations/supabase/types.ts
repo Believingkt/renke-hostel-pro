@@ -328,7 +328,9 @@ export type Database = {
       backup_logs: {
         Row: {
           accommodation_id: string
+          backup_mode: string
           backup_type: string
+          base_backup_id: string | null
           compression_ratio: number | null
           created_at: string | null
           created_by: string | null
@@ -337,6 +339,7 @@ export type Database = {
           file_path: string
           file_size: number | null
           id: string
+          incremental_since: string | null
           is_compressed: boolean | null
           orders_count: number | null
           status: string
@@ -345,7 +348,9 @@ export type Database = {
         }
         Insert: {
           accommodation_id: string
+          backup_mode?: string
           backup_type: string
+          base_backup_id?: string | null
           compression_ratio?: number | null
           created_at?: string | null
           created_by?: string | null
@@ -354,6 +359,7 @@ export type Database = {
           file_path: string
           file_size?: number | null
           id?: string
+          incremental_since?: string | null
           is_compressed?: boolean | null
           orders_count?: number | null
           status?: string
@@ -362,7 +368,9 @@ export type Database = {
         }
         Update: {
           accommodation_id?: string
+          backup_mode?: string
           backup_type?: string
+          base_backup_id?: string | null
           compression_ratio?: number | null
           created_at?: string | null
           created_by?: string | null
@@ -371,6 +379,7 @@ export type Database = {
           file_path?: string
           file_size?: number | null
           id?: string
+          incremental_since?: string | null
           is_compressed?: boolean | null
           orders_count?: number | null
           status?: string
@@ -383,6 +392,13 @@ export type Database = {
             columns: ["accommodation_id"]
             isOneToOne: false
             referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "backup_logs_base_backup_id_fkey"
+            columns: ["base_backup_id"]
+            isOneToOne: false
+            referencedRelation: "backup_logs"
             referencedColumns: ["id"]
           },
         ]

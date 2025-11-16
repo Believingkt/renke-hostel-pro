@@ -104,12 +104,17 @@ Deno.serve(async (req) => {
     }
 
     console.log(`Backup file contains ${backupData.metadata.ordersCount} orders and ${backupData.metadata.customersCount} customers`);
+    
+    // Check if this is an incremental backup
+    const isIncremental = backupData.backupMode === 'incremental';
+    console.log(`Backup mode: ${isIncremental ? 'incremental' : 'full'}`);
 
     let restoredOrders = 0;
     let restoredCustomers = 0;
 
-    // Clear existing data if requested
-    if (clearExisting) {
+    // For incremental backups, we merge data instead of clearing
+    // For full backups, we can optionally clear existing data
+    if (!isIncremental && clearExisting) {
       console.log('Clearing existing data...');
       
       const { error: deleteOrdersError } = await supabase
@@ -179,11 +184,13 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Data restored successfully',
+        message: `${isIncremental ? 'Incremental' : 'Full'} backup restored successfully`,
         restored: {
           ordersCount: restoredOrders,
           customersCount: restoredCustomers,
           backupTimestamp: backupData.timestamp,
+          backupMode: backupData.backupMode || 'full',
+          incrementalSince: backupData.incrementalSince,
           clearExisting,
         },
       }),

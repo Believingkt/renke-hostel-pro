@@ -38,6 +38,9 @@ import { EmptyState } from "@/components/EmptyState";
 interface BackupLog {
   id: string;
   backup_type: string;
+  backup_mode: string;
+  base_backup_id: string | null;
+  incremental_since: string | null;
   file_path: string;
   file_size: number;
   uncompressed_size: number | null;
@@ -61,6 +64,7 @@ const DataBackup = () => {
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
   const [selectedBackup, setSelectedBackup] = useState<BackupLog | null>(null);
   const [clearExisting, setClearExisting] = useState(false);
+  const [backupMode, setBackupMode] = useState<'full' | 'incremental'>('full');
 
   useEffect(() => {
     if (accommodationId) {
@@ -98,6 +102,7 @@ const DataBackup = () => {
         body: {
           accommodationId,
           backupType: 'manual',
+          backupMode,
         },
       });
 
@@ -137,7 +142,8 @@ const DataBackup = () => {
       if (error) throw error;
 
       if (data.success) {
-        toast.success('資料還原成功', {
+        const modeText = data.restored.backupMode === 'incremental' ? '增量' : '完整';
+        toast.success(`${modeText}備份還原成功`, {
           description: `已還原 ${data.restored.ordersCount} 筆訂單和 ${data.restored.customersCount} 筆客戶資料`,
         });
         loadBackups();
@@ -320,6 +326,37 @@ const DataBackup = () => {
             </div>
           </div>
 
+          <div className="space-y-4">
+            <div className="space-y-2 p-4 bg-muted/30 rounded-lg">
+              <Label className="text-sm font-medium">備份模式</Label>
+              <div className="flex gap-2">
+                <Button
+                  variant={backupMode === 'full' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setBackupMode('full')}
+                  disabled={creating || cleaning}
+                  className="flex-1"
+                >
+                  完整備份
+                </Button>
+                <Button
+                  variant={backupMode === 'incremental' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setBackupMode('incremental')}
+                  disabled={creating || cleaning}
+                  className="flex-1"
+                >
+                  增量備份
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {backupMode === 'full' 
+                  ? '完整備份所有資料，適合首次備份或定期備份' 
+                  : '僅備份自上次備份後變更的資料，節省時間和空間'}
+              </p>
+            </div>
+          </div>
+
           <div className="flex flex-wrap gap-2">
             <Button
               onClick={handleCreateBackup}
@@ -398,6 +435,11 @@ const DataBackup = () => {
                       {getStatusBadge(backup.status)}
                       <Badge variant="outline">
                         {backup.backup_type === 'auto' ? '自動' : '手動'}
+                      </Badge>
+                      <Badge 
+                        variant={backup.backup_mode === 'full' ? 'default' : 'secondary'}
+                      >
+                        {backup.backup_mode === 'full' ? '完整' : '增量'}
                       </Badge>
                       {backup.is_compressed && (
                         <Badge variant="secondary" className="gap-1">

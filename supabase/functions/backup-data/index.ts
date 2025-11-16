@@ -8,6 +8,7 @@ const corsHeaders = {
 interface BackupRequest {
   accommodationId: string;
   backupType: 'manual' | 'auto';
+  backupMode?: 'full' | 'incremental';
 }
 
 Deno.serve(async (req) => {
@@ -35,13 +36,59 @@ Deno.serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { accommodationId, backupType = 'manual' }: BackupRequest = await req.json();
+    const { accommodationId, backupType = 'manual', backupMode = 'full' }: BackupRequest = await req.json();
 
     if (!accommodationId) {
       throw new Error('Missing accommodationId');
     }
 
-    console.log(`Starting backup for accommodation: ${accommodationId}, type: ${backupType}`);
+    console.log(`Starting ${backupMode} backup for accommodation: ${accommodationId}, type: ${backupType}`);
+
+    // Get the last successful backup for incremental mode
+    let lastBackupTime: string | null = null;
+    let baseBackupId: string | null = null;
+    
+    if (backupMode === 'incremental') {
+      const { data: lastBackup, error: lastBackupError } = await supabase
+        .from('backup_logs')
+        .select('created_at, id, backup_mode')
+        .eq('accommodation_id', accommodationId)
+        .eq('status', 'success')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (lastBackupError && lastBackupError.code !== 'PGRST116') {
+        throw new Error(`Failed to fetch last backup: ${lastBackupError.message}`);
+      }
+
+      if (lastBackup) {
+        lastBackupTime = lastBackup.created_at;
+        // Find the base full backup
+        if (lastBackup.backup_mode === 'full') {
+          baseBackupId = lastBackup.id;
+        } else {
+          // If last backup was incremental, find its base
+          const { data: baseBackup } = await supabase
+            .from('backup_logs')
+            .select('id')
+            .eq('accommodation_id', accommodationId)
+            .eq('backup_mode', 'full')
+            .eq('status', 'success')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+          
+          if (baseBackup) {
+            baseBackupId = baseBackup.id;
+          }
+        }
+        console.log(`Incremental backup since: ${lastBackupTime}, base backup: ${baseBackupId}`);
+      } else {
+        console.log('No previous backup found, performing full backup');
+        // No previous backup, fallback to full backup (already set by default)
+      }
+    }
 
     // Verify user has admin access to this accommodation
     const { data: roleData, error: roleError } = await supabase
@@ -55,21 +102,33 @@ Deno.serve(async (req) => {
       throw new Error('Insufficient permissions');
     }
 
-    // Fetch orders data
-    const { data: orders, error: ordersError } = await supabase
+    // Fetch orders data (with incremental filter if applicable)
+    let ordersQuery = supabase
       .from('orders')
       .select('*')
       .eq('accommodation_id', accommodationId);
+    
+    if (backupMode === 'incremental' && lastBackupTime) {
+      ordersQuery = ordersQuery.gt('updated_at', lastBackupTime);
+    }
+    
+    const { data: orders, error: ordersError } = await ordersQuery;
 
     if (ordersError) {
       throw new Error(`Failed to fetch orders: ${ordersError.message}`);
     }
 
-    // Fetch customers data
-    const { data: customers, error: customersError } = await supabase
+    // Fetch customers data (with incremental filter if applicable)
+    let customersQuery = supabase
       .from('customers')
       .select('*')
       .eq('accommodation_id', accommodationId);
+    
+    if (backupMode === 'incremental' && lastBackupTime) {
+      customersQuery = customersQuery.gt('updated_at', lastBackupTime);
+    }
+    
+    const { data: customers, error: customersError } = await customersQuery;
 
     if (customersError) {
       throw new Error(`Failed to fetch customers: ${customersError.message}`);
@@ -82,6 +141,9 @@ Deno.serve(async (req) => {
       version: '1.0',
       timestamp: new Date().toISOString(),
       accommodationId,
+      backupMode,
+      incrementalSince: lastBackupTime,
+      baseBackupId,
       data: {
         orders: orders || [],
         customers: customers || [],
@@ -112,7 +174,8 @@ Deno.serve(async (req) => {
 
     // Create file path with timestamp
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const fileName = `backup_${accommodationId}_${timestamp}.json.gz`;
+    const modePrefix = backupMode === 'incremental' ? 'incremental' : 'full';
+    const fileName = `backup_${modePrefix}_${accommodationId}_${timestamp}.json.gz`;
     const filePath = `${accommodationId}/${fileName}`;
 
     // Upload to storage
@@ -137,6 +200,9 @@ Deno.serve(async (req) => {
       .insert({
         accommodation_id: accommodationId,
         backup_type: backupType,
+        backup_mode: backupMode,
+        base_backup_id: baseBackupId,
+        incremental_since: lastBackupTime,
         file_path: filePath,
         file_size: compressedSize,
         uncompressed_size: uncompressedSize,
@@ -156,10 +222,12 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Backup created successfully',
+        message: `${backupMode === 'incremental' ? 'Incremental' : 'Full'} backup created successfully`,
         backup: {
           fileName,
           filePath,
+          backupMode,
+          incrementalSince: lastBackupTime,
           ordersCount: orders?.length || 0,
           customersCount: customers?.length || 0,
           size: compressedSize,
