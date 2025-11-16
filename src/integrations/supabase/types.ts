@@ -325,12 +325,16 @@ export type Database = {
       discount_codes: {
         Row: {
           accommodation_id: string
+          applicable_date_from: string | null
+          applicable_date_to: string | null
+          applicable_room_types: Json | null
           code: string
           created_at: string
           discount_type: string
           discount_value: number
           id: string
           is_active: boolean
+          min_order_amount: number | null
           name: string
           updated_at: string
           usage_limit: number
@@ -340,12 +344,16 @@ export type Database = {
         }
         Insert: {
           accommodation_id: string
+          applicable_date_from?: string | null
+          applicable_date_to?: string | null
+          applicable_room_types?: Json | null
           code: string
           created_at?: string
           discount_type: string
           discount_value: number
           id?: string
           is_active?: boolean
+          min_order_amount?: number | null
           name: string
           updated_at?: string
           usage_limit: number
@@ -355,12 +363,16 @@ export type Database = {
         }
         Update: {
           accommodation_id?: string
+          applicable_date_from?: string | null
+          applicable_date_to?: string | null
+          applicable_room_types?: Json | null
           code?: string
           created_at?: string
           discount_type?: string
           discount_value?: number
           id?: string
           is_active?: boolean
+          min_order_amount?: number | null
           name?: string
           updated_at?: string
           usage_limit?: number
@@ -910,15 +922,31 @@ export type Database = {
         }
         Returns: boolean
       }
-      validate_discount_code: {
-        Args: { p_accommodation_id: string; p_code: string }
-        Returns: {
-          discount_type: string
-          discount_value: number
-          is_valid: boolean
-          message: string
-        }[]
-      }
+      validate_discount_code:
+        | {
+            Args: { p_accommodation_id: string; p_code: string }
+            Returns: {
+              discount_type: string
+              discount_value: number
+              is_valid: boolean
+              message: string
+            }[]
+          }
+        | {
+            Args: {
+              p_accommodation_id: string
+              p_check_in_date?: string
+              p_code: string
+              p_order_amount?: number
+              p_room_type_id?: string
+            }
+            Returns: {
+              discount_type: string
+              discount_value: number
+              is_valid: boolean
+              message: string
+            }[]
+          }
     }
     Enums: {
       app_role: "super_admin" | "hotel_admin" | "staff"
