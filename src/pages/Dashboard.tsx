@@ -1,4 +1,4 @@
-import { Hotel, Users, Calendar, DollarSign, Radio, Zap } from "lucide-react";
+import { Hotel, Users, Calendar, DollarSign, Radio, Zap, X } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -180,6 +180,12 @@ const Dashboard = () => {
     });
   };
 
+  // 檢查是否有數據
+  const hasData = revenueData.length > 0 && (
+    revenueData.some(d => (d['今年'] || d['本月'] || d['本期'] || 0) > 0) ||
+    revenueData.some(d => (d['去年'] || d['上月'] || 0) > 0)
+  );
+
   const dashboardContent = (
     <div className="space-y-6 md:space-y-8">
       <div className="px-2 md:px-0 flex items-start md:items-center justify-between flex-col md:flex-row gap-3">
@@ -314,6 +320,35 @@ const Dashboard = () => {
           isUpdating={isLiveUpdating}
         />
       </div>
+
+      {!hasData && dateRange && (
+        <Card className="mx-2 md:mx-0 p-8 text-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="rounded-full bg-muted p-4">
+              <Calendar className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold">所選日期範圍內沒有數據</h3>
+              <p className="text-sm text-muted-foreground max-w-md">
+                {dateRange.from && dateRange.to && (
+                  <>
+                    {format(dateRange.from, 'yyyy年MM月dd日')} 至 {format(dateRange.to, 'yyyy年MM月dd日')} 期間沒有訂單記錄
+                  </>
+                )}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDateRange(undefined)}
+              className="gap-2"
+            >
+              <X className="h-4 w-4" />
+              清除日期篩選
+            </Button>
+          </div>
+        </Card>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2 px-2 md:px-0">
         <Card className="overflow-hidden">
