@@ -330,11 +330,6 @@ const SortableFeatureItem = ({ feature, index, onEdit, onDelete }: SortableFeatu
     </Card>
   );
 };
-        <GripVertical className="h-4 w-4 text-gray-700" />
-      </div>
-    </div>
-  );
-};
 
 const WebsiteContent = () => {
   const [searchParams] = useSearchParams();
