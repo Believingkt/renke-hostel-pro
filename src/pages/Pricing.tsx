@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2, GripVertical, Hotel, DollarSign, Wrench, Package, Calendar } from "lucide-react";
+import { ResponsiveTabs, TabItem } from "@/components/ResponsiveTabs";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -290,6 +290,14 @@ const Pricing = () => {
     }
   };
 
+  const pricingTabs: TabItem[] = [
+    { value: "rooms", label: "房型管理", icon: Hotel },
+    { value: "basic", label: "價格管理", icon: DollarSign },
+    { value: "facilities", label: "客房設施", icon: Wrench },
+    { value: "inventory", label: "庫存管理", icon: Package },
+    { value: "holidays", label: "國定假日", icon: Calendar },
+  ];
+
   return (
     <div className="space-y-6">
       <div>
@@ -297,85 +305,12 @@ const Pricing = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        {/* 手機版：下拉選單 */}
-        <div className="lg:hidden mb-4">
-          <Select value={activeTab} onValueChange={setActiveTab}>
-            <SelectTrigger className="w-full h-12 bg-background border-border/50 shadow-sm">
-              <SelectValue placeholder="選擇分類" />
-            </SelectTrigger>
-            <SelectContent className="z-50 bg-background border-border">
-              <SelectItem value="rooms">
-                <div className="flex items-center gap-2">
-                  <Hotel className="h-4 w-4" />
-                  <span>房型管理</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="basic">
-                <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  <span>價格管理</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="facilities">
-                <div className="flex items-center gap-2">
-                  <Wrench className="h-4 w-4" />
-                  <span>客房設施</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="inventory">
-                <div className="flex items-center gap-2">
-                  <Package className="h-4 w-4" />
-                  <span>庫存管理</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="holidays">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  <span>國定假日</span>
-                </div>
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* 桌面版：Tab 列表 */}
-        <TabsList className="hidden lg:grid w-full max-w-4xl grid-cols-5 h-14 bg-gradient-to-r from-muted/50 to-muted/30 p-1.5 rounded-xl border border-border/50">
-          <TabsTrigger 
-            value="rooms" 
-            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground transition-all duration-300"
-          >
-            <Hotel className="h-4 w-4" />
-            <span className="font-medium">房型管理</span>
-          </TabsTrigger>
-          <TabsTrigger 
-            value="basic" 
-            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground transition-all duration-300"
-          >
-            <DollarSign className="h-4 w-4" />
-            <span className="font-medium">價格管理</span>
-          </TabsTrigger>
-          <TabsTrigger 
-            value="facilities" 
-            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground transition-all duration-300"
-          >
-            <Wrench className="h-4 w-4" />
-            <span className="font-medium">客房設施</span>
-          </TabsTrigger>
-          <TabsTrigger 
-            value="inventory" 
-            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground transition-all duration-300"
-          >
-            <Package className="h-4 w-4" />
-            <span className="font-medium">庫存管理</span>
-          </TabsTrigger>
-          <TabsTrigger 
-            value="holidays" 
-            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground transition-all duration-300"
-          >
-            <Calendar className="h-4 w-4" />
-            <span className="font-medium">國定假日</span>
-          </TabsTrigger>
-        </TabsList>
+        <ResponsiveTabs
+          tabs={pricingTabs}
+          value={activeTab}
+          onValueChange={setActiveTab}
+          desktopClassName="w-full max-w-4xl"
+        />
 
         <TabsContent value="rooms" className="space-y-4">
           {showForm ? (
