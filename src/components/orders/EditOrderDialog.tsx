@@ -20,6 +20,10 @@ interface RoomType {
   id: string;
   name: string;
   capacity: number;
+  weekday_2_meals_price?: number;
+  weekday_3_meals_price?: number;
+  weekend_2_meals_price?: number;
+  weekend_3_meals_price?: number;
 }
 
 interface EditOrderDialogProps {
@@ -34,6 +38,8 @@ interface EditOrderDialogProps {
     check_out_date: string;
     room_type_id: string;
     guest_count: number;
+    total_price: number;
+    final_price: number;
   }) => Promise<void>;
 }
 
@@ -43,6 +49,8 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
   const [isSaving, setIsSaving] = useState(false);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [isValidating, setIsValidating] = useState(false);
+  const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
+  const [calculatedPrice, setCalculatedPrice] = useState({ total: 0, final: 0 });
   const [editForm, setEditForm] = useState({
     order_status: "",
     payment_status: "",
@@ -53,23 +61,33 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
     guest_count: 2,
   });
 
-  // Fetch room types
+  // Fetch room types and public holidays
   useEffect(() => {
-    const fetchRoomTypes = async () => {
+    const fetchData = async () => {
       if (!currentAccommodationId) return;
       
       const { data, error } = await supabase
         .from("room_types")
-        .select("id, name, capacity")
+        .select("id, name, capacity, weekday_2_meals_price, weekday_3_meals_price, weekend_2_meals_price, weekend_3_meals_price")
         .eq("accommodation_id", currentAccommodationId)
         .order("display_order");
 
       if (!error && data) {
         setRoomTypes(data);
       }
+
+      // Fetch public holidays
+      const { data: holidaysData } = await supabase
+        .from("public_holidays")
+        .select("holiday_date")
+        .eq("accommodation_id", currentAccommodationId);
+
+      if (holidaysData) {
+        setPublicHolidays(holidaysData.map(h => h.holiday_date));
+      }
     };
 
-    fetchRoomTypes();
+    fetchData();
   }, [currentAccommodationId]);
 
   // 當 order 變化時更新表單
@@ -86,6 +104,63 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
       });
     }
   }, [order]);
+
+  // Helper functions for price calculation
+  const isSaturday = (date: Date) => date.getDay() === 6;
+  
+  const isPublicHoliday = (date: Date) => {
+    const dateStr = format(date, "yyyy-MM-dd");
+    return publicHolidays.includes(dateStr);
+  };
+  
+  const isWeekend = (date: Date) => isSaturday(date) || isPublicHoliday(date);
+
+  const calculateNights = () => {
+    if (!editForm.check_in_date || !editForm.check_out_date) return 0;
+    const start = new Date(editForm.check_in_date);
+    const end = new Date(editForm.check_out_date);
+    const diff = end.getTime() - start.getTime();
+    return Math.ceil(diff / (1000 * 3600 * 24));
+  };
+
+  const calculatePrice = () => {
+    if (!editForm.room_type_id || !editForm.check_in_date || !editForm.check_out_date) {
+      return { total: 0, final: 0 };
+    }
+
+    const selectedRoomType = roomTypes.find(r => r.id === editForm.room_type_id);
+    if (!selectedRoomType) return { total: 0, final: 0 };
+
+    const nights = calculateNights();
+    if (nights === 0) return { total: 0, final: 0 };
+
+    let total = 0;
+    const start = new Date(editForm.check_in_date);
+
+    // Assuming 3 meals plan (一泊三食) - you can make this dynamic if needed
+    for (let i = 0; i < nights; i++) {
+      const currentDate = new Date(start);
+      currentDate.setDate(start.getDate() + i);
+      
+      const isWeekendDay = isWeekend(currentDate);
+      let pricePerNight = 0;
+      
+      // Use 3 meals pricing
+      pricePerNight = isWeekendDay
+        ? (selectedRoomType.weekend_3_meals_price || selectedRoomType.weekday_3_meals_price || 0)
+        : (selectedRoomType.weekday_3_meals_price || 0);
+      
+      total += pricePerNight;
+    }
+
+    return { total, final: total };
+  };
+
+  // Recalculate price when dates or room type change
+  useEffect(() => {
+    const newPrice = calculatePrice();
+    setCalculatedPrice(newPrice);
+  }, [editForm.check_in_date, editForm.check_out_date, editForm.room_type_id, roomTypes, publicHolidays]);
 
   const handleSave = async () => {
     // Validate dates
@@ -170,7 +245,11 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
 
     setIsSaving(true);
     try {
-      await onSave(editForm);
+      await onSave({
+        ...editForm,
+        total_price: calculatedPrice.total,
+        final_price: calculatedPrice.final,
+      });
       onOpenChange(false);
     } finally {
       setIsSaving(false);
@@ -343,6 +422,22 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
               placeholder="輸入訂單備註..."
             />
           </div>
+
+          {/* Price Display */}
+          {calculatedPrice.total > 0 && (
+            <div className="space-y-2 pt-4 border-t">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">住宿天數</span>
+                <span className="font-medium">{calculateNights()} 晚</span>
+              </div>
+              <div className="flex justify-between items-center py-3 bg-primary/5 px-4 rounded-lg">
+                <span className="font-semibold">總金額</span>
+                <span className="font-bold text-lg text-primary">
+                  NT$ {calculatedPrice.final.toLocaleString()}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving || isValidating}>
