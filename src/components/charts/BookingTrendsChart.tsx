@@ -21,6 +21,11 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
       ? ['今年', '去年'] 
       : ['本月', '上月'];
 
+  // 使用設計系統的顏色
+  const chartColors = isCustomRange 
+    ? ["#A855F7"]  // purple - 對應 --chart-5 (271 81% 56%)
+    : ["#A855F7", "#F57C34"];  // purple + orange
+
   // 檢查是否有實際數據
   const hasRealData = data.some(d => 
     categories.some(cat => (d[cat as keyof typeof d] as number || 0) > 0)
@@ -50,7 +55,7 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
       data={data}
       index="month"
       categories={categories}
-      colors={isCustomRange ? ["violet"] : ["violet", "orange"]}
+      colors={chartColors}
       valueFormatter={valueFormatter}
       yAxisWidth={48}
       showLegend={!isCustomRange}

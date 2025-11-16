@@ -371,12 +371,36 @@ All colors MUST be HSL.
     background: hsl(var(--muted-foreground) / 0.5);
   }
 
-  /* Tremor Chart Customization - 整合設計系統 */
+  /* Tremor Chart Colors - 整合設計系統配色 */
+  /* 定義 Tremor 預設顏色到我們的設計系統 */
+  --tremor-brand: hsl(var(--primary));
+  --tremor-brand-emphasis: hsl(var(--primary));
+  --tremor-brand-inverted: hsl(var(--primary-foreground));
+  --tremor-brand-subtle: hsl(var(--muted));
+  
+  --tremor-background: hsl(var(--background));
+  --tremor-background-muted: hsl(var(--muted));
+  --tremor-background-subtle: hsl(var(--card));
+  
+  --tremor-border: hsl(var(--border));
+  
+  --tremor-content: hsl(var(--foreground));
+  --tremor-content-emphasis: hsl(var(--foreground));
+  --tremor-content-subtle: hsl(var(--muted-foreground));
+  --tremor-content-inverted: hsl(var(--background));
+
+  /* Chart specific colors - 使用設計系統顏色 */
+  --tremor-chart-blue: 203 78% 43%;
+  --tremor-chart-orange: 19 82% 51%;
+  --tremor-chart-violet: 271 81% 56%;
+  --tremor-chart-teal: 189 75% 48%;
+  --tremor-chart-slate: 220 10% 50%;
+
+  /* Tremor Chart Customization */
   .tremor-Chart-root {
     font-family: inherit;
   }
 
-  /* Tremor Grid & Axes */
   .tremor-Chart-gridLine {
     stroke: hsl(var(--border));
     stroke-opacity: 0.2;
@@ -387,7 +411,6 @@ All colors MUST be HSL.
     font-size: 0.75rem;
   }
 
-  /* Tremor Tooltip */
   .tremor-Tooltip-root {
     background: hsl(var(--popover)) !important;
     border: 1px solid hsl(var(--border)) !important;
@@ -396,7 +419,6 @@ All colors MUST be HSL.
     color: hsl(var(--popover-foreground)) !important;
   }
 
-  /* Tremor Legend */
   .tremor-Legend-root {
     color: hsl(var(--foreground));
   }
@@ -405,5 +427,6 @@ All colors MUST be HSL.
     color: hsl(var(--muted-foreground));
   }
 }
+
 
 
