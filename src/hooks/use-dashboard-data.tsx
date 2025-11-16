@@ -311,10 +311,19 @@ const fetchDashboardData = async (
     }
   });
   
-  const occupancyData: OccupancyData[] = Object.values(occupancyByRoomType).map(data => ({
-    roomType: data.roomTypeName,
-    occupancyRate: Math.min(100, Math.round((data.totalNights / (data.roomCount * 30)) * 100)) || 0
-  }));
+  const occupancyData: OccupancyData[] = Object.values(occupancyByRoomType).map(data => {
+    const roomCount = data.roomCount || 1; // Ensure roomCount is never 0
+    const rate = Math.round((data.totalNights / (roomCount * 30)) * 100);
+    return {
+      roomType: data.roomTypeName,
+      occupancyRate: Number.isFinite(rate) ? Math.min(100, rate) : 0
+    };
+  });
+  
+  // 確保入住率數據不為空，至少有一個數據點
+  const finalOccupancyData = occupancyData.length === 0 
+    ? [{ roomType: '暫無數據', occupancyRate: 0 }]
+    : occupancyData;
   
   return {
     stats: {
@@ -328,7 +337,7 @@ const fetchDashboardData = async (
     },
     revenueData,
     bookingData,
-    occupancyData,
+    occupancyData: finalOccupancyData,
   };
 };
 
