@@ -151,6 +151,7 @@ export type Database = {
           line_id: string | null
           longitude: number | null
           name: string
+          og_image_url: string | null
           phone: string | null
           region_1: string | null
           region_2: string | null
@@ -181,6 +182,7 @@ export type Database = {
           line_id?: string | null
           longitude?: number | null
           name: string
+          og_image_url?: string | null
           phone?: string | null
           region_1?: string | null
           region_2?: string | null
@@ -211,6 +213,7 @@ export type Database = {
           line_id?: string | null
           longitude?: number | null
           name?: string
+          og_image_url?: string | null
           phone?: string | null
           region_1?: string | null
           region_2?: string | null
