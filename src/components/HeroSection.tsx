@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { OptimizedImage } from "@/components/OptimizedImage";
+import { generateBlurDataURLs } from "@/utils/imageBlurHelper";
 import heroSlide1 from "@/assets/hero-slide-1.jpg";
 import heroSlide2 from "@/assets/hero-slide-2.jpg";
 import heroSlide3 from "@/assets/hero-slide-3.jpg";
@@ -50,6 +51,7 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
   const [publicHolidays, setPublicHolidays] = useState<Date[]>([]);
   const [heroPhotos, setHeroPhotos] = useState<HeroPhoto[]>([]);
   const [isLoadingPhotos, setIsLoadingPhotos] = useState(true);
+  const [blurDataURLs, setBlurDataURLs] = useState<Map<string, string>>(new Map());
 
   // 使用數據庫圖片或默認圖片，優先使用數據庫內容
   const slides = heroPhotos.length > 0 
@@ -127,6 +129,25 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
 
     loadPublicHolidays();
   }, []);
+
+  // 生成圖片模糊預覽
+  useEffect(() => {
+    if (slides.length === 0) return;
+
+    const generateBlurs = async () => {
+      try {
+        const imageUrls = slides.map(slide => slide.photo_url);
+        const blurs = await generateBlurDataURLs(imageUrls);
+        setBlurDataURLs(blurs);
+      } catch (error) {
+        console.error('生成模糊預覽失敗:', error);
+      }
+    };
+
+    // 延遲生成，避免阻塞主線程
+    const timer = setTimeout(generateBlurs, 100);
+    return () => clearTimeout(timer);
+  }, [slides]);
 
   // 檢查是否為假日（星期六或國定假日）
   const isHoliday = (date: Date) => {
@@ -209,6 +230,7 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
                     width="1920"
                     height="1080"
                     sizes="100vw"
+                    blurDataURL={blurDataURLs.get(slide.photo_url)}
                   />
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center transition-all duration-700">
                     <div className="text-center text-white space-y-2 md:space-y-4 max-w-4xl px-4 pb-32 md:pb-56">

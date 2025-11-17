@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ImageViewerPortal } from "./ImageViewerPortal";
 import { OptimizedImage } from "./OptimizedImage";
+import { generateBlurDataURLs } from "@/utils/imageBlurHelper";
 
 interface Photo {
   id: string;
@@ -17,10 +18,30 @@ interface PhotoGallerySectionProps {
 const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
+  const [blurDataURLs, setBlurDataURLs] = useState<Map<string, string>>(new Map());
   const isMobile = useIsMobile();
   
   // 手機版顯示 6 張（2列x3欄），平板和桌面顯示 12 張
   const photosPerPage = isMobile ? 6 : 12;
+
+  // 生成圖片模糊預覽
+  useEffect(() => {
+    if (!photos || photos.length === 0) return;
+
+    const generateBlurs = async () => {
+      try {
+        const imageUrls = photos.map(photo => photo.photo_url);
+        const blurs = await generateBlurDataURLs(imageUrls);
+        setBlurDataURLs(blurs);
+      } catch (error) {
+        console.error('生成模糊預覽失敗:', error);
+      }
+    };
+
+    // 延遲生成，避免阻塞主線程
+    const timer = setTimeout(generateBlurs, 500);
+    return () => clearTimeout(timer);
+  }, [photos]);
 
   if (!photos || photos.length === 0) {
     return null;
@@ -131,6 +152,7 @@ const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
                   height={isLarge ? "600" : "300"}
                   sizes={isLarge ? "(max-width: 768px) 100vw, 50vw" : "(max-width: 768px) 50vw, 16vw"}
                   priority={index < 2} // 前兩張優先載入
+                  blurDataURL={blurDataURLs.get(photo.photo_url)}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 <div className="absolute inset-0 ring-2 ring-primary/0 group-hover:ring-primary/50 transition-all duration-300 rounded-lg md:rounded-xl" />
