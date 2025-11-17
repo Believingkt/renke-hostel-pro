@@ -180,7 +180,7 @@ export const WebInfoSection = ({
     <Card>
       <CardHeader>
         <CardTitle>輪播圖設定</CardTitle>
-        <CardDescription>設定網站的基本顯示資訊</CardDescription>
+        <CardDescription>設定首頁主視覺輪播圖片、文字內容與視覺效果</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* 瀏覽器標題名稱 */}
