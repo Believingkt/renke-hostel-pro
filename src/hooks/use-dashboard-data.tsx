@@ -172,7 +172,7 @@ const fetchDashboardData = async (
       const monthDate = subMonths(now, i);
       const monthKey = format(monthDate, 'yyyy-MM');
       const lastYearMonthKey = format(subMonths(monthDate, 12), 'yyyy-MM');
-      const monthLabel = format(monthDate, 'M月');
+      const monthLabel = format(monthDate, 'MM月');
       
       const monthOrders = ordersByMonth.get(monthKey) || [];
       const lastYearOrders = ordersByMonth.get(lastYearMonthKey) || [];
@@ -246,7 +246,7 @@ const fetchDashboardData = async (
       const prevMonthDate = subMonths(monthDate, 1);
       const monthKey = format(monthDate, 'yyyy-MM');
       const prevMonthKey = format(prevMonthDate, 'yyyy-MM');
-      const monthLabel = format(monthDate, 'M月');
+      const monthLabel = format(monthDate, 'MM月');
       
       const monthOrders = ordersByMonth.get(monthKey) || [];
       const prevMonthOrders = ordersByMonth.get(prevMonthKey) || [];
