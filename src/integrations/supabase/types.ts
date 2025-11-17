@@ -248,6 +248,7 @@ export type Database = {
       accommodation_photos: {
         Row: {
           accommodation_id: string | null
+          autoplay_delay: number | null
           created_at: string
           cta_link: string | null
           cta_text: string | null
@@ -265,6 +266,7 @@ export type Database = {
         }
         Insert: {
           accommodation_id?: string | null
+          autoplay_delay?: number | null
           created_at?: string
           cta_link?: string | null
           cta_text?: string | null
@@ -282,6 +284,7 @@ export type Database = {
         }
         Update: {
           accommodation_id?: string | null
+          autoplay_delay?: number | null
           created_at?: string
           cta_link?: string | null
           cta_text?: string | null

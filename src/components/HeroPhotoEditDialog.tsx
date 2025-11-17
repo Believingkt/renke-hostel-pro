@@ -22,6 +22,7 @@ interface HeroPhotoEditDialogProps {
     text_position_x?: string | null;
     text_position_y?: string | null;
     overlay_opacity?: number | null;
+    autoplay_delay?: number | null;
   } | null;
   onSave: (photoId: string, data: {
     title: string;
@@ -33,6 +34,7 @@ interface HeroPhotoEditDialogProps {
     text_position_x: string;
     text_position_y: string;
     overlay_opacity: number;
+    autoplay_delay: number;
   }) => Promise<void>;
 }
 
@@ -46,6 +48,7 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
   const [textPositionX, setTextPositionX] = useState("center");
   const [textPositionY, setTextPositionY] = useState("center");
   const [overlayOpacity, setOverlayOpacity] = useState(40);
+  const [autoplayDelay, setAutoplayDelay] = useState(8);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -59,6 +62,7 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
       setTextPositionX(photo.text_position_x || "center");
       setTextPositionY(photo.text_position_y || "center");
       setOverlayOpacity(photo.overlay_opacity ?? 40);
+      setAutoplayDelay(photo.autoplay_delay ?? 8);
     }
   }, [photo]);
 
@@ -77,6 +81,7 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
         text_position_x: textPositionX,
         text_position_y: textPositionY,
         overlay_opacity: overlayOpacity,
+        autoplay_delay: autoplayDelay,
       });
       onOpenChange(false);
     } finally {
@@ -244,6 +249,26 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
             />
             <p className="text-sm text-muted-foreground">
               調整圖片暗化效果強度（0% = 無遮罩，100% = 完全黑色）
+            </p>
+          </div>
+
+          {/* 自動播放時間 */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="autoplay-delay">自動播放時間</Label>
+              <span className="text-sm text-muted-foreground">{autoplayDelay} 秒</span>
+            </div>
+            <Slider
+              id="autoplay-delay"
+              min={2}
+              max={20}
+              step={1}
+              value={[autoplayDelay]}
+              onValueChange={(value) => setAutoplayDelay(value[0])}
+              className="w-full"
+            />
+            <p className="text-sm text-muted-foreground">
+              設定此圖片在輪播時的停留時間（2-20 秒）
             </p>
           </div>
         </div>

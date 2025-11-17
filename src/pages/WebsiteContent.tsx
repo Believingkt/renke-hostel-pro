@@ -1668,6 +1668,7 @@ const WebsiteContent = () => {
     text_position_x: string;
     text_position_y: string;
     overlay_opacity: number;
+    autoplay_delay: number;
   }) => {
     try {
       const { error } = await supabase
@@ -1682,6 +1683,7 @@ const WebsiteContent = () => {
           text_position_x: data.text_position_x,
           text_position_y: data.text_position_y,
           overlay_opacity: data.overlay_opacity,
+          autoplay_delay: data.autoplay_delay,
         })
         .eq('id', photoId);
 
@@ -1694,7 +1696,7 @@ const WebsiteContent = () => {
           : p
       ));
 
-      toast.success('輪播圖文字已更新');
+      toast.success('輪播圖設定已更新');
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error updating hero photo text:', error);
