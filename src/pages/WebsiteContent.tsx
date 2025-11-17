@@ -2010,7 +2010,6 @@ const WebsiteContent = () => {
         <TabsContent value="basic-info" className="space-y-6">
           <WebInfoSection
             accommodationId={accommodationId || ''}
-            name={basicInfo.name}
             heroMainTitle={basicInfo.hero_main_title}
             heroSubtitle={basicInfo.hero_subtitle}
             heroDescription={basicInfo.hero_description}
@@ -2064,6 +2063,7 @@ const WebsiteContent = () => {
 
           <HeaderFooterSection
             accommodationId={accommodationId || ''}
+            name={basicInfo.name}
             headerLogoUrl={basicInfo.header_logo_url}
             footerLogoUrl={basicInfo.footer_logo_url}
             address={basicInfo.address}
