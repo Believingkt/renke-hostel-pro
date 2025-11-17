@@ -1,4 +1,4 @@
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 import { ChartContainer, ChartTooltip, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { CustomChartTooltip } from "./CustomChartTooltip";
 
@@ -31,15 +31,15 @@ export const OccupancyChart = ({ data, roomTypes }: OccupancyChartProps) => {
     );
   }
 
-  // 為每個房型配置顏色
+  // 為每個房型配置顏色 - 使用更鮮明的顏色
   const colors = [
-    "hsl(var(--chart-occupancy-primary))",
-    "hsl(var(--chart-occupancy-secondary))",
-    "hsl(var(--chart-1))",
-    "hsl(var(--chart-2))",
-    "hsl(var(--chart-3))",
-    "hsl(var(--chart-4))",
-    "hsl(var(--chart-5))",
+    "hsl(var(--chart-occupancy-primary))", // 琥珀色
+    "hsl(var(--chart-booking-primary))", // 紅色
+    "hsl(var(--chart-revenue-primary))", // 寶藍色
+    "hsl(var(--chart-revenue-secondary))", // 湖水綠
+    "hsl(var(--chart-5))", // 紫色
+    "hsl(var(--chart-booking-secondary))", // 橘色
+    "hsl(var(--chart-1))", // 綠色
   ];
 
   const chartConfig = roomTypes.reduce((config, roomType, index) => {
@@ -52,9 +52,9 @@ export const OccupancyChart = ({ data, roomTypes }: OccupancyChartProps) => {
 
   return (
     <div className="animate-fade-in px-0.5 py-1 sm:px-2 sm:py-3">
-      <ChartContainer config={chartConfig} className="h-[180px] sm:h-[220px] md:h-[260px] w-full">
+      <ChartContainer config={chartConfig} className="h-[220px] sm:h-[260px] md:h-[300px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart 
+          <BarChart 
             data={data} 
             margin={{ 
               top: 5, 
@@ -62,6 +62,8 @@ export const OccupancyChart = ({ data, roomTypes }: OccupancyChartProps) => {
               left: -5, 
               bottom: 5 
             }}
+            barGap={2}
+            barCategoryGap="20%"
           >
             <CartesianGrid 
               strokeDasharray="3 3" 
@@ -91,36 +93,26 @@ export const OccupancyChart = ({ data, roomTypes }: OccupancyChartProps) => {
                   valueFormatter={(value: number) => `${value}%`}
                 />
               }
-              cursor={{ stroke: 'hsl(var(--muted))', strokeWidth: 1 }}
+              cursor={{ fill: 'hsl(var(--muted)/0.3)', radius: 4 }}
             />
             <ChartLegend 
               content={<ChartLegendContent />}
               wrapperStyle={{ paddingTop: '10px' }}
             />
             {roomTypes.map((roomType, index) => (
-              <Line
+              <Bar
                 key={roomType}
-                type="monotone"
                 dataKey={roomType}
-                stroke={colors[index % colors.length]}
-                strokeWidth={2.5}
-                dot={{
-                  r: 4,
-                  fill: "hsl(var(--background))",
-                  strokeWidth: 2,
-                }}
-                activeDot={{
-                  r: 6,
-                  strokeWidth: 2,
-                }}
-                connectNulls
+                fill={colors[index % colors.length]}
+                radius={[4, 4, 0, 0]}
+                maxBarSize={45}
                 animationDuration={1000}
                 animationBegin={index * 100}
                 isAnimationActive={true}
                 animationEasing="ease-in-out"
               />
             ))}
-          </LineChart>
+          </BarChart>
         </ResponsiveContainer>
       </ChartContainer>
     </div>
