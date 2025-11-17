@@ -75,7 +75,7 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
   return (
     <>
       <div className="animate-fade-in px-1 py-2 sm:px-2 sm:py-4" key={`booking-chart-${comparisonMode}`}>
-        <ChartContainer config={chartConfig} className="h-[280px] sm:h-[320px] md:h-[360px] w-full">
+        <ChartContainer config={chartConfig} className="h-[240px] sm:h-[280px] md:h-[320px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart 
               data={data} 
