@@ -1147,6 +1147,46 @@ const WebsiteContent = () => {
     }
   };
 
+  const compressImage = async (file: File, maxWidth: number = 2400, maxHeight: number = 1260, quality: number = 0.9): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          // 計算壓縮後的尺寸（保持寬高比）
+          if (width > maxWidth || height > maxHeight) {
+            const ratio = Math.min(maxWidth / width, maxHeight / height);
+            width = width * ratio;
+            height = height * ratio;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('無法獲取 Canvas context'));
+            return;
+          }
+
+          // 繪製壓縮後的圖片
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // 轉換為 base64
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => reject(new Error('圖片載入失敗'));
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => reject(new Error('檔案讀取失敗'));
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleOgImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !accommodationId) return;
@@ -1167,9 +1207,35 @@ const WebsiteContent = () => {
       return;
     }
 
-    // 讀取圖片並檢查尺寸
-    const reader = new FileReader();
-    reader.onloadend = () => {
+    try {
+      const originalSize = file.size;
+      const shouldCompress = originalSize > 2 * 1024 * 1024; // 超過 2MB 就壓縮
+
+      let imageDataUrl: string;
+
+      if (shouldCompress) {
+        toast.info('正在優化圖片，請稍候...');
+        imageDataUrl = await compressImage(file);
+        
+        // 計算壓縮後的大小（估算）
+        const compressedSize = Math.round((imageDataUrl.length * 3) / 4);
+        const compressionRatio = ((1 - compressedSize / originalSize) * 100).toFixed(1);
+        
+        toast.success(
+          `圖片已自動優化！\n原始大小：${(originalSize / 1024 / 1024).toFixed(2)} MB\n優化後：${(compressedSize / 1024 / 1024).toFixed(2)} MB\n節省空間：${compressionRatio}%`,
+          { duration: 5000 }
+        );
+      } else {
+        // 不需要壓縮，直接讀取
+        imageDataUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
+
+      // 檢查圖片尺寸
       const img = new Image();
       img.onload = () => {
         const width = img.width;
@@ -1185,17 +1251,19 @@ const WebsiteContent = () => {
               duration: 6000,
             }
           );
-        } else if (width >= recommendedWidth && height >= recommendedHeight) {
+        } else if (width >= recommendedWidth && height >= recommendedHeight && !shouldCompress) {
           toast.success(`圖片解析度良好（${width} x ${height} px），符合社群平台最佳實踐標準。`);
         }
 
         // 顯示裁切對話框
-        setOgImageCropSrc(reader.result as string);
+        setOgImageCropSrc(imageDataUrl);
         setOgImageCropDialogOpen(true);
       };
-      img.src = reader.result as string;
-    };
-    reader.readAsDataURL(file);
+      img.src = imageDataUrl;
+    } catch (error) {
+      console.error('圖片處理失敗:', error);
+      toast.error('圖片處理失敗，請稍後再試');
+    }
 
     event.target.value = '';
   };
