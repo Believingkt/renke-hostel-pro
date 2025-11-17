@@ -93,7 +93,7 @@ export const HeaderFooterSection = ({
         document.title = browserTitle;
       }
 
-      toast.success('頁首/頁尾資訊已儲存');
+      toast.success('網頁資訊已儲存');
       onUpdate();
     } catch (error) {
       if (import.meta.env.DEV) {
