@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Upload, Info } from "lucide-react";
+import { Upload, Info, Trash2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,9 @@ interface WebInfoSectionProps {
   heroDescription: string;
   heroPhotos: any[];
   onUpdate: () => void;
+  onHeroPhotoUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onDeleteHeroPhoto: (photoId: string) => void;
+  uploadingHeroPhoto: boolean;
 }
 
 export const WebInfoSection = ({ 
@@ -24,7 +27,10 @@ export const WebInfoSection = ({
   heroSubtitle,
   heroDescription,
   heroPhotos, 
-  onUpdate 
+  onUpdate,
+  onHeroPhotoUpload,
+  onDeleteHeroPhoto,
+  uploadingHeroPhoto
 }: WebInfoSectionProps) => {
   const [isSaving, setIsSaving] = useState(false);
   const [browserTitle, setBrowserTitle] = useState(name);
@@ -103,14 +109,69 @@ export const WebInfoSection = ({
         </div>
 
         {/* 首頁主視覺輪播圖 */}
-        <div className="space-y-2">
+        <div className="space-y-4">
           <Label>首頁主視覺輪播圖</Label>
-          <p className="text-sm text-muted-foreground">
-            上傳的圖片將顯示在首頁頂部的輪播區域，建議尺寸：1920x1080 像素
-          </p>
-          <div className="text-sm text-muted-foreground mt-2">
-            已上傳 {heroPhotos.length} 張圖片（在「相片管理」頁籤中管理）
+          
+          <div className="flex items-center gap-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => document.getElementById('hero-photo-upload')?.click()}
+              disabled={uploadingHeroPhoto || heroPhotos.length >= 10}
+              className="flex items-center gap-2"
+            >
+              <Upload className="h-4 w-4" />
+              {uploadingHeroPhoto ? "上傳中..." : "上傳輪播圖"}
+            </Button>
+            <input
+              id="hero-photo-upload"
+              type="file"
+              accept="image/*"
+              onChange={onHeroPhotoUpload}
+              className="hidden"
+            />
+            <span className="text-sm text-muted-foreground">
+              已上傳 {heroPhotos.length}/10 張
+            </span>
           </div>
+          
+          <p className="text-sm text-muted-foreground">
+            建議尺寸：1920x1080 像素，支援 JPG、PNG 格式，上傳後自動優化為 WebP
+          </p>
+
+          {/* 輪播圖列表 */}
+          {heroPhotos.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+              {heroPhotos
+                .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+                .map((photo) => (
+                  <div key={photo.id} className="relative group">
+                    <div className="aspect-video rounded-lg overflow-hidden border">
+                      <img
+                        src={photo.photo_url}
+                        alt="輪播圖"
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
+                      onClick={() => onDeleteHeroPhoto(photo.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                    {photo.title && (
+                      <div className="absolute bottom-2 left-2 right-2 bg-black/60 text-white text-xs p-2 rounded">
+                        {photo.title}
+                      </div>
+                    )}
+                  </div>
+                ))}
+            </div>
+          )}
         </div>
 
         {/* 輪播圖主標題文字 */}

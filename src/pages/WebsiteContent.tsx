@@ -1975,6 +1975,9 @@ const WebsiteContent = () => {
             heroDescription={basicInfo.hero_description}
             heroPhotos={heroPhotos}
             onUpdate={loadData}
+            onHeroPhotoUpload={handleHeroPhotoUpload}
+            onDeleteHeroPhoto={handleDeleteHeroPhoto}
+            uploadingHeroPhoto={uploadingHeroPhoto}
           />
 
           <AboutFeaturesSection
