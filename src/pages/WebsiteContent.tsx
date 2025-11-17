@@ -1663,6 +1663,10 @@ const WebsiteContent = () => {
     subtitle: string;
     cta_text: string;
     cta_link: string;
+    text_color: string;
+    text_size: string;
+    text_position_x: string;
+    text_position_y: string;
   }) => {
     try {
       const { error } = await supabase
@@ -1672,6 +1676,10 @@ const WebsiteContent = () => {
           subtitle: data.subtitle || null,
           cta_text: data.cta_text || null,
           cta_link: data.cta_link || null,
+          text_color: data.text_color,
+          text_size: data.text_size,
+          text_position_x: data.text_position_x,
+          text_position_y: data.text_position_y,
         })
         .eq('id', photoId);
 
