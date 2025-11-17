@@ -231,6 +231,7 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
                     height="1080"
                     sizes="100vw"
                     blurDataURL={blurDataURLs.get(slide.photo_url)}
+                    responsive={true}
                   />
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center transition-all duration-700">
                     <div className="text-center text-white space-y-2 md:space-y-4 max-w-4xl px-4 pb-32 md:pb-56">
