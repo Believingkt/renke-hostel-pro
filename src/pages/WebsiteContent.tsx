@@ -1624,6 +1624,37 @@ const WebsiteContent = () => {
     }
   };
 
+  const handleHeroPhotoReorder = async (newOrder: any[]) => {
+    try {
+      // 更新本地狀態
+      setHeroPhotos(newOrder);
+
+      // 批量更新數據庫中的 display_order
+      const updates = newOrder.map((photo, index) => ({
+        id: photo.id,
+        display_order: index + 1
+      }));
+
+      for (const update of updates) {
+        const { error } = await supabase
+          .from('accommodation_photos')
+          .update({ display_order: update.display_order })
+          .eq('id', update.id);
+
+        if (error) throw error;
+      }
+
+      toast.success('輪播圖順序已更新');
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error reordering hero photos:', error);
+      }
+      toast.error('更新順序失敗，請稍後再試');
+      // 重新加載資料以恢復原始順序
+      loadData();
+    }
+  };
+
   const handleEditHeroPhoto = (photo: Photo) => {
     setEditingHeroPhoto(photo);
     setHeroEditDialogOpen(true);
@@ -1977,6 +2008,7 @@ const WebsiteContent = () => {
             onUpdate={loadData}
             onHeroPhotoUpload={handleHeroPhotoUpload}
             onDeleteHeroPhoto={handleDeleteHeroPhoto}
+            onHeroPhotoReorder={handleHeroPhotoReorder}
             uploadingHeroPhoto={uploadingHeroPhoto}
           />
 
