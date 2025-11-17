@@ -91,9 +91,7 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                 dataKey="month" 
                 className="text-[10px] sm:text-xs"
                 tick={{ fontSize: 10 }}
-                angle={-45}
-                textAnchor="end"
-                height={60}
+                height={40}
               />
               <YAxis 
                 width={50}
