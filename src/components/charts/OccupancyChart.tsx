@@ -94,6 +94,13 @@ export const OccupancyChart = ({ data }: OccupancyChartProps) => {
                 onClick={handleBarClick}
                 cursor="pointer"
                 maxBarSize={50}
+                minPointSize={5}
+                activeBar={{
+                  opacity: 0.8,
+                  strokeWidth: 2,
+                  stroke: 'hsl(var(--foreground))',
+                }}
+                className="transition-all duration-200 hover:opacity-80"
               >
                 {data.map((entry, index) => (
                   <Cell 

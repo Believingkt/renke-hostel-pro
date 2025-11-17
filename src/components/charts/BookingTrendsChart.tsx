@@ -121,15 +121,17 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                   stroke={index === 0 ? "hsl(var(--chart-booking-primary))" : "hsl(var(--chart-booking-secondary))"}
                   strokeWidth={3}
                   dot={{ 
-                    r: 4, 
+                    r: 5, 
                     cursor: 'pointer',
                     strokeWidth: 2,
-                    fill: 'hsl(var(--background))'
+                    fill: 'hsl(var(--background))',
+                    className: 'transition-all duration-200'
                   }}
                   activeDot={{ 
-                    r: 6, 
+                    r: 8, 
                     onClick: handleDotClick,
-                    strokeWidth: 2
+                    strokeWidth: 3,
+                    className: 'cursor-pointer hover:scale-110 transition-transform'
                   }}
                   connectNulls
                   animationDuration={1000}

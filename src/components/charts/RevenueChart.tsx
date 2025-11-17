@@ -157,6 +157,14 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
                   onClick={handleBarClick}
                   cursor="pointer"
                   maxBarSize={60}
+                  minPointSize={5}
+                  activeBar={{
+                    fill: index === 0 ? "hsl(var(--chart-revenue-primary))" : "hsl(var(--chart-revenue-secondary))",
+                    opacity: 0.8,
+                    strokeWidth: 2,
+                    stroke: 'hsl(var(--foreground))',
+                  }}
+                  className="transition-all duration-200 hover:opacity-80"
                 />
               ))}
             </BarChart>
