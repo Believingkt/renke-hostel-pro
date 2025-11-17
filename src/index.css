@@ -78,10 +78,10 @@ All colors MUST be HSL.
     --chart-revenue-secondary: 203 89% 53%;
     --chart-revenue-bg: 217 91% 95%;
     
-    /* 圖表語義化顏色 - 訂單趨勢（綠色系）*/
-    --chart-booking-primary: 142 76% 36%;
-    --chart-booking-secondary: 160 84% 39%;
-    --chart-booking-bg: 142 76% 95%;
+    /* 圖表語義化顏色 - 訂單趨勢（紅色橘色系）*/
+    --chart-booking-primary: 0 80% 60%;
+    --chart-booking-secondary: 25 90% 60%;
+    --chart-booking-bg: 0 80% 95%;
     
     /* 圖表語義化顏色 - 入住率（琥珀色系）*/
     --chart-occupancy-primary: 38 92% 50%;
