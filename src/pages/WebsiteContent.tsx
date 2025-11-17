@@ -1982,11 +1982,24 @@ const WebsiteContent = () => {
                   value={basicInfo.name}
                   onChange={(e) => setBasicInfo({ ...basicInfo, name: e.target.value })}
                   placeholder="例如：山林秘境民宿 - 南投日式豪華住宿"
-                  maxLength={70}
+                  className={basicInfo.name.length > 70 ? "border-yellow-500 focus-visible:ring-yellow-500" : ""}
                 />
-                <p className="text-sm text-muted-foreground">
-                  顯示在瀏覽器分頁標籤上的標題（建議 70 字元以內）
-                </p>
+                <div className="flex items-center justify-between text-sm">
+                  <p className={basicInfo.name.length > 70 ? "text-yellow-600" : "text-muted-foreground"}>
+                    顯示在瀏覽器分頁標籤上的標題（建議 70 字元以內）
+                  </p>
+                  <span className={basicInfo.name.length > 70 ? "text-yellow-600 font-medium" : "text-muted-foreground"}>
+                    {basicInfo.name.length}/70
+                  </span>
+                </div>
+                {basicInfo.name.length > 70 && (
+                  <p className="text-sm text-yellow-600 flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    標題過長可能會在瀏覽器標籤中被截斷
+                  </p>
+                )}
               </div>
 
               {/* 特色說明編輯區塊 */}
@@ -2253,11 +2266,24 @@ const WebsiteContent = () => {
                   value={basicInfo.og_title}
                   onChange={(e) => setBasicInfo(prev => ({ ...prev, og_title: e.target.value }))}
                   placeholder="例如：山林秘境民宿 - 享受自然寧靜時光"
-                  maxLength={60}
+                  className={basicInfo.og_title.length > 60 ? "border-yellow-500 focus-visible:ring-yellow-500" : ""}
                 />
-                <p className="text-sm text-muted-foreground">
-                  當網站連結在社群媒體分享時顯示的標題（建議 60 字元以內）
-                </p>
+                <div className="flex items-center justify-between text-sm">
+                  <p className={basicInfo.og_title.length > 60 ? "text-yellow-600" : "text-muted-foreground"}>
+                    當網站連結在社群媒體分享時顯示的標題（建議 60 字元以內）
+                  </p>
+                  <span className={basicInfo.og_title.length > 60 ? "text-yellow-600 font-medium" : "text-muted-foreground"}>
+                    {basicInfo.og_title.length}/60
+                  </span>
+                </div>
+                {basicInfo.og_title.length > 60 && (
+                  <p className="text-sm text-yellow-600 flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    標題過長可能會在社群媒體上被截斷
+                  </p>
+                )}
               </div>
 
               {/* 社群媒體分享描述 */}
@@ -2268,12 +2294,25 @@ const WebsiteContent = () => {
                   value={basicInfo.og_description}
                   onChange={(e) => setBasicInfo(prev => ({ ...prev, og_description: e.target.value }))}
                   placeholder="例如：體驗山林中的寧靜時光，融合日式美學與自然的完美住宿空間。"
-                  maxLength={160}
                   rows={3}
+                  className={basicInfo.og_description.length > 160 ? "border-yellow-500 focus-visible:ring-yellow-500" : ""}
                 />
-                <p className="text-sm text-muted-foreground">
-                  當網站連結在社群媒體分享時顯示的描述（建議 160 字元以內）
-                </p>
+                <div className="flex items-center justify-between text-sm">
+                  <p className={basicInfo.og_description.length > 160 ? "text-yellow-600" : "text-muted-foreground"}>
+                    當網站連結在社群媒體分享時顯示的描述（建議 160 字元以內）
+                  </p>
+                  <span className={basicInfo.og_description.length > 160 ? "text-yellow-600 font-medium" : "text-muted-foreground"}>
+                    {basicInfo.og_description.length}/160
+                  </span>
+                </div>
+                {basicInfo.og_description.length > 160 && (
+                  <p className="text-sm text-yellow-600 flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    描述過長可能會在社群媒體上被截斷
+                  </p>
+                )}
               </div>
 
               {/* 社群分享縮圖 */}
