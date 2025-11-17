@@ -256,6 +256,10 @@ export type Database = {
           photo_type: string | null
           photo_url: string
           subtitle: string | null
+          text_color: string | null
+          text_position_x: string | null
+          text_position_y: string | null
+          text_size: string | null
           title: string | null
         }
         Insert: {
@@ -268,6 +272,10 @@ export type Database = {
           photo_type?: string | null
           photo_url: string
           subtitle?: string | null
+          text_color?: string | null
+          text_position_x?: string | null
+          text_position_y?: string | null
+          text_size?: string | null
           title?: string | null
         }
         Update: {
@@ -280,6 +288,10 @@ export type Database = {
           photo_type?: string | null
           photo_url?: string
           subtitle?: string | null
+          text_color?: string | null
+          text_position_x?: string | null
+          text_position_y?: string | null
+          text_size?: string | null
           title?: string | null
         }
         Relationships: [

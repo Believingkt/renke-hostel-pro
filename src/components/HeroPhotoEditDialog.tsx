@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface HeroPhotoEditDialogProps {
   open: boolean;
@@ -15,12 +16,20 @@ interface HeroPhotoEditDialogProps {
     subtitle?: string | null;
     cta_text?: string | null;
     cta_link?: string | null;
+    text_color?: string | null;
+    text_size?: string | null;
+    text_position_x?: string | null;
+    text_position_y?: string | null;
   } | null;
   onSave: (photoId: string, data: {
     title: string;
     subtitle: string;
     cta_text: string;
     cta_link: string;
+    text_color: string;
+    text_size: string;
+    text_position_x: string;
+    text_position_y: string;
   }) => Promise<void>;
 }
 
@@ -29,6 +38,10 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
   const [subtitle, setSubtitle] = useState("");
   const [ctaText, setCtaText] = useState("");
   const [ctaLink, setCtaLink] = useState("");
+  const [textColor, setTextColor] = useState("white");
+  const [textSize, setTextSize] = useState("medium");
+  const [textPositionX, setTextPositionX] = useState("center");
+  const [textPositionY, setTextPositionY] = useState("center");
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -37,6 +50,10 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
       setSubtitle(photo.subtitle || "");
       setCtaText(photo.cta_text || "");
       setCtaLink(photo.cta_link || "");
+      setTextColor(photo.text_color || "white");
+      setTextSize(photo.text_size || "medium");
+      setTextPositionX(photo.text_position_x || "center");
+      setTextPositionY(photo.text_position_y || "center");
     }
   }, [photo]);
 
@@ -50,6 +67,10 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
         subtitle,
         cta_text: ctaText,
         cta_link: ctaLink,
+        text_color: textColor,
+        text_size: textSize,
+        text_position_x: textPositionX,
+        text_position_y: textPositionY,
       });
       onOpenChange(false);
     } finally {
@@ -138,6 +159,66 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
             <p className="text-sm text-muted-foreground">
               可以使用相對路徑（如 /booking）或錨點（如 #rooms）
             </p>
+          </div>
+
+          {/* 文字顏色 */}
+          <div className="space-y-2">
+            <Label htmlFor="text-color">文字顏色</Label>
+            <Select value={textColor} onValueChange={setTextColor}>
+              <SelectTrigger id="text-color">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="white">白色</SelectItem>
+                <SelectItem value="black">黑色</SelectItem>
+                <SelectItem value="primary">主題色</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* 文字大小 */}
+          <div className="space-y-2">
+            <Label htmlFor="text-size">文字大小</Label>
+            <Select value={textSize} onValueChange={setTextSize}>
+              <SelectTrigger id="text-size">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="small">小</SelectItem>
+                <SelectItem value="medium">中</SelectItem>
+                <SelectItem value="large">大</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* 水平位置 */}
+          <div className="space-y-2">
+            <Label htmlFor="text-position-x">水平位置</Label>
+            <Select value={textPositionX} onValueChange={setTextPositionX}>
+              <SelectTrigger id="text-position-x">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="left">左</SelectItem>
+                <SelectItem value="center">中</SelectItem>
+                <SelectItem value="right">右</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* 垂直位置 */}
+          <div className="space-y-2">
+            <Label htmlFor="text-position-y">垂直位置</Label>
+            <Select value={textPositionY} onValueChange={setTextPositionY}>
+              <SelectTrigger id="text-position-y">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="top">上</SelectItem>
+                <SelectItem value="center">中</SelectItem>
+                <SelectItem value="bottom">下</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

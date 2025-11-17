@@ -241,52 +241,107 @@ const HeroSection = ({
                     blurDataURL={blurDataURLs.get(slide.photo_url)}
                     responsive={true}
                   />
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center transition-all duration-700">
-                    <div className="text-center text-white space-y-2 md:space-y-4 max-w-4xl px-4 pb-32 md:pb-56">
-                      <h1 className="text-3xl md:text-7xl font-bold animate-fade-in drop-shadow-lg">
-                        {slide.title || accommodationName}
-                      </h1>
-                      {slide.subtitle && (
-                        <p className="text-lg md:text-3xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.2s" }}>
-                          {slide.subtitle}
-                        </p>
-                      )}
-                      {!slide.subtitle && heroMainTitle && (
-                        <>
-                          <p className="text-lg md:text-3xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.2s" }}>
-                            {heroMainTitle}
-                          </p>
-                          {heroSubtitle && (
-                            <p className="text-base md:text-xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.4s" }}>
-                              {heroSubtitle}
-                            </p>
-                          )}
-                          {heroDescription && (
-                            <p className="text-sm md:text-base animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.6s" }}>
-                              {heroDescription}
-                            </p>
-                          )}
-                        </>
-                      )}
-                      {slide.cta_text && slide.cta_link && (
-                        <div className="pt-4 animate-fade-in" style={{ animationDelay: "0.6s" }}>
-                          <Button
-                            asChild
-                            size="lg"
-                            className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all"
+                  <div className="absolute inset-0 bg-black/40 transition-all duration-700">
+                    <div 
+                      className={`
+                        space-y-2 md:space-y-4 max-w-4xl px-4 pb-32 md:pb-56
+                        ${slide.text_position_x === 'left' ? 'text-left' : slide.text_position_x === 'right' ? 'text-right' : 'text-center'}
+                        ${
+                          slide.text_position_y === 'top' ? 'flex items-start justify-center pt-32' :
+                          slide.text_position_y === 'bottom' ? 'flex items-end justify-center pb-32' :
+                          'flex items-center justify-center'
+                        }
+                        absolute inset-0
+                      `}
+                      style={{
+                        color: slide.text_color === 'black' ? '#000' : slide.text_color === 'primary' ? 'hsl(var(--primary))' : '#fff'
+                      }}
+                    >
+                      <div className="w-full">
+                        <h1 
+                          className={`
+                            font-bold animate-fade-in drop-shadow-lg
+                            ${slide.text_size === 'small' ? 'text-2xl md:text-5xl' : 
+                              slide.text_size === 'large' ? 'text-4xl md:text-8xl' : 
+                              'text-3xl md:text-7xl'}
+                          `}
+                        >
+                          {slide.title || accommodationName}
+                        </h1>
+                        {slide.subtitle && (
+                          <p 
+                            className={`
+                              animate-fade-in drop-shadow-lg
+                              ${slide.text_size === 'small' ? 'text-base md:text-2xl' : 
+                                slide.text_size === 'large' ? 'text-xl md:text-4xl' : 
+                                'text-lg md:text-3xl'}
+                            `}
+                            style={{ animationDelay: "0.2s" }}
                           >
-                            {slide.cta_link.startsWith('#') ? (
-                              <a href={slide.cta_link} className="inline-flex items-center gap-2">
-                                {slide.cta_text}
-                              </a>
-                            ) : (
-                              <Link to={slide.cta_link} className="inline-flex items-center gap-2">
-                                {slide.cta_text}
-                              </Link>
+                            {slide.subtitle}
+                          </p>
+                        )}
+                        {!slide.subtitle && heroMainTitle && (
+                          <>
+                            <p 
+                              className={`
+                                animate-fade-in drop-shadow-lg
+                                ${slide.text_size === 'small' ? 'text-base md:text-2xl' : 
+                                  slide.text_size === 'large' ? 'text-xl md:text-4xl' : 
+                                  'text-lg md:text-3xl'}
+                              `}
+                              style={{ animationDelay: "0.2s" }}
+                            >
+                              {heroMainTitle}
+                            </p>
+                            {heroSubtitle && (
+                              <p 
+                                className={`
+                                  animate-fade-in drop-shadow-lg
+                                  ${slide.text_size === 'small' ? 'text-sm md:text-lg' : 
+                                    slide.text_size === 'large' ? 'text-lg md:text-2xl' : 
+                                    'text-base md:text-xl'}
+                                `}
+                                style={{ animationDelay: "0.4s" }}
+                              >
+                                {heroSubtitle}
+                              </p>
                             )}
-                          </Button>
-                        </div>
-                      )}
+                            {heroDescription && (
+                              <p 
+                                className={`
+                                  animate-fade-in drop-shadow-lg
+                                  ${slide.text_size === 'small' ? 'text-xs md:text-sm' : 
+                                    slide.text_size === 'large' ? 'text-base md:text-lg' : 
+                                    'text-sm md:text-base'}
+                                `}
+                                style={{ animationDelay: "0.6s" }}
+                              >
+                                {heroDescription}
+                              </p>
+                            )}
+                          </>
+                        )}
+                        {slide.cta_text && slide.cta_link && (
+                          <div className="pt-4 animate-fade-in" style={{ animationDelay: "0.6s" }}>
+                            <Button
+                              asChild
+                              size="lg"
+                              className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all"
+                            >
+                              {slide.cta_link.startsWith('#') ? (
+                                <a href={slide.cta_link} className="inline-flex items-center gap-2">
+                                  {slide.cta_text}
+                                </a>
+                              ) : (
+                                <Link to={slide.cta_link} className="inline-flex items-center gap-2">
+                                  {slide.cta_text}
+                                </Link>
+                              )}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
