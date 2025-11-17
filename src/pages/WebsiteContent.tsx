@@ -1167,11 +1167,33 @@ const WebsiteContent = () => {
       return;
     }
 
-    // 讀取圖片並顯示裁切對話框
+    // 讀取圖片並檢查尺寸
     const reader = new FileReader();
     reader.onloadend = () => {
-      setOgImageCropSrc(reader.result as string);
-      setOgImageCropDialogOpen(true);
+      const img = new Image();
+      img.onload = () => {
+        const width = img.width;
+        const height = img.height;
+        const recommendedWidth = 1200;
+        const recommendedHeight = 630;
+
+        // 檢查圖片尺寸
+        if (width < recommendedWidth || height < recommendedHeight) {
+          toast.warning(
+            `圖片解析度較低（${width} x ${height} px），可能影響社群平台顯示品質。\n建議使用至少 ${recommendedWidth} x ${recommendedHeight} px 的圖片以獲得最佳效果。`,
+            {
+              duration: 6000,
+            }
+          );
+        } else if (width >= recommendedWidth && height >= recommendedHeight) {
+          toast.success(`圖片解析度良好（${width} x ${height} px），符合社群平台最佳實踐標準。`);
+        }
+
+        // 顯示裁切對話框
+        setOgImageCropSrc(reader.result as string);
+        setOgImageCropDialogOpen(true);
+      };
+      img.src = reader.result as string;
     };
     reader.readAsDataURL(file);
 
