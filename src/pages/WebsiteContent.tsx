@@ -52,6 +52,7 @@ import { toast } from "sonner";
 import { TabsSkeleton } from "@/components/skeletons/TabsSkeleton";
 import { LogoCropDialog } from "@/components/LogoCropDialog";
 import { HeroPhotoEditDialog } from "@/components/HeroPhotoEditDialog";
+import { OgImagePreview } from "@/components/OgImagePreview";
 
 // 定義所有設施項目
 const facilitiesData = {
@@ -363,7 +364,8 @@ const WebsiteContent = () => {
     tiktok_url: "",
     header_logo_url: "",
     footer_logo_url: "",
-    og_image_url: ""
+    og_image_url: "",
+    website_url: ""
   });
   const [uploadingHeaderLogo, setUploadingHeaderLogo] = useState(false);
   const [uploadingFooterLogo, setUploadingFooterLogo] = useState(false);
@@ -456,7 +458,7 @@ const WebsiteContent = () => {
         // 獲取 accommodation ID 和基本資料
         const { data: infoData } = await supabase
           .from("accommodation_info")
-          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url, og_image_url")
+          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url, og_image_url, website_url")
           .maybeSingle();
 
         if (infoData) {
@@ -477,7 +479,8 @@ const WebsiteContent = () => {
             tiktok_url: infoData.tiktok_url || "",
             header_logo_url: infoData.header_logo_url || "",
             footer_logo_url: infoData.footer_logo_url || "",
-            og_image_url: infoData.og_image_url || ""
+            og_image_url: infoData.og_image_url || "",
+            website_url: infoData.website_url || ""
           });
 
           // 加載現有設施
@@ -2142,9 +2145,26 @@ const WebsiteContent = () => {
                     </div>
                   )}
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  建議尺寸：1200x630 像素，用於社群媒體（Facebook、LINE、Twitter等）分享時的預覽圖
-                </p>
+                <div className="flex items-start gap-2 p-3 bg-primary/5 rounded-md border border-primary/20">
+                  <Info className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                  <div className="text-sm space-y-1">
+                    <p className="font-medium">建議尺寸：1200 x 630 像素</p>
+                    <p className="text-muted-foreground text-xs">
+                      此尺寸能確保在 Facebook、Twitter、LinkedIn 等社群平台上都能完美顯示。
+                      檔案格式支援 JPG、PNG、WebP，建議檔案大小不超過 8MB。
+                    </p>
+                  </div>
+                </div>
+                
+                {/* 社群媒體預覽 */}
+                {basicInfo.og_image_url && (
+                  <OgImagePreview
+                    title={basicInfo.name || "您的住宿名稱"}
+                    description={basicInfo.description || "體驗山林中的寧靜時光，融合日式美學與自然的完美住宿空間。"}
+                    imageUrl={basicInfo.og_image_url}
+                    url={basicInfo.website_url}
+                  />
+                )}
               </div>
 
               {/* 首頁主視覺輪播圖 */}
