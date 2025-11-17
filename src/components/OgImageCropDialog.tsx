@@ -86,7 +86,7 @@ export const OgImageCropDialog = ({
               reject(new Error("Canvas toBlob failed"));
             }
           },
-          "image/jpeg",
+          "image/webp",
           0.95
         );
       };
@@ -121,7 +121,7 @@ export const OgImageCropDialog = ({
         <DialogHeader>
           <DialogTitle>裁切社群分享縮圖</DialogTitle>
           <DialogDescription>
-            調整圖片的顯示區域，確保重要內容不會被裁切。裁切後的圖片將自動調整為 1200 x 630 像素。
+            調整圖片的顯示區域，確保重要內容不會被裁切。裁切後的圖片將自動轉換為 WebP 格式並調整為 1200 x 630 像素。
           </DialogDescription>
         </DialogHeader>
 

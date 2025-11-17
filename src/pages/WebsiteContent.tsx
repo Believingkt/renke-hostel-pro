@@ -1176,8 +1176,23 @@ const WebsiteContent = () => {
           // 繪製壓縮後的圖片
           ctx.drawImage(img, 0, 0, width, height);
 
-          // 轉換為 base64
-          resolve(canvas.toDataURL('image/jpeg', quality));
+          // 檢查瀏覽器是否支援 WebP
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                // 將 blob 轉換為 base64
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.onerror = () => reject(new Error('Blob 轉換失敗'));
+                reader.readAsDataURL(blob);
+              } else {
+                // WebP 不支援，使用 JPEG
+                resolve(canvas.toDataURL('image/jpeg', quality));
+              }
+            },
+            'image/webp',
+            quality
+          );
         };
         img.onerror = () => reject(new Error('圖片載入失敗'));
         img.src = e.target?.result as string;
@@ -1222,7 +1237,7 @@ const WebsiteContent = () => {
         const compressionRatio = ((1 - compressedSize / originalSize) * 100).toFixed(1);
         
         toast.success(
-          `圖片已自動優化！\n原始大小：${(originalSize / 1024 / 1024).toFixed(2)} MB\n優化後：${(compressedSize / 1024 / 1024).toFixed(2)} MB\n節省空間：${compressionRatio}%`,
+          `圖片已自動優化並轉換為 WebP 格式！\n原始大小：${(originalSize / 1024 / 1024).toFixed(2)} MB\n優化後：${(compressedSize / 1024 / 1024).toFixed(2)} MB\n節省空間：${compressionRatio}%`,
           { duration: 5000 }
         );
       } else {
@@ -1274,8 +1289,8 @@ const WebsiteContent = () => {
     setUploadingOgImage(true);
 
     try {
-      // 生成唯一檔案名
-      const fileName = `${accommodationId}/og-image-${Date.now()}.jpg`;
+      // 生成唯一檔案名（使用 webp 擴展名）
+      const fileName = `${accommodationId}/og-image-${Date.now()}.webp`;
 
       // 上傳到 Supabase Storage
       const { error: uploadError } = await supabase.storage
@@ -1283,7 +1298,7 @@ const WebsiteContent = () => {
         .upload(fileName, croppedImage, {
           cacheControl: '3600',
           upsert: true,
-          contentType: 'image/jpeg'
+          contentType: 'image/webp'
         });
 
       if (uploadError) throw uploadError;
@@ -1296,7 +1311,7 @@ const WebsiteContent = () => {
       // 更新狀態
       setBasicInfo(prev => ({ ...prev, og_image_url: publicUrl }));
 
-      toast.success('社群分享縮圖已上傳');
+      toast.success('社群分享縮圖已上傳（WebP 格式）');
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error uploading OG image:', error);
