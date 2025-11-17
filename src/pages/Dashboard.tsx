@@ -184,10 +184,12 @@ const Dashboard = () => {
     return sanitized;
   });
   
-  const safeOccupancyData = (occupancyData || []).map(item => ({
-    roomType: item.roomType || '未知',
-    occupancyRate: Number.isFinite(Number(item.occupancyRate)) ? Math.min(100, Math.max(0, Number(item.occupancyRate))) : 0,
-  }));
+  const safeOccupancyData = occupancyData || [];
+  
+  // 从数据中提取所有房型名称（排除 'month' 字段）
+  const roomTypes = safeOccupancyData.length > 0 
+    ? Object.keys(safeOccupancyData[0]).filter(key => key !== 'month')
+    : [];
 
   const handleRefresh = async () => {
     await refreshData();
@@ -219,7 +221,7 @@ const Dashboard = () => {
     上月: 0, 
     本期: 0 
   }];
-  const finalOccupancyData = safeOccupancyData.length > 0 ? safeOccupancyData : [{ roomType: '暫無數據', occupancyRate: 0 }];
+  const finalOccupancyData = safeOccupancyData.length > 0 ? safeOccupancyData : [{ month: '暫無數據' }];
 
   const dashboardContent = (
     <div className="space-y-6 md:space-y-8">
@@ -410,11 +412,11 @@ const Dashboard = () => {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg font-semibold">房型入住率</CardTitle>
-              <span className="text-xs text-muted-foreground">過去 30 天</span>
+              <span className="text-xs text-muted-foreground">今年每月趨勢</span>
             </div>
           </CardHeader>
           <CardContent>
-            <OccupancyChart data={finalOccupancyData} />
+            <OccupancyChart data={finalOccupancyData} roomTypes={roomTypes} />
           </CardContent>
         </Card>
 
