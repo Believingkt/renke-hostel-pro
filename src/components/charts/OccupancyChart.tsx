@@ -1,24 +1,26 @@
-import { useState } from "react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Cell } from "recharts";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
+import { ChartContainer, ChartTooltip, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
+import { CustomChartTooltip } from "./CustomChartTooltip";
 
 interface OccupancyChartProps {
   data: Array<{
-    roomType: string;
-    occupancyRate: number;
+    month: string;
+    [roomTypeName: string]: number | string;
   }>;
+  roomTypes: string[];
 }
 
-export const OccupancyChart = ({ data }: OccupancyChartProps) => {
-  const [selectedData, setSelectedData] = useState<{ roomType: string; occupancyRate: number } | null>(null);
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
-  
+export const OccupancyChart = ({ data, roomTypes }: OccupancyChartProps) => {
   // 檢查是否有實際數據
-  const hasRealData = data.some(d => d.occupancyRate > 0 && d.roomType !== '暫無數據');
+  const hasRealData = data.some(d => 
+    roomTypes.some(roomType => {
+      const value = d[roomType];
+      return typeof value === 'number' && value > 0;
+    })
+  );
 
   // 如果沒有實際數據，顯示空狀態
-  if (!hasRealData) {
+  if (!hasRealData || roomTypes.length === 0) {
     return (
       <div className="flex items-center justify-center h-[320px] text-muted-foreground">
         <div className="text-center">
@@ -29,119 +31,98 @@ export const OccupancyChart = ({ data }: OccupancyChartProps) => {
     );
   }
 
-  const chartConfig = {
-    occupancyRate: {
-      label: "入住率",
-      color: "hsl(var(--chart-occupancy-primary))",
-    },
-  };
+  // 為每個房型配置顏色
+  const colors = [
+    "hsl(var(--chart-occupancy-primary))",
+    "hsl(var(--chart-occupancy-secondary))",
+    "hsl(var(--chart-1))",
+    "hsl(var(--chart-2))",
+    "hsl(var(--chart-3))",
+    "hsl(var(--chart-4))",
+    "hsl(var(--chart-5))",
+  ];
 
-  const handleBarClick = (data: any, index: number) => {
-    setSelectedData(data);
-    setActiveIndex(index);
-  };
+  const chartConfig = roomTypes.reduce((config, roomType, index) => {
+    config[roomType] = {
+      label: roomType,
+      color: colors[index % colors.length],
+    };
+    return config;
+  }, {} as Record<string, { label: string; color: string }>);
 
   return (
-    <>
-      <div className="animate-fade-in px-0.5 py-1 sm:px-2 sm:py-3">
-        <ChartContainer config={chartConfig} className="h-[180px] sm:h-[220px] md:h-[260px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart 
-              data={data} 
-              layout="vertical" 
-              margin={{ 
-                top: 5, 
-                right: 10, 
-                left: -5, 
-                bottom: 5 
-              }}
-              barGap={3}
-              barCategoryGap="15%"
-            >
-              <CartesianGrid 
-                strokeDasharray="3 3" 
-                className="stroke-muted/50" 
-                horizontal={false}
-              />
-              <XAxis 
-                type="number" 
-                tickFormatter={(value) => `${value}%`}
-                className="text-[9px] sm:text-[10px]"
-                tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis 
-                type="category" 
-                dataKey="roomType" 
-                width={55}
-                className="text-[9px] sm:text-[10px]"
-                tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <ChartTooltip 
-                content={<ChartTooltipContent className="rounded-lg shadow-lg" />}
-                formatter={(value: number) => [`${value.toFixed(1)}%`, "入住率"]}
-                cursor={{ fill: 'hsl(var(--muted)/0.3)' }}
-              />
-              <Bar 
-                dataKey="occupancyRate" 
-                radius={[0, 8, 8, 0]}
-                animationDuration={1000}
-                animationBegin={0}
-                isAnimationActive={true}
-                onClick={handleBarClick}
-                cursor="pointer"
-                maxBarSize={50}
-                minPointSize={5}
-                activeBar={{
-                  opacity: 0.8,
+    <div className="animate-fade-in px-0.5 py-1 sm:px-2 sm:py-3">
+      <ChartContainer config={chartConfig} className="h-[180px] sm:h-[220px] md:h-[260px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart 
+            data={data} 
+            margin={{ 
+              top: 5, 
+              right: 10, 
+              left: -5, 
+              bottom: 5 
+            }}
+          >
+            <CartesianGrid 
+              strokeDasharray="3 3" 
+              className="stroke-muted/50" 
+              vertical={false}
+            />
+            <XAxis 
+              dataKey="month" 
+              className="text-[9px] sm:text-[10px]"
+              tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }}
+              height={30}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis 
+              width={40}
+              tickFormatter={(value) => `${value}%`}
+              className="text-[9px] sm:text-[10px]"
+              tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }}
+              axisLine={false}
+              tickLine={false}
+              domain={[0, 100]}
+            />
+            <ChartTooltip 
+              content={
+                <CustomChartTooltip 
+                  valueFormatter={(value: number) => `${value}%`}
+                />
+              }
+              cursor={{ stroke: 'hsl(var(--muted))', strokeWidth: 1 }}
+            />
+            <ChartLegend 
+              content={<ChartLegendContent />}
+              wrapperStyle={{ paddingTop: '10px' }}
+            />
+            {roomTypes.map((roomType, index) => (
+              <Line
+                key={roomType}
+                type="monotone"
+                dataKey={roomType}
+                stroke={colors[index % colors.length]}
+                strokeWidth={2.5}
+                dot={{
+                  r: 4,
+                  fill: "hsl(var(--background))",
                   strokeWidth: 2,
-                  stroke: 'hsl(var(--foreground))',
                 }}
-                className="transition-all duration-200 hover:opacity-80"
-              >
-                {data.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={activeIndex === index 
-                      ? "hsl(var(--chart-occupancy-secondary))" 
-                      : "hsl(var(--chart-occupancy-primary))"}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartContainer>
-      </div>
-
-      <Dialog open={!!selectedData} onOpenChange={() => setSelectedData(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>房型入住率詳情</DialogTitle>
-          </DialogHeader>
-          {selectedData && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">房型</p>
-                  <p className="text-lg font-semibold">{selectedData.roomType}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">入住率</p>
-                  <p className="text-lg font-semibold">{selectedData.occupancyRate.toFixed(1)}%</p>
-                </div>
-              </div>
-              <div className="pt-4 border-t">
-                <p className="text-sm text-muted-foreground">
-                  此數據統計過去 30 天的平均入住率
-                </p>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </>
+                activeDot={{
+                  r: 6,
+                  strokeWidth: 2,
+                }}
+                connectNulls
+                animationDuration={1000}
+                animationBegin={index * 100}
+                isAnimationActive={true}
+                animationEasing="ease-in-out"
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </ChartContainer>
+    </div>
   );
 };
