@@ -44,44 +44,56 @@ export const OccupancyChart = ({ data }: OccupancyChartProps) => {
   return (
     <>
       <div className="animate-fade-in px-1 py-2 sm:px-2 sm:py-4">
-        <ChartContainer config={chartConfig} className="h-[140px] sm:h-[180px] md:h-[220px] w-full">
+        <ChartContainer config={chartConfig} className="h-[200px] sm:h-[240px] md:h-[280px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart 
               data={data} 
               layout="vertical" 
               margin={{ 
-                top: 5, 
-                right: 10, 
-                left: 10, 
-                bottom: 5 
+                top: 10, 
+                right: 15, 
+                left: 0, 
+                bottom: 10 
               }}
+              barGap={4}
+              barCategoryGap="20%"
             >
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <CartesianGrid 
+                strokeDasharray="3 3" 
+                className="stroke-muted/50" 
+                horizontal={false}
+              />
               <XAxis 
                 type="number" 
                 tickFormatter={(value) => `${value}%`}
                 className="text-[10px] sm:text-xs"
-                tick={{ fontSize: 10 }}
+                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                axisLine={false}
+                tickLine={false}
               />
               <YAxis 
                 type="category" 
                 dataKey="roomType" 
-                width={60}
+                width={65}
                 className="text-[10px] sm:text-xs"
-                tick={{ fontSize: 10 }}
+                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                axisLine={false}
+                tickLine={false}
               />
               <ChartTooltip 
-                content={<ChartTooltipContent />}
+                content={<ChartTooltipContent className="rounded-lg shadow-lg" />}
                 formatter={(value: number) => [`${value.toFixed(1)}%`, "入住率"]}
+                cursor={{ fill: 'hsl(var(--muted)/0.3)' }}
               />
               <Bar 
                 dataKey="occupancyRate" 
-                radius={[0, 6, 6, 0]}
+                radius={[0, 8, 8, 0]}
                 animationDuration={1000}
                 animationBegin={0}
                 isAnimationActive={true}
                 onClick={handleBarClick}
                 cursor="pointer"
+                maxBarSize={50}
               >
                 {data.map((entry, index) => (
                   <Cell 
