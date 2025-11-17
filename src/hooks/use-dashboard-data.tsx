@@ -34,11 +34,6 @@ interface OccupancyData {
   [roomTypeName: string]: number | string; // 动态的房型名称作为key
 }
 
-interface MonthlyBookingData {
-  month: string;
-  bookings: number;
-}
-
 export interface OrderStatusData {
   status: string;
   count: number;
@@ -50,7 +45,6 @@ interface DashboardData {
   revenueData: ChartData[];
   bookingData: ChartData[];
   occupancyData: OccupancyData[];
-  monthlyBookings: MonthlyBookingData[];
   orderStatusDistribution: OrderStatusData[];
 }
 
@@ -445,23 +439,6 @@ const fetchDashboardData = async (
   console.log('Revenue data sample:', revenueData.slice(0, 3));
   console.log('Occupancy data:', occupancyData);
 
-  // Calculate monthly bookings for the current year
-  const monthlyBookings: MonthlyBookingData[] = Array.from({ length: 12 }, (_, i) => {
-    const monthDate = new Date(currentYear, i, 1);
-    const monthName = format(monthDate, 'M月');
-    const monthStr = format(monthDate, 'yyyy-MM');
-    
-    const bookingsInMonth = ordersData.filter(order => {
-      const checkInMonth = format(new Date(order.check_in_date), 'yyyy-MM');
-      return checkInMonth === monthStr;
-    }).length;
-
-    return {
-      month: monthName,
-      bookings: bookingsInMonth,
-    };
-  });
-
   // Calculate order status distribution
   const statusOrder = ['pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled'];
   const statusMap = new Map<string, number>();
@@ -486,7 +463,6 @@ const fetchDashboardData = async (
     revenueData,
     bookingData,
     occupancyData,
-    monthlyBookings,
     orderStatusDistribution,
   };
 };
