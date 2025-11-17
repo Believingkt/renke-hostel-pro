@@ -31,6 +31,8 @@ interface AccommodationData {
     threads_url?: string;
     youtube_url?: string;
     tiktok_url?: string;
+    og_title?: string;
+    og_description?: string;
     og_image_url?: string;
   };
   roomTypes: any[];
@@ -51,7 +53,7 @@ const Index = () => {
       try {
         const { data: infoData } = await supabase
           .from("accommodation_info")
-          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, og_image_url")
+          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, og_title, og_description, og_image_url")
           .eq("id", accommodationId)
           .single();
         
@@ -163,8 +165,8 @@ const Index = () => {
     <div className="min-h-screen">
       {/* SEO Meta 標籤 */}
       <SEOHead
-        title={`${data.info.name} - 山林中的日式豪華住宿體驗`}
-        description={data.info.description || "體驗山林中的寧靜時光，融合日式美學與自然的完美住宿空間。提供一泊二食、管家服務，打造專屬的度假體驗。"}
+        title={data.info.og_title || `${data.info.name} - 山林中的日式豪華住宿體驗`}
+        description={data.info.og_description || data.info.description || "體驗山林中的寧靜時光，融合日式美學與自然的完美住宿空間。提供一泊二食、管家服務，打造專屬的度假體驗。"}
         keywords={[
           data.info.name,
           "豪華露營",

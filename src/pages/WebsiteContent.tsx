@@ -365,6 +365,8 @@ const WebsiteContent = () => {
     tiktok_url: "",
     header_logo_url: "",
     footer_logo_url: "",
+    og_title: "",
+    og_description: "",
     og_image_url: "",
     website_url: ""
   });
@@ -461,7 +463,7 @@ const WebsiteContent = () => {
         // 獲取 accommodation ID 和基本資料
         const { data: infoData } = await supabase
           .from("accommodation_info")
-          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url, og_image_url, website_url")
+          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url, og_title, og_description, og_image_url, website_url")
           .maybeSingle();
 
         if (infoData) {
@@ -482,6 +484,8 @@ const WebsiteContent = () => {
             tiktok_url: infoData.tiktok_url || "",
             header_logo_url: infoData.header_logo_url || "",
             footer_logo_url: infoData.footer_logo_url || "",
+            og_title: infoData.og_title || "",
+            og_description: infoData.og_description || "",
             og_image_url: infoData.og_image_url || "",
             website_url: infoData.website_url || ""
           });
@@ -1372,6 +1376,8 @@ const WebsiteContent = () => {
           tiktok_url: basicInfo.tiktok_url,
           header_logo_url: basicInfo.header_logo_url,
           footer_logo_url: basicInfo.footer_logo_url,
+          og_title: basicInfo.og_title,
+          og_description: basicInfo.og_description,
           og_image_url: basicInfo.og_image_url
         })
         .eq("id", accommodationId);
@@ -2223,6 +2229,37 @@ const WebsiteContent = () => {
                 </p>
               </div>
 
+              {/* 社群媒體分享標題 */}
+              <div className="space-y-2">
+                <Label htmlFor="og-title">社群媒體分享標題</Label>
+                <Input
+                  id="og-title"
+                  value={basicInfo.og_title}
+                  onChange={(e) => setBasicInfo(prev => ({ ...prev, og_title: e.target.value }))}
+                  placeholder="例如：山林秘境民宿 - 享受自然寧靜時光"
+                  maxLength={60}
+                />
+                <p className="text-sm text-muted-foreground">
+                  當網站連結在社群媒體分享時顯示的標題（建議 60 字元以內）
+                </p>
+              </div>
+
+              {/* 社群媒體分享描述 */}
+              <div className="space-y-2">
+                <Label htmlFor="og-description">社群媒體分享描述</Label>
+                <Textarea
+                  id="og-description"
+                  value={basicInfo.og_description}
+                  onChange={(e) => setBasicInfo(prev => ({ ...prev, og_description: e.target.value }))}
+                  placeholder="例如：體驗山林中的寧靜時光，融合日式美學與自然的完美住宿空間。"
+                  maxLength={160}
+                  rows={3}
+                />
+                <p className="text-sm text-muted-foreground">
+                  當網站連結在社群媒體分享時顯示的描述（建議 160 字元以內）
+                </p>
+              </div>
+
               {/* 社群分享縮圖 */}
               <div className="space-y-2">
                 <Label>社群分享縮圖 (OG Image)</Label>
@@ -2279,8 +2316,8 @@ const WebsiteContent = () => {
                 {/* 社群媒體預覽 */}
                 {basicInfo.og_image_url && (
                   <OgImagePreview
-                    title={basicInfo.name || "您的住宿名稱"}
-                    description={basicInfo.description || "體驗山林中的寧靜時光，融合日式美學與自然的完美住宿空間。"}
+                    title={basicInfo.og_title || basicInfo.name || "您的住宿名稱"}
+                    description={basicInfo.og_description || basicInfo.description || "體驗山林中的寧靜時光，融合日式美學與自然的完美住宿空間。"}
                     imageUrl={basicInfo.og_image_url}
                     url={basicInfo.website_url}
                   />
