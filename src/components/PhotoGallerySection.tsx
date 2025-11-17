@@ -148,11 +148,15 @@ const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
                   src={photo.photo_url}
                   alt={`相簿照片 ${globalIndex + 1} - 森山寫照住宿環境`}
                   className="w-full h-full object-cover transition-all duration-500 group-hover:scale-110"
-                  width={isLarge ? "600" : "300"}
-                  height={isLarge ? "600" : "300"}
-                  sizes={isLarge ? "(max-width: 768px) 100vw, 50vw" : "(max-width: 768px) 50vw, 16vw"}
+                  width={isLarge ? "800" : "400"}
+                  height={isLarge ? "800" : "400"}
+                  sizes={isLarge 
+                    ? "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" 
+                    : "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
+                  }
                   priority={index < 2} // 前兩張優先載入
                   blurDataURL={blurDataURLs.get(photo.photo_url)}
+                  responsive={true}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 <div className="absolute inset-0 ring-2 ring-primary/0 group-hover:ring-primary/50 transition-all duration-300 rounded-lg md:rounded-xl" />
