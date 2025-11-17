@@ -221,7 +221,7 @@ export const WebInfoSection = ({
               type="button"
               variant="outline"
               onClick={() => document.getElementById('hero-photo-upload')?.click()}
-              disabled={uploadingHeroPhoto || heroPhotos.length >= 10}
+              disabled={uploadingHeroPhoto || heroPhotos.length >= 5}
               className="flex items-center gap-2"
             >
               <Upload className="h-4 w-4" />
@@ -235,7 +235,7 @@ export const WebInfoSection = ({
               className="hidden"
             />
             <span className="text-sm text-muted-foreground">
-              已上傳 {heroPhotos.length}/10 張
+              已上傳 {heroPhotos.length}/5 張
             </span>
           </div>
           
