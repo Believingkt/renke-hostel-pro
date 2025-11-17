@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Upload, Info, Trash2, GripVertical } from "lucide-react";
+import { Upload, Info, Trash2, GripVertical, Pencil } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -60,7 +60,7 @@ const SortablePhoto = ({ photo, onDelete, onEdit }: SortablePhotoProps) => {
   return (
     <div ref={setNodeRef} style={style} className="relative group">
       <div 
-        className="aspect-video rounded-lg overflow-hidden border bg-muted cursor-pointer"
+        className="aspect-video rounded-lg overflow-hidden border bg-muted cursor-pointer hover:border-primary/50 transition-colors"
         onClick={() => onEdit(photo)}
       >
         <img
@@ -69,6 +69,12 @@ const SortablePhoto = ({ photo, onDelete, onEdit }: SortablePhotoProps) => {
           className="w-full h-full object-cover"
           loading="lazy"
         />
+        {/* 編輯提示圖標 - 中心位置 */}
+        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="bg-background rounded-full p-3">
+            <Pencil className="h-6 w-6 text-foreground" />
+          </div>
+        </div>
       </div>
       <div
         {...attributes}
