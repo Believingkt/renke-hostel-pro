@@ -109,7 +109,7 @@ export const HeaderFooterSection = ({
     <Card>
       <CardHeader>
         <CardTitle>網頁資訊</CardTitle>
-        <CardDescription>設定網站頁首和頁尾顯示的資訊</CardDescription>
+        <CardDescription>設定網站名稱、頁首/頁尾 Logo 和聯絡資訊</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* 瀏覽器標題名稱 */}
