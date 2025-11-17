@@ -179,7 +179,7 @@ export const WebInfoSection = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>網頁資訊</CardTitle>
+        <CardTitle>輪播圖設定</CardTitle>
         <CardDescription>設定網站的基本顯示資訊</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
