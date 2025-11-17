@@ -362,10 +362,12 @@ const WebsiteContent = () => {
     youtube_url: "",
     tiktok_url: "",
     header_logo_url: "",
-    footer_logo_url: ""
+    footer_logo_url: "",
+    og_image_url: ""
   });
   const [uploadingHeaderLogo, setUploadingHeaderLogo] = useState(false);
   const [uploadingFooterLogo, setUploadingFooterLogo] = useState(false);
+  const [uploadingOgImage, setUploadingOgImage] = useState(false);
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
   const [cropImageSrc, setCropImageSrc] = useState("");
   const [cropLogoType, setCropLogoType] = useState<'header' | 'footer'>('header');
@@ -454,7 +456,7 @@ const WebsiteContent = () => {
         // 獲取 accommodation ID 和基本資料
         const { data: infoData } = await supabase
           .from("accommodation_info")
-          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url")
+          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url, og_image_url")
           .maybeSingle();
 
         if (infoData) {
@@ -474,7 +476,8 @@ const WebsiteContent = () => {
             youtube_url: infoData.youtube_url || "",
             tiktok_url: infoData.tiktok_url || "",
             header_logo_url: infoData.header_logo_url || "",
-            footer_logo_url: infoData.footer_logo_url || ""
+            footer_logo_url: infoData.footer_logo_url || "",
+            og_image_url: infoData.og_image_url || ""
           });
 
           // 加載現有設施
@@ -1138,6 +1141,93 @@ const WebsiteContent = () => {
     }
   };
 
+  const handleOgImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !accommodationId) return;
+
+    // 驗證文件大小（5MB = 5 * 1024 * 1024 bytes）
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error(`文件大小超過限制！請上傳小於 5MB 的圖片。\n當前文件大小：${(file.size / 1024 / 1024).toFixed(2)} MB`);
+      event.target.value = '';
+      return;
+    }
+
+    // 驗證文件格式
+    const validFormats = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+    if (!validFormats.includes(file.type)) {
+      toast.error('不支援的文件格式！請上傳 PNG、JPG、JPEG 或 WEBP 格式的圖片。');
+      event.target.value = '';
+      return;
+    }
+
+    setUploadingOgImage(true);
+
+    try {
+      // 生成唯一檔案名
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${accommodationId}/og-image-${Date.now()}.${fileExt}`;
+
+      // 上傳到 Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('og-images')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true,
+          contentType: file.type
+        });
+
+      if (uploadError) throw uploadError;
+
+      // 獲取公開 URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('og-images')
+        .getPublicUrl(fileName);
+
+      // 更新狀態
+      setBasicInfo(prev => ({ ...prev, og_image_url: publicUrl }));
+
+      toast.success('社群分享縮圖已上傳');
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error uploading OG image:', error);
+      }
+      toast.error('上傳失敗，請稍後再試');
+    } finally {
+      setUploadingOgImage(false);
+      event.target.value = '';
+    }
+  };
+
+  const handleDeleteOgImage = async () => {
+    if (!accommodationId || !basicInfo.og_image_url) return;
+
+    try {
+      // 從 URL 提取文件路徑
+      const urlParts = basicInfo.og_image_url.split('/og-images/');
+      if (urlParts.length > 1) {
+        const filePath = urlParts[1];
+        
+        // 從 Storage 刪除文件
+        const { error: deleteError } = await supabase.storage
+          .from('og-images')
+          .remove([filePath]);
+
+        if (deleteError) throw deleteError;
+      }
+
+      // 更新狀態
+      setBasicInfo(prev => ({ ...prev, og_image_url: '' }));
+
+      toast.success('社群分享縮圖已刪除');
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error deleting OG image:', error);
+      }
+      toast.error('刪除失敗，請稍後再試');
+    }
+  };
+
   const handleSaveBasicInfo = async () => {
     if (!accommodationId) return;
     
@@ -1158,7 +1248,8 @@ const WebsiteContent = () => {
           youtube_url: basicInfo.youtube_url,
           tiktok_url: basicInfo.tiktok_url,
           header_logo_url: basicInfo.header_logo_url,
-          footer_logo_url: basicInfo.footer_logo_url
+          footer_logo_url: basicInfo.footer_logo_url,
+          og_image_url: basicInfo.og_image_url
         })
         .eq("id", accommodationId);
 
@@ -2006,6 +2097,53 @@ const WebsiteContent = () => {
                 </div>
                 <p className="text-sm text-muted-foreground">
                   建議尺寸：200x60 像素，支援 PNG、JPG 格式（透明背景請使用 PNG）
+                </p>
+              </div>
+
+              {/* 社群分享縮圖 */}
+              <div className="space-y-2">
+                <Label>社群分享縮圖 (OG Image)</Label>
+                <div className="flex items-center gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById('og-image-upload')?.click()}
+                    disabled={uploadingOgImage}
+                    className="flex items-center gap-2"
+                  >
+                    <Upload className="h-4 w-4" />
+                    {uploadingOgImage ? "上傳中..." : "上傳縮圖"}
+                  </Button>
+                  <input
+                    id="og-image-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleOgImageUpload}
+                    className="hidden"
+                  />
+                  {basicInfo.og_image_url && (
+                    <div className="flex items-center gap-2">
+                      <div className="relative w-48 h-24 border rounded overflow-hidden">
+                        <img 
+                          src={basicInfo.og_image_url} 
+                          alt="社群分享縮圖" 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={handleDeleteOgImage}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  建議尺寸：1200x630 像素，用於社群媒體（Facebook、LINE、Twitter等）分享時的預覽圖
                 </p>
               </div>
 
