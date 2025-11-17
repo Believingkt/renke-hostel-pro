@@ -45,16 +45,21 @@ const fetchDashboardData = async (
   customDateRange?: { from: Date; to: Date }
 ): Promise<DashboardData> => {
   const now = new Date();
+  const currentYear = now.getFullYear();
   
-  // 如果有自定義日期範圍，使用它；否則使用預設的最近 13 個月
+  // 如果有自定義日期範圍，使用它；否則根據比較模式決定範圍
   let startDate: Date;
   let endDate: Date;
   
   if (customDateRange?.from && customDateRange?.to) {
     startDate = customDateRange.from;
     endDate = customDateRange.to;
+  } else if (comparisonMode === 'lastYear') {
+    // 與去年對比：查詢去年和今年的完整年度數據
+    startDate = new Date(currentYear - 1, 0, 1); // 去年1月1日
+    endDate = new Date(currentYear, 11, 31, 23, 59, 59); // 今年12月31日
   } else {
-    // 計算查詢範圍：最近 13 個月（包含去年同期數據）
+    // 與上月對比：最近 13 個月
     startDate = subMonths(now, 13);
     endDate = now;
   }
@@ -166,8 +171,37 @@ const fetchDashboardData = async (
       
       currentDate = new Date(currentDate.setMonth(currentDate.getMonth() + 1));
     }
+  } else if (comparisonMode === 'lastYear') {
+    // 與去年對比：生成當年1-12月的完整數據
+    const currentYear = now.getFullYear();
+    for (let month = 0; month < 12; month++) {
+      const monthDate = new Date(currentYear, month, 1);
+      const monthKey = format(monthDate, 'yyyy-MM');
+      const lastYearMonthKey = format(new Date(currentYear - 1, month, 1), 'yyyy-MM');
+      const monthLabel = format(monthDate, 'MM月');
+      
+      const monthOrders = ordersByMonth.get(monthKey) || [];
+      const lastYearOrders = ordersByMonth.get(lastYearMonthKey) || [];
+      
+      const revenue = monthOrders.reduce((sum, o) => {
+        const price = Number(o.final_price);
+        return sum + (Number.isFinite(price) ? price : 0);
+      }, 0);
+      const lastYearRevenue = lastYearOrders.reduce((sum, o) => {
+        const price = Number(o.final_price);
+        return sum + (Number.isFinite(price) ? price : 0);
+      }, 0);
+      
+      monthlyData.push({
+        month: monthLabel,
+        revenue: Number.isFinite(revenue) ? revenue : 0,
+        bookings: monthOrders.length,
+        lastYearRevenue: Number.isFinite(lastYearRevenue) ? lastYearRevenue : 0,
+        lastYearBookings: lastYearOrders.length,
+      });
+    }
   } else {
-    // 預設：生成過去12個月的圖表數據
+    // 與上月對比：生成過去12個月的圖表數據
     for (let i = 11; i >= 0; i--) {
       const monthDate = subMonths(now, i);
       const monthKey = format(monthDate, 'yyyy-MM');
