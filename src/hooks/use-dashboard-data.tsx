@@ -25,6 +25,7 @@ interface ChartData {
   本月?: number;
   上月?: number;
   本期?: number;
+  isFuture?: boolean;
 }
 
 interface OccupancyData {
@@ -174,11 +175,14 @@ const fetchDashboardData = async (
   } else if (comparisonMode === 'lastYear') {
     // 與去年對比：生成當年1-12月的完整數據
     const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth(); // 0-11
+    
     for (let month = 0; month < 12; month++) {
       const monthDate = new Date(currentYear, month, 1);
       const monthKey = format(monthDate, 'yyyy-MM');
       const lastYearMonthKey = format(new Date(currentYear - 1, month, 1), 'yyyy-MM');
       const monthLabel = format(monthDate, 'MM月');
+      const isFuture = month > currentMonth; // 標記未來月份
       
       const monthOrders = ordersByMonth.get(monthKey) || [];
       const lastYearOrders = ordersByMonth.get(lastYearMonthKey) || [];
@@ -198,6 +202,7 @@ const fetchDashboardData = async (
         bookings: monthOrders.length,
         lastYearRevenue: Number.isFinite(lastYearRevenue) ? lastYearRevenue : 0,
         lastYearBookings: lastYearOrders.length,
+        isFuture,
       });
     }
   } else {
@@ -322,12 +327,14 @@ const fetchDashboardData = async (
     revenueData = monthlyData.map(m => ({ 
       month: m.month, 
       "今年": Number.isFinite(m.revenue) ? m.revenue : 0,
-      "去年": Number.isFinite(m.lastYearRevenue) ? m.lastYearRevenue : 0
+      "去年": Number.isFinite(m.lastYearRevenue) ? m.lastYearRevenue : 0,
+      isFuture: m.isFuture
     }));
     bookingData = monthlyData.map(m => ({ 
       month: m.month, 
       "今年": m.bookings || 0,
-      "去年": m.lastYearBookings || 0
+      "去年": m.lastYearBookings || 0,
+      isFuture: m.isFuture
     }));
   } else {
     revenueData = lastMonthData.map(m => ({ 

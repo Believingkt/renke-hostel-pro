@@ -11,6 +11,7 @@ interface BookingTrendsChartProps {
     本月?: number;
     上月?: number;
     本期?: number;
+    isFuture?: boolean;
   }>;
   comparisonMode: 'lastYear' | 'lastMonth';
   isCustomRange?: boolean;
@@ -120,18 +121,37 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                   dataKey={category}
                   stroke={index === 0 ? "hsl(var(--chart-booking-primary))" : "hsl(var(--chart-booking-secondary))"}
                   strokeWidth={3}
-                  dot={{ 
-                    r: 5, 
-                    cursor: 'pointer',
-                    strokeWidth: 2,
-                    fill: 'hsl(var(--background))',
-                    className: 'transition-all duration-200'
+                  dot={(props: any) => {
+                    const { cx, cy, payload } = props;
+                    return (
+                      <circle
+                        cx={cx}
+                        cy={cy}
+                        r={5}
+                        fill="hsl(var(--background))"
+                        stroke={index === 0 ? "hsl(var(--chart-booking-primary))" : "hsl(var(--chart-booking-secondary))"}
+                        strokeWidth={2}
+                        opacity={payload.isFuture ? 0.3 : 1}
+                        style={{ cursor: 'pointer', transition: 'all 0.2s' }}
+                        onClick={() => handleDotClick(payload)}
+                      />
+                    );
                   }}
-                  activeDot={{ 
-                    r: 8, 
-                    onClick: handleDotClick,
-                    strokeWidth: 3,
-                    className: 'cursor-pointer hover:scale-110 transition-transform'
+                  activeDot={(props: any) => {
+                    const { cx, cy, payload } = props;
+                    return (
+                      <circle
+                        cx={cx}
+                        cy={cy}
+                        r={8}
+                        fill="hsl(var(--background))"
+                        stroke={index === 0 ? "hsl(var(--chart-booking-primary))" : "hsl(var(--chart-booking-secondary))"}
+                        strokeWidth={3}
+                        opacity={payload.isFuture ? 0.3 : 1}
+                        style={{ cursor: 'pointer', transition: 'all 0.2s' }}
+                        onClick={() => handleDotClick(payload)}
+                      />
+                    );
                   }}
                   connectNulls
                   animationDuration={1000}

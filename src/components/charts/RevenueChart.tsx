@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Cell } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -11,6 +11,7 @@ interface RevenueChartProps {
     本月?: number;
     上月?: number;
     本期?: number;
+    isFuture?: boolean;
   }>;
   comparisonMode: 'lastYear' | 'lastMonth';
   isCustomRange?: boolean;
@@ -165,7 +166,14 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
                     stroke: 'hsl(var(--foreground))',
                   }}
                   className="transition-all duration-200 hover:opacity-80"
-                />
+                >
+                  {data.map((entry, entryIndex) => (
+                    <Cell 
+                      key={`cell-${entryIndex}`}
+                      opacity={entry.isFuture ? 0.3 : 1}
+                    />
+                  ))}
+                </Bar>
               ))}
             </BarChart>
           </ResponsiveContainer>
