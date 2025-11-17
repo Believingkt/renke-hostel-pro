@@ -406,19 +406,12 @@ const Dashboard = () => {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg font-semibold">營收統計</CardTitle>
-              <span className="text-xs text-muted-foreground">
-                {customDateRange ? '自訂期間' : comparisonMode === 'lastYear' ? '年度對比' : '月度對比'}
-              </span>
+              <CardTitle className="text-lg font-semibold">房型入住率</CardTitle>
+              <span className="text-xs text-muted-foreground">過去 30 天</span>
             </div>
           </CardHeader>
           <CardContent>
-            <RevenueChart 
-              key={`revenue-${comparisonMode}-${customDateRange ? 'custom' : 'standard'}`}
-              data={finalRevenueData}
-              comparisonMode={comparisonMode}
-              isCustomRange={!!customDateRange}
-            />
+            <OccupancyChart data={finalOccupancyData} />
           </CardContent>
         </Card>
 
@@ -445,12 +438,19 @@ const Dashboard = () => {
       <Card className="px-2 md:px-0">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold">房型入住率</CardTitle>
-            <span className="text-xs text-muted-foreground">過去 30 天</span>
+            <CardTitle className="text-lg font-semibold">營收統計</CardTitle>
+            <span className="text-xs text-muted-foreground">
+              {customDateRange ? '自訂期間' : comparisonMode === 'lastYear' ? '年度對比' : '月度對比'}
+            </span>
           </div>
         </CardHeader>
         <CardContent>
-          <OccupancyChart data={finalOccupancyData} />
+          <RevenueChart 
+            key={`revenue-${comparisonMode}-${customDateRange ? 'custom' : 'standard'}`}
+            data={finalRevenueData}
+            comparisonMode={comparisonMode}
+            isCustomRange={!!customDateRange}
+          />
         </CardContent>
       </Card>
     </div>
