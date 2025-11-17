@@ -44,7 +44,7 @@ export const OccupancyChart = ({ data }: OccupancyChartProps) => {
   return (
     <>
       <div className="animate-fade-in px-1 py-2 sm:px-2 sm:py-4">
-        <ChartContainer config={chartConfig} className="h-[200px] sm:h-[240px] md:h-[280px] w-full">
+        <ChartContainer config={chartConfig} className="h-[180px] sm:h-[220px] md:h-[260px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart 
               data={data} 
