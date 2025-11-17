@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Cell } from "recharts";
-import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
+import { ChartContainer, ChartTooltip, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { CustomChartTooltip } from "./CustomChartTooltip";
 
 interface RevenueChartProps {
   data: Array<{
@@ -135,8 +136,13 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
                 tickLine={false}
               />
               <ChartTooltip 
-                content={<ChartTooltipContent className="rounded-lg shadow-lg" />}
-                formatter={(value: number) => [valueFormatter(value)]}
+                content={
+                  <CustomChartTooltip 
+                    valueFormatter={valueFormatter}
+                    comparisonMode={comparisonMode}
+                    isCustomRange={isCustomRange}
+                  />
+                }
                 cursor={{ fill: 'hsl(var(--muted)/0.3)', radius: 4 }}
               />
               {!isCustomRange && (

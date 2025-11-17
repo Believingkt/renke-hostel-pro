@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
-import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
+import { ChartContainer, ChartTooltip, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { CustomChartTooltip } from "./CustomChartTooltip";
 
 interface BookingTrendsChartProps {
   data: Array<{
@@ -109,8 +110,13 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                 tickLine={false}
               />
               <ChartTooltip 
-                content={<ChartTooltipContent className="rounded-lg shadow-lg" />}
-                formatter={(value: number) => [`${value} 筆`]}
+                content={
+                  <CustomChartTooltip 
+                    valueFormatter={(value: number) => `${value} 筆`}
+                    comparisonMode={comparisonMode}
+                    isCustomRange={isCustomRange}
+                  />
+                }
                 cursor={{ stroke: 'hsl(var(--muted))', strokeWidth: 1 }}
               />
               {!isCustomRange && <ChartLegend content={<ChartLegendContent />} />}
