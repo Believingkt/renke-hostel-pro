@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 
 interface HeroPhotoEditDialogProps {
   open: boolean;
@@ -20,6 +21,7 @@ interface HeroPhotoEditDialogProps {
     text_size?: string | null;
     text_position_x?: string | null;
     text_position_y?: string | null;
+    overlay_opacity?: number | null;
   } | null;
   onSave: (photoId: string, data: {
     title: string;
@@ -30,6 +32,7 @@ interface HeroPhotoEditDialogProps {
     text_size: string;
     text_position_x: string;
     text_position_y: string;
+    overlay_opacity: number;
   }) => Promise<void>;
 }
 
@@ -42,6 +45,7 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
   const [textSize, setTextSize] = useState("medium");
   const [textPositionX, setTextPositionX] = useState("center");
   const [textPositionY, setTextPositionY] = useState("center");
+  const [overlayOpacity, setOverlayOpacity] = useState(40);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -54,6 +58,7 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
       setTextSize(photo.text_size || "medium");
       setTextPositionX(photo.text_position_x || "center");
       setTextPositionY(photo.text_position_y || "center");
+      setOverlayOpacity(photo.overlay_opacity ?? 40);
     }
   }, [photo]);
 
@@ -71,6 +76,7 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
         text_size: textSize,
         text_position_x: textPositionX,
         text_position_y: textPositionY,
+        overlay_opacity: overlayOpacity,
       });
       onOpenChange(false);
     } finally {
@@ -219,6 +225,26 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
                 <SelectItem value="bottom">下</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          {/* 背景遮罩透明度 */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="overlay-opacity">背景遮罩透明度</Label>
+              <span className="text-sm text-muted-foreground">{overlayOpacity}%</span>
+            </div>
+            <Slider
+              id="overlay-opacity"
+              min={0}
+              max={100}
+              step={5}
+              value={[overlayOpacity]}
+              onValueChange={(value) => setOverlayOpacity(value[0])}
+              className="w-full"
+            />
+            <p className="text-sm text-muted-foreground">
+              調整圖片暗化效果強度（0% = 無遮罩，100% = 完全黑色）
+            </p>
           </div>
         </div>
 
