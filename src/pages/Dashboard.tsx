@@ -31,10 +31,7 @@ const Dashboard = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [testDataCount, setTestDataCount] = useState(20);
   const [useLastYear, setUseLastYear] = useState(false);
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => ({
-    from: startOfYear(new Date()),
-    to: endOfYear(new Date())
-  }));
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   
   // 將 DateRange 轉換為 hook 需要的格式
   const customDateRange = dateRange?.from && dateRange?.to 
@@ -305,24 +302,30 @@ const Dashboard = () => {
           </Popover>
           <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
             <button
-              onClick={() => setComparisonMode('lastYear')}
+              onClick={() => {
+                setComparisonMode('lastYear');
+                setDateRange(undefined); // 清除自定義日期範圍
+              }}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-300 ${
                 comparisonMode === 'lastYear'
                   ? 'bg-background text-foreground shadow-sm scale-105'
                   : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
               }`}
             >
-              去年同期
+              與去年對比
             </button>
             <button
-              onClick={() => setComparisonMode('lastMonth')}
+              onClick={() => {
+                setComparisonMode('lastMonth');
+                setDateRange(undefined); // 清除自定義日期範圍
+              }}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-300 ${
                 comparisonMode === 'lastMonth'
                   ? 'bg-background text-foreground shadow-sm scale-105'
                   : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
               }`}
             >
-              上月對比
+              與上月對比
             </button>
           </div>
           <Badge 
