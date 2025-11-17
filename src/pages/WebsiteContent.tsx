@@ -375,7 +375,8 @@ const WebsiteContent = () => {
     og_image_url: "",
     website_url: "",
     hero_main_title: "",
-    hero_subtitle: ""
+    hero_subtitle: "",
+    hero_description: ""
   });
   const [uploadingHeaderLogo, setUploadingHeaderLogo] = useState(false);
   const [uploadingFooterLogo, setUploadingFooterLogo] = useState(false);
@@ -469,7 +470,7 @@ const WebsiteContent = () => {
       // 獲取 accommodation ID 和基本資料
       const { data: infoData } = await supabase
         .from("accommodation_info")
-        .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url, og_title, og_description, og_image_url, website_url, hero_main_title, hero_subtitle")
+        .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url, og_title, og_description, og_image_url, website_url, hero_main_title, hero_subtitle, hero_description")
         .maybeSingle();
 
       if (infoData) {
@@ -495,7 +496,8 @@ const WebsiteContent = () => {
           og_image_url: infoData.og_image_url || "",
           website_url: infoData.website_url || "",
           hero_main_title: infoData.hero_main_title || "",
-          hero_subtitle: infoData.hero_subtitle || ""
+          hero_subtitle: infoData.hero_subtitle || "",
+          hero_description: infoData.hero_description || ""
         });
 
         // 更新瀏覽器標題
@@ -1970,6 +1972,7 @@ const WebsiteContent = () => {
             name={basicInfo.name}
             heroMainTitle={basicInfo.hero_main_title}
             heroSubtitle={basicInfo.hero_subtitle}
+            heroDescription={basicInfo.hero_description}
             heroPhotos={heroPhotos}
             onUpdate={loadData}
           />
