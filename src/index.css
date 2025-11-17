@@ -73,10 +73,10 @@ All colors MUST be HSL.
     --chart-4: 45 93% 58%;
     --chart-5: 271 81% 56%;
 
-    /* 圖表語義化顏色 - 營收圖表（藍色系）*/
-    --chart-revenue-primary: 217 91% 60%;
-    --chart-revenue-secondary: 203 89% 53%;
-    --chart-revenue-bg: 217 91% 95%;
+    /* 圖表語義化顏色 - 營收圖表（寶藍湖水綠系）*/
+    --chart-revenue-primary: 220 85% 55%;
+    --chart-revenue-secondary: 180 70% 50%;
+    --chart-revenue-bg: 220 85% 95%;
     
     /* 圖表語義化顏色 - 訂單趨勢（紅色橘色系）*/
     --chart-booking-primary: 0 80% 60%;
@@ -155,10 +155,10 @@ All colors MUST be HSL.
     --chart-4: 45 93% 58%;
     --chart-5: 271 81% 56%;
 
-    /* 圖表語義化顏色 - 營收圖表（藍色系）*/
-    --chart-revenue-primary: 217 91% 60%;
-    --chart-revenue-secondary: 203 89% 53%;
-    --chart-revenue-bg: 217 91% 95%;
+    /* 圖表語義化顏色 - 營收圖表（寶藍湖水綠系）*/
+    --chart-revenue-primary: 220 85% 55%;
+    --chart-revenue-secondary: 180 70% 50%;
+    --chart-revenue-bg: 220 85% 95%;
     
     /* 圖表語義化顏色 - 訂單趨勢（紅色橘色系）*/
     --chart-booking-primary: 0 80% 60%;
