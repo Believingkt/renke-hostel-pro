@@ -10,13 +10,24 @@ import { toast } from "sonner";
 interface WebInfoSectionProps {
   accommodationId: string;
   name: string;
+  heroMainTitle: string;
+  heroSubtitle: string;
   heroPhotos: any[];
   onUpdate: () => void;
 }
 
-export const WebInfoSection = ({ accommodationId, name, heroPhotos, onUpdate }: WebInfoSectionProps) => {
+export const WebInfoSection = ({ 
+  accommodationId, 
+  name, 
+  heroMainTitle, 
+  heroSubtitle,
+  heroPhotos, 
+  onUpdate 
+}: WebInfoSectionProps) => {
   const [isSaving, setIsSaving] = useState(false);
   const [browserTitle, setBrowserTitle] = useState(name);
+  const [mainTitle, setMainTitle] = useState(heroMainTitle);
+  const [subtitle, setSubtitle] = useState(heroSubtitle);
 
   const handleSave = async () => {
     if (!accommodationId) return;
@@ -25,7 +36,11 @@ export const WebInfoSection = ({ accommodationId, name, heroPhotos, onUpdate }: 
     try {
       const { error } = await supabase
         .from("accommodation_info")
-        .update({ name: browserTitle })
+        .update({ 
+          name: browserTitle,
+          hero_main_title: mainTitle,
+          hero_subtitle: subtitle
+        })
         .eq("id", accommodationId);
 
       if (error) throw error;
@@ -92,6 +107,34 @@ export const WebInfoSection = ({ accommodationId, name, heroPhotos, onUpdate }: 
           <div className="text-sm text-muted-foreground mt-2">
             已上傳 {heroPhotos.length} 張圖片（在「相片管理」頁籤中管理）
           </div>
+        </div>
+
+        {/* 輪播圖主標題文字 */}
+        <div className="space-y-2">
+          <Label htmlFor="hero-main-title">輪播圖主標題</Label>
+          <Input
+            id="hero-main-title"
+            value={mainTitle}
+            onChange={(e) => setMainTitle(e.target.value)}
+            placeholder="例如：山間的寧靜時光"
+          />
+          <p className="text-sm text-muted-foreground">
+            顯示在首頁輪播圖的主標題文字
+          </p>
+        </div>
+
+        {/* 輪播圖副標題文字 */}
+        <div className="space-y-2">
+          <Label htmlFor="hero-subtitle">輪播圖副標題</Label>
+          <Input
+            id="hero-subtitle"
+            value={subtitle}
+            onChange={(e) => setSubtitle(e.target.value)}
+            placeholder="例如：體驗日式美學與自然的完美融合"
+          />
+          <p className="text-sm text-muted-foreground">
+            顯示在首頁輪播圖的副標題文字
+          </p>
         </div>
 
         <Button onClick={handleSave} disabled={isSaving}>
