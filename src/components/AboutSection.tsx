@@ -118,7 +118,7 @@ const AboutSection = ({ description, accommodationId }: AboutSectionProps) => {
                   <CardContent className="p-5 md:p-6 lg:p-8 text-center">
                     <div className="w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 mx-auto mb-3 md:mb-4 lg:mb-6 rounded-full bg-primary/10 flex items-center justify-center">
                       {item.icon_type === 'custom' && item.icon_url ? (
-                        <img src={item.icon_url} alt={item.title} className="h-8 w-8 md:h-10 md:w-10 lg:h-12 lg:w-12 object-contain" />
+                        <img src={item.icon_url} alt={item.title} className="h-8 w-8 md:h-10 md:w-10 lg:h-12 lg:w-12 object-contain" loading="lazy" />
                       ) : (
                         <Icon className="h-8 w-8 md:h-10 md:w-10 lg:h-12 lg:w-12 text-primary" strokeWidth={1.5} />
                       )}
