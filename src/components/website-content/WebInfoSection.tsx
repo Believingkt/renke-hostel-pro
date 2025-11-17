@@ -176,9 +176,11 @@ export const WebInfoSection = ({
           {/* 輪播圖列表 */}
           {heroPhotos.length > 0 && (
             <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                拖拽圖片可調整輪播順序
-              </p>
+              <div className="flex flex-col gap-1">
+                <p className="text-sm text-muted-foreground">
+                  拖拽圖片可調整輪播順序，點擊圖片可編輯文字內容與顯示效果
+                </p>
+              </div>
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
