@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Upload, Trash2 } from "lucide-react";
+import { Upload, Trash2, Info } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { toast } from "sonner";
 
 interface HeaderFooterSectionProps {
   accommodationId: string;
+  name: string;
   headerLogoUrl: string;
   footerLogoUrl: string;
   address: string;
@@ -29,6 +30,7 @@ interface HeaderFooterSectionProps {
 
 export const HeaderFooterSection = ({
   accommodationId,
+  name,
   headerLogoUrl,
   footerLogoUrl,
   address,
@@ -47,6 +49,7 @@ export const HeaderFooterSection = ({
   uploadingFooterLogo,
 }: HeaderFooterSectionProps) => {
   const [isSaving, setIsSaving] = useState(false);
+  const [browserTitle, setBrowserTitle] = useState(name);
   const [formData, setFormData] = useState({
     address,
     phone,
@@ -60,13 +63,17 @@ export const HeaderFooterSection = ({
   });
 
   const handleSave = async () => {
-    if (!accommodationId) return;
+    if (!accommodationId || !browserTitle.trim()) {
+      toast.error('請填寫瀏覽器標題名稱');
+      return;
+    }
     
     setIsSaving(true);
     try {
       const { error } = await supabase
         .from("accommodation_info")
         .update({
+          name: browserTitle,
           address: formData.address,
           phone: formData.phone,
           email: formData.email,
@@ -80,6 +87,11 @@ export const HeaderFooterSection = ({
         .eq("id", accommodationId);
 
       if (error) throw error;
+
+      // 更新瀏覽器標題
+      if (browserTitle) {
+        document.title = browserTitle;
+      }
 
       toast.success('頁首/頁尾資訊已儲存');
       onUpdate();
@@ -100,6 +112,35 @@ export const HeaderFooterSection = ({
         <CardDescription>設定網站頁首和頁尾顯示的資訊</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* 瀏覽器標題名稱 */}
+        <div className="space-y-2">
+          <Label htmlFor="browser-title">
+            瀏覽器標題名稱 <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            id="browser-title"
+            value={browserTitle}
+            onChange={(e) => setBrowserTitle(e.target.value)}
+            placeholder="例如：山林秘境民宿"
+            required
+            className={browserTitle.length > 70 ? "border-yellow-500 focus-visible:ring-yellow-500" : ""}
+          />
+          <div className="flex items-center justify-between text-sm">
+            <p className={browserTitle.length > 70 ? "text-yellow-600" : "text-muted-foreground"}>
+              顯示在瀏覽器標籤頁上的標題（建議 70 字元以內）
+            </p>
+            <span className={browserTitle.length > 70 ? "text-yellow-600 font-medium" : "text-muted-foreground"}>
+              {browserTitle.length}/70
+            </span>
+          </div>
+          {browserTitle.length > 70 && (
+            <p className="text-sm text-yellow-600 flex items-center gap-1">
+              <Info className="w-4 h-4" />
+              標題過長可能會在瀏覽器標籤中被截斷
+            </p>
+          )}
+        </div>
+
         {/* 頁首 Logo */}
         <div className="space-y-2">
           <Label>頁首 Logo</Label>
