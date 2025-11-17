@@ -31,6 +31,7 @@ interface AccommodationData {
     threads_url?: string;
     youtube_url?: string;
     tiktok_url?: string;
+    og_image_url?: string;
   };
   roomTypes: any[];
   bookingSettings: any;
@@ -50,7 +51,7 @@ const Index = () => {
       try {
         const { data: infoData } = await supabase
           .from("accommodation_info")
-          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url")
+          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, og_image_url")
           .eq("id", accommodationId)
           .single();
         
@@ -176,6 +177,7 @@ const Index = () => {
           data.info.address.includes("南投") ? "南投住宿" : "台灣住宿",
           data.info.address.includes("南投") ? "南投民宿" : "民宿"
         ]}
+        image={data.info.og_image_url}
       />
       
       {/* 結構化資料 */}
