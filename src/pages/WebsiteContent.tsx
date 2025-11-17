@@ -53,6 +53,7 @@ import { TabsSkeleton } from "@/components/skeletons/TabsSkeleton";
 import { LogoCropDialog } from "@/components/LogoCropDialog";
 import { HeroPhotoEditDialog } from "@/components/HeroPhotoEditDialog";
 import { OgImagePreview } from "@/components/OgImagePreview";
+import { OgImageCropDialog } from "@/components/OgImageCropDialog";
 
 // 定義所有設施項目
 const facilitiesData = {
@@ -373,6 +374,8 @@ const WebsiteContent = () => {
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
   const [cropImageSrc, setCropImageSrc] = useState("");
   const [cropLogoType, setCropLogoType] = useState<'header' | 'footer'>('header');
+  const [ogImageCropDialogOpen, setOgImageCropDialogOpen] = useState(false);
+  const [ogImageCropSrc, setOgImageCropSrc] = useState("");
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteLogoType, setDeleteLogoType] = useState<'header' | 'footer' | null>(null);
   
@@ -1148,10 +1151,10 @@ const WebsiteContent = () => {
     const file = event.target.files?.[0];
     if (!file || !accommodationId) return;
 
-    // 驗證文件大小（5MB = 5 * 1024 * 1024 bytes）
-    const maxSize = 5 * 1024 * 1024;
+    // 驗證文件大小（8MB = 8 * 1024 * 1024 bytes）
+    const maxSize = 8 * 1024 * 1024;
     if (file.size > maxSize) {
-      toast.error(`文件大小超過限制！請上傳小於 5MB 的圖片。\n當前文件大小：${(file.size / 1024 / 1024).toFixed(2)} MB`);
+      toast.error(`文件大小超過限制！請上傳小於 8MB 的圖片。\n當前文件大小：${(file.size / 1024 / 1024).toFixed(2)} MB`);
       event.target.value = '';
       return;
     }
@@ -1164,20 +1167,33 @@ const WebsiteContent = () => {
       return;
     }
 
+    // 讀取圖片並顯示裁切對話框
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setOgImageCropSrc(reader.result as string);
+      setOgImageCropDialogOpen(true);
+    };
+    reader.readAsDataURL(file);
+
+    event.target.value = '';
+  };
+
+  const handleOgImageCropComplete = async (croppedImage: Blob) => {
+    if (!accommodationId) return;
+
     setUploadingOgImage(true);
 
     try {
       // 生成唯一檔案名
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${accommodationId}/og-image-${Date.now()}.${fileExt}`;
+      const fileName = `${accommodationId}/og-image-${Date.now()}.jpg`;
 
       // 上傳到 Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('og-images')
-        .upload(fileName, file, {
+        .upload(fileName, croppedImage, {
           cacheControl: '3600',
           upsert: true,
-          contentType: file.type
+          contentType: 'image/jpeg'
         });
 
       if (uploadError) throw uploadError;
@@ -1198,7 +1214,6 @@ const WebsiteContent = () => {
       toast.error('上傳失敗，請稍後再試');
     } finally {
       setUploadingOgImage(false);
-      event.target.value = '';
     }
   };
 
@@ -3035,6 +3050,14 @@ const WebsiteContent = () => {
         imageSrc={cropImageSrc}
         onCropComplete={handleCropComplete}
         logoType={cropLogoType}
+      />
+
+      {/* OG 圖片裁剪對話框 */}
+      <OgImageCropDialog
+        open={ogImageCropDialogOpen}
+        onOpenChange={setOgImageCropDialogOpen}
+        imageSrc={ogImageCropSrc}
+        onCropComplete={handleOgImageCropComplete}
       />
 
       {/* Logo 刪除確認對話框 */}
