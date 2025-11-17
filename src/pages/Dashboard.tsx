@@ -21,7 +21,6 @@ import { DateRange } from "react-day-picker";
 import { RevenueChart } from "@/components/charts/RevenueChart";
 import { BookingTrendsChart } from "@/components/charts/BookingTrendsChart";
 import { OccupancyChart } from "@/components/charts/OccupancyChart";
-import { OrderStatusChart } from "@/components/charts/OrderStatusChart";
 
 const Dashboard = () => {
   const { accommodationId } = useSubdomain();
@@ -186,19 +185,6 @@ const Dashboard = () => {
   });
   
   const safeOccupancyData = occupancyData || [];
-  
-  // Sanitize order status distribution data
-  const safeOrderStatusDistribution = dashboardData?.orderStatusDistribution?.filter(
-    (item): item is { status: string; count: number; label: string } =>
-      item !== null &&
-      typeof item === 'object' &&
-      'status' in item &&
-      'count' in item &&
-      'label' in item &&
-      typeof item.status === 'string' &&
-      typeof item.count === 'number' &&
-      typeof item.label === 'string'
-  ) || [];
   
   // 从数据中提取所有房型名称（排除 'month' 字段）
   const roomTypes = safeOccupancyData.length > 0 
@@ -473,17 +459,6 @@ const Dashboard = () => {
         </CardContent>
       </Card>
 
-      <Card className="px-2 md:px-0">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold">訂單狀態分布</CardTitle>
-            <span className="text-xs text-muted-foreground">各狀態訂單數量統計</span>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <OrderStatusChart data={safeOrderStatusDistribution} />
-        </CardContent>
-      </Card>
     </div>
   );
 

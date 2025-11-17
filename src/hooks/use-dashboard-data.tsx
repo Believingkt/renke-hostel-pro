@@ -34,18 +34,11 @@ interface OccupancyData {
   [roomTypeName: string]: number | string; // 动态的房型名称作为key
 }
 
-export interface OrderStatusData {
-  status: string;
-  count: number;
-  label: string;
-}
-
 interface DashboardData {
   stats: DashboardStats;
   revenueData: ChartData[];
   bookingData: ChartData[];
   occupancyData: OccupancyData[];
-  orderStatusDistribution: OrderStatusData[];
 }
 
 const fetchDashboardData = async (
@@ -439,31 +432,11 @@ const fetchDashboardData = async (
   console.log('Revenue data sample:', revenueData.slice(0, 3));
   console.log('Occupancy data:', occupancyData);
 
-  // Calculate order status distribution
-  const statusOrder = ['pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled'];
-  const statusMap = new Map<string, number>();
-  
-  statusOrder.forEach(status => {
-    statusMap.set(status, 0);
-  });
-
-  ordersData.forEach(order => {
-    const currentCount = statusMap.get(order.order_status) || 0;
-    statusMap.set(order.order_status, currentCount + 1);
-  });
-
-  const orderStatusDistribution: OrderStatusData[] = statusOrder.map(status => ({
-    status,
-    count: statusMap.get(status) || 0,
-    label: getOrderStatusLabel(status)
-  }));
-  
   return {
     stats: finalStats,
     revenueData,
     bookingData,
     occupancyData,
-    orderStatusDistribution,
   };
 };
 
