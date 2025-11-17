@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { calculateOptimalImageSize } from "@/utils/responsiveImageHelper";
+import { getCDNUrl } from "@/utils/cdnHelper";
 
 interface OptimizedImageProps {
   src: string;
@@ -16,6 +17,7 @@ interface OptimizedImageProps {
   onClick?: () => void;
   blurDataURL?: string;
   responsive?: boolean;
+  useCDN?: boolean;
 }
 
 export const OptimizedImage = ({
@@ -32,6 +34,7 @@ export const OptimizedImage = ({
   onClick,
   blurDataURL,
   responsive = true,
+  useCDN = true,
 }: OptimizedImageProps) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInView, setIsInView] = useState(priority);
@@ -40,37 +43,38 @@ export const OptimizedImage = ({
   const imgRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
 
-  // 計算最佳圖片尺寸
+  // 計算最佳圖片尺寸並應用 CDN
   useEffect(() => {
-    if (!responsive || !imgRef.current) return;
+    if (!imgRef.current) return;
 
     const updateOptimalSize = () => {
       const containerWidth = imgRef.current?.offsetWidth || parseInt(width);
-      const optimalWidth = calculateOptimalImageSize(containerWidth);
+      const optimalWidth = responsive ? calculateOptimalImageSize(containerWidth) : parseInt(width);
+      const optimalHeight = responsive ? Math.round((optimalWidth * parseInt(height)) / parseInt(width)) : parseInt(height);
       
-      // 對於本地圖片或非 Supabase 圖片，直接使用原始 URL
-      if (!src.includes('supabase.co/storage')) {
+      // 應用 CDN 轉換
+      if (useCDN) {
+        const cdnUrl = getCDNUrl(src, optimalWidth, optimalHeight, 85, 'auto');
+        setOptimalSrc(cdnUrl);
+      } else {
         setOptimalSrc(src);
-        return;
       }
-      
-      // 這裡可以根據需要添加 Supabase Storage 的圖片轉換參數
-      // 目前直接使用原始 URL，因為 Supabase Storage 的圖片轉換 API 需要特定設置
-      setOptimalSrc(src);
     };
 
     updateOptimalSize();
 
     // 監聽視窗大小變化
-    const resizeObserver = new ResizeObserver(updateOptimalSize);
-    if (imgRef.current) {
-      resizeObserver.observe(imgRef.current);
-    }
+    if (responsive) {
+      const resizeObserver = new ResizeObserver(updateOptimalSize);
+      if (imgRef.current) {
+        resizeObserver.observe(imgRef.current);
+      }
 
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, [src, width, responsive]);
+      return () => {
+        resizeObserver.disconnect();
+      };
+    }
+  }, [src, width, height, responsive, useCDN]);
 
   useEffect(() => {
     if (priority) return; // 優先圖片立即載入
