@@ -35,15 +35,17 @@ interface WebInfoSectionProps {
   onHeroPhotoUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onDeleteHeroPhoto: (photoId: string) => void;
   onHeroPhotoReorder: (newOrder: any[]) => void;
+  onEditHeroPhoto: (photo: any) => void;
   uploadingHeroPhoto: boolean;
 }
 
 interface SortablePhotoProps {
   photo: any;
   onDelete: (photoId: string) => void;
+  onEdit: (photo: any) => void;
 }
 
-const SortablePhoto = ({ photo, onDelete }: SortablePhotoProps) => {
+const SortablePhoto = ({ photo, onDelete, onEdit }: SortablePhotoProps) => {
   const {
     attributes,
     listeners,
@@ -61,7 +63,10 @@ const SortablePhoto = ({ photo, onDelete }: SortablePhotoProps) => {
 
   return (
     <div ref={setNodeRef} style={style} className="relative group">
-      <div className="aspect-video rounded-lg overflow-hidden border bg-muted">
+      <div 
+        className="aspect-video rounded-lg overflow-hidden border bg-muted cursor-pointer"
+        onClick={() => onEdit(photo)}
+      >
         <img
           src={photo.photo_url}
           alt="輪播圖"
@@ -73,6 +78,7 @@ const SortablePhoto = ({ photo, onDelete }: SortablePhotoProps) => {
         {...attributes}
         {...listeners}
         className="absolute top-2 left-2 cursor-move bg-background/80 rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={(e) => e.stopPropagation()}
       >
         <GripVertical className="h-4 w-4 text-muted-foreground" />
       </div>
@@ -81,7 +87,10 @@ const SortablePhoto = ({ photo, onDelete }: SortablePhotoProps) => {
         variant="destructive"
         size="icon"
         className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
-        onClick={() => onDelete(photo.id)}
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete(photo.id);
+        }}
       >
         <Trash2 className="h-4 w-4" />
       </Button>
@@ -105,6 +114,7 @@ export const WebInfoSection = ({
   onHeroPhotoUpload,
   onDeleteHeroPhoto,
   onHeroPhotoReorder,
+  onEditHeroPhoto,
   uploadingHeroPhoto
 }: WebInfoSectionProps) => {
   const [isSaving, setIsSaving] = useState(false);
@@ -256,6 +266,7 @@ export const WebInfoSection = ({
                           key={photo.id}
                           photo={photo}
                           onDelete={onDeleteHeroPhoto}
+                          onEdit={onEditHeroPhoto}
                         />
                       ))}
                   </div>

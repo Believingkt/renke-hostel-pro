@@ -426,7 +426,7 @@ const WebsiteContent = () => {
   const [heroPhotos, setHeroPhotos] = useState<Photo[]>([]);
   const [uploadingHeroPhoto, setUploadingHeroPhoto] = useState(false);
   const [editingHeroPhoto, setEditingHeroPhoto] = useState<Photo | null>(null);
-  const [heroEditDialogOpen, setHeroEditDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const MAX_HERO_PHOTOS = 5;
 
   // Addon plans state
@@ -1650,14 +1650,12 @@ const WebsiteContent = () => {
         console.error('Error reordering hero photos:', error);
       }
       toast.error('更新順序失敗，請稍後再試');
-      // 重新加載資料以恢復原始順序
-      loadData();
     }
   };
 
   const handleEditHeroPhoto = (photo: Photo) => {
     setEditingHeroPhoto(photo);
-    setHeroEditDialogOpen(true);
+    setIsEditDialogOpen(true);
   };
 
   const handleSaveHeroPhotoText = async (photoId: string, data: {
@@ -2009,7 +2007,15 @@ const WebsiteContent = () => {
             onHeroPhotoUpload={handleHeroPhotoUpload}
             onDeleteHeroPhoto={handleDeleteHeroPhoto}
             onHeroPhotoReorder={handleHeroPhotoReorder}
+            onEditHeroPhoto={handleEditHeroPhoto}
             uploadingHeroPhoto={uploadingHeroPhoto}
+          />
+          
+          <HeroPhotoEditDialog
+            open={isEditDialogOpen}
+            onOpenChange={setIsEditDialogOpen}
+            photo={editingHeroPhoto}
+            onSave={handleSaveHeroPhotoText}
           />
 
           <AboutFeaturesSection
@@ -2904,8 +2910,8 @@ const WebsiteContent = () => {
 
       {/* 輪播圖文字編輯對話框 */}
       <HeroPhotoEditDialog
-        open={heroEditDialogOpen}
-        onOpenChange={setHeroEditDialogOpen}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
         photo={editingHeroPhoto}
         onSave={handleSaveHeroPhotoText}
       />
