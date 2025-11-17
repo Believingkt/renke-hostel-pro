@@ -80,28 +80,37 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
             <LineChart 
               data={data} 
               margin={{ 
-                top: 5, 
-                right: 10, 
-                left: 5, 
-                bottom: 5 
+                top: 10, 
+                right: 15, 
+                left: 0, 
+                bottom: 10 
               }}
             >
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <CartesianGrid 
+                strokeDasharray="3 3" 
+                className="stroke-muted/50" 
+                vertical={false}
+              />
               <XAxis 
                 dataKey="month" 
                 className="text-[10px] sm:text-xs"
-                tick={{ fontSize: 10 }}
+                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
                 height={40}
+                axisLine={false}
+                tickLine={false}
               />
               <YAxis 
                 width={50}
                 tickFormatter={(value) => `${value}`}
                 className="text-[10px] sm:text-xs"
-                tick={{ fontSize: 10 }}
+                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                axisLine={false}
+                tickLine={false}
               />
               <ChartTooltip 
-                content={<ChartTooltipContent />}
+                content={<ChartTooltipContent className="rounded-lg shadow-lg" />}
                 formatter={(value: number) => [`${value} 筆`]}
+                cursor={{ stroke: 'hsl(var(--muted))', strokeWidth: 1 }}
               />
               {!isCustomRange && <ChartLegend content={<ChartLegendContent />} />}
               {categories.map((category, index) => (
@@ -110,9 +119,18 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                   type="monotone"
                   dataKey={category}
                   stroke={index === 0 ? "hsl(var(--chart-booking-primary))" : "hsl(var(--chart-booking-secondary))"}
-                  strokeWidth={2.5}
-                  dot={{ r: 4, cursor: 'pointer' }}
-                  activeDot={{ r: 6, onClick: handleDotClick }}
+                  strokeWidth={3}
+                  dot={{ 
+                    r: 4, 
+                    cursor: 'pointer',
+                    strokeWidth: 2,
+                    fill: 'hsl(var(--background))'
+                  }}
+                  activeDot={{ 
+                    r: 6, 
+                    onClick: handleDotClick,
+                    strokeWidth: 2
+                  }}
                   connectNulls
                   animationDuration={1000}
                   animationBegin={index * 100}
