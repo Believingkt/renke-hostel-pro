@@ -108,7 +108,7 @@ export const HeaderFooterSection = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>頁首/頁尾資訊</CardTitle>
+        <CardTitle>網頁資訊</CardTitle>
         <CardDescription>設定網站頁首和頁尾顯示的資訊</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
