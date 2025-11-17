@@ -241,7 +241,12 @@ const HeroSection = ({
                     blurDataURL={blurDataURLs.get(slide.photo_url)}
                     responsive={true}
                   />
-                  <div className="absolute inset-0 bg-black/40 transition-all duration-700">
+                  <div 
+                    className="absolute inset-0 transition-all duration-700"
+                    style={{ 
+                      backgroundColor: `rgba(0, 0, 0, ${(slide.overlay_opacity ?? 40) / 100})`
+                    }}
+                  >
                     <div 
                       className={`
                         space-y-2 md:space-y-4 max-w-4xl px-4 pb-32 md:pb-56

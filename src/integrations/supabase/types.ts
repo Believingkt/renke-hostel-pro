@@ -253,6 +253,7 @@ export type Database = {
           cta_text: string | null
           display_order: number | null
           id: string
+          overlay_opacity: number | null
           photo_type: string | null
           photo_url: string
           subtitle: string | null
@@ -269,6 +270,7 @@ export type Database = {
           cta_text?: string | null
           display_order?: number | null
           id?: string
+          overlay_opacity?: number | null
           photo_type?: string | null
           photo_url: string
           subtitle?: string | null
@@ -285,6 +287,7 @@ export type Database = {
           cta_text?: string | null
           display_order?: number | null
           id?: string
+          overlay_opacity?: number | null
           photo_type?: string | null
           photo_url?: string
           subtitle?: string | null

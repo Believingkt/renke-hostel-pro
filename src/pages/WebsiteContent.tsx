@@ -1667,6 +1667,7 @@ const WebsiteContent = () => {
     text_size: string;
     text_position_x: string;
     text_position_y: string;
+    overlay_opacity: number;
   }) => {
     try {
       const { error } = await supabase
@@ -1680,6 +1681,7 @@ const WebsiteContent = () => {
           text_size: data.text_size,
           text_position_x: data.text_position_x,
           text_position_y: data.text_position_y,
+          overlay_opacity: data.overlay_opacity,
         })
         .eq('id', photoId);
 
