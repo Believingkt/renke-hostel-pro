@@ -34,6 +34,8 @@ interface AccommodationData {
     og_title?: string;
     og_description?: string;
     og_image_url?: string;
+    hero_main_title?: string;
+    hero_subtitle?: string;
   };
   roomTypes: any[];
   bookingSettings: any;
@@ -53,7 +55,7 @@ const Index = () => {
       try {
         const { data: infoData } = await supabase
           .from("accommodation_info")
-          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, og_title, og_description, og_image_url")
+          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, og_title, og_description, og_image_url, hero_main_title, hero_subtitle")
           .eq("id", accommodationId)
           .single();
         
@@ -195,7 +197,11 @@ const Index = () => {
         onNavigate={scrollToSection} 
       />
       <main>
-        <HeroSection accommodationName={data.info.name} />
+        <HeroSection 
+          accommodationName={data.info.name}
+          heroMainTitle={data.info.hero_main_title}
+          heroSubtitle={data.info.hero_subtitle}
+        />
         <AboutSection description={data.info.description} accommodationId={data.info.id} />
         <RoomsSection roomTypes={data.roomTypes || []} />
         <FacilitiesSection facilities={data.facilities || []} />

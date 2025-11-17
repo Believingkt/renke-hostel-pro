@@ -27,6 +27,8 @@ if (typeof window !== 'undefined') {
 
 interface HeroSectionProps {
   accommodationName?: string;
+  heroMainTitle?: string;
+  heroSubtitle?: string;
 }
 
 interface HeroPhoto {
@@ -41,7 +43,11 @@ interface HeroPhoto {
 
 const defaultHeroImages = [heroSlide1, heroSlide2, heroSlide3];
 
-const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) => {
+const HeroSection = ({ 
+  accommodationName = "森山寫照",
+  heroMainTitle = "山間的寧靜時光",
+  heroSubtitle = "體驗日式美學與自然的完美融合"
+}: HeroSectionProps) => {
   const { checkInDate, setCheckInDate, checkOutDate, setCheckOutDate, guests, setGuests, currentAccommodationId } = useAccommodation();
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
@@ -243,14 +249,16 @@ const HeroSection = ({ accommodationName = "森山寫照" }: HeroSectionProps) =
                           {slide.subtitle}
                         </p>
                       )}
-                      {!slide.subtitle && (
+                      {!slide.subtitle && heroMainTitle && (
                         <>
                           <p className="text-lg md:text-3xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.2s" }}>
-                            山間的寧靜時光
+                            {heroMainTitle}
                           </p>
-                          <p className="text-base md:text-xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.4s" }}>
-                            體驗日式美學與自然的完美融合
-                          </p>
+                          {heroSubtitle && (
+                            <p className="text-base md:text-xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.4s" }}>
+                              {heroSubtitle}
+                            </p>
+                          )}
                         </>
                       )}
                       {slide.cta_text && slide.cta_link && (
