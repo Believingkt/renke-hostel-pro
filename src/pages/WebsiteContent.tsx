@@ -3,6 +3,10 @@ import { useSearchParams } from "react-router-dom";
 import { Globe, Plus, Trash2, Edit2, GripVertical, MapPin, Image as ImageIcon, Upload, Info, Wrench, Package, HelpCircle, Navigation, icons } from "lucide-react";
 import { AboutFeatureForm } from "@/components/AboutFeatureForm";
 import { ResponsiveTabs, TabItem } from "@/components/ResponsiveTabs";
+import { WebInfoSection } from "@/components/website-content/WebInfoSection";
+import { AboutFeaturesSection } from "@/components/website-content/AboutFeaturesSection";
+import { SocialSharingSection } from "@/components/website-content/SocialSharingSection";
+import { HeaderFooterSection } from "@/components/website-content/HeaderFooterSection";
 import {
   DndContext,
   closestCenter,
@@ -457,226 +461,226 @@ const WebsiteContent = () => {
   }, [searchParams]);
 
   // 加載現有設施資料、訂房須知和常見問題
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        // 獲取 accommodation ID 和基本資料
-        const { data: infoData } = await supabase
-          .from("accommodation_info")
-          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url, og_title, og_description, og_image_url, website_url")
-          .maybeSingle();
+  const loadData = async () => {
+    try {
+      // 獲取 accommodation ID 和基本資料
+      const { data: infoData } = await supabase
+        .from("accommodation_info")
+        .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url, og_title, og_description, og_image_url, website_url")
+        .maybeSingle();
 
-        if (infoData) {
-          setAccommodationId(infoData.id);
-          
-          // 設置基本資料
-          setBasicInfo({
-            name: infoData.name || "",
-            description: infoData.description || "",
-            address: infoData.address || "",
-            phone: infoData.phone || "",
-            email: infoData.email || "",
-            line_id: infoData.line_id || "",
-            facebook_url: infoData.facebook_url || "",
-            instagram_url: infoData.instagram_url || "",
-            threads_url: infoData.threads_url || "",
-            youtube_url: infoData.youtube_url || "",
-            tiktok_url: infoData.tiktok_url || "",
-            header_logo_url: infoData.header_logo_url || "",
-            footer_logo_url: infoData.footer_logo_url || "",
-            og_title: infoData.og_title || "",
-            og_description: infoData.og_description || "",
-            og_image_url: infoData.og_image_url || "",
-            website_url: infoData.website_url || ""
+      if (infoData) {
+        setAccommodationId(infoData.id);
+        
+        // 設置基本資料
+        setBasicInfo({
+          name: infoData.name || "",
+          description: infoData.description || "",
+          address: infoData.address || "",
+          phone: infoData.phone || "",
+          email: infoData.email || "",
+          line_id: infoData.line_id || "",
+          facebook_url: infoData.facebook_url || "",
+          instagram_url: infoData.instagram_url || "",
+          threads_url: infoData.threads_url || "",
+          youtube_url: infoData.youtube_url || "",
+          tiktok_url: infoData.tiktok_url || "",
+          header_logo_url: infoData.header_logo_url || "",
+          footer_logo_url: infoData.footer_logo_url || "",
+          og_title: infoData.og_title || "",
+          og_description: infoData.og_description || "",
+          og_image_url: infoData.og_image_url || "",
+          website_url: infoData.website_url || ""
+        });
+
+        // 更新瀏覽器標題
+        if (infoData.name) {
+          document.title = infoData.name;
+        }
+
+        // 加載現有設施
+        const { data: facilities } = await supabase
+          .from("accommodation_facilities")
+          .select("*")
+          .eq("accommodation_id", infoData.id)
+          .eq("is_available", true);
+
+        if (facilities) {
+          const selected: Record<string, boolean> = {};
+          const pricing: Record<string, string> = {};
+
+          facilities.forEach(facility => {
+            selected[facility.facility_name] = true;
+            if (facility.pricing_type) {
+              pricing[facility.facility_name] = facility.pricing_type;
+            }
           });
 
-          // 更新瀏覽器標題
-          if (infoData.name) {
-            document.title = infoData.name;
-          }
+          setSelectedFacilities(selected);
+          setPricingTypes(pricing);
+        }
 
-          // 加載現有設施
-          const { data: facilities } = await supabase
-            .from("accommodation_facilities")
-            .select("*")
-            .eq("accommodation_id", infoData.id)
-            .eq("is_available", true);
+        // 加載訂房設定
+        const { data: bookingSettings } = await supabase
+          .from("booking_settings")
+          .select("*")
+          .eq("accommodation_id", infoData.id)
+          .maybeSingle();
 
-          if (facilities) {
-            const selected: Record<string, boolean> = {};
-            const pricing: Record<string, string> = {};
+        if (bookingSettings) {
+          setBookingInfo({
+            checkInTime: bookingSettings.check_in_time || "15:00",
+            checkOutTime: bookingSettings.check_out_time || "11:00",
+            paymentMethods: Array.isArray(bookingSettings.payment_methods) 
+              ? (bookingSettings.payment_methods as string[])
+              : [],
+            cancellationPolicy: bookingSettings.cancellation_policy || "",
+            checkInNotice: infoData.check_in_notice || "",
+            petPolicy: bookingSettings.pet_policy || "",
+            otherNotes: bookingSettings.other_notes || ""
+          });
+        } else {
+          // 如果沒有設定，使用預設值但保留入住須知
+          setBookingInfo(prev => ({
+            ...prev,
+            checkInNotice: infoData.check_in_notice || ""
+          }));
+        }
 
-            facilities.forEach(facility => {
-              selected[facility.facility_name] = true;
-              if (facility.pricing_type) {
-                pricing[facility.facility_name] = facility.pricing_type;
-              }
-            });
+        // 加載常見問題
+        const { data: faqData } = await supabase
+          .from("faqs")
+          .select("*")
+          .eq("accommodation_id", infoData.id)
+          .order("display_order");
 
-            setSelectedFacilities(selected);
-            setPricingTypes(pricing);
-          }
+        if (faqData) {
+          setFaqs(faqData);
+        }
 
-          // 加載訂房設定
-          const { data: bookingSettings } = await supabase
-            .from("booking_settings")
-            .select("*")
-            .eq("accommodation_id", infoData.id)
-            .maybeSingle();
+        // 加載交通與地圖資訊
+        const { data: locationData } = await supabase
+          .from("location_info")
+          .select("*")
+          .eq("accommodation_id", infoData.id)
+          .maybeSingle();
 
-          if (bookingSettings) {
-            setBookingInfo({
-              checkInTime: bookingSettings.check_in_time || "15:00",
-              checkOutTime: bookingSettings.check_out_time || "11:00",
-              paymentMethods: Array.isArray(bookingSettings.payment_methods) 
-                ? (bookingSettings.payment_methods as string[])
-                : [],
-              cancellationPolicy: bookingSettings.cancellation_policy || "",
-              checkInNotice: infoData.check_in_notice || "",
-              petPolicy: bookingSettings.pet_policy || "",
-              otherNotes: bookingSettings.other_notes || ""
-            });
+        if (locationData) {
+          setLocationDescription(locationData.location_description || "");
+          setDrivingInfo(locationData.driving_info || "");
+          setPublicTransportInfo(locationData.public_transport_info || "");
+          
+          // 安全地處理 nearby_attractions 類型
+          const attractions = locationData.nearby_attractions;
+          if (attractions && Array.isArray(attractions)) {
+            const typedAttractions = attractions as Array<{
+              name?: string;
+              distance?: string;
+              description?: string;
+            }>;
+            setNearbyAttractions(
+              typedAttractions.map(a => ({
+                name: a.name || "",
+                distance: a.distance || "",
+                description: a.description || ""
+              }))
+            );
           } else {
-            // 如果沒有設定，使用預設值但保留入住須知
-            setBookingInfo(prev => ({
-              ...prev,
-              checkInNotice: infoData.check_in_notice || ""
-            }));
+            setNearbyAttractions([{ name: "", distance: "", description: "" }]);
           }
+        }
 
-          // 加載常見問題
-          const { data: faqData } = await supabase
-            .from("faqs")
-            .select("*")
-            .eq("accommodation_id", infoData.id)
-            .order("display_order");
+        // 加載首頁輪播圖
+        const { data: heroPhotosData } = await supabase
+          .from("accommodation_photos")
+          .select("*")
+          .eq("accommodation_id", infoData.id)
+          .eq("photo_type", "hero")
+          .order("display_order");
 
-          if (faqData) {
-            setFaqs(faqData);
-          }
+        if (heroPhotosData) {
+          setHeroPhotos(heroPhotosData);
+        }
 
-          // 加載交通與地圖資訊
-          const { data: locationData } = await supabase
-            .from("location_info")
-            .select("*")
-            .eq("accommodation_id", infoData.id)
-            .maybeSingle();
+        // 加載相簿照片
+        const { data: photosData } = await supabase
+          .from("accommodation_photos")
+          .select("*")
+          .eq("accommodation_id", infoData.id)
+          .eq("photo_type", "gallery")
+          .order("display_order");
 
-          if (locationData) {
-            setLocationDescription(locationData.location_description || "");
-            setDrivingInfo(locationData.driving_info || "");
-            setPublicTransportInfo(locationData.public_transport_info || "");
-            
-            // 安全地處理 nearby_attractions 類型
-            const attractions = locationData.nearby_attractions;
-            if (attractions && Array.isArray(attractions)) {
-              const typedAttractions = attractions as Array<{
-                name?: string;
-                distance?: string;
-                description?: string;
-              }>;
-              setNearbyAttractions(
-                typedAttractions.map(a => ({
-                  name: a.name || "",
-                  distance: a.distance || "",
-                  description: a.description || ""
-                }))
-              );
-            } else {
-              setNearbyAttractions([{ name: "", distance: "", description: "" }]);
-            }
-          }
+        if (photosData) {
+          setPhotos(photosData);
+        }
 
-          // 加載首頁輪播圖
-          const { data: heroPhotosData } = await supabase
-            .from("accommodation_photos")
-            .select("*")
-            .eq("accommodation_id", infoData.id)
-            .eq("photo_type", "hero")
-            .order("display_order");
+        // 加載加購方案設定
+        const { data: addonData } = await supabase
+          .from("addon_settings")
+          .select("*")
+          .eq("accommodation_id", infoData.id);
 
-          if (heroPhotosData) {
-            setHeroPhotos(heroPhotosData);
-          }
+        if (addonData) {
+          const petData = addonData.find(a => a.addon_type === 'pet');
+          const mealData = addonData.find(a => a.addon_type === 'meal');
 
-          // 加載相簿照片
-          const { data: photosData } = await supabase
-            .from("accommodation_photos")
-            .select("*")
-            .eq("accommodation_id", infoData.id)
-            .eq("photo_type", "gallery")
-            .order("display_order");
-
-          if (photosData) {
-            setPhotos(photosData);
-          }
-
-          // 加載加購方案設定
-          const { data: addonData } = await supabase
-            .from("addon_settings")
-            .select("*")
-            .eq("accommodation_id", infoData.id);
-
-          if (addonData) {
-            const petData = addonData.find(a => a.addon_type === 'pet');
-            const mealData = addonData.find(a => a.addon_type === 'meal');
-
-            if (petData) {
-              setPetPlan({
-                enabled: petData.enabled || true,
-                pricePerUnit: petData.price_per_unit,
-                maxQuantity: petData.max_quantity,
-                description: petData.unit_label || "每隻寵物",
-                detailedDescription: petData.detailed_description || ""
-              });
-            }
-
-            if (mealData) {
-              setMealPlan({
-                enabled: mealData.enabled || true,
-                pricePerUnit: mealData.price_per_unit,
-                weekdayMinQuantity: mealData.weekday_min_quantity || 12,
-                weekendMinQuantity: mealData.weekend_min_quantity || 18,
-                maxQuantity: mealData.max_quantity,
-                description: mealData.unit_label || "每人每日",
-                detailedDescription: mealData.detailed_description || ""
-              });
-            }
-          }
-
-          // 加載特色說明
-          const { data: aboutData } = await supabase
-            .from("about_section")
-            .select("*")
-            .eq("accommodation_id", infoData.id)
-            .maybeSingle();
-
-          if (aboutData) {
-            setAboutSection({
-              sectionTitle: aboutData.section_title || "自然中的秘境 X 宿泊空間",
-              sectionDescription: aboutData.section_description || ""
+          if (petData) {
+            setPetPlan({
+              enabled: petData.enabled || true,
+              pricePerUnit: petData.price_per_unit,
+              maxQuantity: petData.max_quantity,
+              description: petData.unit_label || "每隻寵物",
+              detailedDescription: petData.detailed_description || ""
             });
           }
 
-          // 加載特色區塊
-          const { data: featuresData } = await supabase
-            .from("about_features")
-            .select("*")
-            .eq("accommodation_id", infoData.id)
-            .order("display_order");
-
-          if (featuresData) {
-            setAboutFeatures(featuresData);
+          if (mealData) {
+            setMealPlan({
+              enabled: mealData.enabled || true,
+              pricePerUnit: mealData.price_per_unit,
+              weekdayMinQuantity: mealData.weekday_min_quantity || 12,
+              weekendMinQuantity: mealData.weekend_min_quantity || 18,
+              maxQuantity: mealData.max_quantity,
+              description: mealData.unit_label || "每人每日",
+              detailedDescription: mealData.detailed_description || ""
+            });
           }
         }
-      } catch (error) {
-        if (import.meta.env.DEV) {
-          console.error('Error loading data:', error);
-        }
-        toast.error('載入資料失敗');
-      }
-    };
 
+        // 加載特色說明
+        const { data: aboutData } = await supabase
+          .from("about_section")
+          .select("*")
+          .eq("accommodation_id", infoData.id)
+          .maybeSingle();
+
+        if (aboutData) {
+          setAboutSection({
+            sectionTitle: aboutData.section_title || "自然中的秘境 X 宿泊空間",
+            sectionDescription: aboutData.section_description || ""
+          });
+        }
+
+        // 加載特色區塊
+        const { data: featuresData } = await supabase
+          .from("about_features")
+          .select("*")
+          .eq("accommodation_id", infoData.id)
+          .order("display_order");
+
+        if (featuresData) {
+          setAboutFeatures(featuresData);
+        }
+      }
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error loading data:', error);
+      }
+      toast.error('載入資料失敗');
+    }
+  };
+
+  useEffect(() => {
     loadData();
   }, []);
 
@@ -1970,488 +1974,64 @@ const WebsiteContent = () => {
 
         {/* 基本資料 Tab */}
         <TabsContent value="basic-info" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>基本資料</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="browser-title">瀏覽器標題名稱</Label>
-                <Input 
-                  id="browser-title"
-                  value={basicInfo.name}
-                  onChange={(e) => setBasicInfo({ ...basicInfo, name: e.target.value })}
-                  placeholder="例如：山林秘境民宿 - 南投日式豪華住宿"
-                  className={basicInfo.name.length > 70 ? "border-yellow-500 focus-visible:ring-yellow-500" : ""}
-                />
-                <div className="flex items-center justify-between text-sm">
-                  <p className={basicInfo.name.length > 70 ? "text-yellow-600" : "text-muted-foreground"}>
-                    顯示在瀏覽器分頁標籤上的標題（建議 70 字元以內）
-                  </p>
-                  <span className={basicInfo.name.length > 70 ? "text-yellow-600 font-medium" : "text-muted-foreground"}>
-                    {basicInfo.name.length}/70
-                  </span>
-                </div>
-                {basicInfo.name.length > 70 && (
-                  <p className="text-sm text-yellow-600 flex items-center gap-1">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    標題過長可能會在瀏覽器標籤中被截斷
-                  </p>
-                )}
-              </div>
+          <WebInfoSection
+            accommodationId={accommodationId || ''}
+            name={basicInfo.name}
+            heroPhotos={heroPhotos}
+            onUpdate={loadData}
+          />
 
-              {/* 特色說明編輯區塊 */}
-              <div className="space-y-4 pt-6 border-t">
-                <div className="space-y-2">
-                  <Label>特色說明主標題</Label>
-                  <Input
-                    value={aboutSection.sectionTitle}
-                    onChange={(e) => setAboutSection({ ...aboutSection, sectionTitle: e.target.value })}
-                    placeholder="例如：自然中的秘境 X 宿泊空間"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>特色說明文字</Label>
-                  <Textarea
-                    value={aboutSection.sectionDescription}
-                    onChange={(e) => setAboutSection({ ...aboutSection, sectionDescription: e.target.value })}
-                    rows={3}
-                    placeholder="請輸入特色說明..."
-                  />
-                </div>
+          <AboutFeaturesSection
+            accommodationId={accommodationId || ''}
+            sectionTitle={aboutSection.sectionTitle}
+            sectionDescription={aboutSection.sectionDescription}
+            features={aboutFeatures}
+            onUpdate={loadData}
+            onEditFeature={(feature) => {
+              setEditingFeature(feature);
+              setFeatureFormOpen(true);
+            }}
+            onDeleteFeature={handleDeleteFeature}
+            onAddFeature={() => {
+              if (aboutFeatures.length >= 4) {
+                toast.error('最多只能添加 4 個特色區塊');
+                return;
+              }
+              setEditingFeature(null);
+              setFeatureFormOpen(true);
+            }}
+          />
 
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>特色區塊（最多 4 個）</Label>
-                      <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
-                        <GripVertical className="h-3.5 w-3.5" />
-                        提示：點住拖拽手柄即可調整特色區塊的顯示順序
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        if (aboutFeatures.length >= 4) {
-                          toast.error('最多只能添加 4 個特色區塊');
-                          return;
-                        }
-                        setEditingFeature(null);
-                        setFeatureFormOpen(true);
-                      }}
-                      disabled={aboutFeatures.length >= 4}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      新增特色
-                    </Button>
-                  </div>
-                  
-                  <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={handleFeatureDragEnd}
-                  >
-                    <SortableContext
-                      items={aboutFeatures.map(f => f.id)}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {aboutFeatures.map((feature, index) => (
-                          <SortableFeatureItem
-                            key={feature.id}
-                            feature={feature}
-                            index={index}
-                            onEdit={(f) => {
-                              setEditingFeature(f);
-                              setFeatureFormOpen(true);
-                            }}
-                            onDelete={handleDeleteFeature}
-                          />
-                        ))}
-                      </div>
-                    </SortableContext>
-                  </DndContext>
+          <SocialSharingSection
+            accommodationId={accommodationId || ''}
+            ogTitle={basicInfo.og_title}
+            ogDescription={basicInfo.og_description}
+            ogImageUrl={basicInfo.og_image_url}
+            onUpdate={loadData}
+            onOgImageUpload={handleOgImageUpload}
+            onDeleteOgImage={handleDeleteOgImage}
+            uploadingOgImage={uploadingOgImage}
+          />
 
-                  {aboutFeatures.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      尚未添加特色區塊，請點擊「新增特色」按鈕開始添加
-                    </div>
-                  )}
-                </div>
-
-                <Button 
-                  onClick={handleSaveAboutSection}
-                  disabled={isSaving}
-                  className="w-full"
-                >
-                  {isSaving ? '儲存中...' : '儲存特色說明'}
-                </Button>
-              </div>
-              <div className="space-y-2">
-                <Label>地址</Label>
-                <Input 
-                  value={basicInfo.address}
-                  onChange={(e) => setBasicInfo({ ...basicInfo, address: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>電話</Label>
-                <Input 
-                  value={basicInfo.phone}
-                  onChange={(e) => setBasicInfo({ ...basicInfo, phone: e.target.value })}
-                  placeholder="例如：0903178518"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input 
-                  type="email"
-                  value={basicInfo.email}
-                  onChange={(e) => setBasicInfo({ ...basicInfo, email: e.target.value })}
-                  placeholder="例如：info@example.com"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>LINE ID</Label>
-                <Input 
-                  value={basicInfo.line_id}
-                  onChange={(e) => setBasicInfo({ ...basicInfo, line_id: e.target.value })}
-                  placeholder="例如：@042deypa"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Facebook</Label>
-                <Input 
-                  value={basicInfo.facebook_url}
-                  onChange={(e) => setBasicInfo({ ...basicInfo, facebook_url: e.target.value })}
-                  placeholder="請輸入完整 Facebook 網址"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Instagram</Label>
-                <Input 
-                  value={basicInfo.instagram_url}
-                  onChange={(e) => setBasicInfo({ ...basicInfo, instagram_url: e.target.value })}
-                  placeholder="請輸入完整 Instagram 網址"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Threads</Label>
-                <Input 
-                  value={basicInfo.threads_url}
-                  onChange={(e) => setBasicInfo({ ...basicInfo, threads_url: e.target.value })}
-                  placeholder="請輸入完整 Threads 網址"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>YouTube</Label>
-                <Input 
-                  value={basicInfo.youtube_url}
-                  onChange={(e) => setBasicInfo({ ...basicInfo, youtube_url: e.target.value })}
-                  placeholder="請輸入完整 YouTube 網址"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>TikTok</Label>
-                <Input 
-                  value={basicInfo.tiktok_url}
-                  onChange={(e) => setBasicInfo({ ...basicInfo, tiktok_url: e.target.value })}
-                  placeholder="請輸入完整 TikTok 網址"
-                />
-              </div>
-
-              {/* 頁首 Logo */}
-              <div className="space-y-2">
-                <Label>頁首 Logo</Label>
-                <div className="flex items-center gap-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => document.getElementById('header-logo-upload')?.click()}
-                    disabled={uploadingHeaderLogo}
-                    className="flex items-center gap-2"
-                  >
-                    <Upload className="h-4 w-4" />
-                    {uploadingHeaderLogo ? "上傳中..." : "上傳頁首 Logo"}
-                  </Button>
-                  <input
-                    id="header-logo-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleLogoUpload(e, 'header')}
-                    className="hidden"
-                  />
-                  {basicInfo.header_logo_url && (
-                    <div className="flex items-center gap-2">
-                      <div className="relative w-32 h-16 border rounded overflow-hidden">
-                        <img 
-                          src={basicInfo.header_logo_url} 
-                          alt="頁首 Logo" 
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => openDeleteConfirm('header')}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  建議尺寸：200x60 像素，支援 PNG、JPG 格式（透明背景請使用 PNG）
-                </p>
-              </div>
-
-              {/* 頁尾 Logo */}
-              <div className="space-y-2">
-                <Label>頁尾 Logo</Label>
-                <div className="flex items-center gap-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => document.getElementById('footer-logo-upload')?.click()}
-                    disabled={uploadingFooterLogo}
-                    className="flex items-center gap-2"
-                  >
-                    <Upload className="h-4 w-4" />
-                    {uploadingFooterLogo ? "上傳中..." : "上傳頁尾 Logo"}
-                  </Button>
-                  <input
-                    id="footer-logo-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleLogoUpload(e, 'footer')}
-                    className="hidden"
-                  />
-                  {basicInfo.footer_logo_url && (
-                    <div className="flex items-center gap-2">
-                      <div className="relative w-32 h-16 border rounded overflow-hidden">
-                        <img 
-                          src={basicInfo.footer_logo_url} 
-                          alt="頁尾 Logo" 
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => openDeleteConfirm('footer')}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  建議尺寸：200x60 像素，支援 PNG、JPG 格式（透明背景請使用 PNG）
-                </p>
-              </div>
-
-              {/* 社群媒體分享標題 */}
-              <div className="space-y-2">
-                <Label htmlFor="og-title">社群媒體分享標題</Label>
-                <Input
-                  id="og-title"
-                  value={basicInfo.og_title}
-                  onChange={(e) => setBasicInfo(prev => ({ ...prev, og_title: e.target.value }))}
-                  placeholder="例如：山林秘境民宿 - 享受自然寧靜時光"
-                  className={basicInfo.og_title.length > 60 ? "border-yellow-500 focus-visible:ring-yellow-500" : ""}
-                />
-                <div className="flex items-center justify-between text-sm">
-                  <p className={basicInfo.og_title.length > 60 ? "text-yellow-600" : "text-muted-foreground"}>
-                    當網站連結在社群媒體分享時顯示的標題（建議 60 字元以內）
-                  </p>
-                  <span className={basicInfo.og_title.length > 60 ? "text-yellow-600 font-medium" : "text-muted-foreground"}>
-                    {basicInfo.og_title.length}/60
-                  </span>
-                </div>
-                {basicInfo.og_title.length > 60 && (
-                  <p className="text-sm text-yellow-600 flex items-center gap-1">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    標題過長可能會在社群媒體上被截斷
-                  </p>
-                )}
-              </div>
-
-              {/* 社群媒體分享描述 */}
-              <div className="space-y-2">
-                <Label htmlFor="og-description">社群媒體分享描述</Label>
-                <Textarea
-                  id="og-description"
-                  value={basicInfo.og_description}
-                  onChange={(e) => setBasicInfo(prev => ({ ...prev, og_description: e.target.value }))}
-                  placeholder="例如：體驗山林中的寧靜時光，融合日式美學與自然的完美住宿空間。"
-                  rows={3}
-                  className={basicInfo.og_description.length > 160 ? "border-yellow-500 focus-visible:ring-yellow-500" : ""}
-                />
-                <div className="flex items-center justify-between text-sm">
-                  <p className={basicInfo.og_description.length > 160 ? "text-yellow-600" : "text-muted-foreground"}>
-                    當網站連結在社群媒體分享時顯示的描述（建議 160 字元以內）
-                  </p>
-                  <span className={basicInfo.og_description.length > 160 ? "text-yellow-600 font-medium" : "text-muted-foreground"}>
-                    {basicInfo.og_description.length}/160
-                  </span>
-                </div>
-                {basicInfo.og_description.length > 160 && (
-                  <p className="text-sm text-yellow-600 flex items-center gap-1">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    描述過長可能會在社群媒體上被截斷
-                  </p>
-                )}
-              </div>
-
-              {/* 社群分享縮圖 */}
-              <div className="space-y-2">
-                <Label>社群分享縮圖 (OG Image)</Label>
-                <div className="flex items-center gap-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => document.getElementById('og-image-upload')?.click()}
-                    disabled={uploadingOgImage}
-                    className="flex items-center gap-2"
-                  >
-                    <Upload className="h-4 w-4" />
-                    {uploadingOgImage ? "上傳中..." : "上傳縮圖"}
-                  </Button>
-                  <input
-                    id="og-image-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleOgImageUpload}
-                    className="hidden"
-                  />
-                  {basicInfo.og_image_url && (
-                    <div className="flex items-center gap-2">
-                      <div className="relative w-48 h-24 border rounded overflow-hidden">
-                        <img 
-                          src={basicInfo.og_image_url} 
-                          alt="社群分享縮圖" 
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={handleDeleteOgImage}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-start gap-2 p-3 bg-primary/5 rounded-md border border-primary/20">
-                  <Info className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                  <div className="text-sm space-y-1">
-                    <p className="font-medium">建議尺寸：1200 x 630 像素</p>
-                    <p className="text-muted-foreground text-xs">
-                      此尺寸能確保在 Facebook、Twitter、LinkedIn 等社群平台上都能完美顯示。
-                      檔案格式支援 JPG、PNG、WebP，建議檔案大小不超過 8MB。
-                    </p>
-                  </div>
-                </div>
-                
-                {/* 社群媒體預覽 */}
-                {basicInfo.og_image_url && (
-                  <OgImagePreview
-                    title={basicInfo.og_title || basicInfo.name || "您的住宿名稱"}
-                    description={basicInfo.og_description || basicInfo.description || "體驗山林中的寧靜時光，融合日式美學與自然的完美住宿空間。"}
-                    imageUrl={basicInfo.og_image_url}
-                    url={basicInfo.website_url}
-                  />
-                )}
-              </div>
-
-              {/* 首頁主視覺輪播圖 */}
-              <div className="space-y-4 pt-6 border-t">
-                <div className="space-y-2">
-                  <Label className="text-base font-semibold">首頁主視覺輪播圖</Label>
-                  <p className="text-sm text-muted-foreground">
-                    最多可上傳 {MAX_HERO_PHOTOS} 張圖片，建議尺寸：1920x1080 像素，支援 JPG、PNG 格式
-                  </p>
-                  <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                    <GripVertical className="h-3.5 w-3.5" />
-                    提示：點住圖片右上角的拖拽手柄，即可拖動調整輪播順序
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => document.getElementById('hero-photo-upload')?.click()}
-                    disabled={uploadingHeroPhoto || heroPhotos.length >= MAX_HERO_PHOTOS}
-                    className="flex items-center gap-2"
-                  >
-                    <Upload className="h-4 w-4" />
-                    {uploadingHeroPhoto ? "上傳中..." : heroPhotos.length >= MAX_HERO_PHOTOS ? "已達上限" : "上傳輪播圖"}
-                  </Button>
-                  <input
-                    id="hero-photo-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleHeroPhotoUpload}
-                    className="hidden"
-                  />
-                  <span className="text-sm text-muted-foreground">
-                    ({heroPhotos.length}/{MAX_HERO_PHOTOS})
-                  </span>
-                </div>
-
-                {/* 輪播圖列表 */}
-                {heroPhotos.length === 0 ? (
-                  <div className="border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground">
-                    <ImageIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>尚無輪播圖，請點擊上方按鈕上傳</p>
-                  </div>
-                ) : (
-                  <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={handleHeroPhotoDragEnd}
-                  >
-                    <SortableContext
-                      items={heroPhotos.map(p => p.id)}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {heroPhotos.map((photo, index) => (
-                          <SortablePhotoItem
-                            key={photo.id}
-                            photo={photo}
-                            index={index}
-                            onDelete={handleDeleteHeroPhoto}
-                            onEdit={handleEditHeroPhoto}
-                          />
-                        ))}
-                      </div>
-                    </SortableContext>
-                  </DndContext>
-                )}
-              </div>
-
-              <Button onClick={handleSaveBasicInfo} disabled={isSaving}>
-                {isSaving ? "儲存中..." : "儲存變更"}
-              </Button>
-            </CardContent>
-          </Card>
+          <HeaderFooterSection
+            accommodationId={accommodationId || ''}
+            headerLogoUrl={basicInfo.header_logo_url}
+            footerLogoUrl={basicInfo.footer_logo_url}
+            address={basicInfo.address}
+            phone={basicInfo.phone}
+            email={basicInfo.email}
+            lineId={basicInfo.line_id}
+            facebookUrl={basicInfo.facebook_url}
+            instagramUrl={basicInfo.instagram_url}
+            threadsUrl={basicInfo.threads_url}
+            youtubeUrl={basicInfo.youtube_url}
+            tiktokUrl={basicInfo.tiktok_url}
+            onUpdate={loadData}
+            onLogoUpload={handleLogoUpload}
+            onDeleteLogo={openDeleteConfirm}
+            uploadingHeaderLogo={uploadingHeaderLogo}
+            uploadingFooterLogo={uploadingFooterLogo}
+          />
         </TabsContent>
 
         <TabsContent value="facilities" className="space-y-6">
