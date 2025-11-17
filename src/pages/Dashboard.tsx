@@ -21,6 +21,7 @@ import { DateRange } from "react-day-picker";
 import { RevenueChart } from "@/components/charts/RevenueChart";
 import { BookingTrendsChart } from "@/components/charts/BookingTrendsChart";
 import { OccupancyChart } from "@/components/charts/OccupancyChart";
+import { MonthlyBookingsChart } from "@/components/charts/MonthlyBookingsChart";
 
 const Dashboard = () => {
   const { accommodationId } = useSubdomain();
@@ -185,6 +186,12 @@ const Dashboard = () => {
   });
   
   const safeOccupancyData = occupancyData || [];
+  
+  // Sanitize monthly bookings data
+  const safeMonthlyBookings = dashboardData?.monthlyBookings?.map(item => ({
+    ...item,
+    bookings: typeof item.bookings === 'number' && !isNaN(item.bookings) ? item.bookings : 0,
+  })) || [{ month: '暫無數據', bookings: 0 }];
   
   // 从数据中提取所有房型名称（排除 'month' 字段）
   const roomTypes = safeOccupancyData.length > 0 
@@ -456,6 +463,18 @@ const Dashboard = () => {
             comparisonMode={comparisonMode}
             isCustomRange={!!customDateRange}
           />
+        </CardContent>
+      </Card>
+
+      <Card className="px-2 md:px-0">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold">熱門入住月份</CardTitle>
+            <span className="text-xs text-muted-foreground">今年訂單數量統計</span>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <MonthlyBookingsChart data={safeMonthlyBookings} />
         </CardContent>
       </Card>
     </div>
