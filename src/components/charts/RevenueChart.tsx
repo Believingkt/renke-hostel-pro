@@ -99,7 +99,7 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
   return (
     <>
       <div className="animate-fade-in px-1 py-2 sm:px-2 sm:py-4" key={`revenue-chart-${comparisonMode}`}>
-        <ChartContainer config={chartConfig} className="h-[200px] sm:h-[240px] md:h-[280px] w-full">
+        <ChartContainer config={chartConfig} className="h-[280px] sm:h-[320px] md:h-[360px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart 
               data={data} 
