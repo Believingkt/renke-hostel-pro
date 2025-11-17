@@ -7,6 +7,7 @@ import { WebInfoSection } from "@/components/website-content/WebInfoSection";
 import { AboutFeaturesSection } from "@/components/website-content/AboutFeaturesSection";
 import { SocialSharingSection } from "@/components/website-content/SocialSharingSection";
 import { HeaderFooterSection } from "@/components/website-content/HeaderFooterSection";
+import { compressImage, validateImageFile, formatFileSize } from "@/utils/imageCompression";
 import {
   DndContext,
   closestCenter,
@@ -1006,27 +1007,40 @@ const WebsiteContent = () => {
     const file = event.target.files?.[0];
     if (!file || !accommodationId) return;
 
-    // 驗證文件大小（2MB = 2 * 1024 * 1024 bytes）
-    const maxSize = 2 * 1024 * 1024;
-    if (file.size > maxSize) {
-      toast.error(`文件大小超過限制！請上傳小於 2MB 的圖片。\n當前文件大小：${(file.size / 1024 / 1024).toFixed(2)} MB`);
+    // 驗證文件
+    const validation = validateImageFile(file, 10 * 1024 * 1024); // 10MB 上限
+    if (!validation.valid) {
+      toast.error(validation.error);
       event.target.value = '';
       return;
     }
 
-    // 驗證文件格式
-    const validFormats = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
-    if (!validFormats.includes(file.type)) {
-      toast.error('不支援的文件格式！請上傳 PNG、JPG、JPEG 或 WEBP 格式的圖片。');
-      event.target.value = '';
-      return;
-    }
+    try {
+      // 先壓縮圖片
+      toast.info('正在優化圖片...');
+      const { blob, originalSize, compressedSize, compressionRatio } = await compressImage(file, {
+        maxWidth: 800,
+        maxHeight: 240,
+        quality: 0.9
+      });
 
-    // 創建圖片預覽 URL
-    const imageUrl = URL.createObjectURL(file);
-    setCropImageSrc(imageUrl);
-    setCropLogoType(logoType);
-    setCropDialogOpen(true);
+      // 顯示壓縮信息
+      if (compressionRatio > 5) {
+        toast.success(
+          `圖片已優化！原始大小：${formatFileSize(originalSize)}\n優化後：${formatFileSize(compressedSize)}\n節省：${compressionRatio.toFixed(1)}%`,
+          { duration: 4000 }
+        );
+      }
+
+      // 創建圖片預覽 URL
+      const imageUrl = URL.createObjectURL(blob);
+      setCropImageSrc(imageUrl);
+      setCropLogoType(logoType);
+      setCropDialogOpen(true);
+    } catch (error) {
+      console.error('圖片處理失敗:', error);
+      toast.error('圖片處理失敗，請稍後再試');
+    }
 
     // 清除 input 值
     event.target.value = '';
@@ -1069,8 +1083,8 @@ const WebsiteContent = () => {
       URL.revokeObjectURL(imageUrl);
       URL.revokeObjectURL(cropImageSrc);
 
-      // 生成唯一檔案名
-      const fileName = `${accommodationId}/${cropLogoType}-logo-${Date.now()}.png`;
+      // 生成唯一檔案名（使用 webp 擴展名）
+      const fileName = `${accommodationId}/${cropLogoType}-logo-${Date.now()}.webp`;
 
       // 上傳到 Supabase Storage
       const { error: uploadError } = await supabase.storage
@@ -1078,7 +1092,7 @@ const WebsiteContent = () => {
         .upload(fileName, croppedImage, {
           cacheControl: '3600',
           upsert: true,
-          contentType: 'image/png'
+          contentType: 'image/webp'
         });
 
       if (uploadError) throw uploadError;
@@ -1160,107 +1174,35 @@ const WebsiteContent = () => {
     }
   };
 
-  const compressImage = async (file: File, maxWidth: number = 2400, maxHeight: number = 1260, quality: number = 0.9): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-
-          // 計算壓縮後的尺寸（保持寬高比）
-          if (width > maxWidth || height > maxHeight) {
-            const ratio = Math.min(maxWidth / width, maxHeight / height);
-            width = width * ratio;
-            height = height * ratio;
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            reject(new Error('無法獲取 Canvas context'));
-            return;
-          }
-
-          // 繪製壓縮後的圖片
-          ctx.drawImage(img, 0, 0, width, height);
-
-          // 檢查瀏覽器是否支援 WebP
-          canvas.toBlob(
-            (blob) => {
-              if (blob) {
-                // 將 blob 轉換為 base64
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.onerror = () => reject(new Error('Blob 轉換失敗'));
-                reader.readAsDataURL(blob);
-              } else {
-                // WebP 不支援，使用 JPEG
-                resolve(canvas.toDataURL('image/jpeg', quality));
-              }
-            },
-            'image/webp',
-            quality
-          );
-        };
-        img.onerror = () => reject(new Error('圖片載入失敗'));
-        img.src = e.target?.result as string;
-      };
-      reader.onerror = () => reject(new Error('檔案讀取失敗'));
-      reader.readAsDataURL(file);
-    });
-  };
-
   const handleOgImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !accommodationId) return;
 
-    // 驗證文件大小（8MB = 8 * 1024 * 1024 bytes）
-    const maxSize = 8 * 1024 * 1024;
-    if (file.size > maxSize) {
-      toast.error(`文件大小超過限制！請上傳小於 8MB 的圖片。\n當前文件大小：${(file.size / 1024 / 1024).toFixed(2)} MB`);
-      event.target.value = '';
-      return;
-    }
-
-    // 驗證文件格式
-    const validFormats = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
-    if (!validFormats.includes(file.type)) {
-      toast.error('不支援的文件格式！請上傳 PNG、JPG、JPEG 或 WEBP 格式的圖片。');
+    // 驗證文件
+    const validation = validateImageFile(file, 10 * 1024 * 1024); // 10MB 上限
+    if (!validation.valid) {
+      toast.error(validation.error);
       event.target.value = '';
       return;
     }
 
     try {
       const originalSize = file.size;
-      const shouldCompress = originalSize > 2 * 1024 * 1024; // 超過 2MB 就壓縮
 
-      let imageDataUrl: string;
+      // 壓縮圖片
+      toast.info('正在優化圖片，請稍候...');
+      const { blob, dataUrl, compressedSize, compressionRatio } = await compressImage(file, {
+        maxWidth: 1200,
+        maxHeight: 630,
+        quality: 0.9
+      });
 
-      if (shouldCompress) {
-        toast.info('正在優化圖片，請稍候...');
-        imageDataUrl = await compressImage(file);
-        
-        // 計算壓縮後的大小（估算）
-        const compressedSize = Math.round((imageDataUrl.length * 3) / 4);
-        const compressionRatio = ((1 - compressedSize / originalSize) * 100).toFixed(1);
-        
+      // 顯示壓縮信息
+      if (compressionRatio > 5) {
         toast.success(
-          `圖片已自動優化並轉換為 WebP 格式！\n原始大小：${(originalSize / 1024 / 1024).toFixed(2)} MB\n優化後：${(compressedSize / 1024 / 1024).toFixed(2)} MB\n節省空間：${compressionRatio}%`,
+          `圖片已自動優化並轉換為 WebP 格式！\n原始：${formatFileSize(originalSize)} → 優化後：${formatFileSize(compressedSize)}\n節省：${compressionRatio.toFixed(1)}%`,
           { duration: 5000 }
         );
-      } else {
-        // 不需要壓縮，直接讀取
-        imageDataUrl = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
       }
 
       // 檢查圖片尺寸
@@ -1279,15 +1221,13 @@ const WebsiteContent = () => {
               duration: 6000,
             }
           );
-        } else if (width >= recommendedWidth && height >= recommendedHeight && !shouldCompress) {
-          toast.success(`圖片解析度良好（${width} x ${height} px），符合社群平台最佳實踐標準。`);
         }
 
         // 顯示裁切對話框
-        setOgImageCropSrc(imageDataUrl);
+        setOgImageCropSrc(dataUrl);
         setOgImageCropDialogOpen(true);
       };
-      img.src = imageDataUrl;
+      img.src = dataUrl;
     } catch (error) {
       console.error('圖片處理失敗:', error);
       toast.error('圖片處理失敗，請稍後再試');
@@ -1432,13 +1372,41 @@ const WebsiteContent = () => {
     setUploadingPhoto(true);
     try {
       const file = event.target.files[0];
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
+
+      // 驗證文件
+      const validation = validateImageFile(file, 10 * 1024 * 1024); // 10MB 上限
+      if (!validation.valid) {
+        toast.error(validation.error);
+        event.target.value = '';
+        setUploadingPhoto(false);
+        return;
+      }
+
+      // 壓縮圖片
+      toast.info('正在優化圖片...');
+      const { blob, originalSize, compressedSize, compressionRatio } = await compressImage(file, {
+        maxWidth: 1600,
+        maxHeight: 1200,
+        quality: 0.85
+      });
+
+      // 顯示壓縮信息
+      if (compressionRatio > 5) {
+        toast.success(
+          `圖片已優化為 WebP 格式！\n原始：${formatFileSize(originalSize)} → 優化後：${formatFileSize(compressedSize)}\n節省：${compressionRatio.toFixed(1)}%`,
+          { duration: 4000 }
+        );
+      }
+
+      const fileName = `gallery-${Date.now()}.webp`;
       const filePath = `${accommodationId}/${fileName}`;
 
       const { error: uploadError, data } = await supabase.storage
         .from('room-photos')
-        .upload(filePath, file);
+        .upload(filePath, blob, {
+          contentType: 'image/webp',
+          cacheControl: '3600'
+        });
 
       if (uploadError) throw uploadError;
 
@@ -1558,21 +1526,40 @@ const WebsiteContent = () => {
     try {
       const file = event.target.files[0];
 
-      // 驗證文件大小（5MB）
-      const maxSize = 5 * 1024 * 1024;
-      if (file.size > maxSize) {
-        toast.error(`文件大小超過限制！請上傳小於 5MB 的圖片。\n當前文件大小：${(file.size / 1024 / 1024).toFixed(2)} MB`);
+      // 驗證文件
+      const validation = validateImageFile(file, 10 * 1024 * 1024); // 10MB 上限
+      if (!validation.valid) {
+        toast.error(validation.error);
         event.target.value = '';
+        setUploadingHeroPhoto(false);
         return;
       }
 
-      const fileExt = file.name.split('.').pop();
-      const fileName = `hero-${Date.now()}.${fileExt}`;
+      // 壓縮圖片
+      toast.info('正在優化圖片...');
+      const { blob, originalSize, compressedSize, compressionRatio } = await compressImage(file, {
+        maxWidth: 1920,
+        maxHeight: 1080,
+        quality: 0.85
+      });
+
+      // 顯示壓縮信息
+      if (compressionRatio > 5) {
+        toast.success(
+          `圖片已優化為 WebP 格式！\n原始：${formatFileSize(originalSize)} → 優化後：${formatFileSize(compressedSize)}\n節省：${compressionRatio.toFixed(1)}%`,
+          { duration: 4000 }
+        );
+      }
+
+      const fileName = `hero-${Date.now()}.webp`;
       const filePath = `${accommodationId}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('room-photos')
-        .upload(filePath, file);
+        .upload(filePath, blob, {
+          contentType: 'image/webp',
+          cacheControl: '3600'
+        });
 
       if (uploadError) throw uploadError;
 
