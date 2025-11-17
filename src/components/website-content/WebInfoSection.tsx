@@ -1,11 +1,28 @@
 import { useState } from "react";
-import { Upload, Info, Trash2 } from "lucide-react";
+import { Upload, Info, Trash2, GripVertical } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface WebInfoSectionProps {
   accommodationId: string;
@@ -17,8 +34,65 @@ interface WebInfoSectionProps {
   onUpdate: () => void;
   onHeroPhotoUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onDeleteHeroPhoto: (photoId: string) => void;
+  onHeroPhotoReorder: (newOrder: any[]) => void;
   uploadingHeroPhoto: boolean;
 }
+
+interface SortablePhotoProps {
+  photo: any;
+  onDelete: (photoId: string) => void;
+}
+
+const SortablePhoto = ({ photo, onDelete }: SortablePhotoProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: photo.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="relative group">
+      <div className="aspect-video rounded-lg overflow-hidden border bg-muted">
+        <img
+          src={photo.photo_url}
+          alt="輪播圖"
+          className="w-full h-full object-cover"
+          loading="lazy"
+        />
+      </div>
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute top-2 left-2 cursor-move bg-background/80 rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+      >
+        <GripVertical className="h-4 w-4 text-muted-foreground" />
+      </div>
+      <Button
+        type="button"
+        variant="destructive"
+        size="icon"
+        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
+        onClick={() => onDelete(photo.id)}
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+      {photo.title && (
+        <div className="absolute bottom-2 left-2 right-2 bg-black/60 text-white text-xs p-2 rounded">
+          {photo.title}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const WebInfoSection = ({ 
   accommodationId, 
@@ -30,6 +104,7 @@ export const WebInfoSection = ({
   onUpdate,
   onHeroPhotoUpload,
   onDeleteHeroPhoto,
+  onHeroPhotoReorder,
   uploadingHeroPhoto
 }: WebInfoSectionProps) => {
   const [isSaving, setIsSaving] = useState(false);
@@ -37,6 +112,25 @@ export const WebInfoSection = ({
   const [mainTitle, setMainTitle] = useState(heroMainTitle);
   const [subtitle, setSubtitle] = useState(heroSubtitle);
   const [description, setDescription] = useState(heroDescription);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = heroPhotos.findIndex((photo) => photo.id === active.id);
+      const newIndex = heroPhotos.findIndex((photo) => photo.id === over.id);
+
+      const newOrder = arrayMove(heroPhotos, oldIndex, newIndex);
+      onHeroPhotoReorder(newOrder);
+    }
+  };
 
   const handleSave = async () => {
     if (!accommodationId) return;
@@ -141,35 +235,32 @@ export const WebInfoSection = ({
 
           {/* 輪播圖列表 */}
           {heroPhotos.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-              {heroPhotos
-                .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
-                .map((photo) => (
-                  <div key={photo.id} className="relative group">
-                    <div className="aspect-video rounded-lg overflow-hidden border">
-                      <img
-                        src={photo.photo_url}
-                        alt="輪播圖"
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
-                      onClick={() => onDeleteHeroPhoto(photo.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                    {photo.title && (
-                      <div className="absolute bottom-2 left-2 right-2 bg-black/60 text-white text-xs p-2 rounded">
-                        {photo.title}
-                      </div>
-                    )}
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                拖拽圖片可調整輪播順序
+              </p>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={heroPhotos.map(p => p.id)}
+                  strategy={rectSortingStrategy}
+                >
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {heroPhotos
+                      .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+                      .map((photo) => (
+                        <SortablePhoto
+                          key={photo.id}
+                          photo={photo}
+                          onDelete={onDeleteHeroPhoto}
+                        />
+                      ))}
                   </div>
-                ))}
+                </SortableContext>
+              </DndContext>
             </div>
           )}
         </div>
