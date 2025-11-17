@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Globe, Plus, Trash2, Edit2, GripVertical, MapPin, Image as ImageIcon, Upload, Info, Wrench, Package, HelpCircle, Navigation } from "lucide-react";
+import { Globe, Plus, Trash2, Edit2, GripVertical, MapPin, Image as ImageIcon, Upload, Info, Wrench, Package, HelpCircle, Navigation, icons } from "lucide-react";
 import { AboutFeatureForm } from "@/components/AboutFeatureForm";
 import { ResponsiveTabs, TabItem } from "@/components/ResponsiveTabs";
 import {
@@ -278,6 +278,17 @@ const SortableFeatureItem = ({ feature, index, onEdit, onDelete }: SortableFeatu
     opacity: isDragging ? 0.5 : 1,
   };
 
+  // 根據圖標名稱獲取對應的 Lucide 圖標組件
+  const getIconComponent = () => {
+    if (feature.icon_type === 'lucide' && feature.icon_name) {
+      const IconComponent = icons[feature.icon_name as keyof typeof icons];
+      if (IconComponent) {
+        return <IconComponent className="w-6 h-6 text-primary" />;
+      }
+    }
+    return null;
+  };
+
   return (
     <Card ref={setNodeRef} style={style} className="relative">
       <CardContent className="p-4">
@@ -291,7 +302,7 @@ const SortableFeatureItem = ({ feature, index, onEdit, onDelete }: SortableFeatu
           </div>
           <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
             {feature.icon_type === 'lucide' ? (
-              <span className="text-primary text-sm">{feature.icon_name}</span>
+              getIconComponent() || <span className="text-primary text-sm">{feature.icon_name}</span>
             ) : feature.icon_url ? (
               <img src={feature.icon_url} alt="圖示" className="w-6 h-6 object-contain" />
             ) : (
