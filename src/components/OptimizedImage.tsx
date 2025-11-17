@@ -89,7 +89,7 @@ export const OptimizedImage = ({
         });
       },
       {
-        rootMargin: "100px", // 提前 100px 開始載入
+        rootMargin: "200px", // 提前 200px 開始載入，提升體驗
         threshold: 0.01,
       }
     );
@@ -119,11 +119,11 @@ export const OptimizedImage = ({
       onClick={onClick}
     >
       {/* 骨架屏或模糊預覽 */}
-      {!isLoaded && (
+      {(!isLoaded || !isInView) && (
         <>
           {blurDataURL && showBlur ? (
             <div 
-              className="absolute inset-0 w-full h-full bg-cover bg-center"
+              className="absolute inset-0 w-full h-full bg-cover bg-center transition-opacity duration-300"
               style={{
                 backgroundImage: `url(${blurDataURL})`,
                 filter: 'blur(20px)',
@@ -131,7 +131,7 @@ export const OptimizedImage = ({
               }}
             />
           ) : (
-            <Skeleton className="absolute inset-0 w-full h-full animate-pulse" />
+            <Skeleton className="absolute inset-0 w-full h-full" />
           )}
         </>
       )}
