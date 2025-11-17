@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import { getOrderStatusLabel } from "@/utils/orderHelpers";
 
 interface DashboardStats {
   totalRooms: number;
@@ -38,12 +39,19 @@ interface MonthlyBookingData {
   bookings: number;
 }
 
+export interface OrderStatusData {
+  status: string;
+  count: number;
+  label: string;
+}
+
 interface DashboardData {
   stats: DashboardStats;
   revenueData: ChartData[];
   bookingData: ChartData[];
   occupancyData: OccupancyData[];
   monthlyBookings: MonthlyBookingData[];
+  orderStatusDistribution: OrderStatusData[];
 }
 
 const fetchDashboardData = async (
@@ -453,6 +461,25 @@ const fetchDashboardData = async (
       bookings: bookingsInMonth,
     };
   });
+
+  // Calculate order status distribution
+  const statusOrder = ['pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled'];
+  const statusMap = new Map<string, number>();
+  
+  statusOrder.forEach(status => {
+    statusMap.set(status, 0);
+  });
+
+  ordersData.forEach(order => {
+    const currentCount = statusMap.get(order.order_status) || 0;
+    statusMap.set(order.order_status, currentCount + 1);
+  });
+
+  const orderStatusDistribution: OrderStatusData[] = statusOrder.map(status => ({
+    status,
+    count: statusMap.get(status) || 0,
+    label: getOrderStatusLabel(status)
+  }));
   
   return {
     stats: finalStats,
@@ -460,6 +487,7 @@ const fetchDashboardData = async (
     bookingData,
     occupancyData,
     monthlyBookings,
+    orderStatusDistribution,
   };
 };
 
