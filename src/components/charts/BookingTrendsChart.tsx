@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface BookingTrendsChartProps {
   data: Array<{
@@ -15,6 +17,8 @@ interface BookingTrendsChartProps {
 }
 
 export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: BookingTrendsChartProps) => {
+  const [selectedData, setSelectedData] = useState<any>(null);
+  
   // 根據比較模式決定顯示的資料欄位
   const categories = isCustomRange 
     ? ['本期']
@@ -64,58 +68,106 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
     },
   };
 
+  const handleDotClick = (data: any) => {
+    setSelectedData(data);
+  };
+
   return (
-    <div className="animate-fade-in px-1 py-2 sm:px-2 sm:py-4" key={`booking-chart-${comparisonMode}`}>
-      <ChartContainer config={chartConfig} className="h-[240px] sm:h-[280px] md:h-[320px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart 
-            data={data} 
-            margin={{ 
-              top: 5, 
-              right: 10, 
-              left: 5, 
-              bottom: 5 
-            }}
-          >
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis 
-              dataKey="month" 
-              className="text-[10px] sm:text-xs"
-              tick={{ fontSize: 10 }}
-              angle={-45}
-              textAnchor="end"
-              height={60}
-            />
-            <YAxis 
-              width={50}
-              tickFormatter={(value) => `${value}`}
-              className="text-[10px] sm:text-xs"
-              tick={{ fontSize: 10 }}
-            />
-            <ChartTooltip 
-              content={<ChartTooltipContent />}
-              formatter={(value: number) => [`${value} 筆`]}
-            />
-            {!isCustomRange && <ChartLegend content={<ChartLegendContent />} />}
-            {categories.map((category, index) => (
-              <Line
-                key={category}
-                type="monotone"
-                dataKey={category}
-                stroke={index === 0 ? "hsl(var(--chart-booking-primary))" : "hsl(var(--chart-booking-secondary))"}
-                strokeWidth={2.5}
-                dot={{ r: 4 }}
-                activeDot={{ r: 6 }}
-                connectNulls
-                animationDuration={1000}
-                animationBegin={index * 100}
-                isAnimationActive={true}
-                animationEasing="ease-in-out"
+    <>
+      <div className="animate-fade-in px-1 py-2 sm:px-2 sm:py-4" key={`booking-chart-${comparisonMode}`}>
+        <ChartContainer config={chartConfig} className="h-[240px] sm:h-[280px] md:h-[320px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart 
+              data={data} 
+              margin={{ 
+                top: 5, 
+                right: 10, 
+                left: 5, 
+                bottom: 5 
+              }}
+            >
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis 
+                dataKey="month" 
+                className="text-[10px] sm:text-xs"
+                tick={{ fontSize: 10 }}
+                angle={-45}
+                textAnchor="end"
+                height={60}
               />
-            ))}
-          </LineChart>
-        </ResponsiveContainer>
-      </ChartContainer>
-    </div>
+              <YAxis 
+                width={50}
+                tickFormatter={(value) => `${value}`}
+                className="text-[10px] sm:text-xs"
+                tick={{ fontSize: 10 }}
+              />
+              <ChartTooltip 
+                content={<ChartTooltipContent />}
+                formatter={(value: number) => [`${value} 筆`]}
+              />
+              {!isCustomRange && <ChartLegend content={<ChartLegendContent />} />}
+              {categories.map((category, index) => (
+                <Line
+                  key={category}
+                  type="monotone"
+                  dataKey={category}
+                  stroke={index === 0 ? "hsl(var(--chart-booking-primary))" : "hsl(var(--chart-booking-secondary))"}
+                  strokeWidth={2.5}
+                  dot={{ r: 4, cursor: 'pointer' }}
+                  activeDot={{ r: 6, onClick: handleDotClick }}
+                  connectNulls
+                  animationDuration={1000}
+                  animationBegin={index * 100}
+                  isAnimationActive={true}
+                  animationEasing="ease-in-out"
+                />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        </ChartContainer>
+      </div>
+
+      <Dialog open={!!selectedData} onOpenChange={() => setSelectedData(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>訂單詳情</DialogTitle>
+          </DialogHeader>
+          {selectedData && (
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-muted-foreground">月份</p>
+                <p className="text-lg font-semibold">{selectedData.month}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                {categories.map((category) => (
+                  <div key={category}>
+                    <p className="text-sm text-muted-foreground">{category}</p>
+                    <p className="text-lg font-semibold">
+                      {selectedData[category] || 0} 筆
+                    </p>
+                  </div>
+                ))}
+              </div>
+              {!isCustomRange && categories.length === 2 && (
+                <div className="pt-4 border-t">
+                  <p className="text-sm text-muted-foreground">差異</p>
+                  <p className={`text-lg font-semibold ${
+                    (selectedData[categories[0]] || 0) >= (selectedData[categories[1]] || 0) 
+                      ? 'text-green-600' 
+                      : 'text-red-600'
+                  }`}>
+                    {((selectedData[categories[0]] || 0) - (selectedData[categories[1]] || 0)) >= 0 ? '+' : ''}
+                    {(selectedData[categories[0]] || 0) - (selectedData[categories[1]] || 0)} 筆
+                    {selectedData[categories[1]] > 0 && 
+                      ` (${(((selectedData[categories[0]] || 0) / selectedData[categories[1]] - 1) * 100).toFixed(1)}%)`
+                    }
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
