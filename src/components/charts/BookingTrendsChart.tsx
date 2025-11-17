@@ -121,7 +121,6 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                   dataKey={category}
                   stroke={index === 0 ? "hsl(var(--chart-booking-primary))" : "hsl(var(--chart-booking-secondary))"}
                   strokeWidth={3}
-                  strokeDasharray={index === 1 ? "8 4" : undefined}
                   dot={(props: any) => {
                     const { cx, cy, payload } = props;
                     return (
