@@ -12,6 +12,7 @@ interface WebInfoSectionProps {
   name: string;
   heroMainTitle: string;
   heroSubtitle: string;
+  heroDescription: string;
   heroPhotos: any[];
   onUpdate: () => void;
 }
@@ -21,6 +22,7 @@ export const WebInfoSection = ({
   name, 
   heroMainTitle, 
   heroSubtitle,
+  heroDescription,
   heroPhotos, 
   onUpdate 
 }: WebInfoSectionProps) => {
@@ -28,6 +30,7 @@ export const WebInfoSection = ({
   const [browserTitle, setBrowserTitle] = useState(name);
   const [mainTitle, setMainTitle] = useState(heroMainTitle);
   const [subtitle, setSubtitle] = useState(heroSubtitle);
+  const [description, setDescription] = useState(heroDescription);
 
   const handleSave = async () => {
     if (!accommodationId) return;
@@ -39,7 +42,8 @@ export const WebInfoSection = ({
         .update({ 
           name: browserTitle,
           hero_main_title: mainTitle,
-          hero_subtitle: subtitle
+          hero_subtitle: subtitle,
+          hero_description: description
         })
         .eq("id", accommodationId);
 
@@ -134,6 +138,20 @@ export const WebInfoSection = ({
           />
           <p className="text-sm text-muted-foreground">
             顯示在首頁輪播圖的副標題文字
+          </p>
+        </div>
+
+        {/* 輪播圖說明文字 */}
+        <div className="space-y-2">
+          <Label htmlFor="hero-description">輪播圖說明文字</Label>
+          <Input
+            id="hero-description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="例如：坐落於山林間的日式豪華住宿"
+          />
+          <p className="text-sm text-muted-foreground">
+            顯示在首頁輪播圖的說明文字
           </p>
         </div>
 

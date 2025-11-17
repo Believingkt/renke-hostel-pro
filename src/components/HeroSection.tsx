@@ -29,6 +29,7 @@ interface HeroSectionProps {
   accommodationName?: string;
   heroMainTitle?: string;
   heroSubtitle?: string;
+  heroDescription?: string;
 }
 
 interface HeroPhoto {
@@ -46,7 +47,8 @@ const defaultHeroImages = [heroSlide1, heroSlide2, heroSlide3];
 const HeroSection = ({ 
   accommodationName = "森山寫照",
   heroMainTitle = "山間的寧靜時光",
-  heroSubtitle = "體驗日式美學與自然的完美融合"
+  heroSubtitle = "體驗日式美學與自然的完美融合",
+  heroDescription = ""
 }: HeroSectionProps) => {
   const { checkInDate, setCheckInDate, checkOutDate, setCheckOutDate, guests, setGuests, currentAccommodationId } = useAccommodation();
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
@@ -257,6 +259,11 @@ const HeroSection = ({
                           {heroSubtitle && (
                             <p className="text-base md:text-xl animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.4s" }}>
                               {heroSubtitle}
+                            </p>
+                          )}
+                          {heroDescription && (
+                            <p className="text-sm md:text-base animate-fade-in drop-shadow-lg" style={{ animationDelay: "0.6s" }}>
+                              {heroDescription}
                             </p>
                           )}
                         </>
