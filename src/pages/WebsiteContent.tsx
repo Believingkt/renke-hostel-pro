@@ -490,6 +490,11 @@ const WebsiteContent = () => {
             website_url: infoData.website_url || ""
           });
 
+          // 更新瀏覽器標題
+          if (infoData.name) {
+            document.title = infoData.name;
+          }
+
           // 加載現有設施
           const { data: facilities } = await supabase
             .from("accommodation_facilities")
@@ -1384,6 +1389,11 @@ const WebsiteContent = () => {
 
       if (error) throw error;
 
+      // 更新瀏覽器標題
+      if (basicInfo.name) {
+        document.title = basicInfo.name;
+      }
+
       toast.success('基本資料已儲存');
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -1966,11 +1976,17 @@ const WebsiteContent = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <Label>名稱</Label>
+                <Label htmlFor="browser-title">瀏覽器標題名稱</Label>
                 <Input 
+                  id="browser-title"
                   value={basicInfo.name}
                   onChange={(e) => setBasicInfo({ ...basicInfo, name: e.target.value })}
+                  placeholder="例如：山林秘境民宿 - 南投日式豪華住宿"
+                  maxLength={70}
                 />
+                <p className="text-sm text-muted-foreground">
+                  顯示在瀏覽器分頁標籤上的標題（建議 70 字元以內）
+                </p>
               </div>
 
               {/* 特色說明編輯區塊 */}
