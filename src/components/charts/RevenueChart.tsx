@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface RevenueChartProps {
   data: Array<{
@@ -15,6 +17,8 @@ interface RevenueChartProps {
 }
 
 export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueChartProps) => {
+  const [selectedData, setSelectedData] = useState<any>(null);
+  
   // 根據比較模式決定顯示的資料欄位
   const categories = isCustomRange 
     ? ['本期']
@@ -77,54 +81,103 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
     },
   };
 
+  const handleBarClick = (data: any) => {
+    setSelectedData(data);
+  };
+
   return (
-    <div className="animate-fade-in px-1 py-2 sm:px-2 sm:py-4" key={`revenue-chart-${comparisonMode}`}>
-      <ChartContainer config={chartConfig} className="h-[240px] sm:h-[280px] md:h-[320px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart 
-            data={data} 
-            margin={{ 
-              top: 5, 
-              right: 10, 
-              left: 5, 
-              bottom: 5 
-            }}
-          >
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis 
-              dataKey="month" 
-              className="text-[10px] sm:text-xs"
-              tick={{ fontSize: 10 }}
-              angle={-45}
-              textAnchor="end"
-              height={60}
-            />
-            <YAxis 
-              width={50}
-              tickFormatter={valueFormatter}
-              className="text-[10px] sm:text-xs"
-              tick={{ fontSize: 10 }}
-            />
-            <ChartTooltip 
-              content={<ChartTooltipContent />}
-              formatter={(value: number) => [valueFormatter(value)]}
-            />
-            {!isCustomRange && <ChartLegend content={<ChartLegendContent />} />}
-            {categories.map((category, index) => (
-              <Bar
-                key={category}
-                dataKey={category}
-                fill={index === 0 ? "hsl(var(--chart-revenue-primary))" : "hsl(var(--chart-revenue-secondary))"}
-                radius={[6, 6, 0, 0]}
-                animationDuration={1000}
-                animationBegin={index * 100}
-                isAnimationActive={true}
-                animationEasing="ease-in-out"
+    <>
+      <div className="animate-fade-in px-1 py-2 sm:px-2 sm:py-4" key={`revenue-chart-${comparisonMode}`}>
+        <ChartContainer config={chartConfig} className="h-[240px] sm:h-[280px] md:h-[320px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart 
+              data={data} 
+              margin={{ 
+                top: 5, 
+                right: 10, 
+                left: 5, 
+                bottom: 5 
+              }}
+            >
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis 
+                dataKey="month" 
+                className="text-[10px] sm:text-xs"
+                tick={{ fontSize: 10 }}
+                angle={-45}
+                textAnchor="end"
+                height={60}
               />
-            ))}
-          </BarChart>
-        </ResponsiveContainer>
-      </ChartContainer>
-    </div>
+              <YAxis 
+                width={50}
+                tickFormatter={valueFormatter}
+                className="text-[10px] sm:text-xs"
+                tick={{ fontSize: 10 }}
+              />
+              <ChartTooltip 
+                content={<ChartTooltipContent />}
+                formatter={(value: number) => [valueFormatter(value)]}
+              />
+              {!isCustomRange && <ChartLegend content={<ChartLegendContent />} />}
+              {categories.map((category, index) => (
+                <Bar
+                  key={category}
+                  dataKey={category}
+                  fill={index === 0 ? "hsl(var(--chart-revenue-primary))" : "hsl(var(--chart-revenue-secondary))"}
+                  radius={[6, 6, 0, 0]}
+                  animationDuration={1000}
+                  animationBegin={index * 100}
+                  isAnimationActive={true}
+                  animationEasing="ease-in-out"
+                  onClick={handleBarClick}
+                  cursor="pointer"
+                />
+              ))}
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartContainer>
+      </div>
+
+      <Dialog open={!!selectedData} onOpenChange={() => setSelectedData(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>營收詳情</DialogTitle>
+          </DialogHeader>
+          {selectedData && (
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-muted-foreground">月份</p>
+                <p className="text-lg font-semibold">{selectedData.month}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                {categories.map((category) => (
+                  <div key={category}>
+                    <p className="text-sm text-muted-foreground">{category}</p>
+                    <p className="text-lg font-semibold">
+                      {valueFormatter(selectedData[category] || 0)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              {!isCustomRange && categories.length === 2 && (
+                <div className="pt-4 border-t">
+                  <p className="text-sm text-muted-foreground">差異</p>
+                  <p className={`text-lg font-semibold ${
+                    (selectedData[categories[0]] || 0) >= (selectedData[categories[1]] || 0) 
+                      ? 'text-green-600' 
+                      : 'text-red-600'
+                  }`}>
+                    {((selectedData[categories[0]] || 0) - (selectedData[categories[1]] || 0)) >= 0 ? '+' : ''}
+                    {valueFormatter(Math.abs((selectedData[categories[0]] || 0) - (selectedData[categories[1]] || 0)))}
+                    {' '}
+                    ({(((selectedData[categories[0]] || 0) / (selectedData[categories[1]] || 1) - 1) * 100).toFixed(1)}%)
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };

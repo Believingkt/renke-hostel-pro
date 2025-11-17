@@ -556,6 +556,16 @@ All colors MUST be HSL.
     stroke-width: 3;
   }
 
+  /* 圖表柱狀圖交互效果 */
+  .recharts-bar-rectangle {
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .recharts-bar-rectangle:hover {
+    opacity: 0.8;
+    filter: brightness(1.1);
+  }
+
   @keyframes pulse-dot {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.2); }
