@@ -2010,9 +2010,6 @@ const WebsiteContent = () => {
         <TabsContent value="basic-info" className="space-y-6">
           <WebInfoSection
             accommodationId={accommodationId || ''}
-            heroMainTitle={basicInfo.hero_main_title}
-            heroSubtitle={basicInfo.hero_subtitle}
-            heroDescription={basicInfo.hero_description}
             heroPhotos={heroPhotos}
             onUpdate={loadData}
             onHeroPhotoUpload={handleHeroPhotoUpload}

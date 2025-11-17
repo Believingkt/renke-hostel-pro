@@ -26,9 +26,6 @@ import { CSS } from '@dnd-kit/utilities';
 
 interface WebInfoSectionProps {
   accommodationId: string;
-  heroMainTitle: string;
-  heroSubtitle: string;
-  heroDescription: string;
   heroPhotos: any[];
   onUpdate: () => void;
   onHeroPhotoUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -104,9 +101,6 @@ const SortablePhoto = ({ photo, onDelete, onEdit }: SortablePhotoProps) => {
 
 export const WebInfoSection = ({ 
   accommodationId, 
-  heroMainTitle, 
-  heroSubtitle,
-  heroDescription,
   heroPhotos, 
   onUpdate,
   onHeroPhotoUpload,
@@ -116,9 +110,6 @@ export const WebInfoSection = ({
   uploadingHeroPhoto
 }: WebInfoSectionProps) => {
   const [isSaving, setIsSaving] = useState(false);
-  const [mainTitle, setMainTitle] = useState(heroMainTitle);
-  const [subtitle, setSubtitle] = useState(heroSubtitle);
-  const [description, setDescription] = useState(heroDescription);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -140,31 +131,8 @@ export const WebInfoSection = ({
   };
 
   const handleSave = async () => {
-    if (!accommodationId) return;
-
-    setIsSaving(true);
-    try {
-      const { error } = await supabase
-        .from("accommodation_info")
-        .update({
-          hero_main_title: mainTitle,
-          hero_subtitle: subtitle,
-          hero_description: description,
-        })
-        .eq("id", accommodationId);
-
-      if (error) throw error;
-
-      toast.success('輪播圖設定已儲存');
-      onUpdate();
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error("Error saving web info:", error);
-      }
-      toast.error('儲存失敗，請稍後再試');
-    } finally {
-      setIsSaving(false);
-    }
+    toast.success('輪播圖順序已儲存');
+    onUpdate();
   };
 
   return (
@@ -238,51 +206,6 @@ export const WebInfoSection = ({
           )}
         </div>
 
-        {/* 輪播圖主標題文字 */}
-        <div className="space-y-2">
-          <Label htmlFor="hero-main-title">輪播圖主標題</Label>
-          <Input
-            id="hero-main-title"
-            value={mainTitle}
-            onChange={(e) => setMainTitle(e.target.value)}
-            placeholder="例如：山間的寧靜時光"
-          />
-          <p className="text-sm text-muted-foreground">
-            顯示在首頁輪播圖的主標題文字
-          </p>
-        </div>
-
-        {/* 輪播圖副標題文字 */}
-        <div className="space-y-2">
-          <Label htmlFor="hero-subtitle">輪播圖副標題</Label>
-          <Input
-            id="hero-subtitle"
-            value={subtitle}
-            onChange={(e) => setSubtitle(e.target.value)}
-            placeholder="例如：體驗日式美學與自然的完美融合"
-          />
-          <p className="text-sm text-muted-foreground">
-            顯示在首頁輪播圖的副標題文字
-          </p>
-        </div>
-
-        {/* 輪播圖說明文字 */}
-        <div className="space-y-2">
-          <Label htmlFor="hero-description">輪播圖說明文字</Label>
-          <Input
-            id="hero-description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="例如：坐落於山林間的日式豪華住宿"
-          />
-          <p className="text-sm text-muted-foreground">
-            顯示在首頁輪播圖的說明文字
-          </p>
-        </div>
-
-        <Button onClick={handleSave} disabled={isSaving}>
-          {isSaving ? "儲存中..." : "儲存變更"}
-        </Button>
       </CardContent>
     </Card>
   );
