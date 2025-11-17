@@ -4,7 +4,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import type { CarouselApi } from "@/components/ui/carousel";
-import Autoplay from "embla-carousel-autoplay";
 import { Calendar as CalendarIcon, Users, Search } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -40,6 +39,12 @@ interface HeroPhoto {
   subtitle?: string | null;
   cta_text?: string | null;
   cta_link?: string | null;
+  text_color?: string | null;
+  text_size?: string | null;
+  text_position_x?: string | null;
+  text_position_y?: string | null;
+  overlay_opacity?: number | null;
+  autoplay_delay?: number | null;
 }
 
 const defaultHeroImages = [heroSlide1, heroSlide2, heroSlide3];
@@ -60,6 +65,7 @@ const HeroSection = ({
   const [heroPhotos, setHeroPhotos] = useState<HeroPhoto[]>([]);
   const [isLoadingPhotos, setIsLoadingPhotos] = useState(true);
   const [blurDataURLs, setBlurDataURLs] = useState<Map<string, string>>(new Map());
+  const [autoplayEnabled, setAutoplayEnabled] = useState(true);
 
   // 使用數據庫圖片或默認圖片，優先使用數據庫內容
   const slides = heroPhotos.length > 0 
@@ -71,7 +77,13 @@ const HeroSection = ({
         title: null,
         subtitle: null,
         cta_text: null,
-        cta_link: null
+        cta_link: null,
+        text_color: null,
+        text_size: null,
+        text_position_x: null,
+        text_position_y: null,
+        overlay_opacity: null,
+        autoplay_delay: null
       }));
 
   // 載入首頁輪播圖
@@ -168,7 +180,7 @@ const HeroSection = ({
   };
 
   useEffect(() => {
-    if (!carouselApi) return;
+    if (!carouselApi || !autoplayEnabled) return;
 
     setCurrent(carouselApi.selectedScrollSnap());
 
@@ -190,17 +202,11 @@ const HeroSection = ({
     
     // 監聽圖片查看器事件，停止/恢復輪播
     const handleViewerOpened = () => {
-      const plugins = (carouselApi as any).plugins?.();
-      if (plugins?.autoplay) {
-        plugins.autoplay.stop();
-      }
+      setAutoplayEnabled(false);
     };
     
     const handleViewerClosed = () => {
-      const plugins = (carouselApi as any).plugins?.();
-      if (plugins?.autoplay) {
-        plugins.autoplay.play();
-      }
+      setAutoplayEnabled(true);
     };
     
     window.addEventListener('viewer-opened', handleViewerOpened);
@@ -211,7 +217,21 @@ const HeroSection = ({
       window.removeEventListener('viewer-opened', handleViewerOpened);
       window.removeEventListener('viewer-closed', handleViewerClosed);
     };
-  }, [carouselApi]);
+  }, [carouselApi, slides.length, autoplayEnabled]);
+
+  // 自訂自動播放功能，支援每張圖片不同的延遲時間
+  useEffect(() => {
+    if (!carouselApi || !autoplayEnabled || slides.length === 0) return;
+
+    const currentSlide = slides[current];
+    const delay = (currentSlide?.autoplay_delay ?? 8) * 1000; // 轉換為毫秒
+
+    const timer = setTimeout(() => {
+      carouselApi.scrollNext();
+    }, delay);
+
+    return () => clearTimeout(timer);
+  }, [carouselApi, current, slides, autoplayEnabled]);
 
   return (
     <section id="home" className="pt-16 relative">
@@ -222,7 +242,6 @@ const HeroSection = ({
             duration: 30,
             align: "start",
           }}
-          plugins={[Autoplay({ delay: 8000, stopOnInteraction: true })]}
           className="w-full"
           setApi={setCarouselApi}
         >
