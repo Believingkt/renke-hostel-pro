@@ -121,9 +121,7 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
                 dataKey="month" 
                 className="text-[10px] sm:text-xs"
                 tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                angle={-45}
-                textAnchor="end"
-                height={60}
+                height={40}
                 axisLine={false}
                 tickLine={false}
               />
