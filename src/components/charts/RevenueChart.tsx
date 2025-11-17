@@ -98,19 +98,19 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
 
   return (
     <>
-      <div className="animate-fade-in px-1 py-2 sm:px-2 sm:py-4" key={`revenue-chart-${comparisonMode}`}>
+      <div className="animate-fade-in px-0.5 py-1 sm:px-2 sm:py-3" key={`revenue-chart-${comparisonMode}`}>
         <ChartContainer config={chartConfig} className="h-[180px] sm:h-[220px] md:h-[260px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart 
               data={data} 
               margin={{ 
-                top: 10, 
-                right: 15, 
-                left: 0, 
-                bottom: 10 
+                top: 5, 
+                right: 10, 
+                left: -5, 
+                bottom: 5 
               }}
-              barGap={4}
-              barCategoryGap="20%"
+              barGap={3}
+              barCategoryGap="15%"
             >
               <CartesianGrid 
                 strokeDasharray="3 3" 
@@ -119,17 +119,17 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
               />
               <XAxis 
                 dataKey="month" 
-                className="text-[10px] sm:text-xs"
-                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                height={40}
+                className="text-[9px] sm:text-[10px]"
+                tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }}
+                height={30}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis 
-                width={55}
+                width={45}
                 tickFormatter={yAxisFormatter}
-                className="text-[10px] sm:text-xs"
-                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                className="text-[9px] sm:text-[10px]"
+                tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }}
                 axisLine={false}
                 tickLine={false}
               />

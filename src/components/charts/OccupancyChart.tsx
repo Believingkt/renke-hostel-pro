@@ -43,20 +43,20 @@ export const OccupancyChart = ({ data }: OccupancyChartProps) => {
 
   return (
     <>
-      <div className="animate-fade-in px-1 py-2 sm:px-2 sm:py-4">
+      <div className="animate-fade-in px-0.5 py-1 sm:px-2 sm:py-3">
         <ChartContainer config={chartConfig} className="h-[180px] sm:h-[220px] md:h-[260px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart 
               data={data} 
               layout="vertical" 
               margin={{ 
-                top: 10, 
-                right: 15, 
-                left: 0, 
-                bottom: 10 
+                top: 5, 
+                right: 10, 
+                left: -5, 
+                bottom: 5 
               }}
-              barGap={4}
-              barCategoryGap="20%"
+              barGap={3}
+              barCategoryGap="15%"
             >
               <CartesianGrid 
                 strokeDasharray="3 3" 
@@ -66,17 +66,17 @@ export const OccupancyChart = ({ data }: OccupancyChartProps) => {
               <XAxis 
                 type="number" 
                 tickFormatter={(value) => `${value}%`}
-                className="text-[10px] sm:text-xs"
-                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                className="text-[9px] sm:text-[10px]"
+                tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis 
                 type="category" 
                 dataKey="roomType" 
-                width={65}
-                className="text-[10px] sm:text-xs"
-                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                width={55}
+                className="text-[9px] sm:text-[10px]"
+                tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }}
                 axisLine={false}
                 tickLine={false}
               />
