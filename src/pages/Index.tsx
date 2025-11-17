@@ -165,7 +165,7 @@ const Index = () => {
     <div className="min-h-screen">
       {/* SEO Meta 標籤 */}
       <SEOHead
-        title={data.info.og_title || `${data.info.name} - 山林中的日式豪華住宿體驗`}
+        title={data.info.og_title || data.info.name}
         description={data.info.og_description || data.info.description || "體驗山林中的寧靜時光，融合日式美學與自然的完美住宿空間。提供一泊二食、管家服務，打造專屬的度假體驗。"}
         keywords={[
           data.info.name,
