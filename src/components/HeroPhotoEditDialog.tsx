@@ -93,183 +93,251 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>編輯輪播圖文字</DialogTitle>
+          <DialogTitle>編輯輪播圖文字與樣式</DialogTitle>
           <DialogDescription>
-            設置此輪播圖的標題、副標題和行動呼籲按鈕
+            設置此輪播圖的標題、副標題、行動呼籲按鈕和視覺效果
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* 圖片預覽 */}
-          <div className="relative w-full h-48 rounded-lg overflow-hidden border">
-            <img
-              src={photo.photo_url}
-              alt="輪播圖預覽"
-              className="w-full h-full object-cover"
-            />
-          </div>
-
-          {/* 標題 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* 左側：即時預覽 */}
           <div className="space-y-2">
-            <Label htmlFor="title">標題</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="例：歡迎來到我們的民宿"
-              maxLength={100}
-            />
-            <p className="text-sm text-muted-foreground">
-              {title.length}/100 字元
-            </p>
-          </div>
-
-          {/* 副標題 */}
-          <div className="space-y-2">
-            <Label htmlFor="subtitle">副標題</Label>
-            <Textarea
-              id="subtitle"
-              value={subtitle}
-              onChange={(e) => setSubtitle(e.target.value)}
-              placeholder="例：體驗最舒適的住宿環境"
-              maxLength={200}
-              rows={3}
-            />
-            <p className="text-sm text-muted-foreground">
-              {subtitle.length}/200 字元
-            </p>
-          </div>
-
-          {/* CTA 按鈕文字 */}
-          <div className="space-y-2">
-            <Label htmlFor="cta-text">按鈕文字（選填）</Label>
-            <Input
-              id="cta-text"
-              value={ctaText}
-              onChange={(e) => setCtaText(e.target.value)}
-              placeholder="例：立即預訂、了解更多"
-              maxLength={50}
-            />
-            <p className="text-sm text-muted-foreground">
-              {ctaText.length}/50 字元
-            </p>
-          </div>
-
-          {/* CTA 按鈕連結 */}
-          <div className="space-y-2">
-            <Label htmlFor="cta-link">按鈕連結（選填）</Label>
-            <Input
-              id="cta-link"
-              value={ctaLink}
-              onChange={(e) => setCtaLink(e.target.value)}
-              placeholder="例：/booking 或 #rooms"
-              maxLength={200}
-            />
-            <p className="text-sm text-muted-foreground">
-              可以使用相對路徑（如 /booking）或錨點（如 #rooms）
-            </p>
-          </div>
-
-          {/* 文字顏色 */}
-          <div className="space-y-2">
-            <Label htmlFor="text-color">文字顏色</Label>
-            <Select value={textColor} onValueChange={setTextColor}>
-              <SelectTrigger id="text-color">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="white">白色</SelectItem>
-                <SelectItem value="black">黑色</SelectItem>
-                <SelectItem value="primary">主題色</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* 文字大小 */}
-          <div className="space-y-2">
-            <Label htmlFor="text-size">文字大小</Label>
-            <Select value={textSize} onValueChange={setTextSize}>
-              <SelectTrigger id="text-size">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="small">小</SelectItem>
-                <SelectItem value="medium">中</SelectItem>
-                <SelectItem value="large">大</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* 水平位置 */}
-          <div className="space-y-2">
-            <Label htmlFor="text-position-x">水平位置</Label>
-            <Select value={textPositionX} onValueChange={setTextPositionX}>
-              <SelectTrigger id="text-position-x">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="left">左</SelectItem>
-                <SelectItem value="center">中</SelectItem>
-                <SelectItem value="right">右</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* 垂直位置 */}
-          <div className="space-y-2">
-            <Label htmlFor="text-position-y">垂直位置</Label>
-            <Select value={textPositionY} onValueChange={setTextPositionY}>
-              <SelectTrigger id="text-position-y">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="top">上</SelectItem>
-                <SelectItem value="center">中</SelectItem>
-                <SelectItem value="bottom">下</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* 背景遮罩透明度 */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="overlay-opacity">背景遮罩透明度</Label>
-              <span className="text-sm text-muted-foreground">{overlayOpacity}%</span>
+            <Label>即時預覽</Label>
+            <div className="relative aspect-video rounded-lg overflow-hidden border bg-muted">
+              <img
+                src={photo.photo_url}
+                alt="輪播圖預覽"
+                className="w-full h-full object-cover"
+              />
+              <div 
+                className="absolute inset-0 transition-all duration-300"
+                style={{ 
+                  backgroundColor: `rgba(0, 0, 0, ${overlayOpacity / 100})`
+                }}
+              >
+                <div 
+                  className={`
+                    space-y-2 px-4 py-8
+                    ${textPositionX === 'left' ? 'text-left' : textPositionX === 'right' ? 'text-right' : 'text-center'}
+                    ${
+                      textPositionY === 'top' ? 'flex items-start justify-center pt-8' :
+                      textPositionY === 'bottom' ? 'flex items-end justify-center pb-8' :
+                      'flex items-center justify-center'
+                    }
+                    absolute inset-0
+                  `}
+                  style={{
+                    color: textColor === 'black' ? '#000' : textColor === 'primary' ? 'hsl(var(--primary))' : '#fff'
+                  }}
+                >
+                  <div className="w-full">
+                    {title && (
+                      <h1 
+                        className={`
+                          font-bold drop-shadow-lg
+                          ${textSize === 'small' ? 'text-xl md:text-3xl' : 
+                            textSize === 'large' ? 'text-3xl md:text-5xl' : 
+                            'text-2xl md:text-4xl'}
+                        `}
+                      >
+                        {title}
+                      </h1>
+                    )}
+                    {subtitle && (
+                      <p 
+                        className={`
+                          drop-shadow-lg mt-2
+                          ${textSize === 'small' ? 'text-sm md:text-base' : 
+                            textSize === 'large' ? 'text-lg md:text-2xl' : 
+                            'text-base md:text-xl'}
+                        `}
+                      >
+                        {subtitle}
+                      </p>
+                    )}
+                    {ctaText && (
+                      <div className="mt-4">
+                        <Button
+                          size="sm"
+                          className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg pointer-events-none"
+                        >
+                          {ctaText}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
-            <Slider
-              id="overlay-opacity"
-              min={0}
-              max={100}
-              step={5}
-              value={[overlayOpacity]}
-              onValueChange={(value) => setOverlayOpacity(value[0])}
-              className="w-full"
-            />
-            <p className="text-sm text-muted-foreground">
-              調整圖片暗化效果強度（0% = 無遮罩，100% = 完全黑色）
+            <p className="text-xs text-muted-foreground">
+              此預覽會即時反映您的所有設定變更
             </p>
           </div>
 
-          {/* 自動播放時間 */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="autoplay-delay">自動播放時間</Label>
-              <span className="text-sm text-muted-foreground">{autoplayDelay} 秒</span>
+          {/* 右側：設定表單 */}
+          <div className="space-y-4">
+            {/* 標題 */}
+            <div className="space-y-2">
+              <Label htmlFor="title">標題</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="例：歡迎來到我們的民宿"
+                maxLength={100}
+              />
+              <p className="text-sm text-muted-foreground">
+                {title.length}/100 字元
+              </p>
             </div>
-            <Slider
-              id="autoplay-delay"
-              min={2}
-              max={20}
-              step={1}
-              value={[autoplayDelay]}
-              onValueChange={(value) => setAutoplayDelay(value[0])}
-              className="w-full"
-            />
-            <p className="text-sm text-muted-foreground">
-              設定此圖片在輪播時的停留時間（2-20 秒）
-            </p>
+
+            {/* 副標題 */}
+            <div className="space-y-2">
+              <Label htmlFor="subtitle">副標題</Label>
+              <Textarea
+                id="subtitle"
+                value={subtitle}
+                onChange={(e) => setSubtitle(e.target.value)}
+                placeholder="例：體驗最舒適的住宿環境"
+                maxLength={200}
+                rows={3}
+              />
+              <p className="text-sm text-muted-foreground">
+                {subtitle.length}/200 字元
+              </p>
+            </div>
+
+            {/* CTA 按鈕文字 */}
+            <div className="space-y-2">
+              <Label htmlFor="cta-text">按鈕文字（選填）</Label>
+              <Input
+                id="cta-text"
+                value={ctaText}
+                onChange={(e) => setCtaText(e.target.value)}
+                placeholder="例：立即預訂、了解更多"
+                maxLength={50}
+              />
+              <p className="text-sm text-muted-foreground">
+                {ctaText.length}/50 字元
+              </p>
+            </div>
+
+            {/* CTA 按鈕連結 */}
+            <div className="space-y-2">
+              <Label htmlFor="cta-link">按鈕連結（選填）</Label>
+              <Input
+                id="cta-link"
+                value={ctaLink}
+                onChange={(e) => setCtaLink(e.target.value)}
+                placeholder="例：/booking 或 #rooms"
+                maxLength={200}
+              />
+              <p className="text-sm text-muted-foreground">
+                可以使用相對路徑（如 /booking）或錨點（如 #rooms）
+              </p>
+            </div>
+
+            {/* 文字顏色 */}
+            <div className="space-y-2">
+              <Label htmlFor="text-color">文字顏色</Label>
+              <Select value={textColor} onValueChange={setTextColor}>
+                <SelectTrigger id="text-color">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="white">白色</SelectItem>
+                  <SelectItem value="black">黑色</SelectItem>
+                  <SelectItem value="primary">主題色</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* 文字大小 */}
+            <div className="space-y-2">
+              <Label htmlFor="text-size">文字大小</Label>
+              <Select value={textSize} onValueChange={setTextSize}>
+                <SelectTrigger id="text-size">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="small">小</SelectItem>
+                  <SelectItem value="medium">中</SelectItem>
+                  <SelectItem value="large">大</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* 水平位置 */}
+            <div className="space-y-2">
+              <Label htmlFor="text-position-x">水平位置</Label>
+              <Select value={textPositionX} onValueChange={setTextPositionX}>
+                <SelectTrigger id="text-position-x">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="left">左</SelectItem>
+                  <SelectItem value="center">中</SelectItem>
+                  <SelectItem value="right">右</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* 垂直位置 */}
+            <div className="space-y-2">
+              <Label htmlFor="text-position-y">垂直位置</Label>
+              <Select value={textPositionY} onValueChange={setTextPositionY}>
+                <SelectTrigger id="text-position-y">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="top">上</SelectItem>
+                  <SelectItem value="center">中</SelectItem>
+                  <SelectItem value="bottom">下</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* 背景遮罩透明度 */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="overlay-opacity">背景遮罩透明度</Label>
+                <span className="text-sm text-muted-foreground">{overlayOpacity}%</span>
+              </div>
+              <Slider
+                id="overlay-opacity"
+                min={0}
+                max={100}
+                step={5}
+                value={[overlayOpacity]}
+                onValueChange={(value) => setOverlayOpacity(value[0])}
+                className="w-full"
+              />
+              <p className="text-sm text-muted-foreground">
+                調整圖片暗化效果強度（0% = 無遮罩，100% = 完全黑色）
+              </p>
+            </div>
+
+            {/* 自動播放時間 */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="autoplay-delay">自動播放時間</Label>
+                <span className="text-sm text-muted-foreground">{autoplayDelay} 秒</span>
+              </div>
+              <Slider
+                id="autoplay-delay"
+                min={2}
+                max={20}
+                step={1}
+                value={[autoplayDelay]}
+                onValueChange={(value) => setAutoplayDelay(value[0])}
+                className="w-full"
+              />
+              <p className="text-sm text-muted-foreground">
+                設定此圖片在輪播時的停留時間（2-20 秒）
+              </p>
+            </div>
           </div>
         </div>
 
