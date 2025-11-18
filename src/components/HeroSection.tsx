@@ -413,12 +413,12 @@ const HeroSection = ({
           >
             <div className="w-full space-y-3 md:space-y-4">
               <h1 
-                className={`
-                  font-bold drop-shadow-lg leading-tight transition-opacity duration-500
-                  ${(slides[current].title_size || 'medium') === 'small' ? 'text-2xl md:text-5xl' : 
-                    (slides[current].title_size || 'medium') === 'large' ? 'text-4xl md:text-8xl' : 
-                    'text-3xl md:text-[80px]'}
-                `}
+                className="hero-title font-bold drop-shadow-lg leading-tight"
+                style={{
+                  fontSize: 'clamp(1.875rem, 5vw, 5rem)',
+                  fontFamily: "'Noto Sans TC', sans-serif",
+                  fontWeight: 700
+                }}
               >
                 {slides[current].title || accommodationName}
               </h1>
