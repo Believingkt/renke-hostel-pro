@@ -325,13 +325,13 @@ const HeroSection = ({
           <div 
             key={current}
             className={`
-              absolute inset-0 pointer-events-none z-10
-              space-y-2 md:space-y-4 max-w-4xl px-4 pb-32 md:pb-56
+              absolute left-1/2 -translate-x-1/2 pointer-events-none z-10
+              space-y-2 md:space-y-4 w-full max-w-4xl px-4 pb-32 md:pb-56
               text-center
               ${
-                slides[current].text_position_y === 'top' ? 'flex items-start justify-center pt-32' :
-                slides[current].text_position_y === 'bottom' ? 'flex items-end justify-center pb-32' :
-                'flex items-center justify-center'
+                slides[current].text_position_y === 'top' ? 'flex items-start justify-center pt-32 top-0' :
+                slides[current].text_position_y === 'bottom' ? 'flex items-end justify-center pb-32 bottom-0' :
+                'flex items-center justify-center top-1/2 -translate-y-1/2'
               }
             `}
             style={{
