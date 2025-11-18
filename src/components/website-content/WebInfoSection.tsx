@@ -171,17 +171,6 @@ export const WebInfoSection = ({
               <Upload className="h-4 w-4" />
               {uploadingHeroPhoto ? "上傳中..." : "上傳輪播圖"}
             </Button>
-            {heroPhotos.length > 0 && (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={onPreviewCarousel}
-                className="flex items-center gap-2 min-w-[140px]"
-              >
-                <Eye className="h-4 w-4" />
-                預覽輪播效果
-              </Button>
-            )}
             <input
               id="hero-photo-upload"
               type="file"
@@ -243,12 +232,25 @@ export const WebInfoSection = ({
 
         {/* 全局設定區塊 */}
         <div className="rounded-lg border bg-muted/30 p-6 space-y-6">
-          <div className="flex items-center gap-2 pb-2 border-b">
-            <div className="h-8 w-1 bg-primary rounded-full" />
-            <div>
-              <h3 className="font-semibold text-lg">輪播圖全局設定</h3>
-              <p className="text-sm text-muted-foreground">統一設定所有輪播圖的標題、視覺效果和播放行為</p>
+          <div className="flex items-center justify-between pb-2 border-b">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-1 bg-primary rounded-full" />
+              <div>
+                <h3 className="font-semibold text-lg">輪播圖全局設定</h3>
+                <p className="text-sm text-muted-foreground">統一設定所有輪播圖的標題、視覺效果和播放行為</p>
+              </div>
             </div>
+            {heroPhotos.length > 0 && (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={onPreviewCarousel}
+                className="flex items-center gap-2"
+              >
+                <Eye className="h-4 w-4" />
+                預覽輪播效果
+              </Button>
+            )}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
