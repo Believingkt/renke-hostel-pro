@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ImageOff } from "lucide-react";
 import { calculateOptimalImageSize } from "@/utils/responsiveImageHelper";
 import { getCDNUrl } from "@/utils/cdnHelper";
 import { useNetworkStatus } from "@/hooks/use-network-status";
@@ -20,8 +21,10 @@ interface OptimizedImageProps {
   blurDataURL?: string;
   responsive?: boolean;
   useCDN?: boolean;
-  autoSrcSet?: boolean; // 自動生成響應式 srcset
-  imageType?: 'thumbnail' | 'small' | 'medium' | 'large' | 'hero'; // 圖片類型，用於選擇預設寬度
+  autoSrcSet?: boolean;
+  imageType?: 'thumbnail' | 'small' | 'medium' | 'large' | 'hero';
+  fallbackSrc?: string; // 自定義後備圖片
+  onError?: () => void;
 }
 
 export const OptimizedImage = ({
@@ -41,10 +44,13 @@ export const OptimizedImage = ({
   useCDN = true,
   autoSrcSet = true,
   imageType = 'medium',
+  fallbackSrc,
+  onError,
 }: OptimizedImageProps) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInView, setIsInView] = useState(priority);
   const [showBlur, setShowBlur] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [optimalSrc, setOptimalSrc] = useState(src);
   const [generatedSrcSet, setGeneratedSrcSet] = useState<string>("");
   const imgRef = useRef<HTMLDivElement>(null);
@@ -132,11 +138,24 @@ export const OptimizedImage = ({
 
   const handleLoad = () => {
     setIsLoaded(true);
-    // 延遲隱藏模糊層，讓淡入效果更平滑
+    setHasError(false);
     setTimeout(() => {
       setShowBlur(false);
     }, 300);
     onLoad?.();
+  };
+
+  const handleError = () => {
+    setHasError(true);
+    setIsLoaded(true);
+    setShowBlur(false);
+    onError?.();
+    
+    // 如果有後備圖片，嘗試載入
+    if (fallbackSrc && optimalSrc !== fallbackSrc) {
+      setOptimalSrc(fallbackSrc);
+      setHasError(false);
+    }
   };
 
   return (
@@ -159,15 +178,23 @@ export const OptimizedImage = ({
       )}
       
       {/* 骨架屏 - 當沒有模糊預覽時顯示 */}
-      {!blurDataURL && (!isLoaded || !isInView) && (
+      {!blurDataURL && (!isLoaded || !isInView) && !hasError && (
         <div className="absolute inset-0 w-full h-full">
           <Skeleton className="w-full h-full" />
           <div className="absolute inset-0 bg-gradient-to-br from-muted/50 to-muted animate-pulse" />
         </div>
       )}
       
+      {/* 錯誤狀態 */}
+      {hasError && !fallbackSrc && (
+        <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center bg-muted/50">
+          <ImageOff className="w-12 h-12 text-muted-foreground/50 mb-2" />
+          <p className="text-xs text-muted-foreground">無法載入圖片</p>
+        </div>
+      )}
+      
       {/* 主圖片 */}
-      {isInView && (
+      {isInView && !hasError && (
         <picture>
           {/* 使用生成的 srcSet 或提供的 srcSet */}
           {(generatedSrcSet || srcSet) && (
@@ -203,6 +230,7 @@ export const OptimizedImage = ({
             height={height}
             sizes={sizes}
             onLoad={handleLoad}
+            onError={handleError}
           />
         </picture>
       )}
