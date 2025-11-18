@@ -78,7 +78,7 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
   } : comparisonMode === 'lastYear' ? {
     去年: {
       label: "去年",
-      color: "hsl(25 60% 70%)", // 淡橘色
+      color: "hsl(25 50% 75%)", // 更淡的橘色
     },
     今年: {
       label: "今年",
@@ -91,7 +91,7 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
     },
     上月: {
       label: "上月",
-      color: "hsl(25 60% 70%)", // 淡橘色
+      color: "hsl(25 50% 75%)", // 更淡的橘色
     },
   };
 
