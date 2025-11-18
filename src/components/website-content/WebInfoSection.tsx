@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -422,15 +423,11 @@ export const WebInfoSection = ({
           </div>
 
           {/* 儲存按鈕 */}
-          <div className="flex justify-end pt-4 border-t">
-            <Button 
-              onClick={onSave}
-              disabled={isSaving}
-              className="min-w-[120px]"
-            >
-              {isSaving ? '儲存中...' : '儲存變更'}
-            </Button>
-          </div>
+          <SaveButtonContainer 
+            onSave={onSave} 
+            isSaving={isSaving}
+            className="mt-0"
+          />
         </div>
 
       </CardContent>

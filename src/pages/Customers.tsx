@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -332,14 +333,16 @@ const Customers = () => {
                   />
                 </div>
               </div>
-              <div className="flex justify-end gap-2">
+              <SaveButtonContainer 
+                onSave={handleSave} 
+                isSaving={isLoading}
+                saveText="儲存"
+                className="border-t-0"
+              >
                 <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                   取消
                 </Button>
-                <Button onClick={handleSave} disabled={isLoading}>
-                  {isLoading ? "儲存中..." : "儲存"}
-                </Button>
-              </div>
+              </SaveButtonContainer>
             </DialogContent>
           </Dialog>
         </div>

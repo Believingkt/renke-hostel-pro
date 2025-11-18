@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -167,11 +168,7 @@ export const SocialSharingSection = ({
           </p>
         </div>
 
-        <div className="flex justify-end">
-          <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving ? "儲存中..." : "儲存變更"}
-          </Button>
-        </div>
+        <SaveButtonContainer onSave={handleSave} isSaving={isSaving} />
       </CardContent>
     </Card>
   );

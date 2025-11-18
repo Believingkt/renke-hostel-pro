@@ -4,6 +4,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -278,11 +279,11 @@ export const RoomFacilitiesForm = ({ accommodationId }: RoomFacilitiesFormProps)
         </Card>
       ))}
 
-      <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={isSaving}>
-          {isSaving ? "儲存中..." : "儲存設施"}
-        </Button>
-      </div>
+      <SaveButtonContainer 
+        onSave={handleSave} 
+        isSaving={isSaving}
+        saveText="儲存設施"
+      />
     </div>
   );
 };

@@ -7,6 +7,7 @@ import { WebInfoSection } from "@/components/website-content/WebInfoSection";
 import { AboutFeaturesSection } from "@/components/website-content/AboutFeaturesSection";
 import { SocialSharingSection } from "@/components/website-content/SocialSharingSection";
 import { HeaderFooterSection } from "@/components/website-content/HeaderFooterSection";
+import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { compressImage, validateImageFile, formatFileSize } from "@/utils/imageCompression";
 import {
   DndContext,
@@ -2203,11 +2204,11 @@ const WebsiteContent = () => {
             </CardContent>
           </Card>
 
-          <div className="flex justify-end">
-            <Button onClick={handleSaveFacilities} disabled={isSaving} size="lg">
-              {isSaving ? '保存中...' : '保存設定'}
-            </Button>
-          </div>
+          <SaveButtonContainer 
+            onSave={handleSaveFacilities} 
+            isSaving={isSaving}
+            saveText="儲存變更"
+          />
         </TabsContent>
 
         {/* 加購方案 Tab */}
@@ -2360,11 +2361,11 @@ const WebsiteContent = () => {
             </CardContent>
           </Card>
 
-          <div className="flex justify-end">
-            <Button onClick={handleSaveAddonPlans} disabled={isSaving} size="lg">
-              {isSaving ? '保存中...' : '保存設定'}
-            </Button>
-          </div>
+          <SaveButtonContainer 
+            onSave={handleSaveAddonPlans} 
+            isSaving={isSaving}
+            saveText="儲存變更"
+          />
         </TabsContent>
 
         {/* 相簿管理 Tab */}
@@ -2573,11 +2574,11 @@ const WebsiteContent = () => {
             </CardContent>
           </Card>
 
-          <div className="flex justify-end">
-            <Button onClick={handleSaveBookingInfo} disabled={isSaving}>
-              {isSaving ? '保存中...' : '保存設定'}
-            </Button>
-          </div>
+          <SaveButtonContainer 
+            onSave={handleSaveBookingInfo} 
+            isSaving={isSaving}
+            saveText="儲存變更"
+          />
         </TabsContent>
 
         <TabsContent value="faq" className="space-y-6">
@@ -2771,9 +2772,11 @@ const WebsiteContent = () => {
                 ))}
               </div>
 
-              <Button onClick={handleSaveLocationInfo} className="w-full">
-                保存資訊
-              </Button>
+              <SaveButtonContainer 
+                onSave={handleSaveLocationInfo}
+                saveText="儲存變更"
+                className="w-full"
+              />
             </CardContent>
           </Card>
         </TabsContent>

@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { Mountain, Sparkles, UserCheck, Camera, Home, Heart, Star, Wifi, Coffee, Car } from "lucide-react";
 import { Upload, Trash2 } from "lucide-react";
 
@@ -206,14 +207,16 @@ export function AboutFeatureForm({ open, onOpenChange, feature, onSave }: AboutF
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 pt-4">
+        <SaveButtonContainer 
+          onSave={handleSubmit} 
+          disabled={!formData.title || !formData.description}
+          saveText="儲存"
+          className="border-t-0 gap-3"
+        >
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             取消
           </Button>
-          <Button onClick={handleSubmit} disabled={!formData.title || !formData.description}>
-            儲存
-          </Button>
-        </div>
+        </SaveButtonContainer>
       </DialogContent>
     </Dialog>
   );
