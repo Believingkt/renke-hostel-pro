@@ -295,7 +295,7 @@ const HeroSection = ({
                     <div 
                       className={`
                         space-y-2 md:space-y-4 max-w-4xl px-4 pb-32 md:pb-56
-                        ${slide.text_position_x === 'left' ? 'text-left' : slide.text_position_x === 'right' ? 'text-right' : 'text-center'}
+                        text-center
                         ${
                           slide.text_position_y === 'top' ? 'flex items-start justify-center pt-32' :
                           slide.text_position_y === 'bottom' ? 'flex items-end justify-center pb-32' :

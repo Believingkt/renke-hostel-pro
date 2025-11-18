@@ -130,10 +130,10 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
                 <div 
                   className={`
                     space-y-2 px-4 py-8
-                    ${textPositionX === 'left' ? 'text-left' : textPositionX === 'right' ? 'text-right' : 'text-center'}
+                    text-center
                     ${
-                      textPositionY === 'top' ? 'flex items-start justify-center pt-8' :
-                      textPositionY === 'bottom' ? 'flex items-end justify-center pb-8' :
+                      photo.text_position_y === 'top' ? 'flex items-start justify-center pt-8' :
+                      photo.text_position_y === 'bottom' ? 'flex items-end justify-center pb-8' :
                       'flex items-center justify-center'
                     }
                     absolute inset-0
@@ -297,36 +297,6 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
                   <SelectItem value="white">白色</SelectItem>
                   <SelectItem value="black">黑色</SelectItem>
                   <SelectItem value="primary">主題色</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* 文字大小 */}
-            <div className="space-y-2">
-              <Label htmlFor="text-size">文字大小</Label>
-              <Select value={textSize} onValueChange={setTextSize}>
-                <SelectTrigger id="text-size">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="small">小</SelectItem>
-                  <SelectItem value="medium">中</SelectItem>
-                  <SelectItem value="large">大</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* 水平位置 */}
-            <div className="space-y-2">
-              <Label htmlFor="text-position-x">水平位置</Label>
-              <Select value={textPositionX} onValueChange={setTextPositionX}>
-                <SelectTrigger id="text-position-x">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="left">左</SelectItem>
-                  <SelectItem value="center">中</SelectItem>
-                  <SelectItem value="right">右</SelectItem>
                 </SelectContent>
               </Select>
             </div>
