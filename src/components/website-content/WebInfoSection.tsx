@@ -150,129 +150,6 @@ export const WebInfoSection = ({
         <CardDescription>設定首頁主視覺輪播圖片、文字內容與視覺效果</CardDescription>
       </CardHeader>
       <CardContent className="space-y-8">
-        {/* 全局設定區塊 */}
-        <div className="rounded-lg border bg-muted/30 p-6 space-y-6">
-          <div className="flex items-center gap-2 pb-2 border-b">
-            <div className="h-8 w-1 bg-primary rounded-full" />
-            <div>
-              <h3 className="font-semibold text-lg">輪播圖全局設定</h3>
-              <p className="text-sm text-muted-foreground">統一設定所有輪播圖的標題、視覺效果和播放行為</p>
-            </div>
-          </div>
-
-          {/* 標題設定 */}
-          <div className="space-y-4">
-            <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">標題內容</h4>
-            
-            <div className="grid grid-cols-1 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="hero-main-title" className="text-base">主標題</Label>
-                <Input
-                  id="hero-main-title"
-                  value={heroMainTitle}
-                  onChange={(e) => onHeroTitleChange('hero_main_title', e.target.value)}
-                  placeholder="例：歡迎來到我們的民宿"
-                  maxLength={20}
-                  className="text-base"
-                />
-                <p className="text-xs text-muted-foreground">
-                  {heroMainTitle.length}/20 字元 · 會顯示在所有輪播圖上
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="hero-subtitle" className="text-base">副標題</Label>
-                <Input
-                  id="hero-subtitle"
-                  value={heroSubtitle}
-                  onChange={(e) => onHeroTitleChange('hero_subtitle', e.target.value)}
-                  placeholder="例：體驗最舒適的住宿環境"
-                  maxLength={20}
-                  className="text-base"
-                />
-                <p className="text-xs text-muted-foreground">
-                  {heroSubtitle.length}/20 字元
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="hero-description" className="text-base">
-                  次標題 <span className="text-muted-foreground font-normal">(選填)</span>
-                </Label>
-                <Input
-                  id="hero-description"
-                  value={heroDescription}
-                  onChange={(e) => onHeroTitleChange('hero_description', e.target.value)}
-                  placeholder="例：享受自然與寧靜的完美結合"
-                  maxLength={20}
-                  className="text-base"
-                />
-                <p className="text-xs text-muted-foreground">
-                  {heroDescription.length}/20 字元
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* 視覺效果設定 */}
-          <div className="space-y-4 pt-4 border-t">
-            <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">視覺效果</h4>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="hero-overlay-opacity" className="text-base">背景遮罩</Label>
-                  <span className="text-sm font-semibold text-primary">{heroOverlayOpacity}%</span>
-                </div>
-                <input
-                  id="hero-overlay-opacity"
-                  type="range"
-                  min="0"
-                  max="100"
-                  step="5"
-                  value={heroOverlayOpacity}
-                  onChange={(e) => onHeroSettingChange('hero_overlay_opacity', parseInt(e.target.value))}
-                  className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
-                />
-                <p className="text-xs text-muted-foreground">
-                  調整圖片上的黑色遮罩透明度，提升文字可讀性
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="hero-autoplay-delay" className="text-base">播放速度</Label>
-                  <span className="text-sm font-semibold text-primary">{heroAutoplayDelay} 秒</span>
-                </div>
-                <input
-                  id="hero-autoplay-delay"
-                  type="range"
-                  min="3"
-                  max="15"
-                  step="1"
-                  value={heroAutoplayDelay}
-                  onChange={(e) => onHeroSettingChange('hero_autoplay_delay', parseInt(e.target.value))}
-                  className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
-                />
-                <p className="text-xs text-muted-foreground">
-                  每張輪播圖停留時間，建議 5-10 秒
-                </p>
-            </div>
-          </div>
-
-          {/* 儲存按鈕 */}
-          <div className="flex justify-end pt-4 border-t">
-            <Button 
-              onClick={onSave}
-              disabled={isSaving}
-              className="min-w-[120px]"
-            >
-              {isSaving ? '儲存中...' : '儲存變更'}
-            </Button>
-          </div>
-        </div>
-        </div>
-
         {/* 輪播圖管理 */}
         <div className="space-y-4">
           <div className="flex items-center gap-2">
@@ -335,7 +212,7 @@ export const WebInfoSection = ({
                   已上傳的輪播圖
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  拖拽調整順序 · 點擊編輯樣式
+                  拖拽調整順序
                 </p>
               </div>
               <DndContext
@@ -362,6 +239,194 @@ export const WebInfoSection = ({
               </DndContext>
             </div>
           )}
+        </div>
+
+        {/* 全局設定區塊 */}
+        <div className="rounded-lg border bg-muted/30 p-6 space-y-6">
+          <div className="flex items-center gap-2 pb-2 border-b">
+            <div className="h-8 w-1 bg-primary rounded-full" />
+            <div>
+              <h3 className="font-semibold text-lg">輪播圖全局設定</h3>
+              <p className="text-sm text-muted-foreground">統一設定所有輪播圖的標題、視覺效果和播放行為</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* 左側：設定表單 */}
+            <div className="space-y-6">
+              {/* 標題設定 */}
+              <div className="space-y-4">
+                <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">標題內容</h4>
+                
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="hero-main-title" className="text-base">主標題</Label>
+                    <Input
+                      id="hero-main-title"
+                      value={heroMainTitle}
+                      onChange={(e) => onHeroTitleChange('hero_main_title', e.target.value)}
+                      placeholder="例：歡迎來到我們的民宿"
+                      maxLength={20}
+                      className="text-base"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {heroMainTitle.length}/20 字元 · 會顯示在所有輪播圖上
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="hero-subtitle" className="text-base">副標題</Label>
+                    <Input
+                      id="hero-subtitle"
+                      value={heroSubtitle}
+                      onChange={(e) => onHeroTitleChange('hero_subtitle', e.target.value)}
+                      placeholder="例：體驗最舒適的住宿環境"
+                      maxLength={20}
+                      className="text-base"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {heroSubtitle.length}/20 字元
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="hero-description" className="text-base">
+                      次標題 <span className="text-muted-foreground font-normal">(選填)</span>
+                    </Label>
+                    <Input
+                      id="hero-description"
+                      value={heroDescription}
+                      onChange={(e) => onHeroTitleChange('hero_description', e.target.value)}
+                      placeholder="例：享受自然與寧靜的完美結合"
+                      maxLength={20}
+                      className="text-base"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {heroDescription.length}/20 字元
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 視覺效果設定 */}
+              <div className="space-y-4 pt-4 border-t">
+                <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">視覺效果</h4>
+                
+                <div className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="hero-overlay-opacity" className="text-base">背景遮罩</Label>
+                      <span className="text-sm font-semibold text-primary">{heroOverlayOpacity}%</span>
+                    </div>
+                    <input
+                      id="hero-overlay-opacity"
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="5"
+                      value={heroOverlayOpacity}
+                      onChange={(e) => onHeroSettingChange('hero_overlay_opacity', parseInt(e.target.value))}
+                      className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      調整圖片上的黑色遮罩透明度，提升文字可讀性
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="hero-autoplay-delay" className="text-base">播放速度</Label>
+                      <span className="text-sm font-semibold text-primary">{heroAutoplayDelay} 秒</span>
+                    </div>
+                    <input
+                      id="hero-autoplay-delay"
+                      type="range"
+                      min="3"
+                      max="15"
+                      step="1"
+                      value={heroAutoplayDelay}
+                      onChange={(e) => onHeroSettingChange('hero_autoplay_delay', parseInt(e.target.value))}
+                      className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      每張輪播圖停留時間，建議 5-10 秒
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 右側：即時預覽 */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-medium">即時預覽</Label>
+                <span className="text-xs text-muted-foreground">調整設定即時顯示效果</span>
+              </div>
+              <div className="relative aspect-video rounded-lg overflow-hidden border bg-muted">
+                {heroPhotos.length > 0 ? (
+                  <>
+                    <img
+                      src={heroPhotos[0].photo_url}
+                      alt="輪播圖預覽"
+                      className="w-full h-full object-cover"
+                    />
+                    <div 
+                      className="absolute inset-0 transition-all duration-300"
+                      style={{ 
+                        backgroundColor: `rgba(0, 0, 0, ${heroOverlayOpacity / 100})`
+                      }}
+                    >
+                      <div className="flex items-center justify-center absolute inset-0 px-6 py-8 text-center">
+                        <div className="w-full space-y-3">
+                          {heroMainTitle && (
+                            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white drop-shadow-lg">
+                              {heroMainTitle}
+                            </h1>
+                          )}
+                          {heroSubtitle && (
+                            <p className="text-lg md:text-xl text-white/90 drop-shadow-md">
+                              {heroSubtitle}
+                            </p>
+                          )}
+                          {heroDescription && (
+                            <p className="text-sm md:text-base text-white/80 drop-shadow-md">
+                              {heroDescription}
+                            </p>
+                          )}
+                          {!heroMainTitle && !heroSubtitle && !heroDescription && (
+                            <p className="text-white/60 text-sm">
+                              請在左側輸入標題以查看效果
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center space-y-2">
+                      <p className="text-muted-foreground text-sm">尚未上傳輪播圖</p>
+                      <p className="text-xs text-muted-foreground">請先上傳圖片以查看預覽效果</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                此預覽會即時反映您的所有設定變更
+              </p>
+            </div>
+          </div>
+
+          {/* 儲存按鈕 */}
+          <div className="flex justify-end pt-4 border-t">
+            <Button 
+              onClick={onSave}
+              disabled={isSaving}
+              className="min-w-[120px]"
+            >
+              {isSaving ? '儲存中...' : '儲存變更'}
+            </Button>
+          </div>
         </div>
 
       </CardContent>
