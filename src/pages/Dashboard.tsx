@@ -324,10 +324,17 @@ const Dashboard = () => {
 
       <div className="grid gap-6 md:grid-cols-2 px-2 md:px-0">
         <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg font-semibold">房型入住率</CardTitle>
-              <span className="text-xs text-muted-foreground">今年每月趨勢</span>
+          <CardHeader className="pb-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="space-y-1">
+                <CardTitle className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                  房型入住率
+                </CardTitle>
+                <p className="text-sm text-muted-foreground font-medium">今年每月趨勢</p>
+              </div>
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                <Hotel className="h-4 w-4 text-primary" />
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -336,12 +343,17 @@ const Dashboard = () => {
         </Card>
 
         <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg font-semibold">訂單趨勢</CardTitle>
-              <span className="text-xs text-muted-foreground">
-                年度對比
-              </span>
+          <CardHeader className="pb-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="space-y-1">
+                <CardTitle className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                  訂單趨勢
+                </CardTitle>
+                <p className="text-sm text-muted-foreground font-medium">年度對比</p>
+              </div>
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/20">
+                <Calendar className="h-4 w-4 text-accent" />
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -356,12 +368,17 @@ const Dashboard = () => {
       </div>
 
       <Card className="px-2 md:px-0">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold">營收統計</CardTitle>
-            <span className="text-xs text-muted-foreground">
-              年度對比
-            </span>
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="space-y-1">
+              <CardTitle className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                營收統計
+              </CardTitle>
+              <p className="text-sm text-muted-foreground font-medium">年度對比</p>
+            </div>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-500/10">
+              <DollarSign className="h-4 w-4 text-green-600" />
+            </div>
           </div>
         </CardHeader>
         <CardContent>
