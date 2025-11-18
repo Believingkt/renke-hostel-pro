@@ -15,30 +15,22 @@ interface HeroPhotoEditDialogProps {
     photo_url: string;
     text_color?: string | null;
     text_position_y?: string | null;
-    overlay_opacity?: number | null;
-    autoplay_delay?: number | null;
   } | null;
   onSave: (photoId: string, data: {
     text_color: string;
     text_position_y: string;
-    overlay_opacity: number;
-    autoplay_delay: number;
   }) => Promise<void>;
 }
 
 export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroPhotoEditDialogProps) => {
   const [textColor, setTextColor] = useState("white");
   const [textPositionY, setTextPositionY] = useState("center");
-  const [overlayOpacity, setOverlayOpacity] = useState(40);
-  const [autoplayDelay, setAutoplayDelay] = useState(8);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (photo) {
       setTextColor(photo.text_color || "white");
       setTextPositionY(photo.text_position_y || "center");
-      setOverlayOpacity(photo.overlay_opacity ?? 40);
-      setAutoplayDelay(photo.autoplay_delay ?? 8);
     }
   }, [photo]);
 
@@ -50,8 +42,6 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
       await onSave(photo.id, {
         text_color: textColor,
         text_position_y: textPositionY,
-        overlay_opacity: overlayOpacity,
-        autoplay_delay: autoplayDelay,
       });
       onOpenChange(false);
     } finally {
@@ -67,7 +57,7 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
         <DialogHeader>
           <DialogTitle>編輯輪播圖顯示設定</DialogTitle>
           <DialogDescription>
-            調整此輪播圖的文字顏色、位置、遮罩透明度和自動播放延遲（標題內容請至輪播圖設定區域統一編輯）
+            調整此輪播圖的文字顏色和位置（標題內容、背景遮罩透明度和自動播放時間請至輪播圖設定區域統一編輯）
           </DialogDescription>
         </DialogHeader>
 
@@ -82,10 +72,7 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
                 className="w-full h-full object-cover"
               />
               <div 
-                className="absolute inset-0 transition-all duration-300"
-                style={{ 
-                  backgroundColor: `rgba(0, 0, 0, ${overlayOpacity / 100})`
-                }}
+                className="absolute inset-0 transition-all duration-300 bg-black/40"
               >
                 <div 
                   className={`
@@ -145,46 +132,6 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
                   <SelectItem value="bottom">下</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-
-            {/* 背景遮罩透明度 */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="overlay-opacity">背景遮罩透明度</Label>
-                <span className="text-sm text-muted-foreground">{overlayOpacity}%</span>
-              </div>
-              <Slider
-                id="overlay-opacity"
-                min={0}
-                max={100}
-                step={5}
-                value={[overlayOpacity]}
-                onValueChange={(value) => setOverlayOpacity(value[0])}
-                className="w-full"
-              />
-              <p className="text-sm text-muted-foreground">
-                調整圖片暗化效果強度（0% = 無遮罩，100% = 完全黑色）
-              </p>
-            </div>
-
-            {/* 自動播放時間 */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="autoplay-delay">自動播放時間</Label>
-                <span className="text-sm text-muted-foreground">{autoplayDelay} 秒</span>
-              </div>
-              <Slider
-                id="autoplay-delay"
-                min={2}
-                max={20}
-                step={1}
-                value={[autoplayDelay]}
-                onValueChange={(value) => setAutoplayDelay(value[0])}
-                className="w-full"
-              />
-              <p className="text-sm text-muted-foreground">
-                設定此圖片在輪播時的停留時間（2-20 秒）
-              </p>
             </div>
           </div>
         </div>
