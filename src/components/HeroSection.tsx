@@ -279,7 +279,7 @@ const HeroSection = ({
         <Carousel
           opts={{ 
             loop: true,
-            duration: 30,
+            duration: 40, // 增加切換持續時間以實現更平滑的過渡
             align: "start",
           }}
           className="w-full"
@@ -288,11 +288,11 @@ const HeroSection = ({
           <CarouselContent className="-ml-0">
             {slides.map((slide, index) => (
               <CarouselItem key={slide.id} className="pl-0">
-                <div className="relative h-[500px] md:h-[700px] w-full bg-gradient-to-br from-muted to-muted/50">
+                <div className="relative h-[500px] md:h-[700px] w-full bg-gradient-to-br from-muted to-muted/50 transition-opacity duration-700">
                   <OptimizedImage
                     src={slide.photo_url}
                     alt={slide.title || `${accommodationName} - 首頁輪播圖 ${index + 1}`}
-                    className="w-full h-full object-cover brightness-110"
+                    className="w-full h-full object-cover brightness-110 transition-transform duration-700 ease-out"
                     priority={index === 0}
                     width="1920"
                     height="1080"
