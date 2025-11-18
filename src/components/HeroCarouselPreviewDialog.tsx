@@ -14,6 +14,9 @@ interface HeroPhoto {
   secondary_subtitle?: string | null;
   text_color?: string | null;
   text_size?: string | null;
+  title_size?: string | null;
+  subtitle_size?: string | null;
+  secondary_subtitle_size?: string | null;
   text_position_x?: string | null;
   text_position_y?: string | null;
   overlay_opacity?: number | null;
@@ -156,8 +159,8 @@ export const HeroCarouselPreviewDialog = ({ open, onOpenChange, photos }: HeroCa
                             <h1 
                               className={`
                                 font-bold drop-shadow-lg animate-fade-in
-                                ${photo.text_size === 'small' ? 'text-2xl md:text-4xl' : 
-                                  photo.text_size === 'large' ? 'text-4xl md:text-6xl' : 
+                                ${(photo.title_size || 'large') === 'small' ? 'text-2xl md:text-4xl' : 
+                                  (photo.title_size || 'large') === 'large' ? 'text-4xl md:text-6xl' : 
                                   'text-3xl md:text-5xl'}
                               `}
                             >
@@ -168,8 +171,8 @@ export const HeroCarouselPreviewDialog = ({ open, onOpenChange, photos }: HeroCa
                             <p 
                               className={`
                                 drop-shadow-lg mt-3 animate-fade-in
-                                ${photo.text_size === 'small' ? 'text-base md:text-lg' : 
-                                  photo.text_size === 'large' ? 'text-xl md:text-3xl' : 
+                                ${(photo.subtitle_size || 'medium') === 'small' ? 'text-base md:text-lg' : 
+                                  (photo.subtitle_size || 'medium') === 'large' ? 'text-xl md:text-3xl' : 
                                   'text-lg md:text-2xl'}
                               `}
                               style={{ animationDelay: '0.2s' }}
@@ -181,8 +184,8 @@ export const HeroCarouselPreviewDialog = ({ open, onOpenChange, photos }: HeroCa
                             <p 
                               className={`
                                 drop-shadow-lg mt-2 opacity-90 animate-fade-in
-                                ${photo.text_size === 'small' ? 'text-sm md:text-base' : 
-                                  photo.text_size === 'large' ? 'text-lg md:text-2xl' : 
+                                ${(photo.secondary_subtitle_size || 'small') === 'small' ? 'text-sm md:text-base' : 
+                                  (photo.secondary_subtitle_size || 'small') === 'large' ? 'text-lg md:text-2xl' : 
                                   'text-base md:text-xl'}
                               `}
                               style={{ animationDelay: '0.4s' }}
