@@ -36,23 +36,21 @@
         backface-visibility: hidden;
       }
       
-      /* 完全移除字體回退視覺差異 - 使用 optional */
+      /* 強制阻塞字體載入 */
       @font-face {
         font-family: 'Noto Sans TC';
         font-style: normal;
         font-weight: 400;
-        font-display: optional;
+        font-display: block;
         src: url('https://fonts.gstatic.com/s/notosanstc/v35/-nF7OG829Oofr2wohFbTp9i9kwMUK_K-5DDNQ-avaGxvbItqP5Vv2A.woff2') format('woff2');
-        unicode-range: U+4E00-9FFF, U+3400-4DBF, U+20000-2A6DF, U+F900-FAFF, U+3000-303F;
       }
       
       @font-face {
         font-family: 'Noto Sans TC';
         font-style: normal;
         font-weight: 700;
-        font-display: optional;
+        font-display: block;
         src: url('https://fonts.gstatic.com/s/notosanstc/v35/-nFlOG829Oofr2wohFbTp9i9kwMUK_G-5DONY3ahGxvbItqP5Q.woff2') format('woff2');
-        unicode-range: U+4E00-9FFF, U+3400-4DBF, U+20000-2A6DF, U+F900-FAFF, U+3000-303F;
       }
       
       /* 設計系統 - 關鍵顏色變數 */
@@ -76,16 +74,23 @@
       body { 
         margin: 0; 
         padding: 0;
-        font-family: 'Noto Sans TC', 'Microsoft JhengHei', 'PingFang TC', 'Heiti TC', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        font-family: 'Noto Sans TC', sans-serif;
         font-weight: 400;
         line-height: 1.5;
         color: hsl(var(--foreground));
         background-color: hsl(var(--background));
       }
       
-      /* 根元素載入狀態 */
+      /* 根元素 - 完全隱藏直到字體載入 */
       #root { 
         min-height: 100vh;
+        opacity: 0 !important;
+        visibility: hidden !important;
+      }
+      
+      html.fonts-ready #root {
+        opacity: 1 !important;
+        visibility: visible !important;
       }
       
       /* 載入動畫 */
@@ -97,9 +102,9 @@
         color: hsl(var(--muted-foreground));
       }
       
-      /* 標題字體一致性 */
+      /* 標題字體 - 無後備 */
       h1, h2, h3, h4, h5, h6 {
-        font-family: 'Noto Sans TC', 'Microsoft JhengHei', 'PingFang TC', 'Heiti TC', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        font-family: 'Noto Sans TC', sans-serif;
         font-weight: 700;
         line-height: 1.2;
         margin: 0;
@@ -125,7 +130,41 @@
         cursor: pointer;
       }
     </style>
-    <!-- 移除字體載入腳本，使用純 CSS 解決 -->
+    <script>
+      // 最嚴格的字體載入控制
+      (function() {
+        console.log('[Font Loading] Starting');
+        
+        if ('fonts' in document && document.fonts) {
+          // 主動載入字體
+          Promise.all([
+            document.fonts.load('700 1em "Noto Sans TC"'),
+            document.fonts.load('400 1em "Noto Sans TC"')
+          ]).then(() => {
+            console.log('[Font Loading] Fonts loaded');
+            return document.fonts.ready;
+          }).then(() => {
+            console.log('[Font Loading] All fonts ready');
+            // 多重確認後才顯示
+            setTimeout(() => {
+              document.documentElement.classList.add('fonts-ready');
+              console.log('[Font Loading] Display enabled');
+            }, 150);
+          }).catch((err) => {
+            console.error('[Font Loading] Error:', err);
+            // 失敗後 3 秒才顯示
+            setTimeout(() => {
+              document.documentElement.classList.add('fonts-ready');
+            }, 3000);
+          });
+        } else {
+          // 不支援的瀏覽器等待 2 秒
+          setTimeout(() => {
+            document.documentElement.classList.add('fonts-ready');
+          }, 2000);
+        }
+      })();
+    </script>
   </head>
 
   <body>
