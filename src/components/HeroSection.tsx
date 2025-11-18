@@ -387,7 +387,7 @@ const HeroSection = ({
                   font-bold animate-fade-in drop-shadow-lg
                   ${(slides[current].title_size || 'medium') === 'small' ? 'text-2xl md:text-5xl' : 
                     (slides[current].title_size || 'medium') === 'large' ? 'text-4xl md:text-8xl' : 
-                    'text-3xl md:text-[86px]'}
+                    'text-3xl md:text-[80px]'}
                 `}
               >
                 {slides[current].title || accommodationName}
