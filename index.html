@@ -53,6 +53,14 @@
         src: url('https://fonts.gstatic.com/s/notosanstc/v35/-nFlOG829Oofr2wohFbTp9i9kwMUK_G-5DONY3ahGxvbItqP5Q.woff2') format('woff2');
       }
       
+      /* Hero 標題固定樣式 - 避免閃爍 */
+      .hero-title {
+        font-size: clamp(1.875rem, 5vw, 5rem) !important;
+        font-family: 'Noto Sans TC', sans-serif !important;
+        font-weight: 700 !important;
+        line-height: 1.2 !important;
+      }
+      
       /* 設計系統 - 關鍵顏色變數 */
       :root {
         --background: 0 0% 100%;
