@@ -140,16 +140,16 @@ export const HeroCarouselPreviewDialog = ({ open, onOpenChange, photos }: HeroCa
                       }}
                     >
                       <div 
-                        className={`
-                          space-y-2 px-4 py-8
-                          ${photo.text_position_x === 'left' ? 'text-left' : photo.text_position_x === 'right' ? 'text-right' : 'text-center'}
-                          ${
-                            photo.text_position_y === 'top' ? 'flex items-start justify-center pt-8' :
-                            photo.text_position_y === 'bottom' ? 'flex items-end justify-center pb-8' :
-                            'flex items-center justify-center'
-                          }
-                          absolute inset-0
-                        `}
+                    className={`
+                      space-y-2 px-4 py-8
+                      text-center
+                      ${
+                        photo.text_position_y === 'top' ? 'flex items-start justify-center pt-8' :
+                        photo.text_position_y === 'bottom' ? 'flex items-end justify-center pb-8' :
+                        'flex items-center justify-center'
+                      }
+                      absolute inset-0
+                    `}
                         style={{
                           color: photo.text_color === 'black' ? '#000' : photo.text_color === 'primary' ? 'hsl(var(--primary))' : '#fff'
                         }}
