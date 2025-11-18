@@ -42,6 +42,9 @@ interface HeroPhoto {
   cta_link?: string | null;
   text_color?: string | null;
   text_size?: string | null;
+  title_size?: string | null;
+  subtitle_size?: string | null;
+  secondary_subtitle_size?: string | null;
   text_position_x?: string | null;
   text_position_y?: string | null;
   overlay_opacity?: number | null;
@@ -82,6 +85,9 @@ const HeroSection = ({
         cta_link: null,
         text_color: null,
         text_size: null,
+        title_size: null,
+        subtitle_size: null,
+        secondary_subtitle_size: null,
         text_position_x: null,
         text_position_y: null,
         overlay_opacity: null,
@@ -287,8 +293,8 @@ const HeroSection = ({
                         <h1 
                           className={`
                             font-bold animate-fade-in drop-shadow-lg
-                            ${slide.text_size === 'small' ? 'text-2xl md:text-5xl' : 
-                              slide.text_size === 'large' ? 'text-4xl md:text-8xl' : 
+                            ${(slide.title_size || 'large') === 'small' ? 'text-2xl md:text-5xl' : 
+                              (slide.title_size || 'large') === 'large' ? 'text-4xl md:text-8xl' : 
                               'text-3xl md:text-7xl'}
                           `}
                         >
@@ -298,8 +304,8 @@ const HeroSection = ({
                           <p 
                             className={`
                               animate-fade-in drop-shadow-lg
-                              ${slide.text_size === 'small' ? 'text-base md:text-2xl' : 
-                                slide.text_size === 'large' ? 'text-xl md:text-4xl' : 
+                              ${(slide.subtitle_size || 'medium') === 'small' ? 'text-base md:text-2xl' : 
+                                (slide.subtitle_size || 'medium') === 'large' ? 'text-xl md:text-4xl' : 
                                 'text-lg md:text-3xl'}
                             `}
                             style={{ animationDelay: "0.2s" }}
@@ -311,8 +317,8 @@ const HeroSection = ({
                           <p 
                             className={`
                               animate-fade-in drop-shadow-lg opacity-90
-                              ${slide.text_size === 'small' ? 'text-sm md:text-xl' : 
-                                slide.text_size === 'large' ? 'text-lg md:text-3xl' : 
+                              ${(slide.secondary_subtitle_size || 'small') === 'small' ? 'text-sm md:text-xl' : 
+                                (slide.secondary_subtitle_size || 'small') === 'large' ? 'text-lg md:text-3xl' : 
                                 'text-base md:text-2xl'}
                             `}
                             style={{ animationDelay: "0.4s" }}

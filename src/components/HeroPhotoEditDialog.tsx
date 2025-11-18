@@ -18,6 +18,9 @@ interface HeroPhotoEditDialogProps {
     secondary_subtitle?: string | null;
     text_color?: string | null;
     text_size?: string | null;
+    title_size?: string | null;
+    subtitle_size?: string | null;
+    secondary_subtitle_size?: string | null;
     text_position_x?: string | null;
     text_position_y?: string | null;
     overlay_opacity?: number | null;
@@ -29,6 +32,9 @@ interface HeroPhotoEditDialogProps {
     secondary_subtitle: string;
     text_color: string;
     text_size: string;
+    title_size: string;
+    subtitle_size: string;
+    secondary_subtitle_size: string;
     text_position_x: string;
     text_position_y: string;
     overlay_opacity: number;
@@ -42,6 +48,9 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
   const [secondarySubtitle, setSecondarySubtitle] = useState("");
   const [textColor, setTextColor] = useState("white");
   const [textSize, setTextSize] = useState("medium");
+  const [titleSize, setTitleSize] = useState("large");
+  const [subtitleSize, setSubtitleSize] = useState("medium");
+  const [secondarySubtitleSize, setSecondarySubtitleSize] = useState("small");
   const [textPositionX, setTextPositionX] = useState("center");
   const [textPositionY, setTextPositionY] = useState("center");
   const [overlayOpacity, setOverlayOpacity] = useState(40);
@@ -55,6 +64,9 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
       setSecondarySubtitle(photo.secondary_subtitle || "");
       setTextColor(photo.text_color || "white");
       setTextSize(photo.text_size || "medium");
+      setTitleSize(photo.title_size || "large");
+      setSubtitleSize(photo.subtitle_size || "medium");
+      setSecondarySubtitleSize(photo.secondary_subtitle_size || "small");
       setTextPositionX(photo.text_position_x || "center");
       setTextPositionY(photo.text_position_y || "center");
       setOverlayOpacity(photo.overlay_opacity ?? 40);
@@ -73,6 +85,9 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
         secondary_subtitle: secondarySubtitle,
         text_color: textColor,
         text_size: textSize,
+        title_size: titleSize,
+        subtitle_size: subtitleSize,
+        secondary_subtitle_size: secondarySubtitleSize,
         text_position_x: textPositionX,
         text_position_y: textPositionY,
         overlay_opacity: overlayOpacity,
@@ -132,8 +147,8 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
                       <h1 
                         className={`
                           font-bold drop-shadow-lg
-                          ${textSize === 'small' ? 'text-xl md:text-3xl' : 
-                            textSize === 'large' ? 'text-3xl md:text-5xl' : 
+                          ${titleSize === 'small' ? 'text-xl md:text-3xl' : 
+                            titleSize === 'large' ? 'text-3xl md:text-5xl' : 
                             'text-2xl md:text-4xl'}
                         `}
                       >
@@ -144,8 +159,8 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
                       <p 
                         className={`
                           drop-shadow-lg mt-2
-                          ${textSize === 'small' ? 'text-sm md:text-base' : 
-                            textSize === 'large' ? 'text-lg md:text-2xl' : 
+                          ${subtitleSize === 'small' ? 'text-sm md:text-base' : 
+                            subtitleSize === 'large' ? 'text-lg md:text-2xl' : 
                             'text-base md:text-xl'}
                         `}
                       >
@@ -156,8 +171,8 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
                       <p 
                         className={`
                           drop-shadow-lg mt-1 opacity-90
-                          ${textSize === 'small' ? 'text-xs md:text-sm' : 
-                            textSize === 'large' ? 'text-base md:text-xl' : 
+                          ${secondarySubtitleSize === 'small' ? 'text-xs md:text-sm' : 
+                            secondarySubtitleSize === 'large' ? 'text-base md:text-xl' : 
                             'text-sm md:text-lg'}
                         `}
                       >
@@ -190,6 +205,23 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
               </p>
             </div>
 
+            {/* 標題文字大小 */}
+            {title && (
+              <div className="space-y-2">
+                <Label htmlFor="title-size">標題文字大小</Label>
+                <Select value={titleSize} onValueChange={setTitleSize}>
+                  <SelectTrigger id="title-size">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="small">小</SelectItem>
+                    <SelectItem value="medium">中</SelectItem>
+                    <SelectItem value="large">大</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             {/* 副標題 */}
             <div className="space-y-2">
               <Label htmlFor="subtitle">副標題</Label>
@@ -206,6 +238,23 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
               </p>
             </div>
 
+            {/* 副標題文字大小 */}
+            {subtitle && (
+              <div className="space-y-2">
+                <Label htmlFor="subtitle-size">副標題文字大小</Label>
+                <Select value={subtitleSize} onValueChange={setSubtitleSize}>
+                  <SelectTrigger id="subtitle-size">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="small">小</SelectItem>
+                    <SelectItem value="medium">中</SelectItem>
+                    <SelectItem value="large">大</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             {/* 次標題 */}
             <div className="space-y-2">
               <Label htmlFor="secondary-subtitle">次標題（選填）</Label>
@@ -221,6 +270,23 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
                 {secondarySubtitle.length}/150 字元
               </p>
             </div>
+
+            {/* 次標題文字大小 */}
+            {secondarySubtitle && (
+              <div className="space-y-2">
+                <Label htmlFor="secondary-subtitle-size">次標題文字大小</Label>
+                <Select value={secondarySubtitleSize} onValueChange={setSecondarySubtitleSize}>
+                  <SelectTrigger id="secondary-subtitle-size">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="small">小</SelectItem>
+                    <SelectItem value="medium">中</SelectItem>
+                    <SelectItem value="large">大</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* 文字顏色 */}
             <div className="space-y-2">

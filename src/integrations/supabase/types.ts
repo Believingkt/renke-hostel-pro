@@ -258,12 +258,15 @@ export type Database = {
           photo_type: string | null
           photo_url: string
           secondary_subtitle: string | null
+          secondary_subtitle_size: string | null
           subtitle: string | null
+          subtitle_size: string | null
           text_color: string | null
           text_position_x: string | null
           text_position_y: string | null
           text_size: string | null
           title: string | null
+          title_size: string | null
         }
         Insert: {
           accommodation_id?: string | null
@@ -277,12 +280,15 @@ export type Database = {
           photo_type?: string | null
           photo_url: string
           secondary_subtitle?: string | null
+          secondary_subtitle_size?: string | null
           subtitle?: string | null
+          subtitle_size?: string | null
           text_color?: string | null
           text_position_x?: string | null
           text_position_y?: string | null
           text_size?: string | null
           title?: string | null
+          title_size?: string | null
         }
         Update: {
           accommodation_id?: string | null
@@ -296,12 +302,15 @@ export type Database = {
           photo_type?: string | null
           photo_url?: string
           secondary_subtitle?: string | null
+          secondary_subtitle_size?: string | null
           subtitle?: string | null
+          subtitle_size?: string | null
           text_color?: string | null
           text_position_x?: string | null
           text_position_y?: string | null
           text_size?: string | null
           title?: string | null
+          title_size?: string | null
         }
         Relationships: [
           {

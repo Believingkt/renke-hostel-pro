@@ -1670,6 +1670,9 @@ const WebsiteContent = () => {
     secondary_subtitle: string;
     text_color: string;
     text_size: string;
+    title_size: string;
+    subtitle_size: string;
+    secondary_subtitle_size: string;
     text_position_x: string;
     text_position_y: string;
     overlay_opacity: number;
@@ -1684,6 +1687,9 @@ const WebsiteContent = () => {
           secondary_subtitle: data.secondary_subtitle || null,
           text_color: data.text_color,
           text_size: data.text_size,
+          title_size: data.title_size,
+          subtitle_size: data.subtitle_size,
+          secondary_subtitle_size: data.secondary_subtitle_size,
           text_position_x: data.text_position_x,
           text_position_y: data.text_position_y,
           overlay_opacity: data.overlay_opacity,
