@@ -40,6 +40,8 @@ interface WebInfoSectionProps {
   onHeroTitleChange: (field: 'hero_main_title' | 'hero_subtitle' | 'hero_description', value: string) => void;
   onHeroSettingChange: (field: 'hero_overlay_opacity' | 'hero_autoplay_delay', value: number) => void;
   uploadingHeroPhoto: boolean;
+  onSave: () => Promise<void>;
+  isSaving?: boolean;
 }
 
 interface SortablePhotoProps {
@@ -118,10 +120,10 @@ export const WebInfoSection = ({
   onPreviewCarousel,
   onHeroTitleChange,
   onHeroSettingChange,
-  uploadingHeroPhoto
+  uploadingHeroPhoto,
+  onSave,
+  isSaving = false
 }: WebInfoSectionProps) => {
-  const [isSaving, setIsSaving] = useState(false);
-
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -139,11 +141,6 @@ export const WebInfoSection = ({
       const newOrder = arrayMove(heroPhotos, oldIndex, newIndex);
       onHeroPhotoReorder(newOrder);
     }
-  };
-
-  const handleSave = async () => {
-    toast.success('輪播圖順序已儲存');
-    onUpdate();
   };
 
   return (
@@ -260,9 +257,20 @@ export const WebInfoSection = ({
                 <p className="text-xs text-muted-foreground">
                   每張輪播圖停留時間，建議 5-10 秒
                 </p>
-              </div>
             </div>
           </div>
+
+          {/* 儲存按鈕 */}
+          <div className="flex justify-end pt-4 border-t">
+            <Button 
+              onClick={onSave}
+              disabled={isSaving}
+              className="min-w-[120px]"
+            >
+              {isSaving ? '儲存中...' : '儲存變更'}
+            </Button>
+          </div>
+        </div>
         </div>
 
         {/* 輪播圖管理 */}
