@@ -148,9 +148,6 @@ export const WebInfoSection = ({
     <Card>
       <CardHeader>
         <CardTitle>輪播圖設定</CardTitle>
-        <CardDescription>
-          設定首頁主視覺輪播圖片、文字內容與視覺效果。輪播圖是訪客進入網站第一眼看到的內容，建議使用高品質、具代表性的圖片，並搭配簡潔有力的文字來傳達您的品牌特色。
-        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-8">
         {/* 輪播圖管理 */}
