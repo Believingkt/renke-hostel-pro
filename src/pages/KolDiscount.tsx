@@ -1680,13 +1680,71 @@ const KolDiscount = () => {
 
             <Separator />
 
+            {/* Endpoint 3: Query Commission */}
+            <div>
+              <h3 className="font-semibold mb-2">3. 查詢佣金記錄</h3>
+              <div className="space-y-2">
+                <div>
+                  <Label className="text-xs text-muted-foreground">端點</Label>
+                  <code className="block p-2 bg-muted rounded text-sm font-mono">
+                    GET /commission?code=YOUR_DISCOUNT_CODE
+                  </code>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">範例請求</Label>
+                  <pre className="p-3 bg-muted rounded text-xs font-mono overflow-x-auto">
+{`fetch('${window.location.origin.replace(/^https?:\/\//, 'https://')}/functions/v1/kol-api/commission?code=SPRING2024')
+  .then(res => res.json())
+  .then(data => console.log(data));`}
+                  </pre>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">回應範例</Label>
+                  <pre className="p-3 bg-muted rounded text-xs font-mono overflow-x-auto">
+{`{
+  "success": true,
+  "discount_code": "SPRING2024",
+  "commission_statistics": {
+    "total_records": 23,
+    "total_commission": 1150,
+    "pending_commission": 230,
+    "approved_commission": 460,
+    "paid_commission": 460,
+    "commission_rate": 10
+  },
+  "commission_records": [
+    {
+      "id": "...",
+      "order_number": "20240115001",
+      "guest_name": "王小明",
+      "check_in_date": "2024-02-01",
+      "order_status": "confirmed",
+      "order_total": 5000,
+      "discount_amount": 500,
+      "commission_rate": 10,
+      "commission_amount": 50,
+      "settlement_status": "paid",
+      "settlement_date": "2024-01-20T10:00:00Z",
+      "payment_date": "2024-01-25T15:30:00Z",
+      "created_at": "2024-01-15T14:30:00Z"
+    }
+  ]
+}`}
+                  </pre>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
             {/* Notes */}
             <div className="space-y-2">
               <h3 className="font-semibold">注意事項</h3>
               <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
                 <li>API 端點不需要身份驗證，但需要提供有效的折扣碼</li>
                 <li>回應格式為 JSON</li>
-                <li>佣金計算為折扣金額的 10%（僅供參考）</li>
+                <li>佣金根據折扣碼設定的佣金率自動計算</li>
+                <li>結算狀態：pending（待結算）、approved（已核准）、paid（已付款）、cancelled（已取消）</li>
                 <li>建議在外部網站實作快取機制，避免頻繁請求</li>
                 <li>API 支援 CORS，可直接從瀏覽器調用</li>
               </ul>
