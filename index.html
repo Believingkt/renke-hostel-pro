@@ -36,12 +36,12 @@
         backface-visibility: hidden;
       }
       
-      /* 自定義字體 - 完全控制載入時機 */
+      /* 自定義字體 - 使用 swap 避免阻塞渲染 */
       @font-face {
         font-family: 'Noto Sans TC';
         font-style: normal;
         font-weight: 400;
-        font-display: block;
+        font-display: swap;
         src: url('https://fonts.gstatic.com/s/notosanstc/v35/-nF7OG829Oofr2wohFbTp9i9kwMUK_K-5DDNQ-avaGxvbItqP5Vv2A.woff2') format('woff2');
         unicode-range: U+4E00-9FFF, U+3400-4DBF, U+20000-2A6DF, U+F900-FAFF, U+3000-303F;
       }
@@ -50,18 +50,30 @@
         font-family: 'Noto Sans TC';
         font-style: normal;
         font-weight: 700;
-        font-display: block;
+        font-display: swap;
         src: url('https://fonts.gstatic.com/s/notosanstc/v35/-nFlOG829Oofr2wohFbTp9i9kwMUK_G-5DONY3ahGxvbItqP5Q.woff2') format('woff2');
         unicode-range: U+4E00-9FFF, U+3400-4DBF, U+20000-2A6DF, U+F900-FAFF, U+3000-303F;
       }
       
-      /* 後備字體精確匹配 */
+      /* 精確匹配的系統後備字體 - 關鍵！*/
       @font-face {
         font-family: 'Noto Sans TC Fallback';
-        src: local('Microsoft JhengHei'), local('PingFang TC'), local('Heiti TC'), local('Arial');
-        size-adjust: 100%;
-        ascent-override: 100%;
-        descent-override: 25%;
+        font-weight: 400;
+        src: local('Microsoft JhengHei'), local('PingFang TC'), local('Heiti TC');
+        size-adjust: 97%;
+        ascent-override: 104%;
+        descent-override: 26%;
+        line-gap-override: 0%;
+      }
+      
+      @font-face {
+        font-family: 'Noto Sans TC Fallback';
+        font-weight: 700;
+        src: local('Microsoft JhengHei Bold'), local('PingFang TC Semibold'), local('Heiti TC Medium');
+        size-adjust: 97%;
+        ascent-override: 104%;
+        descent-override: 26%;
+        line-gap-override: 0%;
       }
       
       /* 設計系統 - 關鍵顏色變數 */
@@ -92,16 +104,9 @@
         background-color: hsl(var(--background));
       }
       
-      /* 根元素載入狀態 - 完全不可見直到字體載入 */
+      /* 根元素載入狀態 */
       #root { 
         min-height: 100vh;
-        opacity: 0;
-        visibility: hidden;
-      }
-      
-      html.fonts-loaded #root {
-        opacity: 1;
-        visibility: visible;
       }
       
       /* 載入動畫 */
@@ -141,54 +146,7 @@
         cursor: pointer;
       }
     </style>
-    <script>
-      // 最保守的字體載入策略
-      (function() {
-        console.log('[Font Loading] Starting font load process');
-        const startTime = performance.now();
-        
-        // 設定最長等待時間
-        const MAX_WAIT = 3000;
-        let fontsLoaded = false;
-        
-        // 超時後強制顯示
-        const timeoutId = setTimeout(() => {
-          if (!fontsLoaded) {
-            console.log('[Font Loading] Timeout - forcing display');
-            document.documentElement.classList.add('fonts-loaded');
-          }
-        }, MAX_WAIT);
-        
-        if ('fonts' in document && document.fonts) {
-          // 等待所有字體完全準備好
-          document.fonts.ready.then(() => {
-            const loadTime = performance.now() - startTime;
-            console.log(`[Font Loading] Fonts ready in ${loadTime}ms`);
-            
-            // 額外等待100ms確保渲染完成
-            return new Promise(resolve => setTimeout(resolve, 100));
-          }).then(() => {
-            fontsLoaded = true;
-            clearTimeout(timeoutId);
-            document.documentElement.classList.add('fonts-loaded');
-            const totalTime = performance.now() - startTime;
-            console.log(`[Font Loading] Complete in ${totalTime}ms`);
-          }).catch((err) => {
-            console.error('[Font Loading] Failed:', err);
-            fontsLoaded = true;
-            clearTimeout(timeoutId);
-            document.documentElement.classList.add('fonts-loaded');
-          });
-        } else {
-          console.log('[Font Loading] Font Loading API not available');
-          fontsLoaded = true;
-          clearTimeout(timeoutId);
-          setTimeout(() => {
-            document.documentElement.classList.add('fonts-loaded');
-          }, 1500);
-        }
-      })();
-    </script>
+    <!-- 移除字體載入腳本，使用純 CSS 解決 -->
   </head>
 
   <body>
