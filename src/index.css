@@ -48,6 +48,9 @@ All colors MUST be HSL.
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Carousel fade animation */
+    --carousel-fade-duration: 0.8s;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 220 15% 30%;
@@ -680,6 +683,19 @@ All colors MUST be HSL.
   .tremor-Legend-legendItem:hover {
     background: hsl(var(--accent) / 0.5);
     transform: translateY(-1px);
+  }
+  
+  /* Carousel fade animations */
+  .carousel-item-fade {
+    transition: opacity var(--carousel-fade-duration) ease-in-out;
+  }
+  
+  .carousel-item-active {
+    opacity: 1;
+  }
+  
+  .carousel-item-inactive {
+    opacity: 0;
   }
 }
 
