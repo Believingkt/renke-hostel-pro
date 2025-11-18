@@ -86,15 +86,15 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r">
-      <SidebarHeader className="border-b px-6 py-4">
+    <Sidebar collapsible="icon" className="border-r transition-all duration-300">
+      <SidebarHeader className="border-b px-6 py-4 transition-all duration-300">
         <NavLink 
           to="/admin" 
           onClick={handleLinkClick}
-          className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+          className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity duration-200"
         >
           {open && (
-            <div>
+            <div className="animate-in fade-in-0 slide-in-from-left-5 duration-300">
               <img src={lokezeLogo} alt="Lokeze" className="h-8 object-contain" />
             </div>
           )}
@@ -109,23 +109,23 @@ export function AppSidebar() {
                   {item.subItems ? (
                     <Collapsible defaultOpen={isActiveRoute(item.url)} className="group/collapsible">
                       <CollapsibleTrigger asChild>
-                        <SidebarMenuButton className="h-12 py-3 text-base">
-                          <item.icon className="h-5 w-5" />
-                          <span>{item.title}</span>
-                          <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                        <SidebarMenuButton className="h-12 py-3 text-base transition-all duration-200">
+                          <item.icon className="h-5 w-5 transition-transform duration-200" />
+                          <span className="transition-all duration-200">{item.title}</span>
+                          <ChevronDown className="ml-auto h-4 w-4 transition-transform duration-300 ease-out group-data-[state=open]/collapsible:rotate-180" />
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
-                      <CollapsibleContent>
+                      <CollapsibleContent className="transition-all duration-300 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
                         <SidebarMenuSub className="ml-2 border-l-2 border-sidebar-border px-0 space-y-1 mt-1">
                           {item.subItems.map((subItem) => (
                             <SidebarMenuSubItem key={subItem.title}>
-                              <SidebarMenuSubButton asChild className="h-10 px-4 pl-8 hover:bg-sidebar-accent/50 transition-colors">
+                              <SidebarMenuSubButton asChild className="h-10 px-4 pl-8 hover:bg-sidebar-accent/50 transition-all duration-200">
                                 <NavLink 
                                   to={subItem.url}
                                   onClick={handleLinkClick}
                                   className={isActiveSubItem(subItem.url) ? "bg-sidebar-accent" : ""}
                                 >
-                                  <span>{subItem.title}</span>
+                                  <span className="transition-colors duration-200">{subItem.title}</span>
                                 </NavLink>
                               </SidebarMenuSubButton>
                             </SidebarMenuSubItem>
@@ -134,7 +134,7 @@ export function AppSidebar() {
                       </CollapsibleContent>
                     </Collapsible>
                   ) : (
-                    <SidebarMenuButton asChild className="h-12 py-3 text-base">
+                    <SidebarMenuButton asChild className="h-12 py-3 text-base transition-all duration-200">
                       <NavLink 
                         to={item.url}
                         onClick={handleLinkClick}
@@ -142,8 +142,8 @@ export function AppSidebar() {
                           isActive ? "bg-sidebar-accent" : ""
                         }
                       >
-                        <item.icon className="h-5 w-5" />
-                        <span>{item.title}</span>
+                        <item.icon className="h-5 w-5 transition-transform duration-200" />
+                        <span className="transition-all duration-200">{item.title}</span>
                       </NavLink>
                     </SidebarMenuButton>
                   )}
