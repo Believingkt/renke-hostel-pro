@@ -1258,6 +1258,7 @@ export type Database = {
               p_room_type_id?: string
             }
             Returns: {
+              applicable_room_names: string[]
               discount_type: string
               discount_value: number
               is_valid: boolean
