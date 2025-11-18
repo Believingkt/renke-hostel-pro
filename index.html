@@ -7,18 +7,13 @@
     <title>森山寫照 - 山間的寧靜時光</title>
     
     <!-- DNS Prefetch & Preconnect for faster loading -->
-    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
     <link rel="dns-prefetch" href="https://fonts.gstatic.com">
-    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://dmafqwfynatdvnaeovhz.supabase.co">
     
     <!-- 預載入關鍵字體 - 高優先級載入 -->
     <link rel="preload" href="https://fonts.gstatic.com/s/notosanstc/v35/-nFlOG829Oofr2wohFbTp9i9kwMUK_G-5DONY3ahGxvbItqP5Q.woff2" as="font" type="font/woff2" crossorigin fetchpriority="high">
-    <link rel="preload" href="https://fonts.gstatic.com/s/notosanstc/v35/-nF8OG829Oofr2wohFbTp9i9kwMUK_G-5DDNY-avGxvbItqP5Vvv2A.woff2" as="font" type="font/woff2" crossorigin fetchpriority="high">
-    
-    <!-- 优化字体加载 - 使用 block 強制等待 -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=block" rel="stylesheet">
+    <link rel="preload" href="https://fonts.gstatic.com/s/notosanstc/v35/-nF7OG829Oofr2wohFbTp9i9kwMUK_K-5DDNQ-avaGxvbItqP5Vv2A.woff2" as="font" type="font/woff2" crossorigin fetchpriority="high">
     
     <meta name="description" content="森山寫照位於寧靜的山區，是一處結合日式傳統美學與現代舒適的精品旅宿" />
     <meta name="author" content="森山寫照" />
@@ -41,14 +36,32 @@
         backface-visibility: hidden;
       }
       
-      /* 後備字體度量調整 - 匹配 Noto Sans TC 避免字體切換時的大小變化 */
+      /* 自定義字體 - 完全控制載入時機 */
+      @font-face {
+        font-family: 'Noto Sans TC';
+        font-style: normal;
+        font-weight: 400;
+        font-display: block;
+        src: url('https://fonts.gstatic.com/s/notosanstc/v35/-nF7OG829Oofr2wohFbTp9i9kwMUK_K-5DDNQ-avaGxvbItqP5Vv2A.woff2') format('woff2');
+        unicode-range: U+4E00-9FFF, U+3400-4DBF, U+20000-2A6DF, U+F900-FAFF, U+3000-303F;
+      }
+      
+      @font-face {
+        font-family: 'Noto Sans TC';
+        font-style: normal;
+        font-weight: 700;
+        font-display: block;
+        src: url('https://fonts.gstatic.com/s/notosanstc/v35/-nFlOG829Oofr2wohFbTp9i9kwMUK_G-5DONY3ahGxvbItqP5Q.woff2') format('woff2');
+        unicode-range: U+4E00-9FFF, U+3400-4DBF, U+20000-2A6DF, U+F900-FAFF, U+3000-303F;
+      }
+      
+      /* 後備字體精確匹配 */
       @font-face {
         font-family: 'Noto Sans TC Fallback';
-        src: local('Arial'), local('Microsoft JhengHei'), local('PingFang TC'), local('Heiti TC');
-        size-adjust: 95%;
-        ascent-override: 105%;
-        descent-override: 35%;
-        line-gap-override: 0%;
+        src: local('Microsoft JhengHei'), local('PingFang TC'), local('Heiti TC'), local('Arial');
+        size-adjust: 100%;
+        ascent-override: 100%;
+        descent-override: 25%;
       }
       
       /* 設計系統 - 關鍵顏色變數 */
