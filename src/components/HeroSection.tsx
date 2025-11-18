@@ -114,7 +114,25 @@ const HeroSection = ({
       try {
         const { data, error } = await supabase
           .from('accommodation_photos')
-          .select('id, photo_url, display_order, title, subtitle, cta_text, cta_link')
+          .select(`
+            id, 
+            photo_url, 
+            display_order, 
+            title, 
+            subtitle, 
+            secondary_subtitle,
+            cta_text, 
+            cta_link,
+            text_color,
+            text_size,
+            title_size,
+            subtitle_size,
+            secondary_subtitle_size,
+            text_position_x,
+            text_position_y,
+            overlay_opacity,
+            autoplay_delay
+          `)
           .eq('accommodation_id', accommodationId)
           .eq('photo_type', 'hero')
           .order('display_order');
