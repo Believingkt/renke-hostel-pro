@@ -49,6 +49,7 @@ interface AccommodationData {
 
 const Index = () => {
   const [data, setData] = useState<AccommodationData | null>(null);
+  const [isFirstImageLoaded, setIsFirstImageLoaded] = useState(false);
   const { accommodationId, isLoading: subdomainLoading, error: subdomainError } = useSubdomain();
 
   useEffect(() => {
@@ -145,8 +146,26 @@ const Index = () => {
     }
   };
 
-  if (!data) {
-    return <FrontendSkeleton />;
+  if (!data || !isFirstImageLoaded) {
+    return (
+      <>
+        <FrontendSkeleton />
+        {/* 隱藏預載入第一張圖片 */}
+        {data && (
+          <div style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}>
+            <HeroSection 
+              accommodationName={data.info.name}
+              heroMainTitle={data.info.hero_main_title}
+              heroSubtitle={data.info.hero_subtitle}
+              heroDescription={data.info.hero_description}
+              heroOverlayOpacity={data.info.hero_overlay_opacity}
+              heroAutoplayDelay={data.info.hero_autoplay_delay}
+              onFirstImageLoad={() => setIsFirstImageLoaded(true)}
+            />
+          </div>
+        )}
+      </>
+    );
   }
 
   return (
