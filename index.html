@@ -36,12 +36,12 @@
         backface-visibility: hidden;
       }
       
-      /* 自定義字體 - 使用 swap 避免阻塞渲染 */
+      /* 完全移除字體回退視覺差異 - 使用 optional */
       @font-face {
         font-family: 'Noto Sans TC';
         font-style: normal;
         font-weight: 400;
-        font-display: swap;
+        font-display: optional;
         src: url('https://fonts.gstatic.com/s/notosanstc/v35/-nF7OG829Oofr2wohFbTp9i9kwMUK_K-5DDNQ-avaGxvbItqP5Vv2A.woff2') format('woff2');
         unicode-range: U+4E00-9FFF, U+3400-4DBF, U+20000-2A6DF, U+F900-FAFF, U+3000-303F;
       }
@@ -50,30 +50,9 @@
         font-family: 'Noto Sans TC';
         font-style: normal;
         font-weight: 700;
-        font-display: swap;
+        font-display: optional;
         src: url('https://fonts.gstatic.com/s/notosanstc/v35/-nFlOG829Oofr2wohFbTp9i9kwMUK_G-5DONY3ahGxvbItqP5Q.woff2') format('woff2');
         unicode-range: U+4E00-9FFF, U+3400-4DBF, U+20000-2A6DF, U+F900-FAFF, U+3000-303F;
-      }
-      
-      /* 精確匹配的系統後備字體 - 關鍵！*/
-      @font-face {
-        font-family: 'Noto Sans TC Fallback';
-        font-weight: 400;
-        src: local('Microsoft JhengHei'), local('PingFang TC'), local('Heiti TC');
-        size-adjust: 97%;
-        ascent-override: 104%;
-        descent-override: 26%;
-        line-gap-override: 0%;
-      }
-      
-      @font-face {
-        font-family: 'Noto Sans TC Fallback';
-        font-weight: 700;
-        src: local('Microsoft JhengHei Bold'), local('PingFang TC Semibold'), local('Heiti TC Medium');
-        size-adjust: 97%;
-        ascent-override: 104%;
-        descent-override: 26%;
-        line-gap-override: 0%;
       }
       
       /* 設計系統 - 關鍵顏色變數 */
@@ -97,7 +76,7 @@
       body { 
         margin: 0; 
         padding: 0;
-        font-family: 'Noto Sans TC', 'Noto Sans TC Fallback', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        font-family: 'Noto Sans TC', 'Microsoft JhengHei', 'PingFang TC', 'Heiti TC', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
         font-weight: 400;
         line-height: 1.5;
         color: hsl(var(--foreground));
@@ -120,7 +99,7 @@
       
       /* 標題字體一致性 */
       h1, h2, h3, h4, h5, h6 {
-        font-family: 'Noto Sans TC', 'Noto Sans TC Fallback', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        font-family: 'Noto Sans TC', 'Microsoft JhengHei', 'PingFang TC', 'Heiti TC', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
         font-weight: 700;
         line-height: 1.2;
         margin: 0;
