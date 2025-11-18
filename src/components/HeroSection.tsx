@@ -397,7 +397,6 @@ const HeroSection = ({
         {/* 固定的標題覆蓋層 - 不隨圖片移動 */}
         {slides.length > 0 && slides[current] && (
           <div 
-            key={current}
             className={`
               absolute left-1/2 -translate-x-1/2 pointer-events-none z-10
               w-full max-w-4xl px-4 pb-32 md:pb-56
@@ -415,7 +414,7 @@ const HeroSection = ({
             <div className="w-full space-y-3 md:space-y-4">
               <h1 
                 className={`
-                  font-bold animate-fade-in drop-shadow-lg
+                  font-bold drop-shadow-lg transition-all duration-500
                   ${(slides[current].title_size || 'medium') === 'small' ? 'text-2xl md:text-5xl' : 
                     (slides[current].title_size || 'medium') === 'large' ? 'text-4xl md:text-8xl' : 
                     'text-3xl md:text-[80px]'}
@@ -426,12 +425,11 @@ const HeroSection = ({
               {slides[current].subtitle && (
                 <p 
                   className={`
-                    animate-fade-in drop-shadow-lg mt-3 md:mt-4
+                    drop-shadow-lg mt-3 md:mt-4 transition-all duration-500
                     ${(slides[current].subtitle_size || 'medium') === 'small' ? 'text-base md:text-2xl' : 
                       (slides[current].subtitle_size || 'medium') === 'large' ? 'text-xl md:text-4xl' : 
                       'text-lg md:text-3xl'}
                   `}
-                  style={{ animationDelay: "0.2s" }}
                 >
                   {slides[current].subtitle}
                 </p>
@@ -439,12 +437,11 @@ const HeroSection = ({
               {slides[current].secondary_subtitle && (
                 <p 
                   className={`
-                    animate-fade-in drop-shadow-lg opacity-90 mt-2 md:mt-3
+                    drop-shadow-lg opacity-90 mt-2 md:mt-3 transition-all duration-500
                     ${(slides[current].secondary_subtitle_size || 'small') === 'small' ? 'text-sm md:text-xl' : 
                       (slides[current].secondary_subtitle_size || 'small') === 'large' ? 'text-lg md:text-3xl' : 
                       'text-base md:text-2xl'}
                   `}
-                  style={{ animationDelay: "0.4s" }}
                 >
                   {slides[current].secondary_subtitle}
                 </p>
