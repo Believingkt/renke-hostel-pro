@@ -3,22 +3,21 @@ import { Card, CardContent } from "@/components/ui/card";
 
 // Navigation Skeleton
 export const NavigationSkeleton = () => (
-  <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 animate-fade-in">
+  <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
     <div className="container mx-auto px-4">
       <div className="flex h-16 items-center justify-between">
-        <Skeleton className="h-10 w-32 animate-pulse" />
+        <Skeleton className="h-10 w-32" />
         <div className="hidden md:flex gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <Skeleton 
               key={i} 
-              className="h-4 w-16 animate-pulse" 
-              style={{ animationDelay: `${i * 0.1}s` }}
+              className="h-4 w-16"
             />
           ))}
         </div>
         <div className="flex gap-3">
-          <Skeleton className="h-9 w-24 animate-pulse" style={{ animationDelay: '0.7s' }} />
-          <Skeleton className="h-9 w-9 md:hidden animate-pulse" style={{ animationDelay: '0.8s' }} />
+          <Skeleton className="h-9 w-24" />
+          <Skeleton className="h-9 w-9 md:hidden" />
         </div>
       </div>
     </div>
@@ -27,24 +26,23 @@ export const NavigationSkeleton = () => (
 
 // Hero Skeleton
 export const HeroSkeleton = () => (
-  <section className="relative h-[400px] md:h-[600px] lg:h-[700px] animate-fade-in" style={{ animationDelay: '0.1s' }}>
-    <Skeleton className="absolute inset-0 animate-pulse" />
+  <section className="relative h-[400px] md:h-[600px] lg:h-[700px]">
+    <Skeleton className="absolute inset-0" />
     <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/20 to-background/90" />
     <div className="absolute inset-0 flex items-center justify-center">
-      <div className="text-center space-y-4 px-4 animate-scale-in" style={{ animationDelay: '0.3s' }}>
-        <Skeleton className="h-12 md:h-16 w-64 md:w-96 mx-auto animate-pulse" />
-        <Skeleton className="h-6 w-48 md:w-64 mx-auto animate-pulse" style={{ animationDelay: '0.1s' }} />
+      <div className="text-center space-y-4 px-4">
+        <Skeleton className="h-12 md:h-16 w-64 md:w-96 mx-auto" />
+        <Skeleton className="h-6 w-48 md:w-64 mx-auto" />
       </div>
     </div>
-    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-full max-w-4xl px-4 animate-fade-in" style={{ animationDelay: '0.5s' }}>
+    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-full max-w-4xl px-4">
       <Card className="shadow-2xl">
         <CardContent className="p-4 md:p-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {[1, 2, 3, 4].map((i) => (
               <Skeleton 
                 key={i} 
-                className="h-10 md:h-12 animate-pulse" 
-                style={{ animationDelay: `${0.6 + i * 0.1}s` }}
+                className="h-10 md:h-12"
               />
             ))}
           </div>
@@ -56,19 +54,19 @@ export const HeroSkeleton = () => (
 
 // About Skeleton
 export const AboutSkeleton = () => (
-  <section className="py-12 md:py-20 bg-background animate-fade-in" style={{ animationDelay: '0.2s' }}>
+  <section className="py-12 md:py-20 bg-background">
     <div className="container mx-auto px-4">
       <div className="max-w-6xl mx-auto">
-        <Skeleton className="h-10 w-64 mx-auto mb-4 animate-pulse" />
-        <Skeleton className="h-6 w-96 mx-auto mb-16 animate-pulse" style={{ animationDelay: '0.1s' }} />
+        <Skeleton className="h-10 w-64 mx-auto mb-4" />
+        <Skeleton className="h-6 w-96 mx-auto mb-16" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
           {[1, 2, 3, 4].map((i) => (
-            <Card key={i} className="animate-scale-in" style={{ animationDelay: `${0.2 + i * 0.1}s` }}>
+            <Card key={i}>
               <CardContent className="p-6 md:p-8 text-center">
-                <Skeleton className="w-20 h-20 md:w-24 md:h-24 rounded-full mx-auto mb-6 animate-pulse" />
-                <Skeleton className="h-6 w-24 mx-auto mb-3 animate-pulse" />
-                <Skeleton className="h-4 w-full mb-2 animate-pulse" />
-                <Skeleton className="h-4 w-3/4 mx-auto animate-pulse" />
+                <Skeleton className="w-20 h-20 md:w-24 md:h-24 rounded-full mx-auto mb-6" />
+                <Skeleton className="h-6 w-24 mx-auto mb-3" />
+                <Skeleton className="h-4 w-full mb-2" />
+                <Skeleton className="h-4 w-3/4 mx-auto" />
               </CardContent>
             </Card>
           ))}
@@ -80,30 +78,30 @@ export const AboutSkeleton = () => (
 
 // Rooms Skeleton
 export const RoomsSkeleton = () => (
-  <section className="py-12 md:py-20 bg-secondary/20 animate-fade-in" style={{ animationDelay: '0.3s' }}>
+  <section className="py-12 md:py-20 bg-secondary/20">
     <div className="container mx-auto px-4">
-      <Skeleton className="h-10 w-48 mx-auto mb-4 animate-pulse" />
-      <Skeleton className="h-6 w-96 mx-auto mb-16 animate-pulse" style={{ animationDelay: '0.1s' }} />
+      <Skeleton className="h-10 w-48 mx-auto mb-4" />
+      <Skeleton className="h-6 w-96 mx-auto mb-16" />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
         {[1, 2, 3].map((i) => (
-          <Card key={i} className="animate-scale-in" style={{ animationDelay: `${0.2 + i * 0.1}s` }}>
-            <Skeleton className="aspect-[16/10] md:aspect-[4/3] animate-pulse" />
+          <Card key={i}>
+            <Skeleton className="aspect-[16/10] md:aspect-[4/3]" />
             <CardContent className="p-5 md:p-6">
-              <Skeleton className="h-7 w-32 mb-2 animate-pulse" />
-              <Skeleton className="h-5 w-24 mb-4 animate-pulse" />
+              <Skeleton className="h-7 w-32 mb-2" />
+              <Skeleton className="h-5 w-24 mb-4" />
               <div className="space-y-2 mb-4">
-                <Skeleton className="h-4 w-full animate-pulse" />
-                <Skeleton className="h-4 w-5/6 animate-pulse" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
               </div>
               <div className="space-y-3 mb-4">
                 {[1, 2].map((j) => (
                   <div key={j} className="flex justify-between">
-                    <Skeleton className="h-4 w-20 animate-pulse" />
-                    <Skeleton className="h-5 w-24 animate-pulse" />
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-5 w-24" />
                   </div>
                 ))}
               </div>
-              <Skeleton className="h-10 w-full animate-pulse" />
+              <Skeleton className="h-10 w-full" />
             </CardContent>
           </Card>
         ))}
@@ -296,7 +294,7 @@ export const FooterSkeleton = () => (
 
 // Complete Frontend Skeleton
 export const FrontendSkeleton = () => (
-  <div className="min-h-screen animate-fade-in">
+  <div className="min-h-screen">
     <NavigationSkeleton />
     <main>
       <HeroSkeleton />
