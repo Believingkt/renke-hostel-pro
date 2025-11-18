@@ -69,28 +69,29 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
     );
   }
 
+  // 營收圖表配色：紅色(今年/本期/本月) vs 橘色(去年/上月)
   const chartConfig = isCustomRange ? {
     本期: {
       label: "本期",
-      color: "hsl(var(--chart-revenue-primary))",
+      color: "hsl(0 80% 60%)", // 紅色
     },
   } : comparisonMode === 'lastYear' ? {
     去年: {
       label: "去年",
-      color: "hsl(var(--chart-revenue-secondary))",
+      color: "hsl(25 90% 60%)", // 橘色
     },
     今年: {
       label: "今年",
-      color: "hsl(var(--chart-revenue-primary))",
+      color: "hsl(0 80% 60%)", // 紅色
     },
   } : {
     本月: {
       label: "本月",
-      color: "hsl(var(--chart-revenue-primary))",
+      color: "hsl(0 80% 60%)", // 紅色
     },
     上月: {
       label: "上月",
-      color: "hsl(var(--chart-revenue-secondary))",
+      color: "hsl(25 90% 60%)", // 橘色
     },
   };
 
