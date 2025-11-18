@@ -56,9 +56,9 @@ interface HeroPhoto {
 const defaultHeroImages = [heroSlide1, heroSlide2, heroSlide3];
 
 const HeroSection = ({ 
-  accommodationName = "森山寫照",
-  heroMainTitle = "山間的寧靜時光",
-  heroSubtitle = "體驗日式美學與自然的完美融合",
+  accommodationName = "",
+  heroMainTitle = "",
+  heroSubtitle = "",
   heroDescription = "",
   heroOverlayOpacity = 40,
   heroAutoplayDelay = 8
@@ -82,9 +82,9 @@ const HeroSection = ({
         id: `default-${index}`,
         photo_url: img,
         display_order: index + 1,
-        title: null,
-        subtitle: null,
-        secondary_subtitle: null,
+        title: heroMainTitle || null,
+        subtitle: heroSubtitle || null,
+        secondary_subtitle: heroDescription || null,
         cta_text: null,
         cta_link: null,
         text_color: null,
