@@ -148,7 +148,9 @@ export const WebInfoSection = ({
     <Card>
       <CardHeader>
         <CardTitle>輪播圖設定</CardTitle>
-        <CardDescription>設定首頁主視覺輪播圖片、文字內容與視覺效果</CardDescription>
+        <CardDescription>
+          設定首頁主視覺輪播圖片、文字內容與視覺效果。輪播圖是訪客進入網站第一眼看到的內容，建議使用高品質、具代表性的圖片，並搭配簡潔有力的文字來傳達您的品牌特色。
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-8">
         {/* 輪播圖管理 */}
@@ -157,7 +159,9 @@ export const WebInfoSection = ({
             <div className="h-8 w-1 bg-primary rounded-full" />
             <div>
               <h3 className="font-semibold text-lg">輪播圖管理</h3>
-              <p className="text-sm text-muted-foreground">上傳和管理首頁輪播圖片（最多 5 張）</p>
+              <p className="text-sm text-muted-foreground">
+                上傳和管理首頁輪播圖片（最多 5 張）。這些圖片會在首頁自動輪播，是展示您旅宿環境、設施和特色的最佳位置。
+              </p>
             </div>
           </div>
           
@@ -188,9 +192,12 @@ export const WebInfoSection = ({
           
           <div className="rounded-lg border bg-muted/10 p-4">
             <p className="text-sm text-muted-foreground leading-relaxed">
-              <span className="font-medium text-foreground">建議尺寸：</span>1920×1080 像素 · 
+              <span className="font-medium text-foreground">💡 使用建議：</span>
+              選擇能展現旅宿特色的圖片，如外觀全景、特色房型、公共空間或周邊景觀。
+              <br />
+              <span className="font-medium text-foreground">📐 建議尺寸：</span>1920×1080 像素 · 
               <span className="font-medium text-foreground"> 支援格式：</span>JPG、PNG · 
-              <span className="font-medium text-foreground"> 自動優化：</span>上傳後轉換為 WebP 格式
+              <span className="font-medium text-foreground"> 自動優化：</span>上傳後轉換為 WebP 格式以加快載入速度
             </p>
           </div>
 
@@ -238,7 +245,9 @@ export const WebInfoSection = ({
               <div className="h-8 w-1 bg-primary rounded-full" />
               <div>
                 <h3 className="font-semibold text-lg">輪播圖全局設定</h3>
-                <p className="text-sm text-muted-foreground">統一設定所有輪播圖的標題、視覺效果和播放行為</p>
+                <p className="text-sm text-muted-foreground">
+                  統一設定所有輪播圖的標題、視覺效果和播放行為。這些設定會套用到所有輪播圖上，確保視覺呈現的一致性。
+                </p>
               </div>
             </div>
             {heroPhotos.length > 0 && (
@@ -259,7 +268,12 @@ export const WebInfoSection = ({
             <div className="space-y-6">
               {/* 標題設定 */}
               <div className="space-y-4">
-                <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">標題內容</h4>
+                <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+                  標題內容
+                </h4>
+                <p className="text-sm text-muted-foreground -mt-2">
+                  設定顯示在輪播圖上的文字內容。建議使用簡潔有力的標語，快速傳達旅宿的核心特色與價值。
+                </p>
                 
                 <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-2">
@@ -273,7 +287,7 @@ export const WebInfoSection = ({
                       className="text-base"
                     />
                     <p className="text-xs text-muted-foreground">
-                      {heroMainTitle.length}/20 字元 · 會顯示在所有輪播圖上
+                      {heroMainTitle.length}/20 字元 · 會顯示在所有輪播圖上，建議使用旅宿名稱或核心標語
                     </p>
                   </div>
 
@@ -288,7 +302,7 @@ export const WebInfoSection = ({
                       className="text-base"
                     />
                     <p className="text-xs text-muted-foreground">
-                      {heroSubtitle.length}/20 字元
+                      {heroSubtitle.length}/20 字元 · 補充說明旅宿特色或服務亮點
                     </p>
                   </div>
 
@@ -313,7 +327,12 @@ export const WebInfoSection = ({
 
               {/* 視覺效果設定 */}
               <div className="space-y-4 pt-4 border-t">
-                <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">視覺效果</h4>
+                <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+                  視覺效果
+                </h4>
+                <p className="text-sm text-muted-foreground -mt-2">
+                  調整輪播圖的視覺呈現效果，包括背景遮罩透明度和自動播放間隔時間。
+                </p>
                 
                 <div className="space-y-4">
                   <div className="space-y-3">
@@ -352,7 +371,7 @@ export const WebInfoSection = ({
                       className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
                     />
                     <p className="text-xs text-muted-foreground">
-                      每張輪播圖停留時間，建議 5-10 秒
+                      每張輪播圖停留時間，建議 5-10 秒。太短會讓訪客無法完整瀏覽，太長則可能失去注意力
                     </p>
                   </div>
                 </div>

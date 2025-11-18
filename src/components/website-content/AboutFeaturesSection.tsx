@@ -218,7 +218,9 @@ export const AboutFeaturesSection = ({
     <Card>
       <CardHeader>
         <CardTitle>特色說明</CardTitle>
-        <CardDescription>設定網站的特色區塊內容（最多 4 個）</CardDescription>
+        <CardDescription>
+          設定網站的特色區塊內容（最多 4 個）。這些區塊會在首頁的「關於我們」區段顯示，用於突顯旅宿的獨特優勢和服務特色。
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* 特色說明主標題 */}
@@ -230,6 +232,9 @@ export const AboutFeaturesSection = ({
             onChange={(e) => setTitle(e.target.value)}
             placeholder="例如：自然中的秘境 X 宿泊空間"
           />
+          <p className="text-xs text-muted-foreground">
+            這個標題會顯示在特色區塊的頂部，建議使用能概括旅宿特色的精簡標語
+          </p>
         </div>
 
         {/* 特色說明文字 */}
@@ -242,21 +247,29 @@ export const AboutFeaturesSection = ({
             placeholder="簡短描述您住宿的特色..."
             rows={3}
           />
+          <p className="text-xs text-muted-foreground">
+            補充說明旅宿的整體定位和特色，讓訪客更了解您的品牌理念
+          </p>
         </div>
 
         {/* 特色區塊列表 */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label>特色區塊（最多 4 個）</Label>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onAddFeature}
-              disabled={localFeatures.length >= 4}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              新增特色
-            </Button>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <Label>特色區塊（最多 4 個）</Label>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onAddFeature}
+                disabled={localFeatures.length >= 4}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                新增特色
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              每個特色區塊包含圖示、標題和說明文字。建議選擇能突顯旅宿優勢的特色，如「絕佳地理位置」、「溫馨服務」、「優質設施」等。可拖曳調整順序。
+            </p>
           </div>
 
           {localFeatures.length > 0 ? (
