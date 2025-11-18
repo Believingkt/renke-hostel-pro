@@ -77,11 +77,11 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
   } : comparisonMode === 'lastYear' ? {
     去年: {
       label: "去年",
-      color: "hsl(var(--chart-revenue-secondary))",
+      color: "hsl(var(--chart-revenue-primary))",
     },
     今年: {
       label: "今年",
-      color: "hsl(var(--chart-revenue-primary))",
+      color: "hsl(var(--chart-revenue-secondary))",
     },
   } : {
     本月: {
