@@ -649,7 +649,8 @@ const BookingFlow = () => {
 
   // 自動偵測並套用推薦連結的折扣碼
   useEffect(() => {
-    if (!autoAppliedRef && accommodationId && (currentStep === "guest" || currentStep === "payment") && selectedRoom) {
+    // 只要有 accommodationId、selectedRoom 和 checkInDate，就自動套用折扣碼
+    if (!autoAppliedRef && accommodationId && selectedRoom && checkInDate) {
       const refCode = searchParams.get('ref');
       if (refCode) {
         setDiscountCode(refCode);
@@ -660,7 +661,7 @@ const BookingFlow = () => {
         }, 500);
       }
     }
-  }, [accommodationId, currentStep, selectedRoom, autoAppliedRef]);
+  }, [accommodationId, selectedRoom, checkInDate, autoAppliedRef]);
 
   const handleRemoveDiscount = () => {
     setAppliedDiscount(null);
