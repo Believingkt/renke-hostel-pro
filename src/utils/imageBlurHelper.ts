@@ -17,7 +17,7 @@ export const generateBlurDataURL = (imageUrl: string): Promise<string> => {
       }
       
       // 使用非常小的尺寸來生成模糊預覽
-      const scale = 40; // 寬度限制在 40px
+      const scale = 20; // 減小尺寸以提高性能
       const width = scale;
       const height = Math.round((img.height / img.width) * scale);
       
@@ -27,8 +27,8 @@ export const generateBlurDataURL = (imageUrl: string): Promise<string> => {
       // 繪製縮小的圖片
       ctx.drawImage(img, 0, 0, width, height);
       
-      // 轉換為 data URL（使用較低的質量）
-      resolve(canvas.toDataURL('image/jpeg', 0.5));
+      // 轉換為 data URL（使用較低的質量以減小檔案大小）
+      resolve(canvas.toDataURL('image/jpeg', 0.3));
     };
     
     img.onerror = () => {

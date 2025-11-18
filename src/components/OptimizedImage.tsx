@@ -115,25 +115,28 @@ export const OptimizedImage = ({
   return (
     <div 
       ref={imgRef} 
-      className={`${aspectRatio || "relative w-full h-full"} overflow-hidden`}
+      className={`${aspectRatio || "relative w-full h-full"} overflow-hidden bg-muted`}
       onClick={onClick}
     >
-      {/* 骨架屏或模糊預覽 */}
-      {(!isLoaded || !isInView) && (
-        <>
-          {blurDataURL && showBlur ? (
-            <div 
-              className="absolute inset-0 w-full h-full bg-cover bg-center transition-opacity duration-300"
-              style={{
-                backgroundImage: `url(${blurDataURL})`,
-                filter: 'blur(20px)',
-                transform: 'scale(1.1)',
-              }}
-            />
-          ) : (
-            <Skeleton className="absolute inset-0 w-full h-full" />
-          )}
-        </>
+      {/* 低解析度預覽層 */}
+      {blurDataURL && showBlur && (
+        <div 
+          className="absolute inset-0 w-full h-full bg-cover bg-center transition-opacity duration-500"
+          style={{
+            backgroundImage: `url(${blurDataURL})`,
+            filter: 'blur(20px)',
+            transform: 'scale(1.1)',
+            opacity: isLoaded ? 0 : 1,
+          }}
+        />
+      )}
+      
+      {/* 骨架屏 - 當沒有模糊預覽時顯示 */}
+      {!blurDataURL && (!isLoaded || !isInView) && (
+        <div className="absolute inset-0 w-full h-full">
+          <Skeleton className="w-full h-full" />
+          <div className="absolute inset-0 bg-gradient-to-br from-muted/50 to-muted animate-pulse" />
+        </div>
       )}
       
       {/* 主圖片 */}
