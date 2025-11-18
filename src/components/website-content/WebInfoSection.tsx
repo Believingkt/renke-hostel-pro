@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Upload, Info, Trash2, GripVertical, Pencil } from "lucide-react";
+import { Upload, Info, Trash2, GripVertical, Pencil, Eye } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,7 @@ interface WebInfoSectionProps {
   onDeleteHeroPhoto: (photoId: string) => void;
   onHeroPhotoReorder: (newOrder: any[]) => void;
   onEditHeroPhoto: (photo: any) => void;
+  onPreviewCarousel: () => void;
   uploadingHeroPhoto: boolean;
 }
 
@@ -113,6 +114,7 @@ export const WebInfoSection = ({
   onDeleteHeroPhoto,
   onHeroPhotoReorder,
   onEditHeroPhoto,
+  onPreviewCarousel,
   uploadingHeroPhoto
 }: WebInfoSectionProps) => {
   const [isSaving, setIsSaving] = useState(false);
@@ -163,6 +165,17 @@ export const WebInfoSection = ({
               <Upload className="h-4 w-4" />
               {uploadingHeroPhoto ? "上傳中..." : "上傳輪播圖"}
             </Button>
+            {heroPhotos.length > 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onPreviewCarousel}
+                className="flex items-center gap-2"
+              >
+                <Eye className="h-4 w-4" />
+                預覽輪播效果
+              </Button>
+            )}
             <input
               id="hero-photo-upload"
               type="file"

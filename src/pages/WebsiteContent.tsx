@@ -57,6 +57,7 @@ import { toast } from "sonner";
 import { TabsSkeleton } from "@/components/skeletons/TabsSkeleton";
 import { LogoCropDialog } from "@/components/LogoCropDialog";
 import { HeroPhotoEditDialog } from "@/components/HeroPhotoEditDialog";
+import { HeroCarouselPreviewDialog } from "@/components/HeroCarouselPreviewDialog";
 import { OgImagePreview } from "@/components/OgImagePreview";
 import { OgImageCropDialog } from "@/components/OgImageCropDialog";
 
@@ -427,6 +428,7 @@ const WebsiteContent = () => {
   const [uploadingHeroPhoto, setUploadingHeroPhoto] = useState(false);
   const [editingHeroPhoto, setEditingHeroPhoto] = useState<Photo | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isCarouselPreviewOpen, setIsCarouselPreviewOpen] = useState(false);
   const MAX_HERO_PHOTOS = 5;
 
   // Addon plans state
@@ -1658,6 +1660,10 @@ const WebsiteContent = () => {
     setIsEditDialogOpen(true);
   };
 
+  const handlePreviewCarousel = () => {
+    setIsCarouselPreviewOpen(true);
+  };
+
   const handleSaveHeroPhotoText = async (photoId: string, data: {
     title: string;
     subtitle: string;
@@ -2012,6 +2018,7 @@ const WebsiteContent = () => {
             onDeleteHeroPhoto={handleDeleteHeroPhoto}
             onHeroPhotoReorder={handleHeroPhotoReorder}
             onEditHeroPhoto={handleEditHeroPhoto}
+            onPreviewCarousel={handlePreviewCarousel}
             uploadingHeroPhoto={uploadingHeroPhoto}
           />
           
@@ -2020,6 +2027,12 @@ const WebsiteContent = () => {
             onOpenChange={setIsEditDialogOpen}
             photo={editingHeroPhoto}
             onSave={handleSaveHeroPhotoText}
+          />
+
+          <HeroCarouselPreviewDialog
+            open={isCarouselPreviewOpen}
+            onOpenChange={setIsCarouselPreviewOpen}
+            photos={heroPhotos}
           />
 
           <AboutFeaturesSection
