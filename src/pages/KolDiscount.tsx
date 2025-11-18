@@ -28,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, Copy, Pencil, Check, X, Eye, Calendar as CalendarIcon, GripVertical, Files } from "lucide-react";
+import { Plus, Trash2, Copy, Pencil, Check, X, Eye, Calendar as CalendarIcon, GripVertical, Files, Code } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubdomain } from "@/hooks/use-subdomain";
@@ -101,6 +101,7 @@ const KolDiscount = () => {
   const [editingLimitValue, setEditingLimitValue] = useState("");
   const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [apiDocOpen, setApiDocOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -746,13 +747,22 @@ const KolDiscount = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl md:text-3xl font-bold">折扣代碼管理</h1>
-        <Dialog open={open} onOpenChange={handleDialogClose}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              新增折扣碼
-            </Button>
-          </DialogTrigger>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            className="gap-2"
+            onClick={() => setApiDocOpen(true)}
+          >
+            <Code className="h-4 w-4" />
+            <span className="hidden sm:inline">API 文檔</span>
+          </Button>
+          <Dialog open={open} onOpenChange={handleDialogClose}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                新增折扣碼
+              </Button>
+            </DialogTrigger>
           <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{copyingFrom ? "複製折扣碼" : "新增折扣碼"}</DialogTitle>
@@ -996,8 +1006,9 @@ const KolDiscount = () => {
             <DialogFooter>
               <Button onClick={handleSubmit}>新增</Button>
             </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Edit Discount Code Dialog */}
@@ -1469,6 +1480,147 @@ const KolDiscount = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* API Documentation Dialog */}
+      <Dialog open={apiDocOpen} onOpenChange={setApiDocOpen}>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>網紅 API 使用說明</DialogTitle>
+            <DialogDescription>
+              透過以下 API 端點，網紅可以在自己的網站查詢訂單和佣金數據
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            {/* Base URL */}
+            <div>
+              <h3 className="font-semibold mb-2 flex items-center gap-2">
+                <Code className="h-4 w-4" />
+                API Base URL
+              </h3>
+              <code className="block p-3 bg-muted rounded text-sm font-mono break-all">
+                {window.location.origin.replace(/^https?:\/\//, 'https://')}/functions/v1/kol-api
+              </code>
+            </div>
+
+            <Separator />
+
+            {/* Endpoint 1: Query Orders */}
+            <div>
+              <h3 className="font-semibold mb-2">1. 查詢訂單列表</h3>
+              <div className="space-y-2">
+                <div>
+                  <Label className="text-xs text-muted-foreground">端點</Label>
+                  <code className="block p-2 bg-muted rounded text-sm font-mono">
+                    GET /orders?code=YOUR_DISCOUNT_CODE
+                  </code>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">範例請求</Label>
+                  <pre className="p-3 bg-muted rounded text-xs font-mono overflow-x-auto">
+{`fetch('${window.location.origin.replace(/^https?:\/\//, 'https://')}/functions/v1/kol-api/orders?code=SPRING2024')
+  .then(res => res.json())
+  .then(data => console.log(data));`}
+                  </pre>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">回應範例</Label>
+                  <pre className="p-3 bg-muted rounded text-xs font-mono overflow-x-auto">
+{`{
+  "success": true,
+  "discount_code": "SPRING2024",
+  "orders": [
+    {
+      "id": "...",
+      "order_number": "20240115001",
+      "order_date": "2024-01-15T10:30:00",
+      "check_in_date": "2024-02-01",
+      "check_out_date": "2024-02-03",
+      "guest_name": "王小明",
+      "guest_count": 2,
+      "order_status": "confirmed",
+      "payment_status": "paid",
+      "total_price": 5000,
+      "discount_amount": 500,
+      "final_price": 4500,
+      "paid_amount": 4500,
+      "room_types": {
+        "name": "標準雙人房"
+      }
+    }
+  ]
+}`}
+                  </pre>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Endpoint 2: Query Statistics */}
+            <div>
+              <h3 className="font-semibold mb-2">2. 查詢統計數據</h3>
+              <div className="space-y-2">
+                <div>
+                  <Label className="text-xs text-muted-foreground">端點</Label>
+                  <code className="block p-2 bg-muted rounded text-sm font-mono">
+                    GET /stats?code=YOUR_DISCOUNT_CODE
+                  </code>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">範例請求</Label>
+                  <pre className="p-3 bg-muted rounded text-xs font-mono overflow-x-auto">
+{`fetch('${window.location.origin.replace(/^https?:\/\//, 'https://')}/functions/v1/kol-api/stats?code=SPRING2024')
+  .then(res => res.json())
+  .then(data => console.log(data));`}
+                  </pre>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">回應範例</Label>
+                  <pre className="p-3 bg-muted rounded text-xs font-mono overflow-x-auto">
+{`{
+  "success": true,
+  "discount_code": "SPRING2024",
+  "discount_info": {
+    "name": "春季促銷",
+    "discount_type": "percentage",
+    "discount_value": 10,
+    "used_count": 25,
+    "usage_limit": 100,
+    "is_active": true
+  },
+  "statistics": {
+    "total_orders": 25,
+    "confirmed_orders": 23,
+    "total_revenue": 115000,
+    "total_discount": 11500,
+    "estimated_commission": 1150,
+    "commission_rate": 0.1
+  }
+}`}
+                  </pre>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Notes */}
+            <div className="space-y-2">
+              <h3 className="font-semibold">注意事項</h3>
+              <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                <li>API 端點不需要身份驗證，但需要提供有效的折扣碼</li>
+                <li>回應格式為 JSON</li>
+                <li>佣金計算為折扣金額的 10%（僅供參考）</li>
+                <li>建議在外部網站實作快取機制，避免頻繁請求</li>
+                <li>API 支援 CORS，可直接從瀏覽器調用</li>
+              </ul>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setApiDocOpen(false)}>關閉</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
