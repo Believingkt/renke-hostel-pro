@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2, GripVertical } from "lucide-react";
+import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -409,10 +410,13 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
             </div>
           )}
         </div>
-        <div className="flex justify-end gap-2 pt-4">
+        <SaveButtonContainer 
+          onSave={handleSave} 
+          isSaving={isLoading}
+          saveText="儲存"
+        >
           <Button variant="outline" onClick={onCancel}>取消</Button>
-          <Button onClick={handleSave} disabled={isLoading}>{isLoading ? "儲存中..." : "儲存"}</Button>
-        </div>
+        </SaveButtonContainer>
       </CardContent>
     </Card>
   );
