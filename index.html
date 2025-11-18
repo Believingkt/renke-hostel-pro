@@ -17,8 +17,8 @@
     <link rel="preload" href="https://fonts.gstatic.com/s/notosanstc/v35/-nFlOG829Oofr2wohFbTp9i9kwMUK_G-5DONY3ahGxvbItqP5Q.woff2" as="font" type="font/woff2" crossorigin fetchpriority="high">
     <link rel="preload" href="https://fonts.gstatic.com/s/notosanstc/v35/-nF8OG829Oofr2wohFbTp9i9kwMUK_G-5DDNY-avGxvbItqP5Vvv2A.woff2" as="font" type="font/woff2" crossorigin fetchpriority="high">
     
-    <!-- 优化字体加载 - 使用 swap 配合字體度量調整 -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- 优化字体加载 - 使用 block 強制等待 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=block" rel="stylesheet">
     
     <meta name="description" content="森山寫照位於寧靜的山區，是一處結合日式傳統美學與現代舒適的精品旅宿" />
     <meta name="author" content="森山寫照" />
@@ -129,30 +129,47 @@
       }
     </style>
     <script>
-      // 強制等待字體載入完成
+      // 最保守的字體載入策略
       (function() {
-        const root = document.getElementById('root');
+        console.log('[Font Loading] Starting font load process');
+        const startTime = performance.now();
+        
+        // 設定最長等待時間
+        const MAX_WAIT = 3000;
+        let fontsLoaded = false;
+        
+        // 超時後強制顯示
+        const timeoutId = setTimeout(() => {
+          if (!fontsLoaded) {
+            console.log('[Font Loading] Timeout - forcing display');
+            document.documentElement.classList.add('fonts-loaded');
+          }
+        }, MAX_WAIT);
         
         if ('fonts' in document && document.fonts) {
-          // 首先確保關鍵字體已下載
-          Promise.all([
-            document.fonts.load('700 16px "Noto Sans TC"'),
-            document.fonts.load('400 16px "Noto Sans TC"')
-          ]).then(() => {
-            // 等待所有字體完全準備好
-            return document.fonts.ready;
+          // 等待所有字體完全準備好
+          document.fonts.ready.then(() => {
+            const loadTime = performance.now() - startTime;
+            console.log(`[Font Loading] Fonts ready in ${loadTime}ms`);
+            
+            // 額外等待100ms確保渲染完成
+            return new Promise(resolve => setTimeout(resolve, 100));
           }).then(() => {
-            // 標記字體已載入
+            fontsLoaded = true;
+            clearTimeout(timeoutId);
             document.documentElement.classList.add('fonts-loaded');
+            const totalTime = performance.now() - startTime;
+            console.log(`[Font Loading] Complete in ${totalTime}ms`);
           }).catch((err) => {
-            console.error('Font loading failed:', err);
-            // 即使失敗也要在2秒後顯示
-            setTimeout(() => {
-              document.documentElement.classList.add('fonts-loaded');
-            }, 2000);
+            console.error('[Font Loading] Failed:', err);
+            fontsLoaded = true;
+            clearTimeout(timeoutId);
+            document.documentElement.classList.add('fonts-loaded');
           });
         } else {
-          // 不支援 Font Loading API，延遲後顯示
+          console.log('[Font Loading] Font Loading API not available');
+          fontsLoaded = true;
+          clearTimeout(timeoutId);
           setTimeout(() => {
             document.documentElement.classList.add('fonts-loaded');
           }, 1500);
