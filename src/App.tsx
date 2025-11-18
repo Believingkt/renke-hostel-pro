@@ -6,6 +6,7 @@ import { AccommodationProvider } from "@/contexts/AccommodationContext";
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 import { FrontendSkeleton } from "@/components/skeletons/FrontendSkeleton";
 import { NetworkIndicator } from "@/components/NetworkIndicator";
+import { PageTransition } from "@/components/PageTransition";
 
 // 路由懶加載 - 前台頁面
 const Index = lazy(() => import("./pages/Index"));
@@ -54,8 +55,9 @@ function App() {
       <AccommodationProvider>
         <BrowserRouter>
           <NetworkIndicator />
-          <Suspense fallback={<FrontendSkeleton />}>
-            <Routes>
+          <PageTransition>
+            <Suspense fallback={<FrontendSkeleton />}>
+              <Routes>
               <Route element={<ConditionalLayout />}>
                 <Route path="/" element={<Index />} />
                 <Route path="/booking" element={<BookingFlow />} />
@@ -188,6 +190,7 @@ function App() {
               </Route>
             </Routes>
           </Suspense>
+          </PageTransition>
         </BrowserRouter>
       </AccommodationProvider>
     </QueryClientProvider>
