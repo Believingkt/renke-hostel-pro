@@ -23,12 +23,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Calendar } from "lucide-react";
 
 interface CommissionRecord {
   id: string;
@@ -69,6 +70,8 @@ export const CommissionRecordsDialog = ({
   const [records, setRecords] = useState<CommissionRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<string>("all");
+  const [isSettling, setIsSettling] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -150,6 +153,88 @@ export const CommissionRecordsDialog = ({
     }
   };
 
+  // Generate available months from records
+  const getAvailableMonths = () => {
+    if (records.length === 0) return [];
+    
+    const months = new Set<string>();
+    records.forEach((record) => {
+      const month = format(new Date(record.created_at), "yyyy-MM");
+      months.add(month);
+    });
+    
+    return Array.from(months).sort().reverse();
+  };
+
+  // Filter records by selected month
+  const filteredRecords = selectedMonth === "all" 
+    ? records 
+    : records.filter((record) => {
+        const recordMonth = format(new Date(record.created_at), "yyyy-MM");
+        return recordMonth === selectedMonth;
+      });
+
+  // Batch settlement for selected month
+  const handleMonthlySettlement = async (status: "approved" | "paid") => {
+    if (selectedMonth === "all") {
+      toast({
+        title: "請先選擇要結算的月份",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const pendingRecordsInMonth = filteredRecords.filter(
+      (r) => r.settlement_status === "pending"
+    );
+
+    if (pendingRecordsInMonth.length === 0) {
+      toast({
+        title: "該月份沒有待結算的佣金記錄",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSettling(true);
+    try {
+      const updates: any = {
+        settlement_status: status,
+      };
+
+      if (status === "approved") {
+        updates.settlement_date = new Date().toISOString();
+      } else if (status === "paid") {
+        updates.payment_date = new Date().toISOString();
+        updates.settlement_date = new Date().toISOString();
+      }
+
+      const { error } = await supabase
+        .from("commission_records")
+        .update(updates)
+        .in(
+          "id",
+          pendingRecordsInMonth.map((r) => r.id)
+        );
+
+      if (error) throw error;
+
+      toast({
+        title: "月結算成功",
+        description: `已將 ${pendingRecordsInMonth.length} 筆記錄標記為${status === "approved" ? "已核准" : "已付款"}`,
+      });
+      fetchCommissionRecords();
+    } catch (error) {
+      console.error("Error during monthly settlement:", error);
+      toast({
+        title: "月結算失敗",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSettling(false);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const statusMap: Record<
       string,
@@ -164,17 +249,19 @@ export const CommissionRecordsDialog = ({
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  const totalCommission = records
+  const totalCommission = filteredRecords
     .filter((r) => r.settlement_status !== "cancelled")
     .reduce((sum, r) => sum + r.commission_amount, 0);
 
-  const pendingCommission = records
+  const pendingCommission = filteredRecords
     .filter((r) => r.settlement_status === "pending")
     .reduce((sum, r) => sum + r.commission_amount, 0);
 
-  const paidCommission = records
+  const paidCommission = filteredRecords
     .filter((r) => r.settlement_status === "paid")
     .reduce((sum, r) => sum + r.commission_amount, 0);
+
+  const availableMonths = getAvailableMonths();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -186,12 +273,55 @@ export const CommissionRecordsDialog = ({
           </DialogDescription>
         </DialogHeader>
 
+        {/* Month Filter and Batch Settlement */}
+        <div className="flex flex-col md:flex-row gap-4 mb-4">
+          <div className="flex-1">
+            <Label className="text-sm font-medium mb-2 flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              選擇月份
+            </Label>
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger>
+                <SelectValue placeholder="選擇月份" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部月份</SelectItem>
+                {availableMonths.map((month) => (
+                  <SelectItem key={month} value={month}>
+                    {format(new Date(month + "-01"), "yyyy 年 MM 月")}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {selectedMonth !== "all" && pendingCommission > 0 && (
+            <div className="flex gap-2 items-end">
+              <Button
+                onClick={() => handleMonthlySettlement("approved")}
+                disabled={isSettling}
+                variant="outline"
+              >
+                批量核准
+              </Button>
+              <Button
+                onClick={() => handleMonthlySettlement("paid")}
+                disabled={isSettling}
+              >
+                批量付款
+              </Button>
+            </div>
+          )}
+        </div>
+
         {/* Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <Card>
             <CardContent className="pt-6">
               <div className="text-center">
-                <p className="text-sm text-muted-foreground">總佣金</p>
+                <p className="text-sm text-muted-foreground">
+                  {selectedMonth === "all" ? "總佣金" : "本月佣金"}
+                </p>
                 <p className="text-2xl font-bold">NT$ {totalCommission.toLocaleString()}</p>
               </div>
             </CardContent>
@@ -199,7 +329,9 @@ export const CommissionRecordsDialog = ({
           <Card>
             <CardContent className="pt-6">
               <div className="text-center">
-                <p className="text-sm text-muted-foreground">待結算佣金</p>
+                <p className="text-sm text-muted-foreground">
+                  {selectedMonth === "all" ? "待結算佣金" : "本月待結算"}
+                </p>
                 <p className="text-2xl font-bold text-orange-600">
                   NT$ {pendingCommission.toLocaleString()}
                 </p>
@@ -209,7 +341,9 @@ export const CommissionRecordsDialog = ({
           <Card>
             <CardContent className="pt-6">
               <div className="text-center">
-                <p className="text-sm text-muted-foreground">已付款佣金</p>
+                <p className="text-sm text-muted-foreground">
+                  {selectedMonth === "all" ? "已付款佣金" : "本月已付款"}
+                </p>
                 <p className="text-2xl font-bold text-green-600">
                   NT$ {paidCommission.toLocaleString()}
                 </p>
@@ -220,8 +354,10 @@ export const CommissionRecordsDialog = ({
 
         {isLoading ? (
           <TableSkeleton />
-        ) : records.length === 0 ? (
-          <p className="text-center text-muted-foreground py-8">尚無佣金記錄</p>
+        ) : filteredRecords.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">
+            {selectedMonth === "all" ? "尚無佣金記錄" : "該月份無佣金記錄"}
+          </p>
         ) : (
           <>
             {/* Desktop Table */}
@@ -241,7 +377,7 @@ export const CommissionRecordsDialog = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {records.map((record) => (
+                  {filteredRecords.map((record) => (
                     <TableRow key={record.id}>
                       <TableCell className="font-mono">
                         {record.orders?.order_number || "-"}
@@ -289,7 +425,7 @@ export const CommissionRecordsDialog = ({
 
             {/* Mobile Cards */}
             <div className="md:hidden space-y-3">
-              {records.map((record) => (
+              {filteredRecords.map((record) => (
                 <Card key={record.id}>
                   <CardContent className="pt-6 space-y-3">
                     <div className="flex items-start justify-between">
