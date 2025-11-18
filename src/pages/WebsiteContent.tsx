@@ -1353,7 +1353,7 @@ const WebsiteContent = () => {
         document.title = basicInfo.name;
       }
 
-      toast.success('基本資料已儲存');
+      toast.success('網頁設定已儲存');
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error("Error saving basic info:", error);
@@ -1953,7 +1953,7 @@ const WebsiteContent = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <ResponsiveTabs
           tabs={[
-            { value: "basic-info", label: "基本資料", icon: Info },
+            { value: "basic-info", label: "網頁設定", icon: Info },
             { value: "facilities", label: "設施服務", icon: Wrench },
             { value: "addon-plans", label: "加購方案", icon: Package },
             { value: "gallery", label: "精選照片", icon: ImageIcon },
