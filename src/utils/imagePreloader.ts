@@ -64,6 +64,7 @@ export const preloadImageWithLink = (src: string): void => {
 
 /**
  * 智能預載入：根據視窗位置預載入附近的圖片
+ * 優化版：支援優先級和快取檢查
  */
 export const smartPreload = (
   currentIndex: number,
@@ -71,24 +72,45 @@ export const smartPreload = (
   imageUrls: string[],
   preloadCount: number = 2
 ): void => {
-  const imagesToPreload: string[] = [];
+  const imagesToPreload: { url: string; priority: 'high' | 'low' }[] = [];
   
-  // 預載入下 N 張圖片
-  for (let i = 1; i <= preloadCount; i++) {
-    const nextIndex = (currentIndex + i) % totalImages;
-    if (imageUrls[nextIndex]) {
-      imagesToPreload.push(imageUrls[nextIndex]);
+  // 優先預載入下一張（高優先級）
+  const nextIndex = (currentIndex + 1) % totalImages;
+  if (imageUrls[nextIndex]) {
+    imagesToPreload.push({ url: imageUrls[nextIndex], priority: 'high' });
+  }
+  
+  // 預載入再下一張（低優先級）
+  if (preloadCount > 1) {
+    for (let i = 2; i <= preloadCount; i++) {
+      const index = (currentIndex + i) % totalImages;
+      if (imageUrls[index]) {
+        imagesToPreload.push({ url: imageUrls[index], priority: 'low' });
+      }
     }
   }
   
-  // 預載入上一張圖片（用於向後導航）
+  // 預載入上一張圖片（低優先級，用於向後導航）
   const prevIndex = (currentIndex - 1 + totalImages) % totalImages;
   if (imageUrls[prevIndex]) {
-    imagesToPreload.push(imageUrls[prevIndex]);
+    imagesToPreload.push({ url: imageUrls[prevIndex], priority: 'low' });
   }
   
-  // 非同步預載入
-  preloadImages(imagesToPreload, { priority: 'low' });
+  // 按優先級分組預載入
+  const highPriority = imagesToPreload.filter(img => img.priority === 'high');
+  const lowPriority = imagesToPreload.filter(img => img.priority === 'low');
+  
+  // 立即預載入高優先級圖片
+  if (highPriority.length > 0) {
+    preloadImages(highPriority.map(img => img.url), { priority: 'high' });
+  }
+  
+  // 延遲預載入低優先級圖片
+  if (lowPriority.length > 0) {
+    setTimeout(() => {
+      preloadImages(lowPriority.map(img => img.url), { priority: 'low' });
+    }, 500);
+  }
 };
 
 /**
