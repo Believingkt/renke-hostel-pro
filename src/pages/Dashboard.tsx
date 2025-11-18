@@ -16,8 +16,6 @@ import { ErrorState } from "@/components/ErrorState";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import PullToRefresh from "react-simple-pull-to-refresh";
-import { DateRangePicker } from "@/components/DateRangePicker";
-import { DateRange } from "react-day-picker";
 import { RevenueChart } from "@/components/charts/RevenueChart";
 import { BookingTrendsChart } from "@/components/charts/BookingTrendsChart";
 import { OccupancyChart } from "@/components/charts/OccupancyChart";
@@ -31,12 +29,6 @@ const Dashboard = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [testDataCount, setTestDataCount] = useState(20);
   const [useLastYear, setUseLastYear] = useState(false);
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-  
-  // 將 DateRange 轉換為 hook 需要的格式
-  const customDateRange = dateRange?.from && dateRange?.to 
-    ? { from: dateRange.from, to: dateRange.to }
-    : undefined;
   
   // 使用 React Query hook 獲取儀表板資料
   const { 
@@ -44,7 +36,7 @@ const Dashboard = () => {
     isLoading, 
     error, 
     refreshData 
-  } = useDashboardData(accommodationId, comparisonMode, customDateRange);
+  } = useDashboardData(accommodationId, comparisonMode, undefined);
 
   const handleGenerateTestData = async () => {
     if (!accommodationId) {
@@ -228,25 +220,6 @@ const Dashboard = () => {
       <div className="px-2 md:px-0 flex items-start md:items-center justify-between flex-col md:flex-row gap-3">
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">營運分析</h1>
         <div className="flex items-center gap-2 flex-wrap w-full md:w-auto">
-          <DateRangePicker 
-            dateRange={dateRange}
-            onDateRangeChange={setDateRange}
-            className="flex-1 md:flex-initial"
-          />
-          {dateRange && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setDateRange({
-                from: startOfMonth(new Date()),
-                to: endOfMonth(new Date())
-              })}
-              className="gap-2"
-            >
-              <Calendar className="h-4 w-4" />
-              本月
-            </Button>
-          )}
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -306,7 +279,6 @@ const Dashboard = () => {
             <button
               onClick={() => {
                 setComparisonMode('lastYear');
-                setDateRange(undefined); // 清除自定義日期範圍
               }}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-300 ${
                 comparisonMode === 'lastYear'
@@ -319,7 +291,6 @@ const Dashboard = () => {
             <button
               onClick={() => {
                 setComparisonMode('lastMonth');
-                setDateRange(undefined); // 清除自定義日期範圍
               }}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-300 ${
                 comparisonMode === 'lastMonth'
@@ -378,35 +349,6 @@ const Dashboard = () => {
         />
       </div>
 
-      {!hasData && dateRange && (
-        <Card className="mx-2 md:mx-0 p-8 text-center">
-          <div className="flex flex-col items-center gap-4">
-            <div className="rounded-full bg-muted p-4">
-              <Calendar className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold">所選日期範圍內沒有數據</h3>
-              <p className="text-sm text-muted-foreground max-w-md">
-                {dateRange.from && dateRange.to && (
-                  <>
-                    {format(dateRange.from, 'yyyy年MM月dd日')} 至 {format(dateRange.to, 'yyyy年MM月dd日')} 期間沒有訂單記錄
-                  </>
-                )}
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setDateRange(undefined)}
-              className="gap-2"
-            >
-              <X className="h-4 w-4" />
-              清除日期篩選
-            </Button>
-          </div>
-        </Card>
-      )}
-
       <div className="grid gap-6 md:grid-cols-2 px-2 md:px-0">
         <Card>
           <CardHeader>
@@ -424,17 +366,17 @@ const Dashboard = () => {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg font-semibold">訂單趨勢</CardTitle>
-              <span className="text-xs text-muted-foreground">
-                {customDateRange ? '自訂期間' : comparisonMode === 'lastYear' ? '年度對比' : '月度對比'}
-              </span>
+            <span className="text-xs text-muted-foreground">
+              {comparisonMode === 'lastYear' ? '年度對比' : '月度對比'}
+            </span>
             </div>
           </CardHeader>
           <CardContent>
             <BookingTrendsChart 
-              key={`booking-${comparisonMode}-${customDateRange ? 'custom' : 'standard'}`}
+              key={`booking-${comparisonMode}-standard`}
               data={finalBookingData}
               comparisonMode={comparisonMode}
-              isCustomRange={!!customDateRange}
+              isCustomRange={false}
             />
           </CardContent>
         </Card>
@@ -444,17 +386,17 @@ const Dashboard = () => {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg font-semibold">營收統計</CardTitle>
-            <span className="text-xs text-muted-foreground">
-              {customDateRange ? '自訂期間' : comparisonMode === 'lastYear' ? '年度對比' : '月度對比'}
-            </span>
+              <span className="text-xs text-muted-foreground">
+                {comparisonMode === 'lastYear' ? '年度對比' : '月度對比'}
+              </span>
           </div>
         </CardHeader>
         <CardContent>
           <RevenueChart 
-            key={`revenue-${comparisonMode}-${customDateRange ? 'custom' : 'standard'}`}
+            key={`revenue-${comparisonMode}-standard`}
             data={finalRevenueData}
             comparisonMode={comparisonMode}
-            isCustomRange={!!customDateRange}
+            isCustomRange={false}
           />
         </CardContent>
       </Card>
