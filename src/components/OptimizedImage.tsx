@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { calculateOptimalImageSize } from "@/utils/responsiveImageHelper";
 import { getCDNUrl } from "@/utils/cdnHelper";
+import { useNetworkStatus } from "@/hooks/use-network-status";
 
 interface OptimizedImageProps {
   src: string;
@@ -42,6 +43,7 @@ export const OptimizedImage = ({
   const [optimalSrc, setOptimalSrc] = useState(src);
   const imgRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
+  const { speed: networkSpeed } = useNetworkStatus();
 
   // 計算最佳圖片尺寸並應用 CDN
   useEffect(() => {
@@ -52,9 +54,21 @@ export const OptimizedImage = ({
       const optimalWidth = responsive ? calculateOptimalImageSize(containerWidth) : parseInt(width);
       const optimalHeight = responsive ? Math.round((optimalWidth * parseInt(height)) / parseInt(width)) : parseInt(height);
       
+      // 根據網路速度調整圖片品質
+      let quality = 85;
+      let format: 'auto' | 'webp' | 'avif' | 'jpg' | 'png' = 'auto';
+      
+      if (networkSpeed === 'slow') {
+        quality = 60; // 慢速網路降低品質到 60
+        format = 'webp'; // 強制使用 WebP 格式以減小檔案大小
+      } else if (networkSpeed === 'offline') {
+        quality = 40; // 離線時使用極低品質
+        format = 'webp';
+      }
+      
       // 應用 CDN 轉換
       if (useCDN) {
-        const cdnUrl = getCDNUrl(src, optimalWidth, optimalHeight, 85, 'auto');
+        const cdnUrl = getCDNUrl(src, optimalWidth, optimalHeight, quality, format);
         setOptimalSrc(cdnUrl);
       } else {
         setOptimalSrc(src);
@@ -74,7 +88,7 @@ export const OptimizedImage = ({
         resizeObserver.disconnect();
       };
     }
-  }, [src, width, height, responsive, useCDN]);
+  }, [src, width, height, responsive, useCDN, networkSpeed]);
 
   useEffect(() => {
     if (priority) return; // 優先圖片立即載入

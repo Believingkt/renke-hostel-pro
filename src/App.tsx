@@ -5,6 +5,7 @@ import { ConditionalLayout } from "@/components/ConditionalLayout";
 import { AccommodationProvider } from "@/contexts/AccommodationContext";
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 import { FrontendSkeleton } from "@/components/skeletons/FrontendSkeleton";
+import { NetworkIndicator } from "@/components/NetworkIndicator";
 
 // 路由懶加載 - 前台頁面
 const Index = lazy(() => import("./pages/Index"));
@@ -52,6 +53,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AccommodationProvider>
         <BrowserRouter>
+          <NetworkIndicator />
           <Suspense fallback={<FrontendSkeleton />}>
             <Routes>
               <Route element={<ConditionalLayout />}>
