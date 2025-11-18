@@ -69,7 +69,7 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
     );
   }
 
-  // 營收圖表配色：紅色(今年/本期/本月) vs 橘色(去年/上月)
+  // 營收圖表配色：紅色(今年/本期/本月) vs 淡橘色(去年/上月)
   const chartConfig = isCustomRange ? {
     本期: {
       label: "本期",
@@ -78,7 +78,7 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
   } : comparisonMode === 'lastYear' ? {
     去年: {
       label: "去年",
-      color: "hsl(25 90% 60%)", // 橘色
+      color: "hsl(25 60% 70%)", // 淡橘色
     },
     今年: {
       label: "今年",
@@ -91,7 +91,7 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
     },
     上月: {
       label: "上月",
-      color: "hsl(25 90% 60%)", // 橘色
+      color: "hsl(25 60% 70%)", // 淡橘色
     },
   };
 
