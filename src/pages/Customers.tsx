@@ -336,7 +336,7 @@ const Customers = () => {
               <SaveButtonContainer 
                 onSave={handleSave} 
                 isSaving={isLoading}
-                saveText="儲存"
+                saveText="儲存變更"
                 className="border-t-0"
               >
                 <Button variant="outline" onClick={() => setIsDialogOpen(false)}>

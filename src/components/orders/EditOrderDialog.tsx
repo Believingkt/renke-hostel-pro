@@ -599,7 +599,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
             取消
           </Button>
           <Button onClick={handleSave} disabled={isSaving || isValidating}>
-            {isValidating ? "驗證中..." : isSaving ? "儲存中..." : "儲存"}
+            {isValidating ? "驗證中..." : isSaving ? "儲存變更中..." : "儲存變更"}
           </Button>
         </DialogFooter>
       </DialogContent>
