@@ -12,8 +12,7 @@ import { OrderFilters } from "@/components/orders/OrderFilters";
 import { OrdersTable } from "@/components/orders/OrdersTable";
 import { EditOrderDialog } from "@/components/orders/EditOrderDialog";
 import { Button } from "@/components/ui/button";
-import { Filter } from "lucide-react";
-import { ShoppingCart } from "lucide-react";
+import { Filter, ShoppingCart, CalendarDays, CreditCard, Package } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -466,11 +465,42 @@ const Orders = () => {
 
               {/* 訂單表格 */}
               {filteredOrders.length === 0 ? (
-                <EmptyState
-                  icon={ShoppingCart}
-                  title="尚無訂單資料"
-                  description="目前沒有符合條件的訂單，請調整篩選條件或等待新訂單"
-                />
+                orders.length === 0 ? (
+                  // 完全沒有訂單的空狀態
+                  <EmptyState
+                    icon={ShoppingCart}
+                    title="歡迎使用訂單管理"
+                    description="目前還沒有任何訂單。開始建立第一筆訂單，追蹤預訂狀態與營運數據。"
+                    action={{
+                      label: "建立第一筆訂單",
+                      onClick: () => setEditDialogOpen(true)
+                    }}
+                    suggestions={[
+                      {
+                        icon: CalendarDays,
+                        title: "管理預訂",
+                        description: "輕鬆記錄入住和退房日期，追蹤房間分配狀況。"
+                      },
+                      {
+                        icon: CreditCard,
+                        title: "追蹤付款",
+                        description: "管理訂金、尾款和付款狀態，掌握現金流。"
+                      },
+                      {
+                        icon: Package,
+                        title: "處理訂單",
+                        description: "從待確認到已完成，完整的訂單生命週期管理。"
+                      }
+                    ]}
+                  />
+                ) : (
+                  // 有訂單但被篩選掉的空狀態
+                  <EmptyState
+                    icon={ShoppingCart}
+                    title="查無符合的訂單"
+                    description="目前沒有符合篩選條件的訂單，請調整篩選條件或清除篩選查看所有訂單。"
+                  />
+                )
               ) : (
                 <>
                   <OrdersTable 
