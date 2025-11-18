@@ -1109,61 +1109,6 @@ const BookingFlow = () => {
 
       console.log("訂單建立成功:", orderData);
 
-      // 如果使用了折扣碼，檢查是否需要創建佣金記錄
-      if (appliedDiscount?.code) {
-        try {
-          console.log("檢查折扣碼是否需要創建佣金記錄...");
-          
-          // 查詢折扣碼資訊，取得 commission_rate
-          const { data: discountCodeData, error: discountError } = await supabase
-            .from("discount_codes")
-            .select("id, commission_rate")
-            .eq("code", appliedDiscount.code)
-            .eq("accommodation_id", accommodationId)
-            .maybeSingle();
-
-          if (discountError) {
-            console.error("查詢折扣碼錯誤:", discountError);
-          } else if (discountCodeData && discountCodeData.commission_rate && discountCodeData.commission_rate > 0) {
-            // 計算佣金金額
-            const commissionAmount = Math.round(discountAmount * (discountCodeData.commission_rate / 100));
-            
-            console.log("創建佣金記錄:", {
-              discount_code_id: discountCodeData.id,
-              order_id: orderData.id,
-              commission_rate: discountCodeData.commission_rate,
-              commission_amount: commissionAmount
-            });
-
-            // 創建佣金記錄
-            const { error: commissionError } = await supabase
-              .from("commission_records")
-              .insert({
-                accommodation_id: accommodationId,
-                discount_code_id: discountCodeData.id,
-                order_id: orderData.id,
-                order_total: totalPrice,
-                discount_amount: discountAmount,
-                commission_rate: discountCodeData.commission_rate,
-                commission_amount: commissionAmount,
-                settlement_status: "pending"
-              });
-
-            if (commissionError) {
-              console.error("創建佣金記錄失敗:", commissionError);
-              // 不中斷訂單流程，只記錄錯誤
-            } else {
-              console.log("佣金記錄創建成功");
-            }
-          } else {
-            console.log("此折扣碼沒有設定佣金率，不需要創建佣金記錄");
-          }
-        } catch (commissionError) {
-          console.error("處理佣金記錄時發生錯誤:", commissionError);
-          // 不中斷訂單流程
-        }
-      }
-
       // 發送訂購確認郵件
       let emailSent = false;
       if (guestInfo.email) {
