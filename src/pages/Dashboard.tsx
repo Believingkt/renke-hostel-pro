@@ -12,6 +12,7 @@ import { useDashboardData } from "@/hooks/use-dashboard-data";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
+import { ChartSkeleton } from "@/components/skeletons/ChartSkeleton";
 import { ErrorState } from "@/components/ErrorState";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -323,73 +324,86 @@ const Dashboard = () => {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 px-2 md:px-0">
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-start justify-between gap-2">
-              <div className="space-y-1">
-                <CardTitle className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-                  房型入住率
-                </CardTitle>
-                <p className="text-sm text-muted-foreground font-medium">今年每月趨勢</p>
-              </div>
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                <Hotel className="h-4 w-4 text-primary" />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <OccupancyChart data={finalOccupancyData} roomTypes={roomTypes} />
-          </CardContent>
-        </Card>
+        {isLoading ? (
+          <>
+            <ChartSkeleton showLegend={false} />
+            <ChartSkeleton />
+          </>
+        ) : (
+          <>
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-1">
+                    <CardTitle className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                      房型入住率
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground font-medium">今年每月趨勢</p>
+                  </div>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                    <Hotel className="h-4 w-4 text-primary" />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <OccupancyChart data={finalOccupancyData} roomTypes={roomTypes} />
+              </CardContent>
+            </Card>
 
-        <Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-1">
+                    <CardTitle className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                      訂單趨勢
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground font-medium">年度對比</p>
+                  </div>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/20">
+                    <Calendar className="h-4 w-4 text-accent" />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <BookingTrendsChart 
+                  key="booking-lastYear-standard"
+                  data={finalBookingData}
+                  comparisonMode="lastYear"
+                  isCustomRange={false}
+                />
+              </CardContent>
+            </Card>
+          </>
+        )}
+      </div>
+
+      {isLoading ? (
+        <ChartSkeleton />
+      ) : (
+        <Card className="px-2 md:px-0">
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between gap-2">
               <div className="space-y-1">
                 <CardTitle className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-                  訂單趨勢
+                  營收統計
                 </CardTitle>
                 <p className="text-sm text-muted-foreground font-medium">年度對比</p>
               </div>
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/20">
-                <Calendar className="h-4 w-4 text-accent" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-500/10">
+                <DollarSign className="h-4 w-4 text-green-600" />
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <BookingTrendsChart 
-              key="booking-lastYear-standard"
-              data={finalBookingData}
+            <RevenueChart 
+              key="revenue-lastYear-standard"
+              data={finalRevenueData}
               comparisonMode="lastYear"
               isCustomRange={false}
             />
           </CardContent>
         </Card>
-      </div>
-
-      <Card className="px-2 md:px-0">
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between gap-2">
-            <div className="space-y-1">
-              <CardTitle className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-                營收統計
-              </CardTitle>
-              <p className="text-sm text-muted-foreground font-medium">年度對比</p>
-            </div>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-500/10">
-              <DollarSign className="h-4 w-4 text-green-600" />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <RevenueChart 
-            key="revenue-lastYear-standard"
-            data={finalRevenueData}
-            comparisonMode="lastYear"
-            isCustomRange={false}
-          />
-        </CardContent>
-      </Card>
+      )}
 
     </div>
   );
