@@ -329,6 +329,8 @@ const HeroSection = ({
                     sizes="100vw"
                     blurDataURL={blurDataURLs.get(slide.photo_url)}
                     responsive={true}
+                    autoSrcSet={true}
+                    imageType="hero"
                   />
                   <div 
                     className="absolute inset-0 transition-all duration-700"

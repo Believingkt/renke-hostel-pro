@@ -133,7 +133,9 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
                       width="800"
                       height="600"
                       sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      priority={isFirstRoom && index === 0} // 只有第一個房型的第一張圖片優先載入
+                      priority={isFirstRoom && index === 0}
+                      autoSrcSet={true}
+                      imageType="medium"
                     />
                     <div className="absolute top-3 md:top-4 right-3 md:right-4 bg-black/40 hover:bg-black/60 p-1.5 md:p-2 rounded-full transition-colors z-10">
                       <ZoomIn className="h-4 w-4 md:h-5 md:w-5 text-white" />
