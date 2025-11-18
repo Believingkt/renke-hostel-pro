@@ -74,7 +74,6 @@ const HeroSection = ({
   const [isLoadingPhotos, setIsLoadingPhotos] = useState(true);
   const [blurDataURLs, setBlurDataURLs] = useState<Map<string, string>>(new Map());
   const [autoplayEnabled, setAutoplayEnabled] = useState(true);
-  const [showContent, setShowContent] = useState(false);
 
   // 使用數據庫圖片或默認圖片，優先使用數據庫內容
   const slides = heroPhotos.length > 0 
@@ -157,8 +156,6 @@ const HeroSection = ({
         console.error('Error fetching hero photos:', error);
       } finally {
         setIsLoadingPhotos(false);
-        // 延遲顯示內容，確保數據完全載入
-        setTimeout(() => setShowContent(true), 100);
       }
     };
 
@@ -302,11 +299,8 @@ const HeroSection = ({
 
   return (
     <section id="home" className="pt-16 relative">
-      {!showContent ? (
-        <div className="h-screen bg-muted animate-pulse" />
-      ) : (
-        <div className="relative">
-        <Carousel
+      <div className="relative">
+      <Carousel
           opts={{ 
             loop: true,
             duration: 40, // 增加切換持續時間以實現更平滑的過渡
@@ -652,7 +646,6 @@ const HeroSection = ({
         </Card>
         </div>
       </div>
-      )}
     </section>
   );
 };
