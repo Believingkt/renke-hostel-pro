@@ -56,7 +56,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { TabsSkeleton } from "@/components/skeletons/TabsSkeleton";
 import { LogoCropDialog } from "@/components/LogoCropDialog";
-import { HeroPhotoEditDialog } from "@/components/HeroPhotoEditDialog";
 import { HeroCarouselPreviewDialog } from "@/components/HeroCarouselPreviewDialog";
 import { OgImagePreview } from "@/components/OgImagePreview";
 import { OgImageCropDialog } from "@/components/OgImageCropDialog";
@@ -428,8 +427,6 @@ const WebsiteContent = () => {
   // Hero carousel state
   const [heroPhotos, setHeroPhotos] = useState<Photo[]>([]);
   const [uploadingHeroPhoto, setUploadingHeroPhoto] = useState(false);
-  const [editingHeroPhoto, setEditingHeroPhoto] = useState<Photo | null>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isCarouselPreviewOpen, setIsCarouselPreviewOpen] = useState(false);
   const MAX_HERO_PHOTOS = 5;
 
@@ -1664,45 +1661,8 @@ const WebsiteContent = () => {
     }
   };
 
-  const handleEditHeroPhoto = (photo: Photo) => {
-    setEditingHeroPhoto(photo);
-    setIsEditDialogOpen(true);
-  };
-
   const handlePreviewCarousel = () => {
     setIsCarouselPreviewOpen(true);
-  };
-
-  const handleSaveHeroPhotoText = async (photoId: string, data: {
-    text_color: string;
-    text_position_y: string;
-  }) => {
-    try {
-      const { error } = await supabase
-        .from('accommodation_photos')
-        .update({
-          text_color: data.text_color,
-          text_position_y: data.text_position_y,
-        })
-        .eq('id', photoId);
-
-      if (error) throw error;
-
-      // 更新本地狀態
-      setHeroPhotos(heroPhotos.map(p => 
-        p.id === photoId 
-          ? { ...p, ...data }
-          : p
-      ));
-
-      toast.success('輪播圖顯示設定已更新');
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error updating hero photo settings:', error);
-      }
-      toast.error('更新失敗，請稍後再試');
-      throw error;
-    }
   };
 
   const handleHeroPhotoDragEnd = async (event: DragEndEvent) => {
@@ -2019,7 +1979,6 @@ const WebsiteContent = () => {
             onHeroPhotoUpload={handleHeroPhotoUpload}
             onDeleteHeroPhoto={handleDeleteHeroPhoto}
             onHeroPhotoReorder={handleHeroPhotoReorder}
-            onEditHeroPhoto={handleEditHeroPhoto}
             onPreviewCarousel={handlePreviewCarousel}
             onHeroTitleChange={(field, value) => {
               setBasicInfo(prev => ({ ...prev, [field]: value }));
@@ -2028,13 +1987,6 @@ const WebsiteContent = () => {
               setBasicInfo(prev => ({ ...prev, [field]: value }));
             }}
             uploadingHeroPhoto={uploadingHeroPhoto}
-          />
-          
-          <HeroPhotoEditDialog
-            open={isEditDialogOpen}
-            onOpenChange={setIsEditDialogOpen}
-            photo={editingHeroPhoto}
-            onSave={handleSaveHeroPhotoText}
           />
 
           <HeroCarouselPreviewDialog
@@ -2933,14 +2885,6 @@ const WebsiteContent = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* 輪播圖文字編輯對話框 */}
-      <HeroPhotoEditDialog
-        open={isEditDialogOpen}
-        onOpenChange={setIsEditDialogOpen}
-        photo={editingHeroPhoto}
-        onSave={handleSaveHeroPhotoText}
-      />
 
       {/* 特色區塊編輯對話框 */}
       <AboutFeatureForm

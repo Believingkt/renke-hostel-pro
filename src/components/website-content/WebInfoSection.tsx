@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Upload, Info, Trash2, GripVertical, Pencil, Eye } from "lucide-react";
+import { Upload, Info, Trash2, GripVertical, Eye } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -36,7 +36,6 @@ interface WebInfoSectionProps {
   onHeroPhotoUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onDeleteHeroPhoto: (photoId: string) => void;
   onHeroPhotoReorder: (newOrder: any[]) => void;
-  onEditHeroPhoto: (photo: any) => void;
   onPreviewCarousel: () => void;
   onHeroTitleChange: (field: 'hero_main_title' | 'hero_subtitle' | 'hero_description', value: string) => void;
   onHeroSettingChange: (field: 'hero_overlay_opacity' | 'hero_autoplay_delay', value: number) => void;
@@ -46,10 +45,9 @@ interface WebInfoSectionProps {
 interface SortablePhotoProps {
   photo: any;
   onDelete: (photoId: string) => void;
-  onEdit: (photo: any) => void;
 }
 
-const SortablePhoto = ({ photo, onDelete, onEdit }: SortablePhotoProps) => {
+const SortablePhoto = ({ photo, onDelete }: SortablePhotoProps) => {
   const {
     attributes,
     listeners,
@@ -68,8 +66,7 @@ const SortablePhoto = ({ photo, onDelete, onEdit }: SortablePhotoProps) => {
   return (
     <div ref={setNodeRef} style={style} className="relative group">
       <div 
-        className="aspect-video rounded-lg overflow-hidden border bg-muted cursor-pointer hover:border-primary/50 transition-colors"
-        onClick={() => onEdit(photo)}
+        className="aspect-video rounded-lg overflow-hidden border bg-muted"
       >
         <img
           src={photo.photo_url}
@@ -77,18 +74,11 @@ const SortablePhoto = ({ photo, onDelete, onEdit }: SortablePhotoProps) => {
           className="w-full h-full object-cover"
           loading="lazy"
         />
-        {/* 編輯提示圖標 - 中心位置 */}
-        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="bg-background rounded-full p-3">
-            <Pencil className="h-6 w-6 text-foreground" />
-          </div>
-        </div>
       </div>
       <div
         {...attributes}
         {...listeners}
         className="absolute top-2 left-2 cursor-move bg-background/80 rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-        onClick={(e) => e.stopPropagation()}
       >
         <GripVertical className="h-4 w-4 text-muted-foreground" />
       </div>
@@ -125,7 +115,6 @@ export const WebInfoSection = ({
   onHeroPhotoUpload,
   onDeleteHeroPhoto,
   onHeroPhotoReorder,
-  onEditHeroPhoto,
   onPreviewCarousel,
   onHeroTitleChange,
   onHeroSettingChange,
@@ -358,7 +347,6 @@ export const WebInfoSection = ({
                           key={photo.id}
                           photo={photo}
                           onDelete={onDeleteHeroPhoto}
-                          onEdit={onEditHeroPhoto}
                         />
                       ))}
                   </div>
