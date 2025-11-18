@@ -30,6 +30,8 @@ interface WebInfoSectionProps {
   heroMainTitle: string;
   heroSubtitle: string;
   heroDescription: string;
+  heroOverlayOpacity: number;
+  heroAutoplayDelay: number;
   onUpdate: () => void;
   onHeroPhotoUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onDeleteHeroPhoto: (photoId: string) => void;
@@ -37,6 +39,7 @@ interface WebInfoSectionProps {
   onEditHeroPhoto: (photo: any) => void;
   onPreviewCarousel: () => void;
   onHeroTitleChange: (field: 'hero_main_title' | 'hero_subtitle' | 'hero_description', value: string) => void;
+  onHeroSettingChange: (field: 'hero_overlay_opacity' | 'hero_autoplay_delay', value: number) => void;
   uploadingHeroPhoto: boolean;
 }
 
@@ -116,6 +119,8 @@ export const WebInfoSection = ({
   heroMainTitle,
   heroSubtitle,
   heroDescription,
+  heroOverlayOpacity,
+  heroAutoplayDelay,
   onUpdate,
   onHeroPhotoUpload,
   onDeleteHeroPhoto,
@@ -123,6 +128,7 @@ export const WebInfoSection = ({
   onEditHeroPhoto,
   onPreviewCarousel,
   onHeroTitleChange,
+  onHeroSettingChange,
   uploadingHeroPhoto
 }: WebInfoSectionProps) => {
   const [isSaving, setIsSaving] = useState(false);
@@ -200,6 +206,40 @@ export const WebInfoSection = ({
             <p className="text-sm text-muted-foreground">
               {heroDescription.length}/20 字元
             </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="hero-overlay-opacity">背景遮罩透明度 ({heroOverlayOpacity}%)</Label>
+              <input
+                id="hero-overlay-opacity"
+                type="range"
+                min="0"
+                max="100"
+                value={heroOverlayOpacity}
+                onChange={(e) => onHeroSettingChange('hero_overlay_opacity', parseInt(e.target.value))}
+                className="w-full"
+              />
+              <p className="text-sm text-muted-foreground">
+                調整圖片上的黑色遮罩透明度
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="hero-autoplay-delay">自動播放時間 ({heroAutoplayDelay} 秒)</Label>
+              <input
+                id="hero-autoplay-delay"
+                type="range"
+                min="3"
+                max="15"
+                value={heroAutoplayDelay}
+                onChange={(e) => onHeroSettingChange('hero_autoplay_delay', parseInt(e.target.value))}
+                className="w-full"
+              />
+              <p className="text-sm text-muted-foreground">
+                每張輪播圖停留時間
+              </p>
+            </div>
           </div>
         </div>
 

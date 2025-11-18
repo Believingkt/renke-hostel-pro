@@ -377,7 +377,9 @@ const WebsiteContent = () => {
     website_url: "",
     hero_main_title: "",
     hero_subtitle: "",
-    hero_description: ""
+    hero_description: "",
+    hero_overlay_opacity: 40,
+    hero_autoplay_delay: 8
   });
   const [uploadingHeaderLogo, setUploadingHeaderLogo] = useState(false);
   const [uploadingFooterLogo, setUploadingFooterLogo] = useState(false);
@@ -472,7 +474,7 @@ const WebsiteContent = () => {
       // 獲取 accommodation ID 和基本資料
       const { data: infoData } = await supabase
         .from("accommodation_info")
-        .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url, og_title, og_description, og_image_url, website_url, hero_main_title, hero_subtitle, hero_description")
+        .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url, og_title, og_description, og_image_url, website_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay")
         .maybeSingle();
 
       if (infoData) {
@@ -499,7 +501,9 @@ const WebsiteContent = () => {
           website_url: infoData.website_url || "",
           hero_main_title: infoData.hero_main_title || "",
           hero_subtitle: infoData.hero_subtitle || "",
-          hero_description: infoData.hero_description || ""
+          hero_description: infoData.hero_description || "",
+          hero_overlay_opacity: infoData.hero_overlay_opacity ?? 40,
+          hero_autoplay_delay: infoData.hero_autoplay_delay ?? 8
         });
 
         // 更新瀏覽器標題
@@ -1338,7 +1342,9 @@ const WebsiteContent = () => {
           og_image_url: basicInfo.og_image_url,
           hero_main_title: basicInfo.hero_main_title,
           hero_subtitle: basicInfo.hero_subtitle,
-          hero_description: basicInfo.hero_description
+          hero_description: basicInfo.hero_description,
+          hero_overlay_opacity: basicInfo.hero_overlay_opacity,
+          hero_autoplay_delay: basicInfo.hero_autoplay_delay
         })
         .eq("id", accommodationId);
 
@@ -1670,8 +1676,6 @@ const WebsiteContent = () => {
   const handleSaveHeroPhotoText = async (photoId: string, data: {
     text_color: string;
     text_position_y: string;
-    overlay_opacity: number;
-    autoplay_delay: number;
   }) => {
     try {
       const { error } = await supabase
@@ -1679,8 +1683,6 @@ const WebsiteContent = () => {
         .update({
           text_color: data.text_color,
           text_position_y: data.text_position_y,
-          overlay_opacity: data.overlay_opacity,
-          autoplay_delay: data.autoplay_delay,
         })
         .eq('id', photoId);
 
@@ -2011,6 +2013,8 @@ const WebsiteContent = () => {
             heroMainTitle={basicInfo.hero_main_title}
             heroSubtitle={basicInfo.hero_subtitle}
             heroDescription={basicInfo.hero_description}
+            heroOverlayOpacity={basicInfo.hero_overlay_opacity}
+            heroAutoplayDelay={basicInfo.hero_autoplay_delay}
             onUpdate={loadData}
             onHeroPhotoUpload={handleHeroPhotoUpload}
             onDeleteHeroPhoto={handleDeleteHeroPhoto}
@@ -2018,6 +2022,9 @@ const WebsiteContent = () => {
             onEditHeroPhoto={handleEditHeroPhoto}
             onPreviewCarousel={handlePreviewCarousel}
             onHeroTitleChange={(field, value) => {
+              setBasicInfo(prev => ({ ...prev, [field]: value }));
+            }}
+            onHeroSettingChange={(field, value) => {
               setBasicInfo(prev => ({ ...prev, [field]: value }));
             }}
             uploadingHeroPhoto={uploadingHeroPhoto}
