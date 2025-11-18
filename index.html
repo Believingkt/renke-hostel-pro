@@ -69,13 +69,16 @@
         background-color: hsl(var(--background));
       }
       
-      /* 根元素載入狀態 */
+      /* 根元素載入狀態 - 完全隱藏直到字體載入 */
       #root { 
         min-height: 100vh; 
-        opacity: 0; 
-        transition: opacity 0.15s ease-in;
+        visibility: hidden;
+        opacity: 0;
       }
-      #root.fonts-loaded { opacity: 1; }
+      #root.fonts-loaded { 
+        visibility: visible;
+        opacity: 1;
+      }
       
       /* 載入動畫 */
       .loading { 
@@ -115,32 +118,46 @@
       }
     </style>
     <script>
-      // 字體載入檢測 - 使用更可靠的方式確保字體完全載入
+      // 字體載入檢測 - 強制等待字體完全載入並渲染後才顯示
       if ('fonts' in document) {
-        // 等待字體真正準備好
+        // 等待所有字體資源下載完成
         document.fonts.ready.then(() => {
-          // 再次確認關鍵字體已載入
+          // 強制載入關鍵字重
           return Promise.all([
             document.fonts.load('700 1em "Noto Sans TC"'),
-            document.fonts.load('400 1em "Noto Sans TC"')
+            document.fonts.load('400 1em "Noto Sans TC"'),
+            document.fonts.load('500 1em "Noto Sans TC"'),
+            document.fonts.load('600 1em "Noto Sans TC"')
           ]);
         }).then(() => {
-          // 短暫延遲確保渲染完成
-          requestAnimationFrame(() => {
-            document.documentElement.classList.add('fonts-loaded');
-            document.getElementById('root')?.classList.add('fonts-loaded');
+          // 等待兩個渲染幀確保字體完全應用
+          return new Promise(resolve => {
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => {
+                resolve();
+              });
+            });
           });
+        }).then(() => {
+          // 再延遲一點確保字體渲染完成
+          setTimeout(() => {
+            const root = document.getElementById('root');
+            if (root) {
+              root.classList.add('fonts-loaded');
+              document.documentElement.classList.add('fonts-loaded');
+            }
+          }, 50);
         }).catch(() => {
-          // 如果字體載入失敗，2秒後仍然顯示內容
+          // 失敗時也要顯示內容
           setTimeout(() => {
             document.getElementById('root')?.classList.add('fonts-loaded');
           }, 2000);
         });
       } else {
-        // 不支援 Font Loading API 的瀏覽器，延遲後顯示
+        // 不支援的瀏覽器
         setTimeout(() => {
           document.getElementById('root')?.classList.add('fonts-loaded');
-        }, 1000);
+        }, 1500);
       }
     </script>
   </head>
