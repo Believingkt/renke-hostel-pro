@@ -155,7 +155,7 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
                 <Bar
                   key={category}
                   dataKey={category}
-                  fill={index === 0 ? "hsl(var(--chart-revenue-primary))" : "hsl(var(--chart-revenue-secondary))"}
+                  fill={index === 0 ? "hsl(var(--chart-revenue-secondary))" : "hsl(var(--chart-revenue-primary))"}
                   radius={[8, 8, 0, 0]}
                   animationDuration={1000}
                   animationBegin={index * 100}
@@ -166,7 +166,7 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
                   maxBarSize={60}
                   minPointSize={5}
                   activeBar={{
-                    fill: index === 0 ? "hsl(var(--chart-revenue-primary))" : "hsl(var(--chart-revenue-secondary))",
+                    fill: index === 0 ? "hsl(var(--chart-revenue-secondary))" : "hsl(var(--chart-revenue-primary))",
                     opacity: 0.8,
                     strokeWidth: 2,
                     stroke: 'hsl(var(--foreground))',
