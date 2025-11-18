@@ -111,7 +111,7 @@ export const HeaderFooterSection = ({
       <CardHeader>
         <CardTitle>網頁資訊</CardTitle>
         <CardDescription>
-          設定網站名稱、頁首/頁尾 Logo 和聯絡資訊。這些資訊會顯示在網站的每個頁面上，是訪客認識和聯繫您的重要管道。
+          設定網站頂部和底部的視覺元素與聯絡資訊
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
