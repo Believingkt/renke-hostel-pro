@@ -31,6 +31,7 @@ interface HeroSectionProps {
   heroDescription?: string;
   heroOverlayOpacity?: number;
   heroAutoplayDelay?: number;
+  onFirstImageLoad?: () => void;
 }
 
 interface HeroPhoto {
@@ -61,7 +62,8 @@ const HeroSection = ({
   heroSubtitle = "",
   heroDescription = "",
   heroOverlayOpacity = 40,
-  heroAutoplayDelay = 8
+  heroAutoplayDelay = 8,
+  onFirstImageLoad
 }: HeroSectionProps) => {
   const { checkInDate, setCheckInDate, checkOutDate, setCheckOutDate, guests, setGuests, currentAccommodationId } = useAccommodation();
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
@@ -359,6 +361,7 @@ const HeroSection = ({
                     responsive={true}
                     autoSrcSet={true}
                     imageType="hero"
+                    onLoad={index === 0 ? onFirstImageLoad : undefined}
                   />
                   <div 
                     className="absolute inset-0 transition-all duration-700"

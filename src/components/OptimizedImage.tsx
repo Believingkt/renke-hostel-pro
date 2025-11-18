@@ -265,19 +265,20 @@ export const OptimizedImage = ({
       {/* 低解析度預覽層 */}
       {blurDataURL && showBlur && (
         <div 
-          className="absolute inset-0 w-full h-full bg-cover bg-center transition-opacity duration-300"
+          className="absolute inset-0 w-full h-full bg-cover bg-center"
           style={{
             backgroundImage: `url(${blurDataURL})`,
             filter: 'blur(20px)',
             transform: 'scale(1.1)',
             opacity: isLoaded ? 0 : 1,
+            transition: 'opacity 500ms ease-out',
           }}
         />
       )}
       
-      {/* 簡化的載入狀態 - 只在沒有模糊預覽時顯示 */}
+      {/* 簡單的背景色 - 只在沒有模糊預覽時顯示 */}
       {!blurDataURL && !isLoaded && !hasError && (
-        <div className="absolute inset-0 w-full h-full bg-muted/30" />
+        <div className="absolute inset-0 w-full h-full bg-muted/20" />
       )}
       
       {/* 重試中狀態 */}
@@ -337,9 +338,9 @@ export const OptimizedImage = ({
             alt={alt}
             className={`${className} ${
               isLoaded 
-                ? 'opacity-100 scale-100' 
-                : 'opacity-0 scale-105'
-            } transition-all duration-300 ease-out`}
+                ? 'opacity-100' 
+                : 'opacity-0'
+            } transition-opacity duration-500 ease-out`}
             loading={priority ? "eager" : "lazy"}
             fetchPriority={priority ? "high" : "auto"}
             decoding={priority ? "sync" : "async"}
