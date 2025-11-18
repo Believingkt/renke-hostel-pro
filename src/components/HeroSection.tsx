@@ -326,7 +326,7 @@ const HeroSection = ({
             key={current}
             className={`
               absolute left-1/2 -translate-x-1/2 pointer-events-none z-10
-              space-y-2 md:space-y-4 w-full max-w-4xl px-4 pb-32 md:pb-56
+              space-y-4 md:space-y-6 w-full max-w-4xl px-4 pb-32 md:pb-56
               text-center
               ${
                 slides[current].text_position_y === 'top' ? 'flex items-start justify-center pt-32 top-0' :
