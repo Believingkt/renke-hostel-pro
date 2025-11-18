@@ -274,6 +274,15 @@ const KolDiscount = () => {
     });
   };
 
+  const handleCopyReferralLink = (code: string) => {
+    const referralLink = `${window.location.origin}/booking?ref=${code}`;
+    navigator.clipboard.writeText(referralLink);
+    toast({
+      title: "已複製推薦連結",
+      description: "推薦連結已複製到剪貼簿",
+    });
+  };
+
   const formatDiscount = (type: "percentage" | "amount", value: number) => {
     return type === "percentage" ? `${value}%` : `NT$ ${value}`;
   };
@@ -583,6 +592,22 @@ const KolDiscount = () => {
               size="icon"
               className="h-8 w-8"
               onClick={() => handleCopyCodeText(item.code)}
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
+        </TableCell>
+        <TableCell>
+          <div className="flex items-center gap-2 max-w-xs">
+            <code className="px-2 py-1 bg-muted rounded text-xs font-mono truncate flex-1">
+              {`${window.location.origin}/booking?ref=${item.code}`}
+            </code>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              onClick={() => handleCopyReferralLink(item.code)}
+              title="複製推薦連結"
             >
               <Copy className="h-4 w-4" />
             </Button>
@@ -1239,6 +1264,7 @@ const KolDiscount = () => {
                   <TableHead className="w-12"></TableHead>
                   <TableHead>名稱</TableHead>
                   <TableHead>折扣碼</TableHead>
+                  <TableHead>推薦連結</TableHead>
                   <TableHead>折扣</TableHead>
                   <TableHead>已使用</TableHead>
                   <TableHead>使用上限</TableHead>
@@ -1250,7 +1276,7 @@ const KolDiscount = () => {
               <TableBody>
                 {discountCodes.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       尚無折扣碼
                     </TableCell>
                   </TableRow>
@@ -1301,6 +1327,22 @@ const KolDiscount = () => {
                               size="icon"
                               className="h-8 w-8"
                               onClick={() => handleCopyCodeText(item.code)}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">推薦連結</p>
+                          <div className="flex items-center gap-2">
+                            <code className="px-2 py-1 bg-muted rounded text-xs font-mono truncate flex-1">
+                              {`${window.location.origin}/booking?ref=${item.code}`}
+                            </code>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 shrink-0"
+                              onClick={() => handleCopyReferralLink(item.code)}
                             >
                               <Copy className="h-4 w-4" />
                             </Button>

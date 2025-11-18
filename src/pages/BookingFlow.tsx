@@ -169,6 +169,7 @@ const BookingFlow = () => {
     value: number;
   } | null>(null);
   const [isValidatingCode, setIsValidatingCode] = useState(false);
+  const [autoAppliedRef, setAutoAppliedRef] = useState(false);
   const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
   const [selectedImageRoom, setSelectedImageRoom] = useState<RoomType | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -587,8 +588,9 @@ const BookingFlow = () => {
     return Math.round(calculateFinalTotal() * (bookingSettings.deposit_percentage / 100));
   };
 
-  const handleApplyDiscount = async () => {
-    if (!discountCode.trim() || !accommodationId) {
+  const handleApplyDiscount = async (code?: string) => {
+    const codeToApply = code || discountCode;
+    if (!codeToApply.trim() || !accommodationId) {
       toast({
         title: "請輸入折扣代碼",
         variant: "destructive",
@@ -601,7 +603,7 @@ const BookingFlow = () => {
     try {
       // 使用資料庫函數驗證折扣碼，傳遞訂單金額、房型和入住日期
       const { data, error } = await supabase.rpc('validate_discount_code', {
-        p_code: discountCode.trim().toUpperCase(),
+        p_code: codeToApply.trim().toUpperCase(),
         p_accommodation_id: accommodationId,
         p_order_amount: calculateTotal(),
         p_room_type_id: selectedRoom?.id || null,
@@ -614,7 +616,7 @@ const BookingFlow = () => {
       
       if (result.is_valid) {
         setAppliedDiscount({
-          code: discountCode.trim().toUpperCase(),
+          code: codeToApply.trim().toUpperCase(),
           type: result.discount_type as "percentage" | "amount",
           value: result.discount_value
         });
@@ -644,6 +646,21 @@ const BookingFlow = () => {
       setIsValidatingCode(false);
     }
   };
+
+  // 自動偵測並套用推薦連結的折扣碼
+  useEffect(() => {
+    if (!autoAppliedRef && accommodationId && (currentStep === "guest" || currentStep === "payment") && selectedRoom) {
+      const refCode = searchParams.get('ref');
+      if (refCode) {
+        setDiscountCode(refCode);
+        setAutoAppliedRef(true);
+        // 延遲自動驗證，確保其他數據已載入
+        setTimeout(() => {
+          handleApplyDiscount(refCode);
+        }, 500);
+      }
+    }
+  }, [accommodationId, currentStep, selectedRoom, autoAppliedRef]);
 
   const handleRemoveDiscount = () => {
     setAppliedDiscount(null);
@@ -2260,7 +2277,7 @@ const BookingFlow = () => {
                               disabled={isValidatingCode}
                             />
                             <Button
-                              onClick={handleApplyDiscount}
+                              onClick={() => handleApplyDiscount()}
                               disabled={isValidatingCode || !discountCode.trim()}
                               className="shrink-0 h-12 px-6"
                               size="lg"
