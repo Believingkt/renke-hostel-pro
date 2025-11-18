@@ -13,6 +13,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 import { ChartSkeleton } from "@/components/skeletons/ChartSkeleton";
+import { StatCardSkeleton } from "@/components/skeletons/StatCardSkeleton";
 import { ErrorState } from "@/components/ErrorState";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -289,38 +290,49 @@ const Dashboard = () => {
       </div>
 
       <div className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-4 px-2 md:px-0">
-        <StatCard
-          title="總房間數"
-          value={stats.totalRooms.toString()}
-          change="+0%"
-          icon={Hotel}
-          variant="coral"
-          isUpdating={isLiveUpdating}
-        />
-        <StatCard
-          title="本月訂單"
-          value={stats.monthlyBookings.toString()}
-          change={stats.bookingsChange}
-          icon={Calendar}
-          variant="purple"
-          isUpdating={isLiveUpdating}
-        />
-        <StatCard
-          title="總入住人數"
-          value={stats.totalGuests.toString()}
-          change={stats.guestsChange}
-          icon={Users}
-          variant="blue"
-          isUpdating={isLiveUpdating}
-        />
-        <StatCard
-          title="本月營收"
-          value={`NT$ ${stats.monthlyRevenue.toLocaleString()}`}
-          change={stats.revenueChange}
-          icon={DollarSign}
-          variant="cyan"
-          isUpdating={isLiveUpdating}
-        />
+        {isLoading ? (
+          <>
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </>
+        ) : (
+          <>
+            <StatCard
+              title="總房間數"
+              value={stats.totalRooms.toString()}
+              change="+0%"
+              icon={Hotel}
+              variant="coral"
+              isUpdating={isLiveUpdating}
+            />
+            <StatCard
+              title="本月訂單"
+              value={stats.monthlyBookings.toString()}
+              change={stats.bookingsChange}
+              icon={Calendar}
+              variant="purple"
+              isUpdating={isLiveUpdating}
+            />
+            <StatCard
+              title="總入住人數"
+              value={stats.totalGuests.toString()}
+              change={stats.guestsChange}
+              icon={Users}
+              variant="blue"
+              isUpdating={isLiveUpdating}
+            />
+            <StatCard
+              title="本月營收"
+              value={`NT$ ${stats.monthlyRevenue.toLocaleString()}`}
+              change={stats.revenueChange}
+              icon={DollarSign}
+              variant="cyan"
+              isUpdating={isLiveUpdating}
+            />
+          </>
+        )}
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 px-2 md:px-0">
