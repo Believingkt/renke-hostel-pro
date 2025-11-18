@@ -14,6 +14,7 @@ import { format, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-f
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 import { ChartSkeleton } from "@/components/skeletons/ChartSkeleton";
 import { StatCardSkeleton } from "@/components/skeletons/StatCardSkeleton";
+import { EmptyDashboard } from "@/components/EmptyDashboard";
 import { ErrorState } from "@/components/ErrorState";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -139,6 +140,17 @@ const Dashboard = () => {
   }
 
   const { stats, revenueData = [], bookingData = [], occupancyData = [] } = dashboardData;
+
+  // 檢查是否完全沒有數據（真正的空狀態）
+  const isEmptyState = stats.totalRooms === 0 && 
+                       stats.monthlyBookings === 0 && 
+                       stats.totalGuests === 0 && 
+                       stats.monthlyRevenue === 0;
+
+  // 如果是空狀態，顯示引導頁面
+  if (isEmptyState) {
+    return <EmptyDashboard onGenerateData={handleGenerateTestData} />;
+  }
 
   // Sanitize all chart data to prevent NaN values - only include properties that are actually numbers
   const safeRevenueData = (revenueData || []).map(item => {
