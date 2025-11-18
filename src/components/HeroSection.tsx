@@ -291,122 +291,7 @@ const HeroSection = ({
                     style={{ 
                       backgroundColor: `rgba(0, 0, 0, ${(slide.overlay_opacity ?? 40) / 100})`
                     }}
-                  >
-                    <div 
-                      className={`
-                        space-y-2 md:space-y-4 max-w-4xl px-4 pb-32 md:pb-56
-                        text-center
-                        ${
-                          slide.text_position_y === 'top' ? 'flex items-start justify-center pt-32' :
-                          slide.text_position_y === 'bottom' ? 'flex items-end justify-center pb-32' :
-                          'flex items-center justify-center'
-                        }
-                        absolute inset-0
-                      `}
-                      style={{
-                        color: slide.text_color === 'black' ? '#000' : slide.text_color === 'primary' ? 'hsl(var(--primary))' : '#fff'
-                      }}
-                    >
-                      <div className="w-full">
-                        <h1 
-                          className={`
-                            font-bold animate-fade-in drop-shadow-lg
-                            ${(slide.title_size || 'large') === 'small' ? 'text-2xl md:text-5xl' : 
-                              (slide.title_size || 'large') === 'large' ? 'text-4xl md:text-8xl' : 
-                              'text-3xl md:text-7xl'}
-                          `}
-                        >
-                          {slide.title || accommodationName}
-                        </h1>
-                        {slide.subtitle && (
-                          <p 
-                            className={`
-                              animate-fade-in drop-shadow-lg
-                              ${(slide.subtitle_size || 'medium') === 'small' ? 'text-base md:text-2xl' : 
-                                (slide.subtitle_size || 'medium') === 'large' ? 'text-xl md:text-4xl' : 
-                                'text-lg md:text-3xl'}
-                            `}
-                            style={{ animationDelay: "0.2s" }}
-                          >
-                            {slide.subtitle}
-                          </p>
-                        )}
-                        {slide.secondary_subtitle && (
-                          <p 
-                            className={`
-                              animate-fade-in drop-shadow-lg opacity-90
-                              ${(slide.secondary_subtitle_size || 'small') === 'small' ? 'text-sm md:text-xl' : 
-                                (slide.secondary_subtitle_size || 'small') === 'large' ? 'text-lg md:text-3xl' : 
-                                'text-base md:text-2xl'}
-                            `}
-                            style={{ animationDelay: "0.4s" }}
-                          >
-                            {slide.secondary_subtitle}
-                          </p>
-                        )}
-                        {!slide.subtitle && heroMainTitle && (
-                          <>
-                            <p 
-                              className={`
-                                animate-fade-in drop-shadow-lg
-                                ${slide.text_size === 'small' ? 'text-base md:text-2xl' : 
-                                  slide.text_size === 'large' ? 'text-xl md:text-4xl' : 
-                                  'text-lg md:text-3xl'}
-                              `}
-                              style={{ animationDelay: "0.2s" }}
-                            >
-                              {heroMainTitle}
-                            </p>
-                            {heroSubtitle && (
-                              <p 
-                                className={`
-                                  animate-fade-in drop-shadow-lg
-                                  ${slide.text_size === 'small' ? 'text-sm md:text-lg' : 
-                                    slide.text_size === 'large' ? 'text-lg md:text-2xl' : 
-                                    'text-base md:text-xl'}
-                                `}
-                                style={{ animationDelay: "0.4s" }}
-                              >
-                                {heroSubtitle}
-                              </p>
-                            )}
-                            {heroDescription && (
-                              <p 
-                                className={`
-                                  animate-fade-in drop-shadow-lg
-                                  ${slide.text_size === 'small' ? 'text-xs md:text-sm' : 
-                                    slide.text_size === 'large' ? 'text-base md:text-lg' : 
-                                    'text-sm md:text-base'}
-                                `}
-                                style={{ animationDelay: "0.6s" }}
-                              >
-                                {heroDescription}
-                              </p>
-                            )}
-                          </>
-                        )}
-                        {slide.cta_text && slide.cta_link && (
-                          <div className="pt-4 animate-fade-in" style={{ animationDelay: "0.6s" }}>
-                            <Button
-                              asChild
-                              size="lg"
-                              className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all"
-                            >
-                              {slide.cta_link.startsWith('#') ? (
-                                <a href={slide.cta_link} className="inline-flex items-center gap-2">
-                                  {slide.cta_text}
-                                </a>
-                              ) : (
-                                <Link to={slide.cta_link} className="inline-flex items-center gap-2">
-                                  {slide.cta_text}
-                                </Link>
-                              )}
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                  />
                 </div>
               </CarouselItem>
             ))}
@@ -431,6 +316,106 @@ const HeroSection = ({
             </div>
           </div>
         </Carousel>
+
+        {/* 固定的標題覆蓋層 - 不隨圖片移動 */}
+        {slides.length > 0 && slides[current] && (
+          <div 
+            key={current}
+            className={`
+              absolute inset-0 pointer-events-none z-10
+              space-y-2 md:space-y-4 max-w-4xl px-4 pb-32 md:pb-56
+              text-center
+              ${
+                slides[current].text_position_y === 'top' ? 'flex items-start justify-center pt-32' :
+                slides[current].text_position_y === 'bottom' ? 'flex items-end justify-center pb-32' :
+                'flex items-center justify-center'
+              }
+            `}
+            style={{
+              color: slides[current].text_color === 'black' ? '#000' : slides[current].text_color === 'primary' ? 'hsl(var(--primary))' : '#fff'
+            }}
+          >
+            <div className="w-full">
+              <h1 
+                className={`
+                  font-bold animate-fade-in drop-shadow-lg
+                  ${(slides[current].title_size || 'large') === 'small' ? 'text-2xl md:text-5xl' : 
+                    (slides[current].title_size || 'large') === 'large' ? 'text-4xl md:text-8xl' : 
+                    'text-3xl md:text-7xl'}
+                `}
+              >
+                {slides[current].title || accommodationName}
+              </h1>
+              {slides[current].subtitle && (
+                <p 
+                  className={`
+                    animate-fade-in drop-shadow-lg
+                    ${(slides[current].subtitle_size || 'medium') === 'small' ? 'text-base md:text-2xl' : 
+                      (slides[current].subtitle_size || 'medium') === 'large' ? 'text-xl md:text-4xl' : 
+                      'text-lg md:text-3xl'}
+                  `}
+                  style={{ animationDelay: "0.2s" }}
+                >
+                  {slides[current].subtitle}
+                </p>
+              )}
+              {slides[current].secondary_subtitle && (
+                <p 
+                  className={`
+                    animate-fade-in drop-shadow-lg opacity-90
+                    ${(slides[current].secondary_subtitle_size || 'small') === 'small' ? 'text-sm md:text-xl' : 
+                      (slides[current].secondary_subtitle_size || 'small') === 'large' ? 'text-lg md:text-3xl' : 
+                      'text-base md:text-2xl'}
+                  `}
+                  style={{ animationDelay: "0.4s" }}
+                >
+                  {slides[current].secondary_subtitle}
+                </p>
+              )}
+              {!slides[current].subtitle && heroMainTitle && (
+                <>
+                  <p 
+                    className={`
+                      animate-fade-in drop-shadow-lg
+                      ${slides[current].text_size === 'small' ? 'text-base md:text-2xl' : 
+                        slides[current].text_size === 'large' ? 'text-xl md:text-4xl' : 
+                        'text-lg md:text-3xl'}
+                    `}
+                    style={{ animationDelay: "0.2s" }}
+                  >
+                    {heroMainTitle}
+                  </p>
+                  {heroSubtitle && (
+                    <p 
+                      className={`
+                        animate-fade-in drop-shadow-lg
+                        ${slides[current].text_size === 'small' ? 'text-sm md:text-lg' : 
+                          slides[current].text_size === 'large' ? 'text-lg md:text-2xl' : 
+                          'text-base md:text-xl'}
+                      `}
+                      style={{ animationDelay: "0.4s" }}
+                    >
+                      {heroSubtitle}
+                    </p>
+                  )}
+                  {heroDescription && (
+                    <p 
+                      className={`
+                        animate-fade-in drop-shadow-lg
+                        ${slides[current].text_size === 'small' ? 'text-xs md:text-sm' : 
+                          slides[current].text_size === 'large' ? 'text-base md:text-lg' : 
+                          'text-sm md:text-base'}
+                      `}
+                      style={{ animationDelay: "0.6s" }}
+                    >
+                      {heroDescription}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* 搜尋卡片 - 手机版垂直居中，桌面版在底部 */}
         <div className="absolute left-1/2 -translate-x-1/2 w-full max-w-5xl px-4 z-30 
