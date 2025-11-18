@@ -342,8 +342,8 @@ const HeroSection = ({
               <h1 
                 className={`
                   font-bold animate-fade-in drop-shadow-lg
-                  ${(slides[current].title_size || 'large') === 'small' ? 'text-2xl md:text-5xl' : 
-                    (slides[current].title_size || 'large') === 'large' ? 'text-4xl md:text-8xl' : 
+                  ${(slides[current].title_size || 'medium') === 'small' ? 'text-2xl md:text-5xl' : 
+                    (slides[current].title_size || 'medium') === 'large' ? 'text-4xl md:text-8xl' : 
                     'text-3xl md:text-7xl'}
                 `}
               >
