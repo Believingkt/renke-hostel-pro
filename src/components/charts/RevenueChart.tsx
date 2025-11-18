@@ -25,7 +25,7 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
   const categories = isCustomRange 
     ? ['本期']
     : comparisonMode === 'lastYear' 
-      ? ['今年', '去年'] 
+      ? ['去年', '今年'] 
       : ['本月', '上月'];
 
   // 檢查是否有實際數據
@@ -75,13 +75,13 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
       color: "hsl(var(--chart-revenue-primary))",
     },
   } : comparisonMode === 'lastYear' ? {
-    今年: {
-      label: "今年",
-      color: "hsl(var(--chart-revenue-primary))",
-    },
     去年: {
       label: "去年",
       color: "hsl(var(--chart-revenue-secondary))",
+    },
+    今年: {
+      label: "今年",
+      color: "hsl(var(--chart-revenue-primary))",
     },
   } : {
     本月: {
