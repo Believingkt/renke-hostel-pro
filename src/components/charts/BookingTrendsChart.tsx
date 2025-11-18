@@ -53,11 +53,11 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
   } : comparisonMode === 'lastYear' ? {
     去年: {
       label: "去年",
-      color: "hsl(var(--chart-revenue-secondary))",
+      color: "hsl(var(--chart-booking-secondary))",
     },
     今年: {
       label: "今年",
-      color: "hsl(var(--chart-revenue-primary))",
+      color: "hsl(var(--chart-booking-primary))",
     },
   } : {
     本月: {
@@ -125,7 +125,7 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                   key={category}
                   type="monotone"
                   dataKey={category}
-                  stroke={index === 0 ? "hsl(var(--chart-revenue-secondary))" : "hsl(var(--chart-revenue-primary))"}
+                  stroke={index === 0 ? "hsl(var(--chart-booking-secondary))" : "hsl(var(--chart-booking-primary))"}
                   strokeWidth={3}
                   dot={(props: any) => {
                     const { cx, cy, payload } = props;
@@ -135,7 +135,7 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                         cy={cy}
                         r={5}
                         fill="hsl(var(--background))"
-                        stroke={index === 0 ? "hsl(var(--chart-revenue-secondary))" : "hsl(var(--chart-revenue-primary))"}
+                        stroke={index === 0 ? "hsl(var(--chart-booking-secondary))" : "hsl(var(--chart-booking-primary))"}
                         strokeWidth={2}
                         opacity={payload.isFuture ? 0.3 : 1}
                         style={{ cursor: 'pointer', transition: 'all 0.2s' }}
@@ -151,7 +151,7 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                         cy={cy}
                         r={8}
                         fill="hsl(var(--background))"
-                        stroke={index === 0 ? "hsl(var(--chart-revenue-secondary))" : "hsl(var(--chart-revenue-primary))"}
+                        stroke={index === 0 ? "hsl(var(--chart-booking-secondary))" : "hsl(var(--chart-booking-primary))"}
                         strokeWidth={3}
                         opacity={payload.isFuture ? 0.3 : 1}
                         style={{ cursor: 'pointer', transition: 'all 0.2s' }}
