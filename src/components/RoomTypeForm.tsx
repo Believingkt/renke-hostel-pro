@@ -413,7 +413,7 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         <SaveButtonContainer 
           onSave={handleSave} 
           isSaving={isLoading}
-          saveText="儲存"
+          saveText="儲存變更"
         >
           <Button variant="outline" onClick={onCancel}>取消</Button>
         </SaveButtonContainer>

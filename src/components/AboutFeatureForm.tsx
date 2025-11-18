@@ -210,7 +210,7 @@ export function AboutFeatureForm({ open, onOpenChange, feature, onSave }: AboutF
         <SaveButtonContainer 
           onSave={handleSubmit} 
           disabled={!formData.title || !formData.description}
-          saveText="儲存"
+          saveText="儲存變更"
           className="border-t-0 gap-3"
         >
           <Button variant="outline" onClick={() => onOpenChange(false)}>

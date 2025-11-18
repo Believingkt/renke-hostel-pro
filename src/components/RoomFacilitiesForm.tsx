@@ -199,7 +199,7 @@ export const RoomFacilitiesForm = ({ accommodationId }: RoomFacilitiesFormProps)
       if (import.meta.env.DEV) {
         console.error('Error saving facilities:', error);
       }
-      toast.error("無法儲存設施資料");
+      toast.error("儲存失敗，請稍後再試");
     } finally {
       setIsSaving(false);
     }
@@ -282,7 +282,7 @@ export const RoomFacilitiesForm = ({ accommodationId }: RoomFacilitiesFormProps)
       <SaveButtonContainer 
         onSave={handleSave} 
         isSaving={isSaving}
-        saveText="儲存設施"
+        saveText="儲存變更"
       />
     </div>
   );

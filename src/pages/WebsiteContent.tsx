@@ -749,12 +749,12 @@ const WebsiteContent = () => {
         if (error) throw error;
       }
 
-      toast.success('設施資料已保存');
+      toast.success('設施資料已儲存');
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error saving facilities:', error);
       }
-      toast.error('保存失敗，請稍後再試');
+      toast.error('儲存失敗，請稍後再試');
     } finally {
       setIsSaving(false);
     }
@@ -795,12 +795,12 @@ const WebsiteContent = () => {
 
       if (infoError) throw infoError;
 
-      toast.success('訂房須知已保存');
+      toast.success('訂房須知已儲存');
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error saving booking info:', error);
       }
-      toast.error('保存失敗，請稍後再試');
+      toast.error('儲存失敗，請稍後再試');
     } finally {
       setIsSaving(false);
     }
