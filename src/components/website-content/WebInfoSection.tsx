@@ -160,7 +160,7 @@ export const WebInfoSection = ({
             <div>
               <h3 className="font-semibold text-lg">輪播圖管理</h3>
               <p className="text-sm text-muted-foreground">
-                上傳和管理首頁輪播圖片（最多 5 張）。這些圖片會在首頁自動輪播，是展示您旅宿環境、設施和特色的最佳位置。
+                首頁輪播圖片（最多 5 張）
               </p>
             </div>
           </div>
@@ -190,16 +190,9 @@ export const WebInfoSection = ({
             </div>
           </div>
           
-          <div className="rounded-lg border bg-muted/10 p-4">
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              <span className="font-medium text-foreground">💡 使用建議：</span>
-              選擇能展現旅宿特色的圖片，如外觀全景、特色房型、公共空間或周邊景觀。
-              <br />
-              <span className="font-medium text-foreground">📐 建議尺寸：</span>1920×1080 像素 · 
-              <span className="font-medium text-foreground"> 支援格式：</span>JPG、PNG · 
-              <span className="font-medium text-foreground"> 自動優化：</span>上傳後轉換為 WebP 格式以加快載入速度
-            </p>
-          </div>
+          <p className="text-xs text-muted-foreground">
+            建議尺寸：1920×1080 · 支援 JPG、PNG
+          </p>
 
           {/* 輪播圖列表 */}
           {heroPhotos.length > 0 && (
@@ -271,8 +264,8 @@ export const WebInfoSection = ({
                 <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
                   標題內容
                 </h4>
-                <p className="text-sm text-muted-foreground -mt-2">
-                  設定顯示在輪播圖上的文字內容。建議使用簡潔有力的標語，快速傳達旅宿的核心特色與價值。
+                <p className="text-xs text-muted-foreground -mt-2">
+                  輪播圖全局設定
                 </p>
                 
                 <div className="grid grid-cols-1 gap-4">
@@ -287,7 +280,7 @@ export const WebInfoSection = ({
                       className="text-base"
                     />
                     <p className="text-xs text-muted-foreground">
-                      {heroMainTitle.length}/20 字元 · 會顯示在所有輪播圖上，建議使用旅宿名稱或核心標語
+                      {heroMainTitle.length}/20 字元
                     </p>
                   </div>
 
@@ -302,7 +295,7 @@ export const WebInfoSection = ({
                       className="text-base"
                     />
                     <p className="text-xs text-muted-foreground">
-                      {heroSubtitle.length}/20 字元 · 補充說明旅宿特色或服務亮點
+                      {heroSubtitle.length}/20 字元
                     </p>
                   </div>
 
@@ -330,8 +323,8 @@ export const WebInfoSection = ({
                 <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
                   視覺效果
                 </h4>
-                <p className="text-sm text-muted-foreground -mt-2">
-                  調整輪播圖的視覺呈現效果，包括背景遮罩透明度和自動播放間隔時間。
+                <p className="text-xs text-muted-foreground -mt-2">
+                  視覺效果調整
                 </p>
                 
                 <div className="space-y-4">
