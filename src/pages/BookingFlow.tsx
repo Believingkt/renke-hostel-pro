@@ -807,7 +807,15 @@ const BookingFlow = () => {
   };
 
   const handleConfirmBooking = async () => {
+    console.log("=== 開始訂房流程 ===");
+    console.log("selectedRoom:", selectedRoom?.name);
+    console.log("accommodationId:", accommodationId);
+    console.log("appliedDiscount:", appliedDiscount);
+    console.log("checkInDate:", checkInDate);
+    console.log("checkOutDate:", checkOutDate);
+    
     if (!selectedRoom || !accommodationId) {
+      console.error("缺少必要資訊");
       toast({
         title: "訂房失敗",
         description: "缺少必要資訊，請重新操作",
@@ -818,6 +826,7 @@ const BookingFlow = () => {
 
     // 最終日期驗證 - 防止無效日期提交到數據庫
     if (!checkInDate || !checkOutDate) {
+      console.error("日期遺失");
       toast({
         title: "日期資料遺失",
         description: "入住或退房日期遺失，請重新選擇",
@@ -828,6 +837,7 @@ const BookingFlow = () => {
 
     // 驗證日期對象有效性
     if (isNaN(checkInDate.getTime()) || isNaN(checkOutDate.getTime())) {
+      console.error("日期無效");
       toast({
         title: "日期無效",
         description: "日期格式錯誤，請返回重新選擇日期",
@@ -846,6 +856,7 @@ const BookingFlow = () => {
     } catch (error) {
       if (error instanceof z.ZodError) {
         const errorMessage = error.errors[0]?.message || "日期驗證失敗";
+        console.error("日期驗證失敗:", errorMessage);
         toast({
           title: "日期驗證失敗",
           description: errorMessage,
@@ -858,6 +869,7 @@ const BookingFlow = () => {
 
     // 驗證日期字符串
     if (!checkInDateStr || !checkOutDateStr) {
+      console.error("日期字符串格式錯誤");
       toast({
         title: "日期格式錯誤",
         description: "無法格式化日期，請返回重新選擇",
@@ -872,6 +884,7 @@ const BookingFlow = () => {
     const checkOutParsed = new Date(checkOutDateStr);
     
     if (isNaN(checkInParsed.getTime()) || isNaN(checkOutParsed.getTime())) {
+      console.error("日期解析失敗");
       toast({
         title: "日期資料損壞",
         description: "日期資料已損壞，請返回重新選擇日期",
@@ -882,6 +895,7 @@ const BookingFlow = () => {
     }
 
     if (checkOutParsed <= checkInParsed) {
+      console.error("日期順序錯誤");
       toast({
         title: "日期順序錯誤",
         description: "退房日期必須晚於入住日期，請返回修正",
@@ -892,9 +906,11 @@ const BookingFlow = () => {
     }
 
     if (isSubmitting) {
+      console.log("正在處理中，防止重複提交");
       return; // 防止重複提交
     }
 
+    console.log("=== 所有驗證通過，開始提交訂單 ===");
     setIsSubmitting(true);
 
     try {
@@ -1092,6 +1108,61 @@ const BookingFlow = () => {
       }
 
       console.log("訂單建立成功:", orderData);
+
+      // 如果使用了折扣碼，檢查是否需要創建佣金記錄
+      if (appliedDiscount?.code) {
+        try {
+          console.log("檢查折扣碼是否需要創建佣金記錄...");
+          
+          // 查詢折扣碼資訊，取得 commission_rate
+          const { data: discountCodeData, error: discountError } = await supabase
+            .from("discount_codes")
+            .select("id, commission_rate")
+            .eq("code", appliedDiscount.code)
+            .eq("accommodation_id", accommodationId)
+            .maybeSingle();
+
+          if (discountError) {
+            console.error("查詢折扣碼錯誤:", discountError);
+          } else if (discountCodeData && discountCodeData.commission_rate && discountCodeData.commission_rate > 0) {
+            // 計算佣金金額
+            const commissionAmount = Math.round(discountAmount * (discountCodeData.commission_rate / 100));
+            
+            console.log("創建佣金記錄:", {
+              discount_code_id: discountCodeData.id,
+              order_id: orderData.id,
+              commission_rate: discountCodeData.commission_rate,
+              commission_amount: commissionAmount
+            });
+
+            // 創建佣金記錄
+            const { error: commissionError } = await supabase
+              .from("commission_records")
+              .insert({
+                accommodation_id: accommodationId,
+                discount_code_id: discountCodeData.id,
+                order_id: orderData.id,
+                order_total: totalPrice,
+                discount_amount: discountAmount,
+                commission_rate: discountCodeData.commission_rate,
+                commission_amount: commissionAmount,
+                settlement_status: "pending"
+              });
+
+            if (commissionError) {
+              console.error("創建佣金記錄失敗:", commissionError);
+              // 不中斷訂單流程，只記錄錯誤
+            } else {
+              console.log("佣金記錄創建成功");
+            }
+          } else {
+            console.log("此折扣碼沒有設定佣金率，不需要創建佣金記錄");
+          }
+        } catch (commissionError) {
+          console.error("處理佣金記錄時發生錯誤:", commissionError);
+          // 不中斷訂單流程
+        }
+      }
 
       // 發送訂購確認郵件
       let emailSent = false;
