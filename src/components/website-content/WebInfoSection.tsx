@@ -378,21 +378,23 @@ export const WebInfoSection = ({
                     >
                       <div className="flex items-center justify-center absolute inset-0 px-6 py-8 text-center">
                         <div className="w-full space-y-3">
-                          {heroMainTitle && (
-                            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white drop-shadow-lg">
-                              {heroMainTitle}
-                            </h1>
-                          )}
-                          {heroSubtitle && (
-                            <p className="text-lg md:text-xl text-white/90 drop-shadow-md">
-                              {heroSubtitle}
-                            </p>
-                          )}
-                          {heroDescription && (
-                            <p className="text-sm md:text-base text-white/80 drop-shadow-md">
-                              {heroDescription}
-                            </p>
-                          )}
+              <div className="space-y-2">
+                {heroMainTitle && (
+                  <h1 className="text-2xl md:text-3xl font-bold text-white drop-shadow-lg">
+                    {heroMainTitle}
+                  </h1>
+                )}
+                {heroSubtitle && (
+                  <p className="text-base md:text-lg text-white drop-shadow-md">
+                    {heroSubtitle}
+                  </p>
+                )}
+                {heroDescription && (
+                  <p className="text-sm text-white/90 drop-shadow-md">
+                    {heroDescription}
+                  </p>
+                )}
+              </div>
                           {!heroMainTitle && !heroSubtitle && !heroDescription && (
                             <p className="text-white/60 text-sm">
                               請在左側輸入標題以查看效果
