@@ -63,17 +63,7 @@ const Index = () => {
           .single();
         
         if (infoData) {
-          // 先设置基本信息
-          setData({
-            info: infoData,
-            roomTypes: [],
-            bookingSettings: null,
-            facilities: [],
-            photos: [],
-            locationInfo: null
-          });
-          
-          // 继续加载其他数据
+          // 一次性加载所有数据，避免多次渲染导致的闪烁
           const [roomTypesRes, bookingSettingsRes, facilitiesRes, photosRes, locationInfoRes] = await Promise.all([
             supabase
               .from("room_types")
