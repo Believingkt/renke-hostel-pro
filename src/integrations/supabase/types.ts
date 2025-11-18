@@ -510,6 +510,82 @@ export type Database = {
           },
         ]
       }
+      commission_records: {
+        Row: {
+          accommodation_id: string
+          commission_amount: number
+          commission_rate: number
+          created_at: string
+          discount_amount: number
+          discount_code_id: string
+          id: string
+          order_id: string
+          order_total: number
+          payment_date: string | null
+          payment_method: string | null
+          payment_note: string | null
+          settlement_date: string | null
+          settlement_status: string
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          commission_amount: number
+          commission_rate: number
+          created_at?: string
+          discount_amount: number
+          discount_code_id: string
+          id?: string
+          order_id: string
+          order_total: number
+          payment_date?: string | null
+          payment_method?: string | null
+          payment_note?: string | null
+          settlement_date?: string | null
+          settlement_status?: string
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          commission_amount?: number
+          commission_rate?: number
+          created_at?: string
+          discount_amount?: number
+          discount_code_id?: string
+          id?: string
+          order_id?: string
+          order_total?: number
+          payment_date?: string | null
+          payment_method?: string | null
+          payment_note?: string | null
+          settlement_date?: string | null
+          settlement_status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_records_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_records_discount_code_id_fkey"
+            columns: ["discount_code_id"]
+            isOneToOne: false
+            referencedRelation: "discount_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_records_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           accommodation_id: string
@@ -564,6 +640,7 @@ export type Database = {
           applicable_date_to: string | null
           applicable_room_types: Json | null
           code: string
+          commission_rate: number | null
           created_at: string
           discount_type: string
           discount_value: number
@@ -584,6 +661,7 @@ export type Database = {
           applicable_date_to?: string | null
           applicable_room_types?: Json | null
           code: string
+          commission_rate?: number | null
           created_at?: string
           discount_type: string
           discount_value: number
@@ -604,6 +682,7 @@ export type Database = {
           applicable_date_to?: string | null
           applicable_room_types?: Json | null
           code?: string
+          commission_rate?: number | null
           created_at?: string
           discount_type?: string
           discount_value?: number

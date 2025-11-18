@@ -28,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, Copy, Pencil, Check, X, Eye, Calendar as CalendarIcon, GripVertical, Files, Code } from "lucide-react";
+import { Plus, Trash2, Copy, Pencil, Check, X, Eye, Calendar as CalendarIcon, GripVertical, Files, Code, DollarSign } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubdomain } from "@/hooks/use-subdomain";
@@ -57,6 +57,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { CommissionRecordsDialog } from "@/components/CommissionRecordsDialog";
 
 interface DiscountCode {
   id: string;
@@ -75,6 +76,7 @@ interface DiscountCode {
   applicable_date_from: string | null;
   applicable_date_to: string | null;
   display_order: number;
+  commission_rate: number;
   created_at: string;
   updated_at: string;
 }
@@ -102,6 +104,9 @@ const KolDiscount = () => {
   const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [apiDocOpen, setApiDocOpen] = useState(false);
+  const [commissionRate, setCommissionRate] = useState("");
+  const [commissionRecordsOpen, setCommissionRecordsOpen] = useState(false);
+  const [selectedCodeForCommission, setSelectedCodeForCommission] = useState<DiscountCode | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -214,6 +219,7 @@ const KolDiscount = () => {
         applicable_room_types: selectedRoomTypes,
         applicable_date_from: applicableDateFrom?.toISOString().split('T')[0] || null,
         applicable_date_to: applicableDateTo?.toISOString().split('T')[0] || null,
+        commission_rate: commissionRate ? parseFloat(commissionRate) : 0,
       });
 
       if (error) throw error;
@@ -234,6 +240,7 @@ const KolDiscount = () => {
       setSelectedRoomTypes([]);
       setApplicableDateFrom(undefined);
       setApplicableDateTo(undefined);
+      setCommissionRate("");
       fetchDiscountCodes();
     } catch (error) {
       console.error("Error creating discount code:", error);
@@ -342,6 +349,7 @@ const KolDiscount = () => {
     setSelectedRoomTypes(code.applicable_room_types || []);
     setApplicableDateFrom(code.applicable_date_from ? new Date(code.applicable_date_from) : undefined);
     setApplicableDateTo(code.applicable_date_to ? new Date(code.applicable_date_to) : undefined);
+    setCommissionRate(code.commission_rate?.toString() || "0");
     setEditOpen(true);
   };
 
@@ -395,6 +403,7 @@ const KolDiscount = () => {
           applicable_room_types: selectedRoomTypes,
           applicable_date_from: applicableDateFrom?.toISOString().split('T')[0] || null,
           applicable_date_to: applicableDateTo?.toISOString().split('T')[0] || null,
+          commission_rate: commissionRate ? parseFloat(commissionRate) : 0,
         })
         .eq("id", editingCode.id);
 
@@ -416,6 +425,7 @@ const KolDiscount = () => {
       setSelectedRoomTypes([]);
       setApplicableDateFrom(undefined);
       setApplicableDateTo(undefined);
+      setCommissionRate("");
       fetchDiscountCodes();
     } catch (error) {
       console.error("Error updating discount code:", error);
@@ -439,6 +449,7 @@ const KolDiscount = () => {
     setSelectedRoomTypes(code.applicable_room_types || []);
     setApplicableDateFrom(code.applicable_date_from ? new Date(code.applicable_date_from) : undefined);
     setApplicableDateTo(code.applicable_date_to ? new Date(code.applicable_date_to) : undefined);
+    setCommissionRate(code.commission_rate?.toString() || "0");
     setOpen(true);
   };
 
@@ -457,6 +468,7 @@ const KolDiscount = () => {
       setSelectedRoomTypes([]);
       setApplicableDateFrom(undefined);
       setApplicableDateTo(undefined);
+      setCommissionRate("");
     }
   };
 
@@ -705,6 +717,18 @@ const KolDiscount = () => {
               title="查看訂單"
             >
               <Eye className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => {
+                setSelectedCodeForCommission(item);
+                setCommissionRecordsOpen(true);
+              }}
+              title="查看佣金"
+            >
+              <DollarSign className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
@@ -1003,6 +1027,26 @@ const KolDiscount = () => {
                 </div>
               </div>
             </div>
+            
+            <Separator className="my-2" />
+            <p className="text-sm font-medium">網紅佣金設定</p>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="commissionRate">佣金率 (%)</Label>
+              <Input
+                id="commissionRate"
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value={commissionRate}
+                onChange={(e) => setCommissionRate(e.target.value)}
+                placeholder="例如：10（表示 10%）"
+              />
+              <p className="text-xs text-muted-foreground">
+                佣金將根據折扣金額計算，例如折扣 1000 元且佣金率 10%，則佣金為 100 元
+              </p>
+            </div>
             <DialogFooter>
               <Button onClick={handleSubmit}>新增</Button>
             </DialogFooter>
@@ -1256,6 +1300,26 @@ const KolDiscount = () => {
               </div>
             </div>
           </div>
+          
+          <Separator className="my-2" />
+          <p className="text-sm font-medium">網紅佣金設定</p>
+          
+          <div className="grid gap-2">
+            <Label htmlFor="edit-commissionRate">佣金率 (%)</Label>
+            <Input
+              id="edit-commissionRate"
+              type="number"
+              min="0"
+              max="100"
+              step="0.1"
+              value={commissionRate}
+              onChange={(e) => setCommissionRate(e.target.value)}
+              placeholder="例如：10（表示 10%）"
+            />
+            <p className="text-xs text-muted-foreground">
+              佣金將根據折扣金額計算，例如折扣 1000 元且佣金率 10%，則佣金為 100 元
+            </p>
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditOpen(false)}>
               取消
@@ -1454,6 +1518,18 @@ const KolDiscount = () => {
                           variant="ghost"
                           size="icon"
                           className="shrink-0 h-8 w-8"
+                          onClick={() => {
+                            setSelectedCodeForCommission(item);
+                            setCommissionRecordsOpen(true);
+                          }}
+                          title="查看佣金"
+                        >
+                          <DollarSign className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="shrink-0 h-8 w-8"
                           onClick={() => toggleActive(item.id, item.is_active)}
                           title={item.is_active ? "停用" : "啟用"}
                         >
@@ -1621,6 +1697,17 @@ const KolDiscount = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Commission Records Dialog */}
+      {selectedCodeForCommission && (
+        <CommissionRecordsDialog
+          open={commissionRecordsOpen}
+          onOpenChange={setCommissionRecordsOpen}
+          discountCodeId={selectedCodeForCommission.id}
+          discountCodeName={selectedCodeForCommission.name}
+          discountCode={selectedCodeForCommission.code}
+        />
+      )}
     </div>
   );
 };
