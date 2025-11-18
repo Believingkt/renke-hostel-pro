@@ -123,16 +123,9 @@ export function AppSidebar() {
                                 <NavLink 
                                   to={subItem.url}
                                   onClick={handleLinkClick}
-                                  className={({ isActive }) => {
-                                    const isActiveItem = isActiveSubItem(subItem.url);
-                                    return isActiveItem 
-                                      ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold border-l-4 border-primary -ml-[2px] pl-[30px]" 
-                                      : "hover:text-sidebar-accent-foreground transition-all duration-200";
-                                  }}
+                                  className={isActiveSubItem(subItem.url) ? "bg-sidebar-accent" : ""}
                                 >
-                                  <span className="relative">
-                                    {subItem.title}
-                                  </span>
+                                  <span>{subItem.title}</span>
                                 </NavLink>
                               </SidebarMenuSubButton>
                             </SidebarMenuSubItem>
