@@ -11,6 +11,7 @@ interface HeroPhoto {
   photo_url: string;
   title?: string | null;
   subtitle?: string | null;
+  secondary_subtitle?: string | null;
   text_color?: string | null;
   text_size?: string | null;
   text_position_x?: string | null;
@@ -174,6 +175,19 @@ export const HeroCarouselPreviewDialog = ({ open, onOpenChange, photos }: HeroCa
                               style={{ animationDelay: '0.2s' }}
                             >
                               {photo.subtitle}
+                            </p>
+                          )}
+                          {photo.secondary_subtitle && (
+                            <p 
+                              className={`
+                                drop-shadow-lg mt-2 opacity-90 animate-fade-in
+                                ${photo.text_size === 'small' ? 'text-sm md:text-base' : 
+                                  photo.text_size === 'large' ? 'text-lg md:text-2xl' : 
+                                  'text-base md:text-xl'}
+                              `}
+                              style={{ animationDelay: '0.4s' }}
+                            >
+                              {photo.secondary_subtitle}
                             </p>
                           )}
                         </div>

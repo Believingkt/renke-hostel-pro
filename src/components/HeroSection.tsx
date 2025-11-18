@@ -37,6 +37,7 @@ interface HeroPhoto {
   display_order: number;
   title?: string | null;
   subtitle?: string | null;
+  secondary_subtitle?: string | null;
   cta_text?: string | null;
   cta_link?: string | null;
   text_color?: string | null;
@@ -76,6 +77,7 @@ const HeroSection = ({
         display_order: index + 1,
         title: null,
         subtitle: null,
+        secondary_subtitle: null,
         cta_text: null,
         cta_link: null,
         text_color: null,
@@ -303,6 +305,19 @@ const HeroSection = ({
                             style={{ animationDelay: "0.2s" }}
                           >
                             {slide.subtitle}
+                          </p>
+                        )}
+                        {slide.secondary_subtitle && (
+                          <p 
+                            className={`
+                              animate-fade-in drop-shadow-lg opacity-90
+                              ${slide.text_size === 'small' ? 'text-sm md:text-xl' : 
+                                slide.text_size === 'large' ? 'text-lg md:text-3xl' : 
+                                'text-base md:text-2xl'}
+                            `}
+                            style={{ animationDelay: "0.4s" }}
+                          >
+                            {slide.secondary_subtitle}
                           </p>
                         )}
                         {!slide.subtitle && heroMainTitle && (
