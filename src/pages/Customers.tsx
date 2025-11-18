@@ -7,7 +7,7 @@ import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Search, FileText, Users } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, FileText, Users, Phone, Mail, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAccommodation } from "@/contexts/AccommodationContext";
@@ -362,12 +362,29 @@ const Customers = () => {
             ) : (
               <EmptyState
                 icon={Users}
-                title="尚無顧客資料"
-                description="開始新增您的第一位顧客，建立完整的顧客資料庫"
+                title="歡迎使用顧客管理"
+                description="建立您的第一位顧客資料，開始追蹤客戶來訪記錄和偏好，提供更優質的服務體驗。"
                 action={{
-                  label: "新增顧客",
+                  label: "新增第一位顧客",
                   onClick: () => handleOpenDialog()
                 }}
+                suggestions={[
+                  {
+                    icon: Phone,
+                    title: "記錄聯絡資訊",
+                    description: "儲存顧客的電話和 Email，方便日後聯繫與行銷推廣。"
+                  },
+                  {
+                    icon: Calendar,
+                    title: "追蹤來訪記錄",
+                    description: "自動記錄顧客的入住次數和首次訂房日期。"
+                  },
+                  {
+                    icon: FileText,
+                    title: "備註重要資訊",
+                    description: "記錄顧客偏好、特殊需求等客製化服務資訊。"
+                  }
+                ]}
               />
             )
           ) : (
