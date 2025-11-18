@@ -337,7 +337,6 @@ const Booking = () => {
             <div className="grid md:grid-cols-3 gap-8">
               {roomTypes.map((room) => {
                 const images = roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard];
-                console.log('Room name:', room.name, 'Images count:', images.length);
                 return (
                   <Card key={room.id} className="overflow-hidden hover:shadow-xl transition-shadow group border-0 rounded-2xl">
                     <div className="aspect-[4/3] overflow-hidden rounded-t-2xl relative">

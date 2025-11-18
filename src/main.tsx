@@ -10,16 +10,12 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker
       .register('/sw.js')
       .then((registration) => {
-        console.log('[App] Service Worker registered:', registration.scope);
-        
         // 檢查更新
         registration.addEventListener('updatefound', () => {
           const newWorker = registration.installing;
           if (newWorker) {
             newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                console.log('[App] New Service Worker available, please reload');
-              }
+              // New Service Worker available
             });
           }
         });
