@@ -29,6 +29,8 @@ interface HeroSectionProps {
   heroMainTitle?: string;
   heroSubtitle?: string;
   heroDescription?: string;
+  heroOverlayOpacity?: number;
+  heroAutoplayDelay?: number;
 }
 
 interface HeroPhoto {
@@ -57,7 +59,9 @@ const HeroSection = ({
   accommodationName = "森山寫照",
   heroMainTitle = "山間的寧靜時光",
   heroSubtitle = "體驗日式美學與自然的完美融合",
-  heroDescription = ""
+  heroDescription = "",
+  heroOverlayOpacity = 40,
+  heroAutoplayDelay = 8
 }: HeroSectionProps) => {
   const { checkInDate, setCheckInDate, checkOutDate, setCheckOutDate, guests, setGuests, currentAccommodationId } = useAccommodation();
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
@@ -245,19 +249,18 @@ const HeroSection = ({
     };
   }, [carouselApi, slides.length, autoplayEnabled]);
 
-  // 自訂自動播放功能，支援每張圖片不同的延遲時間
+  // 自訂自動播放功能，使用全局延遲時間
   useEffect(() => {
     if (!carouselApi || !autoplayEnabled || slides.length === 0) return;
 
-    const currentSlide = slides[current];
-    const delay = (currentSlide?.autoplay_delay ?? 8) * 1000; // 轉換為毫秒
+    const delay = heroAutoplayDelay * 1000; // 使用全局設定，轉換為毫秒
 
     const timer = setTimeout(() => {
       carouselApi.scrollNext();
     }, delay);
 
     return () => clearTimeout(timer);
-  }, [carouselApi, current, slides, autoplayEnabled]);
+  }, [carouselApi, current, slides, autoplayEnabled, heroAutoplayDelay]);
 
   return (
     <section id="home" className="pt-16 relative">
@@ -289,7 +292,7 @@ const HeroSection = ({
                   <div 
                     className="absolute inset-0 transition-all duration-700"
                     style={{ 
-                      backgroundColor: `rgba(0, 0, 0, ${(slide.overlay_opacity ?? 40) / 100})`
+                      backgroundColor: `rgba(0, 0, 0, ${heroOverlayOpacity / 100})`
                     }}
                   />
                 </div>
