@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ImageOff } from "lucide-react";
+import { ImageOff, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { calculateOptimalImageSize } from "@/utils/responsiveImageHelper";
 import { getCDNUrl } from "@/utils/cdnHelper";
 import { useNetworkStatus } from "@/hooks/use-network-status";
@@ -23,8 +24,10 @@ interface OptimizedImageProps {
   useCDN?: boolean;
   autoSrcSet?: boolean;
   imageType?: 'thumbnail' | 'small' | 'medium' | 'large' | 'hero';
-  fallbackSrc?: string; // 自定義後備圖片
+  fallbackSrc?: string;
   onError?: () => void;
+  maxRetries?: number; // 最大重試次數
+  retryDelay?: number; // 重試延遲（毫秒）
 }
 
 export const OptimizedImage = ({
@@ -46,16 +49,22 @@ export const OptimizedImage = ({
   imageType = 'medium',
   fallbackSrc,
   onError,
+  maxRetries = 3,
+  retryDelay = 2000,
 }: OptimizedImageProps) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInView, setIsInView] = useState(priority);
   const [showBlur, setShowBlur] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [isRetrying, setIsRetrying] = useState(false);
   const [optimalSrc, setOptimalSrc] = useState(src);
   const [generatedSrcSet, setGeneratedSrcSet] = useState<string>("");
   const imgRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
+  const retryTimeoutRef = useRef<NodeJS.Timeout>();
   const { speed: networkSpeed } = useNetworkStatus();
+  const prevNetworkSpeedRef = useRef(networkSpeed);
 
   // 計算最佳圖片尺寸並應用 CDN
   useEffect(() => {
@@ -136,9 +145,38 @@ export const OptimizedImage = ({
     };
   }, [priority]);
 
+  // 監聽網路狀態變化，自動重試
+  useEffect(() => {
+    const prevSpeed = prevNetworkSpeedRef.current;
+    
+    // 網路從 offline/slow 恢復到 fast 時，自動重試失敗的圖片
+    if (hasError && !isRetrying && retryCount < maxRetries) {
+      if (
+        (prevSpeed === 'offline' && networkSpeed !== 'offline') ||
+        (prevSpeed === 'slow' && networkSpeed === 'fast')
+      ) {
+        console.log(`網路恢復，自動重試載入圖片: ${src}`);
+        handleRetry();
+      }
+    }
+    
+    prevNetworkSpeedRef.current = networkSpeed;
+  }, [networkSpeed, hasError, isRetrying, retryCount, maxRetries]);
+
+  // 清理重試計時器
+  useEffect(() => {
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleLoad = () => {
     setIsLoaded(true);
     setHasError(false);
+    setIsRetrying(false);
+    setRetryCount(0);
     setTimeout(() => {
       setShowBlur(false);
     }, 300);
@@ -146,15 +184,75 @@ export const OptimizedImage = ({
   };
 
   const handleError = () => {
-    setHasError(true);
     setIsLoaded(true);
     setShowBlur(false);
+    setIsRetrying(false);
     onError?.();
     
-    // 如果有後備圖片，嘗試載入
-    if (fallbackSrc && optimalSrc !== fallbackSrc) {
+    // 如果有後備圖片且還沒嘗試過，使用後備圖片
+    if (fallbackSrc && optimalSrc !== fallbackSrc && retryCount === 0) {
+      console.log(`主圖片載入失敗，嘗試後備圖片: ${fallbackSrc}`);
       setOptimalSrc(fallbackSrc);
-      setHasError(false);
+      setRetryCount(retryCount + 1);
+      return;
+    }
+    
+    // 如果還有重試次數，自動重試
+    if (retryCount < maxRetries) {
+      console.log(`圖片載入失敗，將在 ${retryDelay}ms 後重試 (${retryCount + 1}/${maxRetries})`);
+      setIsRetrying(true);
+      
+      retryTimeoutRef.current = setTimeout(() => {
+        handleRetry();
+      }, retryDelay);
+    } else {
+      // 重試次數用完，顯示錯誤狀態
+      setHasError(true);
+      console.log(`圖片載入失敗，已達最大重試次數: ${src}`);
+    }
+  };
+
+  const handleRetry = () => {
+    if (retryCount >= maxRetries) {
+      setHasError(true);
+      setIsRetrying(false);
+      return;
+    }
+    
+    console.log(`重試載入圖片 (${retryCount + 1}/${maxRetries}): ${src}`);
+    setIsRetrying(true);
+    setHasError(false);
+    setIsLoaded(false);
+    setRetryCount(retryCount + 1);
+    
+    // 強制重新載入圖片（添加時間戳避免快取）
+    const timestamp = Date.now();
+    const separator = src.includes('?') ? '&' : '?';
+    const newSrc = `${src}${separator}_retry=${timestamp}`;
+    
+    // 重新計算最佳尺寸並重試
+    if (imgRef.current) {
+      const containerWidth = imgRef.current.offsetWidth || parseInt(width);
+      const optimalWidth = responsive ? calculateOptimalImageSize(containerWidth) : parseInt(width);
+      const optimalHeight = responsive ? Math.round((optimalWidth * parseInt(height)) / parseInt(width)) : parseInt(height);
+      
+      let quality = 85;
+      let format: 'auto' | 'webp' | 'avif' | 'jpg' | 'png' = 'auto';
+      
+      if (networkSpeed === 'slow') {
+        quality = 60;
+        format = 'webp';
+      } else if (networkSpeed === 'offline') {
+        quality = 40;
+        format = 'webp';
+      }
+      
+      if (useCDN) {
+        const cdnUrl = getCDNUrl(newSrc, optimalWidth, optimalHeight, quality, format);
+        setOptimalSrc(cdnUrl);
+      } else {
+        setOptimalSrc(newSrc);
+      }
     }
   };
 
@@ -185,16 +283,38 @@ export const OptimizedImage = ({
         </div>
       )}
       
-      {/* 錯誤狀態 */}
-      {hasError && !fallbackSrc && (
+      {/* 重試中狀態 */}
+      {isRetrying && (
         <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center bg-muted/50">
-          <ImageOff className="w-12 h-12 text-muted-foreground/50 mb-2" />
+          <RefreshCw className="w-12 h-12 text-primary animate-spin mb-2" />
+          <p className="text-xs text-muted-foreground">重新載入中...</p>
+        </div>
+      )}
+      
+      {/* 錯誤狀態 */}
+      {hasError && !isRetrying && (
+        <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center bg-muted/50 gap-2">
+          <ImageOff className="w-12 h-12 text-muted-foreground/50" />
           <p className="text-xs text-muted-foreground">無法載入圖片</p>
+          {retryCount < maxRetries && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleRetry();
+              }}
+              className="mt-2"
+            >
+              <RefreshCw className="w-3 h-3 mr-1" />
+              手動重試
+            </Button>
+          )}
         </div>
       )}
       
       {/* 主圖片 */}
-      {isInView && !hasError && (
+      {isInView && !hasError && !isRetrying && (
         <picture>
           {/* 使用生成的 srcSet 或提供的 srcSet */}
           {(generatedSrcSet || srcSet) && (
