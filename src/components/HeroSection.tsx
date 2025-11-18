@@ -14,14 +14,14 @@ import { useAccommodation } from "@/contexts/AccommodationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { OptimizedImage } from "@/components/OptimizedImage";
 import { generateBlurDataURLs } from "@/utils/imageBlurHelper";
+import { preloadImageWithLink } from "@/utils/imagePreloader";
 import heroSlide1 from "@/assets/hero-slide-1.jpg";
 import heroSlide2 from "@/assets/hero-slide-2.jpg";
 import heroSlide3 from "@/assets/hero-slide-3.jpg";
 
-// 預載入首張圖片
+// 預載入首張圖片 - 使用 link preload 提高優先級
 if (typeof window !== 'undefined') {
-  const img = new Image();
-  img.src = heroSlide1;
+  preloadImageWithLink(heroSlide1);
 }
 
 interface HeroSectionProps {
@@ -228,17 +228,45 @@ const HeroSection = ({
       const index = carouselApi.selectedScrollSnap();
       setCurrent(index);
       
-      // 延遲預載下一張圖片
+      // 智能預載入下一張和上一張圖片
       const nextIndex = (index + 1) % slides.length;
+      const prevIndex = (index - 1 + slides.length) % slides.length;
+      
+      // 立即預載入下一張圖片
+      if (slides[nextIndex]) {
+        const img = new Image();
+        img.src = slides[nextIndex].photo_url;
+      }
+      
+      // 延遲預載入上一張圖片
       setTimeout(() => {
-        setLoadedImages(prev => new Set([...prev, index, nextIndex]));
+        if (slides[prevIndex]) {
+          const img = new Image();
+          img.src = slides[prevIndex].photo_url;
+        }
       }, 500);
+      
+      setLoadedImages(prev => new Set([...prev, index, nextIndex, prevIndex]));
     });
     
-    // 延遲預載第二張圖片
-    const timer = setTimeout(() => {
-      setLoadedImages(prev => new Set([...prev, 1]));
-    }, 2000);
+    // 首次載入時預載入第二和第三張圖片
+    const preloadTimer = setTimeout(() => {
+      setLoadedImages(prev => new Set([...prev, 1, 2]));
+      
+      // 預載入第二張圖片
+      if (slides[1]) {
+        const img = new Image();
+        img.src = slides[1].photo_url;
+      }
+      
+      // 延遲預載入第三張圖片
+      setTimeout(() => {
+        if (slides[2]) {
+          const img = new Image();
+          img.src = slides[2].photo_url;
+        }
+      }, 1000);
+    }, 1500);
     
     // 監聽圖片查看器事件，停止/恢復輪播
     const handleViewerOpened = () => {
@@ -253,7 +281,7 @@ const HeroSection = ({
     window.addEventListener('viewer-closed', handleViewerClosed);
     
     return () => {
-      clearTimeout(timer);
+      clearTimeout(preloadTimer);
       window.removeEventListener('viewer-opened', handleViewerOpened);
       window.removeEventListener('viewer-closed', handleViewerClosed);
     };
