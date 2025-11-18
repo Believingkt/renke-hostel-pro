@@ -414,7 +414,7 @@ const HeroSection = ({
             <div className="w-full space-y-3 md:space-y-4">
               <h1 
                 className={`
-                  font-bold drop-shadow-lg transition-all duration-500 leading-tight
+                  font-bold drop-shadow-lg leading-tight transition-opacity duration-500
                   ${(slides[current].title_size || 'medium') === 'small' ? 'text-2xl md:text-5xl' : 
                     (slides[current].title_size || 'medium') === 'large' ? 'text-4xl md:text-8xl' : 
                     'text-3xl md:text-[80px]'}
@@ -425,7 +425,7 @@ const HeroSection = ({
               {slides[current].subtitle && (
                 <p 
                   className={`
-                    drop-shadow-lg mt-3 md:mt-4 transition-all duration-500 leading-relaxed
+                    drop-shadow-lg mt-3 md:mt-4 leading-relaxed transition-opacity duration-500
                     ${(slides[current].subtitle_size || 'medium') === 'small' ? 'text-base md:text-2xl' : 
                       (slides[current].subtitle_size || 'medium') === 'large' ? 'text-xl md:text-4xl' : 
                       'text-lg md:text-3xl'}
@@ -437,7 +437,7 @@ const HeroSection = ({
               {slides[current].secondary_subtitle && (
                 <p 
                   className={`
-                    drop-shadow-lg opacity-90 mt-2 md:mt-3 transition-all duration-500 leading-relaxed
+                    drop-shadow-lg opacity-90 mt-2 md:mt-3 leading-relaxed transition-opacity duration-500
                     ${(slides[current].secondary_subtitle_size || 'small') === 'small' ? 'text-sm md:text-xl' : 
                       (slides[current].secondary_subtitle_size || 'small') === 'large' ? 'text-lg md:text-3xl' : 
                       'text-base md:text-2xl'}
