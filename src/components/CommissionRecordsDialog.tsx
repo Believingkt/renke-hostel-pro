@@ -344,7 +344,7 @@ export const CommissionRecordsDialog = ({
                 <p className="text-sm text-muted-foreground">
                   {selectedMonth === "all" ? "已付款佣金" : "本月已付款"}
                 </p>
-                <p className="text-2xl font-bold text-success">
+                <p className="text-2xl font-bold text-primary">
                   NT$ {paidCommission.toLocaleString()}
                 </p>
               </div>
