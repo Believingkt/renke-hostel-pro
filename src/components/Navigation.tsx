@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, Search } from "lucide-react";
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { PreloadLink } from "@/components/PreloadLink";
 import sensanLogo from "@/assets/sensan-logo-10.png";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -94,17 +94,17 @@ const Navigation = ({ accommodationName = "森山寫照", onNavigate }: Navigati
           <button onClick={() => onNavigate("faq")} className="text-xs lg:text-sm hover:text-primary transition-colors whitespace-nowrap px-1 lg:px-2">
             常見問題
           </button>
-          <Link to="/order-search">
+          <PreloadLink to="/order-search">
             <Button variant="outline" className="text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4">
               <Search className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2" />
               查詢訂單
             </Button>
-          </Link>
-          <Link to="/booking">
+          </PreloadLink>
+          <PreloadLink to="/booking">
             <Button className="bg-primary hover:bg-primary/90 text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4">
               立即預訂
             </Button>
-          </Link>
+          </PreloadLink>
         </nav>
 
         {/* Mobile Navigation */}
@@ -158,7 +158,7 @@ const Navigation = ({ accommodationName = "森山寫照", onNavigate }: Navigati
               
               {/* 底部按鈕 */}
               <div className="p-6 space-y-3">
-                <Link to="/order-search" className="block">
+                <PreloadLink to="/order-search" className="block">
                   <Button 
                     variant="outline"
                     className="w-full h-12 text-base font-medium rounded-lg"
@@ -167,15 +167,15 @@ const Navigation = ({ accommodationName = "森山寫照", onNavigate }: Navigati
                     <Search className="h-4 w-4 mr-2" />
                     查詢訂單
                   </Button>
-                </Link>
-                <Link to="/booking" className="block">
+                </PreloadLink>
+                <PreloadLink to="/booking" className="block">
                   <Button 
                     className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-12 text-base font-medium rounded-lg shadow-lg"
                     onClick={() => setOpen(false)}
                   >
                     立即預訂
                   </Button>
-                </Link>
+                </PreloadLink>
               </div>
             </div>
           </SheetContent>
