@@ -81,7 +81,6 @@ const Dashboard = () => {
   useEffect(() => {
     if (!accommodationId) return;
 
-    console.log('Setting up realtime subscription for orders');
     const channel = supabase
       .channel('dashboard-orders-changes')
       .on(
@@ -93,7 +92,6 @@ const Dashboard = () => {
           filter: `accommodation_id=eq.${accommodationId}`
         },
         (payload) => {
-          console.log('Realtime order change detected:', payload);
           setIsLiveUpdating(true);
           setLastUpdateTime(new Date());
           
@@ -111,12 +109,9 @@ const Dashboard = () => {
           setTimeout(() => setIsLiveUpdating(false), 1000);
         }
       )
-      .subscribe((status) => {
-        console.log('Realtime subscription status:', status);
-      });
+      .subscribe();
 
     return () => {
-      console.log('Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
   }, [accommodationId, refreshData]);

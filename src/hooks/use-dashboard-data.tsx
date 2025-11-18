@@ -124,8 +124,6 @@ const fetchDashboardData = async (
     return sum + (Number.isFinite(price) ? price : 0);
   }, 0);
   
-  console.log('Dashboard revenue check:', { monthlyRev, lastMonthRev, currentMonthOrdersCount: currentMonthOrders.length });
-  
   // 計算變化百分比
   const bookingChange = lastMonthBookingCount > 0 
     ? ((monthlyBookingCount - lastMonthBookingCount) / lastMonthBookingCount * 100).toFixed(1)
@@ -427,10 +425,6 @@ const fetchDashboardData = async (
     guestsChange: `${Number(safeGuestChange) >= 0 ? '+' : ''}${safeGuestChange}%`,
     revenueChange: `${Number(safeRevChange) >= 0 ? '+' : ''}${safeRevChange}%`,
   };
-  
-  console.log('Dashboard final stats:', finalStats);
-  console.log('Revenue data sample:', revenueData.slice(0, 3));
-  console.log('Occupancy data:', occupancyData);
 
   return {
     stats: finalStats,

@@ -155,7 +155,6 @@ export const OptimizedImage = ({
         (prevSpeed === 'offline' && networkSpeed !== 'offline') ||
         (prevSpeed === 'slow' && networkSpeed === 'fast')
       ) {
-        console.log(`網路恢復，自動重試載入圖片: ${src}`);
         handleRetry();
       }
     }
@@ -191,7 +190,6 @@ export const OptimizedImage = ({
     
     // 如果有後備圖片且還沒嘗試過，使用後備圖片
     if (fallbackSrc && optimalSrc !== fallbackSrc && retryCount === 0) {
-      console.log(`主圖片載入失敗，嘗試後備圖片: ${fallbackSrc}`);
       setOptimalSrc(fallbackSrc);
       setRetryCount(retryCount + 1);
       return;
@@ -199,7 +197,6 @@ export const OptimizedImage = ({
     
     // 如果還有重試次數，自動重試
     if (retryCount < maxRetries) {
-      console.log(`圖片載入失敗，將在 ${retryDelay}ms 後重試 (${retryCount + 1}/${maxRetries})`);
       setIsRetrying(true);
       
       retryTimeoutRef.current = setTimeout(() => {
@@ -208,7 +205,6 @@ export const OptimizedImage = ({
     } else {
       // 重試次數用完，顯示錯誤狀態
       setHasError(true);
-      console.log(`圖片載入失敗，已達最大重試次數: ${src}`);
     }
   };
 
@@ -219,7 +215,6 @@ export const OptimizedImage = ({
       return;
     }
     
-    console.log(`重試載入圖片 (${retryCount + 1}/${maxRetries}): ${src}`);
     setIsRetrying(true);
     setHasError(false);
     setIsLoaded(false);

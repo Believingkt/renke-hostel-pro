@@ -591,7 +591,6 @@ const BookingFlow = () => {
   const handleApplyDiscount = async (code?: string) => {
     const codeToApply = code || discountCode;
     if (!codeToApply.trim() || !accommodationId) {
-      console.log('[折扣碼] 缺少必要資訊:', { codeToApply, accommodationId });
       toast({
         title: "請輸入折扣代碼",
         variant: "destructive",
@@ -606,14 +605,6 @@ const BookingFlow = () => {
       const roomId = selectedRoom?.id || null;
       const checkInDateStr = checkInDate ? format(checkInDate, "yyyy-MM-dd") : null;
       
-      console.log('[折扣碼] 開始驗證:', {
-        code: codeToApply.trim().toUpperCase(),
-        accommodationId,
-        orderAmount,
-        roomId,
-        checkInDateStr
-      });
-      
       // 使用資料庫函數驗證折扣碼，傳遞訂單金額、房型和入住日期
       const { data, error } = await supabase.rpc('validate_discount_code', {
         p_code: codeToApply.trim().toUpperCase(),
@@ -626,7 +617,6 @@ const BookingFlow = () => {
       if (error) throw error;
 
       const result = data[0];
-      console.log('[折扣碼] 驗證結果:', result);
       
       if (result.is_valid) {
         setAppliedDiscount({
@@ -634,7 +624,6 @@ const BookingFlow = () => {
           type: result.discount_type as "percentage" | "amount",
           value: result.discount_value
         });
-        console.log('[折扣碼] 已套用折扣');
         toast({
           title: "折扣代碼已套用",
           description: `已套用 ${
@@ -644,8 +633,6 @@ const BookingFlow = () => {
           }`,
         });
       } else {
-        console.log('[折扣碼] 驗證失敗:', result.message);
-        
         // 如果是房型限制問題，顯示可使用的房型
         let errorMessage = result.message;
         if (result.applicable_room_names && result.applicable_room_names.length > 0) {
@@ -673,11 +660,9 @@ const BookingFlow = () => {
   // 自動偵測並套用推薦連結的折扣碼
   useEffect(() => {
     const refCode = searchParams.get('ref');
-    console.log('[折扣碼] 檢查 URL 參數:', { refCode, autoAppliedRef, accommodationId, selectedRoom: !!selectedRoom, checkInDate: !!checkInDate });
     
     // 只要有 accommodationId、selectedRoom 和 checkInDate，就自動套用折扣碼
     if (!autoAppliedRef && accommodationId && selectedRoom && checkInDate && refCode) {
-      console.log('[折扣碼] 開始自動套用:', refCode);
       setDiscountCode(refCode);
       setAutoAppliedRef(true);
       // 延遲自動驗證，確保其他數據已載入
@@ -832,13 +817,6 @@ const BookingFlow = () => {
   };
 
   const handleConfirmBooking = async () => {
-    console.log("=== 開始訂房流程 ===");
-    console.log("selectedRoom:", selectedRoom?.name);
-    console.log("accommodationId:", accommodationId);
-    console.log("appliedDiscount:", appliedDiscount);
-    console.log("checkInDate:", checkInDate);
-    console.log("checkOutDate:", checkOutDate);
-    
     if (!selectedRoom || !accommodationId) {
       console.error("缺少必要資訊");
       toast({
@@ -931,16 +909,13 @@ const BookingFlow = () => {
     }
 
     if (isSubmitting) {
-      console.log("正在處理中，防止重複提交");
       return; // 防止重複提交
     }
 
-    console.log("=== 所有驗證通過，開始提交訂單 ===");
     setIsSubmitting(true);
 
     try {
       // 執行衝突檢測
-      console.log("開始衝突檢測...");
       const conflictResult = await detectBookingConflict(
         selectedRoom.id,
         checkInDateStr,
@@ -973,7 +948,6 @@ const BookingFlow = () => {
         
         // 如果是超額預訂，獲取替代房型建議
         if (conflictResult.conflictType === 'overbooked') {
-          console.log("獲取替代房型建議...");
           const suggestions = await getAlternativeRoomSuggestions(
             selectedRoom.id,
             checkInDateStr,
@@ -1012,13 +986,6 @@ const BookingFlow = () => {
       const discountAmount = calculateDiscount();
       const finalPrice = calculateFinalTotal();
       const depositAmount = calculateDeposit();
-
-      console.log("開始建立訂單...", {
-        accommodationId,
-        roomId: selectedRoom.id,
-        checkIn: checkInDateStr,
-        checkOut: checkOutDateStr,
-      });
 
       // 準備訂單備註（不包含加購資訊）
       let orderNotes = guestInfo.notes || "";
@@ -1128,11 +1095,8 @@ const BookingFlow = () => {
         .single();
 
       if (orderError) {
-        console.error("建立訂單錯誤:", orderError);
         throw orderError;
       }
-
-      console.log("訂單建立成功:", orderData);
 
       // 發送訂購確認郵件
       let emailSent = false;
@@ -1168,13 +1132,10 @@ const BookingFlow = () => {
           );
 
           if (emailError) {
-            console.error("發送確認郵件失敗:", emailError);
             emailSent = false;
           } else if (emailData?.warning) {
-            console.warn("郵件發送警告:", emailData.warning);
             emailSent = false;
           } else {
-            console.log("確認郵件已發送至:", guestInfo.email);
             emailSent = true;
           }
         } catch (emailError) {
@@ -2657,10 +2618,7 @@ const BookingFlow = () => {
                 </Button>
               ) : (
                 <Button
-                  onClick={() => {
-                    console.log("確認訂房按鈕被點擊");
-                    handleConfirmBooking();
-                  }}
+                  onClick={handleConfirmBooking}
                   disabled={isSubmitting}
                   className="flex-1 bg-primary"
                   size="lg"
