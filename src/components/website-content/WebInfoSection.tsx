@@ -163,97 +163,136 @@ export const WebInfoSection = ({
         <CardTitle>輪播圖設定</CardTitle>
         <CardDescription>設定首頁主視覺輪播圖片、文字內容與視覺效果</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {/* 輪播圖全局標題設定 */}
-        <div className="space-y-4 pb-6 border-b">
-          <div className="space-y-2">
-            <Label htmlFor="hero-main-title">輪播圖主標題</Label>
-            <Input
-              id="hero-main-title"
-              value={heroMainTitle}
-              onChange={(e) => onHeroTitleChange('hero_main_title', e.target.value)}
-              placeholder="例：歡迎來到我們的民宿"
-              maxLength={20}
-            />
-            <p className="text-sm text-muted-foreground">
-              {heroMainTitle.length}/20 字元
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="hero-subtitle">輪播圖副標題</Label>
-            <Input
-              id="hero-subtitle"
-              value={heroSubtitle}
-              onChange={(e) => onHeroTitleChange('hero_subtitle', e.target.value)}
-              placeholder="例：體驗最舒適的住宿環境"
-              maxLength={20}
-            />
-            <p className="text-sm text-muted-foreground">
-              {heroSubtitle.length}/20 字元
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="hero-description">輪播圖次標題（選填）</Label>
-            <Input
-              id="hero-description"
-              value={heroDescription}
-              onChange={(e) => onHeroTitleChange('hero_description', e.target.value)}
-              placeholder="例：享受自然與寧靜的完美結合"
-              maxLength={20}
-            />
-            <p className="text-sm text-muted-foreground">
-              {heroDescription.length}/20 字元
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="hero-overlay-opacity">背景遮罩透明度 ({heroOverlayOpacity}%)</Label>
-              <input
-                id="hero-overlay-opacity"
-                type="range"
-                min="0"
-                max="100"
-                value={heroOverlayOpacity}
-                onChange={(e) => onHeroSettingChange('hero_overlay_opacity', parseInt(e.target.value))}
-                className="w-full"
-              />
-              <p className="text-sm text-muted-foreground">
-                調整圖片上的黑色遮罩透明度
-              </p>
+      <CardContent className="space-y-8">
+        {/* 全局設定區塊 */}
+        <div className="rounded-lg border bg-muted/30 p-6 space-y-6">
+          <div className="flex items-center gap-2 pb-2 border-b">
+            <div className="h-8 w-1 bg-primary rounded-full" />
+            <div>
+              <h3 className="font-semibold text-lg">輪播圖全局設定</h3>
+              <p className="text-sm text-muted-foreground">統一設定所有輪播圖的標題、視覺效果和播放行為</p>
             </div>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="hero-autoplay-delay">自動播放時間 ({heroAutoplayDelay} 秒)</Label>
-              <input
-                id="hero-autoplay-delay"
-                type="range"
-                min="3"
-                max="15"
-                value={heroAutoplayDelay}
-                onChange={(e) => onHeroSettingChange('hero_autoplay_delay', parseInt(e.target.value))}
-                className="w-full"
-              />
-              <p className="text-sm text-muted-foreground">
-                每張輪播圖停留時間
-              </p>
+          {/* 標題設定 */}
+          <div className="space-y-4">
+            <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">標題內容</h4>
+            
+            <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="hero-main-title" className="text-base">主標題</Label>
+                <Input
+                  id="hero-main-title"
+                  value={heroMainTitle}
+                  onChange={(e) => onHeroTitleChange('hero_main_title', e.target.value)}
+                  placeholder="例：歡迎來到我們的民宿"
+                  maxLength={20}
+                  className="text-base"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {heroMainTitle.length}/20 字元 · 會顯示在所有輪播圖上
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="hero-subtitle" className="text-base">副標題</Label>
+                <Input
+                  id="hero-subtitle"
+                  value={heroSubtitle}
+                  onChange={(e) => onHeroTitleChange('hero_subtitle', e.target.value)}
+                  placeholder="例：體驗最舒適的住宿環境"
+                  maxLength={20}
+                  className="text-base"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {heroSubtitle.length}/20 字元
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="hero-description" className="text-base">
+                  次標題 <span className="text-muted-foreground font-normal">(選填)</span>
+                </Label>
+                <Input
+                  id="hero-description"
+                  value={heroDescription}
+                  onChange={(e) => onHeroTitleChange('hero_description', e.target.value)}
+                  placeholder="例：享受自然與寧靜的完美結合"
+                  maxLength={20}
+                  className="text-base"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {heroDescription.length}/20 字元
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 視覺效果設定 */}
+          <div className="space-y-4 pt-4 border-t">
+            <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">視覺效果</h4>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="hero-overlay-opacity" className="text-base">背景遮罩</Label>
+                  <span className="text-sm font-semibold text-primary">{heroOverlayOpacity}%</span>
+                </div>
+                <input
+                  id="hero-overlay-opacity"
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="5"
+                  value={heroOverlayOpacity}
+                  onChange={(e) => onHeroSettingChange('hero_overlay_opacity', parseInt(e.target.value))}
+                  className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                />
+                <p className="text-xs text-muted-foreground">
+                  調整圖片上的黑色遮罩透明度，提升文字可讀性
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="hero-autoplay-delay" className="text-base">播放速度</Label>
+                  <span className="text-sm font-semibold text-primary">{heroAutoplayDelay} 秒</span>
+                </div>
+                <input
+                  id="hero-autoplay-delay"
+                  type="range"
+                  min="3"
+                  max="15"
+                  step="1"
+                  value={heroAutoplayDelay}
+                  onChange={(e) => onHeroSettingChange('hero_autoplay_delay', parseInt(e.target.value))}
+                  className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                />
+                <p className="text-xs text-muted-foreground">
+                  每張輪播圖停留時間，建議 5-10 秒
+                </p>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* 首頁主視覺輪播圖 */}
+        {/* 輪播圖管理 */}
         <div className="space-y-4">
-          <Label>首頁主視覺輪播圖</Label>
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-1 bg-primary rounded-full" />
+            <div>
+              <h3 className="font-semibold text-lg">輪播圖管理</h3>
+              <p className="text-sm text-muted-foreground">上傳和管理首頁輪播圖片（最多 5 張）</p>
+            </div>
+          </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <Button
               type="button"
               variant="outline"
               onClick={() => document.getElementById('hero-photo-upload')?.click()}
               disabled={uploadingHeroPhoto || heroPhotos.length >= 5}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 min-w-[140px]"
             >
               <Upload className="h-4 w-4" />
               {uploadingHeroPhoto ? "上傳中..." : "上傳輪播圖"}
@@ -261,9 +300,9 @@ export const WebInfoSection = ({
             {heroPhotos.length > 0 && (
               <Button
                 type="button"
-                variant="outline"
+                variant="secondary"
                 onClick={onPreviewCarousel}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 min-w-[140px]"
               >
                 <Eye className="h-4 w-4" />
                 預覽輪播效果
@@ -276,21 +315,30 @@ export const WebInfoSection = ({
               onChange={onHeroPhotoUpload}
               className="hidden"
             />
-            <span className="text-sm text-muted-foreground">
-              已上傳 {heroPhotos.length}/5 張
-            </span>
+            <div className="flex items-center gap-2 text-sm">
+              <span className={heroPhotos.length >= 5 ? "text-destructive font-medium" : "text-muted-foreground"}>
+                已上傳 {heroPhotos.length}/5 張
+              </span>
+            </div>
           </div>
           
-          <p className="text-sm text-muted-foreground">
-            建議尺寸：1920x1080 像素，支援 JPG、PNG 格式，上傳後自動優化為 WebP
-          </p>
+          <div className="rounded-lg border bg-muted/10 p-4">
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              <span className="font-medium text-foreground">建議尺寸：</span>1920×1080 像素 · 
+              <span className="font-medium text-foreground"> 支援格式：</span>JPG、PNG · 
+              <span className="font-medium text-foreground"> 自動優化：</span>上傳後轉換為 WebP 格式
+            </p>
+          </div>
 
           {/* 輪播圖列表 */}
           {heroPhotos.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex flex-col gap-1">
-                <p className="text-sm text-muted-foreground">
-                  拖拽圖片可調整輪播順序，點擊圖片可編輯文字內容與顯示效果
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">
+                  已上傳的輪播圖
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  拖拽調整順序 · 點擊編輯樣式
                 </p>
               </div>
               <DndContext
