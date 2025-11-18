@@ -778,7 +778,7 @@ const KolDiscount = () => {
             onClick={() => setApiDocOpen(true)}
           >
             <Code className="h-4 w-4" />
-            <span className="hidden sm:inline">API 文檔</span>
+            <span className="hidden sm:inline">API 文件</span>
           </Button>
           <Dialog open={open} onOpenChange={handleDialogClose}>
             <DialogTrigger asChild>
