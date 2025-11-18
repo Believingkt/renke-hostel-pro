@@ -1,6 +1,6 @@
 /**
  * 生成圖片的模糊預覽 data URL
- * 用於漸進式載入效果
+ * 優化版：減小尺寸和品質以加快生成速度
  */
 export const generateBlurDataURL = (imageUrl: string): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -16,8 +16,8 @@ export const generateBlurDataURL = (imageUrl: string): Promise<string> => {
         return;
       }
       
-      // 使用非常小的尺寸來生成模糊預覽
-      const scale = 20; // 減小尺寸以提高性能
+      // 使用極小的尺寸來生成模糊預覽（從 20 降到 10）
+      const scale = 10; 
       const width = scale;
       const height = Math.round((img.height / img.width) * scale);
       
@@ -27,8 +27,8 @@ export const generateBlurDataURL = (imageUrl: string): Promise<string> => {
       // 繪製縮小的圖片
       ctx.drawImage(img, 0, 0, width, height);
       
-      // 轉換為 data URL（使用較低的質量以減小檔案大小）
-      resolve(canvas.toDataURL('image/jpeg', 0.3));
+      // 轉換為 data URL（使用更低的質量從 0.3 降到 0.1）
+      resolve(canvas.toDataURL('image/jpeg', 0.1));
     };
     
     img.onerror = () => {

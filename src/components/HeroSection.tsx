@@ -151,6 +151,24 @@ const HeroSection = ({
             title_size: photo.title_size || 'medium'
           }));
           setHeroPhotos(photosWithDefaults);
+          
+          // 立即為首張圖片生成模糊預覽
+          const firstImageUrl = photosWithDefaults[0]?.photo_url;
+          if (firstImageUrl) {
+            generateBlurDataURLs([firstImageUrl]).then(blurMap => {
+              setBlurDataURLs(blurMap);
+            });
+            
+            // 延遲為第2和第3張圖片生成模糊預覽
+            setTimeout(() => {
+              const otherImages = photosWithDefaults.slice(1, 3).map(p => p.photo_url);
+              if (otherImages.length > 0) {
+                generateBlurDataURLs(otherImages).then(otherBlurMap => {
+                  setBlurDataURLs(prev => new Map([...prev, ...otherBlurMap]));
+                });
+              }
+            }, 800);
+          }
         }
       } catch (error) {
         console.error('Error fetching hero photos:', error);
@@ -187,24 +205,35 @@ const HeroSection = ({
   }, []);
 
   // 生成圖片模糊預覽 - 延遲執行以避免阻塞關鍵內容
+  // 生成模糊預覽 - 僅為默認圖片
   useEffect(() => {
-    if (slides.length === 0) return;
+    if (slides.length === 0 || heroPhotos.length > 0) return; // 如果有數據庫圖片，跳過
 
     const generateBlurs = async () => {
       try {
-        // 只為前3張圖片生成模糊預覽
-        const imageUrls = slides.slice(0, 3).map(slide => slide.photo_url);
-        const blurs = await generateBlurDataURLs(imageUrls);
-        setBlurDataURLs(blurs);
+        // 只為首張默認圖片生成模糊預覽
+        const firstImageUrl = slides[0]?.photo_url;
+        if (firstImageUrl) {
+          const blurs = await generateBlurDataURLs([firstImageUrl]);
+          setBlurDataURLs(blurs);
+          
+          // 延遲生成其他默認圖片的模糊預覽
+          setTimeout(async () => {
+            const otherUrls = slides.slice(1, 3).map(s => s.photo_url);
+            if (otherUrls.length > 0) {
+              const otherBlurs = await generateBlurDataURLs(otherUrls);
+              setBlurDataURLs(prev => new Map([...prev, ...otherBlurs]));
+            }
+          }, 1000);
+        }
       } catch (error) {
         console.error('生成模糊預覽失敗:', error);
       }
     };
 
-    // 延遲生成，優先載入關鍵內容
-    const timer = setTimeout(generateBlurs, 500);
-    return () => clearTimeout(timer);
-  }, [slides]);
+    // 立即生成首張，不延遲
+    generateBlurs();
+  }, [slides, heroPhotos.length]);
 
   // 檢查是否為假日（星期六或國定假日）
   const isHoliday = (date: Date) => {
@@ -225,45 +254,50 @@ const HeroSection = ({
       const index = carouselApi.selectedScrollSnap();
       setCurrent(index);
       
-      // 智能預載入下一張和上一張圖片
+      // 智能預載入：優先下一張，延遲上一張
       const nextIndex = (index + 1) % slides.length;
       const prevIndex = (index - 1 + slides.length) % slides.length;
       
-      // 立即預載入下一張圖片
-      if (slides[nextIndex]) {
+      // 立即預載入下一張圖片（高優先級）
+      if (slides[nextIndex] && !loadedImages.has(nextIndex)) {
         const img = new Image();
+        img.fetchPriority = 'high';
         img.src = slides[nextIndex].photo_url;
+        setLoadedImages(prev => new Set([...prev, nextIndex]));
       }
       
-      // 延遲預載入上一張圖片
+      // 延遲預載入上一張圖片（低優先級）
       setTimeout(() => {
-        if (slides[prevIndex]) {
+        if (slides[prevIndex] && !loadedImages.has(prevIndex)) {
           const img = new Image();
+          img.fetchPriority = 'low';
           img.src = slides[prevIndex].photo_url;
+          setLoadedImages(prev => new Set([...prev, prevIndex]));
         }
-      }, 500);
-      
-      setLoadedImages(prev => new Set([...prev, index, nextIndex, prevIndex]));
+      }, 300); // 減少延遲
     });
     
-    // 首次載入時預載入第二和第三張圖片
+    // 首次載入時快速預載入第二和第三張圖片
     const preloadTimer = setTimeout(() => {
-      setLoadedImages(prev => new Set([...prev, 1, 2]));
-      
-      // 預載入第二張圖片
-      if (slides[1]) {
-        const img = new Image();
-        img.src = slides[1].photo_url;
-      }
-      
-      // 延遲預載入第三張圖片
-      setTimeout(() => {
-        if (slides[2]) {
-          const img = new Image();
-          img.src = slides[2].photo_url;
+      if (slides.length > 1 && !loadedImages.has(1)) {
+        const img2 = new Image();
+        img2.fetchPriority = 'high';
+        img2.src = slides[1].photo_url;
+        setLoadedImages(prev => new Set([...prev, 1]));
+        
+        // 稍後預載入第三張
+        if (slides.length > 2) {
+          setTimeout(() => {
+            if (!loadedImages.has(2)) {
+              const img3 = new Image();
+              img3.fetchPriority = 'low';
+              img3.src = slides[2].photo_url;
+              setLoadedImages(prev => new Set([...prev, 2]));
+            }
+          }, 500);
         }
-      }, 1000);
-    }, 1500);
+      }
+    }, 300); // 大幅減少延遲，從 1500ms 降到 300ms
     
     // 監聽圖片查看器事件，停止/恢復輪播
     const handleViewerOpened = () => {
