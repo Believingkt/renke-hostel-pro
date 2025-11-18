@@ -66,7 +66,7 @@ export const SocialSharingSection = ({
       <CardHeader>
         <CardTitle>社群分享</CardTitle>
         <CardDescription>
-          設定社群媒體分享時的預覽資訊
+          設定社群分享預覽
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -82,7 +82,7 @@ export const SocialSharingSection = ({
           />
           <div className="flex items-center justify-between text-sm">
             <p className={title.length > 60 ? "text-yellow-600" : "text-muted-foreground"}>
-              社群分享時顯示的標題（建議 60 字元以內）
+              建議 60 字元內
             </p>
             <span className={title.length > 60 ? "text-yellow-600 font-medium" : "text-muted-foreground"}>
               {title.length}/60
@@ -109,7 +109,7 @@ export const SocialSharingSection = ({
           />
           <div className="flex items-center justify-between text-sm">
             <p className={description.length > 160 ? "text-yellow-600" : "text-muted-foreground"}>
-              簡短描述旅宿特色（建議 160 字元以內）
+              建議 160 字元內
             </p>
             <span className={description.length > 160 ? "text-yellow-600 font-medium" : "text-muted-foreground"}>
               {description.length}/160
@@ -126,8 +126,8 @@ export const SocialSharingSection = ({
         {/* 社群分享縮圖 */}
         <div className="space-y-2">
           <Label>社群分享預覽圖 (OG Image)</Label>
-          <p className="text-sm text-muted-foreground">
-            社群分享時顯示的圖片，建議尺寸：1200x630 像素
+          <p className="text-xs text-muted-foreground">
+            建議尺寸：1200x630 像素
           </p>
           <div className="flex items-start gap-4">
             <Button
@@ -168,9 +168,6 @@ export const SocialSharingSection = ({
               </div>
             )}
           </div>
-          <p className="text-sm text-muted-foreground">
-            💡 選擇能展現旅宿特色的高品質圖片
-          </p>
         </div>
 
         <SaveButtonContainer onSave={handleSave} isSaving={isSaving} />

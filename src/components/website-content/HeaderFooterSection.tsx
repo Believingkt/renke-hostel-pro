@@ -130,7 +130,7 @@ export const HeaderFooterSection = ({
           />
           <div className="flex items-center justify-between text-sm">
             <p className={browserTitle.length > 70 ? "text-yellow-600" : "text-muted-foreground"}>
-              顯示在瀏覽器標籤頁上的標題（建議 70 字元以內），也會影響搜尋引擎顯示的網站名稱
+              瀏覽器分頁標題（建議 70 字元內）
             </p>
             <span className={browserTitle.length > 70 ? "text-yellow-600 font-medium" : "text-muted-foreground"}>
               {browserTitle.length}/70
@@ -186,8 +186,8 @@ export const HeaderFooterSection = ({
               </div>
             )}
           </div>
-          <p className="text-sm text-muted-foreground">
-            顯示在網站頂部的 Logo，代表品牌形象。建議尺寸：200x60 像素，支援 PNG、JPG 格式（透明背景請使用 PNG）
+          <p className="text-xs text-muted-foreground">
+            建議尺寸：200x60 像素
           </p>
         </div>
 
@@ -233,8 +233,8 @@ export const HeaderFooterSection = ({
               </div>
             )}
           </div>
-          <p className="text-sm text-muted-foreground">
-            顯示在網站底部的 Logo。建議尺寸：200x60 像素，支援 PNG、JPG 格式（透明背景請使用 PNG）
+          <p className="text-xs text-muted-foreground">
+            建議尺寸：200x60 像素
           </p>
         </div>
 
@@ -243,7 +243,7 @@ export const HeaderFooterSection = ({
           <div>
             <h3 className="text-sm font-medium">聯絡資訊</h3>
             <p className="text-xs text-muted-foreground mt-1">
-              這些資訊會顯示在網站頁尾，方便訪客聯繫您。至少填寫一項聯絡方式。
+              聯絡資訊
             </p>
           </div>
           
@@ -255,9 +255,6 @@ export const HeaderFooterSection = ({
               onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
               placeholder="例如：台北市信義區市府路1號"
             />
-            <p className="text-xs text-muted-foreground">
-              完整的旅宿地址，方便訪客找到您的位置
-            </p>
           </div>
 
           <div className="space-y-2">
@@ -268,9 +265,6 @@ export const HeaderFooterSection = ({
               onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
               placeholder="例如：02-1234-5678"
             />
-            <p className="text-xs text-muted-foreground">
-              訪客可直接撥打此電話進行訂房諮詢
-            </p>
           </div>
 
           <div className="space-y-2">
@@ -295,9 +289,6 @@ export const HeaderFooterSection = ({
               onChange={(e) => setFormData(prev => ({ ...prev, lineId: e.target.value }))}
               placeholder="例如：@example"
             />
-            <p className="text-xs text-muted-foreground">
-              訪客可透過 LINE 快速聯繫您，建議填寫官方帳號 ID
-            </p>
           </div>
         </div>
 
@@ -306,7 +297,7 @@ export const HeaderFooterSection = ({
           <div>
             <h3 className="text-sm font-medium">社群媒體連結</h3>
             <p className="text-xs text-muted-foreground mt-1">
-              連結您的社群媒體帳號，讓訪客能更深入了解旅宿動態和最新消息。填寫完整網址即可。
+              填寫完整網址
             </p>
           </div>
           
