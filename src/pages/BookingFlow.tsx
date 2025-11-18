@@ -591,6 +591,7 @@ const BookingFlow = () => {
   const handleApplyDiscount = async (code?: string) => {
     const codeToApply = code || discountCode;
     if (!codeToApply.trim() || !accommodationId) {
+      console.log('[折扣碼] 缺少必要資訊:', { codeToApply, accommodationId });
       toast({
         title: "請輸入折扣代碼",
         variant: "destructive",
@@ -601,18 +602,31 @@ const BookingFlow = () => {
     setIsValidatingCode(true);
     
     try {
+      const orderAmount = calculateTotal();
+      const roomId = selectedRoom?.id || null;
+      const checkInDateStr = checkInDate ? format(checkInDate, "yyyy-MM-dd") : null;
+      
+      console.log('[折扣碼] 開始驗證:', {
+        code: codeToApply.trim().toUpperCase(),
+        accommodationId,
+        orderAmount,
+        roomId,
+        checkInDateStr
+      });
+      
       // 使用資料庫函數驗證折扣碼，傳遞訂單金額、房型和入住日期
       const { data, error } = await supabase.rpc('validate_discount_code', {
         p_code: codeToApply.trim().toUpperCase(),
         p_accommodation_id: accommodationId,
-        p_order_amount: calculateTotal(),
-        p_room_type_id: selectedRoom?.id || null,
-        p_check_in_date: checkInDate ? format(checkInDate, "yyyy-MM-dd") : null
+        p_order_amount: orderAmount,
+        p_room_type_id: roomId,
+        p_check_in_date: checkInDateStr
       });
 
       if (error) throw error;
 
       const result = data[0];
+      console.log('[折扣碼] 驗證結果:', result);
       
       if (result.is_valid) {
         setAppliedDiscount({
@@ -620,6 +634,7 @@ const BookingFlow = () => {
           type: result.discount_type as "percentage" | "amount",
           value: result.discount_value
         });
+        console.log('[折扣碼] 已套用折扣');
         toast({
           title: "折扣代碼已套用",
           description: `已套用 ${
@@ -629,6 +644,7 @@ const BookingFlow = () => {
           }`,
         });
       } else {
+        console.log('[折扣碼] 驗證失敗:', result.message);
         toast({
           title: "折扣代碼無效",
           description: result.message,
@@ -649,17 +665,18 @@ const BookingFlow = () => {
 
   // 自動偵測並套用推薦連結的折扣碼
   useEffect(() => {
+    const refCode = searchParams.get('ref');
+    console.log('[折扣碼] 檢查 URL 參數:', { refCode, autoAppliedRef, accommodationId, selectedRoom: !!selectedRoom, checkInDate: !!checkInDate });
+    
     // 只要有 accommodationId、selectedRoom 和 checkInDate，就自動套用折扣碼
-    if (!autoAppliedRef && accommodationId && selectedRoom && checkInDate) {
-      const refCode = searchParams.get('ref');
-      if (refCode) {
-        setDiscountCode(refCode);
-        setAutoAppliedRef(true);
-        // 延遲自動驗證，確保其他數據已載入
-        setTimeout(() => {
-          handleApplyDiscount(refCode);
-        }, 500);
-      }
+    if (!autoAppliedRef && accommodationId && selectedRoom && checkInDate && refCode) {
+      console.log('[折扣碼] 開始自動套用:', refCode);
+      setDiscountCode(refCode);
+      setAutoAppliedRef(true);
+      // 延遲自動驗證，確保其他數據已載入
+      setTimeout(() => {
+        handleApplyDiscount(refCode);
+      }, 500);
     }
   }, [accommodationId, selectedRoom, checkInDate, autoAppliedRef]);
 
