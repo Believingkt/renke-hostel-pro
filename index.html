@@ -79,9 +79,16 @@
         background-color: hsl(var(--background));
       }
       
-      /* 根元素載入狀態 */
+      /* 根元素載入狀態 - 完全不可見直到字體載入 */
       #root { 
-        min-height: 100vh; 
+        min-height: 100vh;
+        opacity: 0;
+        visibility: hidden;
+      }
+      
+      html.fonts-loaded #root {
+        opacity: 1;
+        visibility: visible;
       }
       
       /* 載入動畫 */
@@ -122,12 +129,35 @@
       }
     </style>
     <script>
-      // 簡單的字體載入檢測
-      if ('fonts' in document) {
-        document.fonts.ready.then(() => {
-          document.documentElement.classList.add('fonts-loaded');
-        });
-      }
+      // 強制等待字體載入完成
+      (function() {
+        const root = document.getElementById('root');
+        
+        if ('fonts' in document && document.fonts) {
+          // 首先確保關鍵字體已下載
+          Promise.all([
+            document.fonts.load('700 16px "Noto Sans TC"'),
+            document.fonts.load('400 16px "Noto Sans TC"')
+          ]).then(() => {
+            // 等待所有字體完全準備好
+            return document.fonts.ready;
+          }).then(() => {
+            // 標記字體已載入
+            document.documentElement.classList.add('fonts-loaded');
+          }).catch((err) => {
+            console.error('Font loading failed:', err);
+            // 即使失敗也要在2秒後顯示
+            setTimeout(() => {
+              document.documentElement.classList.add('fonts-loaded');
+            }, 2000);
+          });
+        } else {
+          // 不支援 Font Loading API，延遲後顯示
+          setTimeout(() => {
+            document.documentElement.classList.add('fonts-loaded');
+          }, 1500);
+        }
+      })();
     </script>
   </head>
 
