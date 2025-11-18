@@ -1987,6 +1987,8 @@ const WebsiteContent = () => {
               setBasicInfo(prev => ({ ...prev, [field]: value }));
             }}
             uploadingHeroPhoto={uploadingHeroPhoto}
+            onSave={handleSaveBasicInfo}
+            isSaving={isSaving}
           />
 
           <HeroCarouselPreviewDialog
