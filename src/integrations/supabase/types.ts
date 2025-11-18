@@ -257,6 +257,7 @@ export type Database = {
           overlay_opacity: number | null
           photo_type: string | null
           photo_url: string
+          secondary_subtitle: string | null
           subtitle: string | null
           text_color: string | null
           text_position_x: string | null
@@ -275,6 +276,7 @@ export type Database = {
           overlay_opacity?: number | null
           photo_type?: string | null
           photo_url: string
+          secondary_subtitle?: string | null
           subtitle?: string | null
           text_color?: string | null
           text_position_x?: string | null
@@ -293,6 +295,7 @@ export type Database = {
           overlay_opacity?: number | null
           photo_type?: string | null
           photo_url?: string
+          secondary_subtitle?: string | null
           subtitle?: string | null
           text_color?: string | null
           text_position_x?: string | null

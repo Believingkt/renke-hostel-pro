@@ -15,6 +15,7 @@ interface HeroPhotoEditDialogProps {
     photo_url: string;
     title?: string | null;
     subtitle?: string | null;
+    secondary_subtitle?: string | null;
     text_color?: string | null;
     text_size?: string | null;
     text_position_x?: string | null;
@@ -25,6 +26,7 @@ interface HeroPhotoEditDialogProps {
   onSave: (photoId: string, data: {
     title: string;
     subtitle: string;
+    secondary_subtitle: string;
     text_color: string;
     text_size: string;
     text_position_x: string;
@@ -37,6 +39,7 @@ interface HeroPhotoEditDialogProps {
 export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroPhotoEditDialogProps) => {
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
+  const [secondarySubtitle, setSecondarySubtitle] = useState("");
   const [textColor, setTextColor] = useState("white");
   const [textSize, setTextSize] = useState("medium");
   const [textPositionX, setTextPositionX] = useState("center");
@@ -49,6 +52,7 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
     if (photo) {
       setTitle(photo.title || "");
       setSubtitle(photo.subtitle || "");
+      setSecondarySubtitle(photo.secondary_subtitle || "");
       setTextColor(photo.text_color || "white");
       setTextSize(photo.text_size || "medium");
       setTextPositionX(photo.text_position_x || "center");
@@ -66,6 +70,7 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
       await onSave(photo.id, {
         title,
         subtitle,
+        secondary_subtitle: secondarySubtitle,
         text_color: textColor,
         text_size: textSize,
         text_position_x: textPositionX,
@@ -147,6 +152,18 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
                         {subtitle}
                       </p>
                     )}
+                    {secondarySubtitle && (
+                      <p 
+                        className={`
+                          drop-shadow-lg mt-1 opacity-90
+                          ${textSize === 'small' ? 'text-xs md:text-sm' : 
+                            textSize === 'large' ? 'text-base md:text-xl' : 
+                            'text-sm md:text-lg'}
+                        `}
+                      >
+                        {secondarySubtitle}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -186,6 +203,22 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
               />
               <p className="text-sm text-muted-foreground">
                 {subtitle.length}/200 字元
+              </p>
+            </div>
+
+            {/* 次標題 */}
+            <div className="space-y-2">
+              <Label htmlFor="secondary-subtitle">次標題（選填）</Label>
+              <Textarea
+                id="secondary-subtitle"
+                value={secondarySubtitle}
+                onChange={(e) => setSecondarySubtitle(e.target.value)}
+                placeholder="例：享受自然與寧靜的完美結合"
+                maxLength={150}
+                rows={2}
+              />
+              <p className="text-sm text-muted-foreground">
+                {secondarySubtitle.length}/150 字元
               </p>
             </div>
 
