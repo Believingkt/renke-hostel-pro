@@ -25,7 +25,6 @@ const Dashboard = () => {
   const isMobile = useIsMobile();
   const [isLiveUpdating, setIsLiveUpdating] = useState(false);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date());
-  const [comparisonMode, setComparisonMode] = useState<'lastYear' | 'lastMonth'>('lastYear');
   const [isGenerating, setIsGenerating] = useState(false);
   const [testDataCount, setTestDataCount] = useState(20);
   const [useLastYear, setUseLastYear] = useState(false);
@@ -36,7 +35,7 @@ const Dashboard = () => {
     isLoading, 
     error, 
     refreshData 
-  } = useDashboardData(accommodationId, comparisonMode, undefined);
+  } = useDashboardData(accommodationId, 'lastYear', undefined);
 
   const handleGenerateTestData = async () => {
     if (!accommodationId) {
@@ -275,33 +274,7 @@ const Dashboard = () => {
               </div>
             </PopoverContent>
           </Popover>
-          <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-            <button
-              onClick={() => {
-                setComparisonMode('lastYear');
-              }}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-300 ${
-                comparisonMode === 'lastYear'
-                  ? 'bg-background text-foreground shadow-sm scale-105'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
-              }`}
-            >
-              與去年對比
-            </button>
-            <button
-              onClick={() => {
-                setComparisonMode('lastMonth');
-              }}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-300 ${
-                comparisonMode === 'lastMonth'
-                  ? 'bg-background text-foreground shadow-sm scale-105'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
-              }`}
-            >
-              與上月對比
-            </button>
-          </div>
-          <Badge 
+          <Badge
             variant={isLiveUpdating ? "default" : "secondary"} 
             className={`transition-all ${isLiveUpdating ? 'animate-pulse' : ''}`}
           >
@@ -366,16 +339,16 @@ const Dashboard = () => {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg font-semibold">訂單趨勢</CardTitle>
-            <span className="text-xs text-muted-foreground">
-              {comparisonMode === 'lastYear' ? '年度對比' : '月度對比'}
-            </span>
+              <span className="text-xs text-muted-foreground">
+                年度對比
+              </span>
             </div>
           </CardHeader>
           <CardContent>
             <BookingTrendsChart 
-              key={`booking-${comparisonMode}-standard`}
+              key="booking-lastYear-standard"
               data={finalBookingData}
-              comparisonMode={comparisonMode}
+              comparisonMode="lastYear"
               isCustomRange={false}
             />
           </CardContent>
@@ -386,16 +359,16 @@ const Dashboard = () => {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg font-semibold">營收統計</CardTitle>
-              <span className="text-xs text-muted-foreground">
-                {comparisonMode === 'lastYear' ? '年度對比' : '月度對比'}
-              </span>
+            <span className="text-xs text-muted-foreground">
+              年度對比
+            </span>
           </div>
         </CardHeader>
         <CardContent>
           <RevenueChart 
-            key={`revenue-${comparisonMode}-standard`}
+            key="revenue-lastYear-standard"
             data={finalRevenueData}
-            comparisonMode={comparisonMode}
+            comparisonMode="lastYear"
             isCustomRange={false}
           />
         </CardContent>
