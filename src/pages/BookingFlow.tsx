@@ -645,9 +645,16 @@ const BookingFlow = () => {
         });
       } else {
         console.log('[折扣碼] 驗證失敗:', result.message);
+        
+        // 如果是房型限制問題，顯示可使用的房型
+        let errorMessage = result.message;
+        if (result.applicable_room_names && result.applicable_room_names.length > 0) {
+          errorMessage += `\n\n此折扣碼僅適用於：${result.applicable_room_names.join('、')}`;
+        }
+        
         toast({
           title: "折扣代碼無效",
-          description: result.message,
+          description: errorMessage,
           variant: "destructive",
         });
       }
