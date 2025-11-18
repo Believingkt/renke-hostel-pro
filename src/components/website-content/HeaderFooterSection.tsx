@@ -336,9 +336,11 @@ export const HeaderFooterSection = ({
           </div>
         </div>
 
-        <Button onClick={handleSave} disabled={isSaving}>
-          {isSaving ? "儲存中..." : "儲存變更"}
-        </Button>
+        <div className="flex justify-end">
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? "儲存中..." : "儲存變更"}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
