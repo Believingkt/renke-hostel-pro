@@ -198,10 +198,10 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="例：歡迎來到我們的民宿"
-                maxLength={100}
+                maxLength={20}
               />
               <p className="text-sm text-muted-foreground">
-                {title.length}/100 字元
+                {title.length}/20 字元
               </p>
             </div>
 
@@ -225,16 +225,15 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
             {/* 副標題 */}
             <div className="space-y-2">
               <Label htmlFor="subtitle">副標題</Label>
-              <Textarea
+              <Input
                 id="subtitle"
                 value={subtitle}
                 onChange={(e) => setSubtitle(e.target.value)}
                 placeholder="例：體驗最舒適的住宿環境"
-                maxLength={200}
-                rows={3}
+                maxLength={20}
               />
               <p className="text-sm text-muted-foreground">
-                {subtitle.length}/200 字元
+                {subtitle.length}/20 字元
               </p>
             </div>
 
@@ -258,16 +257,15 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
             {/* 次標題 */}
             <div className="space-y-2">
               <Label htmlFor="secondary-subtitle">次標題（選填）</Label>
-              <Textarea
+              <Input
                 id="secondary-subtitle"
                 value={secondarySubtitle}
                 onChange={(e) => setSecondarySubtitle(e.target.value)}
                 placeholder="例：享受自然與寧靜的完美結合"
-                maxLength={150}
-                rows={2}
+                maxLength={20}
               />
               <p className="text-sm text-muted-foreground">
-                {secondarySubtitle.length}/150 字元
+                {secondarySubtitle.length}/20 字元
               </p>
             </div>
 
