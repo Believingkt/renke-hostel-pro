@@ -205,23 +205,6 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
               </p>
             </div>
 
-            {/* 標題文字大小 */}
-            {title && (
-              <div className="space-y-2">
-                <Label htmlFor="title-size">標題文字大小</Label>
-                <Select value={titleSize} onValueChange={setTitleSize}>
-                  <SelectTrigger id="title-size">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="small">小</SelectItem>
-                    <SelectItem value="medium">中</SelectItem>
-                    <SelectItem value="large">大</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
             {/* 副標題 */}
             <div className="space-y-2">
               <Label htmlFor="subtitle">副標題</Label>
@@ -237,23 +220,6 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
               </p>
             </div>
 
-            {/* 副標題文字大小 */}
-            {subtitle && (
-              <div className="space-y-2">
-                <Label htmlFor="subtitle-size">副標題文字大小</Label>
-                <Select value={subtitleSize} onValueChange={setSubtitleSize}>
-                  <SelectTrigger id="subtitle-size">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="small">小</SelectItem>
-                    <SelectItem value="medium">中</SelectItem>
-                    <SelectItem value="large">大</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
             {/* 次標題 */}
             <div className="space-y-2">
               <Label htmlFor="secondary-subtitle">次標題（選填）</Label>
@@ -268,23 +234,6 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
                 {secondarySubtitle.length}/20 字元
               </p>
             </div>
-
-            {/* 次標題文字大小 */}
-            {secondarySubtitle && (
-              <div className="space-y-2">
-                <Label htmlFor="secondary-subtitle-size">次標題文字大小</Label>
-                <Select value={secondarySubtitleSize} onValueChange={setSecondarySubtitleSize}>
-                  <SelectTrigger id="secondary-subtitle-size">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="small">小</SelectItem>
-                    <SelectItem value="medium">中</SelectItem>
-                    <SelectItem value="large">大</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
 
             {/* 文字顏色 */}
             <div className="space-y-2">
