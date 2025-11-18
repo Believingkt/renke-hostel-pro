@@ -348,11 +348,11 @@ const HeroSection = ({
           <CarouselContent className="-ml-0">
             {slides.map((slide, index) => (
               <CarouselItem key={slide.id} className="pl-0">
-                <div className="relative h-[500px] md:h-[700px] w-full bg-gradient-to-br from-muted to-muted/50 transition-opacity duration-700">
+                <div className="relative h-[500px] md:h-[700px] w-full bg-gradient-to-br from-muted to-muted/50">
                   <OptimizedImage
                     src={slide.photo_url}
                     alt={slide.title || `${accommodationName} - 首頁輪播圖 ${index + 1}`}
-                    className="w-full h-full object-cover brightness-110 transition-transform duration-700 ease-out"
+                    className="w-full h-full object-cover brightness-110"
                     priority={index === 0}
                     width="1920"
                     height="1080"
@@ -364,7 +364,7 @@ const HeroSection = ({
                     onLoad={index === 0 ? onFirstImageLoad : undefined}
                   />
                   <div 
-                    className="absolute inset-0 transition-all duration-700"
+                    className="absolute inset-0"
                     style={{ 
                       backgroundColor: `rgba(0, 0, 0, ${heroOverlayOpacity / 100})`
                     }}

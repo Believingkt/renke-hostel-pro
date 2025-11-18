@@ -89,16 +89,28 @@
         background-color: hsl(var(--background));
       }
       
-      /* 根元素 - 完全隱藏直到字體載入 */
+      /* 根元素 - 只隱藏文字部分 */
       #root { 
         min-height: 100vh;
-        opacity: 0 !important;
-        visibility: hidden !important;
       }
       
-      html.fonts-ready #root {
+      /* 字體未載入時只隱藏文字內容 */
+      html:not(.fonts-ready) h1,
+      html:not(.fonts-ready) h2,
+      html:not(.fonts-ready) h3,
+      html:not(.fonts-ready) p,
+      html:not(.fonts-ready) span,
+      html:not(.fonts-ready) button {
+        opacity: 0 !important;
+      }
+      
+      html.fonts-ready h1,
+      html.fonts-ready h2,
+      html.fonts-ready h3,
+      html.fonts-ready p,
+      html.fonts-ready span,
+      html.fonts-ready button {
         opacity: 1 !important;
-        visibility: visible !important;
       }
       
       /* 載入動畫 */
