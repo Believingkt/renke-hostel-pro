@@ -15,8 +15,6 @@ interface HeroPhotoEditDialogProps {
     photo_url: string;
     title?: string | null;
     subtitle?: string | null;
-    cta_text?: string | null;
-    cta_link?: string | null;
     text_color?: string | null;
     text_size?: string | null;
     text_position_x?: string | null;
@@ -27,8 +25,6 @@ interface HeroPhotoEditDialogProps {
   onSave: (photoId: string, data: {
     title: string;
     subtitle: string;
-    cta_text: string;
-    cta_link: string;
     text_color: string;
     text_size: string;
     text_position_x: string;
@@ -41,8 +37,6 @@ interface HeroPhotoEditDialogProps {
 export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroPhotoEditDialogProps) => {
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
-  const [ctaText, setCtaText] = useState("");
-  const [ctaLink, setCtaLink] = useState("");
   const [textColor, setTextColor] = useState("white");
   const [textSize, setTextSize] = useState("medium");
   const [textPositionX, setTextPositionX] = useState("center");
@@ -55,8 +49,6 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
     if (photo) {
       setTitle(photo.title || "");
       setSubtitle(photo.subtitle || "");
-      setCtaText(photo.cta_text || "");
-      setCtaLink(photo.cta_link || "");
       setTextColor(photo.text_color || "white");
       setTextSize(photo.text_size || "medium");
       setTextPositionX(photo.text_position_x || "center");
@@ -74,8 +66,6 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
       await onSave(photo.id, {
         title,
         subtitle,
-        cta_text: ctaText,
-        cta_link: ctaLink,
         text_color: textColor,
         text_size: textSize,
         text_position_x: textPositionX,
@@ -97,7 +87,7 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
         <DialogHeader>
           <DialogTitle>編輯輪播圖文字與樣式</DialogTitle>
           <DialogDescription>
-            設置此輪播圖的標題、副標題、行動呼籲按鈕和視覺效果
+            設置此輪播圖的標題、副標題和視覺效果
           </DialogDescription>
         </DialogHeader>
 
@@ -157,16 +147,6 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
                         {subtitle}
                       </p>
                     )}
-                    {ctaText && (
-                      <div className="mt-4">
-                        <Button
-                          size="sm"
-                          className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg pointer-events-none"
-                        >
-                          {ctaText}
-                        </Button>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -206,36 +186,6 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
               />
               <p className="text-sm text-muted-foreground">
                 {subtitle.length}/200 字元
-              </p>
-            </div>
-
-            {/* CTA 按鈕文字 */}
-            <div className="space-y-2">
-              <Label htmlFor="cta-text">按鈕文字（選填）</Label>
-              <Input
-                id="cta-text"
-                value={ctaText}
-                onChange={(e) => setCtaText(e.target.value)}
-                placeholder="例：立即預訂、了解更多"
-                maxLength={50}
-              />
-              <p className="text-sm text-muted-foreground">
-                {ctaText.length}/50 字元
-              </p>
-            </div>
-
-            {/* CTA 按鈕連結 */}
-            <div className="space-y-2">
-              <Label htmlFor="cta-link">按鈕連結（選填）</Label>
-              <Input
-                id="cta-link"
-                value={ctaLink}
-                onChange={(e) => setCtaLink(e.target.value)}
-                placeholder="例：/booking 或 #rooms"
-                maxLength={200}
-              />
-              <p className="text-sm text-muted-foreground">
-                可以使用相對路徑（如 /booking）或錨點（如 #rooms）
               </p>
             </div>
 

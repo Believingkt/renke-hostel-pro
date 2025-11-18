@@ -1661,8 +1661,6 @@ const WebsiteContent = () => {
   const handleSaveHeroPhotoText = async (photoId: string, data: {
     title: string;
     subtitle: string;
-    cta_text: string;
-    cta_link: string;
     text_color: string;
     text_size: string;
     text_position_x: string;
@@ -1676,8 +1674,6 @@ const WebsiteContent = () => {
         .update({
           title: data.title || null,
           subtitle: data.subtitle || null,
-          cta_text: data.cta_text || null,
-          cta_link: data.cta_link || null,
           text_color: data.text_color,
           text_size: data.text_size,
           text_position_x: data.text_position_x,
