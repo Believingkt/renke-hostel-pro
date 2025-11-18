@@ -55,7 +55,7 @@ const roomImages: Record<string, string[]> = {
   "標準客房": [roomStandard, roomDeluxe, roomSuite, roomStandard, roomDeluxe],
 };
 
-const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: string; display_order: number }[] } }) => {
+const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photos?: { photo_url: string; display_order: number }[] }, isFirstRoom?: boolean }) => {
   // 優先使用資料庫照片，沒有則使用預設照片
   const databaseImages = room.room_photos?.map(p => p.photo_url) || [];
   const defaultImages = roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard];
@@ -133,7 +133,7 @@ const RoomCard = ({ room }: { room: RoomType & { room_photos?: { photo_url: stri
                       width="800"
                       height="600"
                       sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      priority={index === 0} // 第一張優先載入
+                      priority={isFirstRoom && index === 0} // 只有第一個房型的第一張圖片優先載入
                     />
                     <div className="absolute top-3 md:top-4 right-3 md:right-4 bg-black/40 hover:bg-black/60 p-1.5 md:p-2 rounded-full transition-colors z-10">
                       <ZoomIn className="h-4 w-4 md:h-5 md:w-5 text-white" />
@@ -276,8 +276,8 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6 lg:gap-6 items-stretch">
-            {displayRooms.map((room) => (
-              <RoomCard key={room.id} room={room} />
+            {displayRooms.map((room, index) => (
+              <RoomCard key={room.id} room={room} isFirstRoom={index === 0} />
             ))}
           </div>
         </div>
