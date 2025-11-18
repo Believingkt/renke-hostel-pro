@@ -99,7 +99,7 @@ const HeroSection = ({
         autoplay_delay: null
       }));
 
-  // 載入首頁輪播圖
+  // 載入首頁輪播圖 - 優化載入策略
   useEffect(() => {
     const fetchHeroPhotos = async () => {
       // 獲取第一個 accommodation ID（公開前台）
@@ -140,7 +140,8 @@ const HeroSection = ({
           `)
           .eq('accommodation_id', accommodationId)
           .eq('photo_type', 'hero')
-          .order('display_order');
+          .order('display_order')
+          .limit(5); // 限制只載入前5張圖片
 
         if (error) throw error;
 
@@ -188,13 +189,14 @@ const HeroSection = ({
     loadPublicHolidays();
   }, []);
 
-  // 生成圖片模糊預覽
+  // 生成圖片模糊預覽 - 延遲執行以避免阻塞關鍵內容
   useEffect(() => {
     if (slides.length === 0) return;
 
     const generateBlurs = async () => {
       try {
-        const imageUrls = slides.map(slide => slide.photo_url);
+        // 只為前3張圖片生成模糊預覽
+        const imageUrls = slides.slice(0, 3).map(slide => slide.photo_url);
         const blurs = await generateBlurDataURLs(imageUrls);
         setBlurDataURLs(blurs);
       } catch (error) {
@@ -202,8 +204,8 @@ const HeroSection = ({
       }
     };
 
-    // 延遲生成，避免阻塞主線程
-    const timer = setTimeout(generateBlurs, 100);
+    // 延遲生成，優先載入關鍵內容
+    const timer = setTimeout(generateBlurs, 500);
     return () => clearTimeout(timer);
   }, [slides]);
 
