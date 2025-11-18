@@ -6,16 +6,18 @@
     <link rel="icon" href="/favicon.png" type="image/png" />
     <title>森山寫照 - 山間的寧靜時光</title>
     
-    <!-- Preconnect for faster loading -->
+    <!-- DNS Prefetch & Preconnect for faster loading -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://dmafqwfynatdvnaeovhz.supabase.co">
     
-    <!-- 預載入關鍵字體 - 確保字體在渲染前完全載入 -->
-    <link rel="preload" href="https://fonts.gstatic.com/s/notosanstc/v35/-nFlOG829Oofr2wohFbTp9i9kwMUK_G-5DONY3ahGxvbItqP5Q.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="preload" href="https://fonts.gstatic.com/s/notosanstc/v35/-nF8OG829Oofr2wohFbTp9i9kwMUK_G-5DDNY-avGxvbItqP5Vvv2A.woff2" as="font" type="font/woff2" crossorigin>
+    <!-- 預載入關鍵字體 - 高優先級載入 -->
+    <link rel="preload" href="https://fonts.gstatic.com/s/notosanstc/v35/-nFlOG829Oofr2wohFbTp9i9kwMUK_G-5DONY3ahGxvbItqP5Q.woff2" as="font" type="font/woff2" crossorigin fetchpriority="high">
+    <link rel="preload" href="https://fonts.gstatic.com/s/notosanstc/v35/-nF8OG829Oofr2wohFbTp9i9kwMUK_G-5DDNY-avGxvbItqP5Vvv2A.woff2" as="font" type="font/woff2" crossorigin fetchpriority="high">
     
-    <!-- 优化字体加载 - 使用 font-display: optional 配合預載入 -->
+    <!-- 优化字体加载 -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=optional" rel="stylesheet">
     
     <meta name="description" content="森山寫照位於寧靜的山區，是一處結合日式傳統美學與現代舒適的精品旅宿" />
@@ -31,24 +33,85 @@
     
     <!-- Inline critical CSS for instant rendering -->
     <style>
-      * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+      /* 重置與基礎樣式 */
+      * { 
+        -webkit-font-smoothing: antialiased; 
+        -moz-osx-font-smoothing: grayscale;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+      }
+      
+      /* 設計系統 - 關鍵顏色變數 */
+      :root {
+        --background: 0 0% 100%;
+        --foreground: 240 10% 3.9%;
+        --primary: 240 5.9% 10%;
+        --primary-foreground: 0 0% 98%;
+        --muted: 240 4.8% 95.9%;
+        --muted-foreground: 240 3.8% 46.1%;
+        --border: 240 5.9% 90%;
+        --radius: 0.5rem;
+      }
+      
+      /* 基礎佈局 */
+      html { 
+        scroll-behavior: smooth;
+        -webkit-text-size-adjust: 100%;
+      }
+      
       body { 
         margin: 0; 
+        padding: 0;
         font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
         font-weight: 400;
         line-height: 1.5;
+        color: hsl(var(--foreground));
+        background-color: hsl(var(--background));
       }
-      #root { min-height: 100vh; opacity: 0; transition: opacity 0.1s; }
+      
+      /* 根元素載入狀態 */
+      #root { 
+        min-height: 100vh; 
+        opacity: 0; 
+        transition: opacity 0.15s ease-in;
+      }
       #root.fonts-loaded { opacity: 1; }
-      .loading { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-      /* Safari 性能优化 */
-      img { transform: translateZ(0); -webkit-transform: translateZ(0); }
-      * { -webkit-backface-visibility: hidden; backface-visibility: hidden; }
-      /* 確保標題字體一致性 - 固定字體粗細避免跳動 */
+      
+      /* 載入動畫 */
+      .loading { 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        min-height: 100vh;
+        color: hsl(var(--muted-foreground));
+      }
+      
+      /* 標題字體一致性 */
       h1, h2, h3, h4, h5, h6 {
         font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
         font-weight: 700;
         line-height: 1.2;
+        margin: 0;
+      }
+      
+      /* 圖片優化 */
+      img { 
+        transform: translateZ(0);
+        -webkit-transform: translateZ(0);
+        max-width: 100%;
+        height: auto;
+      }
+      
+      /* 連結基礎樣式 */
+      a { 
+        color: inherit; 
+        text-decoration: none; 
+      }
+      
+      /* 按鈕基礎樣式 */
+      button {
+        font-family: inherit;
+        cursor: pointer;
       }
     </style>
     <script>
@@ -75,6 +138,6 @@
 
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module" src="/src/main.tsx" fetchpriority="high"></script>
   </body>
 </html>
