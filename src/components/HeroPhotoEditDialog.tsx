@@ -13,29 +13,13 @@ interface HeroPhotoEditDialogProps {
   photo: {
     id: string;
     photo_url: string;
-    title?: string | null;
-    subtitle?: string | null;
-    secondary_subtitle?: string | null;
     text_color?: string | null;
-    text_size?: string | null;
-    title_size?: string | null;
-    subtitle_size?: string | null;
-    secondary_subtitle_size?: string | null;
-    text_position_x?: string | null;
     text_position_y?: string | null;
     overlay_opacity?: number | null;
     autoplay_delay?: number | null;
   } | null;
   onSave: (photoId: string, data: {
-    title: string;
-    subtitle: string;
-    secondary_subtitle: string;
     text_color: string;
-    text_size: string;
-    title_size: string;
-    subtitle_size: string;
-    secondary_subtitle_size: string;
-    text_position_x: string;
     text_position_y: string;
     overlay_opacity: number;
     autoplay_delay: number;
@@ -43,15 +27,7 @@ interface HeroPhotoEditDialogProps {
 }
 
 export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroPhotoEditDialogProps) => {
-  const [title, setTitle] = useState("");
-  const [subtitle, setSubtitle] = useState("");
-  const [secondarySubtitle, setSecondarySubtitle] = useState("");
   const [textColor, setTextColor] = useState("white");
-  const [textSize, setTextSize] = useState("medium");
-  const [titleSize, setTitleSize] = useState("large");
-  const [subtitleSize, setSubtitleSize] = useState("medium");
-  const [secondarySubtitleSize, setSecondarySubtitleSize] = useState("small");
-  const [textPositionX, setTextPositionX] = useState("center");
   const [textPositionY, setTextPositionY] = useState("center");
   const [overlayOpacity, setOverlayOpacity] = useState(40);
   const [autoplayDelay, setAutoplayDelay] = useState(8);
@@ -59,15 +35,7 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
 
   useEffect(() => {
     if (photo) {
-      setTitle(photo.title || "");
-      setSubtitle(photo.subtitle || "");
-      setSecondarySubtitle(photo.secondary_subtitle || "");
       setTextColor(photo.text_color || "white");
-      setTextSize(photo.text_size || "medium");
-      setTitleSize(photo.title_size || "large");
-      setSubtitleSize(photo.subtitle_size || "medium");
-      setSecondarySubtitleSize(photo.secondary_subtitle_size || "small");
-      setTextPositionX(photo.text_position_x || "center");
       setTextPositionY(photo.text_position_y || "center");
       setOverlayOpacity(photo.overlay_opacity ?? 40);
       setAutoplayDelay(photo.autoplay_delay ?? 8);
@@ -80,15 +48,7 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
     setIsSaving(true);
     try {
       await onSave(photo.id, {
-        title,
-        subtitle,
-        secondary_subtitle: secondarySubtitle,
         text_color: textColor,
-        text_size: textSize,
-        title_size: titleSize,
-        subtitle_size: subtitleSize,
-        secondary_subtitle_size: secondarySubtitleSize,
-        text_position_x: textPositionX,
         text_position_y: textPositionY,
         overlay_opacity: overlayOpacity,
         autoplay_delay: autoplayDelay,
@@ -105,9 +65,9 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>編輯輪播圖文字與樣式</DialogTitle>
+          <DialogTitle>編輯輪播圖顯示設定</DialogTitle>
           <DialogDescription>
-            設置此輪播圖的標題、副標題和視覺效果
+            調整此輪播圖的文字顏色、位置、遮罩透明度和自動播放延遲（標題內容請至輪播圖設定區域統一編輯）
           </DialogDescription>
         </DialogHeader>
 
@@ -132,8 +92,8 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
                     space-y-2 px-4 py-8
                     text-center
                     ${
-                      photo.text_position_y === 'top' ? 'flex items-start justify-center pt-8' :
-                      photo.text_position_y === 'bottom' ? 'flex items-end justify-center pb-8' :
+                      textPositionY === 'top' ? 'flex items-start justify-center pt-8' :
+                      textPositionY === 'bottom' ? 'flex items-end justify-center pb-8' :
                       'flex items-center justify-center'
                     }
                     absolute inset-0
@@ -143,42 +103,9 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
                   }}
                 >
                   <div className="w-full">
-                    {title && (
-                      <h1 
-                        className={`
-                          font-bold drop-shadow-lg
-                          ${titleSize === 'small' ? 'text-xl md:text-3xl' : 
-                            titleSize === 'large' ? 'text-3xl md:text-5xl' : 
-                            'text-2xl md:text-4xl'}
-                        `}
-                      >
-                        {title}
-                      </h1>
-                    )}
-                    {subtitle && (
-                      <p 
-                        className={`
-                          drop-shadow-lg mt-2
-                          ${subtitleSize === 'small' ? 'text-sm md:text-base' : 
-                            subtitleSize === 'large' ? 'text-lg md:text-2xl' : 
-                            'text-base md:text-xl'}
-                        `}
-                      >
-                        {subtitle}
-                      </p>
-                    )}
-                    {secondarySubtitle && (
-                      <p 
-                        className={`
-                          drop-shadow-lg mt-1 opacity-90
-                          ${secondarySubtitleSize === 'small' ? 'text-xs md:text-sm' : 
-                            secondarySubtitleSize === 'large' ? 'text-base md:text-xl' : 
-                            'text-sm md:text-lg'}
-                        `}
-                      >
-                        {secondarySubtitle}
-                      </p>
-                    )}
+                    <p className="text-sm text-muted-foreground">
+                      標題將顯示在此處（請至輪播圖設定區域編輯全局標題）
+                    </p>
                   </div>
                 </div>
               </div>
@@ -190,51 +117,6 @@ export const HeroPhotoEditDialog = ({ open, onOpenChange, photo, onSave }: HeroP
 
           {/* 右側：設定表單 */}
           <div className="space-y-4">
-            {/* 標題 */}
-            <div className="space-y-2">
-              <Label htmlFor="title">標題</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="例：歡迎來到我們的民宿"
-                maxLength={20}
-              />
-              <p className="text-sm text-muted-foreground">
-                {title.length}/20 字元
-              </p>
-            </div>
-
-            {/* 副標題 */}
-            <div className="space-y-2">
-              <Label htmlFor="subtitle">副標題</Label>
-              <Input
-                id="subtitle"
-                value={subtitle}
-                onChange={(e) => setSubtitle(e.target.value)}
-                placeholder="例：體驗最舒適的住宿環境"
-                maxLength={20}
-              />
-              <p className="text-sm text-muted-foreground">
-                {subtitle.length}/20 字元
-              </p>
-            </div>
-
-            {/* 次標題 */}
-            <div className="space-y-2">
-              <Label htmlFor="secondary-subtitle">次標題（選填）</Label>
-              <Input
-                id="secondary-subtitle"
-                value={secondarySubtitle}
-                onChange={(e) => setSecondarySubtitle(e.target.value)}
-                placeholder="例：享受自然與寧靜的完美結合"
-                maxLength={20}
-              />
-              <p className="text-sm text-muted-foreground">
-                {secondarySubtitle.length}/20 字元
-              </p>
-            </div>
-
             {/* 文字顏色 */}
             <div className="space-y-2">
               <Label htmlFor="text-color">文字顏色</Label>

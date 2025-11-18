@@ -27,12 +27,16 @@ import { CSS } from '@dnd-kit/utilities';
 interface WebInfoSectionProps {
   accommodationId: string;
   heroPhotos: any[];
+  heroMainTitle: string;
+  heroSubtitle: string;
+  heroDescription: string;
   onUpdate: () => void;
   onHeroPhotoUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onDeleteHeroPhoto: (photoId: string) => void;
   onHeroPhotoReorder: (newOrder: any[]) => void;
   onEditHeroPhoto: (photo: any) => void;
   onPreviewCarousel: () => void;
+  onHeroTitleChange: (field: 'hero_main_title' | 'hero_subtitle' | 'hero_description', value: string) => void;
   uploadingHeroPhoto: boolean;
 }
 
@@ -108,13 +112,17 @@ const SortablePhoto = ({ photo, onDelete, onEdit }: SortablePhotoProps) => {
 
 export const WebInfoSection = ({ 
   accommodationId, 
-  heroPhotos, 
+  heroPhotos,
+  heroMainTitle,
+  heroSubtitle,
+  heroDescription,
   onUpdate,
   onHeroPhotoUpload,
   onDeleteHeroPhoto,
   onHeroPhotoReorder,
   onEditHeroPhoto,
   onPreviewCarousel,
+  onHeroTitleChange,
   uploadingHeroPhoto
 }: WebInfoSectionProps) => {
   const [isSaving, setIsSaving] = useState(false);
@@ -150,6 +158,51 @@ export const WebInfoSection = ({
         <CardDescription>設定首頁主視覺輪播圖片、文字內容與視覺效果</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* 輪播圖全局標題設定 */}
+        <div className="space-y-4 pb-6 border-b">
+          <div className="space-y-2">
+            <Label htmlFor="hero-main-title">輪播圖主標題</Label>
+            <Input
+              id="hero-main-title"
+              value={heroMainTitle}
+              onChange={(e) => onHeroTitleChange('hero_main_title', e.target.value)}
+              placeholder="例：歡迎來到我們的民宿"
+              maxLength={20}
+            />
+            <p className="text-sm text-muted-foreground">
+              {heroMainTitle.length}/20 字元
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="hero-subtitle">輪播圖副標題</Label>
+            <Input
+              id="hero-subtitle"
+              value={heroSubtitle}
+              onChange={(e) => onHeroTitleChange('hero_subtitle', e.target.value)}
+              placeholder="例：體驗最舒適的住宿環境"
+              maxLength={20}
+            />
+            <p className="text-sm text-muted-foreground">
+              {heroSubtitle.length}/20 字元
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="hero-description">輪播圖次標題（選填）</Label>
+            <Input
+              id="hero-description"
+              value={heroDescription}
+              onChange={(e) => onHeroTitleChange('hero_description', e.target.value)}
+              placeholder="例：享受自然與寧靜的完美結合"
+              maxLength={20}
+            />
+            <p className="text-sm text-muted-foreground">
+              {heroDescription.length}/20 字元
+            </p>
+          </div>
+        </div>
+
         {/* 首頁主視覺輪播圖 */}
         <div className="space-y-4">
           <Label>首頁主視覺輪播圖</Label>

@@ -1335,7 +1335,10 @@ const WebsiteContent = () => {
           footer_logo_url: basicInfo.footer_logo_url,
           og_title: basicInfo.og_title,
           og_description: basicInfo.og_description,
-          og_image_url: basicInfo.og_image_url
+          og_image_url: basicInfo.og_image_url,
+          hero_main_title: basicInfo.hero_main_title,
+          hero_subtitle: basicInfo.hero_subtitle,
+          hero_description: basicInfo.hero_description
         })
         .eq("id", accommodationId);
 
@@ -1665,15 +1668,7 @@ const WebsiteContent = () => {
   };
 
   const handleSaveHeroPhotoText = async (photoId: string, data: {
-    title: string;
-    subtitle: string;
-    secondary_subtitle: string;
     text_color: string;
-    text_size: string;
-    title_size: string;
-    subtitle_size: string;
-    secondary_subtitle_size: string;
-    text_position_x: string;
     text_position_y: string;
     overlay_opacity: number;
     autoplay_delay: number;
@@ -1682,15 +1677,7 @@ const WebsiteContent = () => {
       const { error } = await supabase
         .from('accommodation_photos')
         .update({
-          title: data.title || null,
-          subtitle: data.subtitle || null,
-          secondary_subtitle: data.secondary_subtitle || null,
           text_color: data.text_color,
-          text_size: data.text_size,
-          title_size: data.title_size,
-          subtitle_size: data.subtitle_size,
-          secondary_subtitle_size: data.secondary_subtitle_size,
-          text_position_x: data.text_position_x,
           text_position_y: data.text_position_y,
           overlay_opacity: data.overlay_opacity,
           autoplay_delay: data.autoplay_delay,
@@ -1706,10 +1693,10 @@ const WebsiteContent = () => {
           : p
       ));
 
-      toast.success('輪播圖設定已更新');
+      toast.success('輪播圖顯示設定已更新');
     } catch (error) {
       if (import.meta.env.DEV) {
-        console.error('Error updating hero photo text:', error);
+        console.error('Error updating hero photo settings:', error);
       }
       toast.error('更新失敗，請稍後再試');
       throw error;
@@ -2021,12 +2008,18 @@ const WebsiteContent = () => {
           <WebInfoSection
             accommodationId={accommodationId || ''}
             heroPhotos={heroPhotos}
+            heroMainTitle={basicInfo.hero_main_title}
+            heroSubtitle={basicInfo.hero_subtitle}
+            heroDescription={basicInfo.hero_description}
             onUpdate={loadData}
             onHeroPhotoUpload={handleHeroPhotoUpload}
             onDeleteHeroPhoto={handleDeleteHeroPhoto}
             onHeroPhotoReorder={handleHeroPhotoReorder}
             onEditHeroPhoto={handleEditHeroPhoto}
             onPreviewCarousel={handlePreviewCarousel}
+            onHeroTitleChange={(field, value) => {
+              setBasicInfo(prev => ({ ...prev, [field]: value }));
+            }}
             uploadingHeroPhoto={uploadingHeroPhoto}
           />
           
