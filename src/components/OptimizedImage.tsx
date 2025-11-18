@@ -3,6 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { calculateOptimalImageSize } from "@/utils/responsiveImageHelper";
 import { getCDNUrl } from "@/utils/cdnHelper";
 import { useNetworkStatus } from "@/hooks/use-network-status";
+import { generateSrcSet, generateResponsiveSrcSet, STANDARD_RESPONSIVE_WIDTHS } from "@/utils/responsiveSrcSetHelper";
 
 interface OptimizedImageProps {
   src: string;
@@ -19,6 +20,8 @@ interface OptimizedImageProps {
   blurDataURL?: string;
   responsive?: boolean;
   useCDN?: boolean;
+  autoSrcSet?: boolean; // 自動生成響應式 srcset
+  imageType?: 'thumbnail' | 'small' | 'medium' | 'large' | 'hero'; // 圖片類型，用於選擇預設寬度
 }
 
 export const OptimizedImage = ({
@@ -36,11 +39,14 @@ export const OptimizedImage = ({
   blurDataURL,
   responsive = true,
   useCDN = true,
+  autoSrcSet = true,
+  imageType = 'medium',
 }: OptimizedImageProps) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInView, setIsInView] = useState(priority);
   const [showBlur, setShowBlur] = useState(true);
   const [optimalSrc, setOptimalSrc] = useState(src);
+  const [generatedSrcSet, setGeneratedSrcSet] = useState<string>("");
   const imgRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const { speed: networkSpeed } = useNetworkStatus();
@@ -70,6 +76,13 @@ export const OptimizedImage = ({
       if (useCDN) {
         const cdnUrl = getCDNUrl(src, optimalWidth, optimalHeight, quality, format);
         setOptimalSrc(cdnUrl);
+        
+        // 自動生成響應式 srcset
+        if (autoSrcSet && !srcSet) {
+          const widths = STANDARD_RESPONSIVE_WIDTHS[imageType];
+          const responsiveSrcSet = generateResponsiveSrcSet(src, widths, quality, format);
+          setGeneratedSrcSet(responsiveSrcSet);
+        }
       } else {
         setOptimalSrc(src);
       }
@@ -88,7 +101,7 @@ export const OptimizedImage = ({
         resizeObserver.disconnect();
       };
     }
-  }, [src, width, height, responsive, useCDN, networkSpeed]);
+  }, [src, width, height, responsive, useCDN, networkSpeed, autoSrcSet, imageType, srcSet]);
 
   useEffect(() => {
     if (priority) return; // 優先圖片立即載入
@@ -156,15 +169,27 @@ export const OptimizedImage = ({
       {/* 主圖片 */}
       {isInView && (
         <picture>
-          {/* WebP 版本（如果有 srcSet）*/}
-          {srcSet && (
-            <source type="image/webp" srcSet={srcSet} sizes={sizes} />
+          {/* 使用生成的 srcSet 或提供的 srcSet */}
+          {(generatedSrcSet || srcSet) && (
+            <>
+              <source 
+                type="image/webp" 
+                srcSet={generatedSrcSet || srcSet} 
+                sizes={sizes} 
+              />
+              <source 
+                type="image/avif" 
+                srcSet={generatedSrcSet || srcSet} 
+                sizes={sizes} 
+              />
+            </>
           )}
           
           {/* 回退到原始圖片 */}
           <img
             ref={imageRef}
             src={optimalSrc}
+            srcSet={generatedSrcSet || srcSet}
             alt={alt}
             className={`${className} ${
               isLoaded 
