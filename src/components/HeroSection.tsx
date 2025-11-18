@@ -338,7 +338,7 @@ const HeroSection = ({
               color: slides[current].text_color === 'black' ? '#000' : slides[current].text_color === 'primary' ? 'hsl(var(--primary))' : '#fff'
             }}
           >
-            <div className="w-full space-y-6 md:space-y-8">
+            <div className="w-full space-y-3 md:space-y-4">
               <h1 
                 className={`
                   font-bold animate-fade-in drop-shadow-lg
@@ -352,7 +352,7 @@ const HeroSection = ({
               {slides[current].subtitle && (
                 <p 
                   className={`
-                    animate-fade-in drop-shadow-lg mt-6 md:mt-8
+                    animate-fade-in drop-shadow-lg mt-3 md:mt-4
                     ${(slides[current].subtitle_size || 'medium') === 'small' ? 'text-base md:text-2xl' : 
                       (slides[current].subtitle_size || 'medium') === 'large' ? 'text-xl md:text-4xl' : 
                       'text-lg md:text-3xl'}
@@ -365,7 +365,7 @@ const HeroSection = ({
               {slides[current].secondary_subtitle && (
                 <p 
                   className={`
-                    animate-fade-in drop-shadow-lg opacity-90 mt-4 md:mt-6
+                    animate-fade-in drop-shadow-lg opacity-90 mt-2 md:mt-3
                     ${(slides[current].secondary_subtitle_size || 'small') === 'small' ? 'text-sm md:text-xl' : 
                       (slides[current].secondary_subtitle_size || 'small') === 'large' ? 'text-lg md:text-3xl' : 
                       'text-base md:text-2xl'}
@@ -379,7 +379,7 @@ const HeroSection = ({
                 <>
                   <p 
                     className={`
-                      animate-fade-in drop-shadow-lg mt-6 md:mt-8
+                      animate-fade-in drop-shadow-lg mt-3 md:mt-4
                       ${slides[current].text_size === 'small' ? 'text-base md:text-2xl' : 
                         slides[current].text_size === 'large' ? 'text-xl md:text-4xl' : 
                         'text-lg md:text-3xl'}
@@ -391,7 +391,7 @@ const HeroSection = ({
                   {heroSubtitle && (
                     <p 
                       className={`
-                        animate-fade-in drop-shadow-lg mt-4 md:mt-6
+                        animate-fade-in drop-shadow-lg mt-2 md:mt-3
                         ${slides[current].text_size === 'small' ? 'text-sm md:text-lg' : 
                           slides[current].text_size === 'large' ? 'text-lg md:text-2xl' : 
                           'text-base md:text-xl'}
@@ -404,7 +404,7 @@ const HeroSection = ({
                   {heroDescription && (
                     <p 
                       className={`
-                        animate-fade-in drop-shadow-lg mt-3 md:mt-4
+                        animate-fade-in drop-shadow-lg mt-2 md:mt-3
                         ${slides[current].text_size === 'small' ? 'text-xs md:text-sm' : 
                           slides[current].text_size === 'large' ? 'text-base md:text-lg' : 
                           'text-sm md:text-base'}
