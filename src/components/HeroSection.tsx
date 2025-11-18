@@ -349,20 +349,33 @@ const HeroSection = ({
             {slides.map((slide, index) => (
               <CarouselItem key={slide.id} className="pl-0">
                 <div className="relative h-[500px] md:h-[700px] w-full bg-gradient-to-br from-muted to-muted/50">
-                  <OptimizedImage
-                    src={slide.photo_url}
-                    alt={slide.title || `${accommodationName} - 首頁輪播圖 ${index + 1}`}
-                    className="w-full h-full object-cover brightness-110"
-                    priority={index === 0}
-                    width="1920"
-                    height="1080"
-                    sizes="100vw"
-                    blurDataURL={blurDataURLs.get(slide.photo_url)}
-                    responsive={true}
-                    autoSrcSet={true}
-                    imageType="hero"
-                    onLoad={index === 0 ? onFirstImageLoad : undefined}
-                  />
+                  {index === 0 ? (
+                    // 首張圖片：無過渡效果，直接顯示
+                    <img
+                      src={slide.photo_url}
+                      alt={slide.title || `${accommodationName} - 首頁輪播圖 1`}
+                      className="w-full h-full object-cover brightness-110"
+                      loading="eager"
+                      fetchPriority="high"
+                      onLoad={onFirstImageLoad}
+                      style={{ opacity: 1 }}
+                    />
+                  ) : (
+                    // 其他圖片：使用 OptimizedImage
+                    <OptimizedImage
+                      src={slide.photo_url}
+                      alt={slide.title || `${accommodationName} - 首頁輪播圖 ${index + 1}`}
+                      className="w-full h-full object-cover brightness-110"
+                      priority={false}
+                      width="1920"
+                      height="1080"
+                      sizes="100vw"
+                      blurDataURL={blurDataURLs.get(slide.photo_url)}
+                      responsive={true}
+                      autoSrcSet={true}
+                      imageType="hero"
+                    />
+                  )}
                   <div 
                     className="absolute inset-0"
                     style={{ 
