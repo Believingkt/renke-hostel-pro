@@ -146,6 +146,95 @@ Deno.serve(async (req) => {
       );
     }
 
+    // GET /kol-api/commission - Query commission records and statistics
+    if (pathname.includes('/commission')) {
+      const { data: commissionRecords, error: commissionError } = await supabase
+        .from('commission_records')
+        .select(`
+          id,
+          order_id,
+          order_total,
+          discount_amount,
+          commission_rate,
+          commission_amount,
+          settlement_status,
+          settlement_date,
+          payment_date,
+          created_at,
+          orders:order_id (
+            order_number,
+            guest_name,
+            check_in_date,
+            check_out_date,
+            order_status,
+            payment_status
+          )
+        `)
+        .eq('discount_code_id', discountData.id)
+        .order('created_at', { ascending: false });
+
+      if (commissionError) {
+        console.error('Error fetching commission records:', commissionError);
+        return new Response(
+          JSON.stringify({ error: '查詢佣金記錄失敗' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Calculate commission statistics
+      const records = commissionRecords || [];
+      
+      const totalCommission = records
+        .filter(r => r.settlement_status !== 'cancelled')
+        .reduce((sum, r) => sum + r.commission_amount, 0);
+      
+      const pendingCommission = records
+        .filter(r => r.settlement_status === 'pending')
+        .reduce((sum, r) => sum + r.commission_amount, 0);
+      
+      const approvedCommission = records
+        .filter(r => r.settlement_status === 'approved')
+        .reduce((sum, r) => sum + r.commission_amount, 0);
+      
+      const paidCommission = records
+        .filter(r => r.settlement_status === 'paid')
+        .reduce((sum, r) => sum + r.commission_amount, 0);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          discount_code: discountCode,
+          commission_statistics: {
+            total_records: records.length,
+            total_commission: totalCommission,
+            pending_commission: pendingCommission,
+            approved_commission: approvedCommission,
+            paid_commission: paidCommission,
+            commission_rate: discountData.commission_rate || 0
+          },
+          commission_records: records.map(record => {
+            const order = Array.isArray(record.orders) ? record.orders[0] : record.orders;
+            return {
+              id: record.id,
+              order_number: order?.order_number || null,
+              guest_name: order?.guest_name || null,
+              check_in_date: order?.check_in_date || null,
+              order_status: order?.order_status || null,
+              order_total: record.order_total,
+              discount_amount: record.discount_amount,
+              commission_rate: record.commission_rate,
+              commission_amount: record.commission_amount,
+              settlement_status: record.settlement_status,
+              settlement_date: record.settlement_date,
+              payment_date: record.payment_date,
+              created_at: record.created_at
+            };
+          })
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Default response - API info
     return new Response(
       JSON.stringify({
@@ -153,7 +242,8 @@ Deno.serve(async (req) => {
         message: '網紅 API',
         endpoints: {
           orders: '/kol-api/orders?code=YOUR_CODE',
-          stats: '/kol-api/stats?code=YOUR_CODE'
+          stats: '/kol-api/stats?code=YOUR_CODE',
+          commission: '/kol-api/commission?code=YOUR_CODE'
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
