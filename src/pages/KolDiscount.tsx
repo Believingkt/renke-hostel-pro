@@ -759,8 +759,11 @@ const KolDiscount = () => {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl md:text-3xl font-bold">折扣代碼管理</h1>
+        <div className="pt-4 pb-4 border-b border-primary/20 mb-6">
+          <h2 className="text-3xl font-bold flex items-center gap-2.5">
+            <span className="w-2 h-9 bg-primary rounded-full"></span>
+            折扣代碼管理
+          </h2>
         </div>
         <TableSkeleton />
       </div>
@@ -769,9 +772,13 @@ const KolDiscount = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl md:text-3xl font-bold">折扣代碼管理</h1>
-        <div className="flex items-center gap-2">
+      <div className="pt-4 pb-4 border-b border-primary/20 mb-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-3xl font-bold flex items-center gap-2.5">
+            <span className="w-2 h-9 bg-primary rounded-full"></span>
+            折扣代碼管理
+          </h2>
+          <div className="flex items-center gap-2">
           <Button 
             variant="outline" 
             className="gap-2"
@@ -946,8 +953,8 @@ const KolDiscount = () => {
                       </Label>
                     </div>
                   ))}
-                </div>
-              </div>
+        </div>
+      </div>
               
               <div className="grid gap-2">
                 <Label>適用入住日期範圍（選填）</Label>
@@ -1054,6 +1061,7 @@ const KolDiscount = () => {
           </Dialog>
         </div>
       </div>
+    </div>
 
       {/* Edit Discount Code Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
