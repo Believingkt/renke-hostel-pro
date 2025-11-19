@@ -285,7 +285,7 @@ const DataBackup = () => {
           <span className="w-2 h-9 bg-primary rounded-full"></span>
           資料備份與還原
         </h2>
-        <p className="text-muted-foreground mt-2 ml-12">
+        <p className="text-muted-foreground mt-2 ml-[18px]">
           管理訂單和客戶資料的備份，確保資料安全
         </p>
       </div>
