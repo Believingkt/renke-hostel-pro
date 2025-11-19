@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { Upload, Trash2, Info, AlertCircle } from "lucide-react";
+import { Upload, Trash2, Info } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
+import { ValidatedInput } from "@/components/ui/validated-input";
+import { ValidatedTextarea } from "@/components/ui/validated-textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { socialSharingSchema } from "@/utils/websiteValidation";
@@ -44,6 +44,21 @@ export const SocialSharingSection = ({
   useEffect(() => {
     setDescription(ogDescription);
   }, [ogDescription]);
+
+  const validateField = (field: string, value: string) => {
+    try {
+      socialSharingSchema.shape[field as keyof typeof socialSharingSchema.shape].parse(value);
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    } catch (error: any) {
+      if (error.errors?.[0]) {
+        setErrors(prev => ({ ...prev, [field]: error.errors[0].message }));
+      }
+    }
+  };
 
   const handleSave = async () => {
     if (!accommodationId) return;
@@ -102,28 +117,20 @@ export const SocialSharingSection = ({
       <CardContent className="space-y-6">
         {/* 社群媒體分享標題 */}
         <div className="space-y-2">
-          <Label htmlFor="og-title">社群媒體分享標題</Label>
-          <Input
+          <ValidatedInput
             id="og-title"
+            label="社群媒體分享標題"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={setTitle}
+            onValidate={(value) => validateField('ogTitle', value)}
+            error={errors.ogTitle}
             placeholder="例如：山林秘境民宿 - 享受自然寧靜時光"
-            className={errors.ogTitle ? "border-destructive focus-visible:ring-destructive" : ""}
+            showCharCount
+            maxLength={60}
           />
-          {errors.ogTitle && (
-            <p className="text-sm text-destructive flex items-center gap-1">
-              <AlertCircle className="w-4 h-4" />
-              {errors.ogTitle}
-            </p>
-          )}
-          <div className="flex items-center justify-between text-sm">
-            <p className="text-muted-foreground">
-              建議 60 字元內
-            </p>
-            <span className={title.length > 60 ? "text-yellow-600 font-medium" : "text-muted-foreground"}>
-              {title.length}/60
-            </span>
-          </div>
+          <p className="text-xs text-muted-foreground">
+            建議 60 字元內
+          </p>
           {title.length > 60 && (
             <p className="text-sm text-yellow-600 flex items-center gap-1">
               <Info className="w-4 h-4" />
@@ -134,29 +141,21 @@ export const SocialSharingSection = ({
 
         {/* 社群媒體分享描述 */}
         <div className="space-y-2">
-          <Label htmlFor="og-description">社群媒體分享描述</Label>
-          <Textarea
+          <ValidatedTextarea
             id="og-description"
+            label="社群媒體分享描述"
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            onChange={setDescription}
+            onValidate={(value) => validateField('ogDescription', value)}
+            error={errors.ogDescription}
             placeholder="例如：坐落於山林間的日式豪華民宿，提供私人溫泉、精緻餐飲服務..."
             rows={3}
-            className={errors.ogDescription ? "border-destructive focus-visible:ring-destructive" : ""}
+            showCharCount
+            maxLength={160}
           />
-          {errors.ogDescription && (
-            <p className="text-sm text-destructive flex items-center gap-1">
-              <AlertCircle className="w-4 h-4" />
-              {errors.ogDescription}
-            </p>
-          )}
-          <div className="flex items-center justify-between text-sm">
-            <p className="text-muted-foreground">
-              建議 160 字元內
-            </p>
-            <span className={description.length > 160 ? "text-yellow-600 font-medium" : "text-muted-foreground"}>
-              {description.length}/160
-            </span>
-          </div>
+          <p className="text-xs text-muted-foreground">
+            建議 160 字元內
+          </p>
           {description.length > 160 && (
             <p className="text-sm text-yellow-600 flex items-center gap-1">
               <Info className="w-4 h-4" />

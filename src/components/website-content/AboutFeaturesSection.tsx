@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit2, Trash2, GripVertical, AlertCircle } from "lucide-react";
+import { Plus, Edit2, Trash2, GripVertical } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { Button } from "@/components/ui/button";
+import { ValidatedInput } from "@/components/ui/validated-input";
+import { ValidatedTextarea } from "@/components/ui/validated-textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -181,6 +181,21 @@ export const AboutFeaturesSection = ({
     }
   };
 
+  const validateField = (field: string, value: string) => {
+    try {
+      aboutSectionSchema.shape[field as keyof typeof aboutSectionSchema.shape].parse(value);
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    } catch (error: any) {
+      if (error.errors?.[0]) {
+        setErrors(prev => ({ ...prev, [field]: error.errors[0].message }));
+      }
+    }
+  };
+
   const handleSave = async () => {
     if (!accommodationId) return;
 
@@ -258,47 +273,31 @@ export const AboutFeaturesSection = ({
       </CardHeader>
       <CardContent className="space-y-6">
         {/* 特色說明主標題 */}
-        <div className="space-y-2">
-          <Label htmlFor="section-title">特色說明主標題</Label>
-          <Input
-            id="section-title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="例如：自然中的秘境 X 宿泊空間"
-            className={errors.sectionTitle ? "border-destructive focus-visible:ring-destructive" : ""}
-          />
-          {errors.sectionTitle && (
-            <p className="text-sm text-destructive flex items-center gap-1">
-              <AlertCircle className="w-4 h-4" />
-              {errors.sectionTitle}
-            </p>
-          )}
-          <p className="text-xs text-muted-foreground">
-            {title.length}/50 字元
-          </p>
-        </div>
+        <ValidatedInput
+          id="section-title"
+          label="特色說明主標題"
+          value={title}
+          onChange={setTitle}
+          onValidate={(value) => validateField('sectionTitle', value)}
+          error={errors.sectionTitle}
+          placeholder="例如：自然中的秘境 X 宿泊空間"
+          showCharCount
+          maxLength={50}
+        />
 
         {/* 特色說明文字 */}
-        <div className="space-y-2">
-          <Label htmlFor="section-description">特色說明文字</Label>
-          <Textarea
-            id="section-description"
-            value={description || ''}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="簡短描述您住宿的特色..."
-            rows={3}
-            className={errors.sectionDescription ? "border-destructive focus-visible:ring-destructive" : ""}
-          />
-          {errors.sectionDescription && (
-            <p className="text-sm text-destructive flex items-center gap-1">
-              <AlertCircle className="w-4 h-4" />
-              {errors.sectionDescription}
-            </p>
-          )}
-          <p className="text-xs text-muted-foreground">
-            {description?.length || 0}/200 字元
-          </p>
-        </div>
+        <ValidatedTextarea
+          id="section-description"
+          label="特色說明文字"
+          value={description || ''}
+          onChange={setDescription}
+          onValidate={(value) => validateField('sectionDescription', value)}
+          error={errors.sectionDescription}
+          placeholder="簡短描述您住宿的特色..."
+          rows={3}
+          showCharCount
+          maxLength={200}
+        />
 
         {/* 特色區塊列表 */}
         <div className="space-y-4">
@@ -327,10 +326,10 @@ export const AboutFeaturesSection = ({
               onDragEnd={handleDragEnd}
             >
               <SortableContext
-                items={localFeatures.map((f) => f.id)}
+                items={localFeatures.map(f => f.id)}
                 strategy={verticalListSortingStrategy}
               >
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {localFeatures.map((feature) => (
                     <SortableFeatureItem
                       key={feature.id}
@@ -343,9 +342,11 @@ export const AboutFeaturesSection = ({
               </SortableContext>
             </DndContext>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-8 border-2 border-dashed rounded-lg">
-              尚無特色區塊，點擊上方按鈕新增
-            </p>
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                點擊「新增特色」來新增第一個特色區塊
+              </CardContent>
+            </Card>
           )}
         </div>
 

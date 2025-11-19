@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, GripVertical, AlertCircle } from "lucide-react";
+import { Plus, Trash2, GripVertical } from "lucide-react";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
+import { ValidatedInput } from "@/components/ui/validated-input";
+import { ValidatedTextarea } from "@/components/ui/validated-textarea";
+import { ValidatedNumberInput } from "@/components/ui/validated-number-input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { roomTypeSchema } from "@/utils/roomValidation";
@@ -152,7 +153,7 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
     }
   };
 
-  const validateSingleField = (field: string, value: string) => {
+  const validateField = (field: string, value: string) => {
     const fieldSchema = roomTypeSchema.shape[field as keyof typeof roomTypeSchema.shape];
     if (fieldSchema) {
       try {
@@ -168,11 +169,6 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         }
       }
     }
-  };
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    validateSingleField(field, value);
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -293,125 +289,265 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
     }
   };
 
-  const renderField = (
-    id: string,
-    label: string,
-    placeholder: string,
-    required = false,
-    type: string = "text",
-    maxLength?: number
-  ) => (
-    <div className="space-y-2">
-      <Label htmlFor={id}>{label} {required && "*"}</Label>
-      <Input
-        id={id}
-        type={type}
-        value={formData[id as keyof typeof formData]}
-        onChange={(e) => handleInputChange(id, e.target.value)}
-        onBlur={(e) => validateSingleField(id, e.target.value)}
-        placeholder={placeholder}
-        className={errors[id] ? "border-destructive focus-visible:ring-destructive" : ""}
-      />
-      {errors[id] && (
-        <p className="text-sm text-destructive flex items-center gap-1">
-          <AlertCircle className="w-4 h-4" />
-          {errors[id]}
-        </p>
-      )}
-      {maxLength && (
-        <p className="text-xs text-muted-foreground">
-          {formData[id as keyof typeof formData].length}/{maxLength} 字元
-        </p>
-      )}
-    </div>
-  );
-
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{roomType ? "編輯房型" : "新增房型"}</CardTitle>
-        <CardDescription>填寫房型的詳細資訊</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* 基本資訊 */}
-        <div className="space-y-4">
-          {renderField("name", "房型名稱", "例如：豪華雙人房", true, "text", 50)}
+    <div className="space-y-6">
+      {/* 基本資訊 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>基本資訊</CardTitle>
+          <CardDescription>設定房型的基本資訊</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <ValidatedInput
+            id="name"
+            label="房型名稱"
+            value={formData.name}
+            onChange={(value) => {
+              setFormData(prev => ({ ...prev, name: value }));
+              validateField('name', value);
+            }}
+            onValidate={(value) => validateField('name', value)}
+            error={errors.name}
+            placeholder="例如：豪華雙人房"
+            required
+            showCharCount
+            maxLength={50}
+          />
 
-          <div className="space-y-2">
-            <Label htmlFor="description">房型描述</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => handleInputChange("description", e.target.value)}
-              onBlur={(e) => validateSingleField("description", e.target.value)}
-              placeholder="描述房型的特色與設施..."
-              rows={4}
-              className={errors.description ? "border-destructive focus-visible:ring-destructive" : ""}
+          <ValidatedTextarea
+            id="description"
+            label="房型描述"
+            value={formData.description}
+            onChange={(value) => {
+              setFormData(prev => ({ ...prev, description: value }));
+              validateField('description', value);
+            }}
+            onValidate={(value) => validateField('description', value)}
+            error={errors.description}
+            placeholder="描述房型特色..."
+            rows={3}
+            showCharCount
+            maxLength={500}
+          />
+
+          <div className="grid grid-cols-2 gap-4">
+            <ValidatedNumberInput
+              id="size_sqm"
+              label="房間大小"
+              value={formData.size_sqm ? parseInt(formData.size_sqm) : 0}
+              onChange={(value) => {
+                setFormData(prev => ({ ...prev, size_sqm: value.toString() }));
+                validateField('size_sqm', value.toString());
+              }}
+              onValidate={(value) => validateField('size_sqm', value)}
+              error={errors.size_sqm}
+              suffix="平方公尺"
+              min={0}
+              max={1000}
             />
-            {errors.description && (
-              <p className="text-sm text-destructive flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
-                {errors.description}
-              </p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              {formData.description.length}/500 字元
-            </p>
+
+            <ValidatedNumberInput
+              id="capacity"
+              label="可入住人數"
+              value={formData.capacity ? parseInt(formData.capacity) : 0}
+              onChange={(value) => {
+                setFormData(prev => ({ ...prev, capacity: value.toString() }));
+                validateField('capacity', value.toString());
+              }}
+              onValidate={(value) => validateField('capacity', value)}
+              error={errors.capacity}
+              suffix="人"
+              required
+              min={1}
+              max={20}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 房間數量 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>房間數量</CardTitle>
+          <CardDescription>設定各種房型的數量</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-3 gap-4">
+            <ValidatedNumberInput
+              id="room_count"
+              label="總房數"
+              value={formData.room_count ? parseInt(formData.room_count) : 1}
+              onChange={(value) => {
+                setFormData(prev => ({ ...prev, room_count: value.toString() }));
+                validateField('room_count', value.toString());
+              }}
+              onValidate={(value) => validateField('room_count', value)}
+              error={errors.room_count}
+              required
+              min={1}
+              max={100}
+            />
+
+            <ValidatedNumberInput
+              id="quad_room_count"
+              label="四人房數"
+              value={formData.quad_room_count ? parseInt(formData.quad_room_count) : 0}
+              onChange={(value) => {
+                setFormData(prev => ({ ...prev, quad_room_count: value.toString() }));
+                validateField('quad_room_count', value.toString());
+              }}
+              onValidate={(value) => validateField('quad_room_count', value)}
+              error={errors.quad_room_count}
+              min={0}
+              max={100}
+            />
+
+            <ValidatedNumberInput
+              id="double_room_count"
+              label="雙人房數"
+              value={formData.double_room_count ? parseInt(formData.double_room_count) : 0}
+              onChange={(value) => {
+                setFormData(prev => ({ ...prev, double_room_count: value.toString() }));
+                validateField('double_room_count', value.toString());
+              }}
+              onValidate={(value) => validateField('double_room_count', value)}
+              error={errors.double_room_count}
+              min={0}
+              max={100}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 定價設定 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>定價設定</CardTitle>
+          <CardDescription>設定平日和假日的價格</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-4">
+            <Label>平日價格</Label>
+            <div className="grid grid-cols-2 gap-4">
+              <ValidatedNumberInput
+                id="weekday_2_meals_price"
+                label="平日一泊二食"
+                value={formData.weekday_2_meals_price ? parseInt(formData.weekday_2_meals_price) : 0}
+                onChange={(value) => {
+                  setFormData(prev => ({ ...prev, weekday_2_meals_price: value.toString() }));
+                  validateField('weekday_2_meals_price', value.toString());
+                }}
+                onValidate={(value) => validateField('weekday_2_meals_price', value)}
+                error={errors.weekday_2_meals_price}
+                prefix="NT$"
+                min={0}
+                max={100000}
+              />
+
+              <ValidatedNumberInput
+                id="weekday_3_meals_price"
+                label="平日一泊三食"
+                value={formData.weekday_3_meals_price ? parseInt(formData.weekday_3_meals_price) : 0}
+                onChange={(value) => {
+                  setFormData(prev => ({ ...prev, weekday_3_meals_price: value.toString() }));
+                  validateField('weekday_3_meals_price', value.toString());
+                }}
+                onValidate={(value) => validateField('weekday_3_meals_price', value)}
+                error={errors.weekday_3_meals_price}
+                prefix="NT$"
+                min={0}
+                max={100000}
+              />
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            {renderField("size_sqm", "坪數 (m²)", "例如：30", false, "number")}
-            {renderField("capacity", "容納人數", "例如：2", true, "number")}
+          <div className="space-y-4">
+            <Label>假日價格</Label>
+            <div className="grid grid-cols-2 gap-4">
+              <ValidatedNumberInput
+                id="weekend_2_meals_price"
+                label="假日一泊二食"
+                value={formData.weekend_2_meals_price ? parseInt(formData.weekend_2_meals_price) : 0}
+                onChange={(value) => {
+                  setFormData(prev => ({ ...prev, weekend_2_meals_price: value.toString() }));
+                  validateField('weekend_2_meals_price', value.toString());
+                }}
+                onValidate={(value) => validateField('weekend_2_meals_price', value)}
+                error={errors.weekend_2_meals_price}
+                prefix="NT$"
+                min={0}
+                max={100000}
+              />
+
+              <ValidatedNumberInput
+                id="weekend_3_meals_price"
+                label="假日一泊三食"
+                value={formData.weekend_3_meals_price ? parseInt(formData.weekend_3_meals_price) : 0}
+                onChange={(value) => {
+                  setFormData(prev => ({ ...prev, weekend_3_meals_price: value.toString() }));
+                  validateField('weekend_3_meals_price', value.toString());
+                }}
+                onValidate={(value) => validateField('weekend_3_meals_price', value)}
+                error={errors.weekend_3_meals_price}
+                prefix="NT$"
+                min={0}
+                max={100000}
+              />
+            </div>
           </div>
+        </CardContent>
+      </Card>
 
-          {renderField("room_count", "房間數量", "例如：3", true, "number")}
-        </div>
+      {/* 顯示順序 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>顯示順序</CardTitle>
+          <CardDescription>設定房型在網站上的顯示順序</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ValidatedNumberInput
+            id="display_order"
+            label="顯示順序"
+            value={formData.display_order ? parseInt(formData.display_order) : 0}
+            onChange={(value) => {
+              setFormData(prev => ({ ...prev, display_order: value.toString() }));
+              validateField('display_order', value.toString());
+            }}
+            onValidate={(value) => validateField('display_order', value)}
+            error={errors.display_order}
+            min={0}
+            max={100}
+          />
+          <p className="text-xs text-muted-foreground mt-2">
+            數字越小，顯示越前面
+          </p>
+        </CardContent>
+      </Card>
 
-        {/* 房型間數設定 */}
-        <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
-          <Label className="text-base font-semibold">房型間數設定</Label>
-          <p className="text-sm text-muted-foreground">設定此房型內不同床型的房間數量</p>
-          <div className="grid grid-cols-2 gap-4">
-            {renderField("quad_room_count", "四人房數量", "0", false, "number")}
-            {renderField("double_room_count", "雙人房數量", "0", false, "number")}
-          </div>
-        </div>
-
-        {/* 價格設定 */}
-        <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
-          <Label className="text-base font-semibold">價格設定（含餐）</Label>
-          <div className="grid grid-cols-2 gap-4">
-            {renderField("weekday_2_meals_price", "平日兩餐價格", "0", false, "number")}
-            {renderField("weekday_3_meals_price", "平日三餐價格", "0", false, "number")}
-            {renderField("weekend_2_meals_price", "假日兩餐價格", "0", false, "number")}
-            {renderField("weekend_3_meals_price", "假日三餐價格", "0", false, "number")}
-          </div>
-        </div>
-
-        {/* 顯示順序 */}
-        {renderField("display_order", "顯示順序", "0", false, "number")}
-
-        {/* 房型照片 */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label>房型照片</Label>
+      {/* 房間照片 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>房間照片</CardTitle>
+          <CardDescription>上傳並管理房間照片（可拖曳調整順序）</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-2">
             <Button
               type="button"
               variant="outline"
-              size="sm"
-              onClick={() => document.getElementById('photo-upload')?.click()}
+              onClick={() => document.getElementById('room-photo-upload')?.click()}
               disabled={uploading}
             >
               <Plus className="h-4 w-4 mr-2" />
-              {uploading ? "上傳中..." : "新增照片"}
+              {uploading ? "上傳中..." : "上傳照片"}
             </Button>
             <input
-              id="photo-upload"
+              id="room-photo-upload"
               type="file"
               accept="image/*"
               multiple
-              className="hidden"
               onChange={handleFileUpload}
+              className="hidden"
             />
           </div>
 
@@ -428,22 +564,28 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
                       key={url}
                       url={url}
                       index={index}
-                      onRemove={() => setPhotoUrls(photoUrls.filter((_, i) => i !== index))}
+                      onRemove={() => {
+                        setPhotoUrls(photoUrls.filter((_, i) => i !== index));
+                        toast.success("已移除照片");
+                      }}
                     />
                   ))}
                 </div>
               </SortableContext>
             </DndContext>
           )}
-        </div>
+        </CardContent>
+      </Card>
 
-        <div className="flex gap-2 justify-end">
-          <Button variant="outline" onClick={onCancel} disabled={isLoading}>
-            取消
-          </Button>
-          <SaveButtonContainer onSave={handleSave} isSaving={isLoading} />
-        </div>
-      </CardContent>
-    </Card>
+      {/* 操作按鈕 */}
+      <SaveButtonContainer
+        onSave={handleSave}
+        isSaving={isLoading}
+      >
+        <Button variant="outline" onClick={onCancel} disabled={isLoading}>
+          取消
+        </Button>
+      </SaveButtonContainer>
+    </div>
   );
 }
