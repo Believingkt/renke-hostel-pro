@@ -6,6 +6,8 @@ import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { Button } from "@/components/ui/button";
 import { ValidatedInput } from "@/components/ui/validated-input";
 import { ValidatedTextarea } from "@/components/ui/validated-textarea";
+import { DraftRestoreBanner } from "@/components/ui/draft-restore-banner";
+import { useFormDraft } from "@/hooks/use-form-draft";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -123,19 +125,34 @@ export const AboutFeaturesSection = ({
   onAddFeature,
 }: AboutFeaturesSectionProps) => {
   const [isSaving, setIsSaving] = useState(false);
-  const [title, setTitle] = useState(sectionTitle);
-  const [description, setDescription] = useState(sectionDescription);
   const [localFeatures, setLocalFeatures] = useState(features);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // 同步 props 到 state
-  useEffect(() => {
-    setTitle(sectionTitle);
-  }, [sectionTitle]);
+  // 使用草稿功能
+  const {
+    formData,
+    setFormData,
+    hasDraft,
+    restoreDraft,
+    discardDraft,
+    clearDraft,
+  } = useFormDraft({
+    key: `about-features-draft-${accommodationId}`,
+    initialData: {
+      sectionTitle,
+      sectionDescription,
+    },
+  });
 
+  // 同步 props 到 state（僅在 props 改變且無草稿時）
   useEffect(() => {
-    setDescription(sectionDescription);
-  }, [sectionDescription]);
+    if (!hasDraft) {
+      setFormData({
+        sectionTitle,
+        sectionDescription,
+      });
+    }
+  }, [sectionTitle, sectionDescription, hasDraft]);
 
   useEffect(() => {
     setLocalFeatures(features);
@@ -200,10 +217,7 @@ export const AboutFeaturesSection = ({
     if (!accommodationId) return;
 
     // 完整表單驗證
-    const validationResult = aboutSectionSchema.safeParse({
-      sectionTitle: title,
-      sectionDescription: description,
-    });
+    const validationResult = aboutSectionSchema.safeParse(formData);
 
     if (!validationResult.success) {
       const newErrors: Record<string, string> = {};
@@ -231,8 +245,8 @@ export const AboutFeaturesSection = ({
         const { error } = await supabase
           .from("about_section")
           .update({
-            section_title: title,
-            section_description: description,
+            section_title: formData.sectionTitle,
+            section_description: formData.sectionDescription,
           })
           .eq("accommodation_id", accommodationId);
 
@@ -243,12 +257,15 @@ export const AboutFeaturesSection = ({
           .from("about_section")
           .insert({
             accommodation_id: accommodationId,
-            section_title: title,
-            section_description: description,
+            section_title: formData.sectionTitle,
+            section_description: formData.sectionDescription,
           });
 
         if (error) throw error;
       }
+
+      // 清除草稿
+      clearDraft();
 
       toast.success('特色說明已儲存');
       setErrors({});
@@ -265,6 +282,11 @@ export const AboutFeaturesSection = ({
 
   return (
     <Card>
+      {hasDraft && (
+        <div className="p-6 pb-0">
+          <DraftRestoreBanner onRestore={restoreDraft} onDiscard={discardDraft} />
+        </div>
+      )}
       <CardHeader>
         <CardTitle>特色說明</CardTitle>
         <CardDescription>
@@ -276,8 +298,8 @@ export const AboutFeaturesSection = ({
         <ValidatedInput
           id="section-title"
           label="特色說明主標題"
-          value={title}
-          onChange={setTitle}
+          value={formData.sectionTitle}
+          onChange={(value) => setFormData({ sectionTitle: value })}
           onValidate={(value) => validateField('sectionTitle', value)}
           error={errors.sectionTitle}
           placeholder="例如：自然中的秘境 X 宿泊空間"
@@ -289,8 +311,8 @@ export const AboutFeaturesSection = ({
         <ValidatedTextarea
           id="section-description"
           label="特色說明文字"
-          value={description || ''}
-          onChange={setDescription}
+          value={formData.sectionDescription || ''}
+          onChange={(value) => setFormData({ sectionDescription: value })}
           onValidate={(value) => validateField('sectionDescription', value)}
           error={errors.sectionDescription}
           placeholder="簡短描述您住宿的特色..."

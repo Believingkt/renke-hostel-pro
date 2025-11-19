@@ -5,6 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { ValidatedInput } from "@/components/ui/validated-input";
+import { DraftRestoreBanner } from "@/components/ui/draft-restore-banner";
+import { useFormDraft } from "@/hooks/use-form-draft";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { headerFooterSchema, validateField } from "@/utils/websiteValidation";
@@ -51,27 +53,20 @@ export const HeaderFooterSection = ({
   uploadingFooterLogo,
 }: HeaderFooterSectionProps) => {
   const [isSaving, setIsSaving] = useState(false);
-  const [browserTitle, setBrowserTitle] = useState(name);
-  const [formData, setFormData] = useState({
-    address,
-    phone,
-    email,
-    lineId,
-    facebookUrl,
-    instagramUrl,
-    threadsUrl,
-    youtubeUrl,
-    tiktokUrl,
-  });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // 同步 props 到 state
-  useEffect(() => {
-    setBrowserTitle(name);
-  }, [name]);
-
-  useEffect(() => {
-    setFormData({
+  // 使用草稿功能
+  const {
+    formData,
+    setFormData,
+    hasDraft,
+    restoreDraft,
+    discardDraft,
+    clearDraft,
+  } = useFormDraft({
+    key: `header-footer-draft-${accommodationId}`,
+    initialData: {
+      browserTitle: name,
       address,
       phone,
       email,
@@ -81,8 +76,26 @@ export const HeaderFooterSection = ({
       threadsUrl,
       youtubeUrl,
       tiktokUrl,
-    });
-  }, [address, phone, email, lineId, facebookUrl, instagramUrl, threadsUrl, youtubeUrl, tiktokUrl]);
+    },
+  });
+
+  // 同步 props 到 state（僅在 props 改變且無草稿時）
+  useEffect(() => {
+    if (!hasDraft) {
+      setFormData({
+        browserTitle: name,
+        address,
+        phone,
+        email,
+        lineId,
+        facebookUrl,
+        instagramUrl,
+        threadsUrl,
+        youtubeUrl,
+        tiktokUrl,
+      });
+    }
+  }, [name, address, phone, email, lineId, facebookUrl, instagramUrl, threadsUrl, youtubeUrl, tiktokUrl, hasDraft]);
 
   // 驗證單個欄位
   const validateSingleField = (field: string, value: string) => {
@@ -102,10 +115,7 @@ export const HeaderFooterSection = ({
     if (!accommodationId) return;
 
     // 完整表單驗證
-    const validationResult = headerFooterSchema.safeParse({
-      browserTitle,
-      ...formData
-    });
+    const validationResult = headerFooterSchema.safeParse(formData);
 
     if (!validationResult.success) {
       const newErrors: Record<string, string> = {};
@@ -124,7 +134,7 @@ export const HeaderFooterSection = ({
       const { error } = await supabase
         .from("accommodation_info")
         .update({
-          name: browserTitle,
+          name: formData.browserTitle,
           address: formData.address,
           phone: formData.phone,
           email: formData.email,
@@ -140,9 +150,12 @@ export const HeaderFooterSection = ({
       if (error) throw error;
 
       // 更新瀏覽器標題
-      if (browserTitle) {
-        document.title = browserTitle;
+      if (formData.browserTitle) {
+        document.title = formData.browserTitle;
       }
+
+      // 清除草稿
+      clearDraft();
 
       toast.success('網頁資訊已儲存');
       setErrors({});
@@ -159,6 +172,11 @@ export const HeaderFooterSection = ({
 
   return (
     <Card>
+      {hasDraft && (
+        <div className="p-6 pb-0">
+          <DraftRestoreBanner onRestore={restoreDraft} onDiscard={discardDraft} />
+        </div>
+      )}
       <CardHeader>
         <CardTitle>網頁資訊</CardTitle>
         <CardDescription>
@@ -170,14 +188,14 @@ export const HeaderFooterSection = ({
         <ValidatedInput
           id="browser-title"
           label="瀏覽器標題名稱"
-          value={browserTitle}
+          value={formData.browserTitle}
           error={errors.browserTitle}
           placeholder="例如：山林秘境民宿"
           required
           maxLength={70}
           showCharCount
           onChange={(value) => {
-            setBrowserTitle(value);
+            setFormData({ browserTitle: value });
           }}
           onValidate={(value) => validateSingleField('browserTitle', value)}
         />

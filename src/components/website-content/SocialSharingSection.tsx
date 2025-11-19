@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { ValidatedInput } from "@/components/ui/validated-input";
 import { ValidatedTextarea } from "@/components/ui/validated-textarea";
+import { DraftRestoreBanner } from "@/components/ui/draft-restore-banner";
+import { useFormDraft } from "@/hooks/use-form-draft";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { socialSharingSchema } from "@/utils/websiteValidation";
@@ -32,18 +34,33 @@ export const SocialSharingSection = ({
   uploadingOgImage,
 }: SocialSharingSectionProps) => {
   const [isSaving, setIsSaving] = useState(false);
-  const [title, setTitle] = useState(ogTitle);
-  const [description, setDescription] = useState(ogDescription);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // 同步 props 到 state
-  useEffect(() => {
-    setTitle(ogTitle);
-  }, [ogTitle]);
+  // 使用草稿功能
+  const {
+    formData,
+    setFormData,
+    hasDraft,
+    restoreDraft,
+    discardDraft,
+    clearDraft,
+  } = useFormDraft({
+    key: `social-sharing-draft-${accommodationId}`,
+    initialData: {
+      ogTitle,
+      ogDescription,
+    },
+  });
 
+  // 同步 props 到 state（僅在 props 改變且無草稿時）
   useEffect(() => {
-    setDescription(ogDescription);
-  }, [ogDescription]);
+    if (!hasDraft) {
+      setFormData({
+        ogTitle,
+        ogDescription,
+      });
+    }
+  }, [ogTitle, ogDescription, hasDraft]);
 
   const validateField = (field: string, value: string) => {
     try {
@@ -64,10 +81,7 @@ export const SocialSharingSection = ({
     if (!accommodationId) return;
 
     // 完整表單驗證
-    const validationResult = socialSharingSchema.safeParse({
-      ogTitle: title,
-      ogDescription: description,
-    });
+    const validationResult = socialSharingSchema.safeParse(formData);
 
     if (!validationResult.success) {
       const newErrors: Record<string, string> = {};
@@ -86,12 +100,15 @@ export const SocialSharingSection = ({
       const { error } = await supabase
         .from("accommodation_info")
         .update({
-          og_title: title,
-          og_description: description,
+          og_title: formData.ogTitle,
+          og_description: formData.ogDescription,
         })
         .eq("id", accommodationId);
 
       if (error) throw error;
+
+      // 清除草稿
+      clearDraft();
 
       toast.success('社群分享資訊已儲存');
       setErrors({});
@@ -108,6 +125,11 @@ export const SocialSharingSection = ({
 
   return (
     <Card>
+      {hasDraft && (
+        <div className="p-6 pb-0">
+          <DraftRestoreBanner onRestore={restoreDraft} onDiscard={discardDraft} />
+        </div>
+      )}
       <CardHeader>
         <CardTitle>社群分享</CardTitle>
         <CardDescription>
@@ -120,8 +142,8 @@ export const SocialSharingSection = ({
           <ValidatedInput
             id="og-title"
             label="社群媒體分享標題"
-            value={title}
-            onChange={setTitle}
+            value={formData.ogTitle}
+            onChange={(value) => setFormData({ ogTitle: value })}
             onValidate={(value) => validateField('ogTitle', value)}
             error={errors.ogTitle}
             placeholder="例如：山林秘境民宿 - 享受自然寧靜時光"
@@ -131,7 +153,7 @@ export const SocialSharingSection = ({
           <p className="text-xs text-muted-foreground">
             建議 60 字元內
           </p>
-          {title.length > 60 && (
+          {formData.ogTitle && formData.ogTitle.length > 60 && (
             <p className="text-sm text-yellow-600 flex items-center gap-1">
               <Info className="w-4 h-4" />
               標題過長可能會在社群平台被截斷
@@ -144,8 +166,8 @@ export const SocialSharingSection = ({
           <ValidatedTextarea
             id="og-description"
             label="社群媒體分享描述"
-            value={description}
-            onChange={setDescription}
+            value={formData.ogDescription}
+            onChange={(value) => setFormData({ ogDescription: value })}
             onValidate={(value) => validateField('ogDescription', value)}
             error={errors.ogDescription}
             placeholder="例如：坐落於山林間的日式豪華民宿，提供私人溫泉、精緻餐飲服務..."
@@ -156,7 +178,7 @@ export const SocialSharingSection = ({
           <p className="text-xs text-muted-foreground">
             建議 160 字元內
           </p>
-          {description.length > 160 && (
+          {formData.ogDescription && formData.ogDescription.length > 160 && (
             <p className="text-sm text-yellow-600 flex items-center gap-1">
               <Info className="w-4 h-4" />
               描述過長可能會在社群平台被截斷
