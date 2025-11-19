@@ -234,7 +234,7 @@ const Customers = () => {
   };
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="space-y-4 md:space-y-6 p-4 md:p-0">
       {isLoading ? (
         <TableSkeleton rows={10} columns={7} showSearch showFilters={false} />
       ) : error ? (
@@ -257,7 +257,7 @@ const Customers = () => {
                   新增顧客
                 </Button>
               </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{editingCustomer ? "編輯顧客" : "新增顧客"}</DialogTitle>
                 <DialogDescription>填寫顧客的基本資料</DialogDescription>
@@ -334,8 +334,9 @@ const Customers = () => {
                   取消
                 </Button>
               </SaveButtonContainer>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          </div>
           
           <div className="flex flex-col md:flex-row md:items-center gap-4 mb-6">
             <div className="relative flex-1">
