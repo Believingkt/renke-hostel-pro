@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Globe, Plus, Trash2, Edit2, GripVertical, MapPin, Image as ImageIcon, Upload, Info, Wrench, Package, HelpCircle, Navigation, icons } from "lucide-react";
+import { Globe, Plus, Trash2, Edit2, GripVertical, MapPin, Image as ImageIcon, Upload, Info, Wrench, Package, HelpCircle, Navigation, icons, AlertCircle } from "lucide-react";
 import { AboutFeatureForm } from "@/components/AboutFeatureForm";
 import { ResponsiveTabs, TabItem } from "@/components/ResponsiveTabs";
 import { WebInfoSection } from "@/components/website-content/WebInfoSection";
@@ -60,6 +60,7 @@ import { LogoCropDialog } from "@/components/LogoCropDialog";
 import { HeroCarouselPreviewDialog } from "@/components/HeroCarouselPreviewDialog";
 import { OgImagePreview } from "@/components/OgImagePreview";
 import { OgImageCropDialog } from "@/components/OgImageCropDialog";
+import { bookingSettingsSchema } from "@/utils/roomValidation";
 
 // 定義所有設施項目
 const facilitiesData = {
@@ -402,6 +403,9 @@ const WebsiteContent = () => {
     petPolicy: "",
     otherNotes: ""
   });
+  
+  // 訂房設定驗證錯誤
+  const [bookingErrors, setBookingErrors] = useState<Record<string, string>>({});
 
   // FAQ 狀態
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
@@ -766,6 +770,29 @@ const WebsiteContent = () => {
       return;
     }
 
+    // 完整表單驗證
+    const formData = {
+      check_in_time: bookingInfo.checkInTime,
+      check_out_time: bookingInfo.checkOutTime,
+      cancellation_policy: bookingInfo.cancellationPolicy,
+      pet_policy: bookingInfo.petPolicy,
+      other_notes: bookingInfo.otherNotes,
+    };
+
+    const result = bookingSettingsSchema.safeParse(formData);
+    
+    if (!result.success) {
+      const newErrors: Record<string, string> = {};
+      result.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          newErrors[err.path[0].toString()] = err.message;
+        }
+      });
+      setBookingErrors(newErrors);
+      toast.error('請檢查表單欄位');
+      return;
+    }
+
     setIsSaving(true);
     try {
       // 更新 booking_settings
@@ -796,6 +823,7 @@ const WebsiteContent = () => {
       if (infoError) throw infoError;
 
       toast.success('訂房須知已儲存');
+      setBookingErrors({});
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error saving booking info:', error);
@@ -813,6 +841,26 @@ const WebsiteContent = () => {
         ? [...prev.paymentMethods, method]
         : prev.paymentMethods.filter(m => m !== method)
     }));
+  };
+
+  // 訂房設定單一欄位驗證
+  const validateBookingField = (fieldName: string, value: string) => {
+    const result = bookingSettingsSchema.shape[fieldName as keyof typeof bookingSettingsSchema.shape]?.safeParse(value);
+    
+    if (result && !result.success) {
+      setBookingErrors(prev => ({
+        ...prev,
+        [fieldName]: result.error.errors[0]?.message || "驗證失敗"
+      }));
+      return false;
+    } else {
+      setBookingErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[fieldName];
+        return newErrors;
+      });
+      return true;
+    }
   };
 
   // FAQ handlers
@@ -2452,22 +2500,44 @@ const WebsiteContent = () => {
                   <Input
                     type="time"
                     value={bookingInfo.checkInTime}
-                    onChange={(e) => setBookingInfo(prev => ({
-                      ...prev,
-                      checkInTime: e.target.value
-                    }))}
+                    onChange={(e) => {
+                      setBookingInfo(prev => ({
+                        ...prev,
+                        checkInTime: e.target.value
+                      }));
+                      validateBookingField("check_in_time", e.target.value);
+                    }}
+                    onBlur={(e) => validateBookingField("check_in_time", e.target.value)}
+                    className={bookingErrors.check_in_time ? "border-destructive" : ""}
                   />
+                  {bookingErrors.check_in_time && (
+                    <div className="flex items-center gap-1 text-destructive text-sm">
+                      <AlertCircle className="h-3 w-3" />
+                      <span>{bookingErrors.check_in_time}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>退房時間</Label>
                   <Input
                     type="time"
                     value={bookingInfo.checkOutTime}
-                    onChange={(e) => setBookingInfo(prev => ({
-                      ...prev,
-                      checkOutTime: e.target.value
-                    }))}
+                    onChange={(e) => {
+                      setBookingInfo(prev => ({
+                        ...prev,
+                        checkOutTime: e.target.value
+                      }));
+                      validateBookingField("check_out_time", e.target.value);
+                    }}
+                    onBlur={(e) => validateBookingField("check_out_time", e.target.value)}
+                    className={bookingErrors.check_out_time ? "border-destructive" : ""}
                   />
+                  {bookingErrors.check_out_time && (
+                    <div className="flex items-center gap-1 text-destructive text-sm">
+                      <AlertCircle className="h-3 w-3" />
+                      <span>{bookingErrors.check_out_time}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -2510,11 +2580,25 @@ const WebsiteContent = () => {
                   rows={6}
                   placeholder="例如：入住前7天免費取消，7天內取消收取50%費用"
                   value={bookingInfo.cancellationPolicy}
-                  onChange={(e) => setBookingInfo(prev => ({
-                    ...prev,
-                    cancellationPolicy: e.target.value
-                  }))}
+                  onChange={(e) => {
+                    setBookingInfo(prev => ({
+                      ...prev,
+                      cancellationPolicy: e.target.value
+                    }));
+                    validateBookingField("cancellation_policy", e.target.value);
+                  }}
+                  onBlur={(e) => validateBookingField("cancellation_policy", e.target.value)}
+                  className={bookingErrors.cancellation_policy ? "border-destructive" : ""}
                 />
+                {bookingErrors.cancellation_policy && (
+                  <div className="flex items-center gap-1 text-destructive text-sm">
+                    <AlertCircle className="h-3 w-3" />
+                    <span>{bookingErrors.cancellation_policy}</span>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  {bookingInfo.cancellationPolicy.length}/1000 字元
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -2552,11 +2636,25 @@ const WebsiteContent = () => {
                   rows={8}
                   placeholder="例如：&#10;歡迎攜帶寵物入住&#10;寵物需加收清潔費用&#10;請主人隨時清理寵物排泄物&#10;寵物不可上床"
                   value={bookingInfo.petPolicy}
-                  onChange={(e) => setBookingInfo(prev => ({
-                    ...prev,
-                    petPolicy: e.target.value
-                  }))}
+                  onChange={(e) => {
+                    setBookingInfo(prev => ({
+                      ...prev,
+                      petPolicy: e.target.value
+                    }));
+                    validateBookingField("pet_policy", e.target.value);
+                  }}
+                  onBlur={(e) => validateBookingField("pet_policy", e.target.value)}
+                  className={bookingErrors.pet_policy ? "border-destructive" : ""}
                 />
+                {bookingErrors.pet_policy && (
+                  <div className="flex items-center gap-1 text-destructive text-sm">
+                    <AlertCircle className="h-3 w-3" />
+                    <span>{bookingErrors.pet_policy}</span>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  {bookingInfo.petPolicy.length}/500 字元
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -2573,11 +2671,25 @@ const WebsiteContent = () => {
                   rows={8}
                   placeholder="例如：&#10;房間內禁止吸菸&#10;晚上10點後請降低音量&#10;使用設施請遵守安全規範&#10;貴重物品請自行保管"
                   value={bookingInfo.otherNotes}
-                  onChange={(e) => setBookingInfo(prev => ({
-                    ...prev,
-                    otherNotes: e.target.value
-                  }))}
+                  onChange={(e) => {
+                    setBookingInfo(prev => ({
+                      ...prev,
+                      otherNotes: e.target.value
+                    }));
+                    validateBookingField("other_notes", e.target.value);
+                  }}
+                  onBlur={(e) => validateBookingField("other_notes", e.target.value)}
+                  className={bookingErrors.other_notes ? "border-destructive" : ""}
                 />
+                {bookingErrors.other_notes && (
+                  <div className="flex items-center gap-1 text-destructive text-sm">
+                    <AlertCircle className="h-3 w-3" />
+                    <span>{bookingErrors.other_notes}</span>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  {bookingInfo.otherNotes.length}/1000 字元
+                </p>
               </div>
             </CardContent>
           </Card>
