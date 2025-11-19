@@ -252,7 +252,6 @@ const CustomerOrders = () => {
       {/* Orders Table */}
       <Card>
         <CardHeader>
-          <CardTitle>訂單列表</CardTitle>
           <CardDescription>共 {orders.length} 筆訂單</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
