@@ -1969,7 +1969,7 @@ const WebsiteContent = () => {
         {/* 基本資料 Tab */}
         <TabsContent value="basic-info" className="space-y-6">
           <div className="pt-4 pb-4 border-b border-primary/20 mb-6">
-            <h2 className="text-3xl font-bold flex items-center gap-3">
+            <h2 className="text-3xl font-bold flex items-center gap-2.5">
               <span className="w-2 h-9 bg-primary rounded-full"></span>
               網頁設定
             </h2>
@@ -2060,7 +2060,7 @@ const WebsiteContent = () => {
 
         <TabsContent value="facilities" className="space-y-6">
           <div className="pt-4 pb-4 border-b border-primary/20 mb-6">
-            <h2 className="text-3xl font-bold flex items-center gap-3">
+            <h2 className="text-3xl font-bold flex items-center gap-2.5">
               <span className="w-2 h-9 bg-primary rounded-full"></span>
               設施服務
             </h2>
@@ -2226,7 +2226,7 @@ const WebsiteContent = () => {
         {/* 加購方案 Tab */}
         <TabsContent value="addon-plans" className="space-y-6">
           <div className="pt-4 pb-4 border-b border-primary/20 mb-6">
-            <h2 className="text-3xl font-bold flex items-center gap-3">
+            <h2 className="text-3xl font-bold flex items-center gap-2.5">
               <span className="w-2 h-9 bg-primary rounded-full"></span>
               加購方案
             </h2>
@@ -2389,7 +2389,7 @@ const WebsiteContent = () => {
         {/* 相簿管理 Tab */}
         <TabsContent value="gallery" className="space-y-6">
           <div className="pt-4 pb-4 border-b border-primary/20 mb-6">
-            <h2 className="text-3xl font-bold flex items-center gap-3">
+            <h2 className="text-3xl font-bold flex items-center gap-2.5">
               <span className="w-2 h-9 bg-primary rounded-full"></span>
               精選照片
             </h2>
@@ -2457,7 +2457,7 @@ const WebsiteContent = () => {
 
         <TabsContent value="booking-info" className="space-y-6">
           <div className="pt-4 pb-4 border-b border-primary/20 mb-6">
-            <h2 className="text-3xl font-bold flex items-center gap-3">
+            <h2 className="text-3xl font-bold flex items-center gap-2.5">
               <span className="w-2 h-9 bg-primary rounded-full"></span>
               訂房須知
             </h2>
@@ -2613,7 +2613,7 @@ const WebsiteContent = () => {
 
         <TabsContent value="faq" className="space-y-6">
           <div className="flex items-center justify-between pt-4 pb-4 border-b border-primary/20 mb-6">
-            <h2 className="text-3xl font-bold flex items-center gap-3">
+            <h2 className="text-3xl font-bold flex items-center gap-2.5">
               <span className="w-2 h-9 bg-primary rounded-full"></span>
               常見問題
             </h2>
@@ -2687,7 +2687,7 @@ const WebsiteContent = () => {
         {/* Location Tab */}
         <TabsContent value="location" className="space-y-6">
           <div className="pt-4 pb-4 border-b border-primary/20 mb-6">
-            <h2 className="text-3xl font-bold flex items-center gap-3">
+            <h2 className="text-3xl font-bold flex items-center gap-2.5">
               <span className="w-2 h-9 bg-primary rounded-full"></span>
               交通地圖
             </h2>
