@@ -245,9 +245,14 @@ const Customers = () => {
         />
       ) : (
         <>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">顧客資料</h1>
+          <div className="pt-4 pb-4 border-b border-primary/20 mb-6">
+            <h2 className="text-3xl font-bold flex items-center gap-2.5">
+              <span className="w-2 h-9 bg-primary rounded-full"></span>
+              顧客資料
+            </h2>
+          </div>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+        <div className="hidden">
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1 sm:w-80">

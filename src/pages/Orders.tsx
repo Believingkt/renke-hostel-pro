@@ -378,8 +378,11 @@ const Orders = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">訂單資訊</h1>
+      <div className="pt-4 pb-4 border-b border-primary/20 mb-6">
+        <h2 className="text-3xl font-bold flex items-center gap-2.5">
+          <span className="w-2 h-9 bg-primary rounded-full"></span>
+          訂單資訊
+        </h2>
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
