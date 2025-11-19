@@ -2435,6 +2435,9 @@ const WebsiteContent = () => {
         </TabsContent>
 
         <TabsContent value="booking-info" className="space-y-6">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold">訂房須知</h2>
+          </div>
           {/* 入住退房時間 */}
           <Card>
             <CardHeader>
