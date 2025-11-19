@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { ValidatedInput } from "@/components/ui/validated-input";
+import { ValidatedTextarea } from "@/components/ui/validated-textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
-import { Mountain, Sparkles, UserCheck, Camera, Home, Heart, Star, Wifi, Coffee, Car, AlertCircle } from "lucide-react";
+import { Mountain, Sparkles, UserCheck, Camera, Home, Heart, Star, Wifi, Coffee, Car } from "lucide-react";
 import { Upload, Trash2 } from "lucide-react";
 import { featureSchema } from "@/utils/websiteValidation";
 import { toast } from "sonner";
@@ -70,6 +70,21 @@ export function AboutFeatureForm({ open, onOpenChange, feature, onSave }: AboutF
     setErrors({});
   }, [feature, open]);
 
+  const validateField = (field: string, value: string) => {
+    try {
+      featureSchema.shape[field as keyof typeof featureSchema.shape].parse(value);
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    } catch (error: any) {
+      if (error.errors?.[0]) {
+        setErrors(prev => ({ ...prev, [field]: error.errors[0].message }));
+      }
+    }
+  };
+
   const handleSubmit = () => {
     // 驗證表單
     const validationResult = featureSchema.safeParse({
@@ -121,44 +136,38 @@ export function AboutFeatureForm({ open, onOpenChange, feature, onSave }: AboutF
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>標題</Label>
-            <Input
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder="例如：山林環抱"
-              className={errors.title ? "border-destructive focus-visible:ring-destructive" : ""}
-            />
-            {errors.title && (
-              <p className="text-sm text-destructive flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
-                {errors.title}
-              </p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              {formData.title.length}/30 字元
-            </p>
-          </div>
+          <ValidatedInput
+            id="feature-title"
+            label="標題"
+            value={formData.title}
+            onChange={(value) => {
+              setFormData({ ...formData, title: value });
+              validateField('title', value);
+            }}
+            onValidate={(value) => validateField('title', value)}
+            error={errors.title}
+            placeholder="例如：山林環抱"
+            required
+            showCharCount
+            maxLength={30}
+          />
 
-          <div className="space-y-2">
-            <Label>說明文字</Label>
-            <Textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="請輸入說明文字"
-              rows={3}
-              className={errors.description ? "border-destructive focus-visible:ring-destructive" : ""}
-            />
-            {errors.description && (
-              <p className="text-sm text-destructive flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
-                {errors.description}
-              </p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              {formData.description.length}/100 字元
-            </p>
-          </div>
+          <ValidatedTextarea
+            id="feature-description"
+            label="說明文字"
+            value={formData.description}
+            onChange={(value) => {
+              setFormData({ ...formData, description: value });
+              validateField('description', value);
+            }}
+            onValidate={(value) => validateField('description', value)}
+            error={errors.description}
+            placeholder="請輸入說明文字"
+            rows={3}
+            required
+            showCharCount
+            maxLength={100}
+          />
 
           <div className="space-y-2">
             <Label>圖示選擇</Label>
