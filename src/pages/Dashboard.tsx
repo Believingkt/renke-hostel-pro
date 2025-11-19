@@ -225,9 +225,13 @@ const Dashboard = () => {
 
   const dashboardContent = (
     <div className="space-y-6 md:space-y-8">
-      <div className="px-2 md:px-0 flex items-start md:items-center justify-between flex-col md:flex-row gap-3">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">營運分析</h1>
-        <div className="flex items-center gap-2 flex-wrap w-full md:w-auto">
+      <div className="px-2 md:px-0 pt-4 pb-4 border-b border-primary/20 mb-6">
+        <div className="flex items-start md:items-center justify-between flex-col md:flex-row gap-3">
+          <h2 className="text-3xl font-bold flex items-center gap-2.5">
+            <span className="w-2 h-9 bg-primary rounded-full"></span>
+            營運分析
+          </h2>
+        <div className="flex items-center gap-2 flex-wrap w-full md:w-auto ml-0 md:ml-auto">
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -295,6 +299,7 @@ const Dashboard = () => {
           </span>
         </div>
       </div>
+    </div>
 
       <div className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-4 px-2 md:px-0">
         {isLoading ? (
