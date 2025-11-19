@@ -8,6 +8,9 @@ import { AboutFeaturesSection } from "@/components/website-content/AboutFeatures
 import { SocialSharingSection } from "@/components/website-content/SocialSharingSection";
 import { HeaderFooterSection } from "@/components/website-content/HeaderFooterSection";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
+import { ValidatedInput } from "@/components/ui/validated-input";
+import { ValidatedTextarea } from "@/components/ui/validated-textarea";
+import { ValidatedNumberInput } from "@/components/ui/validated-number-input";
 import { compressImage, validateImageFile, formatFileSize } from "@/utils/imageCompression";
 import {
   DndContext,
@@ -2369,99 +2372,57 @@ const WebsiteContent = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label>價格 (每隻/每晚)</Label>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">NT$</span>
-                    <Input
-                      type="number"
-                      value={petPlan.pricePerUnit}
-                      onChange={(e) => {
-                        setPetPlan({ ...petPlan, pricePerUnit: parseInt(e.target.value) || 0 });
-                        validateAddonField('pet', 'price_per_unit', e.target.value);
-                      }}
-                      onBlur={(e) => validateAddonField('pet', 'price_per_unit', e.target.value)}
-                      min="0"
-                      disabled={!petPlan.enabled}
-                      className={petPlanErrors.price_per_unit ? "border-destructive" : ""}
-                    />
-                  </div>
-                  {petPlanErrors.price_per_unit && (
-                    <div className="flex items-center gap-1 text-destructive text-sm">
-                      <AlertCircle className="h-3 w-3" />
-                      <span>{petPlanErrors.price_per_unit}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label>數量上限 (隻)</Label>
-                  <Input
-                    type="number"
-                    value={petPlan.maxQuantity}
-                    onChange={(e) => {
-                      setPetPlan({ ...petPlan, maxQuantity: parseInt(e.target.value) || 0 });
-                      validateAddonField('pet', 'max_quantity', e.target.value);
-                    }}
-                    onBlur={(e) => validateAddonField('pet', 'max_quantity', e.target.value)}
-                    min="1"
-                    disabled={!petPlan.enabled}
-                    className={petPlanErrors.max_quantity ? "border-destructive" : ""}
-                  />
-                  {petPlanErrors.max_quantity && (
-                    <div className="flex items-center gap-1 text-destructive text-sm">
-                      <AlertCircle className="h-3 w-3" />
-                      <span>{petPlanErrors.max_quantity}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>簡短說明</Label>
-                <Input
-                  value={petPlan.description}
-                  onChange={(e) => {
-                    setPetPlan({ ...petPlan, description: e.target.value });
-                    validateAddonField('pet', 'description', e.target.value);
-                  }}
-                  onBlur={(e) => validateAddonField('pet', 'description', e.target.value)}
-                  placeholder="例如：每隻寵物"
+                <ValidatedNumberInput
+                  label="價格 (每隻/每晚)"
+                  prefix="NT$"
+                  value={petPlan.pricePerUnit}
+                  error={petPlanErrors.price_per_unit}
+                  min="0"
                   disabled={!petPlan.enabled}
-                  className={petPlanErrors.description ? "border-destructive" : ""}
-                />
-                {petPlanErrors.description && (
-                  <div className="flex items-center gap-1 text-destructive text-sm">
-                    <AlertCircle className="h-3 w-3" />
-                    <span>{petPlanErrors.description}</span>
-                  </div>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  {petPlan.description.length}/100 字元
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label>詳細說明（顯示在前台「詳細內容」按鈕中）</Label>
-                <Textarea
-                  value={petPlan.detailedDescription}
-                  onChange={(e) => {
-                    setPetPlan({ ...petPlan, detailedDescription: e.target.value });
-                    validateAddonField('pet', 'detailed_description', e.target.value);
+                  onChange={(value) => {
+                    setPetPlan({ ...petPlan, pricePerUnit: value });
                   }}
-                  onBlur={(e) => validateAddonField('pet', 'detailed_description', e.target.value)}
-                  placeholder="請輸入寵物方案的詳細說明，包含注意事項、規則等..."
-                  rows={6}
-                  disabled={!petPlan.enabled}
-                  className={petPlanErrors.detailed_description ? "border-destructive" : ""}
+                  onValidate={(value) => validateAddonField('pet', 'price_per_unit', value)}
                 />
-                {petPlanErrors.detailed_description && (
-                  <div className="flex items-center gap-1 text-destructive text-sm">
-                    <AlertCircle className="h-3 w-3" />
-                    <span>{petPlanErrors.detailed_description}</span>
-                  </div>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  {petPlan.detailedDescription.length}/500 字元
-                </p>
+                <ValidatedNumberInput
+                  label="數量上限 (隻)"
+                  value={petPlan.maxQuantity}
+                  error={petPlanErrors.max_quantity}
+                  min="1"
+                  disabled={!petPlan.enabled}
+                  onChange={(value) => {
+                    setPetPlan({ ...petPlan, maxQuantity: value });
+                  }}
+                  onValidate={(value) => validateAddonField('pet', 'max_quantity', value)}
+                />
               </div>
+              <ValidatedInput
+                label="簡短說明"
+                placeholder="例如：每隻寵物"
+                value={petPlan.description}
+                error={petPlanErrors.description}
+                maxLength={100}
+                showCharCount
+                disabled={!petPlan.enabled}
+                onChange={(value) => {
+                  setPetPlan({ ...petPlan, description: value });
+                }}
+                onValidate={(value) => validateAddonField('pet', 'description', value)}
+              />
+              <ValidatedTextarea
+                label="詳細說明（顯示在前台「詳細內容」按鈕中）"
+                placeholder="請輸入寵物方案的詳細說明，包含注意事項、規則等..."
+                value={petPlan.detailedDescription}
+                error={petPlanErrors.detailed_description}
+                rows={6}
+                maxLength={500}
+                showCharCount
+                disabled={!petPlan.enabled}
+                onChange={(value) => {
+                  setPetPlan({ ...petPlan, detailedDescription: value });
+                }}
+                onValidate={(value) => validateAddonField('pet', 'detailed_description', value)}
+              />
             </CardContent>
           </Card>
 
@@ -2482,143 +2443,81 @@ const WebsiteContent = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label>價格 (每人/每日)</Label>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">NT$</span>
-                    <Input
-                      type="number"
-                      value={mealPlan.pricePerUnit}
-                      onChange={(e) => {
-                        setMealPlan({ ...mealPlan, pricePerUnit: parseInt(e.target.value) || 0 });
-                        validateAddonField('meal', 'price_per_unit', e.target.value);
-                      }}
-                      onBlur={(e) => validateAddonField('meal', 'price_per_unit', e.target.value)}
-                      min="0"
-                      disabled={!mealPlan.enabled}
-                      className={mealPlanErrors.price_per_unit ? "border-destructive" : ""}
-                    />
-                  </div>
-                  {mealPlanErrors.price_per_unit && (
-                    <div className="flex items-center gap-1 text-destructive text-sm">
-                      <AlertCircle className="h-3 w-3" />
-                      <span>{mealPlanErrors.price_per_unit}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label>數量上限 (人)</Label>
-                  <Input
-                    type="number"
-                    value={mealPlan.maxQuantity}
-                    onChange={(e) => {
-                      setMealPlan({ ...mealPlan, maxQuantity: parseInt(e.target.value) || 0 });
-                      validateAddonField('meal', 'max_quantity', e.target.value);
-                    }}
-                    onBlur={(e) => validateAddonField('meal', 'max_quantity', e.target.value)}
-                    min="1"
-                    disabled={!mealPlan.enabled}
-                    className={mealPlanErrors.max_quantity ? "border-destructive" : ""}
-                  />
-                  {mealPlanErrors.max_quantity && (
-                    <div className="flex items-center gap-1 text-destructive text-sm">
-                      <AlertCircle className="h-3 w-3" />
-                      <span>{mealPlanErrors.max_quantity}</span>
-                    </div>
-                  )}
-                </div>
+                <ValidatedNumberInput
+                  label="價格 (每人/每日)"
+                  prefix="NT$"
+                  value={mealPlan.pricePerUnit}
+                  error={mealPlanErrors.price_per_unit}
+                  min="0"
+                  disabled={!mealPlan.enabled}
+                  onChange={(value) => {
+                    setMealPlan({ ...mealPlan, pricePerUnit: value });
+                  }}
+                  onValidate={(value) => validateAddonField('meal', 'price_per_unit', value)}
+                />
+                <ValidatedNumberInput
+                  label="數量上限 (人)"
+                  value={mealPlan.maxQuantity}
+                  error={mealPlanErrors.max_quantity}
+                  min="1"
+                  disabled={!mealPlan.enabled}
+                  onChange={(value) => {
+                    setMealPlan({ ...mealPlan, maxQuantity: value });
+                  }}
+                  onValidate={(value) => validateAddonField('meal', 'max_quantity', value)}
+                />
               </div>
               <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label>平日基本人數</Label>
-                  <Input
-                    type="number"
-                    value={mealPlan.weekdayMinQuantity}
-                    onChange={(e) => {
-                      setMealPlan({ ...mealPlan, weekdayMinQuantity: parseInt(e.target.value) || 0 });
-                      validateAddonField('meal', 'weekday_min_quantity', e.target.value);
-                    }}
-                    onBlur={(e) => validateAddonField('meal', 'weekday_min_quantity', e.target.value)}
-                    min="0"
-                    disabled={!mealPlan.enabled}
-                    className={mealPlanErrors.weekday_min_quantity ? "border-destructive" : ""}
-                  />
-                  {mealPlanErrors.weekday_min_quantity && (
-                    <div className="flex items-center gap-1 text-destructive text-sm">
-                      <AlertCircle className="h-3 w-3" />
-                      <span>{mealPlanErrors.weekday_min_quantity}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label>假日基本人數</Label>
-                  <Input
-                    type="number"
-                    value={mealPlan.weekendMinQuantity}
-                    onChange={(e) => {
-                      setMealPlan({ ...mealPlan, weekendMinQuantity: parseInt(e.target.value) || 0 });
-                      validateAddonField('meal', 'weekend_min_quantity', e.target.value);
-                    }}
-                    onBlur={(e) => validateAddonField('meal', 'weekend_min_quantity', e.target.value)}
-                    min="0"
-                    disabled={!mealPlan.enabled}
-                    className={mealPlanErrors.weekend_min_quantity ? "border-destructive" : ""}
-                  />
-                  {mealPlanErrors.weekend_min_quantity && (
-                    <div className="flex items-center gap-1 text-destructive text-sm">
-                      <AlertCircle className="h-3 w-3" />
-                      <span>{mealPlanErrors.weekend_min_quantity}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>簡短說明</Label>
-                <Input
-                  value={mealPlan.description}
-                  onChange={(e) => {
-                    setMealPlan({ ...mealPlan, description: e.target.value });
-                    validateAddonField('meal', 'description', e.target.value);
-                  }}
-                  onBlur={(e) => validateAddonField('meal', 'description', e.target.value)}
-                  placeholder="例如：每人每日"
+                <ValidatedNumberInput
+                  label="平日基本人數"
+                  value={mealPlan.weekdayMinQuantity}
+                  error={mealPlanErrors.weekday_min_quantity}
+                  min="0"
                   disabled={!mealPlan.enabled}
-                  className={mealPlanErrors.description ? "border-destructive" : ""}
-                />
-                {mealPlanErrors.description && (
-                  <div className="flex items-center gap-1 text-destructive text-sm">
-                    <AlertCircle className="h-3 w-3" />
-                    <span>{mealPlanErrors.description}</span>
-                  </div>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  {mealPlan.description.length}/100 字元
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label>詳細說明（顯示在前台「詳細內容」按鈕中）</Label>
-                <Textarea
-                  value={mealPlan.detailedDescription}
-                  onChange={(e) => {
-                    setMealPlan({ ...mealPlan, detailedDescription: e.target.value });
-                    validateAddonField('meal', 'detailed_description', e.target.value);
+                  onChange={(value) => {
+                    setMealPlan({ ...mealPlan, weekdayMinQuantity: value });
                   }}
-                  onBlur={(e) => validateAddonField('meal', 'detailed_description', e.target.value)}
-                  placeholder="請輸入餐食方案的詳細說明，包含菜單內容、用餐時間等..."
-                  rows={6}
-                  disabled={!mealPlan.enabled}
-                  className={mealPlanErrors.detailed_description ? "border-destructive" : ""}
+                  onValidate={(value) => validateAddonField('meal', 'weekday_min_quantity', value)}
                 />
-                {mealPlanErrors.detailed_description && (
-                  <div className="flex items-center gap-1 text-destructive text-sm">
-                    <AlertCircle className="h-3 w-3" />
-                    <span>{mealPlanErrors.detailed_description}</span>
-                  </div>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  {mealPlan.detailedDescription.length}/500 字元
-                </p>
+                <ValidatedNumberInput
+                  label="假日基本人數"
+                  value={mealPlan.weekendMinQuantity}
+                  error={mealPlanErrors.weekend_min_quantity}
+                  min="0"
+                  disabled={!mealPlan.enabled}
+                  onChange={(value) => {
+                    setMealPlan({ ...mealPlan, weekendMinQuantity: value });
+                  }}
+                  onValidate={(value) => validateAddonField('meal', 'weekend_min_quantity', value)}
+                />
               </div>
+              <ValidatedInput
+                label="簡短說明"
+                placeholder="例如：每人每日"
+                value={mealPlan.description}
+                error={mealPlanErrors.description}
+                maxLength={100}
+                showCharCount
+                disabled={!mealPlan.enabled}
+                onChange={(value) => {
+                  setMealPlan({ ...mealPlan, description: value });
+                }}
+                onValidate={(value) => validateAddonField('meal', 'description', value)}
+              />
+              <ValidatedTextarea
+                label="詳細說明（顯示在前台「詳細內容」按鈕中）"
+                placeholder="請輸入餐食方案的詳細說明，包含菜單內容、用餐時間等..."
+                value={mealPlan.detailedDescription}
+                error={mealPlanErrors.detailed_description}
+                rows={6}
+                maxLength={500}
+                showCharCount
+                disabled={!mealPlan.enabled}
+                onChange={(value) => {
+                  setMealPlan({ ...mealPlan, detailedDescription: value });
+                }}
+                onValidate={(value) => validateAddonField('meal', 'detailed_description', value)}
+              />
             </CardContent>
           </Card>
 
@@ -2712,50 +2611,22 @@ const WebsiteContent = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label>入住時間</Label>
-                  <Input
-                    type="time"
-                    value={bookingInfo.checkInTime}
-                    onChange={(e) => {
-                      setBookingInfo(prev => ({
-                        ...prev,
-                        checkInTime: e.target.value
-                      }));
-                      validateBookingField("check_in_time", e.target.value);
-                    }}
-                    onBlur={(e) => validateBookingField("check_in_time", e.target.value)}
-                    className={bookingErrors.check_in_time ? "border-destructive" : ""}
-                  />
-                  {bookingErrors.check_in_time && (
-                    <div className="flex items-center gap-1 text-destructive text-sm">
-                      <AlertCircle className="h-3 w-3" />
-                      <span>{bookingErrors.check_in_time}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label>退房時間</Label>
-                  <Input
-                    type="time"
-                    value={bookingInfo.checkOutTime}
-                    onChange={(e) => {
-                      setBookingInfo(prev => ({
-                        ...prev,
-                        checkOutTime: e.target.value
-                      }));
-                      validateBookingField("check_out_time", e.target.value);
-                    }}
-                    onBlur={(e) => validateBookingField("check_out_time", e.target.value)}
-                    className={bookingErrors.check_out_time ? "border-destructive" : ""}
-                  />
-                  {bookingErrors.check_out_time && (
-                    <div className="flex items-center gap-1 text-destructive text-sm">
-                      <AlertCircle className="h-3 w-3" />
-                      <span>{bookingErrors.check_out_time}</span>
-                    </div>
-                  )}
-                </div>
+                <ValidatedInput
+                  type="time"
+                  label="入住時間"
+                  value={bookingInfo.checkInTime}
+                  error={bookingErrors.check_in_time}
+                  onChange={(value) => setBookingInfo(prev => ({ ...prev, checkInTime: value }))}
+                  onValidate={(value) => validateBookingField("check_in_time", value)}
+                />
+                <ValidatedInput
+                  type="time"
+                  label="退房時間"
+                  value={bookingInfo.checkOutTime}
+                  error={bookingErrors.check_out_time}
+                  onChange={(value) => setBookingInfo(prev => ({ ...prev, checkOutTime: value }))}
+                  onValidate={(value) => validateBookingField("check_out_time", value)}
+                />
               </div>
             </CardContent>
           </Card>
@@ -2791,32 +2662,17 @@ const WebsiteContent = () => {
               <CardTitle>取消政策</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <Label>政策說明</Label>
-                <Textarea
-                  rows={6}
-                  placeholder="例如：入住前7天免費取消，7天內取消收取50%費用"
-                  value={bookingInfo.cancellationPolicy}
-                  onChange={(e) => {
-                    setBookingInfo(prev => ({
-                      ...prev,
-                      cancellationPolicy: e.target.value
-                    }));
-                    validateBookingField("cancellation_policy", e.target.value);
-                  }}
-                  onBlur={(e) => validateBookingField("cancellation_policy", e.target.value)}
-                  className={bookingErrors.cancellation_policy ? "border-destructive" : ""}
-                />
-                {bookingErrors.cancellation_policy && (
-                  <div className="flex items-center gap-1 text-destructive text-sm">
-                    <AlertCircle className="h-3 w-3" />
-                    <span>{bookingErrors.cancellation_policy}</span>
-                  </div>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  {bookingInfo.cancellationPolicy.length}/1000 字元
-                </p>
-              </div>
+              <ValidatedTextarea
+                label="政策說明"
+                placeholder="例如：入住前7天免費取消，7天內取消收取50%費用"
+                value={bookingInfo.cancellationPolicy}
+                error={bookingErrors.cancellation_policy}
+                rows={6}
+                maxLength={1000}
+                showCharCount
+                onChange={(value) => setBookingInfo(prev => ({ ...prev, cancellationPolicy: value }))}
+                onValidate={(value) => validateBookingField("cancellation_policy", value)}
+              />
             </CardContent>
           </Card>
 
@@ -2847,32 +2703,17 @@ const WebsiteContent = () => {
               <CardTitle>寵物入住守則</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <Label>守則說明</Label>
-                <Textarea
-                  rows={8}
-                  placeholder="例如：&#10;歡迎攜帶寵物入住&#10;寵物需加收清潔費用&#10;請主人隨時清理寵物排泄物&#10;寵物不可上床"
-                  value={bookingInfo.petPolicy}
-                  onChange={(e) => {
-                    setBookingInfo(prev => ({
-                      ...prev,
-                      petPolicy: e.target.value
-                    }));
-                    validateBookingField("pet_policy", e.target.value);
-                  }}
-                  onBlur={(e) => validateBookingField("pet_policy", e.target.value)}
-                  className={bookingErrors.pet_policy ? "border-destructive" : ""}
-                />
-                {bookingErrors.pet_policy && (
-                  <div className="flex items-center gap-1 text-destructive text-sm">
-                    <AlertCircle className="h-3 w-3" />
-                    <span>{bookingErrors.pet_policy}</span>
-                  </div>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  {bookingInfo.petPolicy.length}/500 字元
-                </p>
-              </div>
+              <ValidatedTextarea
+                label="守則說明"
+                placeholder="例如：&#10;歡迎攜帶寵物入住&#10;寵物需加收清潔費用&#10;請主人隨時清理寵物排泄物&#10;寵物不可上床"
+                value={bookingInfo.petPolicy}
+                error={bookingErrors.pet_policy}
+                rows={8}
+                maxLength={500}
+                showCharCount
+                onChange={(value) => setBookingInfo(prev => ({ ...prev, petPolicy: value }))}
+                onValidate={(value) => validateBookingField("pet_policy", value)}
+              />
             </CardContent>
           </Card>
 
@@ -2882,32 +2723,17 @@ const WebsiteContent = () => {
               <CardTitle>其他注意事項</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <Label>注意事項說明</Label>
-                <Textarea
-                  rows={8}
-                  placeholder="例如：&#10;房間內禁止吸菸&#10;晚上10點後請降低音量&#10;使用設施請遵守安全規範&#10;貴重物品請自行保管"
-                  value={bookingInfo.otherNotes}
-                  onChange={(e) => {
-                    setBookingInfo(prev => ({
-                      ...prev,
-                      otherNotes: e.target.value
-                    }));
-                    validateBookingField("other_notes", e.target.value);
-                  }}
-                  onBlur={(e) => validateBookingField("other_notes", e.target.value)}
-                  className={bookingErrors.other_notes ? "border-destructive" : ""}
-                />
-                {bookingErrors.other_notes && (
-                  <div className="flex items-center gap-1 text-destructive text-sm">
-                    <AlertCircle className="h-3 w-3" />
-                    <span>{bookingErrors.other_notes}</span>
-                  </div>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  {bookingInfo.otherNotes.length}/1000 字元
-                </p>
-              </div>
+              <ValidatedTextarea
+                label="注意事項說明"
+                placeholder="例如：&#10;房間內禁止吸菸&#10;晚上10點後請降低音量&#10;使用設施請遵守安全規範&#10;貴重物品請自行保管"
+                value={bookingInfo.otherNotes}
+                error={bookingErrors.other_notes}
+                rows={8}
+                maxLength={1000}
+                showCharCount
+                onChange={(value) => setBookingInfo(prev => ({ ...prev, otherNotes: value }))}
+                onValidate={(value) => validateBookingField("other_notes", value)}
+              />
             </CardContent>
           </Card>
 
