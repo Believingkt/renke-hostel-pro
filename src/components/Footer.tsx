@@ -169,7 +169,7 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
                 </li>
                 <li>
                   <button onClick={() => scrollToSection("location")} className="text-sm md:text-base text-white/80 hover:text-white transition-colors">
-                    交通 & 地圖
+                    交通地圖
                   </button>
                 </li>
                 <li>

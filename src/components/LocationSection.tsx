@@ -40,7 +40,7 @@ const LocationSection = ({ address, locationInfo }: LocationSectionProps) => {
     <section id="location" className="py-12 md:py-16 lg:py-20 bg-background">
       <div className="container mx-auto px-4 md:px-6">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-3 lg:mb-4">交通 & 地圖</h2>
+          <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-3 lg:mb-4">交通地圖</h2>
           <p className="text-center text-muted-foreground text-base md:text-base lg:text-lg mb-8 md:mb-12 lg:mb-16 max-w-3xl mx-auto">
             多種交通方式輕鬆抵達，讓您的旅程更加便利
           </p>

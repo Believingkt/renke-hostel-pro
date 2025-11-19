@@ -159,7 +159,7 @@ const Booking = () => {
               訂房須知
             </button>
             <button onClick={() => scrollToSection("location")} className="text-sm hover:text-primary transition-colors">
-              交通 & 地圖
+              交通地圖
             </button>
             <Button className="bg-primary hover:bg-primary/90">
               立即訂房
@@ -460,7 +460,7 @@ const Booking = () => {
       <section id="location" className="py-20 bg-secondary/30">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-4xl font-bold text-center mb-4">交通 & 地圖</h2>
+            <h2 className="text-4xl font-bold text-center mb-4">交通地圖</h2>
             <p className="text-center text-muted-foreground mb-16 text-lg">
               多種交通方式輕鬆抵達，讓您的旅程更加便利
             </p>
