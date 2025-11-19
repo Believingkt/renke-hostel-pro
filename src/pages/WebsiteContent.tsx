@@ -1944,21 +1944,6 @@ const WebsiteContent = () => {
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <ResponsiveTabs
-          tabs={[
-            { value: "basic-info", label: "網頁設定", icon: Info },
-            { value: "facilities", label: "設施服務", icon: Wrench },
-            { value: "addon-plans", label: "加購方案", icon: Package },
-            { value: "gallery", label: "精選照片", icon: ImageIcon },
-            { value: "location", label: "交通地圖", icon: Navigation },
-            { value: "booking-info", label: "訂房須知", icon: Globe },
-            { value: "faq", label: "常見問題", icon: HelpCircle },
-          ]}
-          value={activeTab}
-          onValueChange={setActiveTab}
-          desktopClassName="w-full max-w-6xl"
-        />
-
         {/* 基本資料 Tab */}
         <TabsContent value="basic-info" className="space-y-6">
           <div className="pt-4 pb-4 border-b border-primary/20 mb-6">
