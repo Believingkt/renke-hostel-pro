@@ -4,11 +4,12 @@ import { useSubdomain } from "@/hooks/use-subdomain";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Bell, Check, CheckCheck, Trash2, RefreshCw } from "lucide-react";
+import { Bell, Check, CheckCheck, Trash2, RefreshCw, BellOff } from "lucide-react";
 import { formatDistanceToNow, isToday, isYesterday, format } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { EmptyState } from "@/components/EmptyState";
 
 interface Notification {
   id: string;
@@ -255,14 +256,11 @@ const Notifications = () => {
       </div>
 
       {notifications.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Bell className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">
-              {filter === 'unread' ? '沒有未讀通知' : '還沒有任何通知記錄'}
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={BellOff}
+          title={filter === 'unread' ? '沒有未讀通知' : '還沒有任何通知記錄'}
+          description={filter === 'unread' ? '所有通知都已閱讀完畢' : '當有新訂單或重要更新時，會在這裡顯示通知'}
+        />
       ) : (
         <div className="space-y-6">
           {/* 今天的通知 */}

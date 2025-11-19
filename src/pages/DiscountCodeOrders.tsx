@@ -5,10 +5,11 @@ import { useSubdomain } from "@/hooks/use-subdomain";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Calendar, DollarSign, User, Phone, Mail, Ticket } from "lucide-react";
+import { ArrowLeft, Calendar, DollarSign, User, Phone, Mail, Ticket, ShoppingCart } from "lucide-react";
 import { format } from "date-fns";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { ErrorState } from "@/components/ErrorState";
+import { EmptyState } from "@/components/EmptyState";
 import {
   Table,
   TableBody,
@@ -172,11 +173,11 @@ const DiscountCodeOrders = () => {
       </div>
 
       {orders.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">尚無訂單使用此折扣代碼</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={ShoppingCart}
+          title="尚無訂單使用此折扣碼"
+          description="當有顧客使用這個折扣碼預訂時，訂單會顯示在這裡"
+        />
       ) : (
         <>
           {/* 桌面版表格 */}

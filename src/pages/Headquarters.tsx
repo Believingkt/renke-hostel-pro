@@ -21,7 +21,8 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, Trash2, Building2 } from "lucide-react";
+import { Loader2, Trash2, Building2, UserCog } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
 
 interface UserRole {
   id: string;
@@ -213,9 +214,11 @@ const Headquarters = () => {
               <Loader2 className="h-8 w-8 animate-spin" />
             </div>
           ) : userRoles.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              尚無用戶權限資料
-            </div>
+            <EmptyState
+              icon={UserCog}
+              title="尚無用戶權限資料"
+              description="這裡會顯示所有旅館的用戶權限資訊"
+            />
           ) : (
             <div className="rounded-md border">
               <Table>
