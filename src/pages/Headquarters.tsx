@@ -140,9 +140,12 @@ const Headquarters = () => {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold mb-2">人客多總部</h1>
-        <p className="text-muted-foreground">管理所有旅館的用戶權限</p>
+      <div className="pt-4 pb-4 border-b border-primary/20 mb-6">
+        <h2 className="text-3xl font-bold flex items-center gap-2.5">
+          <span className="w-2 h-9 bg-primary rounded-full"></span>
+          人客多總部
+        </h2>
+        <p className="text-muted-foreground mt-2 ml-[18px]">管理所有旅館的用戶權限</p>
       </div>
 
       <Card>
