@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, GripVertical } from "lucide-react";
+import { Plus, Trash2, GripVertical, AlertCircle } from "lucide-react";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { roomTypeSchema } from "@/utils/roomValidation";
 import {
   DndContext,
   closestCenter,
@@ -91,6 +92,7 @@ function SortablePhotoItem({ url, index, onRemove }: SortablePhotoItemProps) {
 
 export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }: RoomTypeFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -150,6 +152,29 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
     }
   };
 
+  const validateSingleField = (field: string, value: string) => {
+    const fieldSchema = roomTypeSchema.shape[field as keyof typeof roomTypeSchema.shape];
+    if (fieldSchema) {
+      try {
+        fieldSchema.parse(value);
+        setErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors[field];
+          return newErrors;
+        });
+      } catch (error: any) {
+        if (error.errors?.[0]) {
+          setErrors(prev => ({ ...prev, [field]: error.errors[0].message }));
+        }
+      }
+    }
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    validateSingleField(field, value);
+  };
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
@@ -201,18 +226,30 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
   };
 
   const handleSave = async () => {
-    if (!formData.name.trim() || !formData.capacity || !formData.room_count) {
-      toast.error("請填寫必填欄位");
+    // 完整表單驗證
+    const validationResult = roomTypeSchema.safeParse(formData);
+    
+    if (!validationResult.success) {
+      const newErrors: Record<string, string> = {};
+      validationResult.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          newErrors[err.path[0].toString()] = err.message;
+        }
+      });
+      setErrors(newErrors);
+      toast.error('請修正表單錯誤後再試');
       return;
     }
 
     setIsLoading(true);
+    setErrors({});
+
     try {
       const roomData = {
         accommodation_id: accommodationId,
         name: formData.name.trim(),
         description: formData.description.trim() || null,
-        size_sqm: formData.size_sqm ? parseInt(formData.size_sqm) : null,
+        size_sqm: formData.size_sqm ? parseFloat(formData.size_sqm) : null,
         capacity: parseInt(formData.capacity),
         room_count: parseInt(formData.room_count),
         quad_room_count: parseInt(formData.quad_room_count) || null,
@@ -256,167 +293,156 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
     }
   };
 
+  const renderField = (
+    id: string,
+    label: string,
+    placeholder: string,
+    required = false,
+    type: string = "text",
+    maxLength?: number
+  ) => (
+    <div className="space-y-2">
+      <Label htmlFor={id}>{label} {required && "*"}</Label>
+      <Input
+        id={id}
+        type={type}
+        value={formData[id as keyof typeof formData]}
+        onChange={(e) => handleInputChange(id, e.target.value)}
+        onBlur={(e) => validateSingleField(id, e.target.value)}
+        placeholder={placeholder}
+        className={errors[id] ? "border-destructive focus-visible:ring-destructive" : ""}
+      />
+      {errors[id] && (
+        <p className="text-sm text-destructive flex items-center gap-1">
+          <AlertCircle className="w-4 h-4" />
+          {errors[id]}
+        </p>
+      )}
+      {maxLength && (
+        <p className="text-xs text-muted-foreground">
+          {formData[id as keyof typeof formData].length}/{maxLength} 字元
+        </p>
+      )}
+    </div>
+  );
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>{roomType ? "編輯房型" : "新增房型"}</CardTitle>
         <CardDescription>填寫房型的詳細資訊</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label>名稱 *</Label>
-          <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="例：豪華雙人房" />
-        </div>
-        <div className="space-y-2">
-          <Label>說明</Label>
-          <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={3} />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
+      <CardContent className="space-y-6">
+        {/* 基本資訊 */}
+        <div className="space-y-4">
+          {renderField("name", "房型名稱", "例如：豪華雙人房", true, "text", 50)}
+
           <div className="space-y-2">
-            <Label>坪數 (m²)</Label>
-            <Input type="number" value={formData.size_sqm} onChange={(e) => setFormData({ ...formData, size_sqm: e.target.value })} />
+            <Label htmlFor="description">房型描述</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => handleInputChange("description", e.target.value)}
+              onBlur={(e) => validateSingleField("description", e.target.value)}
+              placeholder="描述房型的特色與設施..."
+              rows={4}
+              className={errors.description ? "border-destructive focus-visible:ring-destructive" : ""}
+            />
+            {errors.description && (
+              <p className="text-sm text-destructive flex items-center gap-1">
+                <AlertCircle className="w-4 h-4" />
+                {errors.description}
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              {formData.description.length}/500 字元
+            </p>
           </div>
-          <div className="space-y-2">
-            <Label>容納人數 *</Label>
-            <Input type="number" value={formData.capacity} onChange={(e) => setFormData({ ...formData, capacity: e.target.value })} />
+
+          <div className="grid grid-cols-2 gap-4">
+            {renderField("size_sqm", "坪數 (m²)", "例如：30", false, "number")}
+            {renderField("capacity", "容納人數", "例如：2", true, "number")}
           </div>
+
+          {renderField("room_count", "房間數量", "例如：3", true, "number")}
         </div>
-        <div className="space-y-2">
-          <Label>房間數量 *</Label>
-          <Input type="number" value={formData.room_count} onChange={(e) => setFormData({ ...formData, room_count: e.target.value })} />
-        </div>
-        
+
         {/* 房型間數設定 */}
-        <div className="space-y-3">
+        <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
           <Label className="text-base font-semibold">房型間數設定</Label>
-          <div className="grid grid-cols-2 gap-4 pl-4">
-            <div className="space-y-2">
-              <Label>四人房</Label>
-              <Input 
-                type="number" 
-                min="0"
-                value={formData.quad_room_count} 
-                onChange={(e) => setFormData({ ...formData, quad_room_count: e.target.value })} 
-                placeholder="0"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>雙人房</Label>
-              <Input 
-                type="number" 
-                min="0"
-                value={formData.double_room_count} 
-                onChange={(e) => setFormData({ ...formData, double_room_count: e.target.value })} 
-                placeholder="0"
-              />
-            </div>
-          </div>
-        </div>
-        
-        {/* 平日價格 */}
-        <div className="space-y-3">
-          <Label className="text-base font-semibold">平日價格</Label>
-          <div className="grid grid-cols-2 gap-4 pl-4">
-            <div className="space-y-2">
-              <Label>一泊二食</Label>
-              <Input 
-                type="number" 
-                value={formData.weekday_2_meals_price} 
-                onChange={(e) => setFormData({ ...formData, weekday_2_meals_price: e.target.value })} 
-                placeholder="輸入價格"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>一泊三食</Label>
-              <Input 
-                type="number" 
-                value={formData.weekday_3_meals_price} 
-                onChange={(e) => setFormData({ ...formData, weekday_3_meals_price: e.target.value })} 
-                placeholder="輸入價格"
-              />
-            </div>
+          <p className="text-sm text-muted-foreground">設定此房型內不同床型的房間數量</p>
+          <div className="grid grid-cols-2 gap-4">
+            {renderField("quad_room_count", "四人房數量", "0", false, "number")}
+            {renderField("double_room_count", "雙人房數量", "0", false, "number")}
           </div>
         </div>
 
-        {/* 假日價格 */}
-        <div className="space-y-3">
-          <Label className="text-base font-semibold">假日價格</Label>
-          <div className="grid grid-cols-2 gap-4 pl-4">
-            <div className="space-y-2">
-              <Label>一泊二食</Label>
-              <Input 
-                type="number" 
-                value={formData.weekend_2_meals_price} 
-                onChange={(e) => setFormData({ ...formData, weekend_2_meals_price: e.target.value })} 
-                placeholder="輸入價格"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>一泊三食</Label>
-              <Input 
-                type="number" 
-                value={formData.weekend_3_meals_price} 
-                onChange={(e) => setFormData({ ...formData, weekend_3_meals_price: e.target.value })} 
-                placeholder="輸入價格"
-              />
-            </div>
+        {/* 價格設定 */}
+        <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
+          <Label className="text-base font-semibold">價格設定（含餐）</Label>
+          <div className="grid grid-cols-2 gap-4">
+            {renderField("weekday_2_meals_price", "平日兩餐價格", "0", false, "number")}
+            {renderField("weekday_3_meals_price", "平日三餐價格", "0", false, "number")}
+            {renderField("weekend_2_meals_price", "假日兩餐價格", "0", false, "number")}
+            {renderField("weekend_3_meals_price", "假日三餐價格", "0", false, "number")}
           </div>
         </div>
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <Label>物件照片 {photoUrls.length > 0 && `(${photoUrls.length})`}</Label>
-            <div className="flex gap-2">
-              <Button 
-                type="button" 
-                variant="outline" 
-                size="sm" 
-                onClick={() => document.getElementById('photo-upload')?.click()}
-                disabled={uploading}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                {uploading ? "上傳中..." : "選擇照片"}
-              </Button>
-              <input
-                id="photo-upload"
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={handleFileUpload}
-              />
-            </div>
+
+        {/* 顯示順序 */}
+        {renderField("display_order", "顯示順序", "0", false, "number")}
+
+        {/* 房型照片 */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label>房型照片</Label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => document.getElementById('photo-upload')?.click()}
+              disabled={uploading}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              {uploading ? "上傳中..." : "新增照片"}
+            </Button>
+            <input
+              id="photo-upload"
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleFileUpload}
+            />
           </div>
+
           {photoUrls.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">拖曳照片可調整順序</p>
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext items={photoUrls} strategy={rectSortingStrategy}>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {photoUrls.map((url, i) => (
-                      <SortablePhotoItem
-                        key={url}
-                        url={url}
-                        index={i}
-                        onRemove={() => setPhotoUrls(photoUrls.filter((_, idx) => idx !== i))}
-                      />
-                    ))}
-                  </div>
-                </SortableContext>
-              </DndContext>
-            </div>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext items={photoUrls} strategy={rectSortingStrategy}>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {photoUrls.map((url, index) => (
+                    <SortablePhotoItem
+                      key={url}
+                      url={url}
+                      index={index}
+                      onRemove={() => setPhotoUrls(photoUrls.filter((_, i) => i !== index))}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
           )}
         </div>
-        <SaveButtonContainer 
-          onSave={handleSave} 
-          isSaving={isLoading}
-          saveText="儲存變更"
-        >
-          <Button variant="outline" onClick={onCancel}>取消</Button>
-        </SaveButtonContainer>
+
+        <div className="flex gap-2 justify-end">
+          <Button variant="outline" onClick={onCancel} disabled={isLoading}>
+            取消
+          </Button>
+          <SaveButtonContainer onSave={handleSave} isSaving={isLoading} />
+        </div>
       </CardContent>
     </Card>
   );
