@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Eye, Calendar, DollarSign, Users, Phone, Mail, FileText } from "lucide-react";
+import { ArrowLeft, Eye, Calendar, DollarSign, Users, Phone, Mail, FileText, UserRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAccommodation } from "@/contexts/AccommodationContext";
@@ -180,7 +180,7 @@ const CustomerOrders = () => {
           </Button>
           <div>
             <h2 className="text-3xl font-bold flex items-center gap-2.5">
-              <span className="w-2 h-9 bg-primary rounded-full"></span>
+              <UserRound className="h-8 w-8 text-primary" />
               {customer.name} 的訂單記錄
             </h2>
             <p className="text-muted-foreground mt-2 ml-[18px]">查看顧客的所有訂單資訊</p>

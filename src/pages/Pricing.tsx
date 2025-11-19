@@ -305,7 +305,7 @@ const Pricing = () => {
         <TabsContent value="rooms" className="space-y-4">
           <div className="pb-4 border-b border-primary/20 mb-6">
             <h2 className="text-3xl font-bold flex items-center gap-2.5">
-              <span className="w-2 h-9 bg-primary rounded-full"></span>
+              <Hotel className="h-8 w-8 text-primary" />
               房型管理
             </h2>
           </div>
@@ -380,7 +380,7 @@ const Pricing = () => {
         <TabsContent value="facilities" className="space-y-4">
           <div className="pb-4 border-b border-primary/20 mb-6">
             <h2 className="text-3xl font-bold flex items-center gap-2.5">
-              <span className="w-2 h-9 bg-primary rounded-full"></span>
+              <Wrench className="h-8 w-8 text-primary" />
               房間設施
             </h2>
           </div>
@@ -390,7 +390,7 @@ const Pricing = () => {
         <TabsContent value="basic" className="space-y-4">
           <div className="pb-4 border-b border-primary/20 mb-6">
             <h2 className="text-3xl font-bold flex items-center gap-2.5">
-              <span className="w-2 h-9 bg-primary rounded-full"></span>
+              <DollarSign className="h-8 w-8 text-primary" />
               價格設定
             </h2>
           </div>
@@ -422,7 +422,7 @@ const Pricing = () => {
         <TabsContent value="inventory" className="space-y-4">
           <div className="pb-4 border-b border-primary/20 mb-6">
             <h2 className="text-3xl font-bold flex items-center gap-2.5">
-              <span className="w-2 h-9 bg-primary rounded-full"></span>
+              <Package className="h-8 w-8 text-primary" />
               房量管理
             </h2>
           </div>
@@ -432,7 +432,7 @@ const Pricing = () => {
         <TabsContent value="holidays" className="space-y-4">
           <div className="pb-4 border-b border-primary/20 mb-6">
             <h2 className="text-3xl font-bold flex items-center gap-2.5">
-              <span className="w-2 h-9 bg-primary rounded-full"></span>
+              <Calendar className="h-8 w-8 text-primary" />
               公休設定
             </h2>
           </div>

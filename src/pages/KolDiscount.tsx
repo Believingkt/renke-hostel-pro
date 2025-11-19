@@ -28,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, Copy, Pencil, Check, X, Eye, Calendar as CalendarIcon, GripVertical, Files, Code, DollarSign } from "lucide-react";
+import { Plus, Trash2, Copy, Pencil, Check, X, Eye, Calendar as CalendarIcon, GripVertical, Files, Code, DollarSign, Ticket } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubdomain } from "@/hooks/use-subdomain";
@@ -761,7 +761,7 @@ const KolDiscount = () => {
       <div className="space-y-6">
         <div className="pb-4 border-b border-primary/20 mb-6">
           <h2 className="text-3xl font-bold flex items-center gap-2.5">
-            <span className="w-2 h-9 bg-primary rounded-full"></span>
+            <Ticket className="h-8 w-8 text-primary" />
             折扣代碼管理
           </h2>
         </div>
@@ -775,7 +775,7 @@ const KolDiscount = () => {
       <div className="pb-4 border-b border-primary/20 mb-6">
         <div className="flex items-center justify-between">
           <h2 className="text-3xl font-bold flex items-center gap-2.5">
-            <span className="w-2 h-9 bg-primary rounded-full"></span>
+            <Ticket className="h-8 w-8 text-primary" />
             折扣代碼管理
           </h2>
           <div className="flex items-center gap-2">

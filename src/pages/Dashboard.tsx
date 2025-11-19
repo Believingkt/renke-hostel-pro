@@ -1,4 +1,4 @@
-import { Hotel, Users, Calendar, DollarSign, Radio, Zap, X } from "lucide-react";
+import { Hotel, Users, Calendar, DollarSign, Radio, Zap, X, BarChart3 } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -228,7 +228,7 @@ const Dashboard = () => {
       <div className="px-2 md:px-0 pb-4 border-b border-primary/20 mb-6">
         <div className="flex items-start md:items-center justify-between flex-col md:flex-row gap-3">
           <h2 className="text-3xl font-bold flex items-center gap-2.5">
-            <span className="w-2 h-9 bg-primary rounded-full"></span>
+            <BarChart3 className="h-8 w-8 text-primary" />
             營運分析
           </h2>
         <div className="flex items-center gap-2 flex-wrap w-full md:w-auto ml-0 md:ml-auto">
