@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Upload, Trash2, Info } from "lucide-react";
+import { Upload, Trash2, Info, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { socialSharingSchema } from "@/utils/websiteValidation";
 
 interface SocialSharingSectionProps {
   accommodationId: string;
@@ -33,6 +34,7 @@ export const SocialSharingSection = ({
   const [isSaving, setIsSaving] = useState(false);
   const [title, setTitle] = useState(ogTitle);
   const [description, setDescription] = useState(ogDescription);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   // 同步 props 到 state
   useEffect(() => {
@@ -45,6 +47,24 @@ export const SocialSharingSection = ({
 
   const handleSave = async () => {
     if (!accommodationId) return;
+
+    // 完整表單驗證
+    const validationResult = socialSharingSchema.safeParse({
+      ogTitle: title,
+      ogDescription: description,
+    });
+
+    if (!validationResult.success) {
+      const newErrors: Record<string, string> = {};
+      validationResult.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          newErrors[err.path[0].toString()] = err.message;
+        }
+      });
+      setErrors(newErrors);
+      toast.error('請修正表單錯誤後再試');
+      return;
+    }
     
     setIsSaving(true);
     try {
@@ -59,6 +79,7 @@ export const SocialSharingSection = ({
       if (error) throw error;
 
       toast.success('社群分享資訊已儲存');
+      setErrors({});
       onUpdate();
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -87,10 +108,16 @@ export const SocialSharingSection = ({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="例如：山林秘境民宿 - 享受自然寧靜時光"
-            className={title.length > 60 ? "border-yellow-500 focus-visible:ring-yellow-500" : ""}
+            className={errors.ogTitle ? "border-destructive focus-visible:ring-destructive" : ""}
           />
+          {errors.ogTitle && (
+            <p className="text-sm text-destructive flex items-center gap-1">
+              <AlertCircle className="w-4 h-4" />
+              {errors.ogTitle}
+            </p>
+          )}
           <div className="flex items-center justify-between text-sm">
-            <p className={title.length > 60 ? "text-yellow-600" : "text-muted-foreground"}>
+            <p className="text-muted-foreground">
               建議 60 字元內
             </p>
             <span className={title.length > 60 ? "text-yellow-600 font-medium" : "text-muted-foreground"}>
@@ -114,10 +141,16 @@ export const SocialSharingSection = ({
             onChange={(e) => setDescription(e.target.value)}
             placeholder="例如：坐落於山林間的日式豪華民宿，提供私人溫泉、精緻餐飲服務..."
             rows={3}
-            className={description.length > 160 ? "border-yellow-500 focus-visible:ring-yellow-500" : ""}
+            className={errors.ogDescription ? "border-destructive focus-visible:ring-destructive" : ""}
           />
+          {errors.ogDescription && (
+            <p className="text-sm text-destructive flex items-center gap-1">
+              <AlertCircle className="w-4 h-4" />
+              {errors.ogDescription}
+            </p>
+          )}
           <div className="flex items-center justify-between text-sm">
-            <p className={description.length > 160 ? "text-yellow-600" : "text-muted-foreground"}>
+            <p className="text-muted-foreground">
               建議 160 字元內
             </p>
             <span className={description.length > 160 ? "text-yellow-600 font-medium" : "text-muted-foreground"}>

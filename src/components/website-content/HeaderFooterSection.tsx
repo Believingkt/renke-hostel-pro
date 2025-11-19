@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Upload, Trash2, Info } from "lucide-react";
+import { Upload, Trash2, Info, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { headerFooterSchema, validateField } from "@/utils/websiteValidation";
 
 interface HeaderFooterSectionProps {
   accommodationId: string;
@@ -62,6 +63,7 @@ export const HeaderFooterSection = ({
     youtubeUrl,
     tiktokUrl,
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   // 同步 props 到 state
   useEffect(() => {
@@ -82,9 +84,38 @@ export const HeaderFooterSection = ({
     });
   }, [address, phone, email, lineId, facebookUrl, instagramUrl, threadsUrl, youtubeUrl, tiktokUrl]);
 
+  // 驗證單個欄位
+  const validateSingleField = (field: string, value: string) => {
+    const fieldSchema = headerFooterSchema.shape[field as keyof typeof headerFooterSchema.shape];
+    if (fieldSchema) {
+      const result = validateField(fieldSchema, value);
+      setErrors(prev => ({
+        ...prev,
+        [field]: result.error || ''
+      }));
+      return result.success;
+    }
+    return true;
+  };
+
   const handleSave = async () => {
-    if (!accommodationId || !browserTitle.trim()) {
-      toast.error('請填寫瀏覽器標題名稱');
+    if (!accommodationId) return;
+
+    // 完整表單驗證
+    const validationResult = headerFooterSchema.safeParse({
+      browserTitle,
+      ...formData
+    });
+
+    if (!validationResult.success) {
+      const newErrors: Record<string, string> = {};
+      validationResult.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          newErrors[err.path[0].toString()] = err.message;
+        }
+      });
+      setErrors(newErrors);
+      toast.error('請修正表單錯誤後再試');
       return;
     }
     
@@ -114,6 +145,7 @@ export const HeaderFooterSection = ({
       }
 
       toast.success('網頁資訊已儲存');
+      setErrors({});
       onUpdate();
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -142,25 +174,29 @@ export const HeaderFooterSection = ({
           <Input
             id="browser-title"
             value={browserTitle}
-            onChange={(e) => setBrowserTitle(e.target.value)}
+            onChange={(e) => {
+              setBrowserTitle(e.target.value);
+              validateSingleField('browserTitle', e.target.value);
+            }}
+            onBlur={() => validateSingleField('browserTitle', browserTitle)}
             placeholder="例如：山林秘境民宿"
             required
-            className={browserTitle.length > 70 ? "border-yellow-500 focus-visible:ring-yellow-500" : ""}
+            className={errors.browserTitle ? "border-destructive focus-visible:ring-destructive" : ""}
           />
+          {errors.browserTitle && (
+            <p className="text-sm text-destructive flex items-center gap-1">
+              <AlertCircle className="w-4 h-4" />
+              {errors.browserTitle}
+            </p>
+          )}
           <div className="flex items-center justify-between text-sm">
-            <p className={browserTitle.length > 70 ? "text-yellow-600" : "text-muted-foreground"}>
+            <p className="text-muted-foreground">
               瀏覽器分頁標題（建議 70 字元內）
             </p>
             <span className={browserTitle.length > 70 ? "text-yellow-600 font-medium" : "text-muted-foreground"}>
               {browserTitle.length}/70
             </span>
           </div>
-          {browserTitle.length > 70 && (
-            <p className="text-sm text-yellow-600 flex items-center gap-1">
-              <Info className="w-4 h-4" />
-              標題過長可能會在瀏覽器標籤中被截斷
-            </p>
-          )}
         </div>
 
         {/* 頁首 Logo */}
@@ -271,9 +307,20 @@ export const HeaderFooterSection = ({
             <Input
               id="address"
               value={formData.address}
-              onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+              onChange={(e) => {
+                setFormData(prev => ({ ...prev, address: e.target.value }));
+                validateSingleField('address', e.target.value);
+              }}
+              onBlur={() => validateSingleField('address', formData.address)}
               placeholder="例如：台北市信義區市府路1號"
+              className={errors.address ? "border-destructive focus-visible:ring-destructive" : ""}
             />
+            {errors.address && (
+              <p className="text-sm text-destructive flex items-center gap-1">
+                <AlertCircle className="w-4 h-4" />
+                {errors.address}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -281,9 +328,20 @@ export const HeaderFooterSection = ({
             <Input
               id="phone"
               value={formData.phone}
-              onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-              placeholder="例如：02-1234-5678"
+              onChange={(e) => {
+                setFormData(prev => ({ ...prev, phone: e.target.value }));
+                validateSingleField('phone', e.target.value);
+              }}
+              onBlur={() => validateSingleField('phone', formData.phone)}
+              placeholder="例如：02-1234-5678 或 0912-345-678"
+              className={errors.phone ? "border-destructive focus-visible:ring-destructive" : ""}
             />
+            {errors.phone && (
+              <p className="text-sm text-destructive flex items-center gap-1">
+                <AlertCircle className="w-4 h-4" />
+                {errors.phone}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -292,9 +350,20 @@ export const HeaderFooterSection = ({
               id="email"
               type="email"
               value={formData.email}
-              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+              onChange={(e) => {
+                setFormData(prev => ({ ...prev, email: e.target.value }));
+                validateSingleField('email', e.target.value);
+              }}
+              onBlur={() => validateSingleField('email', formData.email)}
               placeholder="例如：info@example.com"
+              className={errors.email ? "border-destructive focus-visible:ring-destructive" : ""}
             />
+            {errors.email && (
+              <p className="text-sm text-destructive flex items-center gap-1">
+                <AlertCircle className="w-4 h-4" />
+                {errors.email}
+              </p>
+            )}
             <p className="text-xs text-muted-foreground">
               接收訂房通知和客戶諮詢的電子郵件地址
             </p>
@@ -305,9 +374,20 @@ export const HeaderFooterSection = ({
             <Input
               id="line-id"
               value={formData.lineId}
-              onChange={(e) => setFormData(prev => ({ ...prev, lineId: e.target.value }))}
+              onChange={(e) => {
+                setFormData(prev => ({ ...prev, lineId: e.target.value }));
+                validateSingleField('lineId', e.target.value);
+              }}
+              onBlur={() => validateSingleField('lineId', formData.lineId)}
               placeholder="例如：@example"
+              className={errors.lineId ? "border-destructive focus-visible:ring-destructive" : ""}
             />
+            {errors.lineId && (
+              <p className="text-sm text-destructive flex items-center gap-1">
+                <AlertCircle className="w-4 h-4" />
+                {errors.lineId}
+              </p>
+            )}
           </div>
         </div>
 
@@ -325,9 +405,20 @@ export const HeaderFooterSection = ({
             <Input
               id="facebook"
               value={formData.facebookUrl}
-              onChange={(e) => setFormData(prev => ({ ...prev, facebookUrl: e.target.value }))}
+              onChange={(e) => {
+                setFormData(prev => ({ ...prev, facebookUrl: e.target.value }));
+                validateSingleField('facebookUrl', e.target.value);
+              }}
+              onBlur={() => validateSingleField('facebookUrl', formData.facebookUrl)}
               placeholder="https://facebook.com/yourpage"
+              className={errors.facebookUrl ? "border-destructive focus-visible:ring-destructive" : ""}
             />
+            {errors.facebookUrl && (
+              <p className="text-sm text-destructive flex items-center gap-1">
+                <AlertCircle className="w-4 h-4" />
+                {errors.facebookUrl}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -335,9 +426,20 @@ export const HeaderFooterSection = ({
             <Input
               id="instagram"
               value={formData.instagramUrl}
-              onChange={(e) => setFormData(prev => ({ ...prev, instagramUrl: e.target.value }))}
+              onChange={(e) => {
+                setFormData(prev => ({ ...prev, instagramUrl: e.target.value }));
+                validateSingleField('instagramUrl', e.target.value);
+              }}
+              onBlur={() => validateSingleField('instagramUrl', formData.instagramUrl)}
               placeholder="https://instagram.com/yourprofile"
+              className={errors.instagramUrl ? "border-destructive focus-visible:ring-destructive" : ""}
             />
+            {errors.instagramUrl && (
+              <p className="text-sm text-destructive flex items-center gap-1">
+                <AlertCircle className="w-4 h-4" />
+                {errors.instagramUrl}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -345,9 +447,20 @@ export const HeaderFooterSection = ({
             <Input
               id="threads"
               value={formData.threadsUrl}
-              onChange={(e) => setFormData(prev => ({ ...prev, threadsUrl: e.target.value }))}
+              onChange={(e) => {
+                setFormData(prev => ({ ...prev, threadsUrl: e.target.value }));
+                validateSingleField('threadsUrl', e.target.value);
+              }}
+              onBlur={() => validateSingleField('threadsUrl', formData.threadsUrl)}
               placeholder="https://threads.net/@yourprofile"
+              className={errors.threadsUrl ? "border-destructive focus-visible:ring-destructive" : ""}
             />
+            {errors.threadsUrl && (
+              <p className="text-sm text-destructive flex items-center gap-1">
+                <AlertCircle className="w-4 h-4" />
+                {errors.threadsUrl}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -355,9 +468,20 @@ export const HeaderFooterSection = ({
             <Input
               id="youtube"
               value={formData.youtubeUrl}
-              onChange={(e) => setFormData(prev => ({ ...prev, youtubeUrl: e.target.value }))}
-              placeholder="https://youtube.com/@yourchannel"
+              onChange={(e) => {
+                setFormData(prev => ({ ...prev, youtubeUrl: e.target.value }));
+                validateSingleField('youtubeUrl', e.target.value);
+              }}
+              onBlur={() => validateSingleField('youtubeUrl', formData.youtubeUrl)}
+              placeholder="https://youtube.com/yourchannel"
+              className={errors.youtubeUrl ? "border-destructive focus-visible:ring-destructive" : ""}
             />
+            {errors.youtubeUrl && (
+              <p className="text-sm text-destructive flex items-center gap-1">
+                <AlertCircle className="w-4 h-4" />
+                {errors.youtubeUrl}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -365,9 +489,20 @@ export const HeaderFooterSection = ({
             <Input
               id="tiktok"
               value={formData.tiktokUrl}
-              onChange={(e) => setFormData(prev => ({ ...prev, tiktokUrl: e.target.value }))}
+              onChange={(e) => {
+                setFormData(prev => ({ ...prev, tiktokUrl: e.target.value }));
+                validateSingleField('tiktokUrl', e.target.value);
+              }}
+              onBlur={() => validateSingleField('tiktokUrl', formData.tiktokUrl)}
               placeholder="https://tiktok.com/@yourprofile"
+              className={errors.tiktokUrl ? "border-destructive focus-visible:ring-destructive" : ""}
             />
+            {errors.tiktokUrl && (
+              <p className="text-sm text-destructive flex items-center gap-1">
+                <AlertCircle className="w-4 h-4" />
+                {errors.tiktokUrl}
+              </p>
+            )}
           </div>
         </div>
 
