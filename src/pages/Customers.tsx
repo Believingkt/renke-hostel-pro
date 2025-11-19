@@ -246,8 +246,8 @@ const Customers = () => {
       ) : (
         <>
           <div className="pb-4 border-b border-primary/20 mb-6">
-            <h2 className="text-3xl font-bold flex items-center gap-2.5">
-              <UserRound className="h-8 w-8 text-primary" />
+            <h2 className="text-3xl font-bold flex items-center gap-3">
+              <UserRound className="h-7 w-7 text-primary" />
               顧客資料
             </h2>
           </div>

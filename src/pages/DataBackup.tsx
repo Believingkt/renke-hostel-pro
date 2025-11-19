@@ -281,8 +281,8 @@ const DataBackup = () => {
   return (
     <div className="space-y-6 p-6">
       <div className="pb-4 border-b border-primary/20 mb-6">
-        <h2 className="text-3xl font-bold flex items-center gap-2.5">
-          <Database className="h-8 w-8 text-primary" />
+        <h2 className="text-3xl font-bold flex items-center gap-3">
+          <Database className="h-7 w-7 text-primary" />
           資料備份與還原
         </h2>
         <p className="text-muted-foreground mt-2 ml-[18px]">

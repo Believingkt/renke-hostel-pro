@@ -179,8 +179,8 @@ const CustomerOrders = () => {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h2 className="text-3xl font-bold flex items-center gap-2.5">
-              <UserRound className="h-8 w-8 text-primary" />
+            <h2 className="text-3xl font-bold flex items-center gap-3">
+              <UserRound className="h-7 w-7 text-primary" />
               {customer.name} 的訂單記錄
             </h2>
             <p className="text-muted-foreground mt-2 ml-[18px]">查看顧客的所有訂單資訊</p>
