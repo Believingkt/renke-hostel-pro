@@ -246,36 +246,23 @@ const Customers = () => {
       ) : (
         <>
           <div className="pb-4 border-b border-primary/20 mb-6">
-            <h2 className="text-3xl font-bold flex items-center gap-3">
-              <UserRound className="h-7 w-7 text-primary" />
-              顧客資料
-            </h2>
-          </div>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-        <div className="hidden">
-        </div>
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1 sm:w-80">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="搜尋姓名或手機號碼..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => handleOpenDialog()}>
-                <Plus className="h-4 w-4 mr-2" />
-                新增顧客
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>{editingCustomer ? "編輯顧客" : "新增顧客"}</DialogTitle>
-                <DialogDescription>填寫顧客的基本資料</DialogDescription>
-              </DialogHeader>
+            <div className="flex items-center justify-between">
+              <h2 className="text-3xl font-bold flex items-center gap-3">
+                <UserRound className="h-7 w-7 text-primary" />
+                顧客資料
+              </h2>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button onClick={() => handleOpenDialog()}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    新增顧客
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>{editingCustomer ? "編輯顧客" : "新增顧客"}</DialogTitle>
+                    <DialogDescription>填寫顧客的基本資料</DialogDescription>
+                  </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">姓名 *</Label>
@@ -350,8 +337,19 @@ const Customers = () => {
               </SaveButtonContainer>
             </DialogContent>
           </Dialog>
-        </div>
-      </div>
+            </div>
+          </div>
+          <div className="flex flex-col md:flex-row md:items-center gap-4 mb-6">
+            <div className="relative flex-1 sm:w-80">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="搜尋姓名或手機號碼..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          </div>
 
       <Card>
         <CardContent className="p-0">

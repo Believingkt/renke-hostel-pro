@@ -304,10 +304,18 @@ const Pricing = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsContent value="rooms" className="space-y-4">
           <div className="pb-4 border-b border-primary/20 mb-6">
-            <h2 className="text-3xl font-bold flex items-center gap-3">
-              <Hotel className="h-7 w-7 text-primary" />
-              房型管理
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-3xl font-bold flex items-center gap-3">
+                <Hotel className="h-7 w-7 text-primary" />
+                房型管理
+              </h2>
+              {!showForm && (
+                <Button onClick={handleAddNew} className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  新增房型
+                </Button>
+              )}
+            </div>
           </div>
           {showForm ? (
             <RoomTypeForm
@@ -318,17 +326,11 @@ const Pricing = () => {
             />
           ) : (
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                <div>
-                  <CardTitle>房型管理</CardTitle>
-                  <CardDescription className="mt-2">
-                    管理住宿的各種房型資訊
-                  </CardDescription>
-                </div>
-                <Button onClick={handleAddNew} className="flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
-                  新增房型
-                </Button>
+              <CardHeader>
+                <CardTitle>房型管理</CardTitle>
+                <CardDescription className="mt-2">
+                  管理住宿的各種房型資訊
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 {isLoading ? (

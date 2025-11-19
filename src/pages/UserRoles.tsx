@@ -189,10 +189,12 @@ export default function UserRoles() {
   return (
     <div className="space-y-4 md:space-y-6 p-4 md:p-0">
       <div className="pb-4 border-b border-primary/20 mb-6">
-        <h2 className="text-3xl font-bold flex items-center gap-3">
-          <Shield className="h-7 w-7 text-primary" />
-          用戶權限管理
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-3xl font-bold flex items-center gap-3">
+            <Shield className="h-7 w-7 text-primary" />
+            用戶權限管理
+          </h2>
+        </div>
         <p className="text-sm md:text-base text-muted-foreground mt-2 ml-[18px]">
           管理此旅館的用戶權限和角色
         </p>

@@ -243,21 +243,18 @@ const Accounts = () => {
   return (
     <div className="space-y-4 md:space-y-6 p-4 md:p-0">
       <div className="pb-4 border-b border-primary/20 mb-6">
-        <h2 className="text-3xl font-bold flex items-center gap-3">
-          <Users className="h-7 w-7 text-primary" />
-          帳號管理
-        </h2>
-      </div>
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="hidden"></div>
-        
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2 w-full md:w-auto">
-              <Plus className="h-4 w-4" />
-              新增帳號
-            </Button>
-          </DialogTrigger>
+        <div className="flex items-center justify-between">
+          <h2 className="text-3xl font-bold flex items-center gap-3">
+            <Users className="h-7 w-7 text-primary" />
+            帳號管理
+          </h2>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                新增帳號
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>新增帳號</DialogTitle>
@@ -320,6 +317,7 @@ const Accounts = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Card>

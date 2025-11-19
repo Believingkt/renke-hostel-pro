@@ -432,64 +432,24 @@ const PublicHolidays = () => {
         </Card>
       </div>
 
-        {/* 主要內容卡片 */}
-        <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <CalendarDays className="h-6 w-6 text-primary" />
-                國定假日管理
-              </CardTitle>
-              <CardDescription className="mt-2">
-                管理假日定價的國定假日日期（假日定價包含：星期六 + 國定假日）
-              </CardDescription>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "list" | "calendar")} className="w-auto">
-                <ResponsiveTabs
-                  tabs={[
-                    { value: "list", label: "列表", icon: List },
-                    { value: "calendar", label: "月曆", icon: LayoutGrid },
-                  ]}
-                  value={viewMode}
-                  onValueChange={(v) => setViewMode(v as "list" | "calendar")}
-                  mobileBreakpoint="md"
-                  showGradient={false}
-                  selectHeight="sm"
-                  selectWidth="w-[140px]"
-                  mobileClassName="mb-0"
-                  desktopClassName="w-auto"
-                  className="w-auto"
-                />
-              </Tabs>
-              {viewMode === "list" && (
-                <Select value={selectedYear} onValueChange={setSelectedYear}>
-                  <SelectTrigger className="w-[140px]">
-                    <Filter className="h-4 w-4 mr-2" />
-                    <SelectValue placeholder="篩選年份" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">所有年份</SelectItem>
-                    {availableYears.map(year => (
-                      <SelectItem key={year} value={year.toString()}>
-                        {year} 年
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-              <Button variant="outline" onClick={() => setIsBatchDialogOpen(true)}>
-                <Download className="h-4 w-4 mr-2" />
-                批量導入
-              </Button>
-              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    新增假日
-                  </Button>
-                </DialogTrigger>
+      <div className="pb-4 border-b border-primary/20 mb-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-3xl font-bold flex items-center gap-3">
+            <CalendarDays className="h-6 w-6 text-primary" />
+            國定假日管理
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setIsBatchDialogOpen(true)}>
+              <Download className="h-4 w-4 mr-2" />
+              批量導入
+            </Button>
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  新增假日
+                </Button>
+              </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>新增國定假日</DialogTitle>
@@ -552,6 +512,48 @@ const PublicHolidays = () => {
                 </DialogContent>
               </Dialog>
             </div>
+          </div>
+        </div>
+
+        <Card>
+        <CardHeader>
+          <CardDescription>
+            管理假日定價的國定假日日期（假日定價包含：星期六 + 國定假日）
+          </CardDescription>
+          <div className="flex flex-wrap gap-2 mt-4">
+            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "list" | "calendar")} className="w-auto">
+              <ResponsiveTabs
+                tabs={[
+                  { value: "list", label: "列表", icon: List },
+                  { value: "calendar", label: "月曆", icon: LayoutGrid },
+                ]}
+                value={viewMode}
+                onValueChange={(v) => setViewMode(v as "list" | "calendar")}
+                mobileBreakpoint="md"
+                showGradient={false}
+                selectHeight="sm"
+                selectWidth="w-[140px]"
+                mobileClassName="mb-0"
+                desktopClassName="w-auto"
+                className="w-auto"
+              />
+            </Tabs>
+            {viewMode === "list" && (
+              <Select value={selectedYear} onValueChange={setSelectedYear}>
+                <SelectTrigger className="w-[140px]">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="篩選年份" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">所有年份</SelectItem>
+                  {availableYears.map(year => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year} 年
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </CardHeader>
         <CardContent>
