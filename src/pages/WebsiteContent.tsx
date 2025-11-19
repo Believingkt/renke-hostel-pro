@@ -1968,6 +1968,9 @@ const WebsiteContent = () => {
 
         {/* 基本資料 Tab */}
         <TabsContent value="basic-info" className="space-y-6">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold">網頁設定</h2>
+          </div>
           <WebInfoSection
             accommodationId={accommodationId || ''}
             heroPhotos={heroPhotos}
