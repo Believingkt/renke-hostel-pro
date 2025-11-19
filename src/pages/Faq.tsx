@@ -192,15 +192,20 @@ const Faq = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">常見問題</h1>
-          <p className="text-muted-foreground">管理網站常見問題內容</p>
+      <div className="pt-4 pb-4 border-b border-primary/20 mb-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold flex items-center gap-2.5">
+              <span className="w-2 h-9 bg-primary rounded-full"></span>
+              常見問題
+            </h2>
+            <p className="text-muted-foreground mt-2 ml-[18px]">管理網站常見問題內容</p>
+          </div>
+          <Button onClick={() => setIsDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            新增問題
+          </Button>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          新增問題
-        </Button>
       </div>
 
       <Card>
@@ -252,9 +257,10 @@ const Faq = () => {
                           onClick={() => handleDelete(faq.id)}
                         >
                           <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
+          </Button>
+        </div>
+      </div>
+    </div>
                   </div>
                 </div>
               ))

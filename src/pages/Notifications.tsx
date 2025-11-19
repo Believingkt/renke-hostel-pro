@@ -199,13 +199,17 @@ const Notifications = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">通知中心</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {unreadCount > 0 ? `您有 ${unreadCount} 則未讀通知` : '沒有未讀通知'}
-          </p>
-        </div>
+      <div className="pt-4 pb-4 border-b border-primary/20 mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h2 className="text-3xl font-bold flex items-center gap-2.5">
+              <span className="w-2 h-9 bg-primary rounded-full"></span>
+              通知中心
+            </h2>
+            <p className="text-sm text-muted-foreground mt-2 ml-[18px]">
+              {unreadCount > 0 ? `您有 ${unreadCount} 則未讀通知` : '沒有未讀通知'}
+            </p>
+          </div>
         
         <div className="flex gap-2 w-full sm:w-auto">
           <Button
@@ -231,6 +235,7 @@ const Notifications = () => {
           )}
         </div>
       </div>
+    </div>
 
       <div className="flex gap-2">
         <Button

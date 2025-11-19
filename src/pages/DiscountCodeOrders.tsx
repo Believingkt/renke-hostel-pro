@@ -117,13 +117,18 @@ const DiscountCodeOrders = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold">折扣代碼訂單</h1>
-          <p className="text-muted-foreground mt-1">代碼：{discountCode}</p>
+      <div className="pt-4 pb-4 border-b border-primary/20 mb-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h2 className="text-3xl font-bold flex items-center gap-2.5">
+              <span className="w-2 h-9 bg-primary rounded-full"></span>
+              折扣代碼訂單
+            </h2>
+            <p className="text-muted-foreground mt-2 ml-[18px]">代碼：{discountCode}</p>
+          </div>
         </div>
       </div>
 

@@ -168,18 +168,23 @@ const CustomerOrders = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate("/admin/customers")}
-          className="shrink-0"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{customer.name} 的訂單記錄</h1>
-          <p className="text-muted-foreground mt-1">查看顧客的所有訂單資訊</p>
+      <div className="pt-4 pb-4 border-b border-primary/20 mb-6">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/admin/customers")}
+            className="shrink-0"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h2 className="text-3xl font-bold flex items-center gap-2.5">
+              <span className="w-2 h-9 bg-primary rounded-full"></span>
+              {customer.name} 的訂單記錄
+            </h2>
+            <p className="text-muted-foreground mt-2 ml-[18px]">查看顧客的所有訂單資訊</p>
+          </div>
         </div>
       </div>
 
