@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Upload, Trash2, Info } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -62,6 +62,25 @@ export const HeaderFooterSection = ({
     youtubeUrl,
     tiktokUrl,
   });
+
+  // 同步 props 到 state
+  useEffect(() => {
+    setBrowserTitle(name);
+  }, [name]);
+
+  useEffect(() => {
+    setFormData({
+      address,
+      phone,
+      email,
+      lineId,
+      facebookUrl,
+      instagramUrl,
+      threadsUrl,
+      youtubeUrl,
+      tiktokUrl,
+    });
+  }, [address, phone, email, lineId, facebookUrl, instagramUrl, threadsUrl, youtubeUrl, tiktokUrl]);
 
   const handleSave = async () => {
     if (!accommodationId || !browserTitle.trim()) {
