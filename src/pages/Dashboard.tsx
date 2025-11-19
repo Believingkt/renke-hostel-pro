@@ -227,8 +227,8 @@ const Dashboard = () => {
     <div className="space-y-6 md:space-y-8">
       <div className="px-2 md:px-0 pb-4 border-b border-primary/20 mb-6">
         <div className="flex items-start md:items-center justify-between flex-col md:flex-row gap-3">
-          <h2 className="text-3xl font-bold flex items-center gap-2.5">
-            <BarChart3 className="h-8 w-8 text-primary" />
+          <h2 className="text-3xl font-bold flex items-center gap-3">
+            <BarChart3 className="h-7 w-7 text-primary" />
             營運分析
           </h2>
         <div className="flex items-center gap-2 flex-wrap w-full md:w-auto ml-0 md:ml-auto">

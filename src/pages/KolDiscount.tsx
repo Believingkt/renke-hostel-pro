@@ -760,8 +760,8 @@ const KolDiscount = () => {
     return (
       <div className="space-y-6">
         <div className="pb-4 border-b border-primary/20 mb-6">
-          <h2 className="text-3xl font-bold flex items-center gap-2.5">
-            <Ticket className="h-8 w-8 text-primary" />
+          <h2 className="text-3xl font-bold flex items-center gap-3">
+            <Ticket className="h-7 w-7 text-primary" />
             折扣代碼管理
           </h2>
         </div>
@@ -774,8 +774,8 @@ const KolDiscount = () => {
     <div className="space-y-6">
       <div className="pb-4 border-b border-primary/20 mb-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold flex items-center gap-2.5">
-            <Ticket className="h-8 w-8 text-primary" />
+          <h2 className="text-3xl font-bold flex items-center gap-3">
+            <Ticket className="h-7 w-7 text-primary" />
             折扣代碼管理
           </h2>
           <div className="flex items-center gap-2">

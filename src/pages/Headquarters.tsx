@@ -141,8 +141,8 @@ const Headquarters = () => {
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="pb-4 border-b border-primary/20 mb-6">
-        <h2 className="text-3xl font-bold flex items-center gap-2.5">
-          <Building2 className="h-8 w-8 text-primary" />
+        <h2 className="text-3xl font-bold flex items-center gap-3">
+          <Building2 className="h-7 w-7 text-primary" />
           人客多總部
         </h2>
         <p className="text-muted-foreground mt-2 ml-[18px]">管理所有旅館的用戶權限</p>

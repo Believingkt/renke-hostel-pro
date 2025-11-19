@@ -195,8 +195,8 @@ const Faq = () => {
       <div className="pb-4 border-b border-primary/20 mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-bold flex items-center gap-2.5">
-              <HelpCircle className="h-8 w-8 text-primary" />
+            <h2 className="text-3xl font-bold flex items-center gap-3">
+              <HelpCircle className="h-7 w-7 text-primary" />
               常見問題
             </h2>
             <p className="text-muted-foreground mt-2 ml-[18px]">管理網站常見問題內容</p>
