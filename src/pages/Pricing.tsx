@@ -327,8 +327,7 @@ const Pricing = () => {
           ) : (
             <Card>
               <CardHeader>
-                <CardTitle>房型管理</CardTitle>
-                <CardDescription className="mt-2">
+                <CardDescription>
                   管理住宿的各種房型資訊
                 </CardDescription>
               </CardHeader>
