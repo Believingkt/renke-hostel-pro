@@ -2534,11 +2534,7 @@ const WebsiteContent = () => {
             </h2>
           </div>
           <Card>
-            <CardHeader>
-              <CardTitle>精選照片</CardTitle>
-              <CardDescription>上傳和管理住宿精選照片</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="pt-6 space-y-6">
               {/* 上傳按鈕 */}
               <div className="flex items-center gap-4">
                 <Button
