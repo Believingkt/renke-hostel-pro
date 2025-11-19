@@ -1968,7 +1968,7 @@ const WebsiteContent = () => {
 
         {/* 基本資料 Tab */}
         <TabsContent value="basic-info" className="space-y-6">
-          <div className="pb-4 border-b border-border mb-6">
+          <div className="pb-4 border-b border-primary/20 mb-6">
             <h2 className="text-3xl font-bold">網頁設定</h2>
           </div>
           <WebInfoSection
@@ -2056,7 +2056,7 @@ const WebsiteContent = () => {
         </TabsContent>
 
         <TabsContent value="facilities" className="space-y-6">
-          <div className="pb-4 border-b border-border mb-6">
+          <div className="pb-4 border-b border-primary/20 mb-6">
             <h2 className="text-3xl font-bold">設施服務</h2>
           </div>
           {/* 公共區設施與服務 */}
@@ -2219,7 +2219,7 @@ const WebsiteContent = () => {
 
         {/* 加購方案 Tab */}
         <TabsContent value="addon-plans" className="space-y-6">
-          <div className="pb-4 border-b border-border mb-6">
+          <div className="pb-4 border-b border-primary/20 mb-6">
             <h2 className="text-3xl font-bold">加購方案</h2>
           </div>
           {/* 寵物方案 */}
@@ -2379,7 +2379,7 @@ const WebsiteContent = () => {
 
         {/* 相簿管理 Tab */}
         <TabsContent value="gallery" className="space-y-6">
-          <div className="pb-4 border-b border-border mb-6">
+          <div className="pb-4 border-b border-primary/20 mb-6">
             <h2 className="text-3xl font-bold">精選照片</h2>
           </div>
           <Card>
@@ -2444,7 +2444,7 @@ const WebsiteContent = () => {
         </TabsContent>
 
         <TabsContent value="booking-info" className="space-y-6">
-          <div className="pb-4 border-b border-border mb-6">
+          <div className="pb-4 border-b border-primary/20 mb-6">
             <h2 className="text-3xl font-bold">訂房須知</h2>
           </div>
           {/* 入住退房時間 */}
@@ -2597,7 +2597,7 @@ const WebsiteContent = () => {
         </TabsContent>
 
         <TabsContent value="faq" className="space-y-6">
-          <div className="flex items-center justify-between pb-4 border-b border-border mb-6">
+          <div className="flex items-center justify-between pb-4 border-b border-primary/20 mb-6">
             <div>
               <h2 className="text-3xl font-bold">常見問題</h2>
             </div>
@@ -2670,7 +2670,7 @@ const WebsiteContent = () => {
 
         {/* Location Tab */}
         <TabsContent value="location" className="space-y-6">
-          <div className="pb-4 border-b border-border mb-6">
+          <div className="pb-4 border-b border-primary/20 mb-6">
             <h2 className="text-3xl font-bold">交通地圖</h2>
           </div>
           <Card>
