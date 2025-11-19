@@ -314,6 +314,12 @@ const Pricing = () => {
         />
 
         <TabsContent value="rooms" className="space-y-4">
+          <div className="pt-4 pb-4 border-b border-primary/20 mb-6">
+            <h2 className="text-3xl font-bold flex items-center gap-2.5">
+              <span className="w-2 h-9 bg-primary rounded-full"></span>
+              房型管理
+            </h2>
+          </div>
           {showForm ? (
             <RoomTypeForm
               accommodationId={currentAccommodationId || ""}
@@ -383,10 +389,22 @@ const Pricing = () => {
         </TabsContent>
 
         <TabsContent value="facilities" className="space-y-4">
+          <div className="pt-4 pb-4 border-b border-primary/20 mb-6">
+            <h2 className="text-3xl font-bold flex items-center gap-2.5">
+              <span className="w-2 h-9 bg-primary rounded-full"></span>
+              房間設施
+            </h2>
+          </div>
           <RoomFacilitiesForm accommodationId={currentAccommodationId || ""} />
         </TabsContent>
 
         <TabsContent value="basic" className="space-y-4">
+          <div className="pt-4 pb-4 border-b border-primary/20 mb-6">
+            <h2 className="text-3xl font-bold flex items-center gap-2.5">
+              <span className="w-2 h-9 bg-primary rounded-full"></span>
+              價格設定
+            </h2>
+          </div>
           <Card>
             <CardHeader>
               <CardTitle>基本價格</CardTitle>
@@ -413,10 +431,22 @@ const Pricing = () => {
         </TabsContent>
 
         <TabsContent value="inventory" className="space-y-4">
+          <div className="pt-4 pb-4 border-b border-primary/20 mb-6">
+            <h2 className="text-3xl font-bold flex items-center gap-2.5">
+              <span className="w-2 h-9 bg-primary rounded-full"></span>
+              房量管理
+            </h2>
+          </div>
           <InventoryCalendar accommodationId={currentAccommodationId || ""} />
         </TabsContent>
 
         <TabsContent value="holidays" className="space-y-4">
+          <div className="pt-4 pb-4 border-b border-primary/20 mb-6">
+            <h2 className="text-3xl font-bold flex items-center gap-2.5">
+              <span className="w-2 h-9 bg-primary rounded-full"></span>
+              公休設定
+            </h2>
+          </div>
           <PublicHolidays />
         </TabsContent>
       </Tabs>
