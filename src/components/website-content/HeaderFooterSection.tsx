@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { Upload, Trash2, Info, AlertCircle } from "lucide-react";
+import { Upload, Trash2, Info } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
+import { ValidatedInput } from "@/components/ui/validated-input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { headerFooterSchema, validateField } from "@/utils/websiteValidation";
@@ -167,37 +167,20 @@ export const HeaderFooterSection = ({
       </CardHeader>
       <CardContent className="space-y-6">
         {/* 瀏覽器標題名稱 */}
-        <div className="space-y-2">
-          <Label htmlFor="browser-title">
-            瀏覽器標題名稱 <span className="text-destructive">*</span>
-          </Label>
-          <Input
-            id="browser-title"
-            value={browserTitle}
-            onChange={(e) => {
-              setBrowserTitle(e.target.value);
-              validateSingleField('browserTitle', e.target.value);
-            }}
-            onBlur={() => validateSingleField('browserTitle', browserTitle)}
-            placeholder="例如：山林秘境民宿"
-            required
-            className={errors.browserTitle ? "border-destructive focus-visible:ring-destructive" : ""}
-          />
-          {errors.browserTitle && (
-            <p className="text-sm text-destructive flex items-center gap-1">
-              <AlertCircle className="w-4 h-4" />
-              {errors.browserTitle}
-            </p>
-          )}
-          <div className="flex items-center justify-between text-sm">
-            <p className="text-muted-foreground">
-              瀏覽器分頁標題（建議 70 字元內）
-            </p>
-            <span className={browserTitle.length > 70 ? "text-yellow-600 font-medium" : "text-muted-foreground"}>
-              {browserTitle.length}/70
-            </span>
-          </div>
-        </div>
+        <ValidatedInput
+          id="browser-title"
+          label="瀏覽器標題名稱"
+          value={browserTitle}
+          error={errors.browserTitle}
+          placeholder="例如：山林秘境民宿"
+          required
+          maxLength={70}
+          showCharCount
+          onChange={(value) => {
+            setBrowserTitle(value);
+          }}
+          onValidate={(value) => validateSingleField('browserTitle', value)}
+        />
 
         {/* 頁首 Logo */}
         <div className="space-y-2">
@@ -269,7 +252,7 @@ export const HeaderFooterSection = ({
             />
             {footerLogoUrl && (
               <div className="flex items-center gap-2">
-                <div className="relative w-32 h-16 border rounded overflow-hidden">
+                <div className="relative w-32 h-16 border rounded overflow-hidden bg-muted">
                   <img 
                     src={footerLogoUrl} 
                     alt="頁尾 Logo" 
@@ -297,98 +280,52 @@ export const HeaderFooterSection = ({
         <div className="space-y-4">
           <div>
             <h3 className="text-sm font-medium">聯絡資訊</h3>
-            <p className="text-xs text-muted-foreground mt-1">
-              聯絡資訊
+            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+              <Info className="h-3 w-3" />
+              這些資訊將顯示在網站頁尾和聯絡頁面
             </p>
           </div>
           
-          <div className="space-y-2">
-            <Label htmlFor="address">地址</Label>
-            <Input
-              id="address"
-              value={formData.address}
-              onChange={(e) => {
-                setFormData(prev => ({ ...prev, address: e.target.value }));
-                validateSingleField('address', e.target.value);
-              }}
-              onBlur={() => validateSingleField('address', formData.address)}
-              placeholder="例如：台北市信義區市府路1號"
-              className={errors.address ? "border-destructive focus-visible:ring-destructive" : ""}
-            />
-            {errors.address && (
-              <p className="text-sm text-destructive flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
-                {errors.address}
-              </p>
-            )}
-          </div>
+          <ValidatedInput
+            id="address"
+            label="地址"
+            value={formData.address}
+            error={errors.address}
+            placeholder="例如：台北市信義區市府路1號"
+            onChange={(value) => setFormData(prev => ({ ...prev, address: value }))}
+            onValidate={(value) => validateSingleField('address', value)}
+          />
 
-          <div className="space-y-2">
-            <Label htmlFor="phone">電話</Label>
-            <Input
-              id="phone"
-              value={formData.phone}
-              onChange={(e) => {
-                setFormData(prev => ({ ...prev, phone: e.target.value }));
-                validateSingleField('phone', e.target.value);
-              }}
-              onBlur={() => validateSingleField('phone', formData.phone)}
-              placeholder="例如：02-1234-5678 或 0912-345-678"
-              className={errors.phone ? "border-destructive focus-visible:ring-destructive" : ""}
-            />
-            {errors.phone && (
-              <p className="text-sm text-destructive flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
-                {errors.phone}
-              </p>
-            )}
-          </div>
+          <ValidatedInput
+            id="phone"
+            label="電話"
+            value={formData.phone}
+            error={errors.phone}
+            placeholder="例如：02-1234-5678 或 0912-345-678"
+            onChange={(value) => setFormData(prev => ({ ...prev, phone: value }))}
+            onValidate={(value) => validateSingleField('phone', value)}
+          />
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => {
-                setFormData(prev => ({ ...prev, email: e.target.value }));
-                validateSingleField('email', e.target.value);
-              }}
-              onBlur={() => validateSingleField('email', formData.email)}
-              placeholder="例如：info@example.com"
-              className={errors.email ? "border-destructive focus-visible:ring-destructive" : ""}
-            />
-            {errors.email && (
-              <p className="text-sm text-destructive flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
-                {errors.email}
-              </p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              接收訂房通知和客戶諮詢的電子郵件地址
-            </p>
-          </div>
+          <ValidatedInput
+            id="email"
+            label="Email"
+            type="email"
+            value={formData.email}
+            error={errors.email}
+            placeholder="例如：info@example.com"
+            onChange={(value) => setFormData(prev => ({ ...prev, email: value }))}
+            onValidate={(value) => validateSingleField('email', value)}
+          />
 
-          <div className="space-y-2">
-            <Label htmlFor="line-id">LINE ID</Label>
-            <Input
-              id="line-id"
-              value={formData.lineId}
-              onChange={(e) => {
-                setFormData(prev => ({ ...prev, lineId: e.target.value }));
-                validateSingleField('lineId', e.target.value);
-              }}
-              onBlur={() => validateSingleField('lineId', formData.lineId)}
-              placeholder="例如：@example"
-              className={errors.lineId ? "border-destructive focus-visible:ring-destructive" : ""}
-            />
-            {errors.lineId && (
-              <p className="text-sm text-destructive flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
-                {errors.lineId}
-              </p>
-            )}
-          </div>
+          <ValidatedInput
+            id="line-id"
+            label="LINE ID"
+            value={formData.lineId}
+            error={errors.lineId}
+            placeholder="例如：@example"
+            onChange={(value) => setFormData(prev => ({ ...prev, lineId: value }))}
+            onValidate={(value) => validateSingleField('lineId', value)}
+          />
         </div>
 
         {/* 社群媒體連結 */}
@@ -399,114 +336,62 @@ export const HeaderFooterSection = ({
               填寫完整網址
             </p>
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="facebook">Facebook</Label>
-            <Input
-              id="facebook"
-              value={formData.facebookUrl}
-              onChange={(e) => {
-                setFormData(prev => ({ ...prev, facebookUrl: e.target.value }));
-                validateSingleField('facebookUrl', e.target.value);
-              }}
-              onBlur={() => validateSingleField('facebookUrl', formData.facebookUrl)}
-              placeholder="https://facebook.com/yourpage"
-              className={errors.facebookUrl ? "border-destructive focus-visible:ring-destructive" : ""}
-            />
-            {errors.facebookUrl && (
-              <p className="text-sm text-destructive flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
-                {errors.facebookUrl}
-              </p>
-            )}
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="instagram">Instagram</Label>
-            <Input
-              id="instagram"
-              value={formData.instagramUrl}
-              onChange={(e) => {
-                setFormData(prev => ({ ...prev, instagramUrl: e.target.value }));
-                validateSingleField('instagramUrl', e.target.value);
-              }}
-              onBlur={() => validateSingleField('instagramUrl', formData.instagramUrl)}
-              placeholder="https://instagram.com/yourprofile"
-              className={errors.instagramUrl ? "border-destructive focus-visible:ring-destructive" : ""}
-            />
-            {errors.instagramUrl && (
-              <p className="text-sm text-destructive flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
-                {errors.instagramUrl}
-              </p>
-            )}
-          </div>
+          <ValidatedInput
+            id="facebook-url"
+            label="Facebook"
+            value={formData.facebookUrl}
+            error={errors.facebookUrl}
+            placeholder="https://www.facebook.com/yourpage"
+            onChange={(value) => setFormData(prev => ({ ...prev, facebookUrl: value }))}
+            onValidate={(value) => validateSingleField('facebookUrl', value)}
+          />
 
-          <div className="space-y-2">
-            <Label htmlFor="threads">Threads</Label>
-            <Input
-              id="threads"
-              value={formData.threadsUrl}
-              onChange={(e) => {
-                setFormData(prev => ({ ...prev, threadsUrl: e.target.value }));
-                validateSingleField('threadsUrl', e.target.value);
-              }}
-              onBlur={() => validateSingleField('threadsUrl', formData.threadsUrl)}
-              placeholder="https://threads.net/@yourprofile"
-              className={errors.threadsUrl ? "border-destructive focus-visible:ring-destructive" : ""}
-            />
-            {errors.threadsUrl && (
-              <p className="text-sm text-destructive flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
-                {errors.threadsUrl}
-              </p>
-            )}
-          </div>
+          <ValidatedInput
+            id="instagram-url"
+            label="Instagram"
+            value={formData.instagramUrl}
+            error={errors.instagramUrl}
+            placeholder="https://www.instagram.com/yourprofile"
+            onChange={(value) => setFormData(prev => ({ ...prev, instagramUrl: value }))}
+            onValidate={(value) => validateSingleField('instagramUrl', value)}
+          />
 
-          <div className="space-y-2">
-            <Label htmlFor="youtube">YouTube</Label>
-            <Input
-              id="youtube"
-              value={formData.youtubeUrl}
-              onChange={(e) => {
-                setFormData(prev => ({ ...prev, youtubeUrl: e.target.value }));
-                validateSingleField('youtubeUrl', e.target.value);
-              }}
-              onBlur={() => validateSingleField('youtubeUrl', formData.youtubeUrl)}
-              placeholder="https://youtube.com/yourchannel"
-              className={errors.youtubeUrl ? "border-destructive focus-visible:ring-destructive" : ""}
-            />
-            {errors.youtubeUrl && (
-              <p className="text-sm text-destructive flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
-                {errors.youtubeUrl}
-              </p>
-            )}
-          </div>
+          <ValidatedInput
+            id="threads-url"
+            label="Threads"
+            value={formData.threadsUrl}
+            error={errors.threadsUrl}
+            placeholder="https://www.threads.net/@yourprofile"
+            onChange={(value) => setFormData(prev => ({ ...prev, threadsUrl: value }))}
+            onValidate={(value) => validateSingleField('threadsUrl', value)}
+          />
 
-          <div className="space-y-2">
-            <Label htmlFor="tiktok">TikTok</Label>
-            <Input
-              id="tiktok"
-              value={formData.tiktokUrl}
-              onChange={(e) => {
-                setFormData(prev => ({ ...prev, tiktokUrl: e.target.value }));
-                validateSingleField('tiktokUrl', e.target.value);
-              }}
-              onBlur={() => validateSingleField('tiktokUrl', formData.tiktokUrl)}
-              placeholder="https://tiktok.com/@yourprofile"
-              className={errors.tiktokUrl ? "border-destructive focus-visible:ring-destructive" : ""}
-            />
-            {errors.tiktokUrl && (
-              <p className="text-sm text-destructive flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
-                {errors.tiktokUrl}
-              </p>
-            )}
-          </div>
+          <ValidatedInput
+            id="youtube-url"
+            label="YouTube"
+            value={formData.youtubeUrl}
+            error={errors.youtubeUrl}
+            placeholder="https://www.youtube.com/@yourchannel"
+            onChange={(value) => setFormData(prev => ({ ...prev, youtubeUrl: value }))}
+            onValidate={(value) => validateSingleField('youtubeUrl', value)}
+          />
+
+          <ValidatedInput
+            id="tiktok-url"
+            label="TikTok"
+            value={formData.tiktokUrl}
+            error={errors.tiktokUrl}
+            placeholder="https://www.tiktok.com/@yourprofile"
+            onChange={(value) => setFormData(prev => ({ ...prev, tiktokUrl: value }))}
+            onValidate={(value) => validateSingleField('tiktokUrl', value)}
+          />
         </div>
 
-        <SaveButtonContainer onSave={handleSave} isSaving={isSaving} />
+        <SaveButtonContainer 
+          onSave={handleSave} 
+          isSaving={isSaving}
+        />
       </CardContent>
     </Card>
   );
