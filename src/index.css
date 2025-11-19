@@ -36,7 +36,7 @@ All colors MUST be HSL.
     --input: 142 30% 92%;
     --ring: 142 76% 36%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
     /* Custom design tokens */
     --hero-gradient-start: 142 76% 36%;
