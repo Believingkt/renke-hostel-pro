@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Edit2, Trash2, GripVertical } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -125,6 +125,19 @@ export const AboutFeaturesSection = ({
   const [title, setTitle] = useState(sectionTitle);
   const [description, setDescription] = useState(sectionDescription);
   const [localFeatures, setLocalFeatures] = useState(features);
+
+  // 同步 props 到 state
+  useEffect(() => {
+    setTitle(sectionTitle);
+  }, [sectionTitle]);
+
+  useEffect(() => {
+    setDescription(sectionDescription);
+  }, [sectionDescription]);
+
+  useEffect(() => {
+    setLocalFeatures(features);
+  }, [features]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
