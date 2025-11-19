@@ -300,7 +300,7 @@ const Pricing = () => {
   ];
 
   return (
-    <div>
+    <div className="space-y-6 md:space-y-8">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsContent value="rooms" className="space-y-4">
           <div className="pb-4 border-b border-primary/20 mb-6">
