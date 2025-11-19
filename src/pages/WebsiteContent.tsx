@@ -2435,7 +2435,7 @@ const WebsiteContent = () => {
           {/* 入住退房時間 */}
           <Card>
             <CardHeader>
-              <CardTitle>入住退房時間</CardTitle>
+              <CardTitle>訂房須知</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-6">
