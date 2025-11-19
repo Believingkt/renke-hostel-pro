@@ -2191,9 +2191,6 @@ const WebsiteContent = () => {
           </div>
           {/* 公共區設施與服務 */}
           <Card>
-            <CardHeader>
-              <CardTitle>設施服務</CardTitle>
-            </CardHeader>
             <CardContent>
               <div className="space-y-6">
                 <h3 className="font-semibold">公共區設施與服務</h3>
