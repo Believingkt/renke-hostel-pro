@@ -302,13 +302,6 @@ const Pricing = () => {
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <ResponsiveTabs
-          tabs={pricingTabs}
-          value={activeTab}
-          onValueChange={setActiveTab}
-          desktopClassName="w-full max-w-4xl"
-        />
-
         <TabsContent value="rooms" className="space-y-4">
           <div className="pt-4 pb-4 border-b border-primary/20 mb-6">
             <h2 className="text-3xl font-bold flex items-center gap-2.5">
