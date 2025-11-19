@@ -193,7 +193,7 @@ export default function UserRoles() {
           <span className="w-2 h-9 bg-primary rounded-full"></span>
           用戶權限管理
         </h2>
-        <p className="text-sm md:text-base text-muted-foreground mt-2 ml-12">
+        <p className="text-sm md:text-base text-muted-foreground mt-2 ml-[18px]">
           管理此旅館的用戶權限和角色
         </p>
       </div>
