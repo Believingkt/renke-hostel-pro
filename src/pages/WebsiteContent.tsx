@@ -2191,7 +2191,7 @@ const WebsiteContent = () => {
           </div>
           {/* 公共區設施與服務 */}
           <Card>
-            <CardContent>
+            <CardContent className="pt-6">
               <div className="space-y-6">
                 <h3 className="font-semibold">公共區設施與服務</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
