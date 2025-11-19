@@ -304,7 +304,7 @@ const Booking = () => {
               <div>
                 <h3 className="font-semibold text-xl mb-6 flex items-center gap-2">
                   <Sparkles className="h-5 w-5 text-primary" />
-                  設施與服務
+                  設施服務
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
                   {[
