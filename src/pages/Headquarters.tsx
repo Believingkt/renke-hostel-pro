@@ -151,7 +151,6 @@ const Headquarters = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>新增用戶權限</CardTitle>
           <CardDescription>為用戶分配特定旅館的權限</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -205,7 +204,6 @@ const Headquarters = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>用戶權限列表</CardTitle>
           <CardDescription>查看和管理所有用戶的權限設定</CardDescription>
         </CardHeader>
         <CardContent>

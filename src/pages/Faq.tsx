@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Plus, Trash2, Edit2, GripVertical, HelpCircle, MessageSquare } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -211,7 +211,9 @@ const Faq = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>問題列表</CardTitle>
+          <CardDescription>
+            填寫常見問題的內容，這些內容將顯示在網站前台
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
