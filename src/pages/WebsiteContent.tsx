@@ -1942,7 +1942,7 @@ const WebsiteContent = () => {
   };
 
   return (
-    <div>
+    <div className="space-y-6 md:space-y-8">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         {/* 基本資料 Tab */}
         <TabsContent value="basic-info" className="space-y-6">
