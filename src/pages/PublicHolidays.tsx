@@ -432,89 +432,8 @@ const PublicHolidays = () => {
         </Card>
       </div>
 
-      <div className="pb-4 border-b border-primary/20 mb-6 flex items-center justify-between">
-        <h2 className="text-3xl font-bold flex items-center gap-3">
-          <CalendarDays className="h-7 w-7 text-primary" />
-          國定假日管理
-        </h2>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setIsBatchDialogOpen(true)}>
-            <Download className="h-4 w-4 mr-2" />
-            批量導入
-          </Button>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                新增假日
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>新增國定假日</DialogTitle>
-                <DialogDescription>
-                  新增假日日期後，該日期將使用假日定價
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="holidayName">假日名稱</Label>
-                  <Input
-                    id="holidayName"
-                    placeholder="例如：春節、中秋節"
-                    value={newHoliday.name}
-                    onChange={(e) =>
-                      setNewHoliday({ ...newHoliday, name: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>假日日期</Label>
-                  <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !newHoliday.date && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {newHoliday.date ? (
-                          format(newHoliday.date, "yyyy/MM/dd", { locale: zhTW })
-                        ) : (
-                          <span>選擇日期</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <CalendarComponent
-                        mode="single"
-                        selected={newHoliday.date}
-                        onSelect={(date) => {
-                          setNewHoliday({ ...newHoliday, date });
-                          setIsDatePickerOpen(false);
-                        }}
-                        locale={zhTW}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  取消
-                </Button>
-                <Button onClick={handleAddHoliday}>新增</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
-
-      {/* 主要內容卡片 */}
-      <Card>
+        {/* 主要內容卡片 */}
+        <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
@@ -560,13 +479,18 @@ const PublicHolidays = () => {
                   </SelectContent>
                 </Select>
               )}
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {viewMode === "list" ? (
-            // 列表檢視
-            <>
+              <Button variant="outline" onClick={() => setIsBatchDialogOpen(true)}>
+                <Download className="h-4 w-4 mr-2" />
+                批量導入
+              </Button>
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    新增假日
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
                   <DialogHeader>
                     <DialogTitle>新增國定假日</DialogTitle>
                     <DialogDescription>
@@ -619,64 +543,14 @@ const PublicHolidays = () => {
                       </Popover>
                     </div>
                   </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  取消
-                </Button>
-                <Button onClick={handleAddHoliday}>新增</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
-
-      {/* 主要內容卡片 */}
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <CalendarDays className="h-6 w-6 text-primary" />
-                國定假日管理
-              </CardTitle>
-              <CardDescription className="mt-2">
-                管理假日定價的國定假日日期（假日定價包含：星期六 + 國定假日）
-              </CardDescription>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "list" | "calendar")} className="w-auto">
-                <ResponsiveTabs
-                  tabs={[
-                    { value: "list", label: "列表", icon: List },
-                    { value: "calendar", label: "月曆", icon: LayoutGrid },
-                  ]}
-                  value={viewMode}
-                  onValueChange={(v) => setViewMode(v as "list" | "calendar")}
-                  mobileBreakpoint="md"
-                  showGradient={false}
-                  selectHeight="sm"
-                  selectWidth="w-[140px]"
-                  mobileClassName="mb-0"
-                  desktopClassName="w-auto"
-                  className="w-auto"
-                />
-              </Tabs>
-              {viewMode === "list" && (
-                <Select value={selectedYear} onValueChange={setSelectedYear}>
-                  <SelectTrigger className="w-[140px]">
-                    <Filter className="h-4 w-4 mr-2" />
-                    <SelectValue placeholder="篩選年份" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">所有年份</SelectItem>
-                    {availableYears.map(year => (
-                      <SelectItem key={year} value={year.toString()}>
-                        {year} 年
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                      取消
+                    </Button>
+                    <Button onClick={handleAddHoliday}>新增</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </CardHeader>
