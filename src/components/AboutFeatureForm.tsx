@@ -6,9 +6,11 @@ import { ValidatedTextarea } from "@/components/ui/validated-textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
+import { DraftRestoreBanner } from "@/components/ui/draft-restore-banner";
 import { Mountain, Sparkles, UserCheck, Camera, Home, Heart, Star, Wifi, Coffee, Car } from "lucide-react";
 import { Upload, Trash2 } from "lucide-react";
 import { featureSchema } from "@/utils/websiteValidation";
+import { useFormDraft } from "@/hooks/use-form-draft";
 import { toast } from "sonner";
 
 interface AboutFeature {
@@ -42,33 +44,48 @@ const BUILT_IN_ICONS = [
 ];
 
 export function AboutFeatureForm({ open, onOpenChange, feature, onSave }: AboutFeatureFormProps) {
-  const [formData, setFormData] = useState<AboutFeature>(
-    feature || {
-      title: '',
-      description: '',
-      icon_type: 'lucide',
-      icon_name: 'Mountain',
-      display_order: 0,
-    }
-  );
   const [uploadingIcon, setUploadingIcon] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const initialFormData = {
+    title: '',
+    description: '',
+    icon_type: 'lucide',
+    icon_name: 'Mountain',
+    icon_url: '',
+    display_order: 0,
+  };
+
+  const {
+    formData,
+    setFormData,
+    hasDraft,
+    restoreDraft,
+    discardDraft,
+    clearDraft,
+  } = useFormDraft({
+    key: `about-feature-form-${feature?.id || 'new'}`,
+    initialData: initialFormData,
+  });
+
   // 重置表單當 feature prop 改變時
   useEffect(() => {
-    if (feature) {
-      setFormData(feature);
-    } else {
-      setFormData({
-        title: '',
-        description: '',
-        icon_type: 'lucide',
-        icon_name: 'Mountain',
-        display_order: 0,
-      });
+    if (open) {
+      if (feature) {
+        setFormData({
+          title: feature.title,
+          description: feature.description,
+          icon_type: feature.icon_type,
+          icon_name: feature.icon_name,
+          icon_url: feature.icon_url || '',
+          display_order: feature.display_order,
+        });
+      } else {
+        setFormData(initialFormData);
+      }
+      setErrors({});
     }
-    setErrors({});
-  }, [feature, open]);
+  }, [feature, open, setFormData]);
 
   const validateField = (field: string, value: string) => {
     try {
@@ -105,7 +122,18 @@ export function AboutFeatureForm({ open, onOpenChange, feature, onSave }: AboutF
       return;
     }
 
-    onSave(formData);
+    const featureData = {
+      ...feature,
+      title: formData.title,
+      description: formData.description,
+      icon_type: formData.icon_type,
+      icon_name: formData.icon_name,
+      icon_url: formData.icon_url || undefined,
+      display_order: formData.display_order,
+    } as AboutFeature;
+
+    onSave(featureData);
+    clearDraft();
     setErrors({});
     onOpenChange(false);
   };
@@ -119,7 +147,6 @@ export function AboutFeatureForm({ open, onOpenChange, feature, onSave }: AboutF
     // For now, just set a placeholder
     setFormData({
       ...formData,
-      icon_type: 'custom',
       icon_url: URL.createObjectURL(file),
     });
     setUploadingIcon(false);
@@ -134,6 +161,13 @@ export function AboutFeatureForm({ open, onOpenChange, feature, onSave }: AboutF
         <DialogHeader>
           <DialogTitle>{feature ? '編輯特色區塊' : '新增特色區塊'}</DialogTitle>
         </DialogHeader>
+
+        {hasDraft && (
+          <DraftRestoreBanner
+            onRestore={restoreDraft}
+            onDiscard={discardDraft}
+          />
+        )}
 
         <div className="space-y-4">
           <ValidatedInput
@@ -228,63 +262,56 @@ export function AboutFeatureForm({ open, onOpenChange, feature, onSave }: AboutF
                   id="icon-upload"
                   type="file"
                   accept="image/*"
-                  onChange={handleIconUpload}
                   className="hidden"
+                  onChange={handleIconUpload}
                 />
                 {formData.icon_url && (
-                  <div className="flex items-center gap-2">
-                    <div className="relative w-16 h-16 border rounded overflow-hidden">
-                      <img
-                        src={formData.icon_url}
-                        alt="圖示預覽"
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
-                    <Button
+                  <div className="relative w-12 h-12 rounded-lg border overflow-hidden">
+                    <img src={formData.icon_url} alt="Custom icon" className="w-full h-full object-cover" />
+                    <button
                       type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setFormData({ ...formData, icon_url: undefined })}
+                      onClick={() => setFormData({ ...formData, icon_url: '' })}
+                      className="absolute top-0 right-0 p-1 bg-destructive text-destructive-foreground rounded-bl"
                     >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                      <Trash2 className="h-3 w-3" />
+                    </button>
                   </div>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground">
-                建議尺寸：128x128 像素，支援 PNG、SVG 格式
-              </p>
             </div>
           )}
 
+          {/* 預覽 */}
           <div className="space-y-2">
             <Label>預覽</Label>
-            <div className="border rounded-lg p-6 text-center">
-              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-                {formData.icon_type === 'lucide' && IconComponent ? (
-                  <IconComponent className="h-10 w-10 text-primary" />
-                ) : formData.icon_url ? (
-                  <img src={formData.icon_url} alt="圖示" className="w-10 h-10 object-contain" />
-                ) : (
-                  <div className="text-muted-foreground text-xs">未選擇</div>
+            <div className="p-6 border rounded-lg bg-muted/30">
+              <div className="flex flex-col items-center gap-3 text-center">
+                {formData.icon_type === 'lucide' && IconComponent && (
+                  <div className="p-3 rounded-full bg-primary/10">
+                    <IconComponent className="h-8 w-8 text-primary" />
+                  </div>
                 )}
+                {formData.icon_type === 'custom' && formData.icon_url && (
+                  <div className="w-14 h-14 rounded-full overflow-hidden">
+                    <img src={formData.icon_url} alt="Custom icon" className="w-full h-full object-cover" />
+                  </div>
+                )}
+                <div>
+                  <h3 className="font-semibold text-lg">{formData.title || '標題預覽'}</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {formData.description || '說明文字預覽'}
+                  </p>
+                </div>
               </div>
-              <h3 className="font-semibold text-lg mb-2">{formData.title || '標題'}</h3>
-              <p className="text-sm text-muted-foreground">{formData.description || '說明文字'}</p>
             </div>
           </div>
-        </div>
 
-        <SaveButtonContainer 
-          onSave={handleSubmit} 
-          disabled={!formData.title || !formData.description}
-          saveText="儲存變更"
-          className="border-t-0 gap-3"
-        >
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            取消
-          </Button>
-        </SaveButtonContainer>
+          <SaveButtonContainer onSave={handleSubmit}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              取消
+            </Button>
+          </SaveButtonContainer>
+        </div>
       </DialogContent>
     </Dialog>
   );

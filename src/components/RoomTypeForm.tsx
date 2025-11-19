@@ -7,9 +7,11 @@ import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { ValidatedInput } from "@/components/ui/validated-input";
 import { ValidatedTextarea } from "@/components/ui/validated-textarea";
 import { ValidatedNumberInput } from "@/components/ui/validated-number-input";
+import { DraftRestoreBanner } from "@/components/ui/draft-restore-banner";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { roomTypeSchema } from "@/utils/roomValidation";
+import { useFormDraft } from "@/hooks/use-form-draft";
 import {
   DndContext,
   closestCenter,
@@ -94,22 +96,39 @@ function SortablePhotoItem({ url, index, onRemove }: SortablePhotoItemProps) {
 export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }: RoomTypeFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [formData, setFormData] = useState({
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+
+  const initialFormData = {
     name: "",
     description: "",
     size_sqm: "",
     capacity: "",
     room_count: "1",
     quad_room_count: "0",
+    triple_room_count: "0",
     double_room_count: "0",
     weekday_2_meals_price: "",
     weekday_3_meals_price: "",
     weekend_2_meals_price: "",
     weekend_3_meals_price: "",
     display_order: "0",
+  };
+
+  const {
+    formData,
+    setFormData,
+    hasDraft,
+    restoreDraft,
+    discardDraft,
+    clearDraft,
+  } = useFormDraft({
+    key: `room-type-form-${roomType?.id || 'new'}`,
+    initialData: initialFormData,
+    onRestore: (data) => {
+      // 草稿恢復時不覆蓋照片
+    },
   });
-  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
-  const [uploading, setUploading] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -127,6 +146,7 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         capacity: roomType.capacity?.toString() || "",
         room_count: roomType.room_count?.toString() || "1",
         quad_room_count: roomType.quad_room_count?.toString() || "0",
+        triple_room_count: roomType.triple_room_count?.toString() || "0",
         double_room_count: roomType.double_room_count?.toString() || "0",
         weekday_2_meals_price: roomType.weekday_2_meals_price?.toString() || "",
         weekday_3_meals_price: roomType.weekday_3_meals_price?.toString() || "",
@@ -136,7 +156,7 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
       });
       loadPhotos(roomType.id);
     }
-  }, [roomType]);
+  }, [roomType, setFormData]);
 
   const loadPhotos = async (roomTypeId: string) => {
     try {
@@ -245,45 +265,65 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         accommodation_id: accommodationId,
         name: formData.name.trim(),
         description: formData.description.trim() || null,
-        size_sqm: formData.size_sqm ? parseFloat(formData.size_sqm) : null,
+        size_sqm: formData.size_sqm ? parseInt(formData.size_sqm) : null,
         capacity: parseInt(formData.capacity),
-        room_count: parseInt(formData.room_count),
-        quad_room_count: parseInt(formData.quad_room_count) || null,
-        triple_room_count: 0,
-        double_room_count: parseInt(formData.double_room_count) || null,
-        weekday_2_meals_price: formData.weekday_2_meals_price ? parseInt(formData.weekday_2_meals_price) : null,
-        weekday_3_meals_price: formData.weekday_3_meals_price ? parseInt(formData.weekday_3_meals_price) : null,
-        weekend_2_meals_price: formData.weekend_2_meals_price ? parseInt(formData.weekend_2_meals_price) : null,
-        weekend_3_meals_price: formData.weekend_3_meals_price ? parseInt(formData.weekend_3_meals_price) : null,
-        base_price: formData.weekday_2_meals_price ? parseInt(formData.weekday_2_meals_price) : 0,
-        display_order: parseInt(formData.display_order) || 0,
+        room_count: formData.room_count ? parseInt(formData.room_count) : null,
+        quad_room_count: formData.quad_room_count ? parseInt(formData.quad_room_count) : null,
+        triple_room_count: formData.triple_room_count ? parseInt(formData.triple_room_count) : null,
+        double_room_count: formData.double_room_count ? parseInt(formData.double_room_count) : null,
+        base_price: formData.weekday_2_meals_price ? parseFloat(formData.weekday_2_meals_price) : 0,
+        weekday_2_meals_price: formData.weekday_2_meals_price ? parseFloat(formData.weekday_2_meals_price) : null,
+        weekday_3_meals_price: formData.weekday_3_meals_price ? parseFloat(formData.weekday_3_meals_price) : null,
+        weekend_2_meals_price: formData.weekend_2_meals_price ? parseFloat(formData.weekend_2_meals_price) : null,
+        weekend_3_meals_price: formData.weekend_3_meals_price ? parseFloat(formData.weekend_3_meals_price) : null,
+        display_order: formData.display_order ? parseInt(formData.display_order) : 0,
       };
 
-      let roomId: string;
+      let savedRoomId = roomType?.id;
+
       if (roomType) {
-        await supabase.from("room_types").update(roomData).eq("id", roomType.id);
-        roomId = roomType.id;
-        await supabase.from("room_photos").delete().eq("room_type_id", roomId);
+        const { error } = await supabase
+          .from("room_types")
+          .update(roomData)
+          .eq("id", roomType.id);
+        if (error) throw error;
       } else {
-        const { data } = await supabase.from("room_types").insert(roomData).select().single();
-        roomId = data!.id;
+        const { data, error } = await supabase
+          .from("room_types")
+          .insert(roomData)
+          .select()
+          .single();
+        if (error) throw error;
+        savedRoomId = data.id;
       }
 
-      if (photoUrls.length > 0) {
-        const photosToInsert = photoUrls.filter(url => url.trim()).map((url, index) => ({
-          room_type_id: roomId,
-          photo_url: url.trim(),
+      // 儲存照片
+      if (savedRoomId && photoUrls.length > 0) {
+        // 刪除舊照片
+        await supabase
+          .from("room_photos")
+          .delete()
+          .eq("room_type_id", savedRoomId);
+
+        // 插入新照片
+        const photoInserts = photoUrls.map((url, index) => ({
+          room_type_id: savedRoomId,
+          photo_url: url,
           display_order: index,
         }));
-        if (photosToInsert.length > 0) {
-          await supabase.from("room_photos").insert(photosToInsert);
-        }
+
+        const { error: photoError } = await supabase
+          .from("room_photos")
+          .insert(photoInserts);
+
+        if (photoError) throw photoError;
       }
 
-      toast.success(roomType ? "房型已更新" : "房型已新增");
+      toast.success(roomType ? '房型已更新' : '房型已新增');
+      clearDraft();
       onSuccess();
     } catch (error: any) {
-      toast.error("儲存失敗：" + error.message);
+      toast.error('儲存失敗：' + error.message);
     } finally {
       setIsLoading(false);
     }
@@ -291,6 +331,13 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
 
   return (
     <div className="space-y-6">
+      {hasDraft && (
+        <DraftRestoreBanner
+          onRestore={restoreDraft}
+          onDiscard={discardDraft}
+        />
+      )}
+      
       {/* 基本資訊 */}
       <Card>
         <CardHeader>
@@ -403,97 +450,104 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
             />
 
             <ValidatedNumberInput
-              id="double_room_count"
-              label="雙人房數"
-              value={formData.double_room_count ? parseInt(formData.double_room_count) : 0}
+              id="triple_room_count"
+              label="三人房數"
+              value={formData.triple_room_count ? parseInt(formData.triple_room_count) : 0}
               onChange={(value) => {
-                setFormData(prev => ({ ...prev, double_room_count: value.toString() }));
-                validateField('double_room_count', value.toString());
+                setFormData(prev => ({ ...prev, triple_room_count: value.toString() }));
+                validateField('triple_room_count', value.toString());
               }}
-              onValidate={(value) => validateField('double_room_count', value)}
-              error={errors.double_room_count}
+              onValidate={(value) => validateField('triple_room_count', value)}
+              error={errors.triple_room_count}
               min={0}
               max={100}
             />
           </div>
+          <ValidatedNumberInput
+            id="double_room_count"
+            label="雙人房數"
+            value={formData.double_room_count ? parseInt(formData.double_room_count) : 0}
+            onChange={(value) => {
+              setFormData(prev => ({ ...prev, double_room_count: value.toString() }));
+              validateField('double_room_count', value.toString());
+            }}
+            onValidate={(value) => validateField('double_room_count', value)}
+            error={errors.double_room_count}
+            min={0}
+            max={100}
+          />
         </CardContent>
       </Card>
 
-      {/* 定價設定 */}
+      {/* 房型價格 */}
       <Card>
         <CardHeader>
-          <CardTitle>定價設定</CardTitle>
-          <CardDescription>設定平日和假日的價格</CardDescription>
+          <CardTitle>房型價格</CardTitle>
+          <CardDescription>設定不同方案的價格</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-4">
-            <Label>平日價格</Label>
-            <div className="grid grid-cols-2 gap-4">
-              <ValidatedNumberInput
-                id="weekday_2_meals_price"
-                label="平日一泊二食"
-                value={formData.weekday_2_meals_price ? parseInt(formData.weekday_2_meals_price) : 0}
-                onChange={(value) => {
-                  setFormData(prev => ({ ...prev, weekday_2_meals_price: value.toString() }));
-                  validateField('weekday_2_meals_price', value.toString());
-                }}
-                onValidate={(value) => validateField('weekday_2_meals_price', value)}
-                error={errors.weekday_2_meals_price}
-                prefix="NT$"
-                min={0}
-                max={100000}
-              />
+          <div className="grid grid-cols-2 gap-4">
+            <ValidatedNumberInput
+              id="weekday_2_meals_price"
+              label="平日一泊二食"
+              value={formData.weekday_2_meals_price ? parseFloat(formData.weekday_2_meals_price) : 0}
+              onChange={(value) => {
+                setFormData(prev => ({ ...prev, weekday_2_meals_price: value.toString() }));
+                validateField('weekday_2_meals_price', value.toString());
+              }}
+              onValidate={(value) => validateField('weekday_2_meals_price', value)}
+              error={errors.weekday_2_meals_price}
+              prefix="NT$"
+              min={0}
+              max={99999}
+            />
 
-              <ValidatedNumberInput
-                id="weekday_3_meals_price"
-                label="平日一泊三食"
-                value={formData.weekday_3_meals_price ? parseInt(formData.weekday_3_meals_price) : 0}
-                onChange={(value) => {
-                  setFormData(prev => ({ ...prev, weekday_3_meals_price: value.toString() }));
-                  validateField('weekday_3_meals_price', value.toString());
-                }}
-                onValidate={(value) => validateField('weekday_3_meals_price', value)}
-                error={errors.weekday_3_meals_price}
-                prefix="NT$"
-                min={0}
-                max={100000}
-              />
-            </div>
+            <ValidatedNumberInput
+              id="weekday_3_meals_price"
+              label="平日一泊三食"
+              value={formData.weekday_3_meals_price ? parseFloat(formData.weekday_3_meals_price) : 0}
+              onChange={(value) => {
+                setFormData(prev => ({ ...prev, weekday_3_meals_price: value.toString() }));
+                validateField('weekday_3_meals_price', value.toString());
+              }}
+              onValidate={(value) => validateField('weekday_3_meals_price', value)}
+              error={errors.weekday_3_meals_price}
+              prefix="NT$"
+              min={0}
+              max={99999}
+            />
           </div>
 
-          <div className="space-y-4">
-            <Label>假日價格</Label>
-            <div className="grid grid-cols-2 gap-4">
-              <ValidatedNumberInput
-                id="weekend_2_meals_price"
-                label="假日一泊二食"
-                value={formData.weekend_2_meals_price ? parseInt(formData.weekend_2_meals_price) : 0}
-                onChange={(value) => {
-                  setFormData(prev => ({ ...prev, weekend_2_meals_price: value.toString() }));
-                  validateField('weekend_2_meals_price', value.toString());
-                }}
-                onValidate={(value) => validateField('weekend_2_meals_price', value)}
-                error={errors.weekend_2_meals_price}
-                prefix="NT$"
-                min={0}
-                max={100000}
-              />
+          <div className="grid grid-cols-2 gap-4">
+            <ValidatedNumberInput
+              id="weekend_2_meals_price"
+              label="假日一泊二食"
+              value={formData.weekend_2_meals_price ? parseFloat(formData.weekend_2_meals_price) : 0}
+              onChange={(value) => {
+                setFormData(prev => ({ ...prev, weekend_2_meals_price: value.toString() }));
+                validateField('weekend_2_meals_price', value.toString());
+              }}
+              onValidate={(value) => validateField('weekend_2_meals_price', value)}
+              error={errors.weekend_2_meals_price}
+              prefix="NT$"
+              min={0}
+              max={99999}
+            />
 
-              <ValidatedNumberInput
-                id="weekend_3_meals_price"
-                label="假日一泊三食"
-                value={formData.weekend_3_meals_price ? parseInt(formData.weekend_3_meals_price) : 0}
-                onChange={(value) => {
-                  setFormData(prev => ({ ...prev, weekend_3_meals_price: value.toString() }));
-                  validateField('weekend_3_meals_price', value.toString());
-                }}
-                onValidate={(value) => validateField('weekend_3_meals_price', value)}
-                error={errors.weekend_3_meals_price}
-                prefix="NT$"
-                min={0}
-                max={100000}
-              />
-            </div>
+            <ValidatedNumberInput
+              id="weekend_3_meals_price"
+              label="假日一泊三食"
+              value={formData.weekend_3_meals_price ? parseFloat(formData.weekend_3_meals_price) : 0}
+              onChange={(value) => {
+                setFormData(prev => ({ ...prev, weekend_3_meals_price: value.toString() }));
+                validateField('weekend_3_meals_price', value.toString());
+              }}
+              onValidate={(value) => validateField('weekend_3_meals_price', value)}
+              error={errors.weekend_3_meals_price}
+              prefix="NT$"
+              min={0}
+              max={99999}
+            />
           </div>
         </CardContent>
       </Card>
@@ -502,7 +556,7 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
       <Card>
         <CardHeader>
           <CardTitle>顯示順序</CardTitle>
-          <CardDescription>設定房型在網站上的顯示順序</CardDescription>
+          <CardDescription>設定在網站上的顯示順序</CardDescription>
         </CardHeader>
         <CardContent>
           <ValidatedNumberInput
@@ -516,73 +570,65 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
             onValidate={(value) => validateField('display_order', value)}
             error={errors.display_order}
             min={0}
-            max={100}
+            max={999}
           />
-          <p className="text-xs text-muted-foreground mt-2">
-            數字越小，顯示越前面
-          </p>
         </CardContent>
       </Card>
 
-      {/* 房間照片 */}
+      {/* 房型照片 */}
       <Card>
         <CardHeader>
-          <CardTitle>房間照片</CardTitle>
-          <CardDescription>上傳並管理房間照片（可拖曳調整順序）</CardDescription>
+          <CardTitle>房型照片</CardTitle>
+          <CardDescription>上傳房型照片並拖曳調整順序</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => document.getElementById('room-photo-upload')?.click()}
-              disabled={uploading}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              {uploading ? "上傳中..." : "上傳照片"}
-            </Button>
-            <input
-              id="room-photo-upload"
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleFileUpload}
-              className="hidden"
-            />
-          </div>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <input
+                id="photo-upload"
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => document.getElementById('photo-upload')?.click()}
+                disabled={uploading}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                {uploading ? '上傳中...' : '上傳照片'}
+              </Button>
+            </div>
 
-          {photoUrls.length > 0 && (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext items={photoUrls} strategy={rectSortingStrategy}>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {photoUrls.map((url, index) => (
-                    <SortablePhotoItem
-                      key={url}
-                      url={url}
-                      index={index}
-                      onRemove={() => {
-                        setPhotoUrls(photoUrls.filter((_, i) => i !== index));
-                        toast.success("已移除照片");
-                      }}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
-          )}
+            {photoUrls.length > 0 && (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext items={photoUrls} strategy={rectSortingStrategy}>
+                  <div className="grid grid-cols-3 gap-4">
+                    {photoUrls.map((url, index) => (
+                      <SortablePhotoItem
+                        key={url}
+                        url={url}
+                        index={index}
+                        onRemove={() => setPhotoUrls(photoUrls.filter((_, i) => i !== index))}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            )}
+          </div>
         </CardContent>
       </Card>
 
-      {/* 操作按鈕 */}
-      <SaveButtonContainer
-        onSave={handleSave}
-        isSaving={isLoading}
-      >
-        <Button variant="outline" onClick={onCancel} disabled={isLoading}>
+      <SaveButtonContainer onSave={handleSave} isSaving={isLoading}>
+        <Button type="button" variant="outline" onClick={onCancel}>
           取消
         </Button>
       </SaveButtonContainer>
