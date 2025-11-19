@@ -1969,7 +1969,10 @@ const WebsiteContent = () => {
         {/* 基本資料 Tab */}
         <TabsContent value="basic-info" className="space-y-6">
           <div className="pb-4 border-b border-primary/20 mb-6">
-            <h2 className="text-3xl font-bold">網頁設定</h2>
+            <h2 className="text-3xl font-bold flex items-center gap-3">
+              <span className="w-1.5 h-8 bg-primary rounded-full"></span>
+              網頁設定
+            </h2>
           </div>
           <WebInfoSection
             accommodationId={accommodationId || ''}
@@ -2057,7 +2060,10 @@ const WebsiteContent = () => {
 
         <TabsContent value="facilities" className="space-y-6">
           <div className="pb-4 border-b border-primary/20 mb-6">
-            <h2 className="text-3xl font-bold">設施服務</h2>
+            <h2 className="text-3xl font-bold flex items-center gap-3">
+              <span className="w-1.5 h-8 bg-primary rounded-full"></span>
+              設施服務
+            </h2>
           </div>
           {/* 公共區設施與服務 */}
           <Card>
@@ -2220,7 +2226,10 @@ const WebsiteContent = () => {
         {/* 加購方案 Tab */}
         <TabsContent value="addon-plans" className="space-y-6">
           <div className="pb-4 border-b border-primary/20 mb-6">
-            <h2 className="text-3xl font-bold">加購方案</h2>
+            <h2 className="text-3xl font-bold flex items-center gap-3">
+              <span className="w-1.5 h-8 bg-primary rounded-full"></span>
+              加購方案
+            </h2>
           </div>
           {/* 寵物方案 */}
           <Card>
@@ -2380,7 +2389,10 @@ const WebsiteContent = () => {
         {/* 相簿管理 Tab */}
         <TabsContent value="gallery" className="space-y-6">
           <div className="pb-4 border-b border-primary/20 mb-6">
-            <h2 className="text-3xl font-bold">精選照片</h2>
+            <h2 className="text-3xl font-bold flex items-center gap-3">
+              <span className="w-1.5 h-8 bg-primary rounded-full"></span>
+              精選照片
+            </h2>
           </div>
           <Card>
             <CardHeader>
@@ -2445,7 +2457,10 @@ const WebsiteContent = () => {
 
         <TabsContent value="booking-info" className="space-y-6">
           <div className="pb-4 border-b border-primary/20 mb-6">
-            <h2 className="text-3xl font-bold">訂房須知</h2>
+            <h2 className="text-3xl font-bold flex items-center gap-3">
+              <span className="w-1.5 h-8 bg-primary rounded-full"></span>
+              訂房須知
+            </h2>
           </div>
           {/* 入住退房時間 */}
           <Card>
@@ -2598,9 +2613,10 @@ const WebsiteContent = () => {
 
         <TabsContent value="faq" className="space-y-6">
           <div className="flex items-center justify-between pb-4 border-b border-primary/20 mb-6">
-            <div>
-              <h2 className="text-3xl font-bold">常見問題</h2>
-            </div>
+            <h2 className="text-3xl font-bold flex items-center gap-3">
+              <span className="w-1.5 h-8 bg-primary rounded-full"></span>
+              常見問題
+            </h2>
             <Button onClick={() => setIsDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               新增問題
@@ -2671,7 +2687,10 @@ const WebsiteContent = () => {
         {/* Location Tab */}
         <TabsContent value="location" className="space-y-6">
           <div className="pb-4 border-b border-primary/20 mb-6">
-            <h2 className="text-3xl font-bold">交通地圖</h2>
+            <h2 className="text-3xl font-bold flex items-center gap-3">
+              <span className="w-1.5 h-8 bg-primary rounded-full"></span>
+              交通地圖
+            </h2>
           </div>
           <Card>
             <CardHeader>
