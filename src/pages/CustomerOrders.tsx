@@ -168,7 +168,7 @@ const CustomerOrders = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="pt-4 pb-4 border-b border-primary/20 mb-6">
+      <div className="pb-4 border-b border-primary/20 mb-6">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"

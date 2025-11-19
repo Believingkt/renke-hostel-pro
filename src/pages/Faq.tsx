@@ -192,7 +192,7 @@ const Faq = () => {
 
   return (
     <div className="space-y-6">
-      <div className="pt-4 pb-4 border-b border-primary/20 mb-6">
+      <div className="pb-4 border-b border-primary/20 mb-6">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-3xl font-bold flex items-center gap-2.5">
