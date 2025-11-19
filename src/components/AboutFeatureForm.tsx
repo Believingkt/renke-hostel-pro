@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,8 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
-import { Mountain, Sparkles, UserCheck, Camera, Home, Heart, Star, Wifi, Coffee, Car } from "lucide-react";
+import { Mountain, Sparkles, UserCheck, Camera, Home, Heart, Star, Wifi, Coffee, Car, AlertCircle } from "lucide-react";
 import { Upload, Trash2 } from "lucide-react";
+import { featureSchema } from "@/utils/websiteValidation";
+import { toast } from "sonner";
 
 interface AboutFeature {
   id?: string;
@@ -50,9 +52,46 @@ export function AboutFeatureForm({ open, onOpenChange, feature, onSave }: AboutF
     }
   );
   const [uploadingIcon, setUploadingIcon] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // 重置表單當 feature prop 改變時
+  useEffect(() => {
+    if (feature) {
+      setFormData(feature);
+    } else {
+      setFormData({
+        title: '',
+        description: '',
+        icon_type: 'lucide',
+        icon_name: 'Mountain',
+        display_order: 0,
+      });
+    }
+    setErrors({});
+  }, [feature, open]);
 
   const handleSubmit = () => {
+    // 驗證表單
+    const validationResult = featureSchema.safeParse({
+      title: formData.title,
+      description: formData.description,
+      iconName: formData.icon_name,
+    });
+
+    if (!validationResult.success) {
+      const newErrors: Record<string, string> = {};
+      validationResult.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          newErrors[err.path[0].toString()] = err.message;
+        }
+      });
+      setErrors(newErrors);
+      toast.error('請修正表單錯誤後再試');
+      return;
+    }
+
     onSave(formData);
+    setErrors({});
     onOpenChange(false);
   };
 
@@ -88,7 +127,17 @@ export function AboutFeatureForm({ open, onOpenChange, feature, onSave }: AboutF
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               placeholder="例如：山林環抱"
+              className={errors.title ? "border-destructive focus-visible:ring-destructive" : ""}
             />
+            {errors.title && (
+              <p className="text-sm text-destructive flex items-center gap-1">
+                <AlertCircle className="w-4 h-4" />
+                {errors.title}
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              {formData.title.length}/30 字元
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -98,7 +147,17 @@ export function AboutFeatureForm({ open, onOpenChange, feature, onSave }: AboutF
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="請輸入說明文字"
               rows={3}
+              className={errors.description ? "border-destructive focus-visible:ring-destructive" : ""}
             />
+            {errors.description && (
+              <p className="text-sm text-destructive flex items-center gap-1">
+                <AlertCircle className="w-4 h-4" />
+                {errors.description}
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              {formData.description.length}/100 字元
+            </p>
           </div>
 
           <div className="space-y-2">

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit2, Trash2, GripVertical } from "lucide-react";
+import { Plus, Edit2, Trash2, GripVertical, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { icons } from "lucide-react";
+import { aboutSectionSchema } from "@/utils/websiteValidation";
 
 interface AboutFeaturesSectionProps {
   accommodationId: string;
@@ -125,6 +126,7 @@ export const AboutFeaturesSection = ({
   const [title, setTitle] = useState(sectionTitle);
   const [description, setDescription] = useState(sectionDescription);
   const [localFeatures, setLocalFeatures] = useState(features);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   // 同步 props 到 state
   useEffect(() => {
@@ -181,6 +183,24 @@ export const AboutFeaturesSection = ({
 
   const handleSave = async () => {
     if (!accommodationId) return;
+
+    // 完整表單驗證
+    const validationResult = aboutSectionSchema.safeParse({
+      sectionTitle: title,
+      sectionDescription: description,
+    });
+
+    if (!validationResult.success) {
+      const newErrors: Record<string, string> = {};
+      validationResult.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          newErrors[err.path[0].toString()] = err.message;
+        }
+      });
+      setErrors(newErrors);
+      toast.error('請修正表單錯誤後再試');
+      return;
+    }
     
     setIsSaving(true);
     try {
@@ -216,6 +236,7 @@ export const AboutFeaturesSection = ({
       }
 
       toast.success('特色說明已儲存');
+      setErrors({});
       onUpdate();
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -244,7 +265,17 @@ export const AboutFeaturesSection = ({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="例如：自然中的秘境 X 宿泊空間"
+            className={errors.sectionTitle ? "border-destructive focus-visible:ring-destructive" : ""}
           />
+          {errors.sectionTitle && (
+            <p className="text-sm text-destructive flex items-center gap-1">
+              <AlertCircle className="w-4 h-4" />
+              {errors.sectionTitle}
+            </p>
+          )}
+          <p className="text-xs text-muted-foreground">
+            {title.length}/50 字元
+          </p>
         </div>
 
         {/* 特色說明文字 */}
@@ -256,7 +287,17 @@ export const AboutFeaturesSection = ({
             onChange={(e) => setDescription(e.target.value)}
             placeholder="簡短描述您住宿的特色..."
             rows={3}
+            className={errors.sectionDescription ? "border-destructive focus-visible:ring-destructive" : ""}
           />
+          {errors.sectionDescription && (
+            <p className="text-sm text-destructive flex items-center gap-1">
+              <AlertCircle className="w-4 h-4" />
+              {errors.sectionDescription}
+            </p>
+          )}
+          <p className="text-xs text-muted-foreground">
+            {description?.length || 0}/200 字元
+          </p>
         </div>
 
         {/* 特色區塊列表 */}
