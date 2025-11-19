@@ -159,7 +159,7 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
                 </li>
                 <li>
                   <button onClick={() => scrollToSection("facilities")} className="text-sm md:text-base text-white/80 hover:text-white transition-colors">
-                    設施與服務
+                    設施服務
                   </button>
                 </li>
                 <li>

@@ -27,7 +27,7 @@ const FacilitiesSection = ({ facilities }: FacilitiesSectionProps) => {
   }, {} as Record<string, Facility[]>);
 
   const categoryNames: Record<string, string> = {
-    'public': '公共區設施與服務',
+    'public': '公共區設施服務',
     'dining': '餐飲設施',
     'safety': '安全設施',
     'entertainment': '休閒娛樂設施',
@@ -38,7 +38,7 @@ const FacilitiesSection = ({ facilities }: FacilitiesSectionProps) => {
     <section id="facilities" className="py-12 md:py-16 lg:py-20 bg-background">
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center mb-10 md:mb-12 lg:mb-16">
-          <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-3 lg:mb-4">設施與服務</h2>
+          <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-3 lg:mb-4">設施服務</h2>
           <p className="text-center text-muted-foreground mb-0 text-base md:text-base lg:text-lg max-w-3xl mx-auto">完善設施與貼心服務，讓您的住宿體驗更加舒適</p>
         </div>
 
