@@ -301,13 +301,6 @@ const Pricing = () => {
 
   return (
     <div className="space-y-6">
-      <div className="pt-4 pb-4 border-b border-primary/20 mb-6">
-        <h2 className="text-3xl font-bold flex items-center gap-2.5">
-          <span className="w-2 h-9 bg-primary rounded-full"></span>
-          物件管理
-        </h2>
-      </div>
-
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <ResponsiveTabs
           tabs={pricingTabs}
