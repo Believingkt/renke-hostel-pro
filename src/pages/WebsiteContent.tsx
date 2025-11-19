@@ -196,71 +196,6 @@ interface Photo {
   cta_link?: string | null;
 }
 
-interface SortablePhotoItemProps {
-  photo: Photo;
-  index: number;
-  onDelete: (photoId: string) => void;
-  onEdit?: (photo: Photo) => void;
-}
-
-const SortablePhotoItem = ({ photo, index, onDelete, onEdit }: SortablePhotoItemProps) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: photo.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="relative group aspect-square overflow-hidden rounded-lg border bg-background"
-    >
-      <img
-        src={photo.photo_url}
-        alt={`照片 ${index + 1}`}
-        className="w-full h-full object-cover"
-      />
-      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-        {onEdit && (
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => onEdit(photo)}
-          >
-            <Edit2 className="h-4 w-4" />
-          </Button>
-        )}
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => onDelete(photo.id)}
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </div>
-      <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-xs">
-        順序: {photo.display_order}
-      </div>
-      <div
-        {...attributes}
-        {...listeners}
-        className="absolute top-2 right-2 cursor-grab active:cursor-grabbing bg-white/90 hover:bg-white rounded-lg p-2 transition-colors"
-      >
-        <GripVertical className="h-4 w-4 text-gray-700" />
-      </div>
-    </div>
-  );
-};
 
 // 可排序的特色區塊項目
 interface SortableFeatureItemProps {
@@ -421,9 +356,6 @@ const WebsiteContent = () => {
     { name: "", distance: "", description: "" }
   ]);
 
-  // Gallery state
-  const [photos, setPhotos] = useState<Photo[]>([]);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   // Hero carousel state
   const [heroPhotos, setHeroPhotos] = useState<Photo[]>([]);
@@ -613,17 +545,6 @@ const WebsiteContent = () => {
           setHeroPhotos(heroPhotosData);
         }
 
-        // 加載相簿照片
-        const { data: photosData } = await supabase
-          .from("accommodation_photos")
-          .select("*")
-          .eq("accommodation_id", infoData.id)
-          .eq("photo_type", "gallery")
-          .order("display_order");
-
-        if (photosData) {
-          setPhotos(photosData);
-        }
 
         // 加載加購方案設定
         const { data: addonData } = await supabase
@@ -1378,154 +1299,6 @@ const WebsiteContent = () => {
     setNearbyAttractions(updated);
   };
 
-  // Gallery handlers
-  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!accommodationId || !event.target.files || event.target.files.length === 0) {
-      return;
-    }
-
-    setUploadingPhoto(true);
-    try {
-      const file = event.target.files[0];
-
-      // 驗證文件
-      const validation = validateImageFile(file, 10 * 1024 * 1024); // 10MB 上限
-      if (!validation.valid) {
-        toast.error(validation.error);
-        event.target.value = '';
-        setUploadingPhoto(false);
-        return;
-      }
-
-      // 壓縮圖片
-      toast.info('正在優化圖片...');
-      const { blob, originalSize, compressedSize, compressionRatio } = await compressImage(file, {
-        maxWidth: 1600,
-        maxHeight: 1200,
-        quality: 0.85
-      });
-
-      // 顯示壓縮信息
-      if (compressionRatio > 5) {
-        toast.success(
-          `圖片已優化為 WebP 格式！\n原始：${formatFileSize(originalSize)} → 優化後：${formatFileSize(compressedSize)}\n節省：${compressionRatio.toFixed(1)}%`,
-          { duration: 4000 }
-        );
-      }
-
-      const fileName = `gallery-${Date.now()}.webp`;
-      const filePath = `${accommodationId}/${fileName}`;
-
-      const { error: uploadError, data } = await supabase.storage
-        .from('room-photos')
-        .upload(filePath, blob, {
-          contentType: 'image/webp',
-          cacheControl: '3600'
-        });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('room-photos')
-        .getPublicUrl(filePath);
-
-      const maxOrder = photos.length > 0 
-        ? Math.max(...photos.map(p => p.display_order)) 
-        : 0;
-
-      const { error: insertError, data: newPhoto } = await supabase
-        .from('accommodation_photos')
-        .insert([
-          {
-            accommodation_id: accommodationId,
-            photo_url: publicUrl,
-            display_order: maxOrder + 1,
-            photo_type: 'gallery'
-          }
-        ])
-        .select()
-        .single();
-
-      if (insertError) throw insertError;
-
-      setPhotos([...photos, newPhoto]);
-      toast.success('照片已上傳');
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error uploading photo:', error);
-      }
-      toast.error('上傳失敗，請稍後再試');
-    } finally {
-      setUploadingPhoto(false);
-    }
-  };
-
-  const handleDeletePhoto = async (photoId: string) => {
-    try {
-      const { error } = await supabase
-        .from('accommodation_photos')
-        .delete()
-        .eq('id', photoId);
-
-      if (error) throw error;
-
-      setPhotos(photos.filter(p => p.id !== photoId));
-      toast.success('照片已刪除');
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error deleting photo:', error);
-      }
-      toast.error('刪除失敗，請稍後再試');
-    }
-  };
-
-  const handlePhotoDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-
-    if (!over || active.id === over.id) {
-      return;
-    }
-
-    const oldIndex = photos.findIndex((p) => p.id === active.id);
-    const newIndex = photos.findIndex((p) => p.id === over.id);
-
-    const newPhotos = arrayMove(photos, oldIndex, newIndex);
-    
-    // Update display_order for all photos
-    const updatedPhotos = newPhotos.map((photo, index) => ({
-      ...photo,
-      display_order: index + 1,
-    }));
-
-    setPhotos(updatedPhotos);
-
-    // Save to database
-    try {
-      const updates = updatedPhotos.map((photo) =>
-        supabase
-          .from('accommodation_photos')
-          .update({ display_order: photo.display_order })
-          .eq('id', photo.id)
-      );
-
-      await Promise.all(updates);
-      toast.success('順序已更新');
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error updating photo order:', error);
-      }
-      toast.error('更新失敗，請稍後再試');
-      // Reload photos on error
-      const { data } = await supabase
-        .from('accommodation_photos')
-        .select('*')
-        .eq('accommodation_id', accommodationId!)
-        .eq('photo_type', 'gallery')
-        .order('display_order');
-      if (data) setPhotos(data);
-    }
-  };
-
   // Hero carousel handlers
   const handleHeroPhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!accommodationId || !event.target.files || event.target.files.length === 0) {
@@ -1555,7 +1328,7 @@ const WebsiteContent = () => {
       const { blob, originalSize, compressedSize, compressionRatio } = await compressImage(file, {
         maxWidth: 1920,
         maxHeight: 1080,
-        quality: 0.85
+        quality: 0.9
       });
 
       // 顯示壓縮信息
@@ -1583,7 +1356,7 @@ const WebsiteContent = () => {
         .getPublicUrl(filePath);
 
       const maxOrder = heroPhotos.length > 0 
-        ? Math.max(...heroPhotos.map(p => p.display_order || 0)) 
+        ? Math.max(...heroPhotos.map(p => p.display_order)) 
         : 0;
 
       const { error: insertError, data: newPhoto } = await supabase
@@ -1632,6 +1405,8 @@ const WebsiteContent = () => {
       toast.error('刪除失敗，請稍後再試');
     }
   };
+
+
 
   const handleHeroPhotoReorder = async (newOrder: any[]) => {
     try {
@@ -2364,303 +2139,6 @@ const WebsiteContent = () => {
           />
         </TabsContent>
 
-        {/* 相簿管理 Tab */}
-        <TabsContent value="gallery" className="space-y-6">
-          <div className="pb-4 border-b border-primary/20 mb-6">
-            <h2 className="text-3xl font-bold flex items-center gap-3">
-              <ImageIcon className="h-7 w-7 text-primary" />
-              精選照片
-            </h2>
-          </div>
-          <Card>
-            <CardHeader>
-              <CardTitle>精選照片</CardTitle>
-              <CardDescription>上傳和管理住宿精選照片</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* 上傳按鈕 */}
-              <div className="flex items-center gap-4">
-                <Button
-                  onClick={() => document.getElementById('photo-upload')?.click()}
-                  disabled={uploadingPhoto}
-                  className="gap-2"
-                >
-                  <Upload className="h-4 w-4" />
-                  {uploadingPhoto ? '上傳中...' : '上傳照片'}
-                </Button>
-                <input
-                  id="photo-upload"
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoUpload}
-                  className="hidden"
-                />
-                <p className="text-sm text-muted-foreground">
-                  支援 JPG、PNG 格式，建議尺寸 1200x800 以上
-                </p>
-              </div>
-
-              {/* 照片網格 */}
-              {photos.length === 0 ? (
-                <div className="text-center py-12 border-2 border-dashed rounded-lg">
-                  <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">尚無照片，請上傳您的第一張照片</p>
-                </div>
-              ) : (
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={handlePhotoDragEnd}
-                >
-                  <SortableContext
-                    items={photos.map((p) => p.id)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                      {photos.map((photo, index) => (
-                        <SortablePhotoItem
-                          key={photo.id}
-                          photo={photo}
-                          index={index}
-                          onDelete={handleDeletePhoto}
-                        />
-                      ))}
-                    </div>
-                  </SortableContext>
-                </DndContext>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="booking-info" className="space-y-6">
-          <div className="pb-4 border-b border-primary/20 mb-6">
-            <h2 className="text-3xl font-bold flex items-center gap-3">
-              <Globe className="h-7 w-7 text-primary" />
-              訂房須知
-            </h2>
-          </div>
-          {/* 入住退房時間 */}
-          <Card>
-            <CardHeader>
-              <CardTitle>入住時間</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label>入住時間</Label>
-                  <Input
-                    type="time"
-                    value={bookingInfo.checkInTime}
-                    onChange={(e) => setBookingInfo(prev => ({
-                      ...prev,
-                      checkInTime: e.target.value
-                    }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>退房時間</Label>
-                  <Input
-                    type="time"
-                    value={bookingInfo.checkOutTime}
-                    onChange={(e) => setBookingInfo(prev => ({
-                      ...prev,
-                      checkOutTime: e.target.value
-                    }))}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 付款方式 */}
-          <Card>
-            <CardHeader>
-              <CardTitle>付款方式</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {['信用卡', '現金', '線上支付', 'ATM轉帳', '行動支付'].map((method) => (
-                    <div key={method} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`payment-${method}`}
-                        checked={bookingInfo.paymentMethods.includes(method)}
-                        onCheckedChange={(checked) => 
-                          handlePaymentMethodToggle(method, checked as boolean)
-                        }
-                      />
-                      <Label htmlFor={`payment-${method}`}>{method}</Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 取消政策 */}
-          <Card>
-            <CardHeader>
-              <CardTitle>取消政策</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <Label>政策說明</Label>
-                <Textarea
-                  rows={6}
-                  placeholder="例如：入住前7天免費取消，7天內取消收取50%費用"
-                  value={bookingInfo.cancellationPolicy}
-                  onChange={(e) => setBookingInfo(prev => ({
-                    ...prev,
-                    cancellationPolicy: e.target.value
-                  }))}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 重要事項 */}
-          <Card>
-            <CardHeader>
-              <CardTitle>重要事項</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <Label>入住須知</Label>
-                <Textarea
-                  rows={8}
-                  placeholder="例如：&#10;請出示身分證件&#10;禁止吸菸&#10;不可攜帶寵物"
-                  value={bookingInfo.checkInNotice}
-                  onChange={(e) => setBookingInfo(prev => ({
-                    ...prev,
-                    checkInNotice: e.target.value
-                  }))}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 寵物入住守則 */}
-          <Card>
-            <CardHeader>
-              <CardTitle>寵物入住守則</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <Label>守則說明</Label>
-                <Textarea
-                  rows={8}
-                  placeholder="例如：&#10;歡迎攜帶寵物入住&#10;寵物需加收清潔費用&#10;請主人隨時清理寵物排泄物&#10;寵物不可上床"
-                  value={bookingInfo.petPolicy}
-                  onChange={(e) => setBookingInfo(prev => ({
-                    ...prev,
-                    petPolicy: e.target.value
-                  }))}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 其他注意事項 */}
-          <Card>
-            <CardHeader>
-              <CardTitle>其他注意事項</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <Label>注意事項說明</Label>
-                <Textarea
-                  rows={8}
-                  placeholder="例如：&#10;房間內禁止吸菸&#10;晚上10點後請降低音量&#10;使用設施請遵守安全規範&#10;貴重物品請自行保管"
-                  value={bookingInfo.otherNotes}
-                  onChange={(e) => setBookingInfo(prev => ({
-                    ...prev,
-                    otherNotes: e.target.value
-                  }))}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <SaveButtonContainer 
-            onSave={handleSaveBookingInfo} 
-            isSaving={isSaving}
-            saveText="儲存變更"
-          />
-        </TabsContent>
-
-        <TabsContent value="faq" className="space-y-6">
-          <div className="flex items-center justify-between pb-4 border-b border-primary/20 mb-6">
-            <h2 className="text-3xl font-bold flex items-center gap-3">
-              <HelpCircle className="h-7 w-7 text-primary" />
-              常見問題
-            </h2>
-            <Button onClick={() => setIsDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              新增問題
-            </Button>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>問題列表</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {faqs.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">
-                    尚無常見問題，點擊上方按鈕新增
-                  </p>
-                ) : (
-                  faqs.map((faq) => (
-                    <div
-                      key={faq.id}
-                      className="flex items-start gap-4 p-4 border rounded-lg"
-                    >
-                      <GripVertical className="h-5 w-5 text-muted-foreground mt-1 cursor-move" />
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <h3 className="font-semibold">{faq.question}</h3>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {faq.answer}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-2">
-                              <Label htmlFor={`publish-${faq.id}`} className="text-sm">
-                                {faq.is_published ? "已發布" : "已隱藏"}
-                              </Label>
-                              <Switch
-                                id={`publish-${faq.id}`}
-                                checked={faq.is_published}
-                                onCheckedChange={() => handleTogglePublishFaq(faq)}
-                              />
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEditFaq(faq)}
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteFaq(faq.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         {/* Location Tab */}
         <TabsContent value="location" className="space-y-6">
