@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Edit2, GripVertical, HelpCircle } from "lucide-react";
+import { Plus, Trash2, Edit2, GripVertical, HelpCircle, MessageSquare } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -215,9 +216,15 @@ const Faq = () => {
         <CardContent>
           <div className="space-y-4">
             {faqs.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                尚無常見問題，點擊上方按鈕新增
-              </p>
+              <EmptyState
+                icon={MessageSquare}
+                title="尚無常見問題"
+                description="開始建立常見問題，幫助顧客快速找到答案"
+                action={{
+                  label: "新增第一個問題",
+                  onClick: () => setIsDialogOpen(true)
+                }}
+              />
             ) : (
               faqs.map((faq) => (
                 <div

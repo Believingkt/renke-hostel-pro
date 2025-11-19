@@ -28,7 +28,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, Copy, Pencil, Check, X, Eye, Calendar as CalendarIcon, GripVertical, Files, Code, DollarSign, Ticket } from "lucide-react";
+import { Plus, Trash2, Copy, Pencil, Check, X, Eye, Calendar as CalendarIcon, GripVertical, Files, Code, DollarSign, Ticket, Tag } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubdomain } from "@/hooks/use-subdomain";
@@ -1359,8 +1360,17 @@ const KolDiscount = () => {
               <TableBody>
                 {discountCodes.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
-                      尚無折扣碼
+                    <TableCell colSpan={10} className="p-0">
+                      <EmptyState
+                        icon={Tag}
+                        title="尚無折扣碼"
+                        description="建立專屬折扣碼，追蹤推廣成效與佣金"
+                        action={{
+                          label: "新增第一個折扣碼",
+                          onClick: () => setOpen(true)
+                        }}
+                        className="border-0 shadow-none"
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -1386,9 +1396,15 @@ const KolDiscount = () => {
           {/* Mobile card view */}
           <div className="md:hidden space-y-3 p-4">
             {discountCodes.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                尚無折扣碼
-              </p>
+              <EmptyState
+                icon={Tag}
+                title="尚無折扣碼"
+                description="建立專屬折扣碼，追蹤推廣成效與佣金"
+                action={{
+                  label: "新增第一個折扣碼",
+                  onClick: () => setOpen(true)
+                }}
+              />
             ) : (
               discountCodes.map((item) => (
                 <Card key={item.id}>

@@ -26,7 +26,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, Loader2, Users } from "lucide-react";
+import { Plus, Trash2, Loader2, Users, UserPlus } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -337,8 +338,17 @@ const Accounts = () => {
               <TableBody>
                 {users.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground">
-                      尚無帳號
+                    <TableCell colSpan={5} className="p-0">
+                      <EmptyState
+                        icon={UserPlus}
+                        title="尚無帳號"
+                        description="開始建立團隊成員帳號，分配適當的權限角色"
+                        action={{
+                          label: "新增第一個帳號",
+                          onClick: () => setOpen(true)
+                        }}
+                        className="border-0 shadow-none"
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -367,9 +377,15 @@ const Accounts = () => {
           {/* Mobile card view */}
           <div className="md:hidden space-y-3">
             {users.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                尚無帳號
-              </p>
+              <EmptyState
+                icon={UserPlus}
+                title="尚無帳號"
+                description="開始建立團隊成員帳號，分配適當的權限角色"
+                action={{
+                  label: "新增第一個帳號",
+                  onClick: () => setOpen(true)
+                }}
+              />
             ) : (
               users.map((user) => (
                 <Card key={user.id}>
