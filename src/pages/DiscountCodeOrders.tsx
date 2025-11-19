@@ -5,7 +5,7 @@ import { useSubdomain } from "@/hooks/use-subdomain";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Calendar, DollarSign, User, Phone, Mail } from "lucide-react";
+import { ArrowLeft, Calendar, DollarSign, User, Phone, Mail, Ticket } from "lucide-react";
 import { format } from "date-fns";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { ErrorState } from "@/components/ErrorState";
@@ -124,7 +124,7 @@ const DiscountCodeOrders = () => {
           </Button>
           <div>
             <h2 className="text-3xl font-bold flex items-center gap-2.5">
-              <span className="w-2 h-9 bg-primary rounded-full"></span>
+              <Ticket className="h-8 w-8 text-primary" />
               折扣代碼訂單
             </h2>
             <p className="text-muted-foreground mt-2 ml-[18px]">代碼：{discountCode}</p>

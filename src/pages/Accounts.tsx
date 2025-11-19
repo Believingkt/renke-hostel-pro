@@ -26,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, Loader2 } from "lucide-react";
+import { Plus, Trash2, Loader2, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -244,7 +244,7 @@ const Accounts = () => {
     <div className="space-y-4 md:space-y-6 p-4 md:p-0">
       <div className="pb-4 border-b border-primary/20 mb-6">
         <h2 className="text-3xl font-bold flex items-center gap-2.5">
-          <span className="w-2 h-9 bg-primary rounded-full"></span>
+          <Users className="h-8 w-8 text-primary" />
           帳號管理
         </h2>
       </div>

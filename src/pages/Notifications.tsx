@@ -203,7 +203,7 @@ const Notifications = () => {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h2 className="text-3xl font-bold flex items-center gap-2.5">
-              <span className="w-2 h-9 bg-primary rounded-full"></span>
+              <Bell className="h-8 w-8 text-primary" />
               通知中心
             </h2>
             <p className="text-sm text-muted-foreground mt-2 ml-[18px]">

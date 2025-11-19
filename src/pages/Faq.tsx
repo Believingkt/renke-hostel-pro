@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Edit2, GripVertical } from "lucide-react";
+import { Plus, Trash2, Edit2, GripVertical, HelpCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -196,7 +196,7 @@ const Faq = () => {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-3xl font-bold flex items-center gap-2.5">
-              <span className="w-2 h-9 bg-primary rounded-full"></span>
+              <HelpCircle className="h-8 w-8 text-primary" />
               常見問題
             </h2>
             <p className="text-muted-foreground mt-2 ml-[18px]">管理網站常見問題內容</p>

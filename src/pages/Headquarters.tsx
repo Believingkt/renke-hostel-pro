@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2, Building2 } from "lucide-react";
 
 interface UserRole {
   id: string;
@@ -142,7 +142,7 @@ const Headquarters = () => {
     <div className="container mx-auto p-6 space-y-6">
       <div className="pb-4 border-b border-primary/20 mb-6">
         <h2 className="text-3xl font-bold flex items-center gap-2.5">
-          <span className="w-2 h-9 bg-primary rounded-full"></span>
+          <Building2 className="h-8 w-8 text-primary" />
           人客多總部
         </h2>
         <p className="text-muted-foreground mt-2 ml-[18px]">管理所有旅館的用戶權限</p>

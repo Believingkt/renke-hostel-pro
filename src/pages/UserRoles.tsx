@@ -31,7 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Trash2, Plus, UserPlus, ShieldCheck } from "lucide-react";
+import { Trash2, Plus, UserPlus, ShieldCheck, Shield } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 
@@ -190,7 +190,7 @@ export default function UserRoles() {
     <div className="space-y-4 md:space-y-6 p-4 md:p-0">
       <div className="pb-4 border-b border-primary/20 mb-6">
         <h2 className="text-3xl font-bold flex items-center gap-2.5">
-          <span className="w-2 h-9 bg-primary rounded-full"></span>
+          <Shield className="h-8 w-8 text-primary" />
           用戶權限管理
         </h2>
         <p className="text-sm md:text-base text-muted-foreground mt-2 ml-[18px]">

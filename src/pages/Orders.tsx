@@ -12,7 +12,7 @@ import { OrderFilters } from "@/components/orders/OrderFilters";
 import { OrdersTable } from "@/components/orders/OrdersTable";
 import { EditOrderDialog } from "@/components/orders/EditOrderDialog";
 import { Button } from "@/components/ui/button";
-import { Filter, ShoppingCart, CalendarDays, CreditCard, Package } from "lucide-react";
+import { Filter, ShoppingCart, CalendarDays, CreditCard, Package, ShoppingBag } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -380,7 +380,7 @@ const Orders = () => {
     <div className="space-y-6">
       <div className="pb-4 border-b border-primary/20 mb-6">
         <h2 className="text-3xl font-bold flex items-center gap-2.5">
-          <span className="w-2 h-9 bg-primary rounded-full"></span>
+          <ShoppingBag className="h-8 w-8 text-primary" />
           訂單資訊
         </h2>
       </div>
