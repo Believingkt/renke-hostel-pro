@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Plus, Pencil, Trash2, Search, FileText, Users, Phone, Mail, Calendar, UserRound } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, FileText, Users, Phone, Mail, Calendar, UserRound, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAccommodation } from "@/contexts/AccommodationContext";
@@ -74,6 +74,8 @@ const Customers = () => {
   const [deleteCustomerId, setDeleteCustomerId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [sortField, setSortField] = useState<'name' | 'visit_count' | 'first_order_date' | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -104,11 +106,57 @@ const Customers = () => {
     setCurrentPage(1);
   }, [searchQuery, customers]);
 
+  // 排序處理函數
+  const handleSort = (field: 'name' | 'visit_count' | 'first_order_date') => {
+    if (sortField === field) {
+      // 如果點擊相同欄位，切換排序方向
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // 如果點擊不同欄位，設定新欄位並預設為升序
+      setSortField(field);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1);
+  };
+
+  // 獲取排序圖標
+  const getSortIcon = (field: 'name' | 'visit_count' | 'first_order_date') => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />;
+    }
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="h-4 w-4 ml-1 text-primary" />
+      : <ArrowDown className="h-4 w-4 ml-1 text-primary" />;
+  };
+
+  // 應用排序
+  const sortedCustomers = [...filteredCustomers].sort((a, b) => {
+    if (!sortField) return 0;
+
+    let comparison = 0;
+    
+    switch (sortField) {
+      case 'name':
+        comparison = a.name.localeCompare(b.name, 'zh-TW');
+        break;
+      case 'visit_count':
+        comparison = a.visit_count - b.visit_count;
+        break;
+      case 'first_order_date':
+        const dateA = a.first_order_date ? new Date(a.first_order_date).getTime() : 0;
+        const dateB = b.first_order_date ? new Date(b.first_order_date).getTime() : 0;
+        comparison = dateA - dateB;
+        break;
+    }
+
+    return sortDirection === 'asc' ? comparison : -comparison;
+  });
+
   // 計算分頁資料
-  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
+  const totalPages = Math.ceil(sortedCustomers.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedCustomers = filteredCustomers.slice(startIndex, endIndex);
+  const paginatedCustomers = sortedCustomers.slice(startIndex, endIndex);
 
   const loadCustomers = async () => {
     if (!currentAccommodationId) return;
@@ -373,15 +421,41 @@ const Customers = () => {
           />
 
           {/* Search Bar */}
-          <div className="relative max-w-md">
-            <Input
-              type="text"
-              placeholder="搜尋顧客姓名或手機號碼..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pr-10"
-            />
-            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1 max-w-md">
+              <Input
+                type="text"
+                placeholder="搜尋顧客姓名或手機號碼..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pr-10"
+              />
+              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            </div>
+            
+            {/* Mobile Sort Options */}
+            <div className="md:hidden">
+              <Select
+                value={sortField || 'none'}
+                onValueChange={(value) => {
+                  if (value === 'none') {
+                    setSortField(null);
+                  } else {
+                    handleSort(value as 'name' | 'visit_count' | 'first_order_date');
+                  }
+                }}
+              >
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="排序方式" />
+                </SelectTrigger>
+                <SelectContent className="bg-background border-border z-50">
+                  <SelectItem value="none">預設排序</SelectItem>
+                  <SelectItem value="name">按姓名 {sortField === 'name' && (sortDirection === 'asc' ? '↑' : '↓')}</SelectItem>
+                  <SelectItem value="visit_count">按來訪次數 {sortField === 'visit_count' && (sortDirection === 'asc' ? '↑' : '↓')}</SelectItem>
+                  <SelectItem value="first_order_date">按訂房日期 {sortField === 'first_order_date' && (sortDirection === 'asc' ? '↑' : '↓')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Results Container */}
@@ -432,10 +506,14 @@ const Customers = () => {
                   <TableHeader>
                     <TableRow className="bg-muted/30 hover:bg-muted/30">
                       <TableHead className="font-semibold text-foreground/90 pl-8">
-                        <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => handleSort('name')}
+                          className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
+                        >
                           <UserRound className="h-4 w-4 text-primary" />
                           姓名
-                        </div>
+                          {getSortIcon('name')}
+                        </button>
                       </TableHead>
                       <TableHead className="font-semibold text-foreground/90">
                         <div className="flex items-center gap-2">
@@ -450,16 +528,24 @@ const Customers = () => {
                         </div>
                       </TableHead>
                       <TableHead className="font-semibold text-foreground/90">
-                        <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => handleSort('first_order_date')}
+                          className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
+                        >
                           <Calendar className="h-4 w-4 text-primary" />
                           首次訂房日期
-                        </div>
+                          {getSortIcon('first_order_date')}
+                        </button>
                       </TableHead>
                       <TableHead className="font-semibold text-foreground/90">
-                        <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => handleSort('visit_count')}
+                          className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
+                        >
                           <Users className="h-4 w-4 text-primary" />
                           來訪次數
-                        </div>
+                          {getSortIcon('visit_count')}
+                        </button>
                       </TableHead>
                       <TableHead className="font-semibold text-foreground/90">
                         <div className="flex items-center gap-2">
@@ -623,13 +709,13 @@ const Customers = () => {
           )}
 
           {/* Pagination */}
-          {filteredCustomers.length > 0 && (
+          {sortedCustomers.length > 0 && (
             <Card className="border-border/40">
               <CardContent className="p-4">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
                     <div className="text-sm text-muted-foreground">
-                      顯示 {startIndex + 1} 至 {Math.min(endIndex, filteredCustomers.length)} 筆，共 {filteredCustomers.length} 筆資料
+                      顯示 {startIndex + 1} 至 {Math.min(endIndex, sortedCustomers.length)} 筆，共 {sortedCustomers.length} 筆資料
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground whitespace-nowrap">每頁顯示</span>
