@@ -57,6 +57,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResponsiveTabs, TabItem } from "@/components/ResponsiveTabs";
+import { PageHeader } from "@/components/PageHeader";
 
 interface PublicHoliday {
   id: string;
@@ -392,7 +393,6 @@ const PublicHolidays = () => {
 
   return (
     <div className="space-y-6">
-      {/* 統計卡片 */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="animate-fade-in hover-scale cursor-pointer transition-all duration-300 hover:shadow-lg hover:border-primary/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -432,12 +432,10 @@ const PublicHolidays = () => {
         </Card>
       </div>
 
-      <div className="pb-4 border-b border-primary/20 mb-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold flex items-center gap-3">
-            <CalendarDays className="h-6 w-6 text-primary" />
-            國定假日管理
-          </h2>
+      <PageHeader
+        title="國定假日管理"
+        icon={CalendarDays}
+        action={
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => setIsBatchDialogOpen(true)}>
               <Download className="h-4 w-4 mr-2" />
@@ -512,8 +510,8 @@ const PublicHolidays = () => {
                 </DialogContent>
               </Dialog>
             </div>
-          </div>
-        </div>
+          }
+        />
 
         <Card>
         <CardHeader>

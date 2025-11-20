@@ -64,6 +64,7 @@ import { HeroCarouselPreviewDialog } from "@/components/HeroCarouselPreviewDialo
 import { OgImagePreview } from "@/components/OgImagePreview";
 import { OgImageCropDialog } from "@/components/OgImageCropDialog";
 import { bookingSettingsSchema, addonSettingsSchema } from "@/utils/roomValidation";
+import { PageHeader } from "@/components/PageHeader";
 
 // 定義所有設施項目
 const facilitiesData = {

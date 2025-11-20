@@ -13,6 +13,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { format } from "date-fns";
 import { zhTW } from "date-fns/locale";
+import { PageHeader } from "@/components/PageHeader";
 
 interface Customer {
   id: string;
@@ -167,26 +168,19 @@ const CustomerOrders = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="pb-4 border-b border-primary/20 mb-6">
-        <div className="flex items-center gap-4">
+      <PageHeader
+        title={`${customer.name} 的訂單記錄`}
+        icon={UserRound}
+        action={
           <Button
             variant="ghost"
             size="icon"
             onClick={() => navigate("/admin/customers")}
-            className="shrink-0"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div>
-            <h2 className="text-3xl font-bold flex items-center gap-3">
-              <UserRound className="h-7 w-7 text-primary" />
-              {customer.name} 的訂單記錄
-            </h2>
-            <p className="text-muted-foreground mt-2 ml-[18px]">查看顧客的所有訂單資訊</p>
-          </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Customer Info Cards */}
       <div className="grid gap-4 md:grid-cols-4">

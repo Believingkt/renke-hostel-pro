@@ -33,6 +33,7 @@ import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { ConflictDetector } from "@/components/orders/ConflictDetector";
+import { PageHeader } from "@/components/PageHeader";
 
 const Orders = () => {
   const [searchParams] = useSearchParams();
@@ -378,12 +379,10 @@ const Orders = () => {
 
   return (
     <div className="space-y-6">
-      <div className="pb-4 border-b border-primary/20 mb-6">
-        <h2 className="text-3xl font-bold flex items-center gap-3">
-          <ShoppingBag className="h-7 w-7 text-primary" />
-          訂單資訊
-        </h2>
-      </div>
+      <PageHeader
+        title="訂單資訊"
+        icon={ShoppingBag}
+      />
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsContent value="list">

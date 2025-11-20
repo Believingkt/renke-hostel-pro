@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { ErrorState } from "@/components/ErrorState";
 import { EmptyState } from "@/components/EmptyState";
+import { PageHeader } from "@/components/PageHeader";
 import {
   Table,
   TableBody,
@@ -118,20 +119,15 @@ const DiscountCodeOrders = () => {
 
   return (
     <div className="space-y-6">
-      <div className="pb-4 border-b border-primary/20 mb-6">
-        <div className="flex items-center gap-4">
+      <PageHeader
+        title={`折扣代碼訂單`}
+        icon={Ticket}
+        action={
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <h2 className="text-3xl font-bold flex items-center gap-3">
-              <Ticket className="h-7 w-7 text-primary" />
-              折扣代碼訂單
-            </h2>
-            <p className="text-muted-foreground mt-2 ml-[18px]">代碼：{discountCode}</p>
-          </div>
-        </div>
-      </div>
+        }
+      />
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
