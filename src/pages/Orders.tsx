@@ -511,54 +511,55 @@ const Orders = () => {
 
                   {/* 分頁資訊和控制 */}
                   {filteredOrders.length > 0 && (
-                  <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="text-sm md:text-base text-muted-foreground order-2 sm:order-1">
-                      顯示 {startIndex + 1}-{Math.min(endIndex, filteredOrders.length)} 筆，
-                      共 {filteredOrders.length} 筆訂單
+                  <div className="mt-6 p-4 bg-muted/30 rounded-lg">
+                    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                      <div className="text-sm text-muted-foreground whitespace-nowrap">
+                        顯示 {startIndex + 1} 至 {Math.min(endIndex, filteredOrders.length)} 筆，共 {filteredOrders.length} 筆訂單
+                      </div>
+                      
+                      {totalPages > 1 && (
+                        <Pagination className="mx-0 w-full lg:w-auto justify-start lg:justify-end">
+                          <PaginationContent className="gap-1">
+                            <PaginationItem>
+                              <PaginationPrevious 
+                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                className={`h-10 min-w-[44px] touch-manipulation ${currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
+                              />
+                            </PaginationItem>
+                            
+                            {Array.from({ length: totalPages }, (_, i) => i + 1)
+                              .filter(page => {
+                                // 顯示第一頁、最後一頁、當前頁及其前後各一頁
+                                return page === 1 || 
+                                       page === totalPages || 
+                                       Math.abs(page - currentPage) <= 1;
+                              })
+                              .map((page, index, array) => (
+                                <PaginationItem key={page}>
+                                  {/* 顯示省略號 */}
+                                  {index > 0 && array[index - 1] !== page - 1 && (
+                                    <span className="px-1 md:px-2 text-muted-foreground">...</span>
+                                  )}
+                                  <PaginationLink
+                                    onClick={() => setCurrentPage(page)}
+                                    isActive={currentPage === page}
+                                    className="h-10 min-w-[44px] touch-manipulation cursor-pointer"
+                                  >
+                                    {page}
+                                  </PaginationLink>
+                                </PaginationItem>
+                              ))}
+                            
+                            <PaginationItem>
+                              <PaginationNext 
+                                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                className={`h-10 min-w-[44px] touch-manipulation ${currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
+                              />
+                            </PaginationItem>
+                          </PaginationContent>
+                        </Pagination>
+                      )}
                     </div>
-                    
-                    {totalPages > 1 && (
-                      <Pagination className="order-1 sm:order-2">
-                        <PaginationContent className="gap-1">
-                          <PaginationItem>
-                            <PaginationPrevious 
-                              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                              className={`h-10 min-w-[44px] touch-manipulation ${currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
-                            />
-                          </PaginationItem>
-                          
-                          {Array.from({ length: totalPages }, (_, i) => i + 1)
-                            .filter(page => {
-                              // 顯示第一頁、最後一頁、當前頁及其前後各一頁
-                              return page === 1 || 
-                                     page === totalPages || 
-                                     Math.abs(page - currentPage) <= 1;
-                            })
-                            .map((page, index, array) => (
-                              <PaginationItem key={page}>
-                                {/* 顯示省略號 */}
-                                {index > 0 && array[index - 1] !== page - 1 && (
-                                  <span className="px-1 md:px-2 text-muted-foreground">...</span>
-                                )}
-                                <PaginationLink
-                                  onClick={() => setCurrentPage(page)}
-                                  isActive={currentPage === page}
-                                  className="h-10 min-w-[44px] touch-manipulation cursor-pointer"
-                                >
-                                  {page}
-                                </PaginationLink>
-                              </PaginationItem>
-                            ))}
-                          
-                          <PaginationItem>
-                            <PaginationNext 
-                              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                              className={`h-10 min-w-[44px] touch-manipulation ${currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
-                            />
-                          </PaginationItem>
-                        </PaginationContent>
-                      </Pagination>
-                    )}
                   </div>
                 )}
               </>
