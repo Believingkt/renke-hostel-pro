@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/PageHeader";
 import {
   Dialog,
   DialogContent,
@@ -773,28 +774,26 @@ const KolDiscount = () => {
 
   return (
     <div className="space-y-6">
-      <div className="pb-4 border-b border-primary/20 mb-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold flex items-center gap-3">
-            <Ticket className="h-7 w-7 text-primary" />
-            折扣代碼
-          </h2>
-          <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            className="gap-2"
-            onClick={() => setApiDocOpen(true)}
-          >
-            <Code className="h-4 w-4" />
-            <span className="hidden sm:inline">API 文件</span>
-          </Button>
-          <Dialog open={open} onOpenChange={handleDialogClose}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                新增折扣碼
-              </Button>
-            </DialogTrigger>
+      <PageHeader
+        title="折扣代碼"
+        icon={Ticket}
+        action={
+          <>
+            <Button 
+              variant="outline" 
+              className="gap-2"
+              onClick={() => setApiDocOpen(true)}
+            >
+              <Code className="h-4 w-4" />
+              <span className="hidden sm:inline">API 文件</span>
+            </Button>
+            <Dialog open={open} onOpenChange={handleDialogClose}>
+              <DialogTrigger asChild>
+                <Button className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  新增折扣碼
+                </Button>
+              </DialogTrigger>
           <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{copyingFrom ? "複製折扣碼" : "新增折扣碼"}</DialogTitle>
@@ -1060,9 +1059,9 @@ const KolDiscount = () => {
             </DialogFooter>
             </DialogContent>
           </Dialog>
-        </div>
-      </div>
-    </div>
+          </>
+        }
+      />
 
       {/* Edit Discount Code Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
