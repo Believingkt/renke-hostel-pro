@@ -17,6 +17,7 @@ import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { CustomerQuickPreview } from "@/components/customers/CustomerQuickPreview";
+import { PageHeader } from "@/components/PageHeader";
 
 // Validation schema for customer inputs
 const customerSchema = z.object({
@@ -234,7 +235,7 @@ const Customers = () => {
   };
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="space-y-6">
       {isLoading ? (
         <TableSkeleton rows={10} columns={7} showSearch showFilters={false} />
       ) : error ? (
@@ -245,16 +246,14 @@ const Customers = () => {
         />
       ) : (
         <>
-          <div className="pb-4 border-b border-primary/20 mb-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-3xl font-bold flex items-center gap-3">
-                <UserRound className="h-7 w-7 text-primary" />
-                顧客資料
-              </h2>
+          <PageHeader
+            title="顧客資料"
+            icon={UserRound}
+            action={
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button onClick={() => handleOpenDialog()}>
-                    <Plus className="h-4 w-4 mr-2" />
+                  <Button className="gap-2">
+                    <Plus className="h-4 w-4" />
                     新增顧客
                   </Button>
                 </DialogTrigger>
@@ -337,25 +336,24 @@ const Customers = () => {
               </SaveButtonContainer>
             </DialogContent>
           </Dialog>
-            </div>
-          </div>
-          <div className="flex flex-col md:flex-row md:items-center gap-4 mb-6">
-            <div className="relative flex-1 sm:w-80">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="搜尋姓名或手機號碼..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
+            }
+          />
+
+          {/* Search Bar */}
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="搜尋姓名或手機號碼..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
           </div>
 
+      {/* Results Container */}
       <Card>
         <CardContent className="p-0">
-          {isLoading && filteredCustomers.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">載入中...</div>
-          ) : filteredCustomers.length === 0 ? (
+          {filteredCustomers.length === 0 ? (
             searchQuery ? (
               <EmptyState
                 icon={Search}
@@ -454,10 +452,10 @@ const Customers = () => {
               </div>
 
               {/* Mobile card view */}
-              <div className="md:hidden space-y-3 p-4">
+              <div className="md:hidden space-y-4 p-4">
                 {filteredCustomers.map((customer, index) => (
-                  <Card key={customer.id} className="shadow-sm">
-                    <CardContent className="p-4 space-y-3">
+                  <Card key={customer.id}>
+                    <CardContent className="p-5 space-y-3">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
