@@ -369,7 +369,7 @@ const Customers = () => {
               placeholder="搜尋顧客姓名或手機號碼..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-11"
             />
           </div>
 
