@@ -10,6 +10,7 @@ import { zhTW } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { EmptyState } from "@/components/EmptyState";
+import { PageHeader } from "@/components/PageHeader";
 
 interface Notification {
   id: string;
@@ -200,43 +201,35 @@ const Notifications = () => {
 
   return (
     <div className="space-y-6">
-      <div className="pb-4 border-b border-primary/20 mb-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h2 className="text-3xl font-bold flex items-center gap-3">
-              <Bell className="h-7 w-7 text-primary" />
-              通知中心
-            </h2>
-            <p className="text-sm text-muted-foreground mt-2 ml-[18px]">
-              {unreadCount > 0 ? `您有 ${unreadCount} 則未讀通知` : '沒有未讀通知'}
-            </p>
-          </div>
-        
-        <div className="flex gap-2 w-full sm:w-auto">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => fetchNotifications()}
-            className="flex-1 sm:flex-initial"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            重新整理
-          </Button>
-          
-          {unreadCount > 0 && (
+      <PageHeader
+        title="通知中心"
+        icon={Bell}
+        action={
+          <div className="flex gap-2 w-full sm:w-auto">
             <Button
               variant="outline"
               size="sm"
-              onClick={markAllAsRead}
+              onClick={() => fetchNotifications()}
               className="flex-1 sm:flex-initial"
             >
-              <CheckCheck className="h-4 w-4 mr-2" />
-              全部標為已讀
+              <RefreshCw className="h-4 w-4 mr-2" />
+              重新整理
             </Button>
-          )}
-        </div>
-      </div>
-    </div>
+            
+            {unreadCount > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={markAllAsRead}
+                className="flex-1 sm:flex-initial"
+              >
+                <CheckCheck className="h-4 w-4 mr-2" />
+                全部標為已讀
+              </Button>
+            )}
+          </div>
+        }
+      />
 
       <div className="flex gap-2">
         <Button

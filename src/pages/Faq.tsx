@@ -18,6 +18,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
+import { PageHeader } from "@/components/PageHeader";
 
 interface FaqItem {
   id: string;
@@ -193,21 +194,16 @@ const Faq = () => {
 
   return (
     <div className="space-y-6">
-      <div className="pb-4 border-b border-primary/20 mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-bold flex items-center gap-3">
-              <HelpCircle className="h-7 w-7 text-primary" />
-              常見問題
-            </h2>
-            <p className="text-muted-foreground mt-2 ml-[18px]">管理網站常見問題內容</p>
-          </div>
+      <PageHeader
+        title="常見問題"
+        icon={HelpCircle}
+        action={
           <Button onClick={() => setIsDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             新增問題
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       <Card>
         <CardHeader>
