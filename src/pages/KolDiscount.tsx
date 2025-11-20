@@ -777,7 +777,7 @@ const KolDiscount = () => {
         <div className="flex items-center justify-between">
           <h2 className="text-3xl font-bold flex items-center gap-3">
             <Ticket className="h-7 w-7 text-primary" />
-            折扣代碼管理
+            折扣代碼
           </h2>
           <div className="flex items-center gap-2">
           <Button 
