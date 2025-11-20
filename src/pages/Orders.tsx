@@ -547,7 +547,9 @@ const Orders = () => {
                               <PaginationPrevious 
                                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                                 className={`h-10 min-w-[44px] touch-manipulation ${currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
-                              />
+                              >
+                                上一頁
+                              </PaginationPrevious>
                             </PaginationItem>
                             
                             {Array.from({ length: totalPages }, (_, i) => i + 1)
@@ -577,7 +579,9 @@ const Orders = () => {
                               <PaginationNext 
                                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                                 className={`h-10 min-w-[44px] touch-manipulation ${currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
-                              />
+                              >
+                                下一頁
+                              </PaginationNext>
                             </PaginationItem>
                           </PaginationContent>
                         </Pagination>
