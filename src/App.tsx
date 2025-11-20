@@ -7,6 +7,7 @@ import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 import { FrontendSkeleton } from "@/components/skeletons/FrontendSkeleton";
 import { NetworkIndicator } from "@/components/NetworkIndicator";
 import { PageTransition } from "@/components/PageTransition";
+import { ChunkErrorBoundary } from "@/components/ChunkErrorBoundary";
 
 // 路由懶加載 - 前台頁面
 const Index = lazy(() => import("./pages/Index"));
@@ -56,8 +57,9 @@ function App() {
         <BrowserRouter>
           <NetworkIndicator />
           <PageTransition>
-            <Suspense fallback={<FrontendSkeleton />}>
-              <Routes>
+            <ChunkErrorBoundary>
+              <Suspense fallback={<FrontendSkeleton />}>
+                <Routes>
               <Route element={<ConditionalLayout />}>
                 <Route path="/" element={<Index />} />
                 <Route path="/booking" element={<BookingFlow />} />
@@ -190,6 +192,7 @@ function App() {
               </Route>
             </Routes>
           </Suspense>
+          </ChunkErrorBoundary>
           </PageTransition>
         </BrowserRouter>
       </AccommodationProvider>

@@ -4,6 +4,15 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App.tsx";
 import "./index.css";
 
+// Handle chunk loading failures
+window.addEventListener('error', (event) => {
+  if (event.message?.includes('Failed to fetch dynamically imported module') || 
+      event.message?.includes('Loading chunk')) {
+    event.preventDefault();
+    window.location.reload();
+  }
+});
+
 // 註冊 Service Worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
