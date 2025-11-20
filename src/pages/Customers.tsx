@@ -711,13 +711,13 @@ const Customers = () => {
           {/* Pagination */}
           {sortedCustomers.length > 0 && (
             <Card className="border-border/40">
-              <CardContent className="p-4">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="text-sm text-muted-foreground">
+              <CardContent className="p-5">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full lg:w-auto">
+                    <div className="text-sm text-muted-foreground whitespace-nowrap">
                       顯示 {startIndex + 1} 至 {Math.min(endIndex, sortedCustomers.length)} 筆，共 {sortedCustomers.length} 筆資料
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <span className="text-sm text-muted-foreground whitespace-nowrap">每頁顯示</span>
                       <Select
                         value={itemsPerPage.toString()}
@@ -726,7 +726,7 @@ const Customers = () => {
                           setCurrentPage(1);
                         }}
                       >
-                        <SelectTrigger className="w-20 h-9">
+                        <SelectTrigger className="w-24 h-9">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-background border-border z-50">
@@ -741,7 +741,7 @@ const Customers = () => {
                   </div>
                   
                   {totalPages > 1 && (
-                    <Pagination>
+                    <Pagination className="mx-0 w-full lg:w-auto justify-start lg:justify-end">
                       <PaginationContent>
                         <PaginationItem>
                           <PaginationPrevious 
