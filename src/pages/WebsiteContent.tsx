@@ -2536,24 +2536,28 @@ const WebsiteContent = () => {
           <Card>
             <CardContent className="pt-6 space-y-6">
               {/* 上傳按鈕 */}
-              <div className="flex items-center gap-4">
-                <Button
-                  onClick={() => document.getElementById('photo-upload')?.click()}
-                  disabled={uploadingPhoto}
-                  className="gap-2"
-                >
-                  <Upload className="h-4 w-4" />
-                  {uploadingPhoto ? '上傳中...' : '上傳照片'}
-                </Button>
-                <input
-                  id="photo-upload"
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoUpload}
-                  className="hidden"
-                />
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-muted/30 rounded-lg border border-border/50">
+                <div className="flex flex-col gap-2">
+                  <Button
+                    onClick={() => document.getElementById('photo-upload')?.click()}
+                    disabled={uploadingPhoto}
+                    size="lg"
+                    className="gap-2 w-full sm:w-auto"
+                  >
+                    <Upload className="h-4 w-4" />
+                    {uploadingPhoto ? '上傳中...' : '上傳照片'}
+                  </Button>
+                  <input
+                    id="photo-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                  />
+                </div>
                 <p className="text-sm text-muted-foreground">
-                  支援 JPG、PNG 格式，建議尺寸 1200x800 以上
+                  支援 JPG、PNG 格式<br className="sm:hidden" />
+                  建議尺寸 1200x800 以上
                 </p>
               </div>
 
