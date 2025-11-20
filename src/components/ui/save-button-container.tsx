@@ -25,12 +25,12 @@ export const SaveButtonContainer = ({
   className = "",
 }: SaveButtonContainerProps) => {
   return (
-    <div className={`flex justify-end gap-2 pt-4 border-t ${className}`}>
+    <div className={`flex flex-col sm:flex-row justify-end gap-3 sm:gap-2 pt-6 sm:pt-4 border-t ${className}`}>
       {children}
       <Button 
         onClick={onSave} 
         disabled={isSaving || disabled}
-        className="min-w-[120px]"
+        className="min-w-[120px] sm:min-w-[120px] w-full sm:w-auto"
       >
         {isSaving ? savingText : saveText}
       </Button>
