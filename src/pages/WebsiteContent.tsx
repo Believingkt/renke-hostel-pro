@@ -227,42 +227,42 @@ const SortablePhotoItem = ({ photo, index, onDelete, onEdit }: SortablePhotoItem
     <div
       ref={setNodeRef}
       style={style}
-      className="relative group aspect-[4/3] overflow-hidden rounded-xl border-2 border-border bg-background shadow-sm hover:shadow-lg transition-all"
+      className="relative group aspect-[4/3] overflow-hidden rounded-xl border-2 border-border bg-background shadow-sm hover:shadow-lg transition-all touch-manipulation"
     >
       <img
         src={photo.photo_url}
         alt={`照片 ${index + 1}`}
-        className="w-full h-full object-cover transition-transform group-hover:scale-105"
+        className="w-full h-full object-cover md:transition-transform md:group-hover:scale-105"
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-100 md:opacity-0 md:group-hover:opacity-100 md:transition-opacity flex items-center justify-center gap-3 md:gap-4 p-4 md:p-0">
         {onEdit && (
           <Button
-            size="sm"
+            size="default"
             variant="secondary"
             onClick={() => onEdit(photo)}
-            className="shadow-lg"
+            className="shadow-lg min-h-[48px] min-w-[48px] touch-manipulation"
           >
-            <Edit2 className="h-4 w-4" />
+            <Edit2 className="h-5 w-5 md:h-4 md:w-4" />
           </Button>
         )}
         <Button
-          size="sm"
+          size="default"
           variant="destructive"
           onClick={() => onDelete(photo.id)}
-          className="shadow-lg"
+          className="shadow-lg min-h-[48px] min-w-[48px] touch-manipulation"
         >
-          <Trash2 className="h-4 w-4" />
+          <Trash2 className="h-5 w-5 md:h-4 md:w-4" />
         </Button>
       </div>
-      <div className="absolute bottom-3 left-3 bg-background/95 backdrop-blur-sm text-foreground px-3 py-1.5 rounded-lg text-xs font-medium shadow-md border border-border/50">
+      <div className="absolute bottom-3 left-3 md:bottom-2 md:left-2 bg-background/95 backdrop-blur-sm text-foreground px-4 py-2 md:px-3 md:py-1.5 rounded-lg text-sm md:text-xs font-medium shadow-md border border-border/50">
         順序 {photo.display_order}
       </div>
       <div
         {...attributes}
         {...listeners}
-        className="absolute top-3 right-3 cursor-grab active:cursor-grabbing bg-background/95 backdrop-blur-sm hover:bg-background rounded-lg p-2.5 transition-all shadow-md border border-border/50"
+        className="absolute top-3 right-3 md:top-2 md:right-2 cursor-grab active:cursor-grabbing bg-background/95 backdrop-blur-sm hover:bg-background rounded-lg p-3 md:p-2.5 transition-all shadow-md border border-border/50 min-h-[48px] min-w-[48px] flex items-center justify-center touch-manipulation"
       >
-        <GripVertical className="h-4 w-4 text-muted-foreground" />
+        <GripVertical className="h-5 w-5 md:h-4 md:w-4 text-muted-foreground" />
       </div>
     </div>
   );
@@ -2579,7 +2579,7 @@ const WebsiteContent = () => {
                     items={photos.map((p) => p.id)}
                     strategy={verticalListSortingStrategy}
                   >
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                       {photos.map((photo, index) => (
                         <SortablePhotoItem
                           key={photo.id}
