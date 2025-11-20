@@ -21,7 +21,6 @@ import { Badge } from "@/components/ui/badge";
 import PullToRefresh from "react-simple-pull-to-refresh";
 import { RevenueChart } from "@/components/charts/RevenueChart";
 import { BookingTrendsChart } from "@/components/charts/BookingTrendsChart";
-import { OccupancyChart } from "@/components/charts/OccupancyChart";
 import { PageHeader } from "@/components/PageHeader";
 
 const Dashboard = () => {
@@ -185,20 +184,13 @@ const Dashboard = () => {
     return sanitized;
   });
   
-  const safeOccupancyData = occupancyData || [];
-  
-  // 从数据中提取所有房型名称（排除 'month' 字段）
-  const roomTypes = safeOccupancyData.length > 0 
-    ? Object.keys(safeOccupancyData[0]).filter(key => key !== 'month')
-    : [];
-
   const handleRefresh = async () => {
     await refreshData();
     toast.success('數據已更新', {
       description: '已載入最新資料'
     });
   };
-
+  
   // 檢查是否有數據，如果沒有則提供最小有效數據集
   const hasData = safeRevenueData.length > 0 && (
     safeRevenueData.some(d => (d['今年'] || d['本月'] || d['本期'] || 0) > 0) ||
@@ -222,7 +214,6 @@ const Dashboard = () => {
     上月: 0, 
     本期: 0 
   }];
-  const finalOccupancyData = safeOccupancyData.length > 0 ? safeOccupancyData : [{ month: '暫無數據' }];
 
   const dashboardContent = (
     <div className="space-y-6 md:space-y-8">
@@ -347,57 +338,33 @@ const Dashboard = () => {
         )}
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 px-2 md:px-0">
+      <div className="grid gap-6 px-2 md:px-0">
         {isLoading ? (
-          <>
-            <ChartSkeleton showLegend={false} />
-            <ChartSkeleton />
-          </>
+          <ChartSkeleton />
         ) : (
-          <>
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="space-y-1">
-                    <CardTitle className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-                      房型入住率
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground font-medium">今年每月趨勢</p>
-                  </div>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                    <Hotel className="h-4 w-4 text-primary" />
-                  </div>
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="space-y-1">
+                  <CardTitle className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                    訂單趨勢
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground font-medium">年度對比</p>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <OccupancyChart data={finalOccupancyData} roomTypes={roomTypes} />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="space-y-1">
-                    <CardTitle className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-                      訂單趨勢
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground font-medium">年度對比</p>
-                  </div>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/20">
-                    <Calendar className="h-4 w-4 text-accent" />
-                  </div>
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10">
+                  <Calendar className="h-4 w-4 text-blue-600" />
                 </div>
-              </CardHeader>
-              <CardContent>
-                <BookingTrendsChart 
-                  key="booking-lastYear-standard"
-                  data={finalBookingData}
-                  comparisonMode="lastYear"
-                  isCustomRange={false}
-                />
-              </CardContent>
-            </Card>
-          </>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <BookingTrendsChart 
+                key="booking-lastYear-standard"
+                data={finalBookingData}
+                comparisonMode="lastYear"
+                isCustomRange={false}
+              />
+            </CardContent>
+          </Card>
         )}
       </div>
 
