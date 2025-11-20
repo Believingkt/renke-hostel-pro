@@ -257,7 +257,7 @@ const Customers = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 md:p-6 lg:p-8 space-y-6 max-w-[1600px]">
+    <div className="space-y-6">
       {isLoading ? (
         <TableSkeleton rows={10} columns={7} showSearch showFilters={false} />
       ) : error ? (
@@ -362,25 +362,21 @@ const Customers = () => {
           />
 
           {/* Search Bar */}
-          <Card className="border-border/40">
-            <CardContent className="p-4">
-              <div className="relative max-w-md">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder="搜尋顧客姓名或手機號碼..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </CardContent>
-          </Card>
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="搜尋顧客姓名或手機號碼..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
 
           {/* Results Container */}
           {filteredCustomers.length === 0 ? (
-            <Card className="border-border/40">
-              <CardContent className="p-8">
+            <Card>
+              <CardContent className="p-6">
                 {searchQuery ? (
                   <EmptyState
                     icon={Search}
@@ -420,7 +416,7 @@ const Customers = () => {
           ) : (
             <>
               {/* Desktop: Table View */}
-              <Card className="hidden md:block border-border/40">
+              <Card className="hidden md:block">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/30 hover:bg-muted/30">
@@ -522,9 +518,9 @@ const Customers = () => {
               </Card>
 
               {/* Mobile: Card View */}
-              <div className="md:hidden space-y-3">
+              <div className="md:hidden space-y-4">
                 {filteredCustomers.map((customer) => (
-                  <Card key={customer.id} className="border-border/40 hover:border-border/60 transition-all">
+                  <Card key={customer.id}>
                     <CardContent className="p-4">
                       <div className="space-y-3">
                         <div className="flex justify-between items-start gap-3">
