@@ -123,7 +123,7 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
               {categories.map((category, index) => (
                 <Line
                   key={category}
-                  type="monotone"
+                  type="natural"
                   dataKey={category}
                   stroke={index === 0 ? "hsl(var(--chart-booking-secondary))" : "hsl(var(--chart-booking-primary))"}
                   strokeWidth={3}
@@ -138,7 +138,8 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                         stroke={index === 0 ? "hsl(var(--chart-booking-secondary))" : "hsl(var(--chart-booking-primary))"}
                         strokeWidth={2}
                         opacity={payload.isFuture ? 0.3 : 1}
-                        style={{ cursor: 'pointer', transition: 'all 0.2s' }}
+                        style={{ cursor: 'pointer', transition: 'all 0.3s ease-in-out' }}
+                        className="hover:r-7"
                         onClick={() => handleDotClick(payload)}
                       />
                     );
@@ -154,14 +155,14 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                         stroke={index === 0 ? "hsl(var(--chart-booking-secondary))" : "hsl(var(--chart-booking-primary))"}
                         strokeWidth={3}
                         opacity={payload.isFuture ? 0.3 : 1}
-                        style={{ cursor: 'pointer', transition: 'all 0.2s' }}
+                        style={{ cursor: 'pointer', transition: 'all 0.3s ease-in-out' }}
                         onClick={() => handleDotClick(payload)}
                       />
                     );
                   }}
                   connectNulls
-                  animationDuration={1000}
-                  animationBegin={index * 100}
+                  animationDuration={1500}
+                  animationBegin={index * 150}
                   isAnimationActive={true}
                   animationEasing="ease-in-out"
                 />
