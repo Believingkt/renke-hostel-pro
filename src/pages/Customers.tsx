@@ -8,9 +8,8 @@ import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Plus, Pencil, Trash2, Search, FileText, Users, Phone, Mail, Calendar, UserRound, ArrowUpDown, ArrowUp, ArrowDown, Download, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, FileText, Users, Phone, Mail, Calendar, UserRound, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAccommodation } from "@/contexts/AccommodationContext";
@@ -77,8 +76,6 @@ const Customers = () => {
   const [itemsPerPage, setItemsPerPage] = useState(20);
   const [sortField, setSortField] = useState<'name' | 'visit_count' | 'first_order_date' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [selectedCustomers, setSelectedCustomers] = useState<Set<string>>(new Set());
-  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -160,100 +157,6 @@ const Customers = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedCustomers = sortedCustomers.slice(startIndex, endIndex);
-
-  // 批量選取功能
-  const isAllSelected = paginatedCustomers.length > 0 && paginatedCustomers.every(c => selectedCustomers.has(c.id));
-  const isSomeSelected = paginatedCustomers.some(c => selectedCustomers.has(c.id)) && !isAllSelected;
-
-  const handleSelectAll = () => {
-    if (isAllSelected) {
-      // 取消全選
-      const newSelected = new Set(selectedCustomers);
-      paginatedCustomers.forEach(c => newSelected.delete(c.id));
-      setSelectedCustomers(newSelected);
-    } else {
-      // 全選當前頁
-      const newSelected = new Set(selectedCustomers);
-      paginatedCustomers.forEach(c => newSelected.add(c.id));
-      setSelectedCustomers(newSelected);
-    }
-  };
-
-  const handleSelectCustomer = (customerId: string) => {
-    const newSelected = new Set(selectedCustomers);
-    if (newSelected.has(customerId)) {
-      newSelected.delete(customerId);
-    } else {
-      newSelected.add(customerId);
-    }
-    setSelectedCustomers(newSelected);
-  };
-
-  const handleClearSelection = () => {
-    setSelectedCustomers(new Set());
-  };
-
-  // 批量刪除
-  const handleBulkDelete = async () => {
-    try {
-      const idsToDelete = Array.from(selectedCustomers);
-      
-      const { error: deleteError } = await supabase
-        .from("customers")
-        .delete()
-        .in("id", idsToDelete);
-
-      if (deleteError) throw deleteError;
-
-      toast.success("批量刪除成功", {
-        description: `已刪除 ${idsToDelete.length} 筆顧客資料`,
-      });
-
-      setSelectedCustomers(new Set());
-      setShowBulkDeleteDialog(false);
-      loadCustomers();
-    } catch (err) {
-      console.error("批量刪除時發生錯誤:", err);
-      toast.error("批量刪除失敗", {
-        description: "無法刪除顧客資料，請稍後再試",
-      });
-    }
-  };
-
-  // 批量匯出
-  const handleBulkExport = () => {
-    const customersToExport = customers.filter(c => selectedCustomers.has(c.id));
-    
-    // 準備 CSV 資料
-    const headers = ['姓名', '手機', 'Email', '首次訂房日期', '來訪次數', '備註'];
-    const csvContent = [
-      headers.join(','),
-      ...customersToExport.map(c => [
-        c.name,
-        c.phone || '',
-        c.email || '',
-        c.first_order_date ? formatDate(c.first_order_date) : '',
-        c.visit_count,
-        (c.notes || '').replace(/,/g, '，') // 替換逗號避免 CSV 格式問題
-      ].join(','))
-    ].join('\n');
-
-    // 加入 BOM 以支援中文
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    
-    link.setAttribute('href', url);
-    link.setAttribute('download', `顧客資料_${new Date().toLocaleDateString()}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    toast.success("匯出成功", {
-      description: `已匯出 ${customersToExport.length} 筆顧客資料`,
-    });
-  };
 
   const loadCustomers = async () => {
     if (!currentAccommodationId) return;
@@ -428,36 +331,13 @@ const Customers = () => {
             title="顧客資料"
             icon={Users}
             action={
-              <div className="flex items-center gap-2">
-                {selectedCustomers.size > 0 && (
-                  <>
-                    <Button
-                      variant="outline"
-                      onClick={handleBulkExport}
-                      className="gap-2"
-                    >
-                      <Download className="h-4 w-4" />
-                      <span className="hidden sm:inline">匯出選取 ({selectedCustomers.size})</span>
-                      <span className="sm:hidden">匯出</span>
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={() => setShowBulkDeleteDialog(true)}
-                      className="gap-2"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      <span className="hidden sm:inline">刪除選取 ({selectedCustomers.size})</span>
-                      <span className="sm:hidden">刪除</span>
-                    </Button>
-                  </>
-                )}
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button onClick={() => handleOpenDialog()} className="gap-2">
-                      <Plus className="h-4 w-4" />
-                      <span>新增顧客</span>
-                    </Button>
-                  </DialogTrigger>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button onClick={() => handleOpenDialog()} className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    <span>新增顧客</span>
+                  </Button>
+                </DialogTrigger>
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>{editingCustomer ? "編輯顧客" : "新增顧客"}</DialogTitle>
@@ -537,7 +417,6 @@ const Customers = () => {
                   </SaveButtonContainer>
                 </DialogContent>
               </Dialog>
-            </div>
             }
           />
 
@@ -621,44 +500,11 @@ const Customers = () => {
             </Card>
           ) : (
             <>
-              {/* 批量選取提示 */}
-              {selectedCustomers.size > 0 && (
-                <Card className="border-primary/40 bg-primary/5">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Checkbox checked className="pointer-events-none" />
-                        <span className="text-sm font-medium">
-                          已選取 {selectedCustomers.size} 筆資料
-                        </span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleClearSelection}
-                        className="gap-2"
-                      >
-                        <X className="h-4 w-4" />
-                        清除選取
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
               {/* Desktop: Table View */}
               <Card className="hidden md:block">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/30 hover:bg-muted/30">
-                      <TableHead className="w-12">
-                        <Checkbox
-                          checked={isAllSelected}
-                          onCheckedChange={handleSelectAll}
-                          aria-label="全選"
-                          className={isSomeSelected ? "data-[state=checked]:bg-primary/50" : ""}
-                        />
-                      </TableHead>
                       <TableHead className="font-semibold text-foreground/90 pl-8">
                         <button 
                           onClick={() => handleSort('name')}
@@ -713,13 +559,6 @@ const Customers = () => {
                   <TableBody>
                     {paginatedCustomers.map((customer) => (
                       <TableRow key={customer.id} className="hover:bg-muted/30 transition-colors">
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedCustomers.has(customer.id)}
-                            onCheckedChange={() => handleSelectCustomer(customer.id)}
-                            aria-label={`選取 ${customer.name}`}
-                          />
-                        </TableCell>
                         <TableCell className="font-medium pl-8">
                           <CustomerQuickPreview customer={customer}>
                             <span className="cursor-help hover:text-primary transition-colors">{customer.name}</span>
@@ -781,85 +620,75 @@ const Customers = () => {
                   <Card key={customer.id}>
                     <CardContent className="p-4">
                       <div className="space-y-3">
-                        <div className="flex items-start gap-3">
-                          <Checkbox
-                            checked={selectedCustomers.has(customer.id)}
-                            onCheckedChange={() => handleSelectCustomer(customer.id)}
-                            aria-label={`選取 ${customer.name}`}
-                            className="mt-1"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex justify-between items-start gap-3">
-                              <div className="space-y-2 flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 flex-shrink-0">
-                                    <UserRound className="h-4 w-4 text-primary" />
-                                  </div>
-                                  <h3 className="font-semibold text-base truncate">{customer.name}</h3>
-                                </div>
-                                {customer.phone && (
-                                  <div className="flex items-center gap-2 text-sm text-muted-foreground pl-10">
-                                    <Phone className="h-3.5 w-3.5 flex-shrink-0" />
-                                    <span className="truncate">{customer.phone}</span>
-                                  </div>
-                                )}
-                                {customer.email && (
-                                  <div className="flex items-center gap-2 text-sm text-muted-foreground pl-10">
-                                    <Mail className="h-3.5 w-3.5 flex-shrink-0" />
-                                    <span className="truncate">{customer.email}</span>
-                                  </div>
-                                )}
+                        <div className="flex justify-between items-start gap-3">
+                          <div className="space-y-2 flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 flex-shrink-0">
+                                <UserRound className="h-4 w-4 text-primary" />
                               </div>
-                              <div className="flex gap-1 flex-shrink-0">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => navigate(`/admin/customers/${customer.id}/orders`)}
-                                  className="h-8 w-8 p-0"
-                                  title="查看訂單詳情"
-                                >
-                                  <FileText className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleOpenDialog(customer)}
-                                  className="h-8 w-8 p-0"
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setDeleteCustomerId(customer.id)}
-                                  className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
+                              <h3 className="font-semibold text-base truncate">{customer.name}</h3>
                             </div>
+                            {customer.phone && (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground pl-10">
+                                <Phone className="h-3.5 w-3.5 flex-shrink-0" />
+                                <span className="truncate">{customer.phone}</span>
+                              </div>
+                            )}
+                            {customer.email && (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground pl-10">
+                                <Mail className="h-3.5 w-3.5 flex-shrink-0" />
+                                <span className="truncate">{customer.email}</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex gap-1 flex-shrink-0">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => navigate(`/admin/customers/${customer.id}/orders`)}
+                              className="h-8 w-8 p-0"
+                              title="查看訂單詳情"
+                            >
+                              <FileText className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenDialog(customer)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeleteCustomerId(customer.id)}
+                              className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         </div>
                         
                         <div className="grid grid-cols-2 gap-3 pt-3 border-t border-border/50">
-                            <div className="space-y-1">
-                              <p className="text-muted-foreground text-xs flex items-center gap-1.5 font-medium">
-                                <Calendar className="h-3.5 w-3.5" />
-                                首次訂房
-                              </p>
-                              <p className="font-medium text-sm">
-                                {formatDate(customer.first_order_date)}
-                              </p>
-                            </div>
-                            <div className="space-y-1">
-                              <p className="text-muted-foreground text-xs flex items-center gap-1.5 font-medium">
-                                <Users className="h-3.5 w-3.5" />
-                                來訪次數
-                              </p>
-                              <span className="inline-flex items-center justify-center min-w-[2rem] px-2 py-1 rounded-md bg-primary/10 text-primary font-medium text-sm">
-                                {customer.visit_count}
-                              </span>
-                            </div>
+                          <div className="space-y-1">
+                            <p className="text-muted-foreground text-xs flex items-center gap-1.5 font-medium">
+                              <Calendar className="h-3.5 w-3.5" />
+                              首次訂房
+                            </p>
+                            <p className="font-medium text-sm">
+                              {formatDate(customer.first_order_date)}
+                            </p>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-muted-foreground text-xs flex items-center gap-1.5 font-medium">
+                              <Users className="h-3.5 w-3.5" />
+                              來訪次數
+                            </p>
+                            <span className="inline-flex items-center justify-center min-w-[2rem] px-2 py-1 rounded-md bg-primary/10 text-primary font-medium text-sm">
+                              {customer.visit_count}
+                            </span>
+                          </div>
                         </div>
                         
                         {customer.notes && (
@@ -978,24 +807,6 @@ const Customers = () => {
             <AlertDialogCancel>取消</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
               刪除
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Bulk Delete Confirmation Dialog */}
-      <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>確認批量刪除</AlertDialogTitle>
-            <AlertDialogDescription>
-              確定要刪除選取的 {selectedCustomers.size} 筆顧客資料嗎？此操作無法復原。
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive hover:bg-destructive/90">
-              刪除 {selectedCustomers.size} 筆
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
