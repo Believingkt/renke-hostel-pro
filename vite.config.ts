@@ -21,17 +21,65 @@ export default defineConfig(({ mode }) => ({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-popover', '@radix-ui/react-select'],
-          'supabase': ['@supabase/supabase-js'],
+        manualChunks: (id) => {
+          // React 核心庫
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+            return 'react-core';
+          }
+          // React Router
+          if (id.includes('node_modules/react-router-dom')) {
+            return 'react-router';
+          }
+          // Radix UI 組件
+          if (id.includes('node_modules/@radix-ui')) {
+            return 'radix-ui';
+          }
+          // Supabase
+          if (id.includes('node_modules/@supabase')) {
+            return 'supabase';
+          }
+          // TanStack Query
+          if (id.includes('node_modules/@tanstack/react-query')) {
+            return 'tanstack-query';
+          }
+          // Chart 相關庫
+          if (id.includes('node_modules/recharts') || id.includes('node_modules/@tremor')) {
+            return 'charts';
+          }
+          // Lucide 圖標
+          if (id.includes('node_modules/lucide-react')) {
+            return 'icons';
+          }
+          // 日期處理庫
+          if (id.includes('node_modules/date-fns') || id.includes('node_modules/react-day-picker')) {
+            return 'date-utils';
+          }
+          // 其他大型依賴
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
         },
       },
     },
     chunkSizeWarningLimit: 1000,
     cssCodeSplit: true,
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
+    },
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', '@supabase/supabase-js'],
+    include: [
+      'react', 
+      'react-dom', 
+      'react-router-dom', 
+      '@supabase/supabase-js',
+      '@tanstack/react-query',
+      'lucide-react',
+      'date-fns',
+    ],
   },
 }));

@@ -41,11 +41,15 @@ import ChangePassword from "./pages/ChangePassword";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 分鐘內數據視為新鮮
-      gcTime: 10 * 60 * 1000, // 10 分鐘後清除未使用的緩存
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
       retry: 1,
       refetchOnWindowFocus: false,
-      refetchOnMount: false, // 避免不必要的重複請求
+      refetchOnMount: false,
+      networkMode: 'offlineFirst', // 優先使用緩存
+    },
+    mutations: {
+      networkMode: 'online',
     },
   },
 });
