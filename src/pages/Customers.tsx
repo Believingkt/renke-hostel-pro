@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -72,6 +73,7 @@ const Customers = () => {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [deleteCustomerId, setDeleteCustomerId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -80,8 +82,6 @@ const Customers = () => {
     visit_count: "0",
     notes: "",
   });
-
-  const itemsPerPage = 20;
 
   useEffect(() => {
     if (currentAccommodationId) {
@@ -623,58 +623,84 @@ const Customers = () => {
           )}
 
           {/* Pagination */}
-          {filteredCustomers.length > itemsPerPage && (
+          {filteredCustomers.length > 0 && (
             <Card className="border-border/40">
               <CardContent className="p-4">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="text-sm text-muted-foreground">
-                    顯示 {startIndex + 1} 至 {Math.min(endIndex, filteredCustomers.length)} 筆，共 {filteredCustomers.length} 筆資料
+                  <div className="flex items-center gap-4">
+                    <div className="text-sm text-muted-foreground">
+                      顯示 {startIndex + 1} 至 {Math.min(endIndex, filteredCustomers.length)} 筆，共 {filteredCustomers.length} 筆資料
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">每頁顯示</span>
+                      <Select
+                        value={itemsPerPage.toString()}
+                        onValueChange={(value) => {
+                          setItemsPerPage(Number(value));
+                          setCurrentPage(1);
+                        }}
+                      >
+                        <SelectTrigger className="w-20 h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background border-border z-50">
+                          <SelectItem value="10">10</SelectItem>
+                          <SelectItem value="20">20</SelectItem>
+                          <SelectItem value="50">50</SelectItem>
+                          <SelectItem value="100">100</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">筆</span>
+                    </div>
                   </div>
-                  <Pagination>
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious 
-                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                        />
-                      </PaginationItem>
-                      
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                        // 只顯示當前頁面附近的頁碼
-                        if (
-                          page === 1 ||
-                          page === totalPages ||
-                          (page >= currentPage - 1 && page <= currentPage + 1)
-                        ) {
-                          return (
-                            <PaginationItem key={page}>
-                              <PaginationLink
-                                onClick={() => setCurrentPage(page)}
-                                isActive={currentPage === page}
-                                className="cursor-pointer"
-                              >
-                                {page}
-                              </PaginationLink>
-                            </PaginationItem>
-                          );
-                        } else if (page === currentPage - 2 || page === currentPage + 2) {
-                          return (
-                            <PaginationItem key={page}>
-                              <span className="px-2">...</span>
-                            </PaginationItem>
-                          );
-                        }
-                        return null;
-                      })}
-                      
-                      <PaginationItem>
-                        <PaginationNext 
-                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
+                  
+                  {totalPages > 1 && (
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious 
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                        </PaginationItem>
+                        
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                          // 只顯示當前頁面附近的頁碼
+                          if (
+                            page === 1 ||
+                            page === totalPages ||
+                            (page >= currentPage - 1 && page <= currentPage + 1)
+                          ) {
+                            return (
+                              <PaginationItem key={page}>
+                                <PaginationLink
+                                  onClick={() => setCurrentPage(page)}
+                                  isActive={currentPage === page}
+                                  className="cursor-pointer"
+                                >
+                                  {page}
+                                </PaginationLink>
+                              </PaginationItem>
+                            );
+                          } else if (page === currentPage - 2 || page === currentPage + 2) {
+                            return (
+                              <PaginationItem key={page}>
+                                <span className="px-2">...</span>
+                              </PaginationItem>
+                            );
+                          }
+                          return null;
+                        })}
+                        
+                        <PaginationItem>
+                          <PaginationNext 
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  )}
                 </div>
               </CardContent>
             </Card>
