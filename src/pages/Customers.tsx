@@ -7,6 +7,7 @@ import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Plus, Pencil, Trash2, Search, FileText, Users, Phone, Mail, Calendar, UserRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -70,6 +71,7 @@ const Customers = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [deleteCustomerId, setDeleteCustomerId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -79,6 +81,8 @@ const Customers = () => {
     notes: "",
   });
 
+  const itemsPerPage = 20;
+
   useEffect(() => {
     if (currentAccommodationId) {
       loadCustomers();
@@ -86,7 +90,7 @@ const Customers = () => {
   }, [currentAccommodationId]);
 
   useEffect(() => {
-    // 當搜尋條件改變時過濾顧客列表
+    // 當搜尋條件改變時過濾顧客列表並重置到第一頁
     if (searchQuery.trim() === "") {
       setFilteredCustomers(customers);
     } else {
@@ -97,7 +101,14 @@ const Customers = () => {
       );
       setFilteredCustomers(filtered);
     }
+    setCurrentPage(1);
   }, [searchQuery, customers]);
+
+  // 計算分頁資料
+  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedCustomers = filteredCustomers.slice(startIndex, endIndex);
 
   const loadCustomers = async () => {
     if (!currentAccommodationId) return;
@@ -460,7 +471,7 @@ const Customers = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredCustomers.map((customer) => (
+                    {paginatedCustomers.map((customer) => (
                       <TableRow key={customer.id} className="hover:bg-muted/30 transition-colors">
                         <TableCell className="font-medium pl-8">
                           <CustomerQuickPreview customer={customer}>
@@ -519,7 +530,7 @@ const Customers = () => {
 
               {/* Mobile: Card View */}
               <div className="md:hidden space-y-4">
-                {filteredCustomers.map((customer) => (
+                {paginatedCustomers.map((customer) => (
                   <Card key={customer.id}>
                     <CardContent className="p-4">
                       <div className="space-y-3">
@@ -609,6 +620,64 @@ const Customers = () => {
                 ))}
               </div>
             </>
+          )}
+
+          {/* Pagination */}
+          {filteredCustomers.length > itemsPerPage && (
+            <Card className="border-border/40">
+              <CardContent className="p-4">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="text-sm text-muted-foreground">
+                    顯示 {startIndex + 1} 至 {Math.min(endIndex, filteredCustomers.length)} 筆，共 {filteredCustomers.length} 筆資料
+                  </div>
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious 
+                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                      
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                        // 只顯示當前頁面附近的頁碼
+                        if (
+                          page === 1 ||
+                          page === totalPages ||
+                          (page >= currentPage - 1 && page <= currentPage + 1)
+                        ) {
+                          return (
+                            <PaginationItem key={page}>
+                              <PaginationLink
+                                onClick={() => setCurrentPage(page)}
+                                isActive={currentPage === page}
+                                className="cursor-pointer"
+                              >
+                                {page}
+                              </PaginationLink>
+                            </PaginationItem>
+                          );
+                        } else if (page === currentPage - 2 || page === currentPage + 2) {
+                          return (
+                            <PaginationItem key={page}>
+                              <span className="px-2">...</span>
+                            </PaginationItem>
+                          );
+                        }
+                        return null;
+                      })}
+                      
+                      <PaginationItem>
+                        <PaginationNext 
+                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </>
       )}
