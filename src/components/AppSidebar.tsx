@@ -12,7 +12,8 @@ import {
   UserCircle,
   Database
 } from "lucide-react";
-import { NavLink, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import { PreloadLink } from "@/components/PreloadLink";
 import {
   Sidebar,
   SidebarContent,
@@ -88,7 +89,7 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r transition-all duration-300">
       <SidebarHeader className="border-b px-6 py-4 transition-all duration-300">
-        <NavLink 
+        <PreloadLink 
           to="/admin" 
           onClick={handleLinkClick}
           className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity duration-200"
@@ -98,7 +99,7 @@ export function AppSidebar() {
               <img src={lokezeLogo} alt="Lokeze" className="h-8 object-contain" />
             </div>
           )}
-        </NavLink>
+        </PreloadLink>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
@@ -117,34 +118,31 @@ export function AppSidebar() {
                       </CollapsibleTrigger>
                       <CollapsibleContent className="transition-all duration-300 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
                         <SidebarMenuSub className="ml-2 border-l-2 border-sidebar-border px-0 space-y-1 mt-1">
-                          {item.subItems.map((subItem) => (
-                            <SidebarMenuSubItem key={subItem.title}>
-                              <SidebarMenuSubButton asChild className="h-10 px-4 pl-8 hover:bg-sidebar-accent/50 transition-all duration-200">
-                                <NavLink 
-                                  to={subItem.url}
-                                  onClick={handleLinkClick}
-                                  className={isActiveSubItem(subItem.url) ? "bg-sidebar-accent" : ""}
-                                >
-                                  <span className="transition-colors duration-200">{subItem.title}</span>
-                                </NavLink>
-                              </SidebarMenuSubButton>
-                            </SidebarMenuSubItem>
-                          ))}
+                        {item.subItems.map((subItem) => (
+                          <SidebarMenuSubItem key={subItem.title}>
+                            <SidebarMenuSubButton asChild className="h-10 px-4 pl-8 hover:bg-sidebar-accent/50 transition-all duration-200">
+                              <PreloadLink 
+                                to={subItem.url}
+                                onClick={handleLinkClick}
+                                className={isActiveSubItem(subItem.url) ? "bg-sidebar-accent" : ""}
+                              >
+                                <span className="transition-colors duration-200">{subItem.title}</span>
+                              </PreloadLink>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
                         </SidebarMenuSub>
                       </CollapsibleContent>
                     </Collapsible>
                   ) : (
-                    <SidebarMenuButton asChild className="h-12 py-3 text-base transition-all duration-200">
-                      <NavLink 
+                    <SidebarMenuButton asChild isActive={isActiveRoute(item.url)} className="h-12 py-3 text-base transition-all duration-200">
+                      <PreloadLink 
                         to={item.url}
                         onClick={handleLinkClick}
-                        className={({ isActive }) =>
-                          isActive ? "bg-sidebar-accent" : ""
-                        }
                       >
                         <item.icon className="h-5 w-5 transition-transform duration-200" />
                         <span className="transition-all duration-200">{item.title}</span>
-                      </NavLink>
+                      </PreloadLink>
                     </SidebarMenuButton>
                   )}
                 </SidebarMenuItem>
