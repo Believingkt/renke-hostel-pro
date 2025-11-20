@@ -104,20 +104,24 @@ const Customers = () => {
     
     setIsLoading(true);
     setError(null);
+
     try {
-      const { data, error } = await supabase
+      const { data, error: fetchError } = await supabase
         .from("customers")
         .select("*")
         .eq("accommodation_id", currentAccommodationId)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (fetchError) throw fetchError;
+
       setCustomers(data || []);
       setFilteredCustomers(data || []);
-    } catch (error: any) {
-      console.error("Error loading customers:", error);
-      setError(error.message || "載入顧客資料失敗");
-      toast.error("載入顧客資料失敗");
+    } catch (err) {
+      console.error("載入顧客資料時發生錯誤:", err);
+      setError("載入顧客資料時發生錯誤，請稍後再試");
+      toast.error("載入失敗", {
+        description: "無法載入顧客資料",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -150,59 +154,72 @@ const Customers = () => {
 
   const handleSave = async () => {
     if (!currentAccommodationId) {
-      toast.error("請先選擇物件");
+      toast.error("錯誤", { description: "無法取得住宿 ID" });
       return;
     }
 
-    // Validate input with Zod schema
-    const validationData = {
-      name: formData.name,
-      phone: formData.phone,
-      email: formData.email,
-      notes: formData.notes,
-      visit_count: parseInt(formData.visit_count) || 0,
-    };
-
-    const validation = customerSchema.safeParse(validationData);
-    if (!validation.success) {
-      const firstError = validation.error.errors[0];
-      toast.error(firstError.message);
+    // Validate form data
+    try {
+      customerSchema.parse({
+        name: formData.name,
+        phone: formData.phone || undefined,
+        email: formData.email || undefined,
+        notes: formData.notes || undefined,
+        visit_count: parseInt(formData.visit_count) || 0,
+      });
+    } catch (validationError) {
+      if (validationError instanceof z.ZodError) {
+        const firstError = validationError.errors[0];
+        toast.error("驗證失敗", { description: firstError.message });
+      }
       return;
     }
 
     setIsLoading(true);
+
     try {
       const customerData = {
         accommodation_id: currentAccommodationId,
-        name: validation.data.name,
-        phone: validation.data.phone || null,
-        email: validation.data.email || null,
+        name: formData.name,
+        phone: formData.phone || null,
+        email: formData.email || null,
         first_order_date: formData.first_order_date || null,
-        visit_count: validation.data.visit_count,
-        notes: validation.data.notes || null,
+        visit_count: parseInt(formData.visit_count) || 0,
+        notes: formData.notes || null,
       };
 
       if (editingCustomer) {
-        const { error } = await supabase
+        // Update existing customer
+        const { error: updateError } = await supabase
           .from("customers")
           .update(customerData)
           .eq("id", editingCustomer.id);
 
-        if (error) throw error;
-        toast.success("顧客資料已更新");
-      } else {
-        const { error } = await supabase
-          .from("customers")
-          .insert(customerData);
+        if (updateError) throw updateError;
 
-        if (error) throw error;
-        toast.success("顧客已新增");
+        toast.success("更新成功", {
+          description: "顧客資料已更新",
+        });
+      } else {
+        // Create new customer
+        const { error: insertError } = await supabase
+          .from("customers")
+          .insert([customerData]);
+
+        if (insertError) throw insertError;
+
+        toast.success("新增成功", {
+          description: "已新增顧客資料",
+        });
       }
 
       setIsDialogOpen(false);
       loadCustomers();
-    } catch (error: any) {
-      toast.error("儲存失敗：" + error.message);
+    } catch (err) {
+      console.error("儲存顧客資料時發生錯誤:", err);
+      toast.error("儲存失敗", {
+        description: "無法儲存顧客資料，請稍後再試",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -211,21 +228,26 @@ const Customers = () => {
   const handleDelete = async () => {
     if (!deleteCustomerId) return;
 
-    setIsLoading(true);
     try {
-      const { error } = await supabase
+      const { error: deleteError } = await supabase
         .from("customers")
         .delete()
         .eq("id", deleteCustomerId);
 
-      if (error) throw error;
-      toast.success("顧客已刪除");
-      setDeleteCustomerId(null);
+      if (deleteError) throw deleteError;
+
+      toast.success("刪除成功", {
+        description: "已刪除顧客資料",
+      });
+
       loadCustomers();
-    } catch (error: any) {
-      toast.error("刪除失敗：" + error.message);
+    } catch (err) {
+      console.error("刪除顧客時發生錯誤:", err);
+      toast.error("刪除失敗", {
+        description: "無法刪除顧客資料，請稍後再試",
+      });
     } finally {
-      setIsLoading(false);
+      setDeleteCustomerId(null);
     }
   };
 
@@ -235,7 +257,7 @@ const Customers = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto p-4 md:p-6 lg:p-8 space-y-6 max-w-[1600px]">
       {isLoading ? (
         <TableSkeleton rows={10} columns={7} showSearch showFilters={false} />
       ) : error ? (
@@ -248,13 +270,13 @@ const Customers = () => {
         <>
           <PageHeader
             title="顧客資料"
-            icon={UserRound}
+            icon={Users}
             action={
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button className="gap-2">
+                  <Button onClick={() => handleOpenDialog()} className="gap-2">
                     <Plus className="h-4 w-4" />
-                    新增顧客
+                    <span>新增顧客</span>
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -262,184 +284,232 @@ const Customers = () => {
                     <DialogTitle>{editingCustomer ? "編輯顧客" : "新增顧客"}</DialogTitle>
                     <DialogDescription>填寫顧客的基本資料</DialogDescription>
                   </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">姓名 *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="請輸入姓名"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">手機號碼</Label>
-                    <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      placeholder="0912-345-678"
-                    />
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">姓名 *</Label>
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        placeholder="請輸入姓名"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">手機號碼</Label>
+                        <Input
+                          id="phone"
+                          value={formData.phone}
+                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                          placeholder="0912-345-678"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                          placeholder="example@email.com"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="first_order_date">首筆訂單日</Label>
+                        <Input
+                          id="first_order_date"
+                          type="date"
+                          value={formData.first_order_date}
+                          onChange={(e) => setFormData({ ...formData, first_order_date: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="visit_count">來訪次數</Label>
+                        <Input
+                          id="visit_count"
+                          type="number"
+                          min="0"
+                          value={formData.visit_count}
+                          onChange={(e) => setFormData({ ...formData, visit_count: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="notes">備註</Label>
+                      <Input
+                        id="notes"
+                        value={formData.notes}
+                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                        placeholder="其他備註資訊"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      placeholder="example@email.com"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="first_order_date">首筆訂單日</Label>
-                    <Input
-                      id="first_order_date"
-                      type="date"
-                      value={formData.first_order_date}
-                      onChange={(e) => setFormData({ ...formData, first_order_date: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="visit_count">來訪次數</Label>
-                    <Input
-                      id="visit_count"
-                      type="number"
-                      min="0"
-                      value={formData.visit_count}
-                      onChange={(e) => setFormData({ ...formData, visit_count: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="notes">備註</Label>
-                  <Input
-                    id="notes"
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    placeholder="其他備註資訊"
-                  />
-                </div>
-              </div>
-              <SaveButtonContainer 
-                onSave={handleSave} 
-                isSaving={isLoading}
-                saveText="儲存變更"
-                className="border-t-0"
-              >
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  取消
-                </Button>
-              </SaveButtonContainer>
-            </DialogContent>
-          </Dialog>
+                  <SaveButtonContainer 
+                    onSave={handleSave} 
+                    isSaving={isLoading}
+                    saveText="儲存變更"
+                    className="border-t-0"
+                  >
+                    <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                      取消
+                    </Button>
+                  </SaveButtonContainer>
+                </DialogContent>
+              </Dialog>
             }
           />
 
           {/* Search Bar */}
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="搜尋姓名或手機號碼..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
+          <Card className="border-border/40">
+            <CardContent className="p-4">
+              <div className="relative max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="搜尋顧客姓名或手機號碼..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Results Container */}
-      <Card>
-        <CardContent className="p-0">
+          {/* Results Container */}
           {filteredCustomers.length === 0 ? (
-            searchQuery ? (
-              <EmptyState
-                icon={Search}
-                title="查無符合的顧客"
-                description={`找不到符合「${searchQuery}」的顧客資料，請嘗試其他關鍵字`}
-              />
-            ) : (
-              <EmptyState
-                icon={Users}
-                title="歡迎使用顧客管理"
-                description="建立您的第一位顧客資料，開始追蹤客戶來訪記錄和偏好，提供更優質的服務體驗。"
-                action={{
-                  label: "新增第一位顧客",
-                  onClick: () => handleOpenDialog()
-                }}
-                suggestions={[
-                  {
-                    icon: Phone,
-                    title: "記錄聯絡資訊",
-                    description: "儲存顧客的電話和 Email，方便日後聯繫與行銷推廣。"
-                  },
-                  {
-                    icon: Calendar,
-                    title: "追蹤來訪記錄",
-                    description: "自動記錄顧客的入住次數和首次訂房日期。"
-                  },
-                  {
-                    icon: FileText,
-                    title: "備註重要資訊",
-                    description: "記錄顧客偏好、特殊需求等客製化服務資訊。"
-                  }
-                ]}
-              />
-            )
+            <Card className="border-border/40">
+              <CardContent className="p-8">
+                {searchQuery ? (
+                  <EmptyState
+                    icon={Search}
+                    title="查無符合的顧客"
+                    description={`找不到符合「${searchQuery}」的顧客資料，請嘗試其他關鍵字`}
+                  />
+                ) : (
+                  <EmptyState
+                    icon={Users}
+                    title="歡迎使用顧客管理"
+                    description="建立您的第一位顧客資料，開始追蹤客戶來訪記錄和偏好，提供更優質的服務體驗。"
+                    action={{
+                      label: "新增第一位顧客",
+                      onClick: () => handleOpenDialog()
+                    }}
+                    suggestions={[
+                      {
+                        icon: Phone,
+                        title: "記錄聯絡資訊",
+                        description: "儲存顧客的電話和 Email，方便日後聯繫與行銷推廣。"
+                      },
+                      {
+                        icon: Calendar,
+                        title: "追蹤來訪記錄",
+                        description: "自動記錄顧客的入住次數和首次訂房日期。"
+                      },
+                      {
+                        icon: FileText,
+                        title: "備註重要資訊",
+                        description: "記錄顧客偏好、特殊需求等客製化服務資訊。"
+                      }
+                    ]}
+                  />
+                )}
+              </CardContent>
+            </Card>
           ) : (
             <>
-              {/* Desktop table view */}
-              <div className="hidden md:block rounded-md border">
+              {/* Desktop: Table View */}
+              <Card className="hidden md:block border-border/40">
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-20">編號</TableHead>
-                      <TableHead>姓名</TableHead>
-                      <TableHead>手機號碼</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>首筆訂單日</TableHead>
-                      <TableHead className="text-center">來訪次數</TableHead>
-                      <TableHead className="w-32 text-right">操作</TableHead>
+                    <TableRow className="bg-muted/30 hover:bg-muted/30">
+                      <TableHead className="font-semibold text-foreground/90">
+                        <div className="flex items-center gap-2">
+                          <UserRound className="h-4 w-4 text-primary" />
+                          姓名
+                        </div>
+                      </TableHead>
+                      <TableHead className="font-semibold text-foreground/90">
+                        <div className="flex items-center gap-2">
+                          <Phone className="h-4 w-4 text-primary" />
+                          手機
+                        </div>
+                      </TableHead>
+                      <TableHead className="font-semibold text-foreground/90">
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-4 w-4 text-primary" />
+                          Email
+                        </div>
+                      </TableHead>
+                      <TableHead className="font-semibold text-foreground/90">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-primary" />
+                          首次訂房日期
+                        </div>
+                      </TableHead>
+                      <TableHead className="font-semibold text-foreground/90">
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4 text-primary" />
+                          來訪次數
+                        </div>
+                      </TableHead>
+                      <TableHead className="font-semibold text-foreground/90">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-primary" />
+                          備註
+                        </div>
+                      </TableHead>
+                      <TableHead className="font-semibold text-foreground/90 text-right">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredCustomers.map((customer, index) => (
-                      <TableRow key={customer.id}>
-                        <TableCell className="font-medium">{index + 1}</TableCell>
-                        <TableCell>
+                    {filteredCustomers.map((customer) => (
+                      <TableRow key={customer.id} className="hover:bg-muted/30 transition-colors">
+                        <TableCell className="font-medium">
                           <CustomerQuickPreview customer={customer}>
                             <span className="cursor-help hover:text-primary transition-colors">{customer.name}</span>
                           </CustomerQuickPreview>
                         </TableCell>
-                        <TableCell>{customer.phone || "-"}</TableCell>
-                        <TableCell>{customer.email || "-"}</TableCell>
-                        <TableCell>{formatDate(customer.first_order_date)}</TableCell>
-                        <TableCell className="text-center">{customer.visit_count}</TableCell>
-                          <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                        <TableCell className="text-muted-foreground">{customer.phone || "-"}</TableCell>
+                        <TableCell className="text-muted-foreground">{customer.email || "-"}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {formatDate(customer.first_order_date)}
+                        </TableCell>
+                        <TableCell>
+                          <span className="inline-flex items-center justify-center min-w-[2rem] px-2 py-1 rounded-md bg-primary/10 text-primary font-medium text-sm">
+                            {customer.visit_count}
+                          </span>
+                        </TableCell>
+                        <TableCell className="max-w-[200px]">
+                          <div className="truncate text-muted-foreground" title={customer.notes || ""}>
+                            {customer.notes || "-"}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
                             <Button
                               variant="ghost"
-                              size="icon"
+                              size="sm"
                               onClick={() => navigate(`/admin/customers/${customer.id}/orders`)}
+                              className="h-8 w-8 p-0"
                               title="查看訂單詳情"
                             >
                               <FileText className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"
-                              size="icon"
+                              size="sm"
                               onClick={() => handleOpenDialog(customer)}
-                              title="編輯顧客"
+                              className="h-8 w-8 p-0"
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"
-                              size="icon"
+                              size="sm"
                               onClick={() => setDeleteCustomerId(customer.id)}
-                              title="刪除顧客"
+                              className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -449,74 +519,94 @@ const Customers = () => {
                     ))}
                   </TableBody>
                 </Table>
-              </div>
+              </Card>
 
-              {/* Mobile card view */}
-              <div className="md:hidden space-y-4 p-4">
-                {filteredCustomers.map((customer, index) => (
-                  <Card key={customer.id}>
-                    <CardContent className="p-5 space-y-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs text-muted-foreground">#{index + 1}</span>
-                            <h3 className="font-semibold text-base truncate">{customer.name}</h3>
-                          </div>
-                          <div className="space-y-1 text-sm">
+              {/* Mobile: Card View */}
+              <div className="md:hidden space-y-3">
+                {filteredCustomers.map((customer) => (
+                  <Card key={customer.id} className="border-border/40 hover:border-border/60 transition-all">
+                    <CardContent className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-start gap-3">
+                          <div className="space-y-2 flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 flex-shrink-0">
+                                <UserRound className="h-4 w-4 text-primary" />
+                              </div>
+                              <h3 className="font-semibold text-base truncate">{customer.name}</h3>
+                            </div>
                             {customer.phone && (
-                              <div className="flex items-center gap-2 text-muted-foreground">
-                                <span className="text-xs">手機</span>
-                                <span>{customer.phone}</span>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground pl-10">
+                                <Phone className="h-3.5 w-3.5 flex-shrink-0" />
+                                <span className="truncate">{customer.phone}</span>
                               </div>
                             )}
                             {customer.email && (
-                              <div className="flex items-center gap-2 text-muted-foreground truncate">
-                                <span className="text-xs">Email</span>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground pl-10">
+                                <Mail className="h-3.5 w-3.5 flex-shrink-0" />
                                 <span className="truncate">{customer.email}</span>
                               </div>
                             )}
                           </div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center justify-between pt-2 border-t">
-                        <div className="flex gap-4 text-sm">
-                          <div>
-                            <span className="text-muted-foreground text-xs">首筆訂單</span>
-                            <p className="font-medium">{formatDate(customer.first_order_date)}</p>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground text-xs">來訪次數</span>
-                            <p className="font-medium">{customer.visit_count}</p>
+                          <div className="flex gap-1 flex-shrink-0">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => navigate(`/admin/customers/${customer.id}/orders`)}
+                              className="h-8 w-8 p-0"
+                              title="查看訂單詳情"
+                            >
+                              <FileText className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenDialog(customer)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeleteCustomerId(customer.id)}
+                              className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         </div>
                         
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-9 w-9"
-                            onClick={() => navigate(`/admin/customers/${customer.id}/orders`)}
-                          >
-                            <FileText className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-9 w-9"
-                            onClick={() => handleOpenDialog(customer)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-9 w-9"
-                            onClick={() => setDeleteCustomerId(customer.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                        <div className="grid grid-cols-2 gap-3 pt-3 border-t border-border/50">
+                          <div className="space-y-1">
+                            <p className="text-muted-foreground text-xs flex items-center gap-1.5 font-medium">
+                              <Calendar className="h-3.5 w-3.5" />
+                              首次訂房
+                            </p>
+                            <p className="font-medium text-sm">
+                              {formatDate(customer.first_order_date)}
+                            </p>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-muted-foreground text-xs flex items-center gap-1.5 font-medium">
+                              <Users className="h-3.5 w-3.5" />
+                              來訪次數
+                            </p>
+                            <span className="inline-flex items-center justify-center min-w-[2rem] px-2 py-1 rounded-md bg-primary/10 text-primary font-medium text-sm">
+                              {customer.visit_count}
+                            </span>
+                          </div>
                         </div>
+                        
+                        {customer.notes && (
+                          <div className="pt-3 border-t border-border/50 space-y-1.5">
+                            <p className="text-muted-foreground text-xs flex items-center gap-1.5 font-medium">
+                              <FileText className="h-3.5 w-3.5" />
+                              備註
+                            </p>
+                            <p className="text-sm text-foreground/80 leading-relaxed">{customer.notes}</p>
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -524,25 +614,26 @@ const Customers = () => {
               </div>
             </>
           )}
-        </CardContent>
-      </Card>
+        </>
+      )}
 
+      {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteCustomerId} onOpenChange={() => setDeleteCustomerId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>確認刪除</AlertDialogTitle>
             <AlertDialogDescription>
-              您確定要刪除這位顧客嗎？此操作無法復原。
+              確定要刪除此顧客資料嗎？此操作無法復原。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>刪除</AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+              刪除
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-        </>
-      )}
     </div>
   );
 };
