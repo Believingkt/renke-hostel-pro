@@ -301,16 +301,19 @@ const Pricing = () => {
 
   return (
     <div className="space-y-6 md:space-y-8">
-      <ResponsiveTabs
-        tabs={pricingTabs}
-        value={activeTab}
-        onValueChange={(value) => {
-          setActiveTab(value);
-          setSearchParams({ tab: value });
-        }}
-      />
-      
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={(value) => {
+        setActiveTab(value);
+        setSearchParams({ tab: value });
+      }} className="w-full">
+        <ResponsiveTabs
+          tabs={pricingTabs}
+          value={activeTab}
+          onValueChange={(value) => {
+            setActiveTab(value);
+            setSearchParams({ tab: value });
+          }}
+        />
+        
         <TabsContent value="rooms" className="space-y-4">
           <div className="pb-4 border-b border-primary/20 mb-6">
             <div className="flex items-center justify-between">
