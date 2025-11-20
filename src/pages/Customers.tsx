@@ -747,7 +747,9 @@ const Customers = () => {
                           <PaginationPrevious 
                             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                             className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                          />
+                          >
+                            上一頁
+                          </PaginationPrevious>
                         </PaginationItem>
                         
                         {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
@@ -782,7 +784,9 @@ const Customers = () => {
                           <PaginationNext 
                             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                             className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                          />
+                          >
+                            下一頁
+                          </PaginationNext>
                         </PaginationItem>
                       </PaginationContent>
                     </Pagination>
