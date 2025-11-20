@@ -32,7 +32,6 @@ import {
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
-import { ConflictDetector } from "@/components/orders/ConflictDetector";
 import { PageHeader } from "@/components/PageHeader";
 
 const Orders = () => {
@@ -386,9 +385,6 @@ const Orders = () => {
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsContent value="list">
-          {/* 衝突檢測器 */}
-          <ConflictDetector orders={filteredOrders} accommodationId={accommodationId} />
-          
           <Card>
             <CardContent className="pt-6 space-y-6">
               {/* 快速篩選標籤 */}

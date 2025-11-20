@@ -13,7 +13,6 @@ import { cn } from "@/lib/utils";
 import { Order } from "@/types/order";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { detectBookingConflict } from "@/utils/bookingConflictDetection";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { Badge } from "@/components/ui/badge";
 
@@ -301,45 +300,6 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
       return;
     }
 
-    // Check for booking conflicts if dates or room type changed
-    if (
-      order &&
-      currentAccommodationId &&
-      (editForm.check_in_date !== order.check_in_date ||
-        editForm.check_out_date !== order.check_out_date ||
-        editForm.room_type_id !== order.room_types?.id)
-    ) {
-      setIsValidating(true);
-      try {
-        const conflict = await detectBookingConflict(
-          editForm.room_type_id,
-          editForm.check_in_date,
-          editForm.check_out_date,
-          currentAccommodationId,
-          order.id
-        );
-
-        if (conflict.hasConflict) {
-          toast({
-            title: "訂單衝突",
-            description: conflict.message,
-            variant: "destructive",
-          });
-          setIsValidating(false);
-          return;
-        }
-      } catch (error) {
-        console.error("Error checking conflicts:", error);
-        toast({
-          title: "驗證錯誤",
-          description: "無法驗證訂單衝突，請稍後再試",
-          variant: "destructive",
-        });
-        setIsValidating(false);
-        return;
-      }
-      setIsValidating(false);
-    }
 
     setIsSaving(true);
     try {

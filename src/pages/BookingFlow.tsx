@@ -29,8 +29,6 @@ import {
 } from "lucide-react";
 import { z } from "zod";
 import { format } from "date-fns";
-import { detectBookingConflict, getAlternativeRoomSuggestions, AlternativeRoomSuggestion, getAvailableRoomTypes } from "@/utils/bookingConflictDetection";
-import { ConflictWarning } from "@/components/orders/ConflictWarning";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import {
@@ -178,11 +176,6 @@ const BookingFlow = () => {
   const [isCheckOutDateOpen, setIsCheckOutDateOpen] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [successOrderData, setSuccessOrderData] = useState<any>(null);
-  const [alternativeRooms, setAlternativeRooms] = useState<AlternativeRoomSuggestion[]>([]);
-  const [showAlternatives, setShowAlternatives] = useState(false);
-  const [availableRoomTypeIds, setAvailableRoomTypeIds] = useState<string[]>([]);
-  const [conflictMessage, setConflictMessage] = useState("");
-  const [conflictType, setConflictType] = useState<'overbooked' | 'duplicate'>('overbooked');
   
   // 加購方案
   const [petCount, setPetCount] = useState(0);
@@ -364,34 +357,7 @@ const BookingFlow = () => {
   }, [searchParams, roomTypes, selectedRoom]);
 
   // 當日期或餐食方案改變時，檢查已選擇的房型是否仍然適用
-  useEffect(() => {
-    const checkAvailability = async () => {
-      if (checkInDate && checkOutDate && accommodationId) {
-        const totalGuests = (contextGuests.adults || 0) + (contextGuests.children || 0);
-        const availableIds = await getAvailableRoomTypes(
-          checkInDateStr,
-          checkOutDateStr,
-          accommodationId,
-          totalGuests
-        );
-        setAvailableRoomTypeIds(availableIds);
-        
-        // 如果已選擇的房型不在可用列表中，清除選擇
-        if (selectedRoom && !availableIds.includes(selectedRoom.id)) {
-          setSelectedRoom(null);
-          toast({
-            title: "房型已被預訂",
-            description: "您選擇的房型在此日期已被預訂，請選擇其他房型",
-          });
-        }
-      } else {
-        // 如果沒有選擇日期，顯示所有房型
-        setAvailableRoomTypeIds([]);
-      }
-    };
-
-    checkAvailability();
-  }, [checkInDate, checkOutDate, selectedMealPlan, accommodationId, contextGuests]);
+  // 移除房型可用性檢查，不再使用衝突檢測
 
   // 當在選擇房型步驟時，自動預選第一個可用房型
   useEffect(() => {
@@ -480,10 +446,6 @@ const BookingFlow = () => {
     const { hasWeekday, hasWeekend } = getDateRangeInfo();
     
     return roomTypes.filter(room => {
-      // 首先檢查是否在可預訂的房型列表中（如果有日期選擇）
-      if (availableRoomTypeIds.length > 0 && !availableRoomTypeIds.includes(room.id)) {
-        return false;
-      }
 
       const mealPlanType = selectedMealPlan === "2_meals" ? "2_meals" : "3_meals";
       
@@ -914,74 +876,8 @@ const BookingFlow = () => {
 
     setIsSubmitting(true);
 
+
     try {
-      // 執行衝突檢測
-      const conflictResult = await detectBookingConflict(
-        selectedRoom.id,
-        checkInDateStr,
-        checkOutDateStr,
-        accommodationId,
-        undefined,
-        {
-          guestName: guestInfo.name,
-          guestPhone: guestInfo.phone,
-          guestEmail: guestInfo.email
-        }
-      );
-
-      // 如果檢測到衝突，顯示錯誤並阻止訂單創建
-      if (conflictResult.hasConflict) {
-        setIsSubmitting(false);
-        
-        // 創建衝突通知給管理員
-        try {
-          await supabase.from('notifications').insert({
-            accommodation_id: accommodationId,
-            type: 'conflict',
-            title: conflictResult.conflictType === 'overbooked' ? '⚠️ 超額預訂警告' : '⚠️ 重複訂房警告',
-            description: `${conflictResult.message}\n\n訂房資訊：\n客人：${guestInfo.name}\n電話：${guestInfo.phone}\n${guestInfo.email ? `信箱：${guestInfo.email}\n` : ''}日期：${checkInDateStr} 至 ${checkOutDateStr}\n房型：${selectedRoom.name}\n人數：${totalGuests}人`,
-          });
-          console.log('衝突通知已發送給管理員');
-        } catch (notificationError) {
-          console.error('創建衝突通知失敗:', notificationError);
-        }
-        
-        // 如果是超額預訂，獲取替代房型建議
-        if (conflictResult.conflictType === 'overbooked') {
-          const suggestions = await getAlternativeRoomSuggestions(
-            selectedRoom.id,
-            checkInDateStr,
-            checkOutDateStr,
-            accommodationId,
-            totalGuests
-          );
-          
-          if (suggestions.length > 0) {
-            setAlternativeRooms(suggestions);
-            setConflictMessage(conflictResult.message || "");
-            setConflictType('overbooked');
-            setShowAlternatives(true);
-            
-            toast({
-              title: "房間已被預訂",
-              description: "我們為您找到了其他可用房型，請查看推薦方案",
-            });
-            return;
-          }
-        }
-        
-        toast({
-          title: conflictResult.conflictType === 'duplicate' ? "檢測到重複訂房" : "房間已被預訂",
-          description: conflictResult.message,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // 如果有警告（房間數量不多），顯示警告但允許繼續
-      if (conflictResult.message && conflictResult.availableRooms && conflictResult.availableRooms <= 2) {
-        console.log("房間數量提醒:", conflictResult.message);
-      }
       const totalPrice = calculateTotal();
       const discountAmount = calculateDiscount();
       const finalPrice = calculateFinalTotal();
@@ -2878,54 +2774,6 @@ const BookingFlow = () => {
         </DialogContent>
       </Dialog>
 
-      {/* 替代房型建議對話框 */}
-      <Dialog open={showAlternatives} onOpenChange={setShowAlternatives}>
-        <DialogContent className="max-w-2xl">
-          <DialogTitle className="text-xl font-bold">推薦其他可用房型</DialogTitle>
-          <DialogDescription className="text-muted-foreground">
-            {conflictMessage}
-          </DialogDescription>
-          
-          <div className="mt-4">
-            <ConflictWarning
-              type={conflictType}
-              message="以下是我們為您推薦的其他可用房型："
-              alternativeRooms={alternativeRooms}
-              onSelectAlternative={(roomTypeId) => {
-                // 找到選中的房型
-                const selectedAlternative = roomTypes.find(r => r.id === roomTypeId);
-                if (selectedAlternative) {
-                  setSelectedRoom(selectedAlternative);
-                  setShowAlternatives(false);
-                  toast({
-                    title: "已切換房型",
-                    description: `已為您選擇 ${selectedAlternative.name}`,
-                  });
-                }
-              }}
-            />
-          </div>
-          
-          <div className="flex gap-2 mt-4">
-            <Button
-              variant="outline"
-              onClick={() => setShowAlternatives(false)}
-              className="flex-1"
-            >
-              取消訂房
-            </Button>
-            <Button
-              onClick={() => {
-                setShowAlternatives(false);
-                setCurrentStep("room");
-              }}
-              className="flex-1"
-            >
-              重新選擇房型
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* 餐食加購詳細內容對話框 */}
       <Dialog open={isBbqDetailsDialogOpen} onOpenChange={setIsBbqDetailsDialogOpen}>
