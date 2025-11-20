@@ -420,7 +420,7 @@ const Customers = () => {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/30 hover:bg-muted/30">
-                      <TableHead className="font-semibold text-foreground/90">
+                      <TableHead className="font-semibold text-foreground/90 pl-6">
                         <div className="flex items-center gap-2">
                           <UserRound className="h-4 w-4 text-primary" />
                           姓名
@@ -462,7 +462,7 @@ const Customers = () => {
                   <TableBody>
                     {filteredCustomers.map((customer) => (
                       <TableRow key={customer.id} className="hover:bg-muted/30 transition-colors">
-                        <TableCell className="font-medium">
+                        <TableCell className="font-medium pl-6">
                           <CustomerQuickPreview customer={customer}>
                             <span className="cursor-help hover:text-primary transition-colors">{customer.name}</span>
                           </CustomerQuickPreview>
