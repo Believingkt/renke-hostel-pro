@@ -273,18 +273,16 @@ const Notifications = () => {
             全部類型
           </Button>
           <Button
-            variant={typeFilter === 'new_order' ? 'default' : 'outline'}
+            variant={typeFilter === 'new_order' ? 'info' : 'outline'}
             size="sm"
             onClick={() => setTypeFilter('new_order')}
-            className={typeFilter === 'new_order' ? 'bg-blue-500 hover:bg-blue-600' : ''}
           >
             🎉 新訂單
           </Button>
           <Button
-            variant={typeFilter === 'payment' ? 'default' : 'outline'}
+            variant={typeFilter === 'payment' ? 'success' : 'outline'}
             size="sm"
             onClick={() => setTypeFilter('payment')}
-            className={typeFilter === 'payment' ? 'bg-green-500 hover:bg-green-600' : ''}
           >
             💰 付款通知
           </Button>
