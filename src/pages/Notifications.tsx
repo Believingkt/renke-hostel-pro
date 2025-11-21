@@ -27,6 +27,7 @@ const Notifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'new_order' | 'payment' | 'status_update'>('all');
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -44,6 +45,10 @@ const Notifications = () => {
 
       if (filter === 'unread') {
         query = query.eq("is_read", false);
+      }
+
+      if (typeFilter !== 'all') {
+        query = query.eq("type", typeFilter);
       }
 
       const { data, error } = await query;
@@ -64,7 +69,7 @@ const Notifications = () => {
 
   useEffect(() => {
     fetchNotifications();
-  }, [accommodationId, filter]);
+  }, [accommodationId, filter, typeFilter]);
 
   const markAsRead = async (id: string) => {
     try {
@@ -241,21 +246,56 @@ const Notifications = () => {
         }
       />
 
-      <div className="flex gap-2">
-        <Button
-          variant={filter === 'all' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilter('all')}
-        >
-          全部通知
-        </Button>
-        <Button
-          variant={filter === 'unread' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilter('unread')}
-        >
-          未讀 {unreadCount > 0 && `(${unreadCount})`}
-        </Button>
+      <div className="space-y-3">
+        <div className="flex gap-2">
+          <Button
+            variant={filter === 'all' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setFilter('all')}
+          >
+            全部通知
+          </Button>
+          <Button
+            variant={filter === 'unread' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setFilter('unread')}
+          >
+            未讀 {unreadCount > 0 && `(${unreadCount})`}
+          </Button>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant={typeFilter === 'all' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setTypeFilter('all')}
+          >
+            全部類型
+          </Button>
+          <Button
+            variant={typeFilter === 'new_order' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setTypeFilter('new_order')}
+            className={typeFilter === 'new_order' ? 'bg-blue-500 hover:bg-blue-600' : ''}
+          >
+            🎉 新訂單
+          </Button>
+          <Button
+            variant={typeFilter === 'payment' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setTypeFilter('payment')}
+            className={typeFilter === 'payment' ? 'bg-green-500 hover:bg-green-600' : ''}
+          >
+            💰 付款通知
+          </Button>
+          <Button
+            variant={typeFilter === 'status_update' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setTypeFilter('status_update')}
+          >
+            📋 狀態更新
+          </Button>
+        </div>
       </div>
 
       {notifications.length === 0 ? (
