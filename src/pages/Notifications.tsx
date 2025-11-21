@@ -149,6 +149,16 @@ const Notifications = () => {
     }
   };
 
+  const getNotificationBadgeVariant = (notification: Notification): "default" | "info" | "success" | "destructive" => {
+    if (notification.type === 'new_order') return 'info';
+    if (notification.type === 'payment') return 'success';
+    if (notification.type === 'status_update' && 
+        (notification.title.includes('取消') || notification.description.includes('取消'))) {
+      return 'destructive';
+    }
+    return 'default';
+  };
+
   const handleNotificationClick = (notification: Notification) => {
     if (!notification.is_read) {
       markAsRead(notification.id);
@@ -280,7 +290,7 @@ const Notifications = () => {
                         {notification.title}
                         {!notification.is_read && (
                           <Badge 
-                            variant={notification.type === 'new_order' ? 'info' : 'default'} 
+                            variant={getNotificationBadgeVariant(notification)} 
                             className="text-xs"
                           >
                             新
@@ -357,7 +367,7 @@ const Notifications = () => {
                         {notification.title}
                         {!notification.is_read && (
                           <Badge 
-                            variant={notification.type === 'new_order' ? 'info' : 'default'} 
+                            variant={getNotificationBadgeVariant(notification)} 
                             className="text-xs"
                           >
                             新
@@ -434,7 +444,7 @@ const Notifications = () => {
                         {notification.title}
                         {!notification.is_read && (
                           <Badge 
-                            variant={notification.type === 'new_order' ? 'info' : 'default'} 
+                            variant={getNotificationBadgeVariant(notification)} 
                             className="text-xs"
                           >
                             新
