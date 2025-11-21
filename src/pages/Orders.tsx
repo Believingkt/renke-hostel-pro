@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSubdomain } from "@/hooks/use-subdomain";
 import { format, addDays } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { useOrderNotifications } from "@/hooks/use-order-notifications";
 import { Order, QuickFilterType } from "@/types/order";
 import { QuickFilters } from "@/components/orders/QuickFilters";
 import { OrderFilters } from "@/components/orders/OrderFilters";
@@ -40,6 +41,10 @@ const Orders = () => {
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "list");
   const { accommodationId } = useSubdomain();
   const { toast } = useToast();
+  
+  // Enable real-time order notifications
+  useOrderNotifications(true);
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -113,6 +118,32 @@ const Orders = () => {
 
   useEffect(() => {
     fetchOrders();
+  }, [accommodationId]);
+
+  // Set up real-time subscription to refetch orders on changes
+  useEffect(() => {
+    if (!accommodationId) return;
+
+    const channel = supabase
+      .channel('orders-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+          filter: `accommodation_id=eq.${accommodationId}`
+        },
+        () => {
+          // Refetch orders when any change occurs
+          fetchOrders();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [accommodationId]);
 
   // 套用篩選
