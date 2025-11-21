@@ -279,7 +279,10 @@ const Notifications = () => {
                       <h3 className="font-semibold text-base flex items-center gap-2">
                         {notification.title}
                         {!notification.is_read && (
-                          <Badge variant="default" className="text-xs">
+                          <Badge 
+                            variant={notification.type === 'new_order' ? 'info' : 'default'} 
+                            className="text-xs"
+                          >
                             新
                           </Badge>
                         )}
@@ -353,7 +356,10 @@ const Notifications = () => {
                       <h3 className="font-semibold text-base flex items-center gap-2">
                         {notification.title}
                         {!notification.is_read && (
-                          <Badge variant="default" className="text-xs">
+                          <Badge 
+                            variant={notification.type === 'new_order' ? 'info' : 'default'} 
+                            className="text-xs"
+                          >
                             新
                           </Badge>
                         )}
@@ -427,7 +433,10 @@ const Notifications = () => {
                       <h3 className="font-semibold text-base flex items-center gap-2">
                         {notification.title}
                         {!notification.is_read && (
-                          <Badge variant="default" className="text-xs">
+                          <Badge 
+                            variant={notification.type === 'new_order' ? 'info' : 'default'} 
+                            className="text-xs"
+                          >
                             新
                           </Badge>
                         )}
