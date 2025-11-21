@@ -32,7 +32,10 @@ const Notifications = () => {
   const navigate = useNavigate();
 
   const fetchNotifications = async () => {
-    if (!accommodationId) return;
+    if (!accommodationId) {
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
