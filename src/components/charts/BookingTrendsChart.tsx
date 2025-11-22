@@ -148,33 +148,21 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                   dot={(props: any) => {
                     const { cx, cy, payload, index: dotIndex } = props;
                     return (
-                      <g>
-                        <circle
-                          cx={cx}
-                          cy={cy}
-                          r={5}
-                          fill="hsl(var(--background))"
-                          stroke={index === 0 ? "hsl(var(--chart-booking-secondary))" : "hsl(var(--chart-booking-primary))"}
-                          strokeWidth={2}
-                          opacity={payload.isFuture ? 0.3 : 1}
-                          style={{ 
-                            cursor: 'pointer',
-                            animation: `dotPulse 0.6s ease-out ${dotIndex * 0.1}s both`,
-                          }}
-                          className="hover:scale-125 transition-transform duration-200"
-                          onClick={() => handleDotClick(payload)}
-                        />
-                        <circle
-                          cx={cx}
-                          cy={cy}
-                          r={5}
-                          fill={index === 0 ? "hsl(var(--chart-booking-secondary))" : "hsl(var(--chart-booking-primary))"}
-                          opacity={0}
-                          style={{ 
-                            animation: `dotRipple 2s ease-out ${dotIndex * 0.1 + 0.3}s infinite`,
-                          }}
-                        />
-                      </g>
+                      <circle
+                        cx={cx}
+                        cy={cy}
+                        r={5}
+                        fill="hsl(var(--background))"
+                        stroke={index === 0 ? "hsl(var(--chart-booking-secondary))" : "hsl(var(--chart-booking-primary))"}
+                        strokeWidth={2}
+                        opacity={payload.isFuture ? 0.3 : 1}
+                        style={{ 
+                          cursor: 'pointer',
+                          animation: `dotPulse 0.6s ease-out ${dotIndex * 0.1}s both`,
+                        }}
+                        className="hover:scale-125 transition-transform duration-200"
+                        onClick={() => handleDotClick(payload)}
+                      />
                     );
                   }}
                   activeDot={(props: any) => {
@@ -228,17 +216,6 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
           100% {
             transform: scale(1);
             opacity: 1;
-          }
-        }
-        
-        @keyframes dotRipple {
-          0% {
-            transform: scale(1);
-            opacity: 0.3;
-          }
-          100% {
-            transform: scale(3);
-            opacity: 0;
           }
         }
       `}</style>
