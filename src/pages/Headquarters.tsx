@@ -320,7 +320,7 @@ const Headquarters = () => {
                 <SelectContent>
                   <SelectItem value="super_admin">總部管理員</SelectItem>
                   <SelectItem value="hotel_admin">民宿管理員</SelectItem>
-                  <SelectItem value="staff">現場員工</SelectItem>
+                  <SelectItem value="staff">現場營運</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -406,7 +406,7 @@ const Headquarters = () => {
                           <SelectContent>
                             <SelectItem value="super_admin">總部管理員</SelectItem>
                             <SelectItem value="hotel_admin">民宿管理員</SelectItem>
-                            <SelectItem value="staff">現場員工</SelectItem>
+                            <SelectItem value="staff">現場營運</SelectItem>
                           </SelectContent>
                         </Select>
                       </TableCell>
