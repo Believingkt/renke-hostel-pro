@@ -64,13 +64,20 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (emailResponse.error) {
       console.error("發送失敗:", emailResponse.error);
+      
+      // 特別處理域名未驗證的錯誤
+      const isVerificationError = emailResponse.error.message?.includes("not verified");
+      
       return new Response(
         JSON.stringify({ 
-          error: emailResponse.error.message,
-          details: emailResponse.error 
+          error: isVerificationError 
+            ? "域名 sensaninn.lakeze.com 尚未在 Resend 驗證。請前往 https://resend.com/domains 添加並驗證域名。"
+            : emailResponse.error.message,
+          details: emailResponse.error,
+          isVerificationError 
         }),
         {
-          status: 500,
+          status: isVerificationError ? 403 : 500,
           headers: { "Content-Type": "application/json", ...corsHeaders },
         }
       );
