@@ -146,7 +146,7 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                   strokeWidth={3}
                   fill={`url(#gradient-${category})`}
                   dot={(props: any) => {
-                    const { cx, cy, payload, index: dotIndex } = props;
+                    const { cx, cy, payload } = props;
                     return (
                       <circle
                         cx={cx}
@@ -156,10 +156,7 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                         stroke={index === 0 ? "hsl(var(--chart-booking-secondary))" : "hsl(var(--chart-booking-primary))"}
                         strokeWidth={2}
                         opacity={payload.isFuture ? 0.3 : 1}
-                        style={{ 
-                          cursor: 'pointer',
-                          animation: `dotPulse 0.6s ease-out ${dotIndex * 0.1}s both`,
-                        }}
+                        style={{ cursor: 'pointer' }}
                         className="hover:scale-125 transition-transform duration-200"
                         onClick={() => handleDotClick(payload)}
                       />
@@ -204,21 +201,6 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
         </ChartContainer>
       </div>
 
-      <style>{`
-        @keyframes dotPulse {
-          0% {
-            transform: scale(0);
-            opacity: 0;
-          }
-          50% {
-            opacity: 1;
-          }
-          100% {
-            transform: scale(1);
-            opacity: 1;
-          }
-        }
-      `}</style>
 
       <Dialog open={!!selectedData} onOpenChange={() => setSelectedData(null)}>
         <DialogContent>
