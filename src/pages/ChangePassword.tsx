@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,9 +11,13 @@ import lokezeLogo from "@/assets/lokeze-logo-auth.png";
 
 export default function ChangePassword() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  
+  // 判斷是否從後台訪問
+  const isAdminRoute = location.pathname.includes('/admin/');
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,23 +42,30 @@ export default function ChangePassword() {
 
       if (updateError) throw updateError;
 
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("無法取得使用者資訊");
+      if (isAdminRoute) {
+        // 從後台主動修改密碼：不登出，直接返回後台
+        toast.success("密碼已更新");
+        navigate("/admin");
+      } else {
+        // 首次登入強制修改密碼：需要更新標記並登出
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("無法取得使用者資訊");
 
-      // Update profile to remove force_password_change flag
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({ force_password_change: false })
-        .eq("id", user.id);
+        // Update profile to remove force_password_change flag
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({ force_password_change: false })
+          .eq("id", user.id);
 
-      if (profileError) throw profileError;
+        if (profileError) throw profileError;
 
-      toast.success("密碼已更新，請重新登入");
-      
-      // Sign out to force re-login with new password
-      await supabase.auth.signOut();
-      navigate("/auth");
+        toast.success("密碼已更新，請重新登入");
+        
+        // Sign out to force re-login with new password
+        await supabase.auth.signOut();
+        navigate("/auth");
+      }
     } catch (error: any) {
       if (import.meta.env.DEV) {
         console.error("Error changing password:", error);
@@ -72,9 +83,11 @@ export default function ChangePassword() {
           <div className="flex justify-center mb-4">
             <img src={lokezeLogo} alt="Lokeze" className="h-12 object-contain" />
           </div>
-          <CardTitle className="text-2xl text-center">設定新密碼</CardTitle>
+          <CardTitle className="text-2xl text-center">
+            {isAdminRoute ? "修改密碼" : "設定新密碼"}
+          </CardTitle>
           <CardDescription className="text-center">
-            這是您首次登入，請設定新密碼
+            {isAdminRoute ? "請輸入新密碼" : "這是您首次登入，請設定新密碼"}
           </CardDescription>
         </CardHeader>
         <CardContent>
