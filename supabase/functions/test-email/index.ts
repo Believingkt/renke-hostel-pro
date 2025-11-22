@@ -34,7 +34,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`準備發送測試郵件至: ${email}`);
 
     const emailResponse = await resend.emails.send({
-      from: "森山民宿測試 <onboarding@resend.dev>",
+      from: "森山民宿 <noreply@sensaninn.lakeze.com>",
       to: [email],
       subject: "Resend 郵件測試",
       html: `
@@ -48,7 +48,7 @@ const handler = async (req: Request): Promise<Response> => {
           <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
             <h3 style="margin-top: 0; color: #333;">配置資訊：</h3>
             <ul style="color: #666;">
-              <li>發件人：森山民宿測試 &lt;onboarding@resend.dev&gt;</li>
+              <li>發件人：森山民宿 &lt;noreply@sensaninn.lakeze.com&gt;</li>
               <li>收件人：${email}</li>
               <li>發送時間：${new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}</li>
             </ul>
