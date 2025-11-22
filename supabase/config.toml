@@ -9,6 +9,9 @@ verify_jwt = true
 [functions.delete-user]
 verify_jwt = true
 
+[functions.cleanup-orphan-user]
+verify_jwt = false
+
 [functions.resend-invite]
 verify_jwt = true
 
