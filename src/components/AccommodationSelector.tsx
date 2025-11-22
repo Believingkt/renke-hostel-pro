@@ -71,11 +71,11 @@ export function AccommodationSelector() {
           <TooltipTrigger asChild>
             <Button 
               variant="ghost" 
-              className="font-medium text-sm hover:bg-accent"
+              className="font-medium text-sm hover:bg-accent gap-1.5"
               onClick={() => window.open('/', '_blank')}
             >
               {accommodations[0].name}
-              <ExternalLink className="ml-2 h-3.5 w-3.5" />
+              <ExternalLink className="h-3 w-3 opacity-60" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>
@@ -94,11 +94,11 @@ export function AccommodationSelector() {
             <Button 
               variant="ghost" 
               size="sm"
-              className="font-medium"
+              className="font-medium gap-1.5"
               onClick={() => window.open('/', '_blank')}
             >
               {accommodations.find(a => a.id === currentAccommodationId)?.name || "前往首頁"}
-              <ExternalLink className="ml-2 h-3.5 w-3.5" />
+              <ExternalLink className="h-3 w-3 opacity-60" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>
