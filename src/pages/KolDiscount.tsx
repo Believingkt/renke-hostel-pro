@@ -286,7 +286,7 @@ const KolDiscount = () => {
   };
 
   const handleCopyReferralLink = (code: string) => {
-    const referralLink = `${window.location.origin}/booking?ref=${code}`;
+    const referralLink = `https://sensaninn.lakeze.com/booking?ref=${code}`;
     navigator.clipboard.writeText(referralLink);
     toast({
       title: "已複製推薦連結",
