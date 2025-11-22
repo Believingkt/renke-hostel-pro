@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.kol-api]
 verify_jwt = false
+
+[functions.test-email]
+verify_jwt = false
