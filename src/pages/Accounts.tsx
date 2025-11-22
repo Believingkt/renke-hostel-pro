@@ -147,7 +147,7 @@ const Accounts = () => {
       case "hotel_admin":
         return "民宿管理員";
       case "staff":
-        return "現場員工";
+        return "現場營運";
       default:
         return role;
     }
@@ -327,7 +327,7 @@ const Accounts = () => {
                   <SelectContent>
                     <SelectItem value="super_admin">總部管理員</SelectItem>
                     <SelectItem value="hotel_admin">民宿管理員</SelectItem>
-                    <SelectItem value="staff">現場員工</SelectItem>
+                    <SelectItem value="staff">現場營運</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
