@@ -20,8 +20,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Trash2, Building2, UserCog } from "lucide-react";
+import { Loader2, Trash2, Building2, UserCog, Mail, MailCheck } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 
@@ -34,6 +35,8 @@ interface UserRole {
   updated_at: string;
   user_email?: string;
   user_name?: string;
+  status?: 'pending' | 'active';
+  statusLabel?: string;
 }
 
 interface AccommodationInfo {
@@ -94,7 +97,7 @@ const Headquarters = () => {
       // Fetch user profiles
       const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, email, name")
+        .select("id, email, name, last_sign_in_at")
         .in("id", userIds);
 
       if (profilesError) {
@@ -105,14 +108,28 @@ const Headquarters = () => {
 
       // Map profiles to user roles
       const profilesMap = new Map(
-        profilesData?.map(profile => [profile.id, { email: profile.email, name: profile.name }]) || []
+        profilesData?.map(profile => [
+          profile.id, 
+          { 
+            email: profile.email, 
+            name: profile.name,
+            lastSignInAt: profile.last_sign_in_at 
+          }
+        ]) || []
       );
 
-      const rolesWithProfiles = rolesData.map(role => ({
-        ...role,
-        user_email: profilesMap.get(role.user_id)?.email || "-",
-        user_name: profilesMap.get(role.user_id)?.name || "未知",
-      }));
+      const rolesWithProfiles = rolesData.map(role => {
+        const profile = profilesMap.get(role.user_id);
+        const hasLoggedIn = !!profile?.lastSignInAt;
+        
+        return {
+          ...role,
+          user_email: profile?.email || "-",
+          user_name: profile?.name || "未知",
+          status: (hasLoggedIn ? 'active' : 'pending') as 'active' | 'pending',
+          statusLabel: hasLoggedIn ? '已啟用' : '待設定密碼',
+        };
+      });
 
       setUserRoles(rolesWithProfiles);
     } catch (error) {
@@ -196,6 +213,37 @@ const Headquarters = () => {
     } else {
       toast.success("用戶權限已更新");
       loadUserRoles();
+    }
+  };
+
+  const handleResendInvite = async (userId: string, userName: string, accommodationId: string) => {
+    if (!confirm(`確定要重新發送邀請郵件給 ${userName} 嗎？`)) return;
+
+    try {
+      const { data, error } = await supabase.functions.invoke("resend-invite", {
+        body: {
+          userId,
+          accommodationId,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      if (data?.success) {
+        toast.success("邀請郵件已重新發送");
+      } else {
+        toast.error("重新發送失敗");
+      }
+    } catch (error: any) {
+      if (import.meta.env.DEV) {
+        console.error("Error resending invite:", error);
+      }
+      toast.error(error.message || "重新發送失敗");
     }
   };
 
@@ -313,6 +361,7 @@ const Headquarters = () => {
                   <TableRow>
                     <TableHead>用戶名稱</TableHead>
                     <TableHead>Email</TableHead>
+                    <TableHead>狀態</TableHead>
                     <TableHead>用戶 ID</TableHead>
                     <TableHead>旅館</TableHead>
                     <TableHead>角色</TableHead>
@@ -328,6 +377,19 @@ const Headquarters = () => {
                       </TableCell>
                       <TableCell>
                         {userRole.user_email}
+                      </TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant={userRole.status === 'active' ? 'default' : 'secondary'}
+                          className="gap-1"
+                        >
+                          {userRole.status === 'active' ? (
+                            <MailCheck className="h-3 w-3" />
+                          ) : (
+                            <Mail className="h-3 w-3" />
+                          )}
+                          {userRole.statusLabel}
+                        </Badge>
                       </TableCell>
                       <TableCell className="font-mono text-sm">
                         {userRole.user_id.substring(0, 8)}...
@@ -352,13 +414,25 @@ const Headquarters = () => {
                         {new Date(userRole.created_at).toLocaleDateString("zh-TW")}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteRole(userRole.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-2">
+                          {userRole.status === 'pending' && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleResendInvite(userRole.user_id, userRole.user_name || "用戶", userRole.accommodation_id)}
+                              title="重新發送邀請"
+                            >
+                              <Mail className="h-4 w-4 text-primary" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteRole(userRole.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
