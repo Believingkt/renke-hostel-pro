@@ -169,13 +169,29 @@ const EmailTest = () => {
             </div>
           )}
 
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <h4 className="font-medium text-amber-900 mb-2">⚠️ 域名驗證狀態</h4>
+            <p className="text-sm text-amber-700 mb-3">
+              目前使用的發件域名 <strong>sensaninn.lakeze.com</strong> 尚未在 Resend 上驗證。
+            </p>
+            <div className="text-sm text-amber-800 space-y-2">
+              <p className="font-medium">驗證步驟：</p>
+              <ol className="list-decimal list-inside space-y-1 ml-2">
+                <li>前往 <a href="https://resend.com/domains" target="_blank" rel="noopener noreferrer" className="underline">Resend Domains</a></li>
+                <li>添加域名 sensaninn.lakeze.com</li>
+                <li>在您的 DNS 服務商添加 Resend 提供的 DNS 記錄（SPF、DKIM、DMARC）</li>
+                <li>等待 DNS 生效（通常 5 分鐘到 48 小時）</li>
+                <li>在 Resend 點擊「Verify」驗證域名</li>
+              </ol>
+            </div>
+          </div>
+
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h4 className="font-medium text-blue-900 mb-2">💡 提示</h4>
+            <h4 className="font-medium text-blue-900 mb-2">💡 使用提示</h4>
             <ul className="text-sm text-blue-700 space-y-1">
-              <li>• 如果發送失敗，請檢查域名是否已在 Resend 上驗證</li>
               <li>• 郵件可能需要幾分鐘才能送達</li>
               <li>• 請檢查垃圾郵件資料夾</li>
-              <li>• 發件人：森山民宿 &lt;noreply@sensaninn.lakeze.com&gt;</li>
+              <li>• 當前發件人：森山民宿 &lt;noreply@sensaninn.lakeze.com&gt;</li>
             </ul>
           </div>
         </CardContent>
