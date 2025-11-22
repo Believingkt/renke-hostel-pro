@@ -1388,7 +1388,7 @@ const KolDiscount = () => {
           </div>
 
           {/* Mobile card view */}
-          <div className="md:hidden space-y-3 p-4">
+          <div className="md:hidden space-y-4 p-4">
             {discountCodes.length === 0 ? (
               <EmptyState
                 icon={Tag}
@@ -1401,169 +1401,191 @@ const KolDiscount = () => {
               />
             ) : (
               discountCodes.map((item) => (
-                <Card key={item.id}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 space-y-2 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="font-medium">{item.name}</p>
-                          {getStatusBadge(item)}
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">折扣碼</p>
-                          <div className="flex items-center gap-2">
-                            <code className="px-2 py-1 bg-muted rounded text-sm font-mono">
-                              {item.code}
-                            </code>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => handleCopyCodeText(item.code)}
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">推薦連結</p>
-                          <div className="flex items-center gap-2">
-                            <code className="px-2 py-1 bg-muted rounded text-xs font-mono truncate flex-1">
-                              {`${window.location.origin}/booking?ref=${item.code}`}
-                            </code>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 shrink-0"
-                              onClick={() => handleCopyReferralLink(item.code)}
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2 text-sm">
-                          <div>
-                            <p className="text-xs text-muted-foreground">折扣</p>
-                            <p>{formatDiscount(item.discount_type, item.discount_value)}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">已使用</p>
-                            <p>{item.used_count} / {item.usage_limit}</p>
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">有效期</p>
-                          <p className="text-sm">
-                            {format(new Date(item.valid_from), "yyyy/MM/dd")}
-                            {item.valid_until && ` - ${format(new Date(item.valid_until), "yyyy/MM/dd")}`}
-                            {!item.valid_until && " - 無期限"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1">使用上限</p>
-                          <div className="flex items-center gap-2">
-                            {editingLimitId === item.id ? (
-                              <>
-                                <Input
-                                  type="number"
-                                  min="1"
-                                  value={editingLimitValue}
-                                  onChange={(e) => setEditingLimitValue(e.target.value)}
-                                  className="w-20 h-8"
-                                />
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => handleSaveLimit(item.id)}
-                                >
-                                  <Check className="h-4 w-4 text-success" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={handleCancelEdit}
-                                >
-                                  <X className="h-4 w-4 text-destructive" />
-                                </Button>
-                              </>
-                            ) : (
-                              <>
-                                <p className="text-sm">{item.usage_limit} 次</p>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => handleEditLimit(item.id, item.usage_limit)}
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                              </>
-                            )}
-                          </div>
-                        </div>
+                <Card key={item.id} className="overflow-hidden">
+                  <CardContent className="p-4">
+                    {/* Header: Name and Status */}
+                    <div className="flex items-start justify-between gap-3 mb-4">
+                      <h3 className="font-semibold text-base leading-tight flex-1">{item.name}</h3>
+                      {getStatusBadge(item)}
+                    </div>
+
+                    {/* Discount Code Section */}
+                    <div className="mb-4 p-3 bg-muted/50 rounded-lg">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">折扣碼</p>
+                      <div className="flex items-center gap-2">
+                        <code className="px-3 py-1.5 bg-background rounded-md text-sm font-mono font-semibold flex-1">
+                          {item.code}
+                        </code>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 shrink-0"
+                          onClick={() => handleCopyCodeText(item.code)}
+                        >
+                          <Copy className="h-3.5 w-3.5 mr-1" />
+                          複製
+                        </Button>
                       </div>
-                      <div className="flex flex-col gap-1">
+                    </div>
+
+                    {/* Referral Link Section */}
+                    <div className="mb-4">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">推薦連結</p>
+                      <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-md">
+                        <code className="text-xs font-mono truncate flex-1 min-w-0">
+                          {`${window.location.origin}/booking?ref=${item.code}`}
+                        </code>
                         <Button
                           variant="ghost"
-                          size="icon"
-                          className="shrink-0 h-8 w-8"
+                          size="sm"
+                          className="h-7 w-7 p-0 shrink-0"
+                          onClick={() => handleCopyReferralLink(item.code)}
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      <div className="p-3 bg-muted/30 rounded-lg">
+                        <p className="text-xs font-medium text-muted-foreground mb-1">折扣金額</p>
+                        <p className="text-sm font-semibold">{formatDiscount(item.discount_type, item.discount_value)}</p>
+                      </div>
+                      <div className="p-3 bg-muted/30 rounded-lg">
+                        <p className="text-xs font-medium text-muted-foreground mb-1">使用情況</p>
+                        <p className="text-sm font-semibold">{item.used_count} / {item.usage_limit}</p>
+                      </div>
+                    </div>
+
+                    {/* Validity Period */}
+                    <div className="mb-4">
+                      <p className="text-xs font-medium text-muted-foreground mb-1">有效期限</p>
+                      <p className="text-sm">
+                        {format(new Date(item.valid_from), "yyyy/MM/dd")}
+                        {item.valid_until && ` - ${format(new Date(item.valid_until), "yyyy/MM/dd")}`}
+                        {!item.valid_until && " - 無期限"}
+                      </p>
+                    </div>
+
+                    {/* Usage Limit Edit Section */}
+                    <div className="mb-4 pb-4 border-b">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">使用上限</p>
+                      <div className="flex items-center gap-2">
+                        {editingLimitId === item.id ? (
+                          <>
+                            <Input
+                              type="number"
+                              min="1"
+                              value={editingLimitValue}
+                              onChange={(e) => setEditingLimitValue(e.target.value)}
+                              className="w-24 h-9"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-9"
+                              onClick={() => handleSaveLimit(item.id)}
+                            >
+                              <Check className="h-4 w-4 mr-1 text-success" />
+                              儲存
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-9"
+                              onClick={handleCancelEdit}
+                            >
+                              <X className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-sm font-medium">{item.usage_limit} 次</p>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8"
+                              onClick={() => handleEditLimit(item.id, item.usage_limit)}
+                            >
+                              <Pencil className="h-3.5 w-3.5 mr-1" />
+                              編輯
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Action Buttons - Two Rows */}
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-3 gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-9 text-xs"
                           onClick={() => handleCopyCode(item)}
-                          title="複製"
                         >
-                          <Files className="h-4 w-4" />
+                          <Files className="h-3.5 w-3.5 mr-1" />
+                          複製
                         </Button>
                         <Button
-                          variant="ghost"
-                          size="icon"
-                          className="shrink-0 h-8 w-8"
+                          variant="outline"
+                          size="sm"
+                          className="h-9 text-xs"
                           onClick={() => handleOpenEdit(item)}
-                          title="編輯"
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Pencil className="h-3.5 w-3.5 mr-1" />
+                          編輯
                         </Button>
                         <Button
-                          variant="ghost"
-                          size="icon"
-                          className="shrink-0 h-8 w-8"
+                          variant="outline"
+                          size="sm"
+                          className="h-9 text-xs"
                           onClick={() => navigate(`/admin/discount-codes/${item.code}/orders`)}
-                          title="查看訂單"
                         >
-                          <Eye className="h-4 w-4" />
+                          <Eye className="h-3.5 w-3.5 mr-1" />
+                          訂單
                         </Button>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
                         <Button
-                          variant="ghost"
-                          size="icon"
-                          className="shrink-0 h-8 w-8"
+                          variant="outline"
+                          size="sm"
+                          className="h-9 text-xs"
                           onClick={() => {
                             setSelectedCodeForCommission(item);
                             setCommissionRecordsOpen(true);
                           }}
-                          title="查看佣金"
                         >
-                          <DollarSign className="h-4 w-4" />
+                          <DollarSign className="h-3.5 w-3.5 mr-1" />
+                          佣金
                         </Button>
                         <Button
-                          variant="ghost"
-                          size="icon"
-                          className="shrink-0 h-8 w-8"
+                          variant={item.is_active ? "outline" : "default"}
+                          size="sm"
+                          className="h-9 text-xs"
                           onClick={() => toggleActive(item.id, item.is_active)}
-                          title={item.is_active ? "停用" : "啟用"}
                         >
                           {item.is_active ? (
-                            <X className="h-4 w-4 text-orange-500" />
+                            <>
+                              <X className="h-3.5 w-3.5 mr-1" />
+                              停用
+                            </>
                           ) : (
-                            <Check className="h-4 w-4 text-green-600" />
+                            <>
+                              <Check className="h-3.5 w-3.5 mr-1" />
+                              啟用
+                            </>
                           )}
                         </Button>
                         <Button
-                          variant="ghost"
-                          size="icon"
-                          className="shrink-0"
+                          variant="outline"
+                          size="sm"
+                          className="h-9 text-xs text-destructive hover:text-destructive"
                           onClick={() => handleDelete(item.id)}
                         >
-                          <Trash2 className="h-5 w-5 text-destructive" />
+                          <Trash2 className="h-3.5 w-3.5 mr-1" />
+                          刪除
                         </Button>
                       </div>
                     </div>
