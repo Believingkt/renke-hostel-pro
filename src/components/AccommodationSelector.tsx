@@ -66,7 +66,7 @@ export function AccommodationSelector() {
   // If only one accommodation, show it as label instead of selector
   if (accommodations.length === 1) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         <span className="font-medium text-sm text-foreground">
           {accommodations[0].name}
         </span>
@@ -76,7 +76,7 @@ export function AccommodationSelector() {
               <Button 
                 variant="ghost" 
                 size="sm"
-                className="h-8 w-8 p-0"
+                className="h-7 w-7 p-0 hover:bg-accent/50 transition-colors"
                 onClick={() => window.open('/', '_blank')}
               >
                 <ExternalLink className="h-3.5 w-3.5" />
@@ -92,7 +92,7 @@ export function AccommodationSelector() {
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1.5">
       <span className="font-medium text-sm text-foreground">
         {accommodations.find(a => a.id === currentAccommodationId)?.name || "旅館"}
       </span>
@@ -102,7 +102,7 @@ export function AccommodationSelector() {
             <Button 
               variant="ghost" 
               size="sm"
-              className="h-8 w-8 p-0"
+              className="h-7 w-7 p-0 hover:bg-accent/50 transition-colors"
               onClick={() => window.open('/', '_blank')}
             >
               <ExternalLink className="h-3.5 w-3.5" />
