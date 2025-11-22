@@ -23,8 +23,10 @@ const handler = async (req: Request): Promise<Response> => {
     const { email, inviteLink, senderName = "系統管理員" }: InviteEmailRequest = await req.json();
 
     const emailResponse = await resend.emails.send({
-      from: "森山民宿 <noreply@sensaninn.lakeze.com>",
-      to: [email],
+      // 暫時使用測試模式 - 域名驗證完成後請改回 noreply@sensaninn.lakeze.com
+      from: "森山民宿 <onboarding@resend.dev>",
+      to: ["nokimi@gmail.com"], // 測試模式：固定發送到您的郵箱
+      // to: [email], // 域名驗證後請取消註解此行，並刪除上一行
       subject: "歡迎加入森山民宿管理系統",
       html: `
         <!DOCTYPE html>
