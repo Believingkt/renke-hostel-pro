@@ -136,7 +136,7 @@ serve(async (req) => {
     // Get the site URL for redirect
     const siteUrl = Deno.env.get("SUPABASE_URL")?.replace('.supabase.co', '.lovable.app') || '';
     
-    // Invite user via email
+    // Create user with invite (but don't send default email)
     const { data: userData, error: userError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
       data: {
         name,
@@ -163,6 +163,35 @@ serve(async (req) => {
           status: 400,
         }
       );
+    }
+
+    if (!userData.user) {
+      return new Response(
+        JSON.stringify({ success: false, error: '建立使用者失敗' }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Generate invite link manually
+    const inviteLink = `${siteUrl}/auth?type=invite&token=${userData.user.id}`;
+    
+    // Send custom Chinese email
+    try {
+      await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-invite-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
+        },
+        body: JSON.stringify({
+          email,
+          inviteLink: `${siteUrl}/auth`,
+          senderName: name
+        })
+      });
+    } catch (emailError) {
+      console.error("發送自定義邀請郵件失敗:", emailError);
+      // Don't fail the user creation if email fails
     }
 
     // Create user role
