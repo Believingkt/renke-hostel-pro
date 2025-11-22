@@ -39,7 +39,7 @@ const menuItems = [
     url: "/admin/website-content", 
     icon: Globe,
     subItems: [
-      { title: "基本資料", url: "/admin/website-content?tab=basic-info" },
+      { title: "網頁設定", url: "/admin/website-content?tab=basic-info" },
       { title: "設施服務", url: "/admin/website-content?tab=facilities" },
       { title: "加購方案", url: "/admin/website-content?tab=addon-plans" },
       { title: "精選照片", url: "/admin/website-content?tab=gallery" },
