@@ -4,6 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -59,38 +65,56 @@ export function AccommodationSelector() {
   // If only one accommodation, show it as label instead of selector
   if (accommodations.length === 1) {
     return (
-      <Button 
-        variant="ghost" 
-        className="font-medium text-sm hover:bg-accent"
-        onClick={() => window.open('/', '_blank')}
-      >
-        {accommodations[0].name}
-      </Button>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="ghost" 
+              className="font-medium text-sm hover:bg-accent"
+              onClick={() => window.open('/', '_blank')}
+            >
+              {accommodations[0].name}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>開啟前台首頁</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     );
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <Button 
-        variant="ghost" 
-        size="sm"
-        className="font-medium"
-        onClick={() => window.open('/', '_blank')}
-      >
-        {accommodations.find(a => a.id === currentAccommodationId)?.name || "前往首頁"}
-      </Button>
-      <Select value={currentAccommodationId || undefined} onValueChange={setCurrentAccommodationId}>
-        <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="切換旅館" />
-        </SelectTrigger>
-        <SelectContent>
-          {accommodations.map((accommodation) => (
-            <SelectItem key={accommodation.id} value={accommodation.id}>
-              {accommodation.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
+    <TooltipProvider>
+      <div className="flex items-center gap-2">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="font-medium"
+              onClick={() => window.open('/', '_blank')}
+            >
+              {accommodations.find(a => a.id === currentAccommodationId)?.name || "前往首頁"}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>開啟前台首頁</p>
+          </TooltipContent>
+        </Tooltip>
+        <Select value={currentAccommodationId || undefined} onValueChange={setCurrentAccommodationId}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="切換旅館" />
+          </SelectTrigger>
+          <SelectContent>
+            {accommodations.map((accommodation) => (
+              <SelectItem key={accommodation.id} value={accommodation.id}>
+                {accommodation.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </TooltipProvider>
   );
 }
