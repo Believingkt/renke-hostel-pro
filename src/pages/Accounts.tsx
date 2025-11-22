@@ -189,10 +189,16 @@ const Accounts = () => {
         },
       });
 
-      if (error) throw error;
+      // Handle Supabase function invocation errors
+      if (error) {
+        console.error("Edge function invocation error:", error);
+        toast.error("系統錯誤，請稍後再試");
+        return;
+      }
 
+      // Handle business logic errors returned from the edge function
       if (data?.error) {
-        // Handle specific error messages
+        console.warn("Business logic error:", data.error);
         let errorMessage = data.error;
         if (errorMessage === "此 Email 已被註冊") {
           errorMessage = "此 Email 已被註冊，請使用其他 Email";
@@ -201,22 +207,23 @@ const Accounts = () => {
         return;
       }
 
+      // Check for success
       if (!data?.success) {
-        toast.error("建立帳號失敗");
+        console.error("Unexpected response:", data);
+        toast.error("建立帳號失敗，請稍後再試");
         return;
       }
 
+      // Success case
       toast.success("邀請郵件已發送，請通知使用者檢查信箱");
       setOpen(false);
       setName("");
       setEmail("");
       setRole("staff");
-      loadUsers();
+      await loadUsers();
     } catch (error: any) {
-      if (import.meta.env.DEV) {
-        console.error("Error creating user:", error);
-      }
-      toast.error(error.message || "建立帳號失敗");
+      console.error("Unexpected error creating user:", error);
+      toast.error(error.message || "建立帳號時發生未預期的錯誤");
     } finally {
       setIsLoading(false);
     }
