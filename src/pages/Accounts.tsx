@@ -157,18 +157,21 @@ const Accounts = () => {
 
   const checkEmailExists = async (email: string): Promise<boolean> => {
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, email")
-        .ilike("email", email)
-        .maybeSingle();
+      const { data, error } = await supabase.functions.invoke("check-email-exists", {
+        body: { email: email.trim() },
+      });
 
       if (error) {
         console.error("Error checking email:", error);
         return false;
       }
 
-      return data !== null;
+      if (!data?.success) {
+        console.error("Email check failed:", data?.error);
+        return false;
+      }
+
+      return data.exists === true;
     } catch (error) {
       console.error("Unexpected error checking email:", error);
       return false;
