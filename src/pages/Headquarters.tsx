@@ -32,6 +32,8 @@ interface UserRole {
   role: string;
   created_at: string;
   updated_at: string;
+  user_email?: string;
+  user_name?: string;
 }
 
 interface AccommodationInfo {
@@ -69,17 +71,56 @@ const Headquarters = () => {
 
   const loadUserRoles = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("user_roles")
-      .select("*")
-      .order("created_at", { ascending: false });
+    try {
+      // First get all user roles
+      const { data: rolesData, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-    if (error) {
+      if (rolesError) throw rolesError;
+
+      if (!rolesData || rolesData.length === 0) {
+        setUserRoles([]);
+        setLoading(false);
+        return;
+      }
+
+      // Get unique user IDs
+      const userIds = [...new Set(rolesData.map(role => role.user_id))];
+
+      // Fetch user profiles
+      const { data: profilesData, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, email, name")
+        .in("id", userIds);
+
+      if (profilesError) {
+        if (import.meta.env.DEV) {
+          console.error("Error fetching profiles:", profilesError);
+        }
+      }
+
+      // Map profiles to user roles
+      const profilesMap = new Map(
+        profilesData?.map(profile => [profile.id, { email: profile.email, name: profile.name }]) || []
+      );
+
+      const rolesWithProfiles = rolesData.map(role => ({
+        ...role,
+        user_email: profilesMap.get(role.user_id)?.email || "-",
+        user_name: profilesMap.get(role.user_id)?.name || "未知",
+      }));
+
+      setUserRoles(rolesWithProfiles);
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error("Error loading user roles:", error);
+      }
       toast.error("載入用戶權限失敗");
-    } else {
-      setUserRoles(data || []);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleAddUser = async () => {
@@ -220,6 +261,8 @@ const Headquarters = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>用戶名稱</TableHead>
+                    <TableHead>Email</TableHead>
                     <TableHead>用戶 ID</TableHead>
                     <TableHead>旅館</TableHead>
                     <TableHead>角色</TableHead>
@@ -230,6 +273,12 @@ const Headquarters = () => {
                 <TableBody>
                   {userRoles.map((userRole) => (
                     <TableRow key={userRole.id}>
+                      <TableCell className="font-medium">
+                        {userRole.user_name}
+                      </TableCell>
+                      <TableCell>
+                        {userRole.user_email}
+                      </TableCell>
                       <TableCell className="font-mono text-sm">
                         {userRole.user_id.substring(0, 8)}...
                       </TableCell>
