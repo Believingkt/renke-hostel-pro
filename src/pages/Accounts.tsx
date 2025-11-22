@@ -49,7 +49,6 @@ const Accounts = () => {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [role, setRole] = useState("staff");
   const [isLoading, setIsLoading] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
@@ -154,7 +153,7 @@ const Accounts = () => {
       return;
     }
 
-    if (!name || !email || !password || !role) {
+    if (!name || !email || !role) {
       toast.error("請填寫所有欄位");
       return;
     }
@@ -163,11 +162,10 @@ const Accounts = () => {
     const accountSchema = z.object({
       name: z.string().trim().min(1, "姓名不能為空").max(100, "姓名長度不能超過100個字元"),
       email: z.string().email("請輸入有效的電子郵件地址").max(255, "電子郵件長度不能超過255個字元"),
-      password: z.string().min(6, "密碼長度至少6個字元").max(72, "密碼長度不能超過72個字元"),
       role: z.enum(['super_admin', 'hotel_admin', 'staff'], { errorMap: () => ({ message: "請選擇有效的角色" }) })
     });
 
-    const validation = accountSchema.safeParse({ name: name.trim(), email: email.trim(), password, role });
+    const validation = accountSchema.safeParse({ name: name.trim(), email: email.trim(), role });
     if (!validation.success) {
       toast.error(validation.error.issues[0].message);
       return;
@@ -180,7 +178,6 @@ const Accounts = () => {
         body: {
           name,
           email,
-          password,
           role,
           accommodationId,
         },
@@ -203,11 +200,10 @@ const Accounts = () => {
         return;
       }
 
-      toast.success("帳號建立成功");
+      toast.success("邀請郵件已發送，請通知使用者檢查信箱");
       setOpen(false);
       setName("");
       setEmail("");
-      setPassword("");
       setRole("staff");
       loadUsers();
     } catch (error: any) {
@@ -257,9 +253,9 @@ const Accounts = () => {
             </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>新增帳號</DialogTitle>
+              <DialogTitle>邀請新帳號</DialogTitle>
               <DialogDescription>
-                設定新帳號的名稱、Email、臨時密碼和權限
+                輸入用戶資訊後，系統將發送邀請郵件至指定信箱，用戶點擊郵件連結即可設定密碼並登入
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -281,16 +277,9 @@ const Accounts = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="請輸入 Email"
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">臨時密碼</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="至少 6 個字元"
-                />
+                <p className="text-xs text-muted-foreground">
+                  邀請郵件將發送至此信箱
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="role">權限</Label>

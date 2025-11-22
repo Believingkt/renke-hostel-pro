@@ -32,7 +32,6 @@ function checkRateLimit(userId: string): boolean {
 const createUserSchema = z.object({
   name: z.string().trim().min(1, "名稱不可為空").max(100, "名稱不可超過 100 字元"),
   email: z.string().email("Email 格式不正確").max(255, "Email 不可超過 255 字元"),
-  password: z.string().min(6, "密碼至少需要 6 個字元").max(72, "密碼不可超過 72 字元"),
   role: z.enum(['super_admin', 'hotel_admin', 'staff'], { errorMap: () => ({ message: "無效的角色" }) }),
   accommodationId: z.string().uuid("無效的住宿 ID 格式")
 });
@@ -100,7 +99,7 @@ serve(async (req) => {
       );
     }
 
-    const { name, email, password, role, accommodationId } = validation.data;
+    const { name, email, role, accommodationId } = validation.data;
 
     // Check if caller has admin role for this accommodation
     const { data: userRoles } = await supabaseAdmin
@@ -134,21 +133,21 @@ serve(async (req) => {
       );
     }
 
-    // Create user with admin API
-    const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: {
+    // Get the site URL for redirect
+    const siteUrl = Deno.env.get("SUPABASE_URL")?.replace('.supabase.co', '.lovable.app') || '';
+    
+    // Invite user via email
+    const { data: userData, error: userError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+      data: {
         name,
-        force_password_change: true,
       },
+      redirectTo: `${siteUrl}/auth`,
     });
 
     if (userError) {
       // Return friendly error messages
       let errorMessage = userError.message;
-      if (userError.message.includes("already been registered")) {
+      if (userError.message.includes("already been registered") || userError.message.includes("already registered")) {
         errorMessage = "此 Email 已被註冊";
       } else if (userError.message.includes("Invalid email")) {
         errorMessage = "Email 格式不正確";
