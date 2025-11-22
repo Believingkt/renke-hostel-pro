@@ -656,7 +656,7 @@ const KolDiscount = () => {
         <TableCell>
           <div className="flex items-center gap-2 max-w-xs">
             <code className="px-2 py-1 bg-muted rounded text-xs font-mono truncate flex-1">
-              {`${window.location.origin}/booking?ref=${item.code}`}
+              {`https://sensaninn.lakeze.com/booking?ref=${item.code}`}
             </code>
             <Button
               variant="ghost"
@@ -1524,7 +1524,7 @@ const KolDiscount = () => {
                       <p className="text-xs font-medium text-muted-foreground mb-2">推薦連結</p>
                       <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-md">
                         <code className="text-xs font-mono truncate flex-1 min-w-0">
-                          {`${window.location.origin}/booking?ref=${item.code}`}
+                          {`https://sensaninn.lakeze.com/booking?ref=${item.code}`}
                         </code>
                         <Button
                           variant="ghost"
