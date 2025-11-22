@@ -1705,7 +1705,7 @@ const KolDiscount = () => {
                 API Base URL
               </h3>
               <code className="block p-3 bg-muted rounded text-sm font-mono break-all">
-                {window.location.origin.replace(/^https?:\/\//, 'https://')}/functions/v1/kol-api
+                https://sensaninn.lakeze.com/functions/v1/kol-api
               </code>
             </div>
 
@@ -1724,7 +1724,7 @@ const KolDiscount = () => {
                 <div>
                   <Label className="text-xs text-muted-foreground">範例請求</Label>
                   <pre className="p-3 bg-muted rounded text-xs font-mono overflow-x-auto">
-{`fetch('${window.location.origin.replace(/^https?:\/\//, 'https://')}/functions/v1/kol-api/orders?code=SPRING2024')
+{`fetch('https://sensaninn.lakeze.com/functions/v1/kol-api/orders?code=SPRING2024')
   .then(res => res.json())
   .then(data => console.log(data));`}
                   </pre>
@@ -1776,7 +1776,7 @@ const KolDiscount = () => {
                 <div>
                   <Label className="text-xs text-muted-foreground">範例請求</Label>
                   <pre className="p-3 bg-muted rounded text-xs font-mono overflow-x-auto">
-{`fetch('${window.location.origin.replace(/^https?:\/\//, 'https://')}/functions/v1/kol-api/stats?code=SPRING2024')
+{`fetch('https://sensaninn.lakeze.com/functions/v1/kol-api/stats?code=SPRING2024')
   .then(res => res.json())
   .then(data => console.log(data));`}
                   </pre>
@@ -1824,7 +1824,7 @@ const KolDiscount = () => {
                 <div>
                   <Label className="text-xs text-muted-foreground">範例請求</Label>
                   <pre className="p-3 bg-muted rounded text-xs font-mono overflow-x-auto">
-{`fetch('${window.location.origin.replace(/^https?:\/\//, 'https://')}/functions/v1/kol-api/commission?code=SPRING2024')
+{`fetch('https://sensaninn.lakeze.com/functions/v1/kol-api/commission?code=SPRING2024')
   .then(res => res.json())
   .then(data => console.log(data));`}
                   </pre>
