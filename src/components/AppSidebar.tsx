@@ -62,7 +62,6 @@ const menuItems = [
   },
   { title: "顧客資料", url: "/admin/customers", icon: UserCircle },
   { title: "折扣代碼", url: "/admin/discount-codes", icon: Tag },
-  { title: "資料備份", url: "/admin/backup", icon: Database },
   { title: "帳號管理", url: "/admin/accounts", icon: Settings },
 ];
 
