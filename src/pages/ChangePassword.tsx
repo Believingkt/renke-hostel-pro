@@ -152,42 +152,42 @@ export default function ChangePassword() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-3 sm:p-4">
       <Card className="w-full max-w-md shadow-lg my-auto">
-        <CardHeader className="space-y-1">
-          <div className="flex justify-center mb-4">
-            <img src={lokezeLogo} alt="Lokeze" className="h-12 object-contain" />
+        <CardHeader className="space-y-1 px-4 sm:px-6 py-4 sm:py-6">
+          <div className="flex justify-center mb-3 sm:mb-4">
+            <img src={lokezeLogo} alt="Lokeze" className="h-10 sm:h-12 object-contain" />
           </div>
-          <CardTitle className="text-2xl text-center">
+          <CardTitle className="text-xl sm:text-2xl text-center">
             {isAdminRoute ? "修改密碼" : "設定新密碼"}
           </CardTitle>
-          <CardDescription className="text-center">
+          <CardDescription className="text-center text-sm sm:text-base">
             {isAdminRoute ? "請輸入新密碼" : "這是您首次登入，請設定新密碼"}
           </CardDescription>
           {userEmail && (
-            <div className="mt-3 text-center">
-              <p className="text-sm text-muted-foreground">
-                帳戶：<span className="font-medium text-foreground">{userEmail}</span>
+            <div className="mt-2 sm:mt-3 text-center">
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                帳戶：<span className="font-medium text-foreground break-all">{userEmail}</span>
               </p>
             </div>
           )}
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleChangePassword} className="space-y-4">
+        <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+          <form onSubmit={handleChangePassword} className="space-y-3 sm:space-y-4">
             <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="new-password">新密碼</Label>
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <Label htmlFor="new-password" className="text-sm sm:text-base">新密碼</Label>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <button type="button" className="inline-flex">
-                        <HelpCircle className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
+                      <button type="button" className="inline-flex touch-manipulation">
+                        <HelpCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground hover:text-foreground transition-colors" />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="right" className="max-w-xs">
-                      <div className="space-y-2 text-sm">
+                    <TooltipContent side="right" className="max-w-[280px] sm:max-w-xs text-xs sm:text-sm">
+                      <div className="space-y-2">
                         <p className="font-semibold">密碼安全建議：</p>
-                        <ul className="list-disc list-inside space-y-1 text-xs">
+                        <ul className="list-disc list-inside space-y-1 text-[10px] sm:text-xs">
                           <li>使用至少 8 個字元，建議 12 個以上</li>
                           <li>混合使用大小寫字母、數字和特殊符號</li>
                           <li>避免使用個人資訊（生日、姓名等）</li>
@@ -208,19 +208,19 @@ export default function ChangePassword() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   required
-                  className="pr-10"
+                  className="pr-10 h-10 sm:h-auto text-base"
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  className="absolute right-0 top-0 h-full px-2.5 sm:px-3 hover:bg-transparent touch-manipulation"
                   onClick={() => setShowNewPassword(!showNewPassword)}
                 >
                   {showNewPassword ? (
-                    <Eye className="h-4 w-4 text-muted-foreground" />
+                    <Eye className="h-4 w-4 sm:h-4 sm:w-4 text-muted-foreground" />
                   ) : (
-                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    <EyeOff className="h-4 w-4 sm:h-4 sm:w-4 text-muted-foreground" />
                   )}
                 </Button>
               </div>
@@ -228,7 +228,7 @@ export default function ChangePassword() {
               {/* 密碼強度指示器 */}
               {passwordStrength && (
                 <div className="space-y-2 pt-2 animate-fade-in">
-                  <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center justify-between text-xs sm:text-sm">
                     <span className="text-muted-foreground">密碼強度：</span>
                     <span className={`font-medium transition-colors duration-300 ${
                       passwordStrength.score >= 4 ? 'text-green-600' :
@@ -242,10 +242,10 @@ export default function ChangePassword() {
                   <div className="relative">
                     <Progress 
                       value={(passwordStrength.score / 5) * 100} 
-                      className="h-2 transition-all duration-500"
+                      className="h-1.5 sm:h-2 transition-all duration-500"
                     />
                     <div 
-                      className={`absolute top-0 left-0 h-2 rounded-full transition-all duration-500 ${
+                      className={`absolute top-0 left-0 h-1.5 sm:h-2 rounded-full transition-all duration-500 ${
                         passwordStrength.score >= 4 ? 'bg-green-500' :
                         passwordStrength.score >= 3 ? 'bg-blue-500' :
                         passwordStrength.score >= 2 ? 'bg-yellow-500' :
@@ -256,52 +256,52 @@ export default function ChangePassword() {
                   </div>
                   
                   {/* 密碼要求檢查列表 */}
-                  <div className="space-y-1 pt-2">
-                    <div className="flex items-center gap-2 text-xs transition-all duration-300">
+                  <div className="space-y-1 pt-1.5 sm:pt-2">
+                    <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs transition-all duration-300">
                       {passwordStrength.checks.length ? (
-                        <Check className="h-3 w-3 text-green-600 animate-scale-in" />
+                        <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-green-600 animate-scale-in flex-shrink-0" />
                       ) : (
-                        <X className="h-3 w-3 text-red-600" />
+                        <X className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-red-600 flex-shrink-0" />
                       )}
                       <span className={`transition-colors duration-300 ${passwordStrength.checks.length ? 'text-green-600 font-medium' : 'text-muted-foreground'}`}>
                         至少 8 個字元
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs transition-all duration-300">
+                    <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs transition-all duration-300">
                       {passwordStrength.checks.uppercase ? (
-                        <Check className="h-3 w-3 text-green-600 animate-scale-in" />
+                        <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-green-600 animate-scale-in flex-shrink-0" />
                       ) : (
-                        <X className="h-3 w-3 text-red-600" />
+                        <X className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-red-600 flex-shrink-0" />
                       )}
                       <span className={`transition-colors duration-300 ${passwordStrength.checks.uppercase ? 'text-green-600 font-medium' : 'text-muted-foreground'}`}>
                         包含大寫字母 (A-Z)
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs transition-all duration-300">
+                    <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs transition-all duration-300">
                       {passwordStrength.checks.lowercase ? (
-                        <Check className="h-3 w-3 text-green-600 animate-scale-in" />
+                        <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-green-600 animate-scale-in flex-shrink-0" />
                       ) : (
-                        <X className="h-3 w-3 text-red-600" />
+                        <X className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-red-600 flex-shrink-0" />
                       )}
                       <span className={`transition-colors duration-300 ${passwordStrength.checks.lowercase ? 'text-green-600 font-medium' : 'text-muted-foreground'}`}>
                         包含小寫字母 (a-z)
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs transition-all duration-300">
+                    <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs transition-all duration-300">
                       {passwordStrength.checks.number ? (
-                        <Check className="h-3 w-3 text-green-600 animate-scale-in" />
+                        <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-green-600 animate-scale-in flex-shrink-0" />
                       ) : (
-                        <X className="h-3 w-3 text-red-600" />
+                        <X className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-red-600 flex-shrink-0" />
                       )}
                       <span className={`transition-colors duration-300 ${passwordStrength.checks.number ? 'text-green-600 font-medium' : 'text-muted-foreground'}`}>
                         包含數字 (0-9)
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs transition-all duration-300">
+                    <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs transition-all duration-300">
                       {passwordStrength.checks.special ? (
-                        <Check className="h-3 w-3 text-green-600 animate-scale-in" />
+                        <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-green-600 animate-scale-in flex-shrink-0" />
                       ) : (
-                        <X className="h-3 w-3 text-red-600" />
+                        <X className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-red-600 flex-shrink-0" />
                       )}
                       <span className={`transition-colors duration-300 ${passwordStrength.checks.special ? 'text-green-600 font-medium' : 'text-muted-foreground'}`}>
                         包含特殊字元 (!@#$%^&*...)
@@ -312,7 +312,7 @@ export default function ChangePassword() {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirm-password">確認新密碼</Label>
+              <Label htmlFor="confirm-password" className="text-sm sm:text-base">確認新密碼</Label>
               <div className="relative">
                 <Input
                   id="confirm-password"
@@ -320,26 +320,26 @@ export default function ChangePassword() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
-                  className="pr-10"
+                  className="pr-10 h-10 sm:h-auto text-base"
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  className="absolute right-0 top-0 h-full px-2.5 sm:px-3 hover:bg-transparent touch-manipulation"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
                   {showConfirmPassword ? (
-                    <Eye className="h-4 w-4 text-muted-foreground" />
+                    <Eye className="h-4 w-4 sm:h-4 sm:w-4 text-muted-foreground" />
                   ) : (
-                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    <EyeOff className="h-4 w-4 sm:h-4 sm:w-4 text-muted-foreground" />
                   )}
                 </Button>
               </div>
             </div>
             <Button 
               type="submit" 
-              className="w-full" 
+              className="w-full h-11 sm:h-10 text-base sm:text-sm touch-manipulation" 
               disabled={isLoading}
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
