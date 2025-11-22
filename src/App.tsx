@@ -191,6 +191,7 @@ function App() {
                     </Suspense>
                   } 
                 />
+                <Route path="/admin/change-password" element={<ChangePassword />} />
                 <Route path="/og-preview" element={<OgImagePreview />} />
                 <Route path="*" element={<NotFound />} />
               </Route>

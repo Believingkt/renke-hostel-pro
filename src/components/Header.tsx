@@ -1,4 +1,4 @@
-import { LogOut, UserCircle, Bell } from "lucide-react";
+import { LogOut, UserCircle, Bell, Key } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -120,6 +120,10 @@ export function Header() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={() => navigate('/admin/change-password')} className="cursor-pointer py-3">
+                <Key className="mr-2 h-4 w-4" />
+                <span className="text-base">修改密碼</span>
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer py-3">
                 <LogOut className="mr-2 h-4 w-4" />
                 <span className="text-base">登出</span>
