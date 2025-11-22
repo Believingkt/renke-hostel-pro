@@ -76,7 +76,7 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
 
   return (
     <>
-      <div className="animate-fade-in" key={`booking-chart-${comparisonMode}`}>
+      <div key={`booking-chart-${comparisonMode}`}>
         <ChartContainer config={chartConfig} className="h-[180px] sm:h-[220px] md:h-[260px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart 
@@ -190,10 +190,10 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                     );
                   }}
                   connectNulls
-                  animationDuration={2000}
-                  animationBegin={index * 200}
+                  animationDuration={1500}
+                  animationBegin={0}
                   isAnimationActive={true}
-                  animationEasing="ease-in-out"
+                  animationEasing="ease-out"
                 />
               ))}
             </LineChart>
