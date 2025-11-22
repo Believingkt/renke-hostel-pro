@@ -143,11 +143,11 @@ const Accounts = () => {
   const getRoleLabel = (role: string) => {
     switch (role) {
       case "super_admin":
-        return "超級管理員";
+        return "總部管理員";
       case "hotel_admin":
-        return "飯店管理員";
+        return "民宿管理員";
       case "staff":
-        return "現場營運";
+        return "現場員工";
       default:
         return role;
     }
@@ -325,9 +325,9 @@ const Accounts = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="super_admin">超級管理員</SelectItem>
-                    <SelectItem value="hotel_admin">飯店管理員</SelectItem>
-                    <SelectItem value="staff">現場營運</SelectItem>
+                    <SelectItem value="super_admin">總部管理員</SelectItem>
+                    <SelectItem value="hotel_admin">民宿管理員</SelectItem>
+                    <SelectItem value="staff">現場員工</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
