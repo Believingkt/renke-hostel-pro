@@ -153,7 +153,7 @@ const KolDiscount = () => {
       console.error("Error fetching discount codes:", error);
       toast({
         title: "載入失敗",
-        description: "無法載入折扣代碼列表",
+        description: "無法載入網紅導購列表",
         variant: "destructive",
       });
     } finally {
@@ -249,7 +249,7 @@ const KolDiscount = () => {
       console.error("Error creating discount code:", error);
       toast({
         title: "新增失敗",
-        description: "無法新增折扣代碼",
+        description: "無法新增網紅導購",
         variant: "destructive",
       });
     }
@@ -434,7 +434,7 @@ const KolDiscount = () => {
       console.error("Error updating discount code:", error);
       toast({
         title: "更新失敗",
-        description: "無法更新折扣代碼",
+        description: "無法更新網紅導購",
         variant: "destructive",
       });
     }
@@ -802,7 +802,7 @@ const KolDiscount = () => {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <PageHeader title="折扣代碼" icon={Ticket} />
+        <PageHeader title="網紅導購" icon={Ticket} />
         <TableSkeleton />
       </div>
     );
@@ -811,7 +811,7 @@ const KolDiscount = () => {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="折扣代碼"
+        title="網紅導購"
         icon={Ticket}
         action={
           <>
