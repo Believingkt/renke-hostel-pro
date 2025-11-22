@@ -27,7 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, Loader2, Users, UserPlus, Mail, MailCheck } from "lucide-react";
+import { Plus, Trash2, Loader2, Users, UserPlus, Mail, MailCheck, CheckCircle2, XCircle } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/PageHeader";
@@ -57,6 +57,7 @@ const Accounts = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [emailError, setEmailError] = useState<string>("");
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+  const [emailFormatValid, setEmailFormatValid] = useState<boolean | null>(null);
   const { accommodationId } = useSubdomain();
 
   useEffect(() => {
@@ -182,9 +183,19 @@ const Accounts = () => {
     setEmail(value);
     setEmailError("");
 
-    // Only check if email format is valid
+    // Check email format validity
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!value || !emailRegex.test(value)) {
+    const isFormatValid = emailRegex.test(value);
+    
+    // Only show format feedback if user has started typing
+    if (value.length > 0) {
+      setEmailFormatValid(isFormatValid);
+    } else {
+      setEmailFormatValid(null);
+    }
+
+    // Only check for existence if format is valid
+    if (!value || !isFormatValid) {
       return;
     }
 
@@ -278,6 +289,7 @@ const Accounts = () => {
       setName("");
       setEmail("");
       setEmailError("");
+      setEmailFormatValid(null);
       setRole("staff");
       await loadUsers();
     } catch (error: any) {
@@ -354,6 +366,7 @@ const Accounts = () => {
               setName("");
               setEmail("");
               setEmailError("");
+              setEmailFormatValid(null);
               setRole("staff");
             }
           }}>
@@ -389,18 +402,43 @@ const Accounts = () => {
                     value={email}
                     onChange={(e) => handleEmailChange(e.target.value)}
                     placeholder="請輸入 Email"
-                    className={emailError ? "border-destructive focus-visible:ring-destructive" : ""}
+                    className={
+                      emailError 
+                        ? "border-destructive focus-visible:ring-destructive pr-10" 
+                        : emailFormatValid === false
+                        ? "border-destructive/50 focus-visible:ring-destructive/50 pr-10"
+                        : emailFormatValid === true
+                        ? "border-green-500 focus-visible:ring-green-500 pr-10"
+                        : "pr-10"
+                    }
                     disabled={isLoading}
                   />
-                  {isCheckingEmail && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    {isCheckingEmail && (
                       <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                    </div>
-                  )}
+                    )}
+                    {!isCheckingEmail && emailFormatValid === true && !emailError && (
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    )}
+                    {!isCheckingEmail && emailFormatValid === false && (
+                      <XCircle className="h-4 w-4 text-destructive/70" />
+                    )}
+                  </div>
                 </div>
                 {emailError ? (
-                  <p className="text-xs text-destructive font-medium">
+                  <p className="text-xs text-destructive font-medium flex items-center gap-1">
+                    <XCircle className="h-3 w-3" />
                     {emailError}
+                  </p>
+                ) : emailFormatValid === false ? (
+                  <p className="text-xs text-destructive/70 font-medium flex items-center gap-1">
+                    <XCircle className="h-3 w-3" />
+                    請輸入有效的 Email 格式
+                  </p>
+                ) : emailFormatValid === true && !isCheckingEmail ? (
+                  <p className="text-xs text-green-600 font-medium flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Email 格式正確
                   </p>
                 ) : (
                   <p className="text-xs text-muted-foreground">
@@ -428,7 +466,7 @@ const Accounts = () => {
               </Button>
               <Button 
                 onClick={handleSubmit} 
-                disabled={isLoading || isCheckingEmail || !!emailError}
+                disabled={isLoading || isCheckingEmail || !!emailError || emailFormatValid === false}
               >
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 確認
