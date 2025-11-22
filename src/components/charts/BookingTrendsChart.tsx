@@ -190,7 +190,7 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                     );
                   }}
                   connectNulls
-                  animationDuration={2000}
+                  animationDuration={1500}
                   animationBegin={0}
                   isAnimationActive={true}
                   animationEasing="ease-in-out"
