@@ -3,6 +3,7 @@ import { useAccommodation } from "@/contexts/AccommodationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { ExternalLink } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -74,6 +75,7 @@ export function AccommodationSelector() {
               onClick={() => window.open('/', '_blank')}
             >
               {accommodations[0].name}
+              <ExternalLink className="ml-2 h-3.5 w-3.5" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>
@@ -96,6 +98,7 @@ export function AccommodationSelector() {
               onClick={() => window.open('/', '_blank')}
             >
               {accommodations.find(a => a.id === currentAccommodationId)?.name || "前往首頁"}
+              <ExternalLink className="ml-2 h-3.5 w-3.5" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>
