@@ -170,12 +170,12 @@ const EmailTest = () => {
           )}
 
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <h4 className="font-medium text-green-900 mb-2">✅ 使用測試域名</h4>
+            <h4 className="font-medium text-green-900 mb-2">✅ 使用自訂域名</h4>
             <p className="text-sm text-green-700 mb-2">
-              目前使用 Resend 官方測試域名 <strong>onboarding@resend.dev</strong> 發送郵件。
+              目前使用已驗證的自訂域名 <strong>noreply@sensaninn.lakeze.com</strong> 發送郵件。
             </p>
             <p className="text-sm text-green-600">
-              這個域名已驗證，可以正常發送測試郵件。等 sensaninn.lakeze.com 驗證完成後，記得切換回自訂域名。
+              郵件將以「森山民宿」品牌名義發送，提升專業形象。
             </p>
           </div>
 
@@ -184,8 +184,8 @@ const EmailTest = () => {
             <ul className="text-sm text-blue-700 space-y-1">
               <li>• 郵件可能需要幾分鐘才能送達</li>
               <li>• 請檢查垃圾郵件資料夾</li>
-              <li>• 當前發件人：森山民宿測試 &lt;onboarding@resend.dev&gt;</li>
-              <li>• 測試域名僅供開發測試使用</li>
+              <li>• 當前發件人：森山民宿 &lt;noreply@sensaninn.lakeze.com&gt;</li>
+              <li>• 如發送失敗，請確認域名在 <a href="https://resend.com/domains" target="_blank" rel="noopener noreferrer" className="underline">Resend</a> 已驗證</li>
             </ul>
           </div>
         </CardContent>
