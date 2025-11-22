@@ -109,6 +109,7 @@ const KolDiscount = () => {
   const [commissionRate, setCommissionRate] = useState("");
   const [commissionRecordsOpen, setCommissionRecordsOpen] = useState(false);
   const [selectedCodeForCommission, setSelectedCodeForCommission] = useState<DiscountCode | null>(null);
+  const [filterStatus, setFilterStatus] = useState<"all" | "active" | "expired" | "full">("all");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -496,9 +497,9 @@ const KolDiscount = () => {
     }
   };
 
-  const getStatusBadge = (code: DiscountCode) => {
+  const getCodeStatus = (code: DiscountCode): "inactive" | "pending" | "expired" | "full" | "active" => {
     if (!code.is_active) {
-      return <Badge variant="secondary">已停用</Badge>;
+      return "inactive";
     }
     
     const now = new Date();
@@ -506,19 +507,59 @@ const KolDiscount = () => {
     const validUntil = code.valid_until ? new Date(code.valid_until) : null;
 
     if (now < validFrom) {
-      return <Badge variant="secondary">未生效</Badge>;
+      return "pending";
     }
     
     if (validUntil && now > validUntil) {
-      return <Badge variant="destructive">已過期</Badge>;
+      return "expired";
     }
     
     if (code.used_count >= code.usage_limit) {
-      return <Badge variant="destructive">已達上限</Badge>;
+      return "full";
     }
 
-    return <Badge variant="default" className="bg-green-600">有效</Badge>;
+    return "active";
   };
+
+  const getStatusBadge = (code: DiscountCode) => {
+    const status = getCodeStatus(code);
+    
+    switch (status) {
+      case "inactive":
+        return <Badge variant="secondary">已停用</Badge>;
+      case "pending":
+        return <Badge variant="secondary">未生效</Badge>;
+      case "expired":
+        return <Badge variant="destructive">已過期</Badge>;
+      case "full":
+        return <Badge variant="destructive">已達上限</Badge>;
+      case "active":
+        return <Badge variant="default" className="bg-green-600">有效</Badge>;
+    }
+  };
+
+  const getFilteredDiscountCodes = () => {
+    if (filterStatus === "all") {
+      return discountCodes;
+    }
+
+    return discountCodes.filter((code) => {
+      const status = getCodeStatus(code);
+      
+      switch (filterStatus) {
+        case "active":
+          return status === "active";
+        case "expired":
+          return status === "expired";
+        case "full":
+          return status === "full";
+        default:
+          return true;
+      }
+    });
+  };
+
+  const filteredCodes = getFilteredDiscountCodes();
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -1332,6 +1373,56 @@ const KolDiscount = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Quick Filter Buttons */}
+      <Card className="p-4">
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant={filterStatus === "all" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilterStatus("all")}
+            className="h-9"
+          >
+            全部
+            <Badge variant="secondary" className="ml-2 bg-muted">
+              {discountCodes.length}
+            </Badge>
+          </Button>
+          <Button
+            variant={filterStatus === "active" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilterStatus("active")}
+            className="h-9"
+          >
+            進行中
+            <Badge variant="secondary" className="ml-2 bg-muted">
+              {discountCodes.filter(code => getCodeStatus(code) === "active").length}
+            </Badge>
+          </Button>
+          <Button
+            variant={filterStatus === "expired" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilterStatus("expired")}
+            className="h-9"
+          >
+            已到期
+            <Badge variant="secondary" className="ml-2 bg-muted">
+              {discountCodes.filter(code => getCodeStatus(code) === "expired").length}
+            </Badge>
+          </Button>
+          <Button
+            variant={filterStatus === "full" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilterStatus("full")}
+            className="h-9"
+          >
+            已額滿
+            <Badge variant="secondary" className="ml-2 bg-muted">
+              {discountCodes.filter(code => getCodeStatus(code) === "full").length}
+            </Badge>
+          </Button>
+        </div>
+      </Card>
+
       <Card>
         <CardContent className="p-0">
           {/* Desktop table view */}
@@ -1352,7 +1443,7 @@ const KolDiscount = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {discountCodes.length === 0 ? (
+                {filteredCodes.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={10} className="p-0">
                       <EmptyState
@@ -1374,10 +1465,10 @@ const KolDiscount = () => {
                     onDragEnd={handleDragEnd}
                   >
                     <SortableContext
-                      items={discountCodes.map(code => code.id)}
+                      items={filteredCodes.map(code => code.id)}
                       strategy={verticalListSortingStrategy}
                     >
-                      {discountCodes.map((item) => (
+                      {filteredCodes.map((item) => (
                         <SortableRow key={item.id} item={item} />
                       ))}
                     </SortableContext>
@@ -1389,7 +1480,7 @@ const KolDiscount = () => {
 
           {/* Mobile card view */}
           <div className="md:hidden space-y-4 p-4">
-            {discountCodes.length === 0 ? (
+            {filteredCodes.length === 0 ? (
               <EmptyState
                 icon={Tag}
                 title="尚無折扣碼"
@@ -1400,7 +1491,7 @@ const KolDiscount = () => {
                 }}
               />
             ) : (
-              discountCodes.map((item) => (
+              filteredCodes.map((item) => (
                 <Card key={item.id} className="overflow-hidden">
                   <CardContent className="p-4">
                     {/* Header: Name and Status */}
