@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -15,9 +15,20 @@ export default function ChangePassword() {
   const [isLoading, setIsLoading] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [userEmail, setUserEmail] = useState<string>("");
   
   // 判斷是否從後台訪問
   const isAdminRoute = location.pathname.includes('/admin/');
+
+  useEffect(() => {
+    const fetchUserEmail = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email) {
+        setUserEmail(user.email);
+      }
+    };
+    fetchUserEmail();
+  }, []);
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,6 +100,13 @@ export default function ChangePassword() {
           <CardDescription className="text-center">
             {isAdminRoute ? "請輸入新密碼" : "這是您首次登入，請設定新密碼"}
           </CardDescription>
+          {userEmail && (
+            <div className="mt-3 text-center">
+              <p className="text-sm text-muted-foreground">
+                帳戶：<span className="font-medium text-foreground">{userEmail}</span>
+              </p>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <form onSubmit={handleChangePassword} className="space-y-4">
