@@ -67,7 +67,7 @@ export function AccommodationSelector() {
   if (accommodations.length === 1) {
     return (
       <div className="flex items-center gap-1.5">
-        <span className="font-medium text-sm text-foreground">
+        <span className="font-medium text-sm text-foreground leading-none flex items-center h-9">
           {accommodations[0].name}
         </span>
         <TooltipProvider>
@@ -93,7 +93,7 @@ export function AccommodationSelector() {
 
   return (
     <div className="flex items-center gap-1.5">
-      <span className="font-medium text-sm text-foreground">
+      <span className="font-medium text-sm text-foreground leading-none flex items-center h-9">
         {accommodations.find(a => a.id === currentAccommodationId)?.name || "旅館"}
       </span>
       <TooltipProvider>
