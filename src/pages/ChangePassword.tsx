@@ -197,10 +197,10 @@ export default function ChangePassword() {
               
               {/* 密碼強度指示器 */}
               {passwordStrength && (
-                <div className="space-y-2 pt-2">
+                <div className="space-y-2 pt-2 animate-fade-in">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">密碼強度：</span>
-                    <span className={`font-medium ${
+                    <span className={`font-medium transition-colors duration-300 ${
                       passwordStrength.score >= 4 ? 'text-green-600' :
                       passwordStrength.score >= 3 ? 'text-blue-600' :
                       passwordStrength.score >= 2 ? 'text-yellow-600' :
@@ -209,60 +209,71 @@ export default function ChangePassword() {
                       {passwordStrength.label}
                     </span>
                   </div>
-                  <Progress 
-                    value={(passwordStrength.score / 5) * 100} 
-                    className="h-2"
-                  />
+                  <div className="relative">
+                    <Progress 
+                      value={(passwordStrength.score / 5) * 100} 
+                      className="h-2 transition-all duration-500"
+                    />
+                    <div 
+                      className={`absolute top-0 left-0 h-2 rounded-full transition-all duration-500 ${
+                        passwordStrength.score >= 4 ? 'bg-green-500' :
+                        passwordStrength.score >= 3 ? 'bg-blue-500' :
+                        passwordStrength.score >= 2 ? 'bg-yellow-500' :
+                        'bg-red-500'
+                      }`}
+                      style={{ width: `${(passwordStrength.score / 5) * 100}%` }}
+                    />
+                  </div>
                   
                   {/* 密碼要求檢查列表 */}
                   <div className="space-y-1 pt-2">
-                    <div className="flex items-center gap-2 text-xs">
+                    <div className="flex items-center gap-2 text-xs transition-all duration-300">
                       {passwordStrength.checks.length ? (
-                        <Check className="h-3 w-3 text-green-600" />
+                        <Check className="h-3 w-3 text-green-600 animate-scale-in" />
                       ) : (
                         <X className="h-3 w-3 text-red-600" />
                       )}
-                      <span className={passwordStrength.checks.length ? 'text-green-600' : 'text-muted-foreground'}>
+                      <span className={`transition-colors duration-300 ${passwordStrength.checks.length ? 'text-green-600 font-medium' : 'text-muted-foreground'}`}>
                         至少 8 個字元
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs">
+                    <div className="flex items-center gap-2 text-xs transition-all duration-300">
                       {passwordStrength.checks.uppercase ? (
-                        <Check className="h-3 w-3 text-green-600" />
+                        <Check className="h-3 w-3 text-green-600 animate-scale-in" />
                       ) : (
                         <X className="h-3 w-3 text-red-600" />
                       )}
-                      <span className={passwordStrength.checks.uppercase ? 'text-green-600' : 'text-muted-foreground'}>
+                      <span className={`transition-colors duration-300 ${passwordStrength.checks.uppercase ? 'text-green-600 font-medium' : 'text-muted-foreground'}`}>
                         包含大寫字母 (A-Z)
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs">
+                    <div className="flex items-center gap-2 text-xs transition-all duration-300">
                       {passwordStrength.checks.lowercase ? (
-                        <Check className="h-3 w-3 text-green-600" />
+                        <Check className="h-3 w-3 text-green-600 animate-scale-in" />
                       ) : (
                         <X className="h-3 w-3 text-red-600" />
                       )}
-                      <span className={passwordStrength.checks.lowercase ? 'text-green-600' : 'text-muted-foreground'}>
+                      <span className={`transition-colors duration-300 ${passwordStrength.checks.lowercase ? 'text-green-600 font-medium' : 'text-muted-foreground'}`}>
                         包含小寫字母 (a-z)
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs">
+                    <div className="flex items-center gap-2 text-xs transition-all duration-300">
                       {passwordStrength.checks.number ? (
-                        <Check className="h-3 w-3 text-green-600" />
+                        <Check className="h-3 w-3 text-green-600 animate-scale-in" />
                       ) : (
                         <X className="h-3 w-3 text-red-600" />
                       )}
-                      <span className={passwordStrength.checks.number ? 'text-green-600' : 'text-muted-foreground'}>
+                      <span className={`transition-colors duration-300 ${passwordStrength.checks.number ? 'text-green-600 font-medium' : 'text-muted-foreground'}`}>
                         包含數字 (0-9)
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs">
+                    <div className="flex items-center gap-2 text-xs transition-all duration-300">
                       {passwordStrength.checks.special ? (
-                        <Check className="h-3 w-3 text-green-600" />
+                        <Check className="h-3 w-3 text-green-600 animate-scale-in" />
                       ) : (
                         <X className="h-3 w-3 text-red-600" />
                       )}
-                      <span className={passwordStrength.checks.special ? 'text-green-600' : 'text-muted-foreground'}>
+                      <span className={`transition-colors duration-300 ${passwordStrength.checks.special ? 'text-green-600 font-medium' : 'text-muted-foreground'}`}>
                         包含特殊字元 (!@#$%^&*...)
                       </span>
                     </div>
