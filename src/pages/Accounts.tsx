@@ -322,6 +322,49 @@ const Accounts = () => {
     }
   };
 
+  const handlePermanentDelete = async (userEmail: string) => {
+    if (!confirm(`⚠️ 警告：永久刪除帳號\n\n確定要永久刪除 ${userEmail} 嗎？\n\n此操作將：\n• 完全刪除該帳號\n• 移除所有相關資料\n• 無法復原\n\n請輸入 "DELETE" 確認`)) return;
+
+    const confirmation = prompt('請輸入 "DELETE" 以確認刪除：');
+    if (confirmation !== "DELETE") {
+      toast.error("取消刪除操作");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase.functions.invoke("delete-user", {
+        body: { email: userEmail },
+      });
+
+      if (error) {
+        console.error("Edge function invocation error:", error);
+        toast.error("系統錯誤，請稍後再試");
+        return;
+      }
+
+      if (data?.error) {
+        console.warn("Deletion error:", data.error);
+        toast.error(data.error);
+        return;
+      }
+
+      if (!data?.success) {
+        console.error("Unexpected response:", data);
+        toast.error("刪除帳號失敗");
+        return;
+      }
+
+      toast.success(`已成功刪除帳號 ${userEmail}`);
+      await loadUsers();
+    } catch (error: any) {
+      console.error("Unexpected error deleting user:", error);
+      toast.error(error.message || "刪除帳號時發生未預期的錯誤");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleResendInvite = async (userId: string, userName: string) => {
     if (!confirm(`確定要重新發送邀請郵件給 ${userName} 嗎？`)) return;
 
