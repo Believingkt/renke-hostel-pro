@@ -184,7 +184,7 @@ const EmailTest = () => {
             <ul className="text-sm text-blue-700 space-y-1">
               <li>• 郵件可能需要幾分鐘才能送達</li>
               <li>• 請檢查垃圾郵件資料夾</li>
-              <li>• 當前發件人：森山民宿測試 &lt;onboarding@resend.dev&gt;</li>
+              <li>• 當前發件人：森山寫照測試 &lt;onboarding@resend.dev&gt;</li>
               <li>• 測試域名僅供開發測試使用</li>
             </ul>
           </div>

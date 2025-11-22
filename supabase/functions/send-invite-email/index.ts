@@ -23,9 +23,9 @@ const handler = async (req: Request): Promise<Response> => {
     const { email, inviteLink, senderName = "系統管理員" }: InviteEmailRequest = await req.json();
 
     const emailResponse = await resend.emails.send({
-      from: "森山民宿 <noreply@sensaninn.lakeze.com>",
+      from: "森山寫照 <noreply@sensaninn.lakeze.com>",
       to: [email],
-      subject: "歡迎加入森山民宿管理系統",
+      subject: "歡迎加入森山寫照管理系統",
       html: `
         <!DOCTYPE html>
         <html>
@@ -43,11 +43,11 @@ const handler = async (req: Request): Promise<Response> => {
         <body>
           <div class="container">
             <div class="header">
-              <h1>🏡 歡迎加入森山民宿</h1>
+              <h1>🏡 歡迎加入森山寫照</h1>
             </div>
             <div class="content">
               <p>您好，</p>
-              <p>${senderName} 邀請您加入森山民宿管理系統。</p>
+              <p>${senderName} 邀請您加入森山寫照管理系統。</p>
               <p>請點擊下方按鈕來設定您的密碼並啟用帳號：</p>
               <div style="text-align: center;">
                 <a href="${inviteLink}" class="button">設定密碼並啟用帳號</a>
@@ -61,7 +61,7 @@ const handler = async (req: Request): Promise<Response> => {
               </p>
             </div>
             <div class="footer">
-              <p>© 2024 森山民宿管理系統</p>
+              <p>© 2024 森山寫照管理系統</p>
               <p>此為系統自動發送的郵件，請勿直接回覆</p>
             </div>
           </div>
