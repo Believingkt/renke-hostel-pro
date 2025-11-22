@@ -110,6 +110,8 @@ const KolDiscount = () => {
   const [commissionRecordsOpen, setCommissionRecordsOpen] = useState(false);
   const [selectedCodeForCommission, setSelectedCodeForCommission] = useState<DiscountCode | null>(null);
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "expired" | "full">("all");
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [copiedLink, setCopiedLink] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -279,6 +281,8 @@ const KolDiscount = () => {
 
   const handleCopyCodeText = (code: string) => {
     navigator.clipboard.writeText(code);
+    setCopiedCode(code);
+    setTimeout(() => setCopiedCode(null), 2000);
     toast({
       title: "已複製折扣碼",
       description: code,
@@ -288,6 +292,8 @@ const KolDiscount = () => {
   const handleCopyReferralLink = (code: string) => {
     const referralLink = `https://sensaninn.lakeze.com/booking?ref=${code}`;
     navigator.clipboard.writeText(referralLink);
+    setCopiedLink(code);
+    setTimeout(() => setCopiedLink(null), 2000);
     toast({
       title: "已複製推薦連結",
       description: "推薦連結已複製到剪貼簿",
@@ -646,10 +652,17 @@ const KolDiscount = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8"
+              className={cn(
+                "h-8 w-8 transition-all",
+                copiedCode === item.code && "bg-success/10"
+              )}
               onClick={() => handleCopyCodeText(item.code)}
             >
-              <Copy className="h-4 w-4" />
+              {copiedCode === item.code ? (
+                <Check className="h-4 w-4 text-success animate-scale-in" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
             </Button>
           </div>
         </TableCell>
@@ -657,11 +670,23 @@ const KolDiscount = () => {
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 gap-2"
+            className={cn(
+              "h-8 gap-2 transition-all",
+              copiedLink === item.code && "bg-success/10 text-success"
+            )}
             onClick={() => handleCopyReferralLink(item.code)}
           >
-            <Copy className="h-4 w-4" />
-            複製連結
+            {copiedLink === item.code ? (
+              <>
+                <Check className="h-4 w-4 animate-scale-in" />
+                已複製
+              </>
+            ) : (
+              <>
+                <Copy className="h-4 w-4" />
+                複製連結
+              </>
+            )}
           </Button>
         </TableCell>
         <TableCell>
@@ -1505,11 +1530,23 @@ const KolDiscount = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-8 shrink-0"
+                          className={cn(
+                            "h-8 shrink-0 transition-all",
+                            copiedCode === item.code && "bg-success/10 text-success border-success/20"
+                          )}
                           onClick={() => handleCopyCodeText(item.code)}
                         >
-                          <Copy className="h-3.5 w-3.5 mr-1" />
-                          複製
+                          {copiedCode === item.code ? (
+                            <>
+                              <Check className="h-3.5 w-3.5 mr-1 animate-scale-in" />
+                              已複製
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="h-3.5 w-3.5 mr-1" />
+                              複製
+                            </>
+                          )}
                         </Button>
                       </div>
                     </div>
@@ -1520,11 +1557,23 @@ const KolDiscount = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="w-full gap-2"
+                        className={cn(
+                          "w-full gap-2 transition-all",
+                          copiedLink === item.code && "bg-success/10 text-success border-success/20"
+                        )}
                         onClick={() => handleCopyReferralLink(item.code)}
                       >
-                        <Copy className="h-3.5 w-3.5" />
-                        複製推薦連結
+                        {copiedLink === item.code ? (
+                          <>
+                            <Check className="h-3.5 w-3.5 animate-scale-in" />
+                            已複製推薦連結
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3.5 w-3.5" />
+                            複製推薦連結
+                          </>
+                        )}
                       </Button>
                     </div>
 
