@@ -193,7 +193,7 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                   animationDuration={2000}
                   animationBegin={0}
                   isAnimationActive={true}
-                  animationEasing="linear"
+                  animationEasing="ease-in-out"
                 />
               ))}
             </LineChart>
