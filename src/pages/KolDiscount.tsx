@@ -654,20 +654,15 @@ const KolDiscount = () => {
           </div>
         </TableCell>
         <TableCell>
-          <div className="flex items-center gap-2 max-w-xs">
-            <code className="px-2 py-1 bg-muted rounded text-xs font-mono truncate flex-1">
-              {`https://sensaninn.lakeze.com/booking?ref=${item.code}`}
-            </code>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0"
-              onClick={() => handleCopyReferralLink(item.code)}
-              title="複製推薦連結"
-            >
-              <Copy className="h-4 w-4" />
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-2"
+            onClick={() => handleCopyReferralLink(item.code)}
+          >
+            <Copy className="h-4 w-4" />
+            複製連結
+          </Button>
         </TableCell>
         <TableCell>
           {formatDiscount(item.discount_type, item.discount_value)}
@@ -1522,19 +1517,15 @@ const KolDiscount = () => {
                     {/* Referral Link Section */}
                     <div className="mb-4">
                       <p className="text-xs font-medium text-muted-foreground mb-2">推薦連結</p>
-                      <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-md">
-                        <code className="text-xs font-mono truncate flex-1 min-w-0">
-                          {`https://sensaninn.lakeze.com/booking?ref=${item.code}`}
-                        </code>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0 shrink-0"
-                          onClick={() => handleCopyReferralLink(item.code)}
-                        >
-                          <Copy className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full gap-2"
+                        onClick={() => handleCopyReferralLink(item.code)}
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                        複製推薦連結
+                      </Button>
                     </div>
 
                     {/* Stats Grid */}
