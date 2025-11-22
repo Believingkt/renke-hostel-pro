@@ -75,11 +75,11 @@ export function AccommodationSelector() {
             <TooltipTrigger asChild>
               <Button 
                 variant="ghost" 
-                size="sm"
-                className="h-7 w-7 p-0 hover:bg-accent/50 transition-colors"
+                size="icon"
+                className="h-9 w-9"
                 onClick={() => window.open('/', '_blank')}
               >
-                <ExternalLink className="h-3.5 w-3.5" />
+                <ExternalLink className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -101,11 +101,11 @@ export function AccommodationSelector() {
           <TooltipTrigger asChild>
             <Button 
               variant="ghost" 
-              size="sm"
-              className="h-7 w-7 p-0 hover:bg-accent/50 transition-colors"
+              size="icon"
+              className="h-9 w-9"
               onClick={() => window.open('/', '_blank')}
             >
-              <ExternalLink className="h-3.5 w-3.5" />
+              <ExternalLink className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>
