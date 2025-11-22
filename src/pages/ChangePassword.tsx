@@ -5,9 +5,55 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff, Check, X } from "lucide-react";
 import lokezeLogo from "@/assets/lokeze-logo-auth.png";
+
+// 密碼強度檢測
+interface PasswordStrength {
+  score: number; // 0-5
+  label: string; // 很弱/弱/中等/強/很強
+  color: string;
+  checks: {
+    length: boolean;
+    uppercase: boolean;
+    lowercase: boolean;
+    number: boolean;
+    special: boolean;
+  };
+}
+
+const checkPasswordStrength = (password: string): PasswordStrength => {
+  const checks = {
+    length: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    number: /[0-9]/.test(password),
+    special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+  };
+
+  const score = Object.values(checks).filter(Boolean).length;
+  
+  let label = "很弱";
+  let color = "bg-red-500";
+  
+  if (score >= 5) {
+    label = "很強";
+    color = "bg-green-500";
+  } else if (score >= 4) {
+    label = "強";
+    color = "bg-blue-500";
+  } else if (score >= 3) {
+    label = "中等";
+    color = "bg-yellow-500";
+  } else if (score >= 2) {
+    label = "弱";
+    color = "bg-orange-500";
+  }
+
+  return { score, label, color, checks };
+};
 
 export default function ChangePassword() {
   const navigate = useNavigate();
@@ -18,6 +64,7 @@ export default function ChangePassword() {
   const [userEmail, setUserEmail] = useState<string>("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState<PasswordStrength | null>(null);
   
   // 判斷是否從後台訪問
   const isAdminRoute = location.pathname.includes('/admin/');
@@ -32,6 +79,15 @@ export default function ChangePassword() {
     fetchUserEmail();
   }, []);
 
+  // 監聽密碼變化，更新強度檢測
+  useEffect(() => {
+    if (newPassword) {
+      setPasswordStrength(checkPasswordStrength(newPassword));
+    } else {
+      setPasswordStrength(null);
+    }
+  }, [newPassword]);
+
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -40,8 +96,8 @@ export default function ChangePassword() {
       return;
     }
 
-    if (newPassword.length < 6) {
-      toast.error("密碼至少需要 6 個字元");
+    if (newPassword.length < 8) {
+      toast.error("密碼至少需要 8 個字元");
       return;
     }
 
@@ -118,7 +174,7 @@ export default function ChangePassword() {
                 <Input
                   id="new-password"
                   type={showNewPassword ? "text" : "password"}
-                  placeholder="至少 6 個字元"
+                  placeholder="至少 8 個字元"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   required
@@ -138,6 +194,81 @@ export default function ChangePassword() {
                   )}
                 </Button>
               </div>
+              
+              {/* 密碼強度指示器 */}
+              {passwordStrength && (
+                <div className="space-y-2 pt-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">密碼強度：</span>
+                    <span className={`font-medium ${
+                      passwordStrength.score >= 4 ? 'text-green-600' :
+                      passwordStrength.score >= 3 ? 'text-blue-600' :
+                      passwordStrength.score >= 2 ? 'text-yellow-600' :
+                      'text-red-600'
+                    }`}>
+                      {passwordStrength.label}
+                    </span>
+                  </div>
+                  <Progress 
+                    value={(passwordStrength.score / 5) * 100} 
+                    className="h-2"
+                  />
+                  
+                  {/* 密碼要求檢查列表 */}
+                  <div className="space-y-1 pt-2">
+                    <div className="flex items-center gap-2 text-xs">
+                      {passwordStrength.checks.length ? (
+                        <Check className="h-3 w-3 text-green-600" />
+                      ) : (
+                        <X className="h-3 w-3 text-red-600" />
+                      )}
+                      <span className={passwordStrength.checks.length ? 'text-green-600' : 'text-muted-foreground'}>
+                        至少 8 個字元
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      {passwordStrength.checks.uppercase ? (
+                        <Check className="h-3 w-3 text-green-600" />
+                      ) : (
+                        <X className="h-3 w-3 text-red-600" />
+                      )}
+                      <span className={passwordStrength.checks.uppercase ? 'text-green-600' : 'text-muted-foreground'}>
+                        包含大寫字母 (A-Z)
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      {passwordStrength.checks.lowercase ? (
+                        <Check className="h-3 w-3 text-green-600" />
+                      ) : (
+                        <X className="h-3 w-3 text-red-600" />
+                      )}
+                      <span className={passwordStrength.checks.lowercase ? 'text-green-600' : 'text-muted-foreground'}>
+                        包含小寫字母 (a-z)
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      {passwordStrength.checks.number ? (
+                        <Check className="h-3 w-3 text-green-600" />
+                      ) : (
+                        <X className="h-3 w-3 text-red-600" />
+                      )}
+                      <span className={passwordStrength.checks.number ? 'text-green-600' : 'text-muted-foreground'}>
+                        包含數字 (0-9)
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      {passwordStrength.checks.special ? (
+                        <Check className="h-3 w-3 text-green-600" />
+                      ) : (
+                        <X className="h-3 w-3 text-red-600" />
+                      )}
+                      <span className={passwordStrength.checks.special ? 'text-green-600' : 'text-muted-foreground'}>
+                        包含特殊字元 (!@#$%^&*...)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirm-password">確認新密碼</Label>
