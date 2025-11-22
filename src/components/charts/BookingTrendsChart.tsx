@@ -76,7 +76,7 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
 
   return (
     <>
-      <div className="animate-fade-in px-0.5 py-1 sm:px-2 sm:py-3" key={`booking-chart-${comparisonMode}`}>
+      <div className="animate-fade-in" key={`booking-chart-${comparisonMode}`}>
         <ChartContainer config={chartConfig} className="h-[180px] sm:h-[220px] md:h-[260px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart 
@@ -88,6 +88,17 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                 bottom: 5 
               }}
             >
+              <defs>
+                {categories.map((category, index) => {
+                  const color = index === 0 ? "hsl(var(--chart-booking-secondary))" : "hsl(var(--chart-booking-primary))";
+                  return (
+                    <linearGradient key={`gradient-${category}`} id={`gradient-${category}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={color} stopOpacity={0.1}/>
+                      <stop offset="95%" stopColor={color} stopOpacity={0}/>
+                    </linearGradient>
+                  );
+                })}
+              </defs>
               <CartesianGrid 
                 strokeDasharray="3 3" 
                 className="stroke-muted/50" 
@@ -117,52 +128,85 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                     isCustomRange={isCustomRange}
                   />
                 }
-                cursor={{ stroke: 'hsl(var(--muted))', strokeWidth: 1 }}
+                cursor={{ 
+                  stroke: 'hsl(var(--muted))', 
+                  strokeWidth: 1,
+                  strokeDasharray: '3 3'
+                }}
+                animationDuration={200}
+                animationEasing="ease-out"
               />
               {!isCustomRange && <ChartLegend content={<ChartLegendContent />} />}
               {categories.map((category, index) => (
                 <Line
                   key={category}
-                  type="natural"
+                  type="monotone"
                   dataKey={category}
                   stroke={index === 0 ? "hsl(var(--chart-booking-secondary))" : "hsl(var(--chart-booking-primary))"}
                   strokeWidth={3}
+                  fill={`url(#gradient-${category})`}
                   dot={(props: any) => {
-                    const { cx, cy, payload } = props;
+                    const { cx, cy, payload, index: dotIndex } = props;
                     return (
-                      <circle
-                        cx={cx}
-                        cy={cy}
-                        r={5}
-                        fill="hsl(var(--background))"
-                        stroke={index === 0 ? "hsl(var(--chart-booking-secondary))" : "hsl(var(--chart-booking-primary))"}
-                        strokeWidth={2}
-                        opacity={payload.isFuture ? 0.3 : 1}
-                        style={{ cursor: 'pointer', transition: 'all 0.3s ease-in-out' }}
-                        className="hover:r-7"
-                        onClick={() => handleDotClick(payload)}
-                      />
+                      <g>
+                        <circle
+                          cx={cx}
+                          cy={cy}
+                          r={5}
+                          fill="hsl(var(--background))"
+                          stroke={index === 0 ? "hsl(var(--chart-booking-secondary))" : "hsl(var(--chart-booking-primary))"}
+                          strokeWidth={2}
+                          opacity={payload.isFuture ? 0.3 : 1}
+                          style={{ 
+                            cursor: 'pointer',
+                            animation: `dotPulse 0.6s ease-out ${dotIndex * 0.1}s both`,
+                          }}
+                          className="hover:scale-125 transition-transform duration-200"
+                          onClick={() => handleDotClick(payload)}
+                        />
+                        <circle
+                          cx={cx}
+                          cy={cy}
+                          r={5}
+                          fill={index === 0 ? "hsl(var(--chart-booking-secondary))" : "hsl(var(--chart-booking-primary))"}
+                          opacity={0}
+                          style={{ 
+                            animation: `dotRipple 2s ease-out ${dotIndex * 0.1 + 0.3}s infinite`,
+                          }}
+                        />
+                      </g>
                     );
                   }}
                   activeDot={(props: any) => {
                     const { cx, cy, payload } = props;
                     return (
-                      <circle
-                        cx={cx}
-                        cy={cy}
-                        r={8}
-                        fill="hsl(var(--background))"
-                        stroke={index === 0 ? "hsl(var(--chart-booking-secondary))" : "hsl(var(--chart-booking-primary))"}
-                        strokeWidth={3}
-                        opacity={payload.isFuture ? 0.3 : 1}
-                        style={{ cursor: 'pointer', transition: 'all 0.3s ease-in-out' }}
-                        onClick={() => handleDotClick(payload)}
-                      />
+                      <g>
+                        <circle
+                          cx={cx}
+                          cy={cy}
+                          r={12}
+                          fill={index === 0 ? "hsl(var(--chart-booking-secondary))" : "hsl(var(--chart-booking-primary))"}
+                          opacity={0.1}
+                          className="animate-scale-in"
+                        />
+                        <circle
+                          cx={cx}
+                          cy={cy}
+                          r={8}
+                          fill="hsl(var(--background))"
+                          stroke={index === 0 ? "hsl(var(--chart-booking-secondary))" : "hsl(var(--chart-booking-primary))"}
+                          strokeWidth={3}
+                          opacity={payload.isFuture ? 0.3 : 1}
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => handleDotClick(payload)}
+                          className="animate-scale-in"
+                        />
+                      </g>
                     );
                   }}
                   connectNulls
-                  animationDuration={1500}
-                  animationBegin={index * 150}
+                  animationDuration={2000}
+                  animationBegin={index * 200}
                   isAnimationActive={true}
                   animationEasing="ease-in-out"
                 />
@@ -171,6 +215,33 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
           </ResponsiveContainer>
         </ChartContainer>
       </div>
+
+      <style>{`
+        @keyframes dotPulse {
+          0% {
+            transform: scale(0);
+            opacity: 0;
+          }
+          50% {
+            opacity: 1;
+          }
+          100% {
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
+        
+        @keyframes dotRipple {
+          0% {
+            transform: scale(1);
+            opacity: 0.3;
+          }
+          100% {
+            transform: scale(3);
+            opacity: 0;
+          }
+        }
+      `}</style>
 
       <Dialog open={!!selectedData} onOpenChange={() => setSelectedData(null)}>
         <DialogContent>
