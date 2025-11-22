@@ -62,7 +62,7 @@ export function AccommodationSelector() {
       <Button 
         variant="ghost" 
         className="font-medium text-sm hover:bg-accent"
-        onClick={() => navigate('/')}
+        onClick={() => window.open('/', '_blank')}
       >
         {accommodations[0].name}
       </Button>
@@ -75,7 +75,7 @@ export function AccommodationSelector() {
         variant="ghost" 
         size="sm"
         className="font-medium"
-        onClick={() => navigate('/')}
+        onClick={() => window.open('/', '_blank')}
       >
         {accommodations.find(a => a.id === currentAccommodationId)?.name || "前往首頁"}
       </Button>
