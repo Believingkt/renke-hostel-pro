@@ -6,8 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { Loader2, Eye, EyeOff, Check, X } from "lucide-react";
+import { Loader2, Eye, EyeOff, Check, X, HelpCircle } from "lucide-react";
 import lokezeLogo from "@/assets/lokeze-logo-auth.png";
 
 // 密碼強度檢測
@@ -169,7 +175,31 @@ export default function ChangePassword() {
         <CardContent>
           <form onSubmit={handleChangePassword} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="new-password">新密碼</Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="new-password">新密碼</Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="inline-flex">
+                        <HelpCircle className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="max-w-xs">
+                      <div className="space-y-2 text-sm">
+                        <p className="font-semibold">密碼安全建議：</p>
+                        <ul className="list-disc list-inside space-y-1 text-xs">
+                          <li>使用至少 8 個字元，建議 12 個以上</li>
+                          <li>混合使用大小寫字母、數字和特殊符號</li>
+                          <li>避免使用個人資訊（生日、姓名等）</li>
+                          <li>避免使用常見密碼（123456、password等）</li>
+                          <li>不要在多個網站使用相同密碼</li>
+                          <li>定期更換密碼以提高安全性</li>
+                        </ul>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <div className="relative">
                 <Input
                   id="new-password"
