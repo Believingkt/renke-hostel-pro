@@ -8,6 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -26,7 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, Loader2, Users, UserPlus } from "lucide-react";
+import { Plus, Trash2, Loader2, Users, UserPlus, Mail, MailCheck } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/PageHeader";
@@ -43,6 +44,8 @@ interface User {
   lastLogin: string;
   role: string;
   roleLabel: string;
+  status: 'pending' | 'active';
+  statusLabel: string;
 }
 
 const Accounts = () => {
@@ -107,8 +110,9 @@ const Accounts = () => {
         }]) || []
       );
 
-      const usersData = userRoles.map((ur: any) => {
+      const usersData: User[] = userRoles.map((ur: any) => {
         const profile = profilesMap.get(ur.user_id);
+        const hasLoggedIn = !!profile?.lastSignInAt;
         const lastLogin = profile?.lastSignInAt 
           ? format(new Date(profile.lastSignInAt), "yyyy/MM/dd HH:mm")
           : "-";
@@ -120,6 +124,8 @@ const Accounts = () => {
           lastLogin,
           role: ur.role,
           roleLabel: getRoleLabel(ur.role),
+          status: (hasLoggedIn ? 'active' : 'pending') as 'active' | 'pending',
+          statusLabel: hasLoggedIn ? '已啟用' : '待設定密碼',
         };
       });
 
@@ -238,6 +244,37 @@ const Accounts = () => {
     }
   };
 
+  const handleResendInvite = async (userId: string, userName: string) => {
+    if (!confirm(`確定要重新發送邀請郵件給 ${userName} 嗎？`)) return;
+
+    try {
+      const { data, error } = await supabase.functions.invoke("resend-invite", {
+        body: {
+          userId,
+          accommodationId,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      if (data?.success) {
+        toast.success("邀請郵件已重新發送");
+      } else {
+        toast.error("重新發送失敗");
+      }
+    } catch (error: any) {
+      if (import.meta.env.DEV) {
+        console.error("Error resending invite:", error);
+      }
+      toast.error(error.message || "重新發送失敗");
+    }
+  };
+
   return (
     <div className="space-y-4 md:space-y-6 p-4 md:p-0">
       <PageHeader
@@ -319,41 +356,67 @@ const Accounts = () => {
                   <TableHead>名稱</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>角色</TableHead>
+                  <TableHead>狀態</TableHead>
                   <TableHead>最後登入時間</TableHead>
-                  <TableHead className="w-[100px]">操作</TableHead>
+                  <TableHead className="w-[140px]">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {users.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="p-0">
-                      <EmptyState
-                        icon={UserPlus}
-                        title="尚無帳號"
-                        description="開始建立團隊成員帳號，分配適當的權限角色"
-                        action={{
-                          label: "新增第一個帳號",
-                          onClick: () => setOpen(true)
-                        }}
-                        className="border-0 shadow-none"
-                      />
-                    </TableCell>
-                  </TableRow>
+                <TableRow>
+                  <TableCell colSpan={6} className="p-0">
+                    <EmptyState
+                      icon={UserPlus}
+                      title="尚無帳號"
+                      description="開始建立團隊成員帳號，分配適當的權限角色"
+                      action={{
+                        label: "新增第一個帳號",
+                        onClick: () => setOpen(true)
+                      }}
+                      className="border-0 shadow-none"
+                    />
+                  </TableCell>
+                </TableRow>
                 ) : (
                   users.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.name}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>{user.roleLabel}</TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant={user.status === 'active' ? 'default' : 'secondary'}
+                          className="gap-1"
+                        >
+                          {user.status === 'active' ? (
+                            <MailCheck className="h-3 w-3" />
+                          ) : (
+                            <Mail className="h-3 w-3" />
+                          )}
+                          {user.statusLabel}
+                        </Badge>
+                      </TableCell>
                       <TableCell>{user.lastLogin}</TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(user.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          {user.status === 'pending' && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleResendInvite(user.id, user.name)}
+                              title="重新發送邀請"
+                            >
+                              <Mail className="h-4 w-4 text-primary" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(user.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -393,18 +456,43 @@ const Accounts = () => {
                           <p className="text-sm">{user.roleLabel}</p>
                         </div>
                         <div>
+                          <p className="text-xs text-muted-foreground">狀態</p>
+                          <Badge 
+                            variant={user.status === 'active' ? 'default' : 'secondary'}
+                            className="gap-1 mt-1"
+                          >
+                            {user.status === 'active' ? (
+                              <MailCheck className="h-3 w-3" />
+                            ) : (
+                              <Mail className="h-3 w-3" />
+                            )}
+                            {user.statusLabel}
+                          </Badge>
+                        </div>
+                        <div>
                           <p className="text-xs text-muted-foreground">最後登入時間</p>
                           <p className="text-sm">{user.lastLogin}</p>
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="shrink-0"
-                        onClick={() => handleDelete(user.id)}
-                      >
-                        <Trash2 className="h-5 w-5 text-destructive" />
-                      </Button>
+                      <div className="flex flex-col gap-2 shrink-0">
+                        {user.status === 'pending' && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleResendInvite(user.id, user.name)}
+                            title="重新發送邀請"
+                          >
+                            <Mail className="h-5 w-5 text-primary" />
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(user.id)}
+                        >
+                          <Trash2 className="h-5 w-5 text-destructive" />
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
