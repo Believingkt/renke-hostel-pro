@@ -1868,6 +1868,220 @@ const KolDiscount = () => {
 
             <Separator />
 
+            {/* Error Handling */}
+            <div>
+              <h3 className="font-semibold mb-2">錯誤處理</h3>
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">完整錯誤處理範例（JavaScript）</Label>
+                  <pre className="p-3 bg-muted rounded text-xs font-mono overflow-x-auto">
+{`async function getOrderData(discountCode) {
+  try {
+    const response = await fetch(
+      \`https://sensaninn.lakeze.com/functions/v1/kol-api/orders?code=\${discountCode}\`
+    );
+    
+    if (!response.ok) {
+      throw new Error(\`HTTP error! status: \${response.status}\`);
+    }
+    
+    const data = await response.json();
+    
+    if (!data.success) {
+      console.error('API 錯誤:', data.error);
+      return null;
+    }
+    
+    return data.orders;
+  } catch (error) {
+    console.error('請求失敗:', error);
+    // 顯示友善的錯誤訊息給用戶
+    alert('無法載入訂單資料，請稍後再試');
+    return null;
+  }
+}`}
+                  </pre>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-muted-foreground">錯誤回應格式</Label>
+                  <pre className="p-3 bg-muted rounded text-xs font-mono overflow-x-auto">
+{`{
+  "success": false,
+  "error": "折扣碼無效或已停用"
+}`}
+                  </pre>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-muted-foreground">常見錯誤碼</Label>
+                  <div className="space-y-2 text-xs text-muted-foreground">
+                    <div className="p-2 bg-muted rounded">
+                      <strong>400 Bad Request</strong> - 缺少必要參數（code）
+                    </div>
+                    <div className="p-2 bg-muted rounded">
+                      <strong>404 Not Found</strong> - 折扣碼不存在
+                    </div>
+                    <div className="p-2 bg-muted rounded">
+                      <strong>500 Internal Server Error</strong> - 伺服器錯誤，請稍後重試
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* More Examples */}
+            <div>
+              <h3 className="font-semibold mb-2">其他程式語言範例</h3>
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Python 範例</Label>
+                  <pre className="p-3 bg-muted rounded text-xs font-mono overflow-x-auto">
+{`import requests
+
+def get_stats(discount_code):
+    url = f"https://sensaninn.lakeze.com/functions/v1/kol-api/stats"
+    params = {"code": discount_code}
+    
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        data = response.json()
+        
+        if data.get("success"):
+            return data.get("statistics")
+        else:
+            print(f"錯誤: {data.get('error')}")
+            return None
+    except requests.exceptions.RequestException as e:
+        print(f"請求失敗: {e}")
+        return None`}
+                  </pre>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-muted-foreground">PHP 範例</Label>
+                  <pre className="p-3 bg-muted rounded text-xs font-mono overflow-x-auto">
+{`<?php
+function getCommissionData($discountCode) {
+    $url = "https://sensaninn.lakeze.com/functions/v1/kol-api/commission";
+    $url .= "?code=" . urlencode($discountCode);
+    
+    $response = file_get_contents($url);
+    if ($response === false) {
+        return null;
+    }
+    
+    $data = json_decode($response, true);
+    
+    if ($data['success']) {
+        return $data['commission_records'];
+    } else {
+        error_log("API 錯誤: " . $data['error']);
+        return null;
+    }
+}
+?>`}
+                  </pre>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-muted-foreground">jQuery 範例</Label>
+                  <pre className="p-3 bg-muted rounded text-xs font-mono overflow-x-auto">
+{`$.ajax({
+  url: 'https://sensaninn.lakeze.com/functions/v1/kol-api/stats',
+  method: 'GET',
+  data: { code: 'SPRING2024' },
+  success: function(data) {
+    if (data.success) {
+      console.log('統計數據:', data.statistics);
+      // 更新頁面內容
+      $('#total-orders').text(data.statistics.total_orders);
+      $('#total-revenue').text('NT$ ' + data.statistics.total_revenue);
+    } else {
+      console.error('錯誤:', data.error);
+    }
+  },
+  error: function(xhr, status, error) {
+    console.error('請求失敗:', error);
+    alert('無法載入數據，請稍後再試');
+  }
+});`}
+                  </pre>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Best Practices */}
+            <div>
+              <h3 className="font-semibold mb-2">最佳實踐建議</h3>
+              <div className="space-y-2 text-sm">
+                <div className="p-3 bg-muted rounded">
+                  <strong className="text-foreground">1. 實作快取機制</strong>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    建議快取統計數據 5-10 分鐘，減少伺服器負擔並提升頁面載入速度
+                  </p>
+                  <pre className="mt-2 p-2 bg-background rounded text-xs font-mono overflow-x-auto">
+{`// 使用 localStorage 快取
+const CACHE_KEY = 'kol_stats_cache';
+const CACHE_DURATION = 5 * 60 * 1000; // 5 分鐘
+
+function getCachedStats(code) {
+  const cached = localStorage.getItem(CACHE_KEY + code);
+  if (cached) {
+    const { data, timestamp } = JSON.parse(cached);
+    if (Date.now() - timestamp < CACHE_DURATION) {
+      return data;
+    }
+  }
+  return null;
+}
+
+function setCachedStats(code, data) {
+  localStorage.setItem(CACHE_KEY + code, JSON.stringify({
+    data: data,
+    timestamp: Date.now()
+  }));
+}`}
+                  </pre>
+                </div>
+
+                <div className="p-3 bg-muted rounded">
+                  <strong className="text-foreground">2. 友善的錯誤提示</strong>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    向用戶顯示清楚的錯誤訊息，而不是技術性的錯誤代碼
+                  </p>
+                </div>
+
+                <div className="p-3 bg-muted rounded">
+                  <strong className="text-foreground">3. 載入狀態指示</strong>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    在請求期間顯示載入動畫，提升用戶體驗
+                  </p>
+                </div>
+
+                <div className="p-3 bg-muted rounded">
+                  <strong className="text-foreground">4. 定期重試機制</strong>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    網路暫時失敗時，自動重試 2-3 次後再顯示錯誤
+                  </p>
+                </div>
+
+                <div className="p-3 bg-muted rounded">
+                  <strong className="text-foreground">5. 資料驗證</strong>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    檢查 API 回應的資料結構是否正確，避免程式錯誤
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
             {/* Notes */}
             <div className="space-y-2">
               <h3 className="font-semibold">注意事項</h3>
@@ -1878,6 +2092,8 @@ const KolDiscount = () => {
                 <li>結算狀態：pending（待結算）、approved（已核准）、paid（已付款）、cancelled（已取消）</li>
                 <li>建議在外部網站實作快取機制，避免頻繁請求</li>
                 <li>API 支援 CORS，可直接從瀏覽器調用</li>
+                <li>請妥善保管您的折扣碼，避免洩露給非授權人員</li>
+                <li>API 回應時間通常在 100-500ms 之間</li>
               </ul>
             </div>
           </div>
