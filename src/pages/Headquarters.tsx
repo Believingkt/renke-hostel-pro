@@ -46,7 +46,9 @@ const Headquarters = () => {
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [accommodations, setAccommodations] = useState<AccommodationInfo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newUserId, setNewUserId] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newUserName, setNewUserName] = useState("");
+  const [newUserEmail, setNewUserEmail] = useState("");
   const [selectedAccommodation, setSelectedAccommodation] = useState("");
   const [selectedRole, setSelectedRole] = useState<"super_admin" | "hotel_admin" | "staff">("staff");
 
@@ -124,27 +126,48 @@ const Headquarters = () => {
   };
 
   const handleAddUser = async () => {
-    if (!newUserId || !selectedAccommodation || !selectedRole) {
+    if (!newUserName || !newUserEmail || !selectedAccommodation || !selectedRole) {
       toast.error("請填寫所有欄位");
       return;
     }
 
-    const { error } = await supabase
-      .from("user_roles")
-      .insert({
-        user_id: newUserId,
-        accommodation_id: selectedAccommodation,
-        role: selectedRole,
+    setIsSubmitting(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("create-user", {
+        body: {
+          name: newUserName,
+          email: newUserEmail,
+          role: selectedRole,
+          accommodationId: selectedAccommodation,
+        },
       });
 
-    if (error) {
-      toast.error("新增用戶權限失敗");
-    } else {
-      toast.success("用戶權限新增成功");
-      setNewUserId("");
+      if (error) throw error;
+
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      if (!data?.success) {
+        toast.error("建立帳號失敗");
+        return;
+      }
+
+      toast.success("邀請郵件已發送，請通知使用者檢查信箱");
+      setNewUserName("");
+      setNewUserEmail("");
       setSelectedAccommodation("");
       setSelectedRole("staff");
       loadUserRoles();
+    } catch (error: any) {
+      if (import.meta.env.DEV) {
+        console.error("Error creating user:", error);
+      }
+      toast.error(error.message || "建立帳號失敗");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -190,23 +213,40 @@ const Headquarters = () => {
 
       <Card>
         <CardHeader>
-          <CardDescription>為用戶分配特定旅館的權限</CardDescription>
+          <CardTitle>邀請新用戶</CardTitle>
+          <CardDescription>輸入用戶資訊後，系統將發送邀請郵件至指定信箱</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="userId">用戶 ID</Label>
+              <Label htmlFor="userName">名稱</Label>
               <Input
-                id="userId"
+                id="userName"
                 type="text"
-                placeholder="用戶的 UUID"
-                value={newUserId}
-                onChange={(e) => setNewUserId(e.target.value)}
+                placeholder="請輸入名稱"
+                value={newUserName}
+                onChange={(e) => setNewUserName(e.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="userEmail">Email</Label>
+              <Input
+                id="userEmail"
+                type="email"
+                placeholder="請輸入 Email"
+                value={newUserEmail}
+                onChange={(e) => setNewUserEmail(e.target.value)}
+                disabled={isSubmitting}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="accommodation">旅館</Label>
-              <Select value={selectedAccommodation} onValueChange={setSelectedAccommodation}>
+              <Select 
+                value={selectedAccommodation} 
+                onValueChange={setSelectedAccommodation}
+                disabled={isSubmitting}
+              >
                 <SelectTrigger id="accommodation">
                   <SelectValue placeholder="選擇旅館" />
                 </SelectTrigger>
@@ -221,7 +261,11 @@ const Headquarters = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="role">角色</Label>
-              <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as "super_admin" | "hotel_admin" | "staff")}>
+              <Select 
+                value={selectedRole} 
+                onValueChange={(value) => setSelectedRole(value as "super_admin" | "hotel_admin" | "staff")}
+                disabled={isSubmitting}
+              >
                 <SelectTrigger id="role">
                   <SelectValue />
                 </SelectTrigger>
@@ -233,8 +277,13 @@ const Headquarters = () => {
               </Select>
             </div>
             <div className="flex items-end">
-              <Button onClick={handleAddUser} className="w-full">
-                新增權限
+              <Button 
+                onClick={handleAddUser} 
+                className="w-full"
+                disabled={isSubmitting}
+              >
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                發送邀請
               </Button>
             </div>
           </div>
@@ -243,6 +292,7 @@ const Headquarters = () => {
 
       <Card>
         <CardHeader>
+          <CardTitle>用戶權限列表</CardTitle>
           <CardDescription>查看和管理所有用戶的權限設定</CardDescription>
         </CardHeader>
         <CardContent>
