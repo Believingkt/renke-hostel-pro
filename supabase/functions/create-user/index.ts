@@ -136,12 +136,13 @@ serve(async (req) => {
     // Get the site URL for redirect
     const siteUrl = Deno.env.get("SUPABASE_URL")?.replace('.supabase.co', '.lovable.app') || '';
     
-    // Create user with invite (but don't send default email)
-    const { data: userData, error: userError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-      data: {
+    // Create user without sending default email
+    const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      email_confirm: true, // Auto-confirm email since we have auto_confirm enabled
+      user_metadata: {
         name,
       },
-      redirectTo: `${siteUrl}/auth`,
     });
 
     if (userError) {
@@ -172,11 +173,23 @@ serve(async (req) => {
       );
     }
 
-    // Generate invite link manually
-    const inviteLink = `${siteUrl}/auth?type=invite&token=${userData.user.id}`;
-    
-    // Send custom Chinese email
+    // Generate password reset link for the new user
+    const { data: resetData, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'recovery',
+      email: email,
+      options: {
+        redirectTo: `${siteUrl}/auth?type=recovery`,
+      },
+    });
+
+    if (resetError) {
+      console.error("生成重設密碼連結失敗:", resetError);
+    }
+
+    // Send custom Chinese email with password setup link
     try {
+      const inviteLink = resetData?.properties?.action_link || `${siteUrl}/auth`;
+      
       await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-invite-email`, {
         method: 'POST',
         headers: {
@@ -185,10 +198,12 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           email,
-          inviteLink: `${siteUrl}/auth`,
+          inviteLink,
           senderName: name
         })
       });
+      
+      console.log("已發送中文邀請郵件至:", email);
     } catch (emailError) {
       console.error("發送自定義邀請郵件失敗:", emailError);
       // Don't fail the user creation if email fails

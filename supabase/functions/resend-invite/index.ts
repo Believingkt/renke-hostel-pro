@@ -85,24 +85,27 @@ serve(async (req) => {
     // Get the site URL for redirect
     const siteUrl = Deno.env.get("SUPABASE_URL")?.replace('.supabase.co', '.lovable.app') || '';
     
-    // Resend invite email (triggers default email, but we'll also send custom one)
-    const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-      targetUser.user.email!,
-      {
-        redirectTo: `${siteUrl}/auth`,
-      }
-    );
+    // Generate password reset link for the user
+    const { data: resetData, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'recovery',
+      email: targetUser.user.email!,
+      options: {
+        redirectTo: `${siteUrl}/auth?type=recovery`,
+      },
+    });
 
-    if (inviteError) {
-      console.error("Error resending invite:", inviteError);
+    if (resetError) {
+      console.error("生成重設密碼連結失敗:", resetError);
       return new Response(
-        JSON.stringify({ success: false, error: '發送邀請失敗：' + inviteError.message }),
+        JSON.stringify({ success: false, error: '生成邀請連結失敗：' + resetError.message }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Send custom Chinese email
+    // Send custom Chinese email with password setup link
     try {
+      const inviteLink = resetData?.properties?.action_link || `${siteUrl}/auth`;
+      
       await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-invite-email`, {
         method: 'POST',
         headers: {
@@ -111,13 +114,18 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           email: targetUser.user.email,
-          inviteLink: `${siteUrl}/auth`,
+          inviteLink,
           senderName: targetUser.user.user_metadata?.name || '管理員'
         })
       });
+      
+      console.log("已重新發送中文邀請郵件至:", targetUser.user.email);
     } catch (emailError) {
       console.error("發送自定義邀請郵件失敗:", emailError);
-      // Don't fail if custom email fails
+      return new Response(
+        JSON.stringify({ success: false, error: '發送邀請郵件失敗' }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     return new Response(
