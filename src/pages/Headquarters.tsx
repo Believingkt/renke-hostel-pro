@@ -318,9 +318,9 @@ const Headquarters = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="super_admin">超級管理員</SelectItem>
-                  <SelectItem value="hotel_admin">旅館管理員</SelectItem>
-                  <SelectItem value="staff">員工</SelectItem>
+                  <SelectItem value="super_admin">總部管理員</SelectItem>
+                  <SelectItem value="hotel_admin">民宿管理員</SelectItem>
+                  <SelectItem value="staff">現場員工</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -404,9 +404,9 @@ const Headquarters = () => {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="super_admin">超級管理員</SelectItem>
-                            <SelectItem value="hotel_admin">旅館管理員</SelectItem>
-                            <SelectItem value="staff">員工</SelectItem>
+                            <SelectItem value="super_admin">總部管理員</SelectItem>
+                            <SelectItem value="hotel_admin">民宿管理員</SelectItem>
+                            <SelectItem value="staff">現場員工</SelectItem>
                           </SelectContent>
                         </Select>
                       </TableCell>
