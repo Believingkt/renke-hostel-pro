@@ -55,6 +55,8 @@ const Accounts = () => {
   const [role, setRole] = useState("staff");
   const [isLoading, setIsLoading] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
+  const [emailError, setEmailError] = useState<string>("");
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
   const { accommodationId } = useSubdomain();
 
   useEffect(() => {
@@ -153,6 +155,45 @@ const Accounts = () => {
     }
   };
 
+  const checkEmailExists = async (email: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, email")
+        .ilike("email", email)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error checking email:", error);
+        return false;
+      }
+
+      return data !== null;
+    } catch (error) {
+      console.error("Unexpected error checking email:", error);
+      return false;
+    }
+  };
+
+  const handleEmailChange = async (value: string) => {
+    setEmail(value);
+    setEmailError("");
+
+    // Only check if email format is valid
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!value || !emailRegex.test(value)) {
+      return;
+    }
+
+    setIsCheckingEmail(true);
+    const exists = await checkEmailExists(value.trim());
+    setIsCheckingEmail(false);
+
+    if (exists) {
+      setEmailError("此 Email 已被註冊");
+    }
+  };
+
   const handleSubmit = async () => {
     if (!accommodationId) {
       toast.error("無法取得住宿設施 ID");
@@ -161,6 +202,12 @@ const Accounts = () => {
 
     if (!name || !email || !role) {
       toast.error("請填寫所有欄位");
+      return;
+    }
+
+    // Check for email error before submitting
+    if (emailError) {
+      toast.error(emailError);
       return;
     }
 
@@ -178,6 +225,14 @@ const Accounts = () => {
     }
 
     setIsLoading(true);
+
+    // Double-check email before final submission
+    const emailExists = await checkEmailExists(email.trim());
+    if (emailExists) {
+      toast.error("此 Email 已被註冊，請使用其他 Email");
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const { data, error } = await supabase.functions.invoke("create-user", {
@@ -219,6 +274,7 @@ const Accounts = () => {
       setOpen(false);
       setName("");
       setEmail("");
+      setEmailError("");
       setRole("staff");
       await loadUsers();
     } catch (error: any) {
@@ -288,7 +344,16 @@ const Accounts = () => {
         title="帳號管理"
         icon={Users}
         action={
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={open} onOpenChange={(isOpen) => {
+            setOpen(isOpen);
+            if (!isOpen) {
+              // Clear form when dialog closes
+              setName("");
+              setEmail("");
+              setEmailError("");
+              setRole("staff");
+            }
+          }}>
             <DialogTrigger asChild>
               <Button className="gap-2">
                 <Plus className="h-4 w-4" />
@@ -314,16 +379,31 @@ const Accounts = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="請輸入 Email"
-                />
-                <p className="text-xs text-muted-foreground">
-                  邀請郵件將發送至此信箱
-                </p>
+                <div className="relative">
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => handleEmailChange(e.target.value)}
+                    placeholder="請輸入 Email"
+                    className={emailError ? "border-destructive focus-visible:ring-destructive" : ""}
+                    disabled={isLoading}
+                  />
+                  {isCheckingEmail && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+                {emailError ? (
+                  <p className="text-xs text-destructive font-medium">
+                    {emailError}
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    邀請郵件將發送至此信箱
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="role">權限</Label>
@@ -343,7 +423,10 @@ const Accounts = () => {
               <Button variant="outline" onClick={() => setOpen(false)} disabled={isLoading}>
                 取消
               </Button>
-              <Button onClick={handleSubmit} disabled={isLoading}>
+              <Button 
+                onClick={handleSubmit} 
+                disabled={isLoading || isCheckingEmail || !!emailError}
+              >
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 確認
               </Button>
