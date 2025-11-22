@@ -66,16 +66,46 @@ export function AccommodationSelector() {
   // If only one accommodation, show it as label instead of selector
   if (accommodations.length === 1) {
     return (
+      <div className="flex items-center gap-2">
+        <span className="font-medium text-sm text-foreground">
+          {accommodations[0].name}
+        </span>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => window.open('/', '_blank')}
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>開啟前台首頁</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="font-medium text-sm text-foreground">
+        {accommodations.find(a => a.id === currentAccommodationId)?.name || "旅館"}
+      </span>
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button 
               variant="ghost" 
-              className="font-medium text-sm hover:bg-accent"
+              size="sm"
+              className="h-8 w-8 p-0"
               onClick={() => window.open('/', '_blank')}
             >
-              {accommodations[0].name}
-              <ExternalLink className="ml-2 h-3.5 w-3.5" />
+              <ExternalLink className="h-3.5 w-3.5" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>
@@ -83,41 +113,18 @@ export function AccommodationSelector() {
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
-    );
-  }
-
-  return (
-    <TooltipProvider>
-      <div className="flex items-center gap-2">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              className="font-medium"
-              onClick={() => window.open('/', '_blank')}
-            >
-              {accommodations.find(a => a.id === currentAccommodationId)?.name || "前往首頁"}
-              <ExternalLink className="ml-2 h-3.5 w-3.5" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>開啟前台首頁</p>
-          </TooltipContent>
-        </Tooltip>
-        <Select value={currentAccommodationId || undefined} onValueChange={setCurrentAccommodationId}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="切換旅館" />
-          </SelectTrigger>
-          <SelectContent>
-            {accommodations.map((accommodation) => (
-              <SelectItem key={accommodation.id} value={accommodation.id}>
-                {accommodation.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-    </TooltipProvider>
+      <Select value={currentAccommodationId || undefined} onValueChange={setCurrentAccommodationId}>
+        <SelectTrigger className="w-[180px]">
+          <SelectValue placeholder="切換旅館" />
+        </SelectTrigger>
+        <SelectContent>
+          {accommodations.map((accommodation) => (
+            <SelectItem key={accommodation.id} value={accommodation.id}>
+              {accommodation.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }
