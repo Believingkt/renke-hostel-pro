@@ -55,7 +55,7 @@ const Accounts = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("staff");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
   const [emailError, setEmailError] = useState<string>("");
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
