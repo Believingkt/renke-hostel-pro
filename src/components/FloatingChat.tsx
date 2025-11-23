@@ -271,7 +271,7 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
       {!isOpen && (
         <Button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-4 right-4 md:bottom-6 md:right-6 h-14 w-14 md:h-16 md:w-16 rounded-full shadow-lg bg-primary hover:bg-primary/90 z-50 animate-scale-in"
+          className="fixed bottom-4 right-4 md:bottom-6 md:right-6 h-14 w-14 md:h-16 md:w-16 rounded-full shadow-lg bg-primary hover:bg-primary/90 z-[9998] animate-scale-in"
           size="icon"
         >
           <MessageCircle className="h-6 w-6 md:h-7 md:w-7" />
@@ -280,7 +280,7 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
 
       {/* 聊天視窗 */}
       {isOpen && (
-        <Card className="fixed inset-0 md:bottom-6 md:right-6 md:inset-auto md:w-96 md:h-[600px] w-full h-full md:rounded-lg shadow-2xl z-50 flex flex-col border-primary/20 animate-slide-in-right md:animate-scale-in">
+        <Card className="fixed inset-0 md:bottom-6 md:right-6 md:inset-auto md:w-96 md:h-[600px] w-full h-full md:rounded-lg shadow-2xl z-[9999] flex flex-col border-primary/20 animate-fade-in md:animate-scale-in">
           {/* 標題列 */}
           <div className="flex items-center justify-between p-4 md:p-4 border-b bg-primary text-primary-foreground md:rounded-t-lg">
             <div className="flex items-center gap-2 md:gap-3">
