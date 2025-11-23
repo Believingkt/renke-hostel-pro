@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Loader2, ArrowLeft, RotateCcw, User, Mic, MicOff } from "lucide-react";
+import { Send, Loader2, ArrowLeft, RotateCcw, User, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSubdomain } from "@/hooks/use-subdomain";
@@ -37,6 +37,9 @@ export default function AIBooking() {
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [bookingStep, setBookingStep] = useState(1);
+  const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -215,6 +218,11 @@ export default function AIBooking() {
         }
       }
 
+      // 串流結束後，播放完整的語音回覆
+      if (assistantMessage && isVoiceEnabled) {
+        await playTextToSpeech(assistantMessage);
+      }
+
     } catch (error) {
       console.error("發送訊息失敗:", error);
       toast({
@@ -340,6 +348,77 @@ export default function AIBooking() {
     }
   };
 
+  const playTextToSpeech = async (text: string) => {
+    if (!isVoiceEnabled || !text || isPlayingAudio) return;
+
+    try {
+      setIsPlayingAudio(true);
+      
+      // 移除 emoji 和特殊字符，只保留文字內容
+      const cleanText = text
+        .replace(/[😊🎉✨💰📋🏠🚗❌👥🐾📅💳✓❌]/g, '')
+        .replace(/\*/g, '')
+        .trim();
+
+      if (!cleanText) {
+        setIsPlayingAudio(false);
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('text-to-speech', {
+        body: { text: cleanText, voice: 'nova' }
+      });
+
+      if (error) throw error;
+
+      if (data?.audioContent) {
+        // 停止當前播放的音頻
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current = null;
+        }
+
+        // 創建新的音頻元素並播放
+        const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
+        audioRef.current = audio;
+        
+        audio.onended = () => {
+          setIsPlayingAudio(false);
+          audioRef.current = null;
+        };
+
+        audio.onerror = () => {
+          console.error('音頻播放失敗');
+          setIsPlayingAudio(false);
+          audioRef.current = null;
+        };
+
+        await audio.play();
+      }
+    } catch (error) {
+      console.error('語音播放錯誤:', error);
+      setIsPlayingAudio(false);
+      // 不顯示錯誤提示，靜默失敗
+    }
+  };
+
+  const toggleVoice = () => {
+    const newState = !isVoiceEnabled;
+    setIsVoiceEnabled(newState);
+    
+    // 如果關閉語音，停止當前播放
+    if (!newState && audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+      setIsPlayingAudio(false);
+    }
+
+    toast({
+      title: newState ? "🔊 語音已開啟" : "🔇 語音已關閉",
+      description: newState ? "小安會用語音回覆您" : "小安只會顯示文字",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <SEOHead
@@ -368,15 +447,30 @@ export default function AIBooking() {
             </div>
           </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleRestart}
-            className="text-primary-foreground hover:bg-primary-foreground/10"
-          >
-            <RotateCcw className="h-4 w-4 mr-2" />
-            <span className="hidden md:inline">重新開始</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleVoice}
+              className="text-primary-foreground hover:bg-primary-foreground/10"
+              title={isVoiceEnabled ? "關閉語音" : "開啟語音"}
+            >
+              {isVoiceEnabled ? (
+                <Volume2 className="h-4 w-4" />
+              ) : (
+                <VolumeX className="h-4 w-4" />
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRestart}
+              className="text-primary-foreground hover:bg-primary-foreground/10"
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              <span className="hidden md:inline">重新開始</span>
+            </Button>
+          </div>
         </div>
       </div>
 
