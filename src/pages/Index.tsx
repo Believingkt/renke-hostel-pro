@@ -50,18 +50,7 @@ interface AccommodationData {
 
 const Index = () => {
   const [data, setData] = useState<AccommodationData | null>(null);
-  const [isFirstImageLoaded, setIsFirstImageLoaded] = useState(false);
-  const [forceShowContent, setForceShowContent] = useState(false);
   const { accommodationId, isLoading: subdomainLoading, error: subdomainError } = useSubdomain();
-
-  // 添加超時機制，確保頁面不會永遠空白
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setForceShowContent(true);
-    }, 3000); // 3秒後強制顯示內容
-
-    return () => clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     if (subdomainLoading || !accommodationId) return;
@@ -157,27 +146,9 @@ const Index = () => {
     }
   };
 
-  // 只等待數據載入，或者在超時後強制顯示
-  if (!data || (!isFirstImageLoaded && !forceShowContent)) {
-    return (
-      <>
-        <FrontendSkeleton />
-        {/* 隱藏預載入第一張圖片 */}
-        {data && (
-          <div style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}>
-            <HeroSection 
-              accommodationName={data.info.name}
-              heroMainTitle={data.info.hero_main_title}
-              heroSubtitle={data.info.hero_subtitle}
-              heroDescription={data.info.hero_description}
-              heroOverlayOpacity={data.info.hero_overlay_opacity}
-              heroAutoplayDelay={data.info.hero_autoplay_delay}
-              onFirstImageLoad={() => setIsFirstImageLoaded(true)}
-            />
-          </div>
-        )}
-      </>
-    );
+  // 只等待數據載入完成即顯示
+  if (!data) {
+    return <FrontendSkeleton />;
   }
 
   return (
