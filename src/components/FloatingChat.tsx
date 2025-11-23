@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageCircle, X, Send, Loader2 } from "lucide-react";
+import { MessageCircle, X, Send, Loader2, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -17,11 +18,12 @@ interface FloatingChatProps {
 }
 
 export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "您好！我是森山寫照的訂房助手 🏡\n\n我可以協助您：\n• 查詢可用房型和價格\n• 了解旅宿資訊和設施\n• 完成線上訂房\n\n請問您想要什麼時候入住呢？"
+      content: "您好！我是森山寫照的訂房助手 🏡\n\n我可以協助您：\n• 了解旅宿資訊和房型\n• 回答訂房相關問題\n• 引導您完成線上訂房\n\n請問有什麼可以幫助您的嗎？"
     }
   ]);
   const [input, setInput] = useState("");
@@ -232,6 +234,22 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
                 </div>
               )}
             </div>
+            
+            {/* 快速操作按鈕 */}
+            {!isLoading && (
+              <div className="mt-4 pt-4 border-t">
+                <p className="text-xs text-muted-foreground mb-2">快速操作</p>
+                <Button 
+                  onClick={() => navigate('/booking')}
+                  variant="outline"
+                  className="w-full"
+                  size="sm"
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  開始訂房
+                </Button>
+              </div>
+            )}
           </ScrollArea>
 
           {/* 輸入區域 */}
