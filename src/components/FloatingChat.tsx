@@ -47,10 +47,16 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
     const userMessage = input.trim();
     setInput("");
     
+    await sendMessageWithContent(userMessage);
+  };
+
+  const sendMessageWithContent = async (content: string) => {
+    if (isLoading) return;
+
     // 添加用戶訊息
     const newMessages: Message[] = [
       ...messages,
-      { role: "user", content: userMessage }
+      { role: "user", content }
     ];
     setMessages(newMessages);
     setIsLoading(true);
@@ -275,6 +281,15 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
                                     平日：NT$ {room.weekday_price?.toLocaleString()} / 
                                     假日：NT$ {room.weekend_price?.toLocaleString()}
                                   </div>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="mt-2 w-full"
+                                    onClick={() => sendMessageWithContent(`我要選擇 ${room.name}（房型ID: ${room.id}）`)}
+                                    disabled={isLoading}
+                                  >
+                                    選擇此房型
+                                  </Button>
                                 </div>
                               ))}
                             </div>
