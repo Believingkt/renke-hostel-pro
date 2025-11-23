@@ -34,6 +34,7 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [bookingStep, setBookingStep] = useState(1); // 1: 日期, 2: 房型, 3: 客人資訊, 4: 確認
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -140,6 +141,16 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
             if (parsed.type === 'tool_calls_complete') {
               console.log("工具呼叫結果:", parsed.results);
               
+              // 根據工具類型更新步驟
+              parsed.results.forEach((r: any) => {
+                if (r.result?.rooms && bookingStep < 2) {
+                  setBookingStep(2); // 查詢到房型，進入房型選擇步驟
+                }
+                if (r.result?.success && bookingStep < 4) {
+                  setBookingStep(4); // 訂單創建成功，進入確認步驟
+                }
+              });
+              
               // 將工具調用結果添加到最後一條消息
               setMessages(prev => {
                 const updated = [...prev];
@@ -172,28 +183,32 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
             if (content) {
               assistantMessage += content;
               
-              // 根據內容動態生成快速回覆選項
+              // 根據內容動態生成快速回覆選項並更新訂房步驟
               let quickReplies: string[] = [];
               const lowerContent = assistantMessage.toLowerCase();
               
               // 如果提到日期，提供日期相關的快速回覆
               if (lowerContent.includes('日期') || lowerContent.includes('入住')) {
                 quickReplies = ["查看可用日期", "有折扣碼嗎？"];
+                if (bookingStep < 1) setBookingStep(1);
               }
               
               // 如果提到房型選擇
               if (lowerContent.includes('房型') || lowerContent.includes('選擇')) {
                 quickReplies = ["查看所有房型", "有其他選擇嗎？"];
+                if (bookingStep < 2) setBookingStep(2);
               }
               
               // 如果提到客人資訊
               if (lowerContent.includes('姓名') || lowerContent.includes('手機') || lowerContent.includes('聯絡')) {
                 quickReplies = ["確認無誤", "需要修改"];
+                if (bookingStep < 3) setBookingStep(3);
               }
               
               // 如果提到確認
               if (lowerContent.includes('確認') && lowerContent.includes('訂單')) {
                 quickReplies = ["確認訂房", "我再想想"];
+                if (bookingStep < 4) setBookingStep(4);
               }
               
               setMessages(prev => {
@@ -267,6 +282,34 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
             >
               <X className="h-5 w-5" />
             </Button>
+          </div>
+
+          {/* 訂房進度條 */}
+          <div className="px-4 py-3 bg-muted/30 border-b">
+            <div className="flex items-center justify-between text-xs mb-2">
+              <span className={bookingStep >= 1 ? "text-primary font-semibold" : "text-muted-foreground"}>
+                1. 日期
+              </span>
+              <span className={bookingStep >= 2 ? "text-primary font-semibold" : "text-muted-foreground"}>
+                2. 房型
+              </span>
+              <span className={bookingStep >= 3 ? "text-primary font-semibold" : "text-muted-foreground"}>
+                3. 客人資訊
+              </span>
+              <span className={bookingStep >= 4 ? "text-primary font-semibold" : "text-muted-foreground"}>
+                4. 確認
+              </span>
+            </div>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4].map((step) => (
+                <div
+                  key={step}
+                  className={`h-1.5 flex-1 rounded-full transition-all ${
+                    bookingStep >= step ? "bg-primary" : "bg-muted"
+                  }`}
+                />
+              ))}
+            </div>
           </div>
 
           {/* 訊息區域 */}
