@@ -91,8 +91,8 @@ serve(async (req) => {
 
     const recipientName = profile?.name || targetUser.user.user_metadata?.name || '使用者';
 
-    // Get the site URL for redirect
-    const siteUrl = Deno.env.get("SUPABASE_URL")?.replace('.supabase.co', '.lovable.app') || '';
+    // Use production domain for redirect
+    const siteUrl = 'https://sensaninn.lakeze.com';
     
     // Generate password reset link for the user
     const { data: resetData, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
