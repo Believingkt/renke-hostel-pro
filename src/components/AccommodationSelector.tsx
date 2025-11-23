@@ -24,14 +24,17 @@ interface Accommodation {
 }
 
 export function AccommodationSelector() {
-  const { currentAccommodationId, setCurrentAccommodationId, userAccommodations } = useAccommodation();
+  const { currentAccommodationId, setCurrentAccommodationId, userAccommodations, isLoading: contextIsLoading } = useAccommodation();
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    loadAccommodations();
-  }, [userAccommodations]);
+    // Wait for context to finish loading before loading accommodations
+    if (!contextIsLoading) {
+      loadAccommodations();
+    }
+  }, [userAccommodations, contextIsLoading]);
 
   const loadAccommodations = async () => {
     try {
@@ -59,7 +62,13 @@ export function AccommodationSelector() {
     }
   };
 
-  if (isLoading || accommodations.length === 0) {
+  // Show loading state while either context or component is loading
+  if (contextIsLoading || isLoading) {
+    return null;
+  }
+
+  // If no accommodations available, don't render
+  if (accommodations.length === 0) {
     return null;
   }
 
