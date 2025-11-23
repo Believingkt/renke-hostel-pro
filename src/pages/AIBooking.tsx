@@ -781,12 +781,12 @@ export default function AIBooking() {
                   >
                     {/* AI 助手頭像和名字 */}
                     {message.role === "assistant" && (
-                      <div className="flex flex-col items-center gap-1 flex-shrink-0">
-                        <Avatar className="h-10 w-10 border-2 border-primary/20 shadow-sm">
-                          <AvatarImage src={assistantAvatar} alt="小安" />
+                      <div className="flex flex-col items-center gap-1 flex-shrink-0 group">
+                        <Avatar className="h-10 w-10 border-2 border-primary/20 shadow-sm transition-all duration-300 hover:scale-110 hover:shadow-xl hover:border-primary/40 hover:-translate-y-1 cursor-pointer">
+                          <AvatarImage src={assistantAvatar} alt="小安" className="transition-transform duration-300 group-hover:scale-105" />
                           <AvatarFallback className="bg-primary text-primary-foreground text-sm">小安</AvatarFallback>
                         </Avatar>
-                        <span className="text-xs font-medium text-muted-foreground">小安</span>
+                        <span className="text-xs font-medium text-muted-foreground transition-colors duration-300 group-hover:text-primary">小安</span>
                       </div>
                     )}
                     
@@ -802,13 +802,13 @@ export default function AIBooking() {
 
                     {/* 用戶頭像 */}
                     {message.role === "user" && (
-                      <div className="flex flex-col items-center gap-1 flex-shrink-0">
-                        <Avatar className="h-10 w-10 border-2 border-primary/20 shadow-sm">
-                          <AvatarFallback className="bg-primary text-primary-foreground">
+                      <div className="flex flex-col items-center gap-1 flex-shrink-0 group">
+                        <Avatar className="h-10 w-10 border-2 border-primary/20 shadow-sm transition-all duration-300 hover:scale-110 hover:shadow-xl hover:border-primary/40 hover:-translate-y-1 cursor-pointer">
+                          <AvatarFallback className="bg-primary text-primary-foreground transition-transform duration-300 group-hover:scale-105">
                             <User className="h-5 w-5" />
                           </AvatarFallback>
                         </Avatar>
-                        <span className="text-xs font-medium text-muted-foreground">訪客</span>
+                        <span className="text-xs font-medium text-muted-foreground transition-colors duration-300 group-hover:text-primary">訪客</span>
                       </div>
                     )}
                   </div>
