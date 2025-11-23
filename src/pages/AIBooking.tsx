@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Loader2, ArrowLeft, RotateCcw, User } from "lucide-react";
+import { Send, Loader2, ArrowLeft, RotateCcw, User, Mic, MicOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSubdomain } from "@/hooks/use-subdomain";
@@ -34,6 +34,8 @@ export default function AIBooking() {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [bookingStep, setBookingStep] = useState(1);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -248,6 +250,94 @@ export default function AIBooking() {
       title: "已重新開始",
       description: "對話已清除，可以重新訂房了",
     });
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const audioChunks: Blob[] = [];
+
+      recorder.ondataavailable = (event) => {
+        audioChunks.push(event.data);
+      };
+
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        await processAudio(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      recorder.start();
+      setMediaRecorder(recorder);
+      setIsRecording(true);
+      toast({
+        title: "🎤 開始錄音",
+        description: "請說出您的問題，完成後再次點擊麥克風按鈕",
+      });
+    } catch (error) {
+      console.error('錄音錯誤:', error);
+      toast({
+        title: "錄音失敗",
+        description: "無法訪問麥克風，請確認已授予麥克風權限",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+      setIsRecording(false);
+      setMediaRecorder(null);
+      toast({
+        title: "⏸️ 錄音結束",
+        description: "正在處理您的語音...",
+      });
+    }
+  };
+
+  const processAudio = async (audioBlob: Blob) => {
+    setIsLoading(true);
+    try {
+      const reader = new FileReader();
+      reader.readAsDataURL(audioBlob);
+      
+      reader.onloadend = async () => {
+        const base64Audio = (reader.result as string).split(',')[1];
+        
+        const { data, error } = await supabase.functions.invoke('speech-to-text', {
+          body: { audio: base64Audio }
+        });
+
+        if (error) throw error;
+
+        if (data?.text) {
+          setInput(data.text);
+          toast({
+            title: "✅ 語音識別成功",
+            description: "已將語音轉換為文字，您可以編輯後發送",
+          });
+        }
+      };
+    } catch (error) {
+      console.error('語音處理錯誤:', error);
+      toast({
+        title: "語音處理失敗",
+        description: "無法處理您的語音，請重試或直接輸入文字",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const toggleRecording = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
   };
 
   return (
@@ -586,12 +676,26 @@ export default function AIBooking() {
           {/* 輸入區域 */}
           <div className="p-4 md:p-6 border-t bg-background/50 backdrop-blur-sm">
             <div className="flex gap-3">
+              <Button
+                onClick={toggleRecording}
+                disabled={isLoading}
+                size="icon"
+                variant={isRecording ? "destructive" : "outline"}
+                className={`h-12 w-12 transition-all duration-200 ${isRecording ? "animate-pulse" : ""}`}
+                title={isRecording ? "停止錄音" : "語音輸入"}
+              >
+                {isRecording ? (
+                  <MicOff className="h-5 w-5" />
+                ) : (
+                  <Mic className="h-5 w-5" />
+                )}
+              </Button>
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="輸入訊息..."
-                disabled={isLoading}
+                placeholder={isRecording ? "🎤 正在錄音中..." : "輸入訊息或點擊麥克風說話..."}
+                disabled={isLoading || isRecording}
                 className="flex-1 transition-all duration-200 focus:ring-2 focus:ring-primary/20 h-12 text-base"
               />
               <Button
