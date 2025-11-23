@@ -51,7 +51,17 @@ interface AccommodationData {
 const Index = () => {
   const [data, setData] = useState<AccommodationData | null>(null);
   const [isFirstImageLoaded, setIsFirstImageLoaded] = useState(false);
+  const [forceShowContent, setForceShowContent] = useState(false);
   const { accommodationId, isLoading: subdomainLoading, error: subdomainError } = useSubdomain();
+
+  // 添加超時機制，確保頁面不會永遠空白
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setForceShowContent(true);
+    }, 3000); // 3秒後強制顯示內容
+
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (subdomainLoading || !accommodationId) return;
@@ -147,7 +157,8 @@ const Index = () => {
     }
   };
 
-  if (!data || !isFirstImageLoaded) {
+  // 只等待數據載入，或者在超時後強制顯示
+  if (!data || (!isFirstImageLoaded && !forceShowContent)) {
     return (
       <>
         <FrontendSkeleton />
