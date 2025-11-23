@@ -34,6 +34,17 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     loadUserAccommodations();
+
+    // Listen to auth state changes to reload accommodations when user logs in
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        loadUserAccommodations();
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const loadUserAccommodations = async () => {
@@ -45,6 +56,8 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
         return;
       }
 
+      console.log('[AccommodationContext] Loading user accommodations for user:', session.user.id);
+
       // Use Promise to avoid blocking
       const { data, error } = await supabase
         .from('user_roles')
@@ -53,25 +66,23 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
         .limit(10); // Add limit for faster query
 
       if (error) {
-        if (import.meta.env.DEV) {
-          console.error('Error loading user accommodations:', error);
-        }
+        console.error('[AccommodationContext] Error loading user accommodations:', error);
         setIsLoading(false);
         return;
       }
 
+      console.log('[AccommodationContext] Loaded accommodations:', data);
       setUserAccommodations(data || []);
 
       // Auto-select first accommodation if only one exists
       if (data && data.length === 1 && !currentAccommodationId) {
+        console.log('[AccommodationContext] Auto-selecting accommodation:', data[0].accommodation_id);
         setCurrentAccommodationId(data[0].accommodation_id);
       }
       
       setIsLoading(false);
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error loading user accommodations:', error);
-      }
+      console.error('[AccommodationContext] Error loading user accommodations:', error);
       setIsLoading(false);
     }
   };
