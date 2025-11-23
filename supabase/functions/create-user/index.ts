@@ -142,6 +142,7 @@ serve(async (req) => {
       email_confirm: true, // Auto-confirm email since we have auto_confirm enabled
       user_metadata: {
         name,
+        force_password_change: true,
       },
     });
 

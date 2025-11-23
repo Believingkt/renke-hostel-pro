@@ -21,11 +21,11 @@ export default function Auth() {
   const [inviteEmail, setInviteEmail] = useState("");
 
   useEffect(() => {
-    // Check if this is an invite link
+    // Check if this is an invite/recovery link
     const type = searchParams.get('type');
     const tokenHash = searchParams.get('token_hash');
     
-    if (type === 'invite' || tokenHash) {
+    if (type === 'recovery' || type === 'invite' || tokenHash) {
       setIsInviteMode(true);
       // Extract email from session if available
       supabase.auth.getSession().then(({ data: { session } }) => {
@@ -126,11 +126,24 @@ export default function Auth() {
 
     try {
       // Update password for invited user
-      const { error } = await supabase.auth.updateUser({
+      const { error: updateError } = await supabase.auth.updateUser({
         password: newPassword,
       });
 
-      if (error) throw error;
+      if (updateError) throw updateError;
+
+      // Update profile to remove force_password_change flag
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.id) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ force_password_change: false })
+          .eq('id', session.user.id);
+        
+        if (profileError && import.meta.env.DEV) {
+          console.error("Error updating profile:", profileError);
+        }
+      }
 
       toast.success("密碼設定成功！正在登入...");
       
