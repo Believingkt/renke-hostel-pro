@@ -438,7 +438,7 @@ export default function AIBooking() {
         const { data, error } = await supabase.functions.invoke('text-to-speech', {
           body: { 
             text: text, 
-            voice: '9BWtsMINqrJLrRacOk9x' // ElevenLabs Aria 語音 ID
+            voice: 'kGjJqO6wdwRN9iJsoeIC' // ElevenLabs 中文母語者語音 ID
           }
         });
 
