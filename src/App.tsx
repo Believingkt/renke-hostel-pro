@@ -12,6 +12,7 @@ import { ChunkErrorBoundary } from "@/components/ChunkErrorBoundary";
 // 路由懶加載 - 前台頁面
 const Index = lazy(() => import("./pages/Index"));
 const BookingFlow = lazy(() => import("./pages/BookingFlow"));
+const AIBooking = lazy(() => import("./pages/AIBooking"));
 const OrderSearch = lazy(() => import("./pages/OrderSearch"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const OgImagePreview = lazy(() => import("./pages/OgImagePreview"));
@@ -68,6 +69,7 @@ function App() {
               <Route element={<ConditionalLayout />}>
                 <Route path="/" element={<Index />} />
                 <Route path="/booking" element={<BookingFlow />} />
+                <Route path="/ai-booking" element={<AIBooking />} />
                 <Route path="/order-search" element={<OrderSearch />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/change-password" element={<ChangePassword />} />
