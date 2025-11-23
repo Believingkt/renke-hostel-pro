@@ -271,23 +271,23 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
       {!isOpen && (
         <Button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90 z-50"
+          className="fixed bottom-4 right-4 md:bottom-6 md:right-6 h-14 w-14 md:h-16 md:w-16 rounded-full shadow-lg bg-primary hover:bg-primary/90 z-50 animate-scale-in"
           size="icon"
         >
-          <MessageCircle className="h-6 w-6" />
+          <MessageCircle className="h-6 w-6 md:h-7 md:w-7" />
         </Button>
       )}
 
       {/* 聊天視窗 */}
       {isOpen && (
-        <Card className="fixed bottom-6 right-6 w-96 h-[600px] shadow-2xl z-50 flex flex-col border-primary/20">
+        <Card className="fixed inset-0 md:bottom-6 md:right-6 md:inset-auto md:w-96 md:h-[600px] w-full h-full md:rounded-lg shadow-2xl z-50 flex flex-col border-primary/20 animate-slide-in-right md:animate-scale-in">
           {/* 標題列 */}
-          <div className="flex items-center justify-between p-4 border-b bg-primary text-primary-foreground rounded-t-lg">
-            <div className="flex items-center gap-2">
-              <MessageCircle className="h-5 w-5" />
+          <div className="flex items-center justify-between p-4 md:p-4 border-b bg-primary text-primary-foreground md:rounded-t-lg">
+            <div className="flex items-center gap-2 md:gap-3">
+              <MessageCircle className="h-5 w-5 md:h-6 md:w-6" />
               <div>
-                <h3 className="font-semibold">AI 訂房助手</h3>
-                <p className="text-xs opacity-90">森山寫照</p>
+                <h3 className="font-semibold text-base md:text-lg">AI 訂房助手</h3>
+                <p className="text-xs md:text-sm opacity-90">森山寫照</p>
               </div>
             </div>
             <div className="flex items-center gap-1">
@@ -295,25 +295,25 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
                 variant="ghost"
                 size="icon"
                 onClick={handleRestart}
-                className="hover:bg-primary-foreground/10"
+                className="hover:bg-primary-foreground/10 h-9 w-9 md:h-10 md:w-10"
                 title="重新開始"
               >
-                <RotateCcw className="h-4 w-4" />
+                <RotateCcw className="h-4 w-4 md:h-5 md:w-5" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsOpen(false)}
-                className="hover:bg-primary-foreground/10"
+                className="hover:bg-primary-foreground/10 h-9 w-9 md:h-10 md:w-10"
               >
-                <X className="h-5 w-5" />
+                <X className="h-5 w-5 md:h-6 md:w-6" />
               </Button>
             </div>
           </div>
 
           {/* 訂房進度條 */}
-          <div className="px-4 py-3 bg-muted/30 border-b">
-            <div className="flex items-center justify-between text-xs mb-2">
+          <div className="px-4 py-2 md:py-3 bg-muted/30 border-b">
+            <div className="flex items-center justify-between text-[10px] md:text-xs mb-2">
               <span className={bookingStep >= 1 ? "text-primary font-semibold" : "text-muted-foreground"}>
                 1. 日期
               </span>
@@ -321,7 +321,7 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
                 2. 房型
               </span>
               <span className={bookingStep >= 3 ? "text-primary font-semibold" : "text-muted-foreground"}>
-                3. 客人資訊
+                3. 資訊
               </span>
               <span className={bookingStep >= 4 ? "text-primary font-semibold" : "text-muted-foreground"}>
                 4. 確認
@@ -331,7 +331,7 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
               {[1, 2, 3, 4].map((step) => (
                 <div
                   key={step}
-                  className={`h-1.5 flex-1 rounded-full transition-all ${
+                  className={`h-1.5 md:h-2 flex-1 rounded-full transition-all duration-300 ${
                     bookingStep >= step ? "bg-primary" : "bg-muted"
                   }`}
                 />
@@ -340,7 +340,7 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
           </div>
 
           {/* 訊息區域 */}
-          <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+          <ScrollArea className="flex-1 p-3 md:p-4" ref={scrollRef}>
             <div className="space-y-4">
               {messages.map((message, index) => (
                 <div 
@@ -352,7 +352,7 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
                     className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                   >
                     <div
-                      className={`max-w-[80%] rounded-lg px-4 py-2 whitespace-pre-wrap transition-all duration-300 ${
+                      className={`max-w-[85%] md:max-w-[80%] rounded-lg px-3 py-2 md:px-4 md:py-2.5 whitespace-pre-wrap transition-all duration-300 text-sm md:text-base ${
                         message.role === "user"
                           ? "bg-primary text-primary-foreground animate-scale-in"
                           : "bg-muted animate-fade-in"
@@ -569,7 +569,7 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
           </ScrollArea>
 
           {/* 輸入區域 */}
-          <div className="p-4 border-t bg-background/50 backdrop-blur-sm">
+          <div className="p-3 md:p-4 border-t bg-background/50 backdrop-blur-sm safe-area-inset-bottom">
             <div className="flex gap-2">
               <Input
                 value={input}
@@ -577,22 +577,22 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
                 onKeyPress={handleKeyPress}
                 placeholder="輸入訊息..."
                 disabled={isLoading}
-                className="flex-1 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+                className="flex-1 transition-all duration-200 focus:ring-2 focus:ring-primary/20 h-10 md:h-11 text-base"
               />
               <Button
                 onClick={sendMessage}
                 disabled={!input.trim() || isLoading}
                 size="icon"
-                className="transition-all duration-200 hover-scale"
+                className="transition-all duration-200 hover-scale h-10 w-10 md:h-11 md:w-11"
               >
                 {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-5 w-5 md:h-4 md:w-4 animate-spin" />
                 ) : (
-                  <Send className="h-4 w-4" />
+                  <Send className="h-5 w-5 md:h-4 md:w-4" />
                 )}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-2 text-center">
+            <p className="text-[10px] md:text-xs text-muted-foreground mt-2 text-center">
               AI 助手可能會出錯，請核對重要資訊
             </p>
           </div>
