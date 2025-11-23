@@ -1,4 +1,5 @@
-import { createRoot } from "react-dom/client";
+import * as React from "react";
+import * as ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App.tsx";
 import "./index.css";
@@ -15,23 +16,24 @@ const queryClient = new QueryClient({
   },
 });
 
-createRoot(document.getElementById("root")!).render(
-  <QueryClientProvider client={queryClient}>
-    <App />
-  </QueryClientProvider>
-);
+const root = document.getElementById("root");
+if (root) {
+  ReactDOM.createRoot(root).render(
+    <QueryClientProvider client={queryClient}>
+      <App />
+    </QueryClientProvider>
+  );
+}
 
 // Clean up service workers and caches
-setTimeout(() => {
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then((registrations) => {
-      registrations.forEach(registration => registration.unregister());
-    });
-  }
-  
-  if ('caches' in window) {
-    caches.keys().then((names) => {
-      names.forEach(name => caches.delete(name));
-    });
-  }
-}, 1000);
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    registrations.forEach(registration => registration.unregister());
+  });
+}
+
+if ('caches' in window) {
+  caches.keys().then((names) => {
+    names.forEach(name => caches.delete(name));
+  });
+}

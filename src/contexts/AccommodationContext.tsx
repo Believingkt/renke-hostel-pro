@@ -1,5 +1,7 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import * as React from "react";
 import { supabase } from "@/integrations/supabase/client";
+
+const { createContext, useContext, useState, useEffect } = React;
 
 interface AccommodationContextType {
   currentAccommodationId: string | null;
@@ -19,7 +21,7 @@ interface AccommodationContextType {
 
 const AccommodationContext = createContext<AccommodationContextType | undefined>(undefined);
 
-export function AccommodationProvider({ children }: { children: ReactNode }) {
+export function AccommodationProvider({ children }: { children: React.ReactNode }) {
   const [currentAccommodationId, setCurrentAccommodationId] = useState<string | null>(null);
   const [userAccommodations, setUserAccommodations] = useState<Array<{
     accommodation_id: string;
