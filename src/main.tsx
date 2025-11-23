@@ -13,26 +13,22 @@ window.addEventListener('error', (event) => {
   }
 });
 
-// 註冊 Service Worker
+// 強制清除 Service Worker 快取
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/sw.js')
-      .then((registration) => {
-        // 檢查更新
-        registration.addEventListener('updatefound', () => {
-          const newWorker = registration.installing;
-          if (newWorker) {
-            newWorker.addEventListener('statechange', () => {
-              // New Service Worker available
-            });
-          }
-        });
-      })
-      .catch((error) => {
-        console.error('[App] Service Worker registration failed:', error);
-      });
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    for (const registration of registrations) {
+      registration.unregister();
+    }
   });
+  
+  // 清除所有快取
+  if ('caches' in window) {
+    caches.keys().then((names) => {
+      names.forEach(name => {
+        caches.delete(name);
+      });
+    });
+  }
 }
 
 // 創建 React Query 客戶端
