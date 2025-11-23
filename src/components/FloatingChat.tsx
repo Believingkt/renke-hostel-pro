@@ -23,7 +23,7 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "您好！我是森山寫照的訂房助手 🏡\n\n我可以協助您：\n• 了解旅宿資訊和房型\n• 回答訂房相關問題\n• 引導您完成線上訂房\n\n請問有什麼可以幫助您的嗎？"
+      content: "您好！我是森山寫照的 AI 訂房助手 😊\n\n我可以直接幫您完成訂房！請問您想什麼時候入住呢？\n\n請提供您的：\n📅 入住日期\n📅 退房日期"
     }
   ]);
   const [input, setInput] = useState("");
