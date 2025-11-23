@@ -58,7 +58,6 @@ const Index = () => {
     const timer = setTimeout(() => {
       if (!data) {
         setLoadTimeout(true);
-        console.error('頁面載入超時');
       }
     }, 10000);
 
@@ -70,14 +69,11 @@ const Index = () => {
 
     const loadData = async () => {
       try {
-        console.log('開始載入數據，accommodationId:', accommodationId);
         const { data: infoData } = await supabase
           .from("accommodation_info")
           .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, og_title, og_description, og_image_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay")
           .eq("id", accommodationId)
           .single();
-        
-        console.log('基本資料載入完成:', infoData);
         
         if (infoData) {
           // 一次性加载所有数据，避免多次渲染导致的闪烁
@@ -121,19 +117,16 @@ const Index = () => {
             room_photos: (room.room_photos || []).sort((a, b) => a.display_order - b.display_order)
           }));
 
-          const finalData = {
+          setData({
             info: infoData,
             roomTypes: roomTypesWithPhotos,
             bookingSettings: bookingSettingsRes.data,
             facilities: facilitiesRes.data || [],
             photos: photosRes.data || [],
             locationInfo: locationInfoRes.data
-          };
-          console.log('所有數據載入完成:', finalData);
-          setData(finalData);
+          });
         }
       } catch (error) {
-        console.error('載入數據時發生錯誤:', error);
         if (import.meta.env.DEV) {
           console.error('Error fetching data:', error);
         }
@@ -144,12 +137,10 @@ const Index = () => {
   }, [accommodationId, subdomainLoading]);
 
   if (subdomainLoading) {
-    console.log('等待子域名載入...');
     return <FrontendSkeleton />;
   }
 
   if (subdomainError) {
-    console.error('子域名載入錯誤:', subdomainError);
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -161,7 +152,6 @@ const Index = () => {
   }
 
   if (loadTimeout) {
-    console.error('頁面載入超時');
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -181,11 +171,8 @@ const Index = () => {
 
   // 只等待數據載入完成即顯示
   if (!data) {
-    console.log('等待數據載入...');
     return <FrontendSkeleton />;
   }
-
-  console.log('數據已載入，開始渲染頁面');
 
   return (
     <div className="min-h-screen">
