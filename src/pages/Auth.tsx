@@ -26,29 +26,35 @@ export default function Auth() {
     const tokenHash = searchParams.get('token_hash');
     
     if (type === 'recovery' || type === 'invite' || tokenHash) {
-      // When user clicks invite link, check if they need to set password
-      supabase.auth.getSession().then(async ({ data: { session } }) => {
-        if (session?.user) {
-          setInviteEmail(session.user.email || "");
+      // First, sign out any existing user to ensure invite link works correctly
+      supabase.auth.signOut().then(() => {
+        // After sign out, the invite link will automatically create a new session
+        // Wait a bit for the auth state to update
+        setTimeout(async () => {
+          const { data: { session } } = await supabase.auth.getSession();
           
-          // Check if user needs to change password
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("force_password_change")
-            .eq("id", session.user.id)
-            .single();
-          
-          if (profile?.force_password_change) {
-            // User needs to set password, stay in invite mode
-            setIsInviteMode(true);
+          if (session?.user) {
+            setInviteEmail(session.user.email || "");
+            
+            // Check if user needs to change password
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("force_password_change")
+              .eq("id", session.user.id)
+              .single();
+            
+            if (profile?.force_password_change) {
+              // User needs to set password, stay in invite mode
+              setIsInviteMode(true);
+            } else {
+              // Password already set, redirect to admin
+              navigate("/admin");
+            }
           } else {
-            // Password already set, redirect to admin
-            navigate("/admin");
+            // No session yet, show invite mode
+            setIsInviteMode(true);
           }
-        } else {
-          // No session yet, show invite mode
-          setIsInviteMode(true);
-        }
+        }, 500);
       });
       return;
     }
