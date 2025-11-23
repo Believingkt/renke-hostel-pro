@@ -39,11 +39,13 @@ export function AccommodationSelector() {
   const loadAccommodations = async () => {
     try {
       if (userAccommodations.length === 0) {
+        console.log('[AccommodationSelector] No user accommodations available');
         setIsLoading(false);
         return;
       }
 
       const accommodationIds = userAccommodations.map(ua => ua.accommodation_id);
+      console.log('[AccommodationSelector] Loading accommodations:', accommodationIds);
 
       const { data, error } = await supabase
         .from('accommodation_info')
@@ -52,11 +54,10 @@ export function AccommodationSelector() {
 
       if (error) throw error;
 
+      console.log('[AccommodationSelector] Loaded accommodation info:', data);
       setAccommodations(data || []);
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error loading accommodations:', error);
-      }
+      console.error('[AccommodationSelector] Error loading accommodations:', error);
     } finally {
       setIsLoading(false);
     }
