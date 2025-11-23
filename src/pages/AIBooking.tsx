@@ -354,57 +354,83 @@ export default function AIBooking() {
   };
 
   const splitTextIntoSegments = (text: string): string[] => {
-    // 清理文字
+    // 清理文字（保留換行以識別段落，但移除過多的空白）
     const cleanText = text
-      .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
+      .replace(/[\u{1F300}-\u{1F9FF}]/gu, '') // 移除 emoji
       .replace(/[\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
       .replace(/[\u{1F600}-\u{1F64F}]/gu, '')
       .replace(/[\uDC00-\uDFFF]/g, '')
-      .replace(/\*/g, '')
-      .replace(/\n+/g, '。 ')
-      .replace(/\s+/g, ' ')
+      .replace(/\*/g, '') // 移除星號
+      .replace(/\n{3,}/g, '\n\n') // 將多個換行縮減為雙換行
+      .replace(/[ \t]+/g, ' ') // 縮減空格
       .trim();
 
     if (!cleanText || cleanText.length < 2) return [];
 
-    // 按標點符號分段（優先在句號、問號、驚嘆號處分段）
     const segments: string[] = [];
-    const sentenceEnders = /([。！？])/g;
-    const sentences = cleanText.split(sentenceEnders);
     
-    let currentSegment = '';
-    const maxSegmentLength = 200; // 每段最多 200 字
+    // 首先按段落分隔（雙換行或單換行）
+    const paragraphs = cleanText.split(/\n+/);
     
-    for (let i = 0; i < sentences.length; i++) {
-      const part = sentences[i];
-      if (!part.trim()) continue;
+    for (const paragraph of paragraphs) {
+      if (!paragraph.trim()) continue;
       
-      // 如果是標點符號，加到當前句子
-      if (sentenceEnders.test(part)) {
-        currentSegment += part;
-        
-        // 達到適當長度就分段
-        if (currentSegment.length >= 80) {
-          segments.push(currentSegment.trim());
-          currentSegment = '';
-        }
+      // 對每個段落，如果太長就進一步分段
+      if (paragraph.length <= 150) {
+        // 段落不長，直接加入
+        segments.push(paragraph.trim());
       } else {
-        // 如果加上這句會太長，先保存當前段落
-        if (currentSegment.length + part.length > maxSegmentLength && currentSegment.length > 0) {
-          segments.push(currentSegment.trim());
-          currentSegment = part;
-        } else {
-          currentSegment += part;
+        // 段落太長，按句子分段
+        const sentences: string[] = [];
+        let currentSentence = '';
+        
+        // 使用更細緻的分句規則
+        const sentencePattern = /([^。！？；：、，\n]+[。！？；：、，\n]?)/g;
+        const matches = paragraph.match(sentencePattern) || [paragraph];
+        
+        for (const match of matches) {
+          const sentence = match.trim();
+          if (!sentence) continue;
+          
+          // 判斷是否為句子結束標點
+          const isEndPunctuation = /[。！？]$/.test(sentence);
+          const isMiddlePunctuation = /[；：、，]$/.test(sentence);
+          
+          if (currentSentence.length === 0) {
+            currentSentence = sentence;
+          } else if (currentSentence.length + sentence.length <= 150) {
+            // 還可以繼續累積
+            currentSentence += sentence;
+          } else {
+            // 當前句子已經夠長，保存並開始新句
+            if (currentSentence.trim()) {
+              sentences.push(currentSentence.trim());
+            }
+            currentSentence = sentence;
+          }
+          
+          // 如果遇到句子結束標點且已有一定長度，就分段
+          if (isEndPunctuation && currentSentence.length >= 50) {
+            if (currentSentence.trim()) {
+              sentences.push(currentSentence.trim());
+            }
+            currentSentence = '';
+          }
         }
+        
+        // 加入最後累積的句子
+        if (currentSentence.trim()) {
+          sentences.push(currentSentence.trim());
+        }
+        
+        segments.push(...sentences);
       }
     }
     
-    // 加入最後一段
-    if (currentSegment.trim()) {
-      segments.push(currentSegment.trim());
-    }
-    
-    return segments.filter(s => s.length > 5); // 過濾太短的片段
+    // 過濾太短的片段並返回
+    return segments
+      .map(s => s.trim())
+      .filter(s => s.length >= 3);
   };
 
   const playAudioSegment = async (text: string): Promise<void> => {
@@ -462,12 +488,25 @@ export default function AIBooking() {
           break;
         }
         
-        console.log(`播放第 ${i + 1}/${segments.length} 段`);
-        await playAudioSegment(segments[i]);
+        const segment = segments[i];
+        console.log(`播放第 ${i + 1}/${segments.length} 段（${segment.length} 字）: ${segment.substring(0, 20)}...`);
+        await playAudioSegment(segment);
         
-        // 段落之間稍微停頓
+        // 根據文本內容決定停頓時間
         if (i < segments.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 300));
+          // 判斷當前段落的結束標點
+          const lastChar = segment.trim().slice(-1);
+          let pauseDuration = 300; // 預設停頓
+          
+          if (lastChar === '。' || lastChar === '！' || lastChar === '？') {
+            pauseDuration = 500; // 句號、驚嘆號、問號停頓較長
+          } else if (lastChar === '；' || lastChar === '：') {
+            pauseDuration = 400; // 分號、冒號中等停頓
+          } else if (lastChar === '、' || lastChar === '，') {
+            pauseDuration = 250; // 頓號、逗號短停頓
+          }
+          
+          await new Promise(resolve => setTimeout(resolve, pauseDuration));
         }
       }
     } catch (error) {
