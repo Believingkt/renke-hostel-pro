@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Loader2, ArrowLeft, RotateCcw } from "lucide-react";
+import { Send, Loader2, ArrowLeft, RotateCcw, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSubdomain } from "@/hooks/use-subdomain";
@@ -406,6 +406,18 @@ export default function AIBooking() {
                     >
                       {message.content}
                     </div>
+
+                    {/* 用戶頭像 */}
+                    {message.role === "user" && (
+                      <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                        <Avatar className="h-10 w-10 border-2 border-primary/20 shadow-sm">
+                          <AvatarFallback className="bg-primary text-primary-foreground">
+                            <User className="h-5 w-5" />
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-xs font-medium text-muted-foreground">訪客</span>
+                      </div>
+                    )}
                   </div>
                   
                   {/* 顯示工具調用結果 */}
