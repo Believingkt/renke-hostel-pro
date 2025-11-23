@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Loader2, ArrowLeft, RotateCcw, User, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Send, Loader2, ArrowLeft, RotateCcw, User, Mic, MicOff, Volume2, VolumeX, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSubdomain } from "@/hooks/use-subdomain";
@@ -39,6 +41,7 @@ export default function AIBooking() {
   const [bookingStep, setBookingStep] = useState(1);
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [voiceSpeed, setVoiceSpeed] = useState(0.95); // 語音速度，0.95 讓中文更清晰
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -366,7 +369,11 @@ export default function AIBooking() {
       }
 
       const { data, error } = await supabase.functions.invoke('text-to-speech', {
-        body: { text: cleanText, voice: 'nova' }
+        body: { 
+          text: cleanText, 
+          voice: 'nova', // nova 聲音溫暖親切，適合客服場景
+          speed: voiceSpeed 
+        }
       });
 
       if (error) throw error;
@@ -461,6 +468,54 @@ export default function AIBooking() {
                 <VolumeX className="h-4 w-4" />
               )}
             </Button>
+            
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-primary-foreground hover:bg-primary-foreground/10"
+                  title="語音設定"
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80">
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-medium mb-2">語音速度</h4>
+                    <div className="flex items-center gap-4">
+                      <span className="text-sm text-muted-foreground w-12">慢</span>
+                      <Slider
+                        value={[voiceSpeed]}
+                        onValueChange={(value) => {
+                          setVoiceSpeed(value[0]);
+                          toast({
+                            title: "語音速度已調整",
+                            description: `當前速度：${value[0].toFixed(2)}x`,
+                          });
+                        }}
+                        min={0.5}
+                        max={1.5}
+                        step={0.05}
+                        className="flex-1"
+                      />
+                      <span className="text-sm text-muted-foreground w-12">快</span>
+                    </div>
+                    <div className="text-center mt-2">
+                      <span className="text-sm font-medium">{voiceSpeed.toFixed(2)}x</span>
+                    </div>
+                  </div>
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <p>💡 建議速度：</p>
+                    <p>• 0.85x - 0.95x：更清晰易懂</p>
+                    <p>• 1.0x：標準速度</p>
+                    <p>• 1.1x - 1.3x：更快速流暢</p>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+            
             <Button
               variant="ghost"
               size="sm"

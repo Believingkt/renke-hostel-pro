@@ -11,13 +11,13 @@ serve(async (req) => {
   }
 
   try {
-    const { text, voice } = await req.json()
+    const { text, voice, speed } = await req.json()
 
     if (!text) {
       throw new Error('未提供文字內容')
     }
 
-    console.log('開始生成語音，文字長度:', text.length)
+    console.log('開始生成語音，文字長度:', text.length, '速度:', speed || 1.0)
 
     // 使用 OpenAI TTS API 生成語音
     const response = await fetch('https://api.openai.com/v1/audio/speech', {
@@ -27,10 +27,11 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'tts-1',
+        model: 'tts-1-hd', // 使用高清版本，語音更自然
         input: text,
-        voice: voice || 'nova', // nova 語音適合中文
+        voice: voice || 'nova', // nova 語音適合中文，聲音溫暖親切
         response_format: 'mp3',
+        speed: speed || 0.95, // 稍微放慢一點，讓中文發音更清晰
       }),
     })
 
