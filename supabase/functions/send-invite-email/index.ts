@@ -37,8 +37,8 @@ const handler = async (req: Request): Promise<Response> => {
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
             .header { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
             .content { background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; border-top: none; }
-            .button { display: inline-block; padding: 12px 30px; background: #f97316; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: 600; }
-            .button:hover { background: #ea580c; }
+            .button { display: inline-block; padding: 12px 30px; background: #2563eb; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: 600; }
+            .button:hover { background: #1d4ed8; }
             .footer { text-align: center; color: #888; font-size: 12px; margin-top: 20px; }
             .highlight { color: #2563eb; font-weight: 600; }
           </style>
