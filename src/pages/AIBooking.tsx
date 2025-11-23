@@ -357,21 +357,40 @@ export default function AIBooking() {
     try {
       setIsPlayingAudio(true);
       
-      // 移除 emoji 和特殊字符，只保留文字內容
+      // 清理文字：移除 emoji、特殊字符、無效 unicode
       const cleanText = text
-        .replace(/[😊🎉✨💰📋🏠🚗❌👥🐾📅💳✓❌]/g, '')
+        // 移除 emoji
+        .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
+        // 移除常見 emoji 範圍
+        .replace(/[\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
+        // 移除其他符號
+        .replace(/[\u{1F600}-\u{1F64F}]/gu, '')
+        // 移除無效或問題 unicode 字符
+        .replace(/[\uDC00-\uDFFF]/g, '')
+        // 移除 markdown 符號
         .replace(/\*/g, '')
+        // 正規化換行符號（替換為空格）
+        .replace(/\n+/g, ' ')
+        // 移除多餘空格
+        .replace(/\s+/g, ' ')
         .trim();
 
-      if (!cleanText) {
+      if (!cleanText || cleanText.length < 2) {
         setIsPlayingAudio(false);
         return;
       }
 
+      // 限制文字長度避免太長（OpenAI TTS 限制 4096 字元）
+      const truncatedText = cleanText.length > 1000 
+        ? cleanText.substring(0, 1000) + '...' 
+        : cleanText;
+
+      console.log('準備播放語音，文字長度:', truncatedText.length);
+
       const { data, error } = await supabase.functions.invoke('text-to-speech', {
         body: { 
-          text: cleanText, 
-          voice: 'nova', // nova 聲音溫暖親切，適合客服場景
+          text: truncatedText, 
+          voice: 'nova',
           speed: voiceSpeed 
         }
       });
