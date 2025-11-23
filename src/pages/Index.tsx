@@ -69,11 +69,20 @@ const Index = () => {
 
     const loadData = async () => {
       try {
-        const { data: infoData } = await supabase
+        const { data: infoData, error: infoError } = await supabase
           .from("accommodation_info")
           .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, og_title, og_description, og_image_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay")
           .eq("id", accommodationId)
-          .single();
+          .maybeSingle();
+        
+        if (infoError) {
+          throw infoError;
+        }
+        
+        if (!infoData) {
+          setLoadTimeout(true);
+          return;
+        }
         
         if (infoData) {
           // 一次性加载所有数据，避免多次渲染导致的闪烁
@@ -155,8 +164,14 @@ const Index = () => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <p className="text-lg font-semibold text-destructive mb-2">載入超時</p>
+          <p className="text-lg font-semibold text-destructive mb-2">無法載入資料</p>
           <p className="text-sm text-muted-foreground">請重新整理頁面或稍後再試</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+          >
+            重新整理
+          </button>
         </div>
       </div>
     );
