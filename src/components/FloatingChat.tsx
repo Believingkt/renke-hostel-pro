@@ -15,6 +15,7 @@ interface Message {
     type: string;
     data: any;
   }[];
+  quickReplies?: string[];
 }
 
 interface FloatingChatProps {
@@ -27,7 +28,8 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "您好！我是森山寫照的 AI 訂房助手 😊\n\n我可以直接幫您完成訂房！請問您想什麼時候入住呢？\n\n請提供您的：\n📅 入住日期\n📅 退房日期"
+      content: "您好！我是森山寫照的 AI 訂房助手 😊\n\n我可以直接幫您完成訂房！請問您想什麼時候入住呢？\n\n請提供您的：\n📅 入住日期\n📅 退房日期",
+      quickReplies: ["查看房型資訊", "了解旅宿特色", "入住須知"]
     }
   ]);
   const [input, setInput] = useState("");
@@ -169,11 +171,37 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
             const content = parsed.choices?.[0]?.delta?.content;
             if (content) {
               assistantMessage += content;
+              
+              // 根據內容動態生成快速回覆選項
+              let quickReplies: string[] = [];
+              const lowerContent = assistantMessage.toLowerCase();
+              
+              // 如果提到日期，提供日期相關的快速回覆
+              if (lowerContent.includes('日期') || lowerContent.includes('入住')) {
+                quickReplies = ["查看可用日期", "有折扣碼嗎？"];
+              }
+              
+              // 如果提到房型選擇
+              if (lowerContent.includes('房型') || lowerContent.includes('選擇')) {
+                quickReplies = ["查看所有房型", "有其他選擇嗎？"];
+              }
+              
+              // 如果提到客人資訊
+              if (lowerContent.includes('姓名') || lowerContent.includes('手機') || lowerContent.includes('聯絡')) {
+                quickReplies = ["確認無誤", "需要修改"];
+              }
+              
+              // 如果提到確認
+              if (lowerContent.includes('確認') && lowerContent.includes('訂單')) {
+                quickReplies = ["確認訂房", "我再想想"];
+              }
+              
               setMessages(prev => {
                 const updated = [...prev];
                 updated[updated.length - 1] = {
                   role: "assistant",
-                  content: assistantMessage
+                  content: assistantMessage,
+                  quickReplies: quickReplies.length > 0 ? quickReplies : undefined
                 };
                 return updated;
               });
@@ -336,6 +364,24 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
                             </div>
                           )}
                         </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* 快速回覆按鈕 */}
+                  {message.role === "assistant" && message.quickReplies && message.quickReplies.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {message.quickReplies.map((reply, replyIdx) => (
+                        <Button
+                          key={replyIdx}
+                          size="sm"
+                          variant="outline"
+                          onClick={() => sendMessageWithContent(reply)}
+                          disabled={isLoading}
+                          className="text-xs"
+                        >
+                          {reply}
+                        </Button>
                       ))}
                     </div>
                   )}
