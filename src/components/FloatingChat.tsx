@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageCircle, X, Send, Loader2, Calendar } from "lucide-react";
+import { MessageCircle, X, Send, Loader2, Calendar, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -249,6 +249,22 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
     }
   };
 
+  const handleRestart = () => {
+    setMessages([
+      {
+        role: "assistant",
+        content: "您好！我是森山寫照的 AI 訂房助手 😊\n\n我可以直接幫您完成訂房！請問您想什麼時候入住呢？\n\n請提供您的：\n📅 入住日期\n📅 退房日期",
+        quickReplies: ["查看房型資訊", "了解旅宿特色", "入住須知"]
+      }
+    ]);
+    setInput("");
+    setBookingStep(1);
+    toast({
+      title: "已重新開始",
+      description: "對話已清除，可以重新訂房了",
+    });
+  };
+
   return (
     <>
       {/* 浮動按鈕 */}
@@ -274,14 +290,25 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
                 <p className="text-xs opacity-90">森山寫照</p>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsOpen(false)}
-              className="hover:bg-primary-foreground/10"
-            >
-              <X className="h-5 w-5" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleRestart}
+                className="hover:bg-primary-foreground/10"
+                title="重新開始"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsOpen(false)}
+                className="hover:bg-primary-foreground/10"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
 
           {/* 訂房進度條 */}
