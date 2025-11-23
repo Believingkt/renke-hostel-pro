@@ -238,9 +238,6 @@ const Index = () => {
         youtubeUrl={data.info.youtube_url}
         tiktokUrl={data.info.tiktok_url}
       />
-      
-      {/* AI 訂房助手 */}
-      {accommodationId && <FloatingChat accommodationId={accommodationId} />}
     </div>
   );
 };
