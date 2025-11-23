@@ -261,7 +261,9 @@ const Accounts = () => {
       // Handle Supabase function invocation errors
       if (error) {
         console.error("Edge function invocation error:", error);
-        toast.error("系統錯誤，請稍後再試");
+        // Try to extract error message from the error object
+        const errorMessage = error.message || "系統錯誤，請稍後再試";
+        toast.error(errorMessage);
         return;
       }
 
@@ -269,9 +271,12 @@ const Accounts = () => {
       if (data?.error) {
         console.warn("Business logic error:", data.error);
         let errorMessage = data.error;
-        if (errorMessage === "此 Email 已被註冊") {
-          errorMessage = "此 Email 已被註冊，請使用其他 Email";
+        
+        // Handle specific error cases with helpful messages
+        if (errorMessage === "此 Email 已被註冊" || errorMessage.includes("已被註冊") || errorMessage.includes("already")) {
+          errorMessage = "此 Email 已被使用，該用戶已存在於系統中。如需重新發送邀請，請在用戶列表中使用「重發邀請」功能。";
         }
+        
         toast.error(errorMessage);
         return;
       }
