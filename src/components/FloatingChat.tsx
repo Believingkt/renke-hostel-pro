@@ -11,6 +11,10 @@ import { useToast } from "@/hooks/use-toast";
 interface Message {
   role: "user" | "assistant";
   content: string;
+  toolCalls?: {
+    type: string;
+    data: any;
+  }[];
 }
 
 interface FloatingChatProps {
@@ -127,6 +131,31 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
             // 處理工具呼叫完成
             if (parsed.type === 'tool_calls_complete') {
               console.log("工具呼叫結果:", parsed.results);
+              
+              // 將工具調用結果添加到最後一條消息
+              setMessages(prev => {
+                const updated = [...prev];
+                const lastMsg = updated[updated.length - 1];
+                
+                updated[updated.length - 1] = {
+                  ...lastMsg,
+                  toolCalls: parsed.results.map((r: any) => {
+                    // 根據不同的工具類型處理結果
+                    if (r.result?.rooms) {
+                      return { type: 'rooms', data: r.result.rooms };
+                    }
+                    if (r.result?.success !== undefined) {
+                      return { type: 'booking', data: r.result };
+                    }
+                    if (r.result?.is_valid !== undefined) {
+                      return { type: 'discount', data: r.result };
+                    }
+                    return { type: 'unknown', data: r.result };
+                  })
+                };
+                
+                return updated;
+              });
               continue;
             }
 
@@ -210,19 +239,91 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
           <ScrollArea className="flex-1 p-4" ref={scrollRef}>
             <div className="space-y-4">
               {messages.map((message, index) => (
-                <div
-                  key={index}
-                  className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-                >
+                <div key={index}>
                   <div
-                    className={`max-w-[80%] rounded-lg px-4 py-2 whitespace-pre-wrap ${
-                      message.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
-                    }`}
+                    className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                   >
-                    {message.content}
+                    <div
+                      className={`max-w-[80%] rounded-lg px-4 py-2 whitespace-pre-wrap ${
+                        message.role === "user"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted"
+                      }`}
+                    >
+                      {message.content}
+                    </div>
                   </div>
+                  
+                  {/* 顯示工具調用結果 */}
+                  {message.toolCalls && message.toolCalls.length > 0 && (
+                    <div className="mt-2 space-y-2">
+                      {message.toolCalls.map((tool, toolIdx) => (
+                        <div key={toolIdx}>
+                          {/* 房型列表 */}
+                          {tool.type === 'rooms' && (
+                            <div className="bg-card border rounded-lg p-3 space-y-2">
+                              <p className="text-sm font-semibold text-foreground mb-2">
+                                📋 查詢到的房型：
+                              </p>
+                              {tool.data.map((room: any, roomIdx: number) => (
+                                <div key={roomIdx} className="bg-muted/50 rounded p-2 text-sm">
+                                  <div className="font-medium text-foreground">{room.name}</div>
+                                  <div className="text-xs text-muted-foreground mt-1">
+                                    容納人數：{room.capacity}人
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    平日：NT$ {room.weekday_price?.toLocaleString()} / 
+                                    假日：NT$ {room.weekend_price?.toLocaleString()}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          
+                          {/* 訂單創建結果 */}
+                          {tool.type === 'booking' && (
+                            <div className={`border rounded-lg p-3 ${
+                              tool.data.success 
+                                ? 'bg-green-50 border-green-200' 
+                                : 'bg-red-50 border-red-200'
+                            }`}>
+                              {tool.data.success ? (
+                                <>
+                                  <div className="flex items-center gap-2 text-green-700 font-semibold">
+                                    ✅ 訂單創建成功！
+                                  </div>
+                                  <div className="text-sm text-green-600 mt-2">
+                                    訂單編號：{tool.data.order_number}
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="text-red-700">
+                                  ❌ {tool.data.message || '訂單創建失敗'}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          
+                          {/* 折扣碼驗證結果 */}
+                          {tool.type === 'discount' && (
+                            <div className={`border rounded-lg p-3 text-sm ${
+                              tool.data.is_valid 
+                                ? 'bg-blue-50 border-blue-200 text-blue-700' 
+                                : 'bg-yellow-50 border-yellow-200 text-yellow-700'
+                            }`}>
+                              {tool.data.is_valid ? (
+                                <>
+                                  ✓ 折扣碼有效：{tool.data.discount_type === 'percentage' ? `${tool.data.discount_value}% 折扣` : `NT$ ${tool.data.discount_value} 折扣`}
+                                </>
+                              ) : (
+                                <>❌ {tool.data.message}</>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
               {isLoading && (
