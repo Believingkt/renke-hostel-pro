@@ -100,11 +100,6 @@ const Navigation = ({ accommodationName = "森山寫照", onNavigate }: Navigati
               查詢訂單
             </Button>
           </PreloadLink>
-          <PreloadLink to="/ai-booking">
-            <Button variant="outline" className="text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4 border-primary text-primary hover:bg-primary hover:text-primary-foreground">
-              AI 訂房
-            </Button>
-          </PreloadLink>
           <PreloadLink to="/booking">
             <Button className="bg-primary hover:bg-primary/90 text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4">
               立即預訂
@@ -171,15 +166,6 @@ const Navigation = ({ accommodationName = "森山寫照", onNavigate }: Navigati
                   >
                     <Search className="h-4 w-4 mr-2" />
                     查詢訂單
-                  </Button>
-                </PreloadLink>
-                <PreloadLink to="/ai-booking" className="block">
-                  <Button 
-                    variant="outline"
-                    className="w-full h-12 text-base font-medium rounded-lg border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                    onClick={() => setOpen(false)}
-                  >
-                    AI 訂房助手
                   </Button>
                 </PreloadLink>
                 <PreloadLink to="/booking" className="block">
