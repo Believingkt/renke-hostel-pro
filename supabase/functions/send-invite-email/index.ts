@@ -50,7 +50,7 @@ const handler = async (req: Request): Promise<Response> => {
             </div>
             <div class="content">
               <p>${recipientName}您好：</p>
-              <p>邀請您加入森山寫照管理系統。</p>
+              <p>邀請您加入森山寫照 PMS 管理系統。</p>
               <p>請點擊下方按鈕來設定您的密碼並啟用帳號：</p>
               <div style="text-align: center;">
                 <a href="${inviteLink}" class="button">設定密碼並啟用帳號</a>
