@@ -21,22 +21,26 @@ export default function Auth() {
   const [inviteEmail, setInviteEmail] = useState("");
 
   useEffect(() => {
-    // Check if this is an invite/recovery link
-    const type = searchParams.get('type');
-    const tokenHash = searchParams.get('token_hash');
-    
-    if (type === 'recovery' || type === 'invite' || tokenHash) {
-      // First, sign out any existing user to ensure invite link works correctly
-      supabase.auth.signOut().then(() => {
-        // After sign out, the invite link will automatically create a new session
-        // Wait a bit for the auth state to update
-        setTimeout(async () => {
+    const handleInviteLink = async () => {
+      // Check if this is an invite/recovery link
+      const type = searchParams.get('type');
+      const tokenHash = searchParams.get('token_hash');
+      
+      if (type === 'recovery' || type === 'invite' || tokenHash) {
+        try {
+          // First, sign out any existing user to ensure invite link works correctly
+          await supabase.auth.signOut();
+          
+          // Wait a moment for sign out to complete
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          // Check if we already have a session from the invite link
           const { data: { session } } = await supabase.auth.getSession();
           
           if (session?.user) {
+            // Session exists, check if password needs to be set
             setInviteEmail(session.user.email || "");
             
-            // Check if user needs to change password
             const { data: profile } = await supabase
               .from("profiles")
               .select("force_password_change")
@@ -44,20 +48,25 @@ export default function Auth() {
               .single();
             
             if (profile?.force_password_change) {
-              // User needs to set password, stay in invite mode
               setIsInviteMode(true);
             } else {
-              // Password already set, redirect to admin
               navigate("/admin");
             }
           } else {
-            // No session yet, show invite mode
+            // No session yet - this is expected for invite links
+            // The user needs to click the link to get a session
+            // Show invite mode to guide them
             setIsInviteMode(true);
           }
-        }, 500);
-      });
-      return;
-    }
+        } catch (error) {
+          console.error("Error handling invite link:", error);
+          setIsInviteMode(true);
+        }
+        return;
+      }
+    };
+
+    handleInviteLink();
 
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -71,6 +80,22 @@ export default function Auth() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN" && session) {
         await checkForcePasswordChange(session.user.id);
+      } else if (event === "PASSWORD_RECOVERY" || event === "USER_UPDATED") {
+        // Handle password recovery or user update events
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        if (currentSession) {
+          setInviteEmail(currentSession.user.email || "");
+          
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("force_password_change")
+            .eq("id", currentSession.user.id)
+            .single();
+          
+          if (profile?.force_password_change) {
+            setIsInviteMode(true);
+          }
+        }
       }
     });
 
