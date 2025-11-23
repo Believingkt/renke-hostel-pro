@@ -34,23 +34,9 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [bookingStep, setBookingStep] = useState(1); // 1: 日期, 2: 房型, 3: 客人資訊, 4: 確認
+  const [bookingStep, setBookingStep] = useState(1);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-
-  // 調試日誌
-  console.log('FloatingChat render - isOpen:', isOpen);
-
-  const handleOpenChat = () => {
-    console.log('Opening chat, current isOpen:', isOpen);
-    setIsOpen(true);
-    console.log('Set isOpen to true');
-  };
-
-  const handleCloseChat = () => {
-    console.log('Closing chat');
-    setIsOpen(false);
-  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -281,16 +267,18 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
 
   return (
     <>
-      {/* 浮動按鈕 */}
-      {!isOpen ? (
+      {!isOpen && (
         <Button
-          onClick={handleOpenChat}
+          onClick={() => setIsOpen(true)}
           className="fixed bottom-4 right-4 md:bottom-6 md:right-6 h-14 w-14 md:h-16 md:w-16 rounded-full shadow-lg bg-primary hover:bg-primary/90 z-[9998] animate-scale-in"
           size="icon"
+          aria-label="打開 AI 訂房助手"
         >
           <MessageCircle className="h-6 w-6 md:h-7 md:w-7" />
         </Button>
-      ) : (
+      )}
+
+      {isOpen && (
         <Card className="fixed inset-0 md:bottom-6 md:right-6 md:inset-auto md:w-96 md:h-[600px] w-full h-full md:rounded-lg shadow-2xl z-[9999] flex flex-col border-primary/20 animate-fade-in md:animate-scale-in">
           {/* 標題列 */}
           <div className="flex items-center justify-between p-4 md:p-4 border-b bg-primary text-primary-foreground md:rounded-t-lg">
@@ -311,12 +299,13 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
               >
                 <RotateCcw className="h-4 w-4 md:h-5 md:w-5" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleCloseChat}
-                className="hover:bg-primary-foreground/10 h-9 w-9 md:h-10 md:w-10"
-              >
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsOpen(false)}
+                  className="hover:bg-primary-foreground/10 h-9 w-9 md:h-10 md:w-10"
+                  aria-label="關閉聊天窗口"
+                >
                 <X className="h-5 w-5 md:h-6 md:w-6" />
               </Button>
             </div>
