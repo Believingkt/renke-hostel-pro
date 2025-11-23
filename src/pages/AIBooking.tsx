@@ -544,11 +544,27 @@ export default function AIBooking() {
                   )}
                 </div>
               ))}
+              
+              {/* 小安打字指示器 */}
               {isLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-muted rounded-2xl px-5 py-3 flex items-center gap-3 shadow-md">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="text-sm">正在輸入...</span>
+                <div className="flex gap-3 justify-start animate-fade-in">
+                  <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                    <Avatar className="h-10 w-10 border-2 border-primary/20 shadow-sm">
+                      <AvatarImage src={assistantAvatar} alt="小安" />
+                      <AvatarFallback className="bg-primary text-primary-foreground text-sm">小安</AvatarFallback>
+                    </Avatar>
+                    <span className="text-xs font-medium text-muted-foreground">小安</span>
+                  </div>
+                  
+                  <div className="bg-muted rounded-2xl px-5 py-3 shadow-md">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">小安正在輸入中</span>
+                      <div className="flex gap-1">
+                        <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
+                        <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
+                        <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
