@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Send, Loader2, ArrowLeft, RotateCcw, User, Mic, MicOff, Volume2, VolumeX, Settings } from "lucide-react";
+import { Send, Loader2, ArrowLeft, RotateCcw, User, Mic, MicOff, Volume2, VolumeX, Settings, Square } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSubdomain } from "@/hooks/use-subdomain";
@@ -42,6 +42,8 @@ export default function AIBooking() {
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [voiceSpeed, setVoiceSpeed] = useState(0.95); // 語音速度，0.95 讓中文更清晰
+  const [audioQueue, setAudioQueue] = useState<string[]>([]);
+  const [isProcessingQueue, setIsProcessingQueue] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -351,81 +353,165 @@ export default function AIBooking() {
     }
   };
 
+  const splitTextIntoSegments = (text: string): string[] => {
+    // 清理文字
+    const cleanText = text
+      .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
+      .replace(/[\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
+      .replace(/[\u{1F600}-\u{1F64F}]/gu, '')
+      .replace(/[\uDC00-\uDFFF]/g, '')
+      .replace(/\*/g, '')
+      .replace(/\n+/g, '。 ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!cleanText || cleanText.length < 2) return [];
+
+    // 按標點符號分段（優先在句號、問號、驚嘆號處分段）
+    const segments: string[] = [];
+    const sentenceEnders = /([。！？])/g;
+    const sentences = cleanText.split(sentenceEnders);
+    
+    let currentSegment = '';
+    const maxSegmentLength = 200; // 每段最多 200 字
+    
+    for (let i = 0; i < sentences.length; i++) {
+      const part = sentences[i];
+      if (!part.trim()) continue;
+      
+      // 如果是標點符號，加到當前句子
+      if (sentenceEnders.test(part)) {
+        currentSegment += part;
+        
+        // 達到適當長度就分段
+        if (currentSegment.length >= 80) {
+          segments.push(currentSegment.trim());
+          currentSegment = '';
+        }
+      } else {
+        // 如果加上這句會太長，先保存當前段落
+        if (currentSegment.length + part.length > maxSegmentLength && currentSegment.length > 0) {
+          segments.push(currentSegment.trim());
+          currentSegment = part;
+        } else {
+          currentSegment += part;
+        }
+      }
+    }
+    
+    // 加入最後一段
+    if (currentSegment.trim()) {
+      segments.push(currentSegment.trim());
+    }
+    
+    return segments.filter(s => s.length > 5); // 過濾太短的片段
+  };
+
+  const playAudioSegment = async (text: string): Promise<void> => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        console.log('播放片段，長度:', text.length);
+        
+        const { data, error } = await supabase.functions.invoke('text-to-speech', {
+          body: { 
+            text: text, 
+            voice: 'nova',
+            speed: voiceSpeed 
+          }
+        });
+
+        if (error) throw error;
+
+        if (data?.audioContent) {
+          const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
+          audioRef.current = audio;
+          
+          audio.onended = () => {
+            audioRef.current = null;
+            resolve();
+          };
+
+          audio.onerror = (e) => {
+            console.error('音頻播放失敗:', e);
+            audioRef.current = null;
+            reject(e);
+          };
+
+          await audio.play();
+        } else {
+          resolve();
+        }
+      } catch (error) {
+        console.error('片段播放錯誤:', error);
+        reject(error);
+      }
+    });
+  };
+
+  const processAudioQueue = async (segments: string[]) => {
+    if (isProcessingQueue || segments.length === 0) return;
+    
+    setIsProcessingQueue(true);
+    setIsPlayingAudio(true);
+    
+    try {
+      for (let i = 0; i < segments.length; i++) {
+        // 檢查是否被停止
+        if (!isVoiceEnabled) {
+          console.log('語音已關閉，停止播放');
+          break;
+        }
+        
+        console.log(`播放第 ${i + 1}/${segments.length} 段`);
+        await playAudioSegment(segments[i]);
+        
+        // 段落之間稍微停頓
+        if (i < segments.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
+      }
+    } catch (error) {
+      console.error('隊列處理錯誤:', error);
+    } finally {
+      setIsProcessingQueue(false);
+      setIsPlayingAudio(false);
+      setAudioQueue([]);
+    }
+  };
+
   const playTextToSpeech = async (text: string) => {
     if (!isVoiceEnabled || !text || isPlayingAudio) return;
 
     try {
-      setIsPlayingAudio(true);
+      // 將文本分段
+      const segments = splitTextIntoSegments(text);
       
-      // 清理文字：移除 emoji、特殊字符、無效 unicode
-      const cleanText = text
-        // 移除 emoji
-        .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
-        // 移除常見 emoji 範圍
-        .replace(/[\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
-        // 移除其他符號
-        .replace(/[\u{1F600}-\u{1F64F}]/gu, '')
-        // 移除無效或問題 unicode 字符
-        .replace(/[\uDC00-\uDFFF]/g, '')
-        // 移除 markdown 符號
-        .replace(/\*/g, '')
-        // 正規化換行符號（替換為空格）
-        .replace(/\n+/g, ' ')
-        // 移除多餘空格
-        .replace(/\s+/g, ' ')
-        .trim();
-
-      if (!cleanText || cleanText.length < 2) {
-        setIsPlayingAudio(false);
+      if (segments.length === 0) {
+        console.log('沒有可播放的文本段落');
         return;
       }
 
-      // 限制文字長度避免太長（OpenAI TTS 限制 4096 字元）
-      const truncatedText = cleanText.length > 1000 
-        ? cleanText.substring(0, 1000) + '...' 
-        : cleanText;
-
-      console.log('準備播放語音，文字長度:', truncatedText.length);
-
-      const { data, error } = await supabase.functions.invoke('text-to-speech', {
-        body: { 
-          text: truncatedText, 
-          voice: 'nova',
-          speed: voiceSpeed 
-        }
-      });
-
-      if (error) throw error;
-
-      if (data?.audioContent) {
-        // 停止當前播放的音頻
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current = null;
-        }
-
-        // 創建新的音頻元素並播放
-        const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
-        audioRef.current = audio;
-        
-        audio.onended = () => {
-          setIsPlayingAudio(false);
-          audioRef.current = null;
-        };
-
-        audio.onerror = () => {
-          console.error('音頻播放失敗');
-          setIsPlayingAudio(false);
-          audioRef.current = null;
-        };
-
-        await audio.play();
-      }
+      console.log(`文本已分為 ${segments.length} 段`);
+      setAudioQueue(segments);
+      
+      // 開始處理隊列
+      await processAudioQueue(segments);
+      
     } catch (error) {
       console.error('語音播放錯誤:', error);
       setIsPlayingAudio(false);
-      // 不顯示錯誤提示，靜默失敗
+      setIsProcessingQueue(false);
     }
+  };
+
+  const stopAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    setIsPlayingAudio(false);
+    setIsProcessingQueue(false);
+    setAudioQueue([]);
   };
 
   const toggleVoice = () => {
@@ -433,10 +519,8 @@ export default function AIBooking() {
     setIsVoiceEnabled(newState);
     
     // 如果關閉語音，停止當前播放
-    if (!newState && audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-      setIsPlayingAudio(false);
+    if (!newState) {
+      stopAudio();
     }
 
     toast({
@@ -474,6 +558,18 @@ export default function AIBooking() {
           </div>
 
           <div className="flex items-center gap-2">
+            {isPlayingAudio && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={stopAudio}
+                className="text-primary-foreground hover:bg-primary-foreground/10"
+                title="停止語音"
+              >
+                <Square className="h-4 w-4" />
+              </Button>
+            )}
+            
             <Button
               variant="ghost"
               size="sm"
