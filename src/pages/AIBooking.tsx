@@ -319,6 +319,87 @@ export default function AIBooking() {
             </div>
           </div>
 
+          {/* 常見問題快捷按鈕 */}
+          {messages.length === 1 && (
+            <div className="px-6 py-4 bg-muted/20 border-b">
+              <p className="text-sm font-medium text-muted-foreground mb-3">💬 常見問題快速詢問</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-auto py-2 px-3"
+                  onClick={() => sendMessageWithContent("請介紹一下你們的房型")}
+                  disabled={isLoading}
+                >
+                  🏠 房型介紹
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-auto py-2 px-3"
+                  onClick={() => sendMessageWithContent("請告訴我價格資訊")}
+                  disabled={isLoading}
+                >
+                  💰 價格查詢
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-auto py-2 px-3"
+                  onClick={() => sendMessageWithContent("請說明入住須知")}
+                  disabled={isLoading}
+                >
+                  📋 入住須知
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-auto py-2 px-3"
+                  onClick={() => sendMessageWithContent("你們有什麼設施服務？")}
+                  disabled={isLoading}
+                >
+                  🎯 設施服務
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-auto py-2 px-3"
+                  onClick={() => sendMessageWithContent("怎麼前往你們的旅宿？")}
+                  disabled={isLoading}
+                >
+                  🚗 交通資訊
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-auto py-2 px-3"
+                  onClick={() => sendMessageWithContent("取消訂房的規定是什麼？")}
+                  disabled={isLoading}
+                >
+                  ❌ 取消政策
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-auto py-2 px-3"
+                  onClick={() => sendMessageWithContent("可以加人加床嗎？費用多少？")}
+                  disabled={isLoading}
+                >
+                  👥 加人加床
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-auto py-2 px-3"
+                  onClick={() => sendMessageWithContent("可以帶寵物嗎？")}
+                  disabled={isLoading}
+                >
+                  🐾 寵物政策
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* 訊息區域 */}
           <ScrollArea className="flex-1 p-6" ref={scrollRef}>
             <div className="space-y-6">
