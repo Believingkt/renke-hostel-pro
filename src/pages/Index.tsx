@@ -15,6 +15,7 @@ import Footer from "@/components/Footer";
 import { FrontendSkeleton } from "@/components/skeletons/FrontendSkeleton";
 import { StructuredData } from "@/components/StructuredData";
 import { SEOHead } from "@/components/SEOHead";
+import { FloatingChat } from "@/components/FloatingChat";
 
 interface AccommodationData {
   info: {
@@ -237,6 +238,9 @@ const Index = () => {
         youtubeUrl={data.info.youtube_url}
         tiktokUrl={data.info.tiktok_url}
       />
+      
+      {/* AI 訂房助手 */}
+      {accommodationId && <FloatingChat accommodationId={accommodationId} />}
     </div>
   );
 };

@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.test-email]
 verify_jwt = false
+
+[functions.ai-booking-chat]
+verify_jwt = false
