@@ -12,6 +12,7 @@ interface InviteEmailRequest {
   email: string;
   inviteLink: string;
   senderName?: string;
+  recipientName?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -20,12 +21,12 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email, inviteLink, senderName = "系統管理員" }: InviteEmailRequest = await req.json();
+    const { email, inviteLink, senderName = "系統管理員", recipientName = "使用者" }: InviteEmailRequest = await req.json();
 
     const emailResponse = await resend.emails.send({
       from: "森山寫照 <noreply@sensaninn.lakeze.com>",
       to: [email],
-      subject: "歡迎加入森山寫照管理系統",
+      subject: "歡迎加入森山寫照 PMS 管理系統",
       html: `
         <!DOCTYPE html>
         <html>
@@ -48,8 +49,8 @@ const handler = async (req: Request): Promise<Response> => {
               <h1>🏡 歡迎加入森山寫照</h1>
             </div>
             <div class="content">
-              <p>您好，</p>
-              <p>${senderName} 邀請您加入森山寫照管理系統。</p>
+              <p>${recipientName}您好：</p>
+              <p>邀請您加入森山寫照管理系統。</p>
               <p>請點擊下方按鈕來設定您的密碼並啟用帳號：</p>
               <div style="text-align: center;">
                 <a href="${inviteLink}" class="button">設定密碼並啟用帳號</a>
