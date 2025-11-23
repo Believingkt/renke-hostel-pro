@@ -41,11 +41,20 @@ serve(async (req) => {
       throw new Error(`OpenAI TTS API error: ${errorText}`)
     }
 
-    // 將音頻轉換為 base64
+    // 將音頻轉換為 base64（分塊處理避免堆疊溢位）
     const arrayBuffer = await response.arrayBuffer()
-    const base64Audio = btoa(
-      String.fromCharCode(...new Uint8Array(arrayBuffer))
-    )
+    const bytes = new Uint8Array(arrayBuffer)
+    
+    // 分塊處理 base64 編碼，避免 Maximum call stack size exceeded
+    let binaryString = ''
+    const chunkSize = 8192 // 每次處理 8KB
+    
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.slice(i, i + chunkSize)
+      binaryString += String.fromCharCode.apply(null, Array.from(chunk))
+    }
+    
+    const base64Audio = btoa(binaryString)
 
     console.log('語音生成成功，音頻大小:', arrayBuffer.byteLength, 'bytes')
 
