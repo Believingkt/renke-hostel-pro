@@ -7,13 +7,14 @@
     <title>森山寫照 - 山間的寧靜時光</title>
     
     <!-- DNS Prefetch & Preconnect for faster loading -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
     <link rel="dns-prefetch" href="https://fonts.gstatic.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://dmafqwfynatdvnaeovhz.supabase.co">
     
-    <!-- 預載入關鍵字體 - 高優先級載入 -->
-    <link rel="preload" href="https://fonts.gstatic.com/s/notosanstc/v35/-nFlOG829Oofr2wohFbTp9i9kwMUK_G-5DONY3ahGxvbItqP5Q.woff2" as="font" type="font/woff2" crossorigin fetchpriority="high">
-    <link rel="preload" href="https://fonts.gstatic.com/s/notosanstc/v35/-nF7OG829Oofr2wohFbTp9i9kwMUK_K-5DDNQ-avaGxvbItqP5Vv2A.woff2" as="font" type="font/woff2" crossorigin fetchpriority="high">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     
     <meta name="description" content="森山寫照位於寧靜的山區，是一處結合日式傳統美學與現代舒適的精品旅宿" />
     <meta name="author" content="森山寫照" />
@@ -36,22 +37,7 @@
         backface-visibility: hidden;
       }
       
-      /* 強制阻塞字體載入 */
-      @font-face {
-        font-family: 'Noto Sans TC';
-        font-style: normal;
-        font-weight: 400;
-        font-display: block;
-        src: url('https://fonts.gstatic.com/s/notosanstc/v35/-nF7OG829Oofr2wohFbTp9i9kwMUK_K-5DDNQ-avaGxvbItqP5Vv2A.woff2') format('woff2');
-      }
-      
-      @font-face {
-        font-family: 'Noto Sans TC';
-        font-style: normal;
-        font-weight: 700;
-        font-display: block;
-        src: url('https://fonts.gstatic.com/s/notosanstc/v35/-nFlOG829Oofr2wohFbTp9i9kwMUK_G-5DONY3ahGxvbItqP5Q.woff2') format('woff2');
-      }
+      /* 字體已由 Google Fonts 載入 */
       
       /* 首屏圖片立即顯示 - 無過渡 */
       .hero-first-image {
@@ -95,28 +81,9 @@
         background-color: hsl(var(--background));
       }
       
-      /* 根元素 - 只隱藏文字部分 */
+      /* 根元素 */
       #root { 
         min-height: 100vh;
-      }
-      
-      /* 字體未載入時只隱藏文字內容 */
-      html:not(.fonts-ready) h1,
-      html:not(.fonts-ready) h2,
-      html:not(.fonts-ready) h3,
-      html:not(.fonts-ready) p,
-      html:not(.fonts-ready) span,
-      html:not(.fonts-ready) button {
-        opacity: 0 !important;
-      }
-      
-      html.fonts-ready h1,
-      html.fonts-ready h2,
-      html.fonts-ready h3,
-      html.fonts-ready p,
-      html.fonts-ready span,
-      html.fonts-ready button {
-        opacity: 1 !important;
       }
       
       /* 載入動畫 */
@@ -156,41 +123,6 @@
         cursor: pointer;
       }
     </style>
-    <script>
-      // 最嚴格的字體載入控制
-      (function() {
-        console.log('[Font Loading] Starting');
-        
-        if ('fonts' in document && document.fonts) {
-          // 主動載入字體
-          Promise.all([
-            document.fonts.load('700 1em "Noto Sans TC"'),
-            document.fonts.load('400 1em "Noto Sans TC"')
-          ]).then(() => {
-            console.log('[Font Loading] Fonts loaded');
-            return document.fonts.ready;
-          }).then(() => {
-            console.log('[Font Loading] All fonts ready');
-            // 多重確認後才顯示
-            setTimeout(() => {
-              document.documentElement.classList.add('fonts-ready');
-              console.log('[Font Loading] Display enabled');
-            }, 150);
-          }).catch((err) => {
-            console.error('[Font Loading] Error:', err);
-            // 失敗後 3 秒才顯示
-            setTimeout(() => {
-              document.documentElement.classList.add('fonts-ready');
-            }, 3000);
-          });
-        } else {
-          // 不支援的瀏覽器等待 2 秒
-          setTimeout(() => {
-            document.documentElement.classList.add('fonts-ready');
-          }, 2000);
-        }
-      })();
-    </script>
   </head>
 
   <body>
