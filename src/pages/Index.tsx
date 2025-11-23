@@ -50,18 +50,34 @@ interface AccommodationData {
 
 const Index = () => {
   const [data, setData] = useState<AccommodationData | null>(null);
+  const [loadTimeout, setLoadTimeout] = useState(false);
   const { accommodationId, isLoading: subdomainLoading, error: subdomainError } = useSubdomain();
+
+  // 添加超時保護，10秒後強制顯示錯誤
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!data) {
+        setLoadTimeout(true);
+        console.error('頁面載入超時');
+      }
+    }, 10000);
+
+    return () => clearTimeout(timer);
+  }, [data]);
 
   useEffect(() => {
     if (subdomainLoading || !accommodationId) return;
 
     const loadData = async () => {
       try {
+        console.log('開始載入數據，accommodationId:', accommodationId);
         const { data: infoData } = await supabase
           .from("accommodation_info")
           .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, og_title, og_description, og_image_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay")
           .eq("id", accommodationId)
           .single();
+        
+        console.log('基本資料載入完成:', infoData);
         
         if (infoData) {
           // 一次性加载所有数据，避免多次渲染导致的闪烁
@@ -105,16 +121,19 @@ const Index = () => {
             room_photos: (room.room_photos || []).sort((a, b) => a.display_order - b.display_order)
           }));
 
-          setData({
+          const finalData = {
             info: infoData,
             roomTypes: roomTypesWithPhotos,
             bookingSettings: bookingSettingsRes.data,
             facilities: facilitiesRes.data || [],
             photos: photosRes.data || [],
             locationInfo: locationInfoRes.data
-          });
+          };
+          console.log('所有數據載入完成:', finalData);
+          setData(finalData);
         }
       } catch (error) {
+        console.error('載入數據時發生錯誤:', error);
         if (import.meta.env.DEV) {
           console.error('Error fetching data:', error);
         }
@@ -125,15 +144,29 @@ const Index = () => {
   }, [accommodationId, subdomainLoading]);
 
   if (subdomainLoading) {
+    console.log('等待子域名載入...');
     return <FrontendSkeleton />;
   }
 
   if (subdomainError) {
+    console.error('子域名載入錯誤:', subdomainError);
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <p className="text-lg font-semibold text-destructive mb-2">{subdomainError}</p>
           <p className="text-sm text-muted-foreground">請確認您的網址是否正確</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadTimeout) {
+    console.error('頁面載入超時');
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-lg font-semibold text-destructive mb-2">載入超時</p>
+          <p className="text-sm text-muted-foreground">請重新整理頁面或稍後再試</p>
         </div>
       </div>
     );
@@ -148,8 +181,11 @@ const Index = () => {
 
   // 只等待數據載入完成即顯示
   if (!data) {
+    console.log('等待數據載入...');
     return <FrontendSkeleton />;
   }
+
+  console.log('數據已載入，開始渲染頁面');
 
   return (
     <div className="min-h-screen">
