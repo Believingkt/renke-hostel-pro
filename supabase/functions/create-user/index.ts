@@ -133,8 +133,8 @@ serve(async (req) => {
       );
     }
 
-    // Get the site URL for redirect
-    const siteUrl = Deno.env.get("SUPABASE_URL")?.replace('.supabase.co', '.lovable.app') || '';
+    // Use production domain for redirect
+    const siteUrl = 'https://sensaninn.lakeze.com';
     
     // Create user without sending default email
     const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
