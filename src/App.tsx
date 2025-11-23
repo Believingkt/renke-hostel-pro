@@ -1,5 +1,5 @@
+import * as React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { lazy, Suspense } from "react";
 import { ConditionalLayout } from "@/components/ConditionalLayout";
 import { AccommodationProvider } from "@/contexts/AccommodationContext";
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
@@ -7,6 +7,8 @@ import { FrontendSkeleton } from "@/components/skeletons/FrontendSkeleton";
 import { NetworkIndicator } from "@/components/NetworkIndicator";
 import { PageTransition } from "@/components/PageTransition";
 import { ChunkErrorBoundary } from "@/components/ChunkErrorBoundary";
+
+const { lazy, Suspense } = React;
 
 // 路由懶加載 - 前台頁面
 const Index = lazy(() => import("./pages/Index"));
