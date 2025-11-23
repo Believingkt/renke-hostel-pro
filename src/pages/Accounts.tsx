@@ -261,9 +261,27 @@ const Accounts = () => {
       // Handle Supabase function invocation errors
       if (error) {
         console.error("Edge function invocation error:", error);
-        // Try to extract error message from the error object
-        const errorMessage = error.message || "系統錯誤，請稍後再試";
-        toast.error(errorMessage);
+        // Try to extract detailed error message
+        let errorMessage = "系統錯誤";
+        
+        if (error.message) {
+          errorMessage = error.message;
+        } else if (typeof error === 'string') {
+          errorMessage = error;
+        }
+        
+        // Add more context for debugging
+        if (import.meta.env.DEV) {
+          console.error("Full error object:", error);
+          console.error("Error context:", {
+            name,
+            email,
+            role,
+            accommodationId
+          });
+        }
+        
+        toast.error(`${errorMessage}。請稍後再試或聯繫系統管理員。`);
         return;
       }
 
