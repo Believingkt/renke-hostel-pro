@@ -24,8 +24,8 @@ serve(async (req) => {
       throw new Error('ELEVEN_LABS_API_KEY 未設定')
     }
 
-    // ElevenLabs 語音 ID (預設使用 Aria - 溫暖親切的女聲)
-    const voiceId = voice || '9BWtsMINqrJLrRacOk9x'
+    // ElevenLabs 語音 ID (使用中文母語者聲音)
+    const voiceId = voice || 'kGjJqO6wdwRN9iJsoeIC'
     
     // 使用 ElevenLabs Text-to-Speech API
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
