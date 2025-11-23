@@ -38,10 +38,10 @@ serve(async (req) => {
         text: text,
         model_id: 'eleven_multilingual_v2', // 支援多語言的高品質模型
         voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75,
-          style: 0.0,
-          use_speaker_boost: true
+          stability: 0.7,           // 更高的穩定性，確保發音清晰一致
+          similarity_boost: 0.8,    // 提高相似度，保持語音特徵
+          style: 0.0,               // 不增加額外風格化
+          use_speaker_boost: true   // 增強說話者特徵
         }
       }),
     })
