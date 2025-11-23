@@ -82,6 +82,15 @@ serve(async (req) => {
       );
     }
 
+    // Get user profile for name
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('name')
+      .eq('id', userId)
+      .single();
+
+    const recipientName = profile?.name || targetUser.user.user_metadata?.name || '使用者';
+
     // Get the site URL for redirect
     const siteUrl = Deno.env.get("SUPABASE_URL")?.replace('.supabase.co', '.lovable.app') || '';
     
@@ -115,7 +124,7 @@ serve(async (req) => {
         body: JSON.stringify({
           email: targetUser.user.email,
           inviteLink,
-          senderName: targetUser.user.user_metadata?.name || '管理員'
+          recipientName
         })
       });
       
