@@ -19,12 +19,22 @@ export default function Auth() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isInviteMode, setIsInviteMode] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteLinkExpired, setInviteLinkExpired] = useState(false);
 
   useEffect(() => {
     const handleInviteLink = async () => {
       // Check if this is an invite/recovery link
       const type = searchParams.get('type');
       const tokenHash = searchParams.get('token_hash');
+      const error = searchParams.get('error');
+      const errorDescription = searchParams.get('error_description');
+      
+      // Check if there's an error from Supabase (expired/invalid token)
+      if ((type === 'recovery' || type === 'invite' || tokenHash) && (error || errorDescription)) {
+        setInviteLinkExpired(true);
+        toast.error("邀請連結已失效，請聯繫管理員重新發送邀請信");
+        return;
+      }
       
       if (type === 'recovery' || type === 'invite' || tokenHash) {
         try {
@@ -32,10 +42,17 @@ export default function Auth() {
           await supabase.auth.signOut();
           
           // Wait a moment for sign out to complete
-          await new Promise(resolve => setTimeout(resolve, 300));
+          await new Promise(resolve => setTimeout(resolve, 500));
           
           // Check if we already have a session from the invite link
-          const { data: { session } } = await supabase.auth.getSession();
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          
+          if (sessionError) {
+            console.error("Session error:", sessionError);
+            setInviteLinkExpired(true);
+            toast.error("邀請連結已失效，請聯繫管理員重新發送邀請信");
+            return;
+          }
           
           if (session?.user) {
             // Session exists, check if password needs to be set
@@ -53,14 +70,14 @@ export default function Auth() {
               navigate("/admin");
             }
           } else {
-            // No session yet - this is expected for invite links
-            // The user needs to click the link to get a session
-            // Show invite mode to guide them
-            setIsInviteMode(true);
+            // No session - likely the token has expired
+            setInviteLinkExpired(true);
+            toast.error("邀請連結已失效，請聯繫管理員重新發送邀請信");
           }
         } catch (error) {
           console.error("Error handling invite link:", error);
-          setIsInviteMode(true);
+          setInviteLinkExpired(true);
+          toast.error("邀請連結處理失敗，請聯繫管理員重新發送邀請信");
         }
         return;
       }
@@ -217,15 +234,20 @@ export default function Auth() {
             <img src={lokezeLogo} alt="Lokeze" className="h-12 object-contain" />
             <p className="text-lg font-medium text-muted-foreground">人客多 PMS 管理系統</p>
           </div>
-          {isInviteMode && (
+          {inviteLinkExpired ? (
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <CardDescription className="text-center text-destructive">
+                邀請連結已失效
+              </CardDescription>
+            </div>
+          ) : isInviteMode ? (
             <div className="flex items-center justify-center gap-2 pt-2">
               <KeyRound className="h-5 w-5 text-primary" />
               <CardDescription className="text-center">
                 歡迎！請設定您的登入密碼
               </CardDescription>
             </div>
-          )}
-          {!isInviteMode && (
+          ) : (
             <div className="flex items-center justify-center gap-2 pt-2">
               <LogIn className="h-5 w-5 text-primary" />
               <CardDescription className="text-center">
@@ -235,7 +257,23 @@ export default function Auth() {
           )}
         </CardHeader>
         <CardContent>
-          {isInviteMode ? (
+          {inviteLinkExpired ? (
+            <div className="text-center space-y-4">
+              <p className="text-sm text-muted-foreground">
+                您的邀請連結已過期或失效。請聯繫管理員重新發送邀請信。
+              </p>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => {
+                  setInviteLinkExpired(false);
+                  window.history.replaceState({}, '', '/auth');
+                }}
+              >
+                返回登入
+              </Button>
+            </div>
+          ) : isInviteMode ? (
             <form onSubmit={handleSetPassword} className="space-y-4">
               {inviteEmail && (
                 <div className="space-y-2">
