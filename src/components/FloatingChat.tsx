@@ -368,23 +368,92 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
                           
                           {/* 訂單創建結果 */}
                           {tool.type === 'booking' && (
-                            <div className={`border rounded-lg p-3 ${
+                            <div className={`border rounded-lg overflow-hidden ${
                               tool.data.success 
                                 ? 'bg-green-50 border-green-200' 
                                 : 'bg-red-50 border-red-200'
                             }`}>
                               {tool.data.success ? (
-                                <>
-                                  <div className="flex items-center gap-2 text-green-700 font-semibold">
-                                    ✅ 訂單創建成功！
+                                <div className="space-y-3">
+                                  {/* 成功標題 */}
+                                  <div className="bg-green-100 px-4 py-3 border-b border-green-200">
+                                    <div className="flex items-center gap-2 text-green-700 font-semibold">
+                                      <span className="text-xl">✅</span>
+                                      <span>訂單創建成功！</span>
+                                    </div>
                                   </div>
-                                  <div className="text-sm text-green-600 mt-2">
-                                    訂單編號：{tool.data.order_number}
+                                  
+                                  {/* 訂單摘要 */}
+                                  <div className="px-4 space-y-2">
+                                    <div className="flex items-center justify-between text-sm">
+                                      <span className="text-muted-foreground">訂單編號</span>
+                                      <span className="font-mono font-semibold text-green-700">
+                                        {tool.data.order_number}
+                                      </span>
+                                    </div>
+                                    
+                                    <div className="bg-muted/50 rounded p-3 space-y-1.5 text-xs">
+                                      <div className="text-muted-foreground">
+                                        訂單狀態：<span className="text-orange-600 font-medium">待確認</span>
+                                      </div>
+                                      <div className="text-muted-foreground">
+                                        我們會盡快與您聯絡確認訂單詳情
+                                      </div>
+                                    </div>
                                   </div>
-                                </>
+                                  
+                                  {/* 付款資訊 */}
+                                  <div className="px-4 pb-3">
+                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
+                                      <div className="font-semibold text-blue-900 text-sm flex items-center gap-2">
+                                        <span>💳</span>
+                                        <span>付款資訊</span>
+                                      </div>
+                                      <div className="text-xs text-blue-800 space-y-1">
+                                        <div>• 需支付訂金 30% 以確認訂房</div>
+                                        <div>• 餘款請於入住當天支付</div>
+                                        <div>• 我們會透過 LINE 或電話與您聯絡付款事宜</div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* 下一步操作 */}
+                                  <div className="bg-muted/30 px-4 py-3 border-t space-y-2">
+                                    <div className="text-xs font-semibold text-foreground mb-2">
+                                      下一步：
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-xs h-8"
+                                        onClick={() => {
+                                          if (tool.data.order_id) {
+                                            navigate(`/order/${tool.data.order_id}`);
+                                          }
+                                        }}
+                                      >
+                                        查看訂單
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-xs h-8"
+                                        onClick={() => window.open('tel:0903-178-518')}
+                                      >
+                                        聯絡我們
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
                               ) : (
-                                <div className="text-red-700">
-                                  ❌ {tool.data.message || '訂單創建失敗'}
+                                <div className="p-4">
+                                  <div className="text-red-700 font-medium">
+                                    ❌ {tool.data.message || '訂單創建失敗'}
+                                  </div>
+                                  <div className="text-xs text-red-600 mt-2">
+                                    請稍後再試，或聯絡客服協助處理
+                                  </div>
                                 </div>
                               )}
                             </div>
