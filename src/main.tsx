@@ -42,7 +42,12 @@ const queryClient = new QueryClient({
       staleTime: 5 * 60 * 1000, // 5 分鐘
       gcTime: 10 * 60 * 1000, // 10 分鐘
       retry: 1,
-      refetchOnWindowFocus: true,
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      networkMode: 'offlineFirst', // 優先使用緩存
+    },
+    mutations: {
+      networkMode: 'online',
     },
   },
 });

@@ -1,4 +1,3 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { ConditionalLayout } from "@/components/ConditionalLayout";
@@ -40,26 +39,9 @@ const EmailTest = lazy(() => import("./pages/EmailTest"));
 import Auth from "./pages/Auth";
 import ChangePassword from "./pages/ChangePassword";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000,
-      gcTime: 10 * 60 * 1000,
-      retry: 1,
-      refetchOnWindowFocus: false,
-      refetchOnMount: false,
-      networkMode: 'offlineFirst', // 優先使用緩存
-    },
-    mutations: {
-      networkMode: 'online',
-    },
-  },
-});
-
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AccommodationProvider>
+    <AccommodationProvider>
         <BrowserRouter>
           <NetworkIndicator />
           <PageTransition>
@@ -212,7 +194,6 @@ function App() {
           </PageTransition>
         </BrowserRouter>
       </AccommodationProvider>
-    </QueryClientProvider>
   );
 }
 
