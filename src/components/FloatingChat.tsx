@@ -343,24 +343,38 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
           <ScrollArea className="flex-1 p-4" ref={scrollRef}>
             <div className="space-y-4">
               {messages.map((message, index) => (
-                <div key={index}>
+                <div 
+                  key={index}
+                  className="animate-fade-in"
+                  style={{ animationDelay: `${index * 0.05}s` }}
+                >
                   <div
                     className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                   >
                     <div
-                      className={`max-w-[80%] rounded-lg px-4 py-2 whitespace-pre-wrap ${
+                      className={`max-w-[80%] rounded-lg px-4 py-2 whitespace-pre-wrap transition-all duration-300 ${
                         message.role === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted"
+                          ? "bg-primary text-primary-foreground animate-scale-in"
+                          : "bg-muted animate-fade-in"
                       }`}
                     >
-                      {message.content}
+                      {message.role === "assistant" && index === messages.length - 1 && isLoading ? (
+                        <span className="inline-flex items-center gap-1">
+                          <span className="animate-pulse">●</span>
+                          <span className="animate-pulse" style={{ animationDelay: '0.2s' }}>●</span>
+                          <span className="animate-pulse" style={{ animationDelay: '0.4s' }}>●</span>
+                        </span>
+                      ) : (
+                        <span className={message.role === "assistant" ? "animate-typing" : ""}>
+                          {message.content}
+                        </span>
+                      )}
                     </div>
                   </div>
                   
                   {/* 顯示工具調用結果 */}
                   {message.toolCalls && message.toolCalls.length > 0 && (
-                    <div className="mt-2 space-y-2">
+                    <div className="mt-2 space-y-2 animate-fade-in">
                       {message.toolCalls.map((tool, toolIdx) => (
                         <div key={toolIdx}>
                           {/* 房型列表 */}
@@ -509,7 +523,7 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
                   
                   {/* 快速回覆按鈕 */}
                   {message.role === "assistant" && message.quickReplies && message.quickReplies.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-2">
+                    <div className="mt-2 flex flex-wrap gap-2 animate-fade-in" style={{ animationDelay: '0.3s' }}>
                       {message.quickReplies.map((reply, replyIdx) => (
                         <Button
                           key={replyIdx}
@@ -517,7 +531,8 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
                           variant="outline"
                           onClick={() => sendMessageWithContent(reply)}
                           disabled={isLoading}
-                          className="text-xs"
+                          className="text-xs hover-scale transition-all duration-200 animate-fade-in"
+                          style={{ animationDelay: `${replyIdx * 0.1}s` }}
                         >
                           {reply}
                         </Button>
@@ -527,7 +542,7 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
                 </div>
               ))}
               {isLoading && (
-                <div className="flex justify-start">
+                <div className="flex justify-start animate-fade-in">
                   <div className="bg-muted rounded-lg px-4 py-2 flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <span className="text-sm">正在輸入...</span>
@@ -554,7 +569,7 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
           </ScrollArea>
 
           {/* 輸入區域 */}
-          <div className="p-4 border-t">
+          <div className="p-4 border-t bg-background/50 backdrop-blur-sm">
             <div className="flex gap-2">
               <Input
                 value={input}
@@ -562,12 +577,13 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
                 onKeyPress={handleKeyPress}
                 placeholder="輸入訊息..."
                 disabled={isLoading}
-                className="flex-1"
+                className="flex-1 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
               />
               <Button
                 onClick={sendMessage}
                 disabled={!input.trim() || isLoading}
                 size="icon"
+                className="transition-all duration-200 hover-scale"
               >
                 {isLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
