@@ -17,28 +17,39 @@ serve(async (req) => {
       throw new Error('未提供文字內容')
     }
 
-    console.log('開始生成語音，文字長度:', text.length, '速度:', speed || 1.0)
+    console.log('開始生成語音，文字長度:', text.length, '語音:', voice || 'Aria')
 
-    // 使用 OpenAI TTS API 生成語音
-    const response = await fetch('https://api.openai.com/v1/audio/speech', {
+    const ELEVEN_LABS_API_KEY = Deno.env.get('ELEVEN_LABS_API_KEY')
+    if (!ELEVEN_LABS_API_KEY) {
+      throw new Error('ELEVEN_LABS_API_KEY 未設定')
+    }
+
+    // ElevenLabs 語音 ID (預設使用 Aria - 溫暖親切的女聲)
+    const voiceId = voice || '9BWtsMINqrJLrRacOk9x'
+    
+    // 使用 ElevenLabs Text-to-Speech API
+    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'xi-api-key': ELEVEN_LABS_API_KEY,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'tts-1-hd', // 使用高清版本，語音更自然
-        input: text,
-        voice: voice || 'nova', // nova 語音適合中文，聲音溫暖親切
-        response_format: 'mp3',
-        speed: speed || 0.95, // 稍微放慢一點，讓中文發音更清晰
+        text: text,
+        model_id: 'eleven_multilingual_v2', // 支援多語言的高品質模型
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.75,
+          style: 0.0,
+          use_speaker_boost: true
+        }
       }),
     })
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('OpenAI TTS API 錯誤:', response.status, errorText)
-      throw new Error(`OpenAI TTS API error: ${errorText}`)
+      console.error('ElevenLabs TTS API 錯誤:', response.status, errorText)
+      throw new Error(`ElevenLabs TTS API error: ${errorText}`)
     }
 
     // 將音頻轉換為 base64（分塊處理避免堆疊溢位）
@@ -56,7 +67,7 @@ serve(async (req) => {
     
     const base64Audio = btoa(binaryString)
 
-    console.log('語音生成成功，音頻大小:', arrayBuffer.byteLength, 'bytes')
+    console.log('ElevenLabs 語音生成成功，音頻大小:', arrayBuffer.byteLength, 'bytes')
 
     return new Response(
       JSON.stringify({ audioContent: base64Audio }),
