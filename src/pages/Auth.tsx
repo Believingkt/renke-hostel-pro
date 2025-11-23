@@ -26,11 +26,28 @@ export default function Auth() {
     const tokenHash = searchParams.get('token_hash');
     
     if (type === 'recovery' || type === 'invite' || tokenHash) {
-      setIsInviteMode(true);
-      // Extract email from session if available
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session?.user?.email) {
-          setInviteEmail(session.user.email);
+      // When user clicks invite link, check if they need to set password
+      supabase.auth.getSession().then(async ({ data: { session } }) => {
+        if (session?.user) {
+          setInviteEmail(session.user.email || "");
+          
+          // Check if user needs to change password
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("force_password_change")
+            .eq("id", session.user.id)
+            .single();
+          
+          if (profile?.force_password_change) {
+            // User needs to set password, stay in invite mode
+            setIsInviteMode(true);
+          } else {
+            // Password already set, redirect to admin
+            navigate("/admin");
+          }
+        } else {
+          // No session yet, show invite mode
+          setIsInviteMode(true);
         }
       });
       return;
