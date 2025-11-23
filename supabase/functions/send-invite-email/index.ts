@@ -53,7 +53,7 @@ const handler = async (req: Request): Promise<Response> => {
               <p>邀請您加入森山寫照 PMS 管理系統。</p>
               <p>請點擊下方按鈕來設定您的密碼並啟用帳號：</p>
               <div style="text-align: center;">
-                <a href="${inviteLink}" class="button">設定密碼並啟用帳號</a>
+                <a href="${inviteLink}" class="button" style="color: white !important; text-decoration: none;">設定密碼並啟用帳號</a>
               </div>
               <p style="color: #666; font-size: 14px;">
                 或複製以下連結到瀏覽器：<br>
