@@ -249,30 +249,42 @@ export default function AIBooking() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+    <div className="min-h-screen relative overflow-hidden">
+      {/* 背景裝飾 */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5 -z-10" />
+      <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl -z-10 animate-pulse" style={{ animationDuration: '4s' }} />
+      <div className="absolute bottom-0 left-0 w-80 h-80 bg-accent/10 rounded-full blur-3xl -z-10 animate-pulse" style={{ animationDuration: '6s', animationDelay: '1s' }} />
+      
       <SEOHead
         title="AI 訂房助手 - 森山寫照"
         description="使用 AI 智能助手快速完成訂房流程，即時查詢房型、價格和空房狀況"
         keywords={["AI 訂房", "智能助手", "線上訂房", "森山寫照"]}
       />
 
-      {/* 頂部導航 */}
-      <div className="bg-primary text-primary-foreground shadow-lg">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+      {/* 頂部導航 - 漸變品牌色 */}
+      <div className="relative bg-gradient-to-r from-primary via-primary to-accent text-primary-foreground shadow-xl">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/10" />
+        <div className="container mx-auto px-4 py-4 md:py-5 flex items-center justify-between relative">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => navigate('/')}
-            className="text-primary-foreground hover:bg-primary-foreground/10"
+            className="text-primary-foreground hover:bg-primary-foreground/20 transition-all duration-300 hover:scale-105"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            返回首頁
+            <span className="hidden sm:inline">返回首頁</span>
           </Button>
           
           <div className="flex items-center gap-3">
-            <div>
-              <h1 className="text-lg md:text-xl font-bold">AI 訂房助手</h1>
-              <p className="text-xs md:text-sm opacity-90">森山寫照</p>
+            <div className="relative">
+              <div className="absolute -inset-1 bg-primary-foreground/20 rounded-lg blur" />
+              <div className="relative bg-primary-foreground/10 px-4 py-2 rounded-lg backdrop-blur-sm">
+                <h1 className="text-lg md:text-xl font-bold flex items-center gap-2">
+                  <span className="text-2xl">🤖</span>
+                  AI 訂房助手
+                </h1>
+                <p className="text-xs md:text-sm opacity-90 text-center">森山寫照</p>
+              </div>
             </div>
           </div>
 
@@ -280,7 +292,7 @@ export default function AIBooking() {
             variant="ghost"
             size="sm"
             onClick={handleRestart}
-            className="text-primary-foreground hover:bg-primary-foreground/10"
+            className="text-primary-foreground hover:bg-primary-foreground/20 transition-all duration-300 hover:scale-105"
           >
             <RotateCcw className="h-4 w-4 mr-2" />
             <span className="hidden md:inline">重新開始</span>
@@ -289,38 +301,59 @@ export default function AIBooking() {
       </div>
 
       {/* 主要內容區 */}
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
-        <Card className="shadow-2xl overflow-hidden border-primary/20 h-[calc(100vh-200px)] flex flex-col">
+      <div className="container mx-auto px-4 py-4 md:py-6 max-w-4xl">
+        <Card className="shadow-2xl overflow-hidden border-primary/20 backdrop-blur-sm bg-background/95 h-[calc(100vh-180px)] md:h-[calc(100vh-200px)] flex flex-col relative">
+          {/* 卡片裝飾 */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/10 to-transparent rounded-bl-full" />
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-accent/10 to-transparent rounded-tr-full" />
+          
           {/* 訂房進度條 */}
-          <div className="px-6 py-4 bg-muted/30 border-b">
-            <div className="flex items-center justify-between text-xs md:text-sm mb-3">
-              <span className={bookingStep >= 1 ? "text-primary font-semibold" : "text-muted-foreground"}>
-                1. 選擇日期
-              </span>
-              <span className={bookingStep >= 2 ? "text-primary font-semibold" : "text-muted-foreground"}>
-                2. 選擇房型
-              </span>
-              <span className={bookingStep >= 3 ? "text-primary font-semibold" : "text-muted-foreground"}>
-                3. 填寫資訊
-              </span>
-              <span className={bookingStep >= 4 ? "text-primary font-semibold" : "text-muted-foreground"}>
-                4. 確認訂單
-              </span>
+          <div className="px-4 md:px-6 py-4 bg-gradient-to-r from-muted/50 via-muted/30 to-muted/50 border-b border-border/50 backdrop-blur-sm relative z-10">
+            <div className="flex items-center justify-between text-xs md:text-sm mb-4">
+              <div className="flex items-center gap-2">
+                <span className={`transition-all duration-300 ${bookingStep >= 1 ? "text-primary font-bold scale-110" : "text-muted-foreground"}`}>
+                  📅 日期
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`transition-all duration-300 ${bookingStep >= 2 ? "text-primary font-bold scale-110" : "text-muted-foreground"}`}>
+                  🏠 房型
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`transition-all duration-300 ${bookingStep >= 3 ? "text-primary font-bold scale-110" : "text-muted-foreground"}`}>
+                  ✍️ 資訊
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`transition-all duration-300 ${bookingStep >= 4 ? "text-primary font-bold scale-110" : "text-muted-foreground"}`}>
+                  ✅ 確認
+                </span>
+              </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 relative">
               {[1, 2, 3, 4].map((step) => (
                 <div
                   key={step}
-                  className={`h-2 flex-1 rounded-full transition-all duration-500 ${
-                    bookingStep >= step ? "bg-primary" : "bg-muted"
-                  }`}
-                />
+                  className="relative h-2.5 flex-1 rounded-full overflow-hidden bg-muted"
+                >
+                  <div 
+                    className={`absolute inset-0 rounded-full transition-all duration-700 ease-out ${
+                      bookingStep >= step 
+                        ? "bg-gradient-to-r from-primary to-accent translate-x-0" 
+                        : "bg-muted -translate-x-full"
+                    }`}
+                  />
+                  {bookingStep >= step && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-pulse" />
+                  )}
+                </div>
               ))}
             </div>
           </div>
 
           {/* 訊息區域 */}
-          <ScrollArea className="flex-1 p-6" ref={scrollRef}>
+          <ScrollArea className="flex-1 p-4 md:p-6 relative z-10" ref={scrollRef}>
             <div className="space-y-6">
               {messages.map((message, index) => (
                 <div 
@@ -329,17 +362,33 @@ export default function AIBooking() {
                   style={{ animationDelay: `${index * 0.05}s` }}
                 >
                   <div
-                    className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                    className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"}`}
                   >
+                    {/* AI 助手頭像 */}
+                    {message.role === "assistant" && (
+                      <div className="flex-shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white shadow-lg">
+                        <span className="text-sm md:text-base">🤖</span>
+                      </div>
+                    )}
+                    
                     <div
-                      className={`max-w-[85%] md:max-w-[75%] rounded-2xl px-4 py-3 md:px-5 md:py-3 whitespace-pre-wrap transition-all duration-300 shadow-md ${
+                      className={`max-w-[85%] md:max-w-[70%] rounded-2xl px-4 py-3 md:px-5 md:py-4 whitespace-pre-wrap transition-all duration-300 hover:scale-[1.02] ${
                         message.role === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted"
+                          ? "bg-gradient-to-br from-primary to-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
+                          : "bg-gradient-to-br from-muted to-muted/80 shadow-lg border border-border/50"
                       }`}
                     >
-                      {message.content}
+                      <div className={message.role === "user" ? "font-medium" : ""}>
+                        {message.content}
+                      </div>
                     </div>
+                    
+                    {/* 用戶頭像 */}
+                    {message.role === "user" && (
+                      <div className="flex-shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-accent to-accent/80 flex items-center justify-center text-white shadow-lg">
+                        <span className="text-sm md:text-base">👤</span>
+                      </div>
+                    )}
                   </div>
                   
                   {/* 顯示工具調用結果 */}
@@ -461,7 +510,7 @@ export default function AIBooking() {
                   
                   {/* 快速回覆按鈕 */}
                   {message.role === "assistant" && message.quickReplies && message.quickReplies.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-2">
+                    <div className="mt-3 ml-0 md:ml-12 flex flex-wrap gap-2">
                       {message.quickReplies.map((reply, replyIdx) => (
                         <Button
                           key={replyIdx}
@@ -469,8 +518,9 @@ export default function AIBooking() {
                           variant="outline"
                           onClick={() => sendMessageWithContent(reply)}
                           disabled={isLoading}
-                          className="text-sm hover-scale transition-all duration-200"
+                          className="text-sm transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-primary/50 hover:bg-primary/5 group"
                         >
+                          <span className="mr-1.5 text-base group-hover:scale-110 transition-transform">💬</span>
                           {reply}
                         </Button>
                       ))}
@@ -479,10 +529,18 @@ export default function AIBooking() {
                 </div>
               ))}
               {isLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-muted rounded-2xl px-5 py-3 flex items-center gap-3 shadow-md">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="text-sm">正在輸入...</span>
+                <div className="flex justify-start gap-3 items-end">
+                  <div className="flex-shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white shadow-lg">
+                    <span className="text-sm md:text-base">🤖</span>
+                  </div>
+                  <div className="bg-gradient-to-br from-muted to-muted/80 rounded-2xl px-5 py-4 flex items-center gap-3 shadow-lg border border-border/50">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    <span className="text-sm font-medium">正在思考中...</span>
+                    <div className="flex gap-1">
+                      <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0s' }} />
+                      <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                      <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
+                    </div>
                   </div>
                 </div>
               )}
@@ -490,32 +548,39 @@ export default function AIBooking() {
           </ScrollArea>
 
           {/* 輸入區域 */}
-          <div className="p-4 md:p-6 border-t bg-background/50 backdrop-blur-sm">
+          <div className="p-4 md:p-6 border-t border-border/50 bg-gradient-to-t from-muted/20 to-background/50 backdrop-blur-sm relative z-10">
             <div className="flex gap-3">
-              <Input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="輸入訊息..."
-                disabled={isLoading}
-                className="flex-1 transition-all duration-200 focus:ring-2 focus:ring-primary/20 h-12 text-base"
-              />
+              <div className="flex-1 relative">
+                <Input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="💭 輸入您的訊息..."
+                  disabled={isLoading}
+                  className="w-full transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary h-12 md:h-14 text-base pl-4 pr-4 shadow-sm hover:shadow-md bg-background/80 backdrop-blur-sm"
+                />
+              </div>
               <Button
                 onClick={sendMessage}
                 disabled={!input.trim() || isLoading}
                 size="icon"
-                className="transition-all duration-200 hover-scale h-12 w-12"
+                className="transition-all duration-300 hover:scale-110 hover:rotate-12 h-12 md:h-14 w-12 md:w-14 shadow-lg hover:shadow-xl bg-gradient-to-br from-primary to-accent disabled:opacity-50"
               >
                 {isLoading ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <Loader2 className="h-5 w-5 md:h-6 md:w-6 animate-spin" />
                 ) : (
-                  <Send className="h-5 w-5" />
+                  <Send className="h-5 w-5 md:h-6 md:w-6" />
                 )}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-3 text-center">
-              AI 助手可能會出錯，請核對重要資訊
-            </p>
+            <div className="mt-3 flex items-center justify-center gap-2">
+              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5 px-3">
+                <span className="text-base">⚠️</span>
+                <span>AI 助手可能會出錯，請核對重要資訊</span>
+              </p>
+              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+            </div>
           </div>
         </Card>
       </div>
