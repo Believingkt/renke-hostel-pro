@@ -24,16 +24,151 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // 先不使用工具調用，簡化實作
-    const tools = undefined;
+    // 定義工具（使用 Gemini 格式）
+    const tools = [
+      {
+        type: "function",
+        function: {
+          name: "get_available_rooms",
+          description: "查詢可用的房型和價格",
+          parameters: {
+            type: "object",
+            properties: {
+              check_in_date: {
+                type: "string",
+                description: "入住日期，格式：YYYY-MM-DD"
+              },
+              check_out_date: {
+                type: "string",
+                description: "退房日期，格式：YYYY-MM-DD"
+              }
+            },
+            required: ["check_in_date", "check_out_date"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "check_discount_code",
+          description: "驗證折扣碼是否有效",
+          parameters: {
+            type: "object",
+            properties: {
+              code: {
+                type: "string",
+                description: "折扣碼"
+              }
+            },
+            required: ["code"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "create_booking",
+          description: "創建訂單",
+          parameters: {
+            type: "object",
+            properties: {
+              guest_name: { type: "string", description: "客人姓名" },
+              guest_phone: { type: "string", description: "客人手機" },
+              guest_email: { type: "string", description: "客人 Email" },
+              check_in_date: { type: "string", description: "入住日期 YYYY-MM-DD" },
+              check_out_date: { type: "string", description: "退房日期 YYYY-MM-DD" },
+              room_type_id: { type: "string", description: "房型 ID" },
+              guest_count: { type: "number", description: "人數" },
+              pet_count: { type: "number", description: "毛孩數量" },
+              meal_plan: { type: "string", description: "餐食方案：breakfast_only 或 bbq" },
+              discount_code: { type: "string", description: "折扣碼（選填）" },
+              notes: { type: "string", description: "備註（選填）" }
+            },
+            required: ["guest_name", "guest_phone", "check_in_date", "check_out_date", "room_type_id", "guest_count"]
+          }
+        }
+      }
+    ];
+
+    // 處理工具調用
+    const handleToolCall = async (toolName: string, args: any) => {
+      console.log(`執行工具: ${toolName}`, args);
+
+      if (toolName === "get_available_rooms") {
+        const { data: roomTypes } = await supabase
+          .from('room_types')
+          .select('*')
+          .eq('accommodation_id', accommodationId)
+          .order('display_order');
+        
+        return {
+          rooms: roomTypes?.map(rt => ({
+            id: rt.id,
+            name: rt.name,
+            capacity: rt.capacity,
+            weekday_price: rt.weekday_2_meals_price,
+            weekend_price: rt.weekend_2_meals_price,
+            description: rt.description
+          })) || []
+        };
+      }
+
+      if (toolName === "check_discount_code") {
+        const { data } = await supabase.rpc('validate_discount_code', {
+          p_accommodation_id: accommodationId,
+          p_code: args.code
+        });
+        
+        return data?.[0] || { is_valid: false, message: "折扣碼無效" };
+      }
+
+      if (toolName === "create_booking") {
+        // 生成訂單號
+        const { data: orderNumber } = await supabase.rpc('generate_order_number');
+        
+        // 創建訂單
+        const { data: order, error } = await supabase
+          .from('orders')
+          .insert({
+            accommodation_id: accommodationId,
+            order_number: orderNumber,
+            guest_name: args.guest_name,
+            guest_phone: args.guest_phone,
+            guest_email: args.guest_email,
+            check_in_date: args.check_in_date,
+            check_out_date: args.check_out_date,
+            room_type_id: args.room_type_id,
+            guest_count: args.guest_count,
+            pet_count: args.pet_count || 0,
+            meal_plan: args.meal_plan,
+            discount_code: args.discount_code,
+            notes: args.notes,
+            total_price: 0, // 需要計算
+            final_price: 0,
+            order_status: 'pending',
+            payment_status: 'unpaid'
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('創建訂單失敗:', error);
+          return { success: false, message: "訂單創建失敗" };
+        }
+
+        return { success: true, order_number: orderNumber, order_id: order.id };
+      }
+
+      return { error: "未知的工具" };
+    };
 
     // 系統提示詞
-    const systemPrompt = `你是森山寫照的 AI 訂房助手。你的任務是協助客人完成線上訂房。
+    const systemPrompt = `你是森山寫照的 AI 訂房助手。你可以直接幫助客人查詢房型和完成訂房。
 
-## 你的職責：
-1. 友善且專業地與客人對話
-2. 回答關於旅宿的問題
-3. 引導客人到訂房頁面完成訂房
+## 你的能力：
+1. 查詢可用房型和價格（使用 get_available_rooms）
+2. 驗證折扣碼（使用 check_discount_code）
+3. 直接創建訂單（使用 create_booking）
 
 ## 旅宿資訊：
 - 名稱：森山寫照
@@ -60,13 +195,14 @@ serve(async (req) => {
 - 13歲以上算成人
 - 訂金30%，餘款入住時支付
 
-## 對話風格：
-- 保持友善、專業、簡潔
-- 適時使用 emoji 增加溫度
-- 如果客人詢問訂房，請引導他們點擊「開始訂房」按鈕
-- 回答問題時提供具體資訊，避免過於冗長
+## 對話流程：
+1. 詢問入住和退房日期
+2. 使用 get_available_rooms 查詢房型
+3. 詢問客人基本資料（姓名、手機、Email）
+4. 如有折扣碼，使用 check_discount_code 驗證
+5. 確認所有資訊後，使用 create_booking 創建訂單
 
-開始時請簡短問候並詢問可以如何協助。`;
+開始時請簡短問候並詢問入住日期。`;
 
     console.log("發送請求到 AI Gateway...");
 
@@ -82,6 +218,7 @@ serve(async (req) => {
           { role: "system", content: systemPrompt },
           ...messages
         ],
+        tools,
         stream: true,
       }),
     });
@@ -112,7 +249,7 @@ serve(async (req) => {
     }
 
 
-    // 建立 streaming response
+    // 建立 streaming response with tool handling
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
@@ -124,6 +261,7 @@ serve(async (req) => {
 
         const decoder = new TextDecoder();
         let buffer = '';
+        let pendingToolCalls: any[] = [];
 
         try {
           while (true) {
@@ -139,11 +277,34 @@ serve(async (req) => {
               if (!line.startsWith('data: ')) continue;
 
               const data = line.slice(6);
-              if (data === '[DONE]') continue;
+              if (data === '[DONE]') {
+                // 處理待執行的工具
+                if (pendingToolCalls.length > 0) {
+                  const toolResults = await Promise.all(
+                    pendingToolCalls.map(async (tc) => {
+                      const result = await handleToolCall(tc.function.name, JSON.parse(tc.function.arguments));
+                      return { tool_call_id: tc.id, result };
+                    })
+                  );
+
+                  // 發送工具執行結果
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                    type: 'tool_calls_complete',
+                    results: toolResults
+                  })}\n\n`));
+                }
+                continue;
+              }
 
               try {
                 const parsed = JSON.parse(data);
                 const delta = parsed.choices?.[0]?.delta;
+
+                // 處理工具調用
+                if (delta?.tool_calls) {
+                  pendingToolCalls.push(...delta.tool_calls);
+                  continue;
+                }
 
                 // 轉發文字內容
                 if (delta?.content) {
