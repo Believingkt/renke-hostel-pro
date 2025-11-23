@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Table,
   TableBody,
@@ -49,6 +50,7 @@ interface User {
 }
 
 const Accounts = () => {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -249,6 +251,15 @@ const Accounts = () => {
     }
 
     try {
+      // Ensure we have a valid session before calling edge function
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        toast.error("登入狀態已過期，請重新登入");
+        navigate("/auth");
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke("create-user", {
         body: {
           name,
