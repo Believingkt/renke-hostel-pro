@@ -270,7 +270,8 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
       {!isOpen && (
         <Button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-4 right-4 md:bottom-6 md:right-6 h-14 w-14 md:h-16 md:w-16 rounded-full shadow-lg bg-primary hover:bg-primary/90 z-[9998] animate-scale-in"
+          className="fixed bottom-4 right-4 md:bottom-6 md:right-6 h-14 w-14 md:h-16 md:w-16 rounded-full shadow-lg bg-primary hover:bg-primary/90"
+          style={{ zIndex: 9998 }}
           size="icon"
           aria-label="打開 AI 訂房助手"
         >
@@ -279,7 +280,16 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
       )}
 
       {isOpen && (
-        <Card className="fixed inset-0 md:bottom-6 md:right-6 md:inset-auto md:w-96 md:h-[600px] w-full h-full md:rounded-lg shadow-2xl z-[9999] flex flex-col border-primary/20 animate-fade-in md:animate-scale-in">
+        <div 
+          className="fixed top-0 left-0 w-full h-full bg-black/50 md:bg-transparent"
+          style={{ zIndex: 9999 }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setIsOpen(false);
+            }
+          }}
+        >
+          <Card className="fixed top-0 left-0 w-full h-full md:bottom-6 md:right-6 md:top-auto md:left-auto md:w-96 md:h-[600px] md:rounded-lg shadow-2xl flex flex-col border-primary/20 bg-background">
           {/* 標題列 */}
           <div className="flex items-center justify-between p-4 md:p-4 border-b bg-primary text-primary-foreground md:rounded-t-lg">
             <div className="flex items-center gap-2 md:gap-3">
@@ -597,6 +607,7 @@ export const FloatingChat = ({ accommodationId }: FloatingChatProps) => {
             </p>
           </div>
         </Card>
+        </div>
       )}
     </>
   );
