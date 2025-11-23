@@ -64,7 +64,7 @@ const handler = async (req: Request): Promise<Response> => {
               </p>
             </div>
             <div class="footer">
-              <p>© 2024 森山寫照管理系統</p>
+              <p>© 2025 Lakeze.</p>
               <p>此為系統自動發送的郵件，請勿直接回覆</p>
             </div>
           </div>
