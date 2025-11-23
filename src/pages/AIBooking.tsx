@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSubdomain } from "@/hooks/use-subdomain";
 import { SEOHead } from "@/components/SEOHead";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import assistantAvatar from "@/assets/assistant-avatar-xiaoan.png";
 
 interface Message {
   role: "user" | "assistant";
@@ -382,8 +384,19 @@ export default function AIBooking() {
                   style={{ animationDelay: `${index * 0.05}s` }}
                 >
                   <div
-                    className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                    className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"}`}
                   >
+                    {/* AI 助手頭像和名字 */}
+                    {message.role === "assistant" && (
+                      <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                        <Avatar className="h-10 w-10 border-2 border-primary/20 shadow-sm">
+                          <AvatarImage src={assistantAvatar} alt="小安" />
+                          <AvatarFallback className="bg-primary text-primary-foreground text-sm">小安</AvatarFallback>
+                        </Avatar>
+                        <span className="text-xs font-medium text-muted-foreground">小安</span>
+                      </div>
+                    )}
+                    
                     <div
                       className={`max-w-[85%] md:max-w-[75%] rounded-2xl px-4 py-3 md:px-5 md:py-3 whitespace-pre-wrap transition-all duration-300 shadow-md ${
                         message.role === "user"
