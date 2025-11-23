@@ -41,13 +41,13 @@ import ChangePassword from "./pages/ChangePassword";
 
 function App() {
   return (
-    <AccommodationProvider>
-        <BrowserRouter>
-          <NetworkIndicator />
-          <PageTransition>
-            <ChunkErrorBoundary>
-              <Suspense fallback={<FrontendSkeleton />}>
-                <Routes>
+    <BrowserRouter>
+      <AccommodationProvider>
+        <NetworkIndicator />
+        <PageTransition>
+          <ChunkErrorBoundary>
+            <Suspense fallback={<FrontendSkeleton />}>
+              <Routes>
               <Route element={<ConditionalLayout />}>
                 <Route path="/" element={<Index />} />
                 <Route path="/booking" element={<BookingFlow />} />
@@ -188,12 +188,12 @@ function App() {
                 <Route path="/og-preview" element={<OgImagePreview />} />
                 <Route path="*" element={<NotFound />} />
               </Route>
-            </Routes>
-          </Suspense>
+              </Routes>
+            </Suspense>
           </ChunkErrorBoundary>
-          </PageTransition>
-        </BrowserRouter>
+        </PageTransition>
       </AccommodationProvider>
+    </BrowserRouter>
   );
 }
 
