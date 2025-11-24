@@ -15,6 +15,7 @@ import assistantAvatar from "@/assets/assistant-avatar-xiaoan.png";
 interface Message {
   role: "user" | "assistant";
   content: string;
+  timestamp?: Date;
   toolCalls?: {
     type: string;
     data: any;
@@ -29,6 +30,7 @@ export default function AIBooking() {
     {
       role: "assistant",
       content: "您好！我是小安，您的專屬 AI 訂房助手 😊\n我可以協助您查詢房型、檢查空房、了解價格，並直接完成訂房！\n有任何問題都可以隨時問我喔～",
+      timestamp: new Date(),
       quickReplies: ["查看房型資訊", "了解旅宿特色", "入住須知"]
     }
   ]);
@@ -65,7 +67,7 @@ export default function AIBooking() {
 
     const newMessages: Message[] = [
       ...messages,
-      { role: "user", content }
+      { role: "user", content, timestamp: new Date() }
     ];
     setMessages(newMessages);
     setIsLoading(true);
@@ -119,7 +121,7 @@ export default function AIBooking() {
       let assistantMessage = "";
       let textBuffer = "";
 
-      setMessages(prev => [...prev, { role: "assistant", content: "" }]);
+      setMessages(prev => [...prev, { role: "assistant", content: "", timestamp: new Date() }]);
 
       while (true) {
         const { done, value } = await reader.read();
@@ -253,6 +255,7 @@ export default function AIBooking() {
       {
         role: "assistant",
         content: "您好！我是森山寫照的 AI 訂房助手 😊\n\n我可以直接幫您完成訂房！請問您想什麼時候入住呢？\n\n請提供您的：\n📅 入住日期\n📅 退房日期",
+        timestamp: new Date(),
         quickReplies: ["查看房型資訊", "了解旅宿特色", "入住須知"]
       }
     ]);
@@ -647,7 +650,7 @@ export default function AIBooking() {
                   style={{ animationDelay: `${index * 0.05}s` }}
                 >
                   <div
-                    className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                    className={`flex gap-3 items-start ${message.role === "user" ? "justify-end" : "justify-start"}`}
                   >
                     {/* AI 助手頭像和名字 */}
                     {message.role === "assistant" && (
@@ -660,14 +663,28 @@ export default function AIBooking() {
                       </div>
                     )}
                     
-                    <div
-                      className={`max-w-[85%] md:max-w-[75%] rounded-2xl px-4 py-3 md:px-5 md:py-3 whitespace-pre-wrap transition-all duration-300 shadow-md ${
-                        message.role === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted"
-                      }`}
-                    >
-                      {message.content}
+                    <div className="flex flex-col gap-1 max-w-[85%] md:max-w-[75%]">
+                      <div
+                        className={`rounded-2xl px-4 py-3 md:px-5 md:py-3 whitespace-pre-wrap transition-all duration-300 shadow-md ${
+                          message.role === "user"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted"
+                        }`}
+                      >
+                        {message.content}
+                      </div>
+                      
+                      {/* 時間戳記 */}
+                      {message.timestamp && (
+                        <div className={`text-[10px] text-muted-foreground/60 px-2 ${
+                          message.role === "user" ? "text-right" : "text-left"
+                        }`}>
+                          {new Date(message.timestamp).toLocaleTimeString('zh-TW', { 
+                            hour: '2-digit', 
+                            minute: '2-digit'
+                          })}
+                        </div>
+                      )}
                     </div>
 
                     {/* 用戶頭像 */}
