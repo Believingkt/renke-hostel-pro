@@ -243,55 +243,63 @@ const Notifications = () => {
         }
       />
 
-      <div className="space-y-3">
-        <div className="flex gap-2">
-          <Button
-            variant={filter === 'all' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setFilter('all')}
-          >
-            全部通知
-          </Button>
-          <Button
-            variant={filter === 'unread' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setFilter('unread')}
-          >
-            未讀 {unreadCount > 0 && `(${unreadCount})`}
-          </Button>
-        </div>
+      <Card className="p-4 shadow-sm">
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={filter === 'all' ? 'default' : 'outline'}
+              size="default"
+              onClick={() => setFilter('all')}
+              className="rounded-full px-6 h-10 font-medium transition-all hover:scale-105"
+            >
+              全部通知
+            </Button>
+            <Button
+              variant={filter === 'unread' ? 'default' : 'outline'}
+              size="default"
+              onClick={() => setFilter('unread')}
+              className="rounded-full px-6 h-10 font-medium transition-all hover:scale-105"
+            >
+              未讀 {unreadCount > 0 && `(${unreadCount})`}
+            </Button>
+          </div>
 
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant={typeFilter === 'all' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setTypeFilter('all')}
-          >
-            全部類型
-          </Button>
-          <Button
-            variant={typeFilter === 'new_order' ? 'info' : 'outline'}
-            size="sm"
-            onClick={() => setTypeFilter('new_order')}
-          >
-            🎉 新訂單
-          </Button>
-          <Button
-            variant={typeFilter === 'payment' ? 'success' : 'outline'}
-            size="sm"
-            onClick={() => setTypeFilter('payment')}
-          >
-            💰 付款通知
-          </Button>
-          <Button
-            variant={typeFilter === 'status_update' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setTypeFilter('status_update')}
-          >
-            📋 狀態更新
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={typeFilter === 'all' ? 'default' : 'outline'}
+              size="default"
+              onClick={() => setTypeFilter('all')}
+              className="rounded-full px-6 h-10 font-medium transition-all hover:scale-105"
+            >
+              全部類型
+            </Button>
+            <Button
+              variant={typeFilter === 'new_order' ? 'default' : 'outline'}
+              size="default"
+              onClick={() => setTypeFilter('new_order')}
+              className="rounded-full px-6 h-10 font-medium transition-all hover:scale-105"
+            >
+              🎉 新訂單
+            </Button>
+            <Button
+              variant={typeFilter === 'payment' ? 'default' : 'outline'}
+              size="default"
+              onClick={() => setTypeFilter('payment')}
+              className="rounded-full px-6 h-10 font-medium transition-all hover:scale-105"
+            >
+              💰 付款通知
+            </Button>
+            <Button
+              variant={typeFilter === 'status_update' ? 'default' : 'outline'}
+              size="default"
+              onClick={() => setTypeFilter('status_update')}
+              className="rounded-full px-6 h-10 font-medium transition-all hover:scale-105"
+            >
+              📋 狀態更新
+            </Button>
+          </div>
         </div>
-      </div>
+      </Card>
 
       {notifications.length === 0 ? (
         <EmptyState
