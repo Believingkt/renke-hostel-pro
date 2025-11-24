@@ -179,7 +179,7 @@ serve(async (req) => {
       type: 'recovery',
       email: email,
       options: {
-        redirectTo: `${siteUrl}/auth?type=recovery`,
+        redirectTo: `${siteUrl}/auth`,
       },
     });
 

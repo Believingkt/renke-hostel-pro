@@ -49,14 +49,17 @@ export default function Auth() {
         if (profile?.force_password_change) {
           setInviteEmail(session.user.email || "");
           setIsInviteMode(true);
+          toast.info("請設定您的登入密碼");
         } else {
           navigate("/admin");
         }
       } else if (event === "PASSWORD_RECOVERY") {
+        // This event fires when user clicks the recovery link
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         if (currentSession) {
           setInviteEmail(currentSession.user.email || "");
           setIsInviteMode(true);
+          toast.info("請設定您的登入密碼");
         }
       } else if (event === "USER_UPDATED" && session) {
         const { data: profile } = await supabase
@@ -65,9 +68,9 @@ export default function Auth() {
           .eq("id", session.user.id)
           .single();
         
-        if (profile?.force_password_change) {
-          setInviteEmail(session.user.email || "");
-          setIsInviteMode(true);
+        if (!profile?.force_password_change) {
+          // Password has been set successfully
+          navigate("/admin");
         }
       }
     });
