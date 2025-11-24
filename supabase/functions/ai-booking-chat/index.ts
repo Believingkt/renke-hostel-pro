@@ -30,20 +30,20 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "get_available_rooms",
-          description: "查詢可用的房型和價格",
+          description: "查詢可用的房型和價格。可以不提供日期直接查詢所有房型資訊。",
           parameters: {
             type: "object",
             properties: {
               check_in_date: {
                 type: "string",
-                description: "入住日期，格式：YYYY-MM-DD"
+                description: "入住日期，格式：YYYY-MM-DD（選填）"
               },
               check_out_date: {
                 type: "string",
-                description: "退房日期，格式：YYYY-MM-DD"
+                description: "退房日期，格式：YYYY-MM-DD（選填）"
               }
             },
-            required: ["check_in_date", "check_out_date"]
+            required: []
           }
         }
       },
@@ -178,6 +178,8 @@ serve(async (req) => {
 2. 驗證折扣碼（使用 check_discount_code 工具）
 3. 創建訂單（使用 create_booking 工具）
 
+**重要：當客人詢問房型、價格、或想查看房間資訊時，你必須立即調用 get_available_rooms 工具來獲取最新的房型資料。不要憑記憶回答房型資訊。**
+
 ## 旅宿資訊：
 - 名稱：森山寫照
 - 特色：山林環抱、日式美學、管家服務、專業寫真攝影
@@ -187,21 +189,7 @@ serve(async (req) => {
 - 電話：0903-178-518
 
 ## 房型資訊（包區制，每天僅接待 1 組客人）：
-1. **12人包區** - 三間房（四人房×3）
-   - 平日一泊二食 $30,000
-   - 假日一泊二食 $33,000
-   
-2. **14人包區** - 四間房（雙人房×1 + 四人房×3）
-   - 平日一泊二食 $32,700
-   - 假日一泊二食 $36,000
-   
-3. **16人包區** - 五間房（雙人房×2 + 四人房×3）
-   - 平日一泊二食 $38,700
-   - 假日一泊二食 $42,600
-   
-4. **18人包區** - 六間房（雙人房×3 + 四人房×3）
-   - 平日一泊二食 $49,500
-   - 假日一泊二食 $54,450
+使用 get_available_rooms 工具來查詢最新的房型資訊和價格。
 
 ## 加購方案：
 - **毛孩方案**：每隻 $600/天（最多兩隻，僅開放兩間房）
@@ -215,6 +203,9 @@ serve(async (req) => {
 - 假日定義：週五、週六、國定假日前一天
 
 ## 對話流程（務必按順序進行，每步都要確認）：
+
+### 當用戶詢問房型或價格時：
+**立即調用 get_available_rooms 工具**，然後根據返回的資料向客人介紹房型。
 
 ### 步驟 1：收集入住日期
 - 詢問入住日期和退房日期
@@ -272,7 +263,7 @@ serve(async (req) => {
 - 如果折扣碼無效，說明原因並詢問是否繼續
 - 如果缺少必填資訊，不要猜測，直接詢問
 
-現在開始與客人對話，從問候並詢問入住日期開始。記住：每一步都要確認清楚！`;
+現在開始與客人對話。記住：每次客人詢問房型或價格時，都要先調用 get_available_rooms 工具！`;
 
     console.log("發送請求到 AI Gateway...");
 
