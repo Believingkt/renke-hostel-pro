@@ -654,12 +654,12 @@ export default function AIBooking() {
                   >
                     {/* AI 助手頭像和名字 */}
                     {message.role === "assistant" && (
-                      <div className="flex flex-col items-center gap-1.5 flex-shrink-0 group">
-                        <Avatar className="h-14 w-14 border-3 border-primary/30 shadow-lg ring-2 ring-primary/10 transition-all duration-300 hover:scale-110 hover:shadow-2xl hover:border-primary/60 hover:ring-primary/20 hover:-translate-y-1 cursor-pointer">
-                          <AvatarImage src={assistantAvatar} alt="小安" className="transition-transform duration-300 group-hover:scale-105 object-cover" />
+                      <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
+                        <Avatar className="h-14 w-14 border-3 border-primary/30 shadow-lg ring-2 ring-primary/10">
+                          <AvatarImage src={assistantAvatar} alt="小安" className="object-cover" />
                           <AvatarFallback className="bg-primary text-primary-foreground text-base">小安</AvatarFallback>
                         </Avatar>
-                        <span className="text-xs font-semibold text-muted-foreground transition-colors duration-300 group-hover:text-primary">小安</span>
+                        <span className="text-xs font-semibold text-muted-foreground">小安</span>
                       </div>
                     )}
                     
