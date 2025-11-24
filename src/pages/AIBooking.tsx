@@ -639,6 +639,27 @@ export default function AIBooking() {
         <Card className="shadow-2xl overflow-hidden border-primary/20 h-[calc(100vh-200px)] flex flex-col">
           {/* 訊息區域 */}
           <ScrollArea className="flex-1 p-6" ref={scrollRef}>
+            {/* 歡迎橫幅 */}
+            <div className="mb-6 animate-fade-in">
+              <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-background border border-primary/20 rounded-2xl p-6 shadow-lg">
+                <div className="flex items-center gap-4 mb-3">
+                  <Avatar className="h-16 w-16 border-2 border-primary/30 shadow-md">
+                    <AvatarImage src={assistantAvatar} alt="小安" className="object-cover" />
+                    <AvatarFallback className="bg-primary text-primary-foreground text-lg">小安</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h2 className="text-2xl font-bold text-foreground mb-1">森山寫照</h2>
+                    <p className="text-sm text-muted-foreground">AI 智能訂房助手</p>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  您好！我是小安，您的專屬 AI 訂房助手 😊<br />
+                  我可以協助您查詢房型、檢查空房、了解價格，並直接完成訂房！<br />
+                  有任何問題都可以隨時問我喔～
+                </p>
+              </div>
+            </div>
+
             <div className="space-y-6">
               {messages.map((message, index) => (
                 <div 
