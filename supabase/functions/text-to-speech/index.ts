@@ -11,45 +11,42 @@ serve(async (req) => {
   }
 
   try {
-    const { text, voice, speed } = await req.json()
+    const { text, voice } = await req.json()
 
     if (!text) {
       throw new Error('未提供文字內容')
     }
 
-    console.log('開始生成語音，文字長度:', text.length, '語音:', voice || 'Aria')
+    console.log('開始生成語音，文字長度:', text.length, '語音:', voice || 'nova')
 
-    const ELEVEN_LABS_API_KEY = Deno.env.get('ELEVEN_LABS_API_KEY')
-    if (!ELEVEN_LABS_API_KEY) {
-      throw new Error('ELEVEN_LABS_API_KEY 未設定')
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
+    if (!OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY 未設定')
     }
 
-    // ElevenLabs 語音 ID (使用中文母語者聲音)
-    const voiceId = voice || 'kGjJqO6wdwRN9iJsoeIC'
+    // OpenAI TTS 語音選項: alloy, echo, fable, onyx, nova, shimmer
+    // 使用 nova 作為預設，適合中文語音
+    const selectedVoice = voice || 'nova'
     
-    // 使用 ElevenLabs Text-to-Speech API
-    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+    // 使用 OpenAI Text-to-Speech API
+    const response = await fetch('https://api.openai.com/v1/audio/speech', {
       method: 'POST',
       headers: {
-        'xi-api-key': ELEVEN_LABS_API_KEY,
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        text: text,
-        model_id: 'eleven_multilingual_v2', // 支援多語言的高品質模型
-        voice_settings: {
-          stability: 0.7,           // 更高的穩定性，確保發音清晰一致
-          similarity_boost: 0.8,    // 提高相似度，保持語音特徵
-          style: 0.0,               // 不增加額外風格化
-          use_speaker_boost: true   // 增強說話者特徵
-        }
+        model: 'tts-1',
+        input: text,
+        voice: selectedVoice,
+        response_format: 'mp3',
       }),
     })
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('ElevenLabs TTS API 錯誤:', response.status, errorText)
-      throw new Error(`ElevenLabs TTS API error: ${errorText}`)
+      console.error('OpenAI TTS API 錯誤:', response.status, errorText)
+      throw new Error(`OpenAI TTS API error: ${errorText}`)
     }
 
     // 將音頻轉換為 base64（分塊處理避免堆疊溢位）
@@ -67,7 +64,7 @@ serve(async (req) => {
     
     const base64Audio = btoa(binaryString)
 
-    console.log('ElevenLabs 語音生成成功，音頻大小:', arrayBuffer.byteLength, 'bytes')
+    console.log('OpenAI 語音生成成功，音頻大小:', arrayBuffer.byteLength, 'bytes')
 
     return new Response(
       JSON.stringify({ audioContent: base64Audio }),
