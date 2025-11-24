@@ -51,6 +51,16 @@ const handler = async (req: Request): Promise<Response> => {
             <div class="content">
               <p>${recipientName}您好：</p>
               <p>邀請您加入森山寫照 PMS 管理系統。</p>
+              
+              <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                <p style="margin: 0; color: #92400e; font-weight: 600;">
+                  ⏰ 重要提醒：此邀請鏈接將在 <span style="color: #b45309; font-size: 16px;">24小時內</span>有效
+                </p>
+                <p style="margin: 5px 0 0 0; color: #92400e; font-size: 13px;">
+                  請盡快完成密碼設定以啟用您的帳號
+                </p>
+              </div>
+              
               <p>請點擊下方按鈕來設定您的密碼並啟用帳號：</p>
               <div style="text-align: center;">
                 <a href="${inviteLink}" class="button" style="color: white !important; text-decoration: none;">設定密碼並啟用帳號</a>
@@ -60,7 +70,7 @@ const handler = async (req: Request): Promise<Response> => {
                 <span style="word-break: break-all;">${inviteLink}</span>
               </p>
               <p style="margin-top: 30px; color: #888; font-size: 13px;">
-                ⚠️ 此連結將在 24 小時後失效。如果您沒有要求此邀請，請忽略此郵件。
+                如果您沒有要求此邀請，請忽略此郵件。
               </p>
             </div>
             <div class="footer">
