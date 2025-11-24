@@ -619,8 +619,9 @@ const Accounts = () => {
                               size="icon"
                               onClick={() => handleResendInvite(user.id, user.name)}
                               title="重新發送邀請"
+                              className="hover:bg-primary group"
                             >
-                              <Mail className="h-4 w-4 text-primary" />
+                              <Mail className="h-4 w-4 text-primary group-hover:text-white transition-colors" />
                             </Button>
                           )}
                           <Button
@@ -700,8 +701,9 @@ const Accounts = () => {
                             size="icon"
                             onClick={() => handleResendInvite(user.id, user.name)}
                             title="重新發送邀請"
+                            className="hover:bg-primary group"
                           >
-                            <Mail className="h-5 w-5 text-primary" />
+                            <Mail className="h-5 w-5 text-primary group-hover:text-white transition-colors" />
                           </Button>
                         )}
                         <Button
