@@ -330,6 +330,10 @@ const Notifications = () => {
               key={notification.id}
               className={`transition-all hover:shadow-md cursor-pointer ${
                 !notification.is_read ? 'bg-accent/10 border-primary/20' : ''
+              } ${
+                notification.type === 'new_order' ? 'border-l-4 border-l-warning' :
+                notification.type === 'payment' ? 'border-l-4 border-l-success' :
+                notification.type === 'status_update' ? 'border-l-4 border-l-primary' : ''
               }`}
               onClick={() => handleNotificationClick(notification)}
             >
@@ -407,6 +411,10 @@ const Notifications = () => {
               key={notification.id}
               className={`transition-all hover:shadow-md cursor-pointer ${
                 !notification.is_read ? 'bg-accent/10 border-primary/20' : ''
+              } ${
+                notification.type === 'new_order' ? 'border-l-4 border-l-warning' :
+                notification.type === 'payment' ? 'border-l-4 border-l-success' :
+                notification.type === 'status_update' ? 'border-l-4 border-l-primary' : ''
               }`}
               onClick={() => handleNotificationClick(notification)}
             >
@@ -484,6 +492,10 @@ const Notifications = () => {
               key={notification.id}
               className={`transition-all hover:shadow-md cursor-pointer ${
                 !notification.is_read ? 'bg-accent/10 border-primary/20' : ''
+              } ${
+                notification.type === 'new_order' ? 'border-l-4 border-l-warning' :
+                notification.type === 'payment' ? 'border-l-4 border-l-success' :
+                notification.type === 'status_update' ? 'border-l-4 border-l-primary' : ''
               }`}
               onClick={() => handleNotificationClick(notification)}
             >
