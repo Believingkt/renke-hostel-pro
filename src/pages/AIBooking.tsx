@@ -884,22 +884,6 @@ export default function AIBooking() {
                 )}
               </Button>
             </div>
-            
-            {/* AI 思考中動畫指示器 */}
-            {isLoading && (
-              <div className="flex items-center justify-center gap-1 mt-3 animate-fade-in">
-                <span className="text-sm text-muted-foreground">AI 正在思考</span>
-                <div className="flex gap-1 ml-1">
-                  <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                  <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                  <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
-                </div>
-              </div>
-            )}
-            
-            <p className="text-xs text-muted-foreground mt-3 text-center">
-              AI 助手可能會出錯，請核對重要資訊
-            </p>
           </div>
         </Card>
       </div>
