@@ -665,10 +665,10 @@ export default function AIBooking() {
                     
                     <div className="flex flex-col gap-1 max-w-[85%] md:max-w-[75%]">
                       <div
-                        className={`rounded-2xl px-4 py-3 md:px-5 md:py-3 whitespace-pre-wrap transition-all duration-300 shadow-md ${
+                        className={`rounded-3xl px-4 py-3 md:px-5 md:py-3.5 whitespace-pre-wrap transition-all duration-300 ${
                           message.role === "user"
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted"
+                            ? "bg-gradient-to-br from-primary via-primary to-primary/90 text-primary-foreground shadow-lg shadow-primary/25"
+                            : "bg-gradient-to-br from-muted to-muted/80 shadow-md border border-border/50"
                         }`}
                       >
                         {message.content}
