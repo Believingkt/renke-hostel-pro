@@ -323,7 +323,7 @@ serve(async (req) => {
 
         const decoder = new TextDecoder();
         let buffer = '';
-        let pendingToolCalls: any[] = [];
+        const toolCallsMap = new Map(); // 用於累積工具調用
 
         try {
           while (true) {
@@ -340,20 +340,33 @@ serve(async (req) => {
 
               const data = line.slice(6);
               if (data === '[DONE]') {
-                // 處理待執行的工具
-                if (pendingToolCalls.length > 0) {
-                  const toolResults = await Promise.all(
-                    pendingToolCalls.map(async (tc) => {
-                      const result = await handleToolCall(tc.function.name, JSON.parse(tc.function.arguments));
-                      return { tool_call_id: tc.id, result };
-                    })
+                // 處理已累積的工具調用
+                if (toolCallsMap.size > 0) {
+                  const toolCalls = Array.from(toolCallsMap.values());
+                  const completedToolCalls = toolCalls.filter(
+                    tc => tc.function?.name && tc.function?.arguments
                   );
+                  
+                  if (completedToolCalls.length > 0) {
+                    const toolResults = await Promise.all(
+                      completedToolCalls.map(async (tc) => {
+                        try {
+                          const args = JSON.parse(tc.function.arguments);
+                          const result = await handleToolCall(tc.function.name, args);
+                          return { tool_call_id: tc.id, result };
+                        } catch (e) {
+                          console.error('工具調用失敗:', e);
+                          return { tool_call_id: tc.id, result: { error: '工具調用失敗' } };
+                        }
+                      })
+                    );
 
-                  // 發送工具執行結果
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                    type: 'tool_calls_complete',
-                    results: toolResults
-                  })}\n\n`));
+                    // 發送工具執行結果
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                      type: 'tool_calls_complete',
+                      results: toolResults
+                    })}\n\n`));
+                  }
                 }
                 continue;
               }
@@ -362,9 +375,27 @@ serve(async (req) => {
                 const parsed = JSON.parse(data);
                 const delta = parsed.choices?.[0]?.delta;
 
-                // 處理工具調用
+                // 累積工具調用
                 if (delta?.tool_calls) {
-                  pendingToolCalls.push(...delta.tool_calls);
+                  for (const tc of delta.tool_calls) {
+                    const index = tc.index ?? 0;
+                    
+                    if (!toolCallsMap.has(index)) {
+                      toolCallsMap.set(index, {
+                        id: tc.id || `call_${index}`,
+                        type: 'function',
+                        function: {
+                          name: '',
+                          arguments: ''
+                        }
+                      });
+                    }
+                    
+                    const existing = toolCallsMap.get(index);
+                    if (tc.id) existing.id = tc.id;
+                    if (tc.function?.name) existing.function.name = tc.function.name;
+                    if (tc.function?.arguments) existing.function.arguments += tc.function.arguments;
+                  }
                   continue;
                 }
 
