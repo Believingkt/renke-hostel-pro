@@ -220,9 +220,12 @@ export default function AIBooking() {
         }
       }
 
-      // 串流結束後，播放完整的語音回覆
+      // 串流結束後，先關閉 loading 狀態
+      setIsLoading(false);
+      
+      // 然後播放完整的語音回覆（不影響 UI 顯示）
       if (assistantMessage && isVoiceEnabled) {
-        await playTextToSpeech(assistantMessage);
+        playTextToSpeech(assistantMessage);
       }
 
     } catch (error) {
@@ -234,7 +237,6 @@ export default function AIBooking() {
       });
       
       setMessages(prev => prev.slice(0, -1));
-    } finally {
       setIsLoading(false);
     }
   };
