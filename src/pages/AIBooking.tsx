@@ -711,30 +711,79 @@ export default function AIBooking() {
                         <div key={toolIdx}>
                           {/* 房型列表 */}
                           {tool.type === 'rooms' && (
-                            <div className="bg-card border rounded-xl p-4 space-y-3 shadow-sm">
-                              <p className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                                📋 可預訂房型
+                            <div className="space-y-4 mt-4">
+                              <p className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2 px-1">
+                                <span className="text-lg">🏠</span>
+                                <span>為您推薦以下房型</span>
                               </p>
                               {tool.data.map((room: any, roomIdx: number) => (
-                                <div key={roomIdx} className="bg-muted/50 rounded-lg p-3 text-sm space-y-2">
-                                  <div className="font-medium text-foreground text-base">{room.name}</div>
-                                  <div className="text-xs text-muted-foreground space-y-1">
-                                    <div>容納人數：{room.capacity}人</div>
-                                    <div className="flex gap-3">
-                                      <span>平日：NT$ {room.weekday_price?.toLocaleString()}</span>
-                                      <span>假日：NT$ {room.weekend_price?.toLocaleString()}</span>
+                                <Card key={roomIdx} className="overflow-hidden hover:shadow-xl transition-all duration-300 border-primary/20 group">
+                                  {/* 房型圖片 */}
+                                  {room.photos && room.photos.length > 0 && (
+                                    <div className="relative h-48 overflow-hidden bg-muted">
+                                      <img 
+                                        src={room.photos[0]} 
+                                        alt={room.name}
+                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                      />
+                                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                                      <div className="absolute bottom-3 left-4 right-4">
+                                        <h3 className="text-white text-xl font-bold drop-shadow-lg">{room.name}</h3>
+                                      </div>
                                     </div>
+                                  )}
+                                  
+                                  <div className="p-4 space-y-3">
+                                    {/* 房型資訊 */}
+                                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-base">👥</span>
+                                        <span>{room.capacity}人</span>
+                                      </div>
+                                      {room.size_sqm && (
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="text-base">📐</span>
+                                          <span>{room.size_sqm}㎡</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                    
+                                    {/* 房型描述 */}
+                                    {room.description && (
+                                      <p className="text-sm text-muted-foreground line-clamp-2">
+                                        {room.description}
+                                      </p>
+                                    )}
+                                    
+                                    {/* 價格資訊 */}
+                                    <div className="bg-primary/5 rounded-lg p-3 space-y-1.5">
+                                      <div className="flex items-center justify-between text-sm">
+                                        <span className="text-muted-foreground">平日價格</span>
+                                        <span className="font-semibold text-primary text-base">
+                                          NT$ {room.weekday_price?.toLocaleString()}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center justify-between text-sm">
+                                        <span className="text-muted-foreground">假日價格</span>
+                                        <span className="font-semibold text-primary text-base">
+                                          NT$ {room.weekend_price?.toLocaleString()}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    
+                                    {/* 選擇按鈕 */}
+                                    <Button
+                                      size="default"
+                                      variant="default"
+                                      className="w-full shadow-md hover:shadow-lg transition-all duration-300"
+                                      onClick={() => sendMessageWithContent(`我要預訂 ${room.name}`)}
+                                      disabled={isLoading}
+                                    >
+                                      <span className="mr-2">✨</span>
+                                      選擇此房型
+                                    </Button>
                                   </div>
-                                  <Button
-                                    size="sm"
-                                    variant="default"
-                                    className="mt-2 w-full"
-                                    onClick={() => sendMessageWithContent(`我要選擇 ${room.name}（房型ID: ${room.id}）`)}
-                                    disabled={isLoading}
-                                  >
-                                    選擇此房型
-                                  </Button>
-                                </div>
+                                </Card>
                               ))}
                             </div>
                           )}

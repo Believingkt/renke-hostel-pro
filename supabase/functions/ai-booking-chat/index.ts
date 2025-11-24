@@ -97,7 +97,13 @@ serve(async (req) => {
       if (toolName === "get_available_rooms") {
         const { data: roomTypes } = await supabase
           .from('room_types')
-          .select('*')
+          .select(`
+            *,
+            room_photos (
+              photo_url,
+              display_order
+            )
+          `)
           .eq('accommodation_id', accommodationId)
           .order('display_order');
         
@@ -108,7 +114,9 @@ serve(async (req) => {
             capacity: rt.capacity,
             weekday_price: rt.weekday_2_meals_price,
             weekend_price: rt.weekend_2_meals_price,
-            description: rt.description
+            description: rt.description,
+            size_sqm: rt.size_sqm,
+            photos: rt.room_photos?.sort((a: any, b: any) => a.display_order - b.display_order).map((p: any) => p.photo_url) || []
           })) || []
         };
       }
