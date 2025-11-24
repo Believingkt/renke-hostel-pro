@@ -22,96 +22,67 @@ export default function Auth() {
   const [inviteLinkExpired, setInviteLinkExpired] = useState(false);
 
   useEffect(() => {
-    const handleInviteLink = async () => {
-      // Check if this is an invite/recovery link
-      const type = searchParams.get('type');
-      const tokenHash = searchParams.get('token_hash');
-      const error = searchParams.get('error');
-      const errorDescription = searchParams.get('error_description');
-      
-      // Check if there's an error from Supabase (expired/invalid token)
-      if ((type === 'recovery' || type === 'invite' || tokenHash) && (error || errorDescription)) {
-        setInviteLinkExpired(true);
-        toast.error("邀請連結已失效，請聯繫管理員重新發送邀請信");
-        return;
-      }
-      
-      if (type === 'recovery' || type === 'invite' || tokenHash) {
-        try {
-          // First, sign out any existing user to ensure invite link works correctly
-          await supabase.auth.signOut();
-          
-          // Wait a moment for sign out to complete
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          // Check if we already have a session from the invite link
-          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-          
-          if (sessionError) {
-            console.error("Session error:", sessionError);
-            setInviteLinkExpired(true);
-            toast.error("邀請連結已失效，請聯繫管理員重新發送邀請信");
-            return;
-          }
-          
-          if (session?.user) {
-            // Session exists, check if password needs to be set
-            setInviteEmail(session.user.email || "");
-            
-            const { data: profile } = await supabase
-              .from("profiles")
-              .select("force_password_change")
-              .eq("id", session.user.id)
-              .single();
-            
-            if (profile?.force_password_change) {
-              setIsInviteMode(true);
-            } else {
-              navigate("/admin");
-            }
-          } else {
-            // No session - likely the token has expired
-            setInviteLinkExpired(true);
-            toast.error("邀請連結已失效，請聯繫管理員重新發送邀請信");
-          }
-        } catch (error) {
-          console.error("Error handling invite link:", error);
-          setInviteLinkExpired(true);
-          toast.error("邀請連結處理失敗，請聯繫管理員重新發送邀請信");
-        }
-        return;
-      }
-    };
-
-    handleInviteLink();
-
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        await checkForcePasswordChange(session.user.id);
-      }
-    };
-
-    checkSession();
+    // Check for expired/invalid invite link from URL params
+    const error = searchParams.get('error');
+    const errorDescription = searchParams.get('error_description');
+    
+    if (error || errorDescription) {
+      setInviteLinkExpired(true);
+      toast.error("邀請連結已失效，請聯繫管理員重新發送邀請信");
+      return;
+    }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state changed:", event, session?.user?.email);
+      
       if (event === "SIGNED_IN" && session) {
-        await checkForcePasswordChange(session.user.id);
-      } else if (event === "PASSWORD_RECOVERY" || event === "USER_UPDATED") {
-        // Handle password recovery or user update events
+        // Check if this is from an invite link
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("force_password_change")
+          .eq("id", session.user.id)
+          .single();
+        
+        if (profile?.force_password_change) {
+          setInviteEmail(session.user.email || "");
+          setIsInviteMode(true);
+        } else {
+          navigate("/admin");
+        }
+      } else if (event === "PASSWORD_RECOVERY") {
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         if (currentSession) {
           setInviteEmail(currentSession.user.email || "");
-          
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("force_password_change")
-            .eq("id", currentSession.user.id)
-            .single();
-          
-          if (profile?.force_password_change) {
-            setIsInviteMode(true);
-          }
+          setIsInviteMode(true);
+        }
+      } else if (event === "USER_UPDATED" && session) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("force_password_change")
+          .eq("id", session.user.id)
+          .single();
+        
+        if (profile?.force_password_change) {
+          setInviteEmail(session.user.email || "");
+          setIsInviteMode(true);
+        }
+      }
+    });
+
+    // Check for existing session
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("force_password_change")
+          .eq("id", session.user.id)
+          .single();
+        
+        if (profile?.force_password_change) {
+          setInviteEmail(session.user.email || "");
+          setIsInviteMode(true);
+        } else {
+          navigate("/admin");
         }
       }
     });
@@ -119,34 +90,6 @@ export default function Auth() {
     return () => subscription.unsubscribe();
   }, [navigate, searchParams]);
 
-  const checkForcePasswordChange = async (userId: string) => {
-    try {
-      const { data: profile, error } = await supabase
-        .from("profiles")
-        .select("force_password_change")
-        .eq("id", userId)
-        .single();
-
-      if (error) {
-        if (import.meta.env.DEV) {
-          console.error("Error checking profile:", error);
-        }
-        navigate("/admin");
-        return;
-      }
-
-      if (profile?.force_password_change) {
-        navigate("/change-password");
-      } else {
-        navigate("/admin");
-      }
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error("Error in checkForcePasswordChange:", error);
-      }
-      navigate("/admin");
-    }
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
