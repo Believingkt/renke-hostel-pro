@@ -28,7 +28,7 @@ export default function AIBooking() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "您好！我是森山寫照的 AI 訂房助手 😊\n\n我可以直接幫您完成訂房！請問您想什麼時候入住呢？\n\n請提供您的：\n📅 入住日期\n📅 退房日期",
+      content: "您好！我是小安，您的專屬 AI 訂房助手 😊\n我可以協助您查詢房型、檢查空房、了解價格，並直接完成訂房！\n有任何問題都可以隨時問我喔～",
       quickReplies: ["查看房型資訊", "了解旅宿特色", "入住須知"]
     }
   ]);
