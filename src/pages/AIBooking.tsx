@@ -4,12 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Calendar } from "@/components/ui/calendar";
 import { Send, Loader2, ArrowLeft, RotateCcw, User, Mic, MicOff, Volume2, VolumeX, Square } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSubdomain } from "@/hooks/use-subdomain";
 import { SEOHead } from "@/components/SEOHead";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { format } from "date-fns";
+import { zhTW } from "date-fns/locale";
 import assistantAvatar from "@/assets/assistant-avatar-xiaoan.png";
 
 interface Message {
@@ -21,6 +24,11 @@ interface Message {
     data: any;
   }[];
   quickReplies?: string[];
+  showDatePicker?: "check-in" | "check-out" | "range";
+  selectedDates?: {
+    checkIn?: Date;
+    checkOut?: Date;
+  };
 }
 
 export default function AIBooking() {
@@ -43,6 +51,8 @@ export default function AIBooking() {
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [audioQueue, setAudioQueue] = useState<string[]>([]);
   const [isProcessingQueue, setIsProcessingQueue] = useState(false);
+  const [selectedCheckIn, setSelectedCheckIn] = useState<Date>();
+  const [selectedCheckOut, setSelectedCheckOut] = useState<Date>();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -184,10 +194,11 @@ export default function AIBooking() {
               assistantMessage += content;
               
               let quickReplies: string[] = [];
+              let showDatePicker: "check-in" | "check-out" | "range" | undefined = undefined;
               const lowerContent = assistantMessage.toLowerCase();
               
               if (lowerContent.includes('日期') || lowerContent.includes('入住')) {
-                quickReplies = ["查看可用日期", "有折扣碼嗎？"];
+                showDatePicker = "range";
                 if (bookingStep < 1) setBookingStep(1);
               }
               
@@ -211,7 +222,8 @@ export default function AIBooking() {
                 updated[updated.length - 1] = {
                   role: "assistant",
                   content: assistantMessage,
-                  quickReplies: quickReplies.length > 0 ? quickReplies : undefined
+                  quickReplies: quickReplies.length > 0 ? quickReplies : undefined,
+                  showDatePicker
                 };
                 return updated;
               });
@@ -863,6 +875,93 @@ export default function AIBooking() {
                           )}
                         </div>
                       ))}
+                    </div>
+                  )}
+                  
+                  {/* 日期選擇器 */}
+                  {message.role === "assistant" && message.showDatePicker && (
+                    <div className="mt-4 space-y-3">
+                      <Card className="p-4 bg-gradient-to-br from-muted to-muted/80 border-primary/20">
+                        <div className="space-y-4">
+                          <div className="text-sm font-medium text-foreground">
+                            📅 請選擇入住與退房日期
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* 入住日期 */}
+                            <div className="space-y-2">
+                              <div className="text-xs text-muted-foreground font-medium">入住日期</div>
+                              <Calendar
+                                mode="single"
+                                selected={selectedCheckIn}
+                                onSelect={(date) => {
+                                  setSelectedCheckIn(date);
+                                  if (date && selectedCheckOut && date >= selectedCheckOut) {
+                                    setSelectedCheckOut(undefined);
+                                  }
+                                }}
+                                disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                                locale={zhTW}
+                                className="rounded-lg border shadow-sm pointer-events-auto bg-background"
+                              />
+                            </div>
+                            
+                            {/* 退房日期 */}
+                            <div className="space-y-2">
+                              <div className="text-xs text-muted-foreground font-medium">退房日期</div>
+                              <Calendar
+                                mode="single"
+                                selected={selectedCheckOut}
+                                onSelect={setSelectedCheckOut}
+                                disabled={(date) => {
+                                  const today = new Date(new Date().setHours(0, 0, 0, 0));
+                                  if (date < today) return true;
+                                  if (selectedCheckIn && date <= selectedCheckIn) return true;
+                                  return false;
+                                }}
+                                locale={zhTW}
+                                className="rounded-lg border shadow-sm pointer-events-auto bg-background"
+                              />
+                            </div>
+                          </div>
+                          
+                          {/* 已選擇的日期摘要 */}
+                          {(selectedCheckIn || selectedCheckOut) && (
+                            <div className="bg-background/50 rounded-lg p-3 text-sm space-y-1">
+                              {selectedCheckIn && (
+                                <div className="text-muted-foreground">
+                                  入住：<span className="font-medium text-foreground">{format(selectedCheckIn, "yyyy/MM/dd (E)", { locale: zhTW })}</span>
+                                </div>
+                              )}
+                              {selectedCheckOut && (
+                                <div className="text-muted-foreground">
+                                  退房：<span className="font-medium text-foreground">{format(selectedCheckOut, "yyyy/MM/dd (E)", { locale: zhTW })}</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          
+                          {/* 確認按鈕 */}
+                          <Button
+                            onClick={() => {
+                              if (selectedCheckIn && selectedCheckOut) {
+                                const dateMessage = `我想要從 ${format(selectedCheckIn, "yyyy/MM/dd", { locale: zhTW })} 入住，${format(selectedCheckOut, "yyyy/MM/dd", { locale: zhTW })} 退房`;
+                                sendMessageWithContent(dateMessage);
+                              } else {
+                                toast({
+                                  title: "請選擇日期",
+                                  description: "請同時選擇入住和退房日期",
+                                  variant: "destructive"
+                                });
+                              }
+                            }}
+                            disabled={!selectedCheckIn || !selectedCheckOut || isLoading}
+                            className="w-full"
+                          >
+                            確認日期
+                          </Button>
+                        </div>
+                      </Card>
                     </div>
                   )}
                   
