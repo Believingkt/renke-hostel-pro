@@ -19,6 +19,30 @@ export function Header() {
   const navigate = useNavigate();
   const { accommodationId } = useSubdomain();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [userName, setUserName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("name")
+            .eq("id", user.id)
+            .single();
+          
+          if (profile) {
+            setUserName(profile.name);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
 
   useEffect(() => {
     if (!accommodationId) return;
@@ -115,8 +139,13 @@ export function Header() {
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-11 w-11 touch-manipulation">
-                <UserCircle className="h-5 w-5" />
+              <Button variant="ghost" className="h-11 px-2 md:px-3 gap-2 touch-manipulation">
+                <UserCircle className="h-5 w-5 flex-shrink-0" />
+                {userName && (
+                  <span className="hidden md:inline-block text-sm font-medium max-w-[120px] truncate">
+                    {userName}
+                  </span>
+                )}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
