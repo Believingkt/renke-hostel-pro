@@ -274,26 +274,38 @@ const Notifications = () => {
               全部類型
             </Button>
             <Button
-              variant={typeFilter === 'new_order' ? 'default' : 'outline'}
+              variant="outline"
               size="default"
               onClick={() => setTypeFilter('new_order')}
-              className="rounded-full px-6 h-10 font-medium transition-all hover:scale-105"
+              className={`rounded-full px-6 h-10 font-medium transition-all hover:scale-105 ${
+                typeFilter === 'new_order' 
+                  ? 'bg-warning text-warning-foreground border-warning hover:bg-warning/90' 
+                  : 'hover:bg-warning/10 hover:border-warning/50'
+              }`}
             >
               🎉 新訂單
             </Button>
             <Button
-              variant={typeFilter === 'payment' ? 'default' : 'outline'}
+              variant="outline"
               size="default"
               onClick={() => setTypeFilter('payment')}
-              className="rounded-full px-6 h-10 font-medium transition-all hover:scale-105"
+              className={`rounded-full px-6 h-10 font-medium transition-all hover:scale-105 ${
+                typeFilter === 'payment' 
+                  ? 'bg-success text-success-foreground border-success hover:bg-success/90' 
+                  : 'hover:bg-success/10 hover:border-success/50'
+              }`}
             >
               💰 付款通知
             </Button>
             <Button
-              variant={typeFilter === 'status_update' ? 'default' : 'outline'}
+              variant="outline"
               size="default"
               onClick={() => setTypeFilter('status_update')}
-              className="rounded-full px-6 h-10 font-medium transition-all hover:scale-105"
+              className={`rounded-full px-6 h-10 font-medium transition-all hover:scale-105 ${
+                typeFilter === 'status_update' 
+                  ? 'bg-primary text-primary-foreground border-primary hover:bg-primary/90' 
+                  : 'hover:bg-primary/10 hover:border-primary/50'
+              }`}
             >
               📋 狀態更新
             </Button>
