@@ -29,7 +29,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, Copy, Pencil, Check, X, Eye, Calendar as CalendarIcon, GripVertical, Code, DollarSign, Ticket, Tag } from "lucide-react";
+import { Plus, Trash2, Copy, Pencil, Check, Pause, X, Eye, Calendar as CalendarIcon, GripVertical, Code, DollarSign, Ticket, Tag } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -766,7 +766,7 @@ const KolDiscount = () => {
               title={item.is_active ? "停用" : "啟用"}
             >
               {item.is_active ? (
-                <X className="h-4 w-4 text-orange-500" />
+                <Pause className="h-4 w-4 text-orange-500" />
               ) : (
                 <Check className="h-4 w-4 text-green-600" />
               )}
@@ -1643,7 +1643,7 @@ const KolDiscount = () => {
                         >
                           {item.is_active ? (
                             <>
-                              <X className="h-3.5 w-3.5 mr-1" />
+                              <Pause className="h-3.5 w-3.5 mr-1" />
                               停用
                             </>
                           ) : (
