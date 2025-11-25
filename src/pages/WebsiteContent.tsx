@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Globe, Plus, Trash2, Edit2, GripVertical, MapPin, Image as ImageIcon, Upload, Info, Wrench, Package, HelpCircle, Navigation, icons, AlertCircle } from "lucide-react";
+import { Globe, Plus, Trash2, Edit2, GripVertical, MapPin, Image as ImageIcon, Upload, Info, Wrench, Package, HelpCircle, Navigation, icons, AlertCircle, BookOpen } from "lucide-react";
 import { AboutFeatureForm } from "@/components/AboutFeatureForm";
 import { ResponsiveTabs, TabItem } from "@/components/ResponsiveTabs";
 import { WebInfoSection } from "@/components/website-content/WebInfoSection";
@@ -2600,7 +2600,7 @@ const WebsiteContent = () => {
         <TabsContent value="booking-info" className="space-y-6">
           <div className="pb-4 border-b border-primary/20 mb-6">
             <h2 className="text-3xl font-bold flex items-center gap-3">
-              <Globe className="h-7 w-7 text-primary" />
+              <BookOpen className="h-7 w-7 text-primary" />
               訂房須知
             </h2>
           </div>
