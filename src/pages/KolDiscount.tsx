@@ -1344,7 +1344,7 @@ const KolDiscount = () => {
               <TableBody>
                 {filteredCodes.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="h-32"></TableCell>
+                    <TableCell colSpan={10} className="h-64 text-center align-middle"></TableCell>
                   </TableRow>
                 ) : (
                   <DndContext
@@ -1369,7 +1369,7 @@ const KolDiscount = () => {
           {/* Mobile card view */}
           <div className="md:hidden space-y-4 p-4">
             {filteredCodes.length === 0 ? (
-              <div className="h-32"></div>
+              <div className="h-64"></div>
             ) : (
               filteredCodes.map((item) => (
                 <Card key={item.id} className="overflow-hidden">
