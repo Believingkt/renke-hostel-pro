@@ -315,6 +315,32 @@ const Headquarters = () => {
     return accommodation?.name || accommodationId;
   };
 
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case "super_admin":
+        return "總部管理員";
+      case "hotel_admin":
+        return "民宿管理員";
+      case "staff":
+        return "現場營運";
+      default:
+        return role;
+    }
+  };
+
+  const getRoleBadgeVariant = (role: string): "destructive" | "info" | "success" => {
+    switch (role) {
+      case "super_admin":
+        return "destructive";
+      case "hotel_admin":
+        return "info";
+      case "staff":
+        return "success";
+      default:
+        return "info";
+    }
+  };
+
   // Backup functions
   const loadBackups = async () => {
     if (!selectedBackupAccommodation) return;
@@ -671,19 +697,24 @@ const Headquarters = () => {
                       </TableCell>
                       <TableCell>{getAccommodationName(userRole.accommodation_id)}</TableCell>
                       <TableCell>
-                        <Select
-                          value={userRole.role}
-                          onValueChange={(value) => handleUpdateRole(userRole.id, value as "super_admin" | "hotel_admin" | "staff")}
-                        >
-                          <SelectTrigger className="w-[180px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="super_admin">總部管理員</SelectItem>
-                            <SelectItem value="hotel_admin">民宿管理員</SelectItem>
-                            <SelectItem value="staff">現場營運</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={getRoleBadgeVariant(userRole.role)}>
+                            {getRoleLabel(userRole.role)}
+                          </Badge>
+                          <Select
+                            value={userRole.role}
+                            onValueChange={(value) => handleUpdateRole(userRole.id, value as "super_admin" | "hotel_admin" | "staff")}
+                          >
+                            <SelectTrigger className="w-[140px] h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="super_admin">總部管理員</SelectItem>
+                              <SelectItem value="hotel_admin">民宿管理員</SelectItem>
+                              <SelectItem value="staff">現場營運</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </TableCell>
                       <TableCell>
                         {new Date(userRole.created_at).toLocaleDateString("zh-TW")}
