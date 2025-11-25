@@ -1343,7 +1343,16 @@ const KolDiscount = () => {
               <TableBody>
                 {filteredCodes.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="h-64 text-center align-middle"></TableCell>
+                    <TableCell colSpan={10} className="p-0">
+                      <div className="py-8">
+                        <EmptyState
+                          icon={Tag}
+                          title="暫無折扣碼"
+                          description="目前還沒有建立任何折扣碼，點擊右上角的「新增折扣碼」按鈕開始建立"
+                          className="border-0 shadow-none"
+                        />
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ) : (
                   <DndContext
@@ -1368,7 +1377,12 @@ const KolDiscount = () => {
           {/* Mobile card view */}
           <div className="md:hidden space-y-4 p-4">
             {filteredCodes.length === 0 ? (
-              <div className="h-64"></div>
+              <EmptyState
+                icon={Tag}
+                title="暫無折扣碼"
+                description="目前還沒有建立任何折扣碼，點擊右上角的「新增折扣碼」按鈕開始建立"
+                className="border-0 shadow-none"
+              />
             ) : (
               filteredCodes.map((item) => (
                 <Card key={item.id} className="overflow-hidden">
