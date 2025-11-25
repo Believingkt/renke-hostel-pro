@@ -35,11 +35,15 @@ export default function Auth() {
       return;
     }
 
+    // Check if this is a recovery link (from invite)
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const isRecoveryLink = hashParams.get('type') === 'recovery';
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state changed:", event, session?.user?.email);
+      console.log("Auth state changed:", event, session?.user?.email, "isRecovery:", isRecoveryLink);
       
       if (event === "SIGNED_IN" && session) {
-        // Check if this is from an invite link - check both metadata and profile
+        // Check if this is from an invite link - check metadata, profile, and URL params
         const needsPasswordChange = session.user.user_metadata?.force_password_change === true;
         
         const { data: profile } = await supabase
@@ -48,7 +52,8 @@ export default function Auth() {
           .eq("id", session.user.id)
           .single();
         
-        if (needsPasswordChange || profile?.force_password_change) {
+        // Force password change mode if it's a recovery link OR if flags are set
+        if (isRecoveryLink || needsPasswordChange || profile?.force_password_change) {
           setInviteEmail(session.user.email || "");
           setIsInviteMode(true);
           toast.info("請設定您的登入密碼");
