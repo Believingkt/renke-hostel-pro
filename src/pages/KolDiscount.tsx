@@ -29,7 +29,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, Copy, Pencil, Check, X, Eye, Calendar as CalendarIcon, GripVertical, Files, Code, DollarSign, Ticket, Tag } from "lucide-react";
+import { Plus, Trash2, Copy, Pencil, Check, X, Eye, Calendar as CalendarIcon, GripVertical, Code, DollarSign, Ticket, Tag } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -89,7 +89,6 @@ const KolDiscount = () => {
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editingCode, setEditingCode] = useState<DiscountCode | null>(null);
-  const [copyingFrom, setCopyingFrom] = useState<DiscountCode | null>(null);
   const [name, setName] = useState("");
   const [discountType, setDiscountType] = useState<"percentage" | "amount">("percentage");
   const [discountValue, setDiscountValue] = useState("");
@@ -446,27 +445,10 @@ const KolDiscount = () => {
     }
   };
 
-  const handleCopyCode = (code: DiscountCode) => {
-    setCopyingFrom(code);
-    setName(`${code.name} (副本)`);
-    setDiscountType(code.discount_type);
-    setDiscountValue(code.discount_value.toString());
-    setUsageLimit(code.usage_limit.toString());
-    setValidFrom(new Date(code.valid_from));
-    setValidUntil(code.valid_until ? new Date(code.valid_until) : undefined);
-    setMinOrderAmount(code.min_order_amount > 0 ? code.min_order_amount.toString() : "");
-    setSelectedRoomTypes(code.applicable_room_types || []);
-    setApplicableDateFrom(code.applicable_date_from ? new Date(code.applicable_date_from) : undefined);
-    setApplicableDateTo(code.applicable_date_to ? new Date(code.applicable_date_to) : undefined);
-    setCommissionRate(code.commission_rate?.toString() || "0");
-    setOpen(true);
-  };
-
   const handleDialogClose = (isOpen: boolean) => {
     setOpen(isOpen);
     if (!isOpen) {
-      // 清除複製狀態和表單
-      setCopyingFrom(null);
+      // 清除表單
       setName("");
       setDiscountValue("");
       setUsageLimit("");
@@ -758,15 +740,6 @@ const KolDiscount = () => {
               variant="ghost"
               size="icon"
               className="h-8 w-8"
-              onClick={() => handleCopyCode(item)}
-              title="複製"
-            >
-              <Files className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
               onClick={() => handleOpenEdit(item)}
               title="編輯"
             >
@@ -852,12 +825,9 @@ const KolDiscount = () => {
               </DialogTrigger>
           <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{copyingFrom ? "複製折扣碼" : "新增折扣碼"}</DialogTitle>
+              <DialogTitle>新增折扣碼</DialogTitle>
               <DialogDescription>
-                {copyingFrom 
-                  ? `複製自：${copyingFrom.code}，系統將自動生成新的折扣碼`
-                  : "填寫折扣碼資訊，系統將自動生成折扣碼"
-                }
+                填寫折扣碼資訊，系統將自動生成折扣碼
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -1649,16 +1619,7 @@ const KolDiscount = () => {
 
                     {/* Action Buttons - Two Rows */}
                     <div className="space-y-2">
-                      <div className="grid grid-cols-3 gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-9 text-xs"
-                          onClick={() => handleCopyCode(item)}
-                        >
-                          <Files className="h-3.5 w-3.5 mr-1" />
-                          複製
-                        </Button>
+                      <div className="grid grid-cols-2 gap-2">
                         <Button
                           variant="outline"
                           size="sm"
