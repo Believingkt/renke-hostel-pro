@@ -101,8 +101,6 @@ const KolDiscount = () => {
   const [applicableDateFrom, setApplicableDateFrom] = useState<Date | undefined>();
   const [applicableDateTo, setApplicableDateTo] = useState<Date | undefined>();
   const [roomTypes, setRoomTypes] = useState<Array<{ id: string; name: string }>>([]);
-  const [editingLimitId, setEditingLimitId] = useState<string | null>(null);
-  const [editingLimitValue, setEditingLimitValue] = useState("");
   const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [apiDocOpen, setApiDocOpen] = useState(false);
@@ -302,48 +300,6 @@ const KolDiscount = () => {
 
   const formatDiscount = (type: "percentage" | "amount", value: number) => {
     return type === "percentage" ? `${value}%` : `NT$ ${value}`;
-  };
-
-  const handleEditLimit = (id: string, currentLimit: number) => {
-    setEditingLimitId(id);
-    setEditingLimitValue(currentLimit.toString());
-  };
-
-  const handleSaveLimit = async (id: string) => {
-    const newLimit = parseInt(editingLimitValue);
-    if (isNaN(newLimit) || newLimit < 1) {
-      toast({
-        title: "請輸入有效的數字",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from("discount_codes")
-        .update({ usage_limit: newLimit })
-        .eq("id", id);
-
-      if (error) throw error;
-
-      toast({
-        title: "使用次數已更新",
-      });
-      setEditingLimitId(null);
-      fetchDiscountCodes();
-    } catch (error) {
-      console.error("Error updating usage limit:", error);
-      toast({
-        title: "更新失敗",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingLimitId(null);
-    setEditingLimitValue("");
   };
 
   const handleOpenEdit = (code: DiscountCode) => {
@@ -677,47 +633,7 @@ const KolDiscount = () => {
         </TableCell>
         <TableCell>{item.used_count} 次</TableCell>
         <TableCell>
-          <div className="flex items-center gap-2">
-            {editingLimitId === item.id ? (
-              <>
-                <Input
-                  type="number"
-                  min="1"
-                  value={editingLimitValue}
-                  onChange={(e) => setEditingLimitValue(e.target.value)}
-                  className="w-20 h-8"
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => handleSaveLimit(item.id)}
-                >
-                  <Check className="h-4 w-4 text-success" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={handleCancelEdit}
-                >
-                  <X className="h-4 w-4 text-destructive" />
-                </Button>
-              </>
-            ) : (
-              <>
-                <span>{item.usage_limit} 次</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => handleEditLimit(item.id, item.usage_limit)}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-              </>
-            )}
-          </div>
+          <span>{item.usage_limit} 次</span>
         </TableCell>
         <TableCell>
           <div className="text-sm space-y-1">
@@ -1562,52 +1478,10 @@ const KolDiscount = () => {
                       </p>
                     </div>
 
-                    {/* Usage Limit Edit Section */}
+                    {/* Usage Limit Display */}
                     <div className="mb-4 pb-4 border-b">
                       <p className="text-xs font-medium text-muted-foreground mb-2">使用上限</p>
-                      <div className="flex items-center gap-2">
-                        {editingLimitId === item.id ? (
-                          <>
-                            <Input
-                              type="number"
-                              min="1"
-                              value={editingLimitValue}
-                              onChange={(e) => setEditingLimitValue(e.target.value)}
-                              className="w-24 h-9"
-                            />
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-9"
-                              onClick={() => handleSaveLimit(item.id)}
-                            >
-                              <Check className="h-4 w-4 mr-1 text-success" />
-                              儲存
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-9"
-                              onClick={handleCancelEdit}
-                            >
-                              <X className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <p className="text-sm font-medium">{item.usage_limit} 次</p>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8"
-                              onClick={() => handleEditLimit(item.id, item.usage_limit)}
-                            >
-                              <Pencil className="h-3.5 w-3.5 mr-1" />
-                              編輯
-                            </Button>
-                          </>
-                        )}
-                      </div>
+                      <p className="text-sm font-medium">{item.usage_limit} 次</p>
                     </div>
 
                     {/* Action Buttons - Two Rows */}
