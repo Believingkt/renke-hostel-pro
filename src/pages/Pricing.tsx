@@ -4,7 +4,6 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2, GripVertical, Hotel, DollarSign, Wrench, Package, Calendar, Bed } from "lucide-react";
-import { ResponsiveTabs, TabItem } from "@/components/ResponsiveTabs";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -292,29 +291,12 @@ const Pricing = () => {
     }
   };
 
-  const pricingTabs: TabItem[] = [
-    { value: "rooms", label: "房型管理", icon: Bed },
-    { value: "basic", label: "價格管理", icon: DollarSign },
-    { value: "facilities", label: "客房設施", icon: Wrench },
-    { value: "inventory", label: "庫存管理", icon: Package },
-    { value: "holidays", label: "國定假日", icon: Calendar },
-  ];
-
   return (
     <div className="space-y-6 md:space-y-8">
       <Tabs value={activeTab} onValueChange={(value) => {
         setActiveTab(value);
         setSearchParams({ tab: value });
       }} className="w-full">
-        <ResponsiveTabs
-          tabs={pricingTabs}
-          value={activeTab}
-          onValueChange={(value) => {
-            setActiveTab(value);
-            setSearchParams({ tab: value });
-          }}
-        />
-        
         <TabsContent value="rooms" className="space-y-4">
           <PageHeader
             title="房型管理"
