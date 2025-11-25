@@ -81,12 +81,14 @@ export function ConditionalLayout() {
     );
 
     return () => subscription.unsubscribe();
-  }, [isAdminPage]);
+  }, []); // Remove isAdminPage dependency to prevent infinite loop
 
   // Check if user needs to change password
   const checkPasswordChangeRequired = async (session: Session) => {
+    console.log('[ConditionalLayout] checkPasswordChangeRequired started');
     try {
       const needsChange = session.user.user_metadata?.force_password_change === true;
+      console.log('[ConditionalLayout] needsChange from metadata:', needsChange);
       
       const { data: profile, error } = await supabase
         .from('profiles')
@@ -94,17 +96,19 @@ export function ConditionalLayout() {
         .eq('id', session.user.id)
         .single();
       
+      console.log('[ConditionalLayout] Profile query result:', { profile, error });
+      
       if (error) {
-        console.error('Error fetching profile:', error);
+        console.error('[ConditionalLayout] Error fetching profile:', error);
         setNeedsPasswordChange(false);
         return;
       }
       
       const result = needsChange || profile?.force_password_change === true;
+      console.log('[ConditionalLayout] Final password change required result:', result);
       setNeedsPasswordChange(result);
-      console.log('Password change required:', result);
     } catch (error) {
-      console.error('Error checking password change requirement:', error);
+      console.error('[ConditionalLayout] Error checking password change requirement:', error);
       setNeedsPasswordChange(false);
     }
   };
