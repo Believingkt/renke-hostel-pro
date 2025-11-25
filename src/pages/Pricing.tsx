@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, GripVertical, Hotel, DollarSign, Wrench, Package, Calendar } from "lucide-react";
+import { Plus, Pencil, Trash2, GripVertical, Hotel, DollarSign, Wrench, Package, Calendar, Bed } from "lucide-react";
 import { ResponsiveTabs, TabItem } from "@/components/ResponsiveTabs";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -293,7 +293,7 @@ const Pricing = () => {
   };
 
   const pricingTabs: TabItem[] = [
-    { value: "rooms", label: "房型管理", icon: Hotel },
+    { value: "rooms", label: "房型管理", icon: Bed },
     { value: "basic", label: "價格管理", icon: DollarSign },
     { value: "facilities", label: "客房設施", icon: Wrench },
     { value: "inventory", label: "庫存管理", icon: Package },
@@ -318,7 +318,7 @@ const Pricing = () => {
         <TabsContent value="rooms" className="space-y-4">
           <PageHeader
             title="房型管理"
-            icon={Hotel}
+            icon={Bed}
             action={
               !showForm && (
                 <Button onClick={handleAddNew} className="flex items-center gap-2">
