@@ -685,12 +685,12 @@ const Accounts = () => {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
-                <TableHead className="text-foreground">名稱</TableHead>
-                <TableHead className="text-foreground">Email</TableHead>
-                <TableHead className="text-foreground">角色</TableHead>
-                <TableHead className="text-foreground">狀態</TableHead>
-                <TableHead className="text-foreground">最後登入時間</TableHead>
-                <TableHead className="w-[140px] text-foreground">操作</TableHead>
+                <TableHead className="text-foreground font-semibold">名稱</TableHead>
+                <TableHead className="text-foreground font-semibold">Email</TableHead>
+                <TableHead className="text-foreground font-semibold">角色</TableHead>
+                <TableHead className="text-foreground font-semibold">狀態</TableHead>
+                <TableHead className="text-foreground font-semibold">最後登入時間</TableHead>
+                <TableHead className="w-[140px] text-foreground font-semibold">操作</TableHead>
               </TableRow>
             </TableHeader>
               <TableBody>

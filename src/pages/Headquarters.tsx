@@ -659,15 +659,15 @@ const Headquarters = () => {
             <div className="table-scroll-container overflow-x-auto rounded-md border">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>用戶名稱</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>狀態</TableHead>
-                    <TableHead>用戶 ID</TableHead>
-                    <TableHead>旅館</TableHead>
-                    <TableHead>角色</TableHead>
-                    <TableHead>創建時間</TableHead>
-                    <TableHead className="text-right">操作</TableHead>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="font-semibold">用戶名稱</TableHead>
+                    <TableHead className="font-semibold">Email</TableHead>
+                    <TableHead className="font-semibold">狀態</TableHead>
+                    <TableHead className="font-semibold">用戶 ID</TableHead>
+                    <TableHead className="font-semibold">旅館</TableHead>
+                    <TableHead className="font-semibold">角色</TableHead>
+                    <TableHead className="font-semibold">創建時間</TableHead>
+                    <TableHead className="text-right font-semibold">操作</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

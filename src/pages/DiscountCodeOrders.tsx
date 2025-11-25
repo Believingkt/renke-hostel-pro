@@ -181,15 +181,15 @@ const DiscountCodeOrders = () => {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead className="text-foreground">訂單編號</TableHead>
-                  <TableHead className="text-foreground">顧客資訊</TableHead>
-                  <TableHead className="text-foreground">房型</TableHead>
-                  <TableHead className="text-foreground">入住日期</TableHead>
-                  <TableHead className="text-foreground">金額</TableHead>
-                  <TableHead className="text-foreground">折扣</TableHead>
-                  <TableHead className="text-foreground">實收</TableHead>
-                  <TableHead className="text-foreground">狀態</TableHead>
-                  <TableHead className="text-foreground">訂單日期</TableHead>
+                  <TableHead className="text-foreground font-semibold">訂單編號</TableHead>
+                  <TableHead className="text-foreground font-semibold">顧客資訊</TableHead>
+                  <TableHead className="text-foreground font-semibold">房型</TableHead>
+                  <TableHead className="text-foreground font-semibold">入住日期</TableHead>
+                  <TableHead className="text-foreground font-semibold">金額</TableHead>
+                  <TableHead className="text-foreground font-semibold">折扣</TableHead>
+                  <TableHead className="text-foreground font-semibold">實收</TableHead>
+                  <TableHead className="text-foreground font-semibold">狀態</TableHead>
+                  <TableHead className="text-foreground font-semibold">訂單日期</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

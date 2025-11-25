@@ -262,15 +262,15 @@ const CustomerOrders = () => {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">
-                      <TableHead className="text-foreground">訂單編號</TableHead>
-                      <TableHead className="text-foreground">訂單日期</TableHead>
-                      <TableHead className="text-foreground">入住/退房日期</TableHead>
-                      <TableHead className="text-foreground">房型</TableHead>
-                      <TableHead className="text-center text-foreground">人數</TableHead>
-                      <TableHead className="text-right text-foreground">金額</TableHead>
-                      <TableHead className="text-foreground">訂單狀態</TableHead>
-                      <TableHead className="text-foreground">付款狀態</TableHead>
-                      <TableHead className="text-right text-foreground">操作</TableHead>
+                      <TableHead className="text-foreground font-semibold">訂單編號</TableHead>
+                      <TableHead className="text-foreground font-semibold">訂單日期</TableHead>
+                      <TableHead className="text-foreground font-semibold">入住/退房日期</TableHead>
+                      <TableHead className="text-foreground font-semibold">房型</TableHead>
+                      <TableHead className="text-center text-foreground font-semibold">人數</TableHead>
+                      <TableHead className="text-right text-foreground font-semibold">金額</TableHead>
+                      <TableHead className="text-foreground font-semibold">訂單狀態</TableHead>
+                      <TableHead className="text-foreground font-semibold">付款狀態</TableHead>
+                      <TableHead className="text-right text-foreground font-semibold">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
