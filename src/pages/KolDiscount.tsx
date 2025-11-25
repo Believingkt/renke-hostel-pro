@@ -766,9 +766,9 @@ const KolDiscount = () => {
               title={item.is_active ? "停用" : "啟用"}
             >
               {item.is_active ? (
-                <Pause className="h-4 w-4 text-orange-500" />
+                <Pause className="h-4 w-4 text-orange-500 hover:text-white" />
               ) : (
-                <Check className="h-4 w-4 text-green-600" />
+                <Check className="h-4 w-4 text-green-600 hover:text-white" />
               )}
             </Button>
             <Button
@@ -776,7 +776,7 @@ const KolDiscount = () => {
               size="icon"
               onClick={() => handleDelete(item.id)}
             >
-              <Trash2 className="h-4 w-4 text-destructive" />
+              <Trash2 className="h-4 w-4 text-destructive hover:text-white" />
             </Button>
           </div>
         </TableCell>
@@ -1656,7 +1656,7 @@ const KolDiscount = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-9 text-xs text-destructive hover:text-destructive"
+                          className="h-9 text-xs text-destructive hover:text-white"
                           onClick={() => handleDelete(item.id)}
                         >
                           <Trash2 className="h-3.5 w-3.5 mr-1" />
