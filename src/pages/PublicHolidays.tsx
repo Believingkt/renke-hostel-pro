@@ -404,42 +404,42 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
   }
 
   return (
-    <div className="space-y-6 md:space-y-8">
-      <div className="grid gap-4 md:grid-cols-3">
+    <div className="space-y-4 md:space-y-6 lg:space-y-8">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         <Card className="animate-fade-in hover-scale cursor-pointer transition-all duration-300 hover:shadow-lg hover:border-primary/50">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">總假日數</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
+            <CardTitle className="text-xs sm:text-sm font-medium">總假日數</CardTitle>
             <CalendarDays className="h-4 w-4 text-muted-foreground animate-pulse" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+            <div className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
               {stats.total}
             </div>
-            <p className="text-xs text-muted-foreground">所有已設定的假日</p>
+            <p className="text-xs text-muted-foreground mt-1">所有已設定的假日</p>
           </CardContent>
         </Card>
         <Card className="animate-fade-in hover-scale cursor-pointer transition-all duration-300 hover:shadow-lg hover:border-primary/50" style={{ animationDelay: '0.1s' }}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{currentYear} 年假日</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
+            <CardTitle className="text-xs sm:text-sm font-medium">{currentYear} 年假日</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground animate-pulse" style={{ animationDelay: '0.5s' }} />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+            <div className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
               {stats.currentYear}
             </div>
-            <p className="text-xs text-muted-foreground">今年度假日數量</p>
+            <p className="text-xs text-muted-foreground mt-1">今年度假日數量</p>
           </CardContent>
         </Card>
         <Card className="animate-fade-in hover-scale cursor-pointer transition-all duration-300 hover:shadow-lg hover:border-primary/50" style={{ animationDelay: '0.2s' }}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">即將到來</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
+            <CardTitle className="text-xs sm:text-sm font-medium">即將到來</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground animate-pulse" style={{ animationDelay: '1s' }} />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+            <div className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
               {stats.upcoming}
             </div>
-            <p className="text-xs text-muted-foreground">尚未到來的假日</p>
+            <p className="text-xs text-muted-foreground mt-1">尚未到來的假日</p>
           </CardContent>
         </Card>
       </div>
@@ -450,15 +450,17 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
           icon={CalendarDays}
           action={
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={() => setIsBatchDialogOpen(true)}>
-                <Download className="h-4 w-4 mr-2" />
-                批量導入
+              <Button variant="outline" onClick={() => setIsBatchDialogOpen(true)} className="text-xs sm:text-sm">
+                <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">批量導入</span>
+                <span className="sm:hidden">導入</span>
               </Button>
               <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    新增假日
+                  <Button className="text-xs sm:text-sm">
+                    <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">新增假日</span>
+                    <span className="sm:hidden">新增</span>
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
@@ -528,11 +530,11 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
       )}
 
       <Card>
-        <CardHeader>
-          <CardDescription>
+        <CardHeader className="p-4 sm:p-6">
+          <CardDescription className="text-xs sm:text-sm">
             管理假日定價的國定假日日期（假日定價包含：星期六 + 國定假日）
           </CardDescription>
-          <div className="flex flex-wrap gap-2 mt-4">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-3 mt-3 sm:mt-4">
             <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "list" | "calendar")} className="w-auto">
               <ResponsiveTabs
                 tabs={[
@@ -552,14 +554,14 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
             </Tabs>
             {viewMode === "list" && (
               <Select value={selectedYear} onValueChange={setSelectedYear}>
-                <SelectTrigger className="w-[140px]">
-                  <Filter className="h-4 w-4 mr-2" />
+                <SelectTrigger className="w-full sm:w-[140px] h-8 sm:h-10 text-xs sm:text-sm">
+                  <Filter className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                   <SelectValue placeholder="篩選年份" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">所有年份</SelectItem>
+                  <SelectItem value="all" className="text-xs sm:text-sm">所有年份</SelectItem>
                   {availableYears.map(year => (
-                    <SelectItem key={year} value={year.toString()}>
+                    <SelectItem key={year} value={year.toString()} className="text-xs sm:text-sm">
                       {year} 年
                     </SelectItem>
                   ))}
@@ -568,28 +570,30 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
             )}
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6">
           {viewMode === "list" ? (
             // 列表檢視
             <>
               {holidays.length === 0 ? (
-                <EmptyState
-                  icon={CalendarDays}
-                  title="尚未設定假日"
-                  description="開始新增假日日期，系統將自動套用假日定價"
-                  action={{
-                    label: "新增第一個假日",
-                    onClick: () => setIsAddDialogOpen(true)
-                  }}
-                />
+                  <EmptyState
+                    icon={CalendarDays}
+                    title="尚未設定假日"
+                    description="開始新增假日日期，系統將自動套用假日定價"
+                    action={{
+                      label: "新增第一個假日",
+                      onClick: () => setIsAddDialogOpen(true)
+                    }}
+                  />
               ) : filteredHolidays.length === 0 ? (
-                <EmptyState
-                  icon={Filter}
-                  title="此年份沒有假日"
-                  description="選擇的年份沒有設定任何假日資料"
-                />
+                  <EmptyState
+                    icon={Filter}
+                    title="此年份沒有假日"
+                    description="選擇的年份沒有設定任何假日資料"
+                  />
               ) : (
-            <div className="table-scroll-container overflow-x-auto rounded-md border">
+            <>
+            {/* 桌面版表格 */}
+            <div className="hidden md:block table-scroll-container overflow-x-auto rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
@@ -660,52 +664,121 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                 </TableBody>
               </Table>
             </div>
+
+            {/* 移動版卡片列表 */}
+            <div className="md:hidden space-y-3">
+              {filteredHolidays.map((holiday) => {
+                const date = new Date(holiday.holiday_date);
+                const dayOfWeek = format(date, "EEEE", { locale: zhTW });
+                const year = getYear(date);
+                const isPast = date < new Date();
+                
+                return (
+                  <Card key={holiday.id} className="p-4">
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="font-semibold text-sm truncate">{holiday.holiday_name}</h4>
+                            {isPast && (
+                              <Badge variant="secondary" className="text-xs flex-shrink-0">
+                                已過
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {format(date, "yyyy年MM月dd日", { locale: zhTW })}
+                          </p>
+                        </div>
+                        <div className="flex gap-1 flex-shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => {
+                              setSelectedHoliday(holiday);
+                              setEditHoliday({
+                                name: holiday.holiday_name,
+                                date: new Date(holiday.holiday_date),
+                              });
+                              setIsEditDialogOpen(true);
+                            }}
+                          >
+                            <Edit className="h-4 w-4 text-primary" />
+                          </Button>
+                          <Button
+                            variant="ghost-destructive"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => {
+                              setSelectedHoliday(holiday);
+                              setIsDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        <Badge variant="outline" className="text-xs">{dayOfWeek}</Badge>
+                        <span className="text-muted-foreground">{year} 年</span>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+            </>
               )}
             </>
           ) : (
             // 月曆檢視
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* 月份導航 */}
-              <div className="flex items-center justify-between px-4">
+              <div className="flex items-center justify-between gap-2 px-2 sm:px-4">
                 <Button
                   variant="outline"
+                  size="sm"
                   onClick={() => setCalendarMonth(subMonths(calendarMonth, 1))}
-                  className="gap-2"
+                  className="gap-1 sm:gap-2 h-8 sm:h-10 px-2 sm:px-4"
                 >
-                  <Calendar className="h-4 w-4" />
-                  上個月
+                  <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">上個月</span>
+                  <span className="sm:hidden text-xs">上月</span>
                 </Button>
-                <div className="text-center">
-                  <h3 className="text-2xl font-bold">
+                <div className="text-center flex-1">
+                  <h3 className="text-base sm:text-xl lg:text-2xl font-bold">
                     {format(calendarMonth, "yyyy年MM月", { locale: zhTW })}
                   </h3>
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
                     共 {monthHolidays.length} 個假日
                   </p>
                 </div>
                 <Button
                   variant="outline"
+                  size="sm"
                   onClick={() => setCalendarMonth(addMonths(calendarMonth, 1))}
-                  className="gap-2"
+                  className="gap-1 sm:gap-2 h-8 sm:h-10 px-2 sm:px-4"
                 >
-                  下個月
-                  <Calendar className="h-4 w-4" />
+                  <span className="hidden sm:inline">下個月</span>
+                  <span className="sm:hidden text-xs">下月</span>
+                  <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
                 </Button>
               </div>
 
               {/* 本月假日列表 */}
               {monthHolidays.length > 0 && (
-                <div className="bg-primary/5 rounded-lg p-4 border border-primary/20">
-                  <p className="text-sm font-medium mb-3 flex items-center gap-2">
-                    <CalendarDays className="h-4 w-4 text-primary" />
+                <div className="bg-primary/5 rounded-lg p-3 sm:p-4 border border-primary/20">
+                  <p className="text-xs sm:text-sm font-medium mb-2 sm:mb-3 flex items-center gap-2">
+                    <CalendarDays className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
                     本月假日
                   </p>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2">
                     {monthHolidays.map(holiday => (
                       <Badge 
                         key={holiday.id} 
                         variant="secondary" 
-                        className="cursor-pointer hover:bg-secondary/80 transition-colors px-3 py-1.5 text-sm"
+                        className="cursor-pointer hover:bg-secondary/80 transition-colors px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm"
                         onClick={() => {
                           setSelectedHoliday(holiday);
                           setEditHoliday({
@@ -724,24 +797,24 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
               )}
 
               {/* 月曆主體 */}
-              <div className="overflow-x-auto">
-                <div className="min-w-[600px] max-w-4xl mx-auto">
+              <div className="overflow-x-auto -mx-4 sm:mx-0">
+                <div className="min-w-[320px] sm:min-w-[600px] max-w-4xl mx-auto px-4 sm:px-0">
                   <CalendarComponent
                     mode="single"
                     month={calendarMonth}
                     onMonthChange={setCalendarMonth}
                     locale={zhTW}
-                    className="rounded-lg border-2 shadow-sm w-full"
+                    className="rounded-lg border shadow-sm w-full text-xs sm:text-sm"
                     classNames={{
                       months: "w-full",
                       month: "w-full",
                       caption: "hidden", // 隱藏預設標題，我們自己做了
                       table: "w-full border-collapse",
                       head_row: "flex w-full",
-                      head_cell: "text-muted-foreground rounded-md flex-1 font-semibold text-sm h-12 flex items-center justify-center bg-muted/50",
-                      row: "flex w-full mt-1",
+                      head_cell: "text-muted-foreground rounded-md flex-1 font-semibold text-xs sm:text-sm h-8 sm:h-12 flex items-center justify-center bg-muted/50",
+                      row: "flex w-full mt-0.5 sm:mt-1",
                       cell: "flex-1 relative p-0 text-center focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent",
-                      day: "h-20 w-full p-2 font-normal hover:bg-accent hover:text-accent-foreground rounded-md transition-colors cursor-pointer flex flex-col items-center justify-start gap-1",
+                      day: "h-12 sm:h-16 lg:h-20 w-full p-1 sm:p-2 font-normal hover:bg-accent hover:text-accent-foreground rounded-md transition-colors cursor-pointer flex flex-col items-center justify-start gap-0.5 sm:gap-1 text-xs sm:text-sm",
                       day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
                       day_today: "bg-accent text-accent-foreground font-bold ring-2 ring-primary ring-offset-2",
                       day_outside: "text-muted-foreground opacity-30",
@@ -797,8 +870,8 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                 </p>
               </div>
             </div>
-            )}
-          </CardContent>
+          )}
+        </CardContent>
         </Card>
 
         {/* 編輯對話框 */}
@@ -948,13 +1021,15 @@ export const PublicHolidaysButtons = ({
 }) => {
   return (
     <div className="flex flex-wrap gap-2">
-      <Button variant="outline" onClick={onBatchClick}>
-        <Download className="h-4 w-4 mr-2" />
-        批量導入
+      <Button variant="outline" onClick={onBatchClick} className="text-xs sm:text-sm h-8 sm:h-10">
+        <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+        <span className="hidden xs:inline">批量導入</span>
+        <span className="xs:hidden">導入</span>
       </Button>
-      <Button onClick={onAddClick}>
-        <Plus className="h-4 w-4 mr-2" />
-        新增假日
+      <Button onClick={onAddClick} className="text-xs sm:text-sm h-8 sm:h-10">
+        <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+        <span className="hidden xs:inline">新增假日</span>
+        <span className="xs:hidden">新增</span>
       </Button>
     </div>
   );
