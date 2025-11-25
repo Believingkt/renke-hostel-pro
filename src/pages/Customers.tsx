@@ -504,8 +504,8 @@ const Customers = () => {
               <Card className="hidden md:block">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-muted/30 hover:bg-muted/30">
-                      <TableHead className="font-semibold text-foreground/90 pl-8">
+                    <TableRow className="bg-muted/50">
+                      <TableHead className="font-semibold text-foreground pl-8">
                         <button 
                           onClick={() => handleSort('name')}
                           className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
@@ -514,13 +514,13 @@ const Customers = () => {
                           {getSortIcon('name')}
                         </button>
                       </TableHead>
-                      <TableHead className="font-semibold text-foreground/90">
+                      <TableHead className="font-semibold text-foreground">
                         手機
                       </TableHead>
-                      <TableHead className="font-semibold text-foreground/90">
+                      <TableHead className="font-semibold text-foreground">
                         Email
                       </TableHead>
-                      <TableHead className="font-semibold text-foreground/90">
+                      <TableHead className="font-semibold text-foreground">
                         <button 
                           onClick={() => handleSort('first_order_date')}
                           className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
@@ -529,7 +529,7 @@ const Customers = () => {
                           {getSortIcon('first_order_date')}
                         </button>
                       </TableHead>
-                      <TableHead className="font-semibold text-foreground/90">
+                      <TableHead className="font-semibold text-foreground">
                         <button 
                           onClick={() => handleSort('visit_count')}
                           className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
@@ -538,10 +538,10 @@ const Customers = () => {
                           {getSortIcon('visit_count')}
                         </button>
                       </TableHead>
-                      <TableHead className="font-semibold text-foreground/90">
+                      <TableHead className="font-semibold text-foreground">
                         備註
                       </TableHead>
-                      <TableHead className="font-semibold text-foreground/90 text-right">操作</TableHead>
+                      <TableHead className="font-semibold text-foreground text-right">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
