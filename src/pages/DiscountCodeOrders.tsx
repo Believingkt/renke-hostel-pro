@@ -95,7 +95,7 @@ const DiscountCodeOrders = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 md:space-y-8">
         <div className="flex items-center gap-4">
           <Button variant="ghost" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4" />
@@ -118,7 +118,7 @@ const DiscountCodeOrders = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 md:space-y-8">
       <PageHeader
         title={`折扣代碼訂單`}
         icon={Ticket}

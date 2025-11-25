@@ -280,7 +280,7 @@ const DataBackup = () => {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 md:space-y-8 p-6">
       <PageHeader
         title="資料備份與還原"
         icon={Database}

@@ -212,7 +212,7 @@ const Notifications = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 md:space-y-8">
       <PageHeader
         title="通知中心"
         icon={Bell}

@@ -554,7 +554,7 @@ const Headquarters = () => {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-6 space-y-6 md:space-y-8">
       <PageHeader
         title="人客多總部"
         icon={Building2}

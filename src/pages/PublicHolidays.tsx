@@ -375,7 +375,7 @@ const PublicHolidays = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 md:space-y-8">
         <TableSkeleton rows={10} columns={4} showSearch={false} showFilters />
       </div>
     );
@@ -392,7 +392,7 @@ const PublicHolidays = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 md:space-y-8">
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="animate-fade-in hover-scale cursor-pointer transition-all duration-300 hover:shadow-lg hover:border-primary/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

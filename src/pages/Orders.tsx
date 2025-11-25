@@ -409,7 +409,7 @@ const Orders = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 md:space-y-8">
       <PageHeader
         title="訂單資訊"
         icon={ShoppingBag}
