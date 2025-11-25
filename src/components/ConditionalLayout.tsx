@@ -19,7 +19,7 @@ export function ConditionalLayout() {
   
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [needsPasswordChange, setNeedsPasswordChange] = useState(false);
+  const [needsPasswordChange, setNeedsPasswordChange] = useState<boolean | null>(null);
 
   // 啟用訂單即時通知（僅在後台頁面且已登入時）
   useOrderNotifications(isAdminPage && !!session);
@@ -44,6 +44,9 @@ export function ConditionalLayout() {
         setTimeout(() => {
           checkUserValidity(session.user.id);
         }, 0);
+      } else {
+        // No session, no need to check password
+        setNeedsPasswordChange(false);
       }
       
       setLoading(false);
@@ -76,13 +79,21 @@ export function ConditionalLayout() {
     try {
       const needsChange = session.user.user_metadata?.force_password_change === true;
       
-      const { data: profile } = await supabase
+      const { data: profile, error } = await supabase
         .from('profiles')
         .select('force_password_change')
         .eq('id', session.user.id)
         .single();
       
-      setNeedsPasswordChange(needsChange || profile?.force_password_change === true);
+      if (error) {
+        console.error('Error fetching profile:', error);
+        setNeedsPasswordChange(false);
+        return;
+      }
+      
+      const result = needsChange || profile?.force_password_change === true;
+      setNeedsPasswordChange(result);
+      console.log('Password change required:', result);
     } catch (error) {
       console.error('Error checking password change requirement:', error);
       setNeedsPasswordChange(false);
@@ -125,7 +136,8 @@ export function ConditionalLayout() {
     );
   }
 
-  if (loading && isAdminPage) {
+  // Show loading when checking session or password requirements
+  if ((loading || needsPasswordChange === null) && isAdminPage) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
