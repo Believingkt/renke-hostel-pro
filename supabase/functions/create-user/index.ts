@@ -191,20 +191,19 @@ serve(async (req) => {
     try {
       const inviteLink = resetData?.properties?.action_link || `${siteUrl}/auth`;
       
-      await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-invite-email`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
-        },
-        body: JSON.stringify({
+      const { error: emailError } = await supabaseAdmin.functions.invoke('send-invite-email', {
+        body: {
           email,
           inviteLink,
           senderName: name
-        })
+        }
       });
       
-      console.log("已發送中文邀請郵件至:", email);
+      if (emailError) {
+        console.error("發送自定義邀請郵件失敗:", emailError);
+      } else {
+        console.log("已發送中文邀請郵件至:", email);
+      }
     } catch (emailError) {
       console.error("發送自定義邀請郵件失敗:", emailError);
       // Don't fail the user creation if email fails
