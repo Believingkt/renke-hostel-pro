@@ -761,22 +761,23 @@ const KolDiscount = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8"
+              className="h-8 w-8 group"
               onClick={() => toggleActive(item.id, item.is_active)}
               title={item.is_active ? "停用" : "啟用"}
             >
               {item.is_active ? (
-                <Pause className="h-4 w-4 text-orange-500 hover:text-white" />
+                <Pause className="h-4 w-4 text-orange-500 group-hover:text-white transition-colors" />
               ) : (
-                <Check className="h-4 w-4 text-green-600 hover:text-white" />
+                <Check className="h-4 w-4 text-green-600 group-hover:text-white transition-colors" />
               )}
             </Button>
             <Button
               variant="ghost"
               size="icon"
+              className="group"
               onClick={() => handleDelete(item.id)}
             >
-              <Trash2 className="h-4 w-4 text-destructive hover:text-white" />
+              <Trash2 className="h-4 w-4 text-destructive group-hover:text-white transition-colors" />
             </Button>
           </div>
         </TableCell>
@@ -1656,11 +1657,11 @@ const KolDiscount = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-9 text-xs text-destructive hover:text-white"
+                          className="h-9 text-xs group"
                           onClick={() => handleDelete(item.id)}
                         >
-                          <Trash2 className="h-3.5 w-3.5 mr-1" />
-                          刪除
+                          <Trash2 className="h-3.5 w-3.5 mr-1 text-destructive group-hover:text-white transition-colors" />
+                          <span className="text-destructive group-hover:text-white transition-colors">刪除</span>
                         </Button>
                       </div>
                     </div>
