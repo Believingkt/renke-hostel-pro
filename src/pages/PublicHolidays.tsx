@@ -580,7 +580,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                                 setIsEditDialogOpen(true);
                               }}
                             >
-                              <Edit className="h-4 w-4 text-primary" />
+                              <Edit className="h-4 w-4 text-black hover:text-white transition-colors" />
                             </Button>
                             <Button
                               variant="ghost-destructive"
@@ -640,7 +640,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                               setIsEditDialogOpen(true);
                             }}
                           >
-                            <Edit className="h-4 w-4 text-primary" />
+                            <Edit className="h-4 w-4 text-black hover:text-white transition-colors" />
                           </Button>
                           <Button
                             variant="ghost-destructive"
