@@ -113,18 +113,25 @@ serve(async (req) => {
 
     const { name, email, role, accommodationId } = validation.data;
 
+    console.log('Request from user:', userId, 'for accommodation:', accommodationId);
+
     // Check if caller has admin role for this accommodation
-    const { data: userRoles } = await supabaseAdmin
+    const { data: userRoles, error: roleQueryError } = await supabaseAdmin
       .from('user_roles')
       .select('role')
       .eq('user_id', userId)
       .eq('accommodation_id', accommodationId);
 
+    console.log('User roles query result:', { userRoles, roleQueryError });
+
     const isAdmin = userRoles?.some(r => 
       r.role === 'super_admin' || r.role === 'hotel_admin'
     );
 
+    console.log('Is admin check:', isAdmin);
+
     if (!isAdmin) {
+      console.error('Authorization failed: User', userId, 'is not admin for accommodation', accommodationId);
       return new Response(
         JSON.stringify({ success: false, error: '需要管理員權限' }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
