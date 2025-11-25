@@ -575,7 +575,7 @@ const PublicHolidays = () => {
                   description="選擇的年份沒有設定任何假日資料"
                 />
               ) : (
-            <div className="rounded-md border">
+            <div className="table-scroll-container overflow-x-auto rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">

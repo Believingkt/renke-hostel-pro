@@ -328,6 +328,78 @@ All colors MUST be HSL.
   .touch-friendly {
     @apply min-h-[44px] min-w-[44px] touch-manipulation;
   }
+
+  /* 表格橫向滾動優化 */
+  .table-scroll-container {
+    position: relative;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 表格滾動陰影效果 */
+  .table-scroll-container::before,
+  .table-scroll-container::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 20px;
+    pointer-events: none;
+    z-index: 2;
+    transition: opacity 0.3s ease;
+  }
+
+  .table-scroll-container::before {
+    left: 0;
+    background: linear-gradient(to right, hsl(var(--background)), transparent);
+    opacity: 0;
+  }
+
+  .table-scroll-container::after {
+    right: 0;
+    background: linear-gradient(to left, hsl(var(--background)), transparent);
+  }
+
+  .table-scroll-container[data-scroll="start"]::before {
+    opacity: 0;
+  }
+
+  .table-scroll-container[data-scroll="end"]::after {
+    opacity: 0;
+  }
+
+  .table-scroll-container[data-scroll="middle"]::before,
+  .table-scroll-container[data-scroll="middle"]::after {
+    opacity: 1;
+  }
+
+  /* 表格專用滾動條樣式 */
+  .table-scroll-container::-webkit-scrollbar {
+    height: 10px;
+  }
+
+  .table-scroll-container::-webkit-scrollbar-track {
+    background: hsl(var(--muted) / 0.3);
+    border-radius: 5px;
+    margin: 0 8px;
+  }
+
+  .table-scroll-container::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary) / 0.4);
+    border-radius: 5px;
+    transition: background 0.2s ease;
+  }
+
+  .table-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary) / 0.6);
+  }
+
+  /* Firefox 表格滾動條樣式 */
+  .table-scroll-container {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary) / 0.4) hsl(var(--muted) / 0.3);
+  }
 }
 
 /* 行動裝置特定優化 */

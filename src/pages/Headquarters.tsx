@@ -656,7 +656,7 @@ const Headquarters = () => {
               description="這裡會顯示所有旅館的用戶權限資訊"
             />
           ) : (
-            <div className="rounded-md border">
+            <div className="table-scroll-container overflow-x-auto rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
