@@ -27,7 +27,7 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
 
   const SortableHeader = ({ field, children }: { field: keyof Order; children: React.ReactNode }) => (
     <th 
-      className="px-4 py-3 text-left text-sm font-medium text-foreground cursor-pointer hover:text-primary transition-colors select-none"
+      className="px-4 py-3 text-left text-sm font-semibold text-foreground cursor-pointer hover:text-primary transition-colors select-none"
       onClick={() => onSort(field)}
     >
       <div className="flex items-center">
@@ -49,13 +49,13 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
               <SortableHeader field="guest_name">訂購人</SortableHeader>
               <SortableHeader field="check_in_date">入住日期</SortableHeader>
               <SortableHeader field="check_out_date">退房日期</SortableHeader>
-              <th className="px-4 py-3 text-left text-sm font-medium text-foreground">
+              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
                 訂單狀態
               </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-foreground">
+              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
                 付款狀態
               </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-foreground">
+              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
                 操作
               </th>
             </tr>
