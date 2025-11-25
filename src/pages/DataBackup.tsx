@@ -471,7 +471,7 @@ const DataBackup = () => {
                       還原
                     </Button>
                     <Button
-                      variant="ghost"
+                      variant="ghost-destructive"
                       size="sm"
                       onClick={() => handleDeleteBackup(backup)}
                       disabled={restoring === backup.id || deleting === backup.id}

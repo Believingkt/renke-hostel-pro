@@ -358,7 +358,7 @@ const Notifications = () => {
                       </h3>
                       
                       <Button
-                        variant="ghost"
+                        variant="ghost-destructive"
                         size="sm"
                         className="h-8 w-8 p-0 shrink-0"
                         onClick={(e) => {
@@ -439,7 +439,7 @@ const Notifications = () => {
                       </h3>
                       
                       <Button
-                        variant="ghost"
+                        variant="ghost-destructive"
                         size="sm"
                         className="h-8 w-8 p-0 shrink-0"
                         onClick={(e) => {
@@ -520,7 +520,7 @@ const Notifications = () => {
                       </h3>
                       
                       <Button
-                        variant="ghost"
+                        variant="ghost-destructive"
                         size="sm"
                         className="h-8 w-8 p-0 shrink-0"
                         onClick={(e) => {

@@ -732,7 +732,7 @@ const Headquarters = () => {
                             </Button>
                           )}
                           <Button
-                            variant="ghost"
+                            variant="ghost-destructive"
                             size="icon"
                             onClick={() => handleDeleteRole(userRole.id)}
                           >
@@ -962,7 +962,7 @@ const Headquarters = () => {
                         還原
                       </Button>
                       <Button
-                        variant="ghost"
+                        variant="ghost-destructive"
                         size="sm"
                         onClick={() => handleDeleteBackup(backup)}
                         disabled={restoring === backup.id || deleting === backup.id}

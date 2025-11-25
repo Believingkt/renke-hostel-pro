@@ -599,10 +599,10 @@ const Customers = () => {
                               <Pencil className="h-4 w-4" />
                             </Button>
                             <Button
-                              variant="ghost"
+                              variant="ghost-destructive"
                               size="sm"
                               onClick={() => setDeleteCustomerId(customer.id)}
-                              className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                              className="h-8 w-8 p-0"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -660,10 +660,10 @@ const Customers = () => {
                               <Pencil className="h-4 w-4" />
                             </Button>
                             <Button
-                              variant="ghost"
+                              variant="ghost-destructive"
                               size="sm"
                               onClick={() => setDeleteCustomerId(customer.id)}
-                              className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                              className="h-8 w-8 p-0"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>

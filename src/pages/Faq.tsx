@@ -257,7 +257,7 @@ const Faq = () => {
                           <Edit2 className="h-4 w-4" />
                         </Button>
                         <Button
-                          variant="ghost"
+                          variant="ghost-destructive"
                           size="icon"
                           onClick={() => handleDelete(faq.id)}
                         >

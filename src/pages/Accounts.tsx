@@ -754,12 +754,11 @@ const Accounts = () => {
                             </Button>
                           )}
                           <Button
-                            variant="ghost"
+                            variant="ghost-destructive"
                             size="icon"
                             onClick={() => handleDelete(user.id)}
-                            className="hover:bg-destructive group"
                           >
-                            <Trash2 className="h-4 w-4 text-destructive group-hover:text-white transition-colors" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
@@ -838,12 +837,11 @@ const Accounts = () => {
                           </Button>
                         )}
                         <Button
-                          variant="ghost"
+                          variant="ghost-destructive"
                           size="icon"
                           onClick={() => handleDelete(user.id)}
-                          className="hover:bg-destructive group"
                         >
-                          <Trash2 className="h-5 w-5 text-destructive group-hover:text-white transition-colors" />
+                          <Trash2 className="h-5 w-5" />
                         </Button>
                       </div>
                     </div>

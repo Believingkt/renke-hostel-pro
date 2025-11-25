@@ -221,10 +221,9 @@ export const SocialSharingSection = ({
                 </div>
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost-destructive"
                   size="icon"
                   onClick={onDeleteOgImage}
-                  className="text-destructive hover:text-destructive"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
