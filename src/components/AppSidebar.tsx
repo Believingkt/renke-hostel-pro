@@ -18,7 +18,9 @@ import {
   Navigation,
   HelpCircle,
   Hotel,
-  Calendar
+  Calendar,
+  ShoppingBag,
+  Ticket
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { PreloadLink } from "@/components/PreloadLink";
@@ -41,7 +43,7 @@ import lokezeLogo from "@/assets/lokeze-logo.png";
 
 const menuItems = [
   { title: "營運分析", url: "/admin", icon: BarChart3 },
-  { title: "訂單資訊", url: "/admin/orders?tab=list", icon: ClipboardList },
+  { title: "訂單資訊", url: "/admin/orders?tab=list", icon: ShoppingBag },
   { 
     title: "官網內容", 
     url: "/admin/website-content", 
@@ -59,7 +61,7 @@ const menuItems = [
   { 
     title: "物件管理", 
     url: "/admin/pricing", 
-    icon: DollarSign,
+    icon: Hotel,
     subItems: [
       { title: "房型管理", url: "/admin/pricing?tab=rooms", icon: Hotel },
       { title: "價格管理", url: "/admin/pricing?tab=basic", icon: DollarSign },
@@ -68,9 +70,9 @@ const menuItems = [
       { title: "國定假日", url: "/admin/pricing?tab=holidays", icon: Calendar },
     ]
   },
-  { title: "顧客資料", url: "/admin/customers", icon: UserCircle },
-  { title: "網紅導購", url: "/admin/discount-codes", icon: Tag },
-  { title: "帳號管理", url: "/admin/accounts", icon: Settings },
+  { title: "顧客資料", url: "/admin/customers", icon: Users },
+  { title: "網紅導購", url: "/admin/discount-codes", icon: Ticket },
+  { title: "帳號管理", url: "/admin/accounts", icon: Users },
 ];
 
 export function AppSidebar() {
