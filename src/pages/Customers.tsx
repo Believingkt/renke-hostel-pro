@@ -510,29 +510,21 @@ const Customers = () => {
                           onClick={() => handleSort('name')}
                           className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
                         >
-                          <UserRound className="h-4 w-4 text-primary" />
                           姓名
                           {getSortIcon('name')}
                         </button>
                       </TableHead>
                       <TableHead className="font-semibold text-foreground/90">
-                        <div className="flex items-center gap-2">
-                          <Phone className="h-4 w-4 text-primary" />
-                          手機
-                        </div>
+                        手機
                       </TableHead>
                       <TableHead className="font-semibold text-foreground/90">
-                        <div className="flex items-center gap-2">
-                          <Mail className="h-4 w-4 text-primary" />
-                          Email
-                        </div>
+                        Email
                       </TableHead>
                       <TableHead className="font-semibold text-foreground/90">
                         <button 
                           onClick={() => handleSort('first_order_date')}
                           className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
                         >
-                          <Calendar className="h-4 w-4 text-primary" />
                           首次訂房日期
                           {getSortIcon('first_order_date')}
                         </button>
@@ -542,16 +534,12 @@ const Customers = () => {
                           onClick={() => handleSort('visit_count')}
                           className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
                         >
-                          <Users className="h-4 w-4 text-primary" />
                           來訪次數
                           {getSortIcon('visit_count')}
                         </button>
                       </TableHead>
                       <TableHead className="font-semibold text-foreground/90">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-primary" />
-                          備註
-                        </div>
+                        備註
                       </TableHead>
                       <TableHead className="font-semibold text-foreground/90 text-right">操作</TableHead>
                     </TableRow>
