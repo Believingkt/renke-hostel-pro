@@ -1344,18 +1344,7 @@ const KolDiscount = () => {
               <TableBody>
                 {filteredCodes.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="p-0">
-                      <EmptyState
-                        icon={Tag}
-                        title="尚無折扣碼"
-                        description="建立專屬折扣碼，追蹤推廣成效與佣金"
-                        action={{
-                          label: "新增第一個折扣碼",
-                          onClick: () => setOpen(true)
-                        }}
-                        className="border-0 shadow-none"
-                      />
-                    </TableCell>
+                    <TableCell colSpan={10} className="h-32"></TableCell>
                   </TableRow>
                 ) : (
                   <DndContext
@@ -1380,15 +1369,7 @@ const KolDiscount = () => {
           {/* Mobile card view */}
           <div className="md:hidden space-y-4 p-4">
             {filteredCodes.length === 0 ? (
-              <EmptyState
-                icon={Tag}
-                title="尚無折扣碼"
-                description="建立專屬折扣碼，追蹤推廣成效與佣金"
-                action={{
-                  label: "新增第一個折扣碼",
-                  onClick: () => setOpen(true)
-                }}
-              />
+              <div className="h-32"></div>
             ) : (
               filteredCodes.map((item) => (
                 <Card key={item.id} className="overflow-hidden">
