@@ -27,7 +27,8 @@ import {
   KeyRound,
   Megaphone,
   BadgePercent,
-  Sparkles
+  Sparkles,
+  BookOpen
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { PreloadLink } from "@/components/PreloadLink";
@@ -61,7 +62,7 @@ const menuItems = [
       { title: "加購方案", url: "/admin/website-content?tab=addon-plans", icon: Package },
       { title: "精選照片", url: "/admin/website-content?tab=gallery", icon: ImageIcon },
       { title: "交通地圖", url: "/admin/website-content?tab=location", icon: Navigation },
-      { title: "訂房須知", url: "/admin/website-content?tab=booking-info", icon: Globe },
+      { title: "訂房須知", url: "/admin/website-content?tab=booking-info", icon: BookOpen },
       { title: "常見問題", url: "/admin/website-content?tab=faq", icon: HelpCircle },
     ]
   },
