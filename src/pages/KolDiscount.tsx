@@ -29,7 +29,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, Copy, Pencil, Check, Pause, X, Eye, Calendar as CalendarIcon, GripVertical, Code, DollarSign, Ticket, Tag, Megaphone } from "lucide-react";
+import { Plus, Trash2, Copy, Pencil, Check, Pause, X, Eye, Calendar as CalendarIcon, GripVertical, Code, DollarSign, Ticket, Tag, Megaphone, BadgePercent } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -704,7 +704,7 @@ const KolDiscount = () => {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <PageHeader title="網紅導購" icon={Megaphone} />
+        <PageHeader title="網紅導購" icon={BadgePercent} />
         <TableSkeleton />
       </div>
     );
@@ -714,7 +714,7 @@ const KolDiscount = () => {
     <div className="space-y-6">
       <PageHeader
         title="網紅導購"
-        icon={Megaphone}
+        icon={BadgePercent}
         action={
           <>
             <Button 
