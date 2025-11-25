@@ -43,8 +43,7 @@ serve(async (req) => {
   }
 
   try {
-    // Create Supabase client with the auth context from the request
-    // Since verify_jwt = true in config.toml, Supabase has already verified the JWT
+    // Get JWT token from request
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
@@ -53,33 +52,30 @@ serve(async (req) => {
       );
     }
 
-    // Create Supabase client with the user's JWT token
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      {
-        global: {
-          headers: { Authorization: authHeader },
-        },
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      }
-    );
-
-    // Get the authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const jwt = authHeader.replace('Bearer ', '');
     
-    if (authError || !user) {
-      console.error("Auth error:", authError);
+    // Parse JWT to get user ID (JWT is already verified by Supabase via verify_jwt = true)
+    let userId: string;
+    try {
+      const parts = jwt.split('.');
+      if (parts.length !== 3) {
+        throw new Error('Invalid JWT format');
+      }
+      const payload = JSON.parse(atob(parts[1]));
+      userId = payload.sub;
+      
+      if (!userId) {
+        throw new Error('No user ID in JWT');
+      }
+    } catch (e) {
+      console.error("JWT parse error:", e);
       return new Response(
-        JSON.stringify({ success: false, error: '驗證失敗，請重新登入' }),
+        JSON.stringify({ success: false, error: '無效的驗證令牌' }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Create admin client for user management operations
+    // Create admin client for all operations
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
@@ -92,8 +88,8 @@ serve(async (req) => {
     );
 
     // Check rate limit
-    if (!checkRateLimit(user.id)) {
-      console.warn(`Rate limit exceeded for user ${user.id}`);
+    if (!checkRateLimit(userId)) {
+      console.warn(`Rate limit exceeded for user ${userId}`);
       return new Response(
         JSON.stringify({ success: false, error: '操作過於頻繁，請稍後再試（每小時最多 10 次）' }),
         { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -121,7 +117,7 @@ serve(async (req) => {
     const { data: userRoles } = await supabaseAdmin
       .from('user_roles')
       .select('role')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('accommodation_id', accommodationId);
 
     const isAdmin = userRoles?.some(r => 
