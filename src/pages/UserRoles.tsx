@@ -50,7 +50,7 @@ export default function UserRoles() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [newUserEmail, setNewUserEmail] = useState("");
-  const [newUserRole, setNewUserRole] = useState<"super_admin" | "hotel_admin" | "staff">("staff");
+  const [newUserRole, setNewUserRole] = useState<"hotel_admin" | "staff">("staff");
 
   useEffect(() => {
     if (currentAccommodationId) {
@@ -253,12 +253,11 @@ export default function UserRoles() {
               onChange={(e) => setNewUserEmail(e.target.value)}
               className="flex-1"
             />
-            <Select value={newUserRole} onValueChange={(value: "super_admin" | "hotel_admin" | "staff") => setNewUserRole(value)}>
+            <Select value={newUserRole} onValueChange={(value: "hotel_admin" | "staff") => setNewUserRole(value)}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="super_admin">總部管理員</SelectItem>
                 <SelectItem value="hotel_admin">民宿管理員</SelectItem>
                 <SelectItem value="staff">現場營運</SelectItem>
               </SelectContent>
