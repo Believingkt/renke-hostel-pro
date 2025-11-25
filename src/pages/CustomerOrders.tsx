@@ -150,7 +150,7 @@ const CustomerOrders = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 md:space-y-8">
         <TableSkeleton rows={10} columns={6} showSearch={false} />
       </div>
     );
@@ -167,7 +167,7 @@ const CustomerOrders = () => {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 md:space-y-8 animate-fade-in">
       <PageHeader
         title={`${customer.name} 的訂單記錄`}
         icon={UserRound}

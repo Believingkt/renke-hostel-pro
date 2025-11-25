@@ -703,7 +703,7 @@ const KolDiscount = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 md:space-y-8">
         <PageHeader title="網紅導購" icon={Sparkles} />
         <TableSkeleton />
       </div>
@@ -711,7 +711,7 @@ const KolDiscount = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 md:space-y-8">
       <PageHeader
         title="網紅導購"
         icon={Sparkles}

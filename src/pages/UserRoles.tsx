@@ -232,7 +232,7 @@ export default function UserRoles() {
   }
 
   return (
-    <div className="space-y-4 md:space-y-6 p-4 md:p-0">
+    <div className="space-y-6 md:space-y-8 p-4 md:p-0">
       <PageHeader
         title="用戶權限管理"
         icon={Shield}
