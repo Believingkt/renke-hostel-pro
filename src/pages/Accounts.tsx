@@ -158,6 +158,19 @@ const Accounts = () => {
     }
   };
 
+  const getRoleBadgeVariant = (role: string): "destructive" | "info" | "success" => {
+    switch (role) {
+      case "super_admin":
+        return "destructive";
+      case "hotel_admin":
+        return "info";
+      case "staff":
+        return "success";
+      default:
+        return "info";
+    }
+  };
+
   const checkEmailExists = async (email: string): Promise<boolean> => {
     try {
       const { data, error } = await supabase.functions.invoke("check-email-exists", {
@@ -703,7 +716,11 @@ const Accounts = () => {
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.name}</TableCell>
                       <TableCell>{user.email}</TableCell>
-                      <TableCell>{user.roleLabel}</TableCell>
+                      <TableCell>
+                        <Badge variant={getRoleBadgeVariant(user.role)}>
+                          {user.roleLabel}
+                        </Badge>
+                      </TableCell>
                       <TableCell>
                         <Badge 
                           variant={user.status === 'active' ? 'default' : 'secondary'}
@@ -780,7 +797,9 @@ const Accounts = () => {
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">角色</p>
-                          <p className="text-sm">{user.roleLabel}</p>
+                          <Badge variant={getRoleBadgeVariant(user.role)} className="mt-1">
+                            {user.roleLabel}
+                          </Badge>
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">狀態</p>
