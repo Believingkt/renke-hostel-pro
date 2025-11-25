@@ -9,6 +9,7 @@ import { Header } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { useOrderNotifications } from "@/hooks/use-order-notifications";
+import { toast } from "sonner";
 
 export function ConditionalLayout() {
   const location = useLocation();
@@ -36,16 +37,56 @@ export function ConditionalLayout() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
+      
+      // Check if session is valid but user doesn't exist
+      if (session) {
+        setTimeout(() => {
+          checkUserValidity(session.user.id);
+        }, 0);
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
         setSession(session);
+        
+        // Check user validity when signed in
+        if (event === 'SIGNED_IN' && session) {
+          setTimeout(() => {
+            checkUserValidity(session.user.id);
+          }, 0);
+        }
       }
     );
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Check if user account still exists
+  const checkUserValidity = async (userId: string) => {
+    try {
+      // Check if user has any roles (indicates account exists and is active)
+      const { data: userRoles, error } = await supabase
+        .from('user_roles')
+        .select('id')
+        .eq('user_id', userId)
+        .limit(1);
+
+      // If query succeeds but returns no data, user account has been deleted
+      if (!error && (!userRoles || userRoles.length === 0)) {
+        console.warn('User account deleted, signing out...');
+        
+        toast.error('您的帳號已被刪除，請聯繫系統管理員', {
+          duration: 5000,
+        });
+        
+        // Sign out and clear session
+        await supabase.auth.signOut();
+      }
+    } catch (error) {
+      console.error('Error checking user validity:', error);
+    }
+  };
 
   if (isFrontendPage) {
     return (
