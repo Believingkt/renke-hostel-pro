@@ -341,9 +341,9 @@ const SortableFeatureItem = ({ feature, index, onEdit, onDelete }: SortableFeatu
             </Button>
             <Button
               type="button"
-              variant="ghost"
+              variant="ghost-destructive"
               size="icon"
-              className="h-8 w-8 text-destructive hover:text-destructive"
+              className="h-8 w-8"
               onClick={() => onDelete(feature.id)}
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -2800,7 +2800,7 @@ const WebsiteContent = () => {
                               <Edit2 className="h-4 w-4" />
                             </Button>
                             <Button
-                              variant="ghost"
+                              variant="ghost-destructive"
                               size="icon"
                               onClick={() => handleDeleteFaq(faq.id)}
                             >
@@ -2928,12 +2928,12 @@ const WebsiteContent = () => {
                         {nearbyAttractions.length > 1 && (
                           <Button
                             type="button"
-                            variant="ghost"
+                            variant="ghost-destructive"
                             size="icon"
                             onClick={() => handleRemoveAttraction(index)}
                             className="mt-6"
                           >
-                            <Trash2 className="h-4 w-4 text-destructive" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         )}
                       </div>

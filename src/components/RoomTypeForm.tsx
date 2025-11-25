@@ -73,7 +73,7 @@ function SortablePhotoItem({ url, index, onRemove }: SortablePhotoItemProps) {
       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
         <Button
           size="sm"
-          variant="secondary"
+          variant="ghost-destructive"
           onClick={onRemove}
         >
           <Trash2 className="h-4 w-4" />

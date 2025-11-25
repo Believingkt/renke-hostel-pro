@@ -688,12 +688,12 @@ const KolDiscount = () => {
               )}
             </Button>
             <Button
-              variant="ghost"
+              variant="ghost-destructive"
               size="icon"
               className="group"
               onClick={() => handleDelete(item.id)}
             >
-              <Trash2 className="h-4 w-4 text-destructive group-hover:text-white transition-colors" />
+              <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         </TableCell>
@@ -1510,13 +1510,13 @@ const KolDiscount = () => {
                           )}
                         </Button>
                         <Button
-                          variant="outline"
+                          variant="ghost-destructive"
                           size="sm"
-                          className="h-9 text-xs group"
+                          className="h-9 text-xs"
                           onClick={() => handleDelete(item.id)}
                         >
-                          <Trash2 className="h-3.5 w-3.5 mr-1 text-destructive group-hover:text-white transition-colors" />
-                          <span className="text-destructive group-hover:text-white transition-colors">刪除</span>
+                          <Trash2 className="h-3.5 w-3.5 mr-1" />
+                          <span>刪除</span>
                         </Button>
                       </div>
                     </div>

@@ -333,7 +333,7 @@ export default function UserRoles() {
                         <TableCell>{new Date(userRole.created_at).toLocaleDateString('zh-TW')}</TableCell>
                         <TableCell className="text-right">
                           <Button
-                            variant="ghost"
+                            variant="ghost-destructive"
                             size="icon"
                             onClick={() => handleDeleteRole(userRole.id)}
                           >
@@ -363,12 +363,12 @@ export default function UserRoles() {
                           </div>
                         </div>
                         <Button
-                          variant="ghost"
+                          variant="ghost-destructive"
                           size="icon"
                           className="h-9 w-9 flex-shrink-0"
                           onClick={() => handleDeleteRole(userRole.id)}
                         >
-                          <Trash2 className="h-4 w-4 text-destructive" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                       

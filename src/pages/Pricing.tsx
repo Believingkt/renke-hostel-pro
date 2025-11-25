@@ -135,7 +135,7 @@ const SortableRoomCard = ({ roomType, onEdit, onDelete }: SortableRoomCardProps)
               <Pencil className="h-4 w-4" />
             </Button>
             <Button
-              variant="outline"
+              variant="ghost-destructive"
               size="icon"
               onClick={() => onDelete(roomType)}
             >

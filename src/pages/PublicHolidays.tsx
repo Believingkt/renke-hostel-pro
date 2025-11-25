@@ -629,14 +629,14 @@ const PublicHolidays = () => {
                               <Edit className="h-4 w-4 text-primary" />
                             </Button>
                             <Button
-                              variant="ghost"
+                              variant="ghost-destructive"
                               size="sm"
                               onClick={() => {
                                 setSelectedHoliday(holiday);
                                 setIsDeleteDialogOpen(true);
                               }}
                             >
-                              <Trash2 className="h-4 w-4 text-destructive" />
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>
