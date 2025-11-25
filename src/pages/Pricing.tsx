@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +12,7 @@ import { RoomFacilitiesForm } from "@/components/RoomFacilitiesForm";
 import { TabsSkeleton } from "@/components/skeletons/TabsSkeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
-import PublicHolidays, { PublicHolidaysButtons } from "@/pages/PublicHolidays";
+import PublicHolidays from "@/pages/PublicHolidays";
 import { InventoryCalendar } from "@/components/InventoryCalendar";
 import { PageHeader } from "@/components/PageHeader";
 import {
@@ -151,7 +151,6 @@ const Pricing = () => {
   const { currentAccommodationId } = useAccommodation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "rooms");
-  const publicHolidaysRef = useRef<any>(null);
   
   const [roomTypes, setRoomTypes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -425,17 +424,13 @@ const Pricing = () => {
         </TabsContent>
 
         <TabsContent value="holidays" className="space-y-4">
-          <div className="pb-4 md:pb-6 border-b border-primary/20 mb-4 md:mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div className="pb-4 md:pb-6 border-b border-primary/20 mb-4 md:mb-6">
             <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-2 md:gap-3">
               <Calendar className="h-6 w-6 md:h-7 md:w-7 text-primary" />
               國定假日
             </h2>
-            <PublicHolidaysButtons 
-              onAddClick={() => publicHolidaysRef.current?.openAddDialog()}
-              onBatchClick={() => publicHolidaysRef.current?.openBatchDialog()}
-            />
           </div>
-          <PublicHolidays ref={publicHolidaysRef} showInPricingPage={true} />
+          <PublicHolidays showInPricingPage={true} />
         </TabsContent>
       </Tabs>
 
