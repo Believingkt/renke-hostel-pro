@@ -20,7 +20,8 @@ import {
   Hotel,
   Calendar,
   ShoppingBag,
-  Ticket
+  Ticket,
+  UserCog
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { PreloadLink } from "@/components/PreloadLink";
@@ -72,7 +73,7 @@ const menuItems = [
   },
   { title: "顧客資料", url: "/admin/customers", icon: Users },
   { title: "網紅導購", url: "/admin/discount-codes", icon: Ticket },
-  { title: "帳號管理", url: "/admin/accounts", icon: Users },
+  { title: "帳號管理", url: "/admin/accounts", icon: UserCog },
 ];
 
 export function AppSidebar() {

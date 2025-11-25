@@ -28,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, Loader2, Users, UserPlus, Mail, MailCheck, CheckCircle2, XCircle } from "lucide-react";
+import { Plus, Trash2, Loader2, Users, UserPlus, Mail, MailCheck, CheckCircle2, XCircle, UserCog } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/PageHeader";
@@ -560,7 +560,7 @@ const Accounts = () => {
     <div className="space-y-4 md:space-y-6 p-4 md:p-0">
       <PageHeader
         title="帳號管理"
-        icon={Users}
+        icon={UserCog}
         action={
           <Dialog open={open} onOpenChange={(isOpen) => {
             setOpen(isOpen);
