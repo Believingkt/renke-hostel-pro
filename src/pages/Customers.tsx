@@ -329,7 +329,6 @@ const Customers = () => {
         <>
           <PageHeader
             title="顧客資料"
-            icon={Users}
             action={
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
