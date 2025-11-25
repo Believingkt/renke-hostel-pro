@@ -43,7 +43,8 @@ serve(async (req) => {
   }
 
   try {
-    // Get authenticated user from JWT
+    // Create Supabase client with the auth context from the request
+    // Since verify_jwt = true in config.toml, Supabase has already verified the JWT
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
@@ -52,7 +53,33 @@ serve(async (req) => {
       );
     }
 
-    // Create Supabase admin client for authorization check
+    // Create Supabase client with the user's JWT token
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      {
+        global: {
+          headers: { Authorization: authHeader },
+        },
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    );
+
+    // Get the authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      console.error("Auth error:", authError);
+      return new Response(
+        JSON.stringify({ success: false, error: '驗證失敗，請重新登入' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Create admin client for user management operations
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
@@ -63,18 +90,6 @@ serve(async (req) => {
         },
       }
     );
-
-    // Verify caller has valid JWT
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-    
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ success: false, error: '驗證失敗' }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
 
     // Check rate limit
     if (!checkRateLimit(user.id)) {
