@@ -39,14 +39,16 @@ export default function Auth() {
       console.log("Auth state changed:", event, session?.user?.email);
       
       if (event === "SIGNED_IN" && session) {
-        // Check if this is from an invite link
+        // Check if this is from an invite link - check both metadata and profile
+        const needsPasswordChange = session.user.user_metadata?.force_password_change === true;
+        
         const { data: profile } = await supabase
           .from("profiles")
           .select("force_password_change")
           .eq("id", session.user.id)
           .single();
         
-        if (profile?.force_password_change) {
+        if (needsPasswordChange || profile?.force_password_change) {
           setInviteEmail(session.user.email || "");
           setIsInviteMode(true);
           toast.info("請設定您的登入密碼");
@@ -57,9 +59,21 @@ export default function Auth() {
         // This event fires when user clicks the recovery link
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         if (currentSession) {
-          setInviteEmail(currentSession.user.email || "");
-          setIsInviteMode(true);
-          toast.info("請設定您的登入密碼");
+          const needsPasswordChange = currentSession.user.user_metadata?.force_password_change === true;
+          
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("force_password_change")
+            .eq("id", currentSession.user.id)
+            .single();
+          
+          if (needsPasswordChange || profile?.force_password_change) {
+            setInviteEmail(currentSession.user.email || "");
+            setIsInviteMode(true);
+            toast.info("請設定您的登入密碼");
+          } else {
+            navigate("/admin");
+          }
         }
       } else if (event === "USER_UPDATED" && session) {
         const { data: profile } = await supabase
@@ -68,7 +82,9 @@ export default function Auth() {
           .eq("id", session.user.id)
           .single();
         
-        if (!profile?.force_password_change) {
+        const needsPasswordChange = session.user.user_metadata?.force_password_change === true;
+        
+        if (!profile?.force_password_change && !needsPasswordChange) {
           // Password has been set successfully
           navigate("/admin");
         }
@@ -78,13 +94,15 @@ export default function Auth() {
     // Check for existing session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
+        const needsPasswordChange = session.user.user_metadata?.force_password_change === true;
+        
         const { data: profile } = await supabase
           .from("profiles")
           .select("force_password_change")
           .eq("id", session.user.id)
           .single();
         
-        if (profile?.force_password_change) {
+        if (needsPasswordChange || profile?.force_password_change) {
           setInviteEmail(session.user.email || "");
           setIsInviteMode(true);
         } else {
@@ -139,9 +157,12 @@ export default function Auth() {
     setIsLoading(true);
 
     try {
-      // Update password for invited user
+      // Update password and clear force_password_change from metadata
       const { error: updateError } = await supabase.auth.updateUser({
         password: newPassword,
+        data: {
+          force_password_change: false,
+        }
       });
 
       if (updateError) throw updateError;
