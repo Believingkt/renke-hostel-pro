@@ -97,10 +97,25 @@ export default function UserRoles() {
         }
       });
 
-      if (lookupError) throw lookupError;
+      if (lookupError) {
+        console.error("Lookup error:", lookupError);
+        
+        let errorMessage = "查詢用戶失敗";
+        if (lookupError.message) {
+          errorMessage = lookupError.message;
+        }
+        
+        if (import.meta.env.DEV) {
+          console.error("Full lookup error:", lookupError);
+        }
+        
+        toast.error(errorMessage + "\n請確認 Email 是否正確或稍後再試");
+        return;
+      }
 
       if (!lookupData?.success || !lookupData?.user) {
-        toast.error(lookupData?.error || '找不到此用戶，請確認 Email 是否正確');
+        const errorMsg = lookupData?.error || '找不到此用戶';
+        toast.error(errorMsg + '\n\n請確認：\n• Email 是否正確\n• 該用戶是否已註冊');
         return;
       }
 
@@ -133,11 +148,24 @@ export default function UserRoles() {
       toast.success('成功新增用戶權限');
       setNewUserEmail('');
       loadUserRoles();
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error adding user:', error);
+    } catch (error: any) {
+      console.error('Error adding user:', error);
+      
+      let errorMessage = '新增用戶權限失敗';
+      if (error.message) {
+        errorMessage += `: ${error.message}`;
       }
-      toast.error('新增用戶權限失敗');
+      
+      if (import.meta.env.DEV) {
+        console.error('Full error:', {
+          error,
+          email: newUserEmail,
+          role: newUserRole,
+          accommodationId: currentAccommodationId
+        });
+      }
+      
+      toast.error(errorMessage);
     }
   };
 
@@ -152,11 +180,19 @@ export default function UserRoles() {
 
       toast.success('成功刪除用戶權限');
       loadUserRoles();
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error deleting role:', error);
+    } catch (error: any) {
+      console.error('Error deleting role:', error);
+      
+      let errorMessage = '刪除用戶權限失敗';
+      if (error.message) {
+        errorMessage += `: ${error.message}`;
       }
-      toast.error('刪除用戶權限失敗');
+      
+      if (import.meta.env.DEV) {
+        console.error('Full error:', error);
+      }
+      
+      toast.error(errorMessage);
     }
   };
 
@@ -171,11 +207,19 @@ export default function UserRoles() {
 
       toast.success('成功更新用戶角色');
       loadUserRoles();
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error updating role:', error);
+    } catch (error: any) {
+      console.error('Error updating role:', error);
+      
+      let errorMessage = '更新用戶角色失敗';
+      if (error.message) {
+        errorMessage += `: ${error.message}`;
       }
-      toast.error('更新用戶角色失敗');
+      
+      if (import.meta.env.DEV) {
+        console.error('Full error:', error);
+      }
+      
+      toast.error(errorMessage);
     }
   };
 
