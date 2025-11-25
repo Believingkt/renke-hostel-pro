@@ -35,29 +35,37 @@ export function ConditionalLayout() {
   }, [isAdminPage, isAuthPage, isFrontendPage]);
 
   useEffect(() => {
+    console.log('[ConditionalLayout] Initial load, isAdminPage:', isAdminPage);
+    
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      console.log('[ConditionalLayout] Got session:', session?.user?.email);
       setSession(session);
       
       // Check if user needs to change password
       if (session) {
+        console.log('[ConditionalLayout] Checking password change requirement...');
         await checkPasswordChangeRequired(session);
         setTimeout(() => {
           checkUserValidity(session.user.id);
         }, 0);
       } else {
         // No session, no need to check password
+        console.log('[ConditionalLayout] No session, setting needsPasswordChange to false');
         setNeedsPasswordChange(false);
       }
       
+      console.log('[ConditionalLayout] Setting loading to false');
       setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('[ConditionalLayout] Auth state changed:', event, session?.user?.email);
         setSession(session);
         
         // Check password change requirement for relevant events
         if ((event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') && session) {
+          console.log('[ConditionalLayout] Checking password on auth event:', event);
           await checkPasswordChangeRequired(session);
           setTimeout(() => {
             checkUserValidity(session.user.id);
@@ -66,13 +74,14 @@ export function ConditionalLayout() {
         
         // After user updates their info, recheck password requirement
         if (event === 'USER_UPDATED' && session) {
+          console.log('[ConditionalLayout] User updated, rechecking password');
           await checkPasswordChangeRequired(session);
         }
       }
     );
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [isAdminPage]);
 
   // Check if user needs to change password
   const checkPasswordChangeRequired = async (session: Session) => {
