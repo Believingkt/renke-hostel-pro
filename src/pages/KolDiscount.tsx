@@ -1324,7 +1324,7 @@ const KolDiscount = () => {
 
       <>
         {/* Desktop table view */}
-        <div className="hidden md:block overflow-x-auto rounded-md border">
+        <div className="hidden md:block table-scroll-container overflow-x-auto rounded-md border touch-pan-x">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">

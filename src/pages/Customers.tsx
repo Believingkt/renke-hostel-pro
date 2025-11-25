@@ -501,7 +501,7 @@ const Customers = () => {
           ) : (
             <>
               {/* Desktop: Table View */}
-              <div className="hidden md:block rounded-md border">
+              <div className="hidden md:block table-scroll-container overflow-x-auto rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">

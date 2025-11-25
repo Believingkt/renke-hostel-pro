@@ -177,7 +177,7 @@ const DiscountCodeOrders = () => {
       ) : (
         <>
           {/* 桌面版表格 */}
-          <div className="hidden md:block rounded-md border">
+          <div className="hidden md:block table-scroll-container overflow-x-auto rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
