@@ -249,7 +249,7 @@ const Accounts = () => {
     const accountSchema = z.object({
       name: z.string().trim().min(1, "姓名不能為空").max(100, "姓名長度不能超過100個字元"),
       email: z.string().email("請輸入有效的電子郵件地址").max(255, "電子郵件長度不能超過255個字元"),
-      role: z.enum(['super_admin', 'hotel_admin', 'staff'], { errorMap: () => ({ message: "請選擇有效的角色" }) })
+      role: z.enum(['hotel_admin', 'staff'], { errorMap: () => ({ message: "請選擇有效的角色" }) })
     });
 
     const validation = accountSchema.safeParse({ name: name.trim(), email: email.trim(), role });
@@ -638,7 +638,6 @@ const Accounts = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="super_admin">總部管理員</SelectItem>
                     <SelectItem value="hotel_admin">民宿管理員</SelectItem>
                     <SelectItem value="staff">現場營運</SelectItem>
                   </SelectContent>
