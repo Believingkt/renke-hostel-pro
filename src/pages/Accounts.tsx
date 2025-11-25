@@ -115,7 +115,12 @@ const Accounts = () => {
         }]) || []
       );
 
-      const usersData: User[] = userRoles.map((ur: any) => {
+      // Filter to show only hotel_admin and staff roles
+      const filteredUserRoles = userRoles.filter((ur: any) => 
+        ur.role === 'hotel_admin' || ur.role === 'staff'
+      );
+
+      const usersData: User[] = filteredUserRoles.map((ur: any) => {
         const profile = profilesMap.get(ur.user_id);
         const hasLoggedIn = !!profile?.lastSignInAt;
         const lastLogin = profile?.lastSignInAt 
