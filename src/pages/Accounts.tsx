@@ -166,17 +166,35 @@ const Accounts = () => {
 
       if (error) {
         console.error("Error checking email:", error);
+        
+        if (import.meta.env.DEV) {
+          console.error("Email check error details:", {
+            error,
+            email: email.trim()
+          });
+        }
+        
         return false;
       }
 
       if (!data?.success) {
         console.error("Email check failed:", data?.error);
+        
+        if (import.meta.env.DEV) {
+          console.error("Email check response:", data);
+        }
+        
         return false;
       }
 
       return data.exists === true;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Unexpected error checking email:", error);
+      
+      if (import.meta.env.DEV) {
+        console.error("Full error:", error);
+      }
+      
       return false;
     }
   };
@@ -272,19 +290,45 @@ const Accounts = () => {
       // Handle Supabase function invocation errors
       if (error) {
         console.error("Edge function invocation error:", error);
+        
         // Try to extract detailed error message
         let errorMessage = "系統錯誤";
+        let errorDetails = "";
         
+        // Extract error information from different possible formats
         if (error.message) {
           errorMessage = error.message;
         } else if (typeof error === 'string') {
           errorMessage = error;
         }
         
-        // Add more context for debugging
+        // Try to parse error context if available
+        if (error.context) {
+          try {
+            const context = typeof error.context === 'string' 
+              ? JSON.parse(error.context) 
+              : error.context;
+            
+            if (context.error) {
+              errorDetails = context.error;
+            }
+            if (context.status) {
+              errorDetails += ` (狀態碼: ${context.status})`;
+            }
+          } catch (e) {
+            // Ignore JSON parse errors
+          }
+        }
+        
+        // Log full error for debugging
         if (import.meta.env.DEV) {
-          console.error("Full error object:", error);
-          console.error("Error context:", {
+          console.error("Full error object:", {
+            error,
+            message: error.message,
+            context: error.context,
+            stack: error.stack
+          });
+          console.error("Request context:", {
             name,
             email,
             role,
@@ -292,7 +336,29 @@ const Accounts = () => {
           });
         }
         
-        toast.error(`${errorMessage}。請稍後再試或聯繫系統管理員。`);
+        // Build user-friendly error message
+        let displayMessage = errorMessage;
+        if (errorDetails) {
+          displayMessage += `\n詳細資訊: ${errorDetails}`;
+        }
+        
+        // Add helpful suggestions based on error type
+        if (errorMessage.includes("already") || errorMessage.includes("已被註冊")) {
+          displayMessage = "此 Email 已被註冊。請使用其他 Email 或在用戶列表中重新發送邀請給現有用戶。";
+        } else if (errorMessage.includes("unauthorized") || errorMessage.includes("驗證")) {
+          displayMessage = "認證失敗，請重新登入後再試。";
+        } else if (errorMessage.includes("network") || errorMessage.includes("網路")) {
+          displayMessage = "網路連接異常，請檢查網路連接後重試。";
+        } else if (errorMessage.includes("timeout") || errorMessage.includes("逾時")) {
+          displayMessage = "請求逾時，請稍後再試。";
+        } else {
+          displayMessage += "\n\n請稍後再試或聯繫系統管理員。";
+        }
+        
+        toast.error(displayMessage, {
+          duration: 6000,
+          description: import.meta.env.DEV ? errorDetails : undefined
+        });
         return;
       }
 
@@ -304,9 +370,15 @@ const Accounts = () => {
         // Handle specific error cases with helpful messages
         if (errorMessage === "此 Email 已被註冊" || errorMessage.includes("已被註冊") || errorMessage.includes("already")) {
           errorMessage = "此 Email 已被使用，該用戶已存在於系統中。如需重新發送邀請，請在用戶列表中使用「重發邀請」功能。";
+        } else if (errorMessage.includes("無效")) {
+          errorMessage += "\n請檢查輸入的資料格式是否正確。";
+        } else if (errorMessage.includes("權限")) {
+          errorMessage += "\n您可能沒有足夠的權限執行此操作。";
         }
         
-        toast.error(errorMessage);
+        toast.error(errorMessage, {
+          duration: 5000
+        });
         return;
       }
 
@@ -373,7 +445,17 @@ const Accounts = () => {
 
       if (error) {
         console.error("Edge function invocation error:", error);
-        toast.error("系統錯誤，請稍後再試");
+        
+        let errorMessage = "刪除用戶失敗";
+        if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        if (import.meta.env.DEV) {
+          console.error("Full error:", error);
+        }
+        
+        toast.error(errorMessage + "\n請稍後再試或聯繫系統管理員");
         return;
       }
 
@@ -385,7 +467,7 @@ const Accounts = () => {
 
       if (!data?.success) {
         console.error("Unexpected response:", data);
-        toast.error("刪除帳號失敗");
+        toast.error("刪除帳號失敗，請稍後再試");
         return;
       }
 
@@ -393,7 +475,14 @@ const Accounts = () => {
       await loadUsers();
     } catch (error: any) {
       console.error("Unexpected error deleting user:", error);
-      toast.error(error.message || "刪除帳號時發生未預期的錯誤");
+      
+      let errorMessage = error.message || "刪除帳號時發生未預期的錯誤";
+      
+      if (import.meta.env.DEV) {
+        console.error("Full error:", error);
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -410,7 +499,21 @@ const Accounts = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Resend invite error:", error);
+        
+        let errorMessage = "重新發送邀請失敗";
+        if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        if (import.meta.env.DEV) {
+          console.error("Full error:", error);
+        }
+        
+        toast.error(errorMessage + "\n請稍後再試");
+        return;
+      }
 
       if (data?.error) {
         toast.error(data.error);
@@ -420,13 +523,18 @@ const Accounts = () => {
       if (data?.success) {
         toast.success("邀請郵件已重新發送");
       } else {
-        toast.error("重新發送失敗");
+        toast.error("重新發送失敗，請稍後再試");
       }
     } catch (error: any) {
+      console.error("Error resending invite:", error);
+      
+      let errorMessage = error.message || "重新發送失敗";
+      
       if (import.meta.env.DEV) {
-        console.error("Error resending invite:", error);
+        console.error("Full error:", error);
       }
-      toast.error(error.message || "重新發送失敗");
+      
+      toast.error(errorMessage);
     }
   };
 
