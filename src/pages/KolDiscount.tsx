@@ -1322,25 +1322,24 @@ const KolDiscount = () => {
         </div>
       </Card>
 
-      <Card>
-        <CardContent className="p-0">
-          {/* Desktop table view */}
-          <div className="hidden md:block overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead className="w-12 text-foreground"></TableHead>
-                  <TableHead className="text-foreground">名稱</TableHead>
-                  <TableHead className="text-foreground">折扣碼</TableHead>
-                  <TableHead className="text-foreground">推薦連結</TableHead>
-                  <TableHead className="text-foreground">折扣</TableHead>
-                  <TableHead className="text-foreground">已使用</TableHead>
-                  <TableHead className="text-foreground">使用上限</TableHead>
-                  <TableHead className="text-foreground">有效期</TableHead>
-                  <TableHead className="text-foreground">狀態</TableHead>
-                  <TableHead className="text-foreground">操作</TableHead>
-                </TableRow>
-              </TableHeader>
+      <>
+        {/* Desktop table view */}
+        <div className="hidden md:block overflow-x-auto rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                <TableHead className="w-12 text-foreground"></TableHead>
+                <TableHead className="text-foreground">名稱</TableHead>
+                <TableHead className="text-foreground">折扣碼</TableHead>
+                <TableHead className="text-foreground">推薦連結</TableHead>
+                <TableHead className="text-foreground">折扣</TableHead>
+                <TableHead className="text-foreground">已使用</TableHead>
+                <TableHead className="text-foreground">使用上限</TableHead>
+                <TableHead className="text-foreground">有效期</TableHead>
+                <TableHead className="text-foreground">狀態</TableHead>
+                <TableHead className="text-foreground">操作</TableHead>
+              </TableRow>
+            </TableHeader>
               <TableBody>
                 {filteredCodes.length === 0 ? (
                   <TableRow>
@@ -1525,8 +1524,7 @@ const KolDiscount = () => {
               ))
             )}
           </div>
-        </CardContent>
-      </Card>
+        </>
 
       {/* API Documentation Dialog */}
       <Dialog open={apiDocOpen} onOpenChange={setApiDocOpen}>

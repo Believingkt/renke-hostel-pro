@@ -40,7 +40,7 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
   return (
     <>
       {/* 桌面版表格 */}
-      <div className="hidden md:block overflow-x-auto">
+      <div className="hidden md:block overflow-x-auto rounded-md border">
         <table className="w-full">
           <thead>
             <tr className="bg-muted/50">
