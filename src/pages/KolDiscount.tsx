@@ -617,13 +617,13 @@ const KolDiscount = () => {
           >
             {copiedLink === item.code ? (
               <>
-                <Check className="h-4 w-4 animate-scale-in" />
                 已複製
+                <Check className="h-4 w-4 animate-scale-in" />
               </>
             ) : (
               <>
-                <Copy className="h-4 w-4" />
                 複製連結
+                <Copy className="h-4 w-4" />
               </>
             )}
           </Button>
@@ -1444,13 +1444,13 @@ const KolDiscount = () => {
                       >
                         {copiedLink === item.code ? (
                           <>
-                            <Check className="h-3.5 w-3.5 animate-scale-in" />
                             已複製推薦連結
+                            <Check className="h-3.5 w-3.5 animate-scale-in" />
                           </>
                         ) : (
                           <>
-                            <Copy className="h-3.5 w-3.5" />
                             複製推薦連結
+                            <Copy className="h-3.5 w-3.5" />
                           </>
                         )}
                       </Button>
