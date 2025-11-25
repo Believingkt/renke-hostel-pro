@@ -35,11 +35,11 @@ export default function Auth() {
       return;
     }
 
-    // Check if this is a recovery link (from invite)
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const isRecoveryLink = hashParams.get('type') === 'recovery';
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // Check if this is a recovery link (check hash every time since it might change)
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const isRecoveryLink = hashParams.get('type') === 'recovery';
+      
       console.log("Auth state changed:", event, session?.user?.email, "isRecovery:", isRecoveryLink);
       
       if (event === "SIGNED_IN" && session) {
