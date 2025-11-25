@@ -24,7 +24,8 @@ import {
   UserCog,
   Shield,
   UserCheck,
-  KeyRound
+  KeyRound,
+  Megaphone
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { PreloadLink } from "@/components/PreloadLink";
@@ -75,7 +76,7 @@ const menuItems = [
     ]
   },
   { title: "顧客資料", url: "/admin/customers", icon: Users },
-  { title: "網紅導購", url: "/admin/discount-codes", icon: Ticket },
+  { title: "網紅導購", url: "/admin/discount-codes", icon: Megaphone },
   { title: "帳號管理", url: "/admin/accounts", icon: KeyRound },
 ];
 
