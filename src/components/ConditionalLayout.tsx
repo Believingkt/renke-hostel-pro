@@ -19,6 +19,7 @@ export function ConditionalLayout() {
   
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [needsPasswordChange, setNeedsPasswordChange] = useState(false);
 
   // 啟用訂單即時通知（僅在後台頁面且已登入時）
   useOrderNotifications(isAdminPage && !!session);
@@ -34,33 +35,59 @@ export function ConditionalLayout() {
   }, [isAdminPage, isAuthPage, isFrontendPage]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
-      setLoading(false);
       
-      // Check if session is valid but user doesn't exist
+      // Check if user needs to change password
       if (session) {
+        await checkPasswordChangeRequired(session);
         setTimeout(() => {
           checkUserValidity(session.user.id);
         }, 0);
       }
+      
+      setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setSession(session);
         
-        // Check user validity when signed in
-        if (event === 'SIGNED_IN' && session) {
+        // Check password change requirement for relevant events
+        if ((event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') && session) {
+          await checkPasswordChangeRequired(session);
           setTimeout(() => {
             checkUserValidity(session.user.id);
           }, 0);
+        }
+        
+        // After user updates their info, recheck password requirement
+        if (event === 'USER_UPDATED' && session) {
+          await checkPasswordChangeRequired(session);
         }
       }
     );
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Check if user needs to change password
+  const checkPasswordChangeRequired = async (session: Session) => {
+    try {
+      const needsChange = session.user.user_metadata?.force_password_change === true;
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('force_password_change')
+        .eq('id', session.user.id)
+        .single();
+      
+      setNeedsPasswordChange(needsChange || profile?.force_password_change === true);
+    } catch (error) {
+      console.error('Error checking password change requirement:', error);
+      setNeedsPasswordChange(false);
+    }
+  };
 
   // Check if user account still exists
   const checkUserValidity = async (userId: string) => {
@@ -113,8 +140,28 @@ export function ConditionalLayout() {
     return <Navigate to="/auth" replace />;
   }
 
-  if (isAuthPage && session) {
+  // If on auth page with session, check if password change is needed
+  if (isAuthPage && session && !loading) {
+    // If user needs to change password, stay on auth page
+    if (needsPasswordChange) {
+      // Let Auth.tsx handle the password change flow
+      return (
+        <TooltipProvider>
+          <div className="admin-theme">
+            <Toaster />
+            <Sonner />
+            <Outlet />
+          </div>
+        </TooltipProvider>
+      );
+    }
+    // Otherwise redirect to admin
     return <Navigate to="/admin" replace />;
+  }
+  
+  // If on admin page but needs password change, redirect to auth
+  if (isAdminPage && session && needsPasswordChange && !loading) {
+    return <Navigate to="/auth" replace />;
   }
 
   if (!isAdminPage && !isAuthPage) {
