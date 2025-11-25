@@ -579,11 +579,11 @@ const PublicHolidays = () => {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
-                    <TableHead className="font-semibold">假日名稱</TableHead>
-                    <TableHead className="font-semibold">日期</TableHead>
-                    <TableHead className="font-semibold">星期</TableHead>
-                    <TableHead className="font-semibold">年份</TableHead>
-                    <TableHead className="text-right font-semibold">操作</TableHead>
+                    <TableHead className="font-semibold text-foreground">假日名稱</TableHead>
+                    <TableHead className="font-semibold text-foreground">日期</TableHead>
+                    <TableHead className="font-semibold text-foreground">星期</TableHead>
+                    <TableHead className="font-semibold text-foreground">年份</TableHead>
+                    <TableHead className="text-right font-semibold text-foreground">操作</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
