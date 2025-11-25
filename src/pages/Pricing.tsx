@@ -292,7 +292,7 @@ const Pricing = () => {
   };
 
   return (
-    <div className="space-y-6 md:space-y-8">
+    <div className="space-y-6 md:space-y-8 p-4 md:p-0">
       <Tabs value={activeTab} onValueChange={(value) => {
         setActiveTab(value);
         setSearchParams({ tab: value });
@@ -372,9 +372,9 @@ const Pricing = () => {
         </TabsContent>
 
         <TabsContent value="facilities" className="space-y-4">
-          <div className="pb-4 border-b border-primary/20 mb-6">
-            <h2 className="text-3xl font-bold flex items-center gap-3">
-              <Wrench className="h-7 w-7 text-primary" />
+          <div className="pb-4 md:pb-6 border-b border-primary/20 mb-4 md:mb-6">
+            <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-2 md:gap-3">
+              <Wrench className="h-6 w-6 md:h-7 md:w-7 text-primary" />
               房間設施
             </h2>
           </div>
@@ -382,9 +382,9 @@ const Pricing = () => {
         </TabsContent>
 
         <TabsContent value="basic" className="space-y-4">
-          <div className="pb-4 border-b border-primary/20 mb-6">
-            <h2 className="text-3xl font-bold flex items-center gap-3">
-              <DollarSign className="h-7 w-7 text-primary" />
+          <div className="pb-4 md:pb-6 border-b border-primary/20 mb-4 md:mb-6">
+            <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-2 md:gap-3">
+              <DollarSign className="h-6 w-6 md:h-7 md:w-7 text-primary" />
               價格設定
             </h2>
           </div>
@@ -414,9 +414,9 @@ const Pricing = () => {
         </TabsContent>
 
         <TabsContent value="inventory" className="space-y-4">
-          <div className="pb-4 border-b border-primary/20 mb-6">
-            <h2 className="text-3xl font-bold flex items-center gap-3">
-              <Package className="h-7 w-7 text-primary" />
+          <div className="pb-4 md:pb-6 border-b border-primary/20 mb-4 md:mb-6">
+            <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-2 md:gap-3">
+              <Package className="h-6 w-6 md:h-7 md:w-7 text-primary" />
               房量管理
             </h2>
           </div>
@@ -424,9 +424,9 @@ const Pricing = () => {
         </TabsContent>
 
         <TabsContent value="holidays" className="space-y-4">
-          <div className="pb-4 border-b border-primary/20 mb-6">
-            <h2 className="text-3xl font-bold flex items-center gap-3">
-              <Calendar className="h-7 w-7 text-primary" />
+          <div className="pb-4 md:pb-6 border-b border-primary/20 mb-4 md:mb-6">
+            <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-2 md:gap-3">
+              <Calendar className="h-6 w-6 md:h-7 md:w-7 text-primary" />
               公休設定
             </h2>
           </div>
