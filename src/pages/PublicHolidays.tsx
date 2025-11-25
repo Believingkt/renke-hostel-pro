@@ -579,11 +579,11 @@ const PublicHolidays = () => {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
-                    <TableHead className="font-semibold text-foreground">假日名稱</TableHead>
-                    <TableHead className="font-semibold text-foreground">日期</TableHead>
-                    <TableHead className="font-semibold text-foreground">星期</TableHead>
-                    <TableHead className="font-semibold text-foreground">年份</TableHead>
-                    <TableHead className="text-right font-semibold text-foreground">操作</TableHead>
+                    <TableHead className="font-semibold text-foreground text-sm">假日名稱</TableHead>
+                    <TableHead className="font-semibold text-foreground text-sm">日期</TableHead>
+                    <TableHead className="font-semibold text-foreground text-sm">星期</TableHead>
+                    <TableHead className="font-semibold text-foreground text-sm">年份</TableHead>
+                    <TableHead className="text-right font-semibold text-foreground text-sm">操作</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -595,7 +595,7 @@ const PublicHolidays = () => {
                     
                     return (
                       <TableRow key={holiday.id} className="hover:bg-muted/50 transition-colors">
-                        <TableCell className="font-medium">
+                        <TableCell className="font-medium text-sm">
                           <div className="flex items-center gap-2">
                             {holiday.holiday_name}
                             {isPast && (
@@ -605,14 +605,14 @@ const PublicHolidays = () => {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-sm">
                           {format(date, "yyyy年MM月dd日", { locale: zhTW })}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-sm">
                           <Badge variant="outline">{dayOfWeek}</Badge>
                         </TableCell>
-                        <TableCell>{year}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-sm">{year}</TableCell>
+                        <TableCell className="text-right text-sm">
                           <div className="flex justify-end gap-1">
                             <Button
                               variant="ghost"

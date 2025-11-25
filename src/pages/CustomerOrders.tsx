@@ -262,23 +262,23 @@ const CustomerOrders = () => {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">
-                      <TableHead className="text-foreground font-semibold">訂單編號</TableHead>
-                      <TableHead className="text-foreground font-semibold">訂單日期</TableHead>
-                      <TableHead className="text-foreground font-semibold">入住/退房日期</TableHead>
-                      <TableHead className="text-foreground font-semibold">房型</TableHead>
-                      <TableHead className="text-center text-foreground font-semibold">人數</TableHead>
-                      <TableHead className="text-right text-foreground font-semibold">金額</TableHead>
-                      <TableHead className="text-foreground font-semibold">訂單狀態</TableHead>
-                      <TableHead className="text-foreground font-semibold">付款狀態</TableHead>
-                      <TableHead className="text-right text-foreground font-semibold">操作</TableHead>
+                      <TableHead className="text-foreground font-semibold text-sm">訂單編號</TableHead>
+                      <TableHead className="text-foreground font-semibold text-sm">訂單日期</TableHead>
+                      <TableHead className="text-foreground font-semibold text-sm">入住/退房日期</TableHead>
+                      <TableHead className="text-foreground font-semibold text-sm">房型</TableHead>
+                      <TableHead className="text-center text-foreground font-semibold text-sm">人數</TableHead>
+                      <TableHead className="text-right text-foreground font-semibold text-sm">金額</TableHead>
+                      <TableHead className="text-foreground font-semibold text-sm">訂單狀態</TableHead>
+                      <TableHead className="text-foreground font-semibold text-sm">付款狀態</TableHead>
+                      <TableHead className="text-right text-foreground font-semibold text-sm">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {orders.map((order) => (
                       <TableRow key={order.id}>
-                        <TableCell className="font-medium">{order.order_number}</TableCell>
-                        <TableCell>{formatDateTime(order.order_date)}</TableCell>
-                        <TableCell>
+                        <TableCell className="font-medium text-sm">{order.order_number}</TableCell>
+                        <TableCell className="text-sm">{formatDateTime(order.order_date)}</TableCell>
+                        <TableCell className="text-sm">
                           <div className="flex items-center gap-1">
                             <Calendar className="h-3 w-3 text-muted-foreground" />
                             <span className="text-sm">{formatDate(order.check_in_date)}</span>
@@ -286,14 +286,14 @@ const CustomerOrders = () => {
                             <span className="text-sm">{formatDate(order.check_out_date)}</span>
                           </div>
                         </TableCell>
-                        <TableCell>{order.room_types?.name || "-"}</TableCell>
-                        <TableCell className="text-center">{order.guest_count}</TableCell>
-                        <TableCell className="text-right font-medium">
+                        <TableCell className="text-sm">{order.room_types?.name || "-"}</TableCell>
+                        <TableCell className="text-center text-sm">{order.guest_count}</TableCell>
+                        <TableCell className="text-right font-medium text-sm">
                           ${order.final_price.toLocaleString()}
                         </TableCell>
-                        <TableCell>{getStatusBadge(order.order_status)}</TableCell>
-                        <TableCell>{getPaymentStatusBadge(order.payment_status)}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-sm">{getStatusBadge(order.order_status)}</TableCell>
+                        <TableCell className="text-sm">{getPaymentStatusBadge(order.payment_status)}</TableCell>
+                        <TableCell className="text-right text-sm">
                           <Button
                             variant="ghost"
                             size="icon"

@@ -660,26 +660,26 @@ const Headquarters = () => {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
-                    <TableHead className="font-semibold">用戶名稱</TableHead>
-                    <TableHead className="font-semibold">Email</TableHead>
-                    <TableHead className="font-semibold">狀態</TableHead>
-                    <TableHead className="font-semibold">用戶 ID</TableHead>
-                    <TableHead className="font-semibold">旅館</TableHead>
-                    <TableHead className="font-semibold">角色</TableHead>
-                    <TableHead className="font-semibold">創建時間</TableHead>
-                    <TableHead className="text-right font-semibold">操作</TableHead>
+                    <TableHead className="font-semibold text-sm">用戶名稱</TableHead>
+                    <TableHead className="font-semibold text-sm">Email</TableHead>
+                    <TableHead className="font-semibold text-sm">狀態</TableHead>
+                    <TableHead className="font-semibold text-sm">用戶 ID</TableHead>
+                    <TableHead className="font-semibold text-sm">旅館</TableHead>
+                    <TableHead className="font-semibold text-sm">角色</TableHead>
+                    <TableHead className="font-semibold text-sm">創建時間</TableHead>
+                    <TableHead className="text-right font-semibold text-sm">操作</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {userRoles.map((userRole) => (
                     <TableRow key={userRole.id}>
-                      <TableCell className="font-medium">
+                      <TableCell className="font-medium text-sm">
                         {userRole.user_name}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-sm">
                         {userRole.user_email}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-sm">
                         <Badge 
                           variant={userRole.status === 'active' ? 'default' : 'secondary'}
                           className="gap-1"
@@ -695,8 +695,8 @@ const Headquarters = () => {
                       <TableCell className="font-mono text-sm">
                         {userRole.user_id.substring(0, 8)}...
                       </TableCell>
-                      <TableCell>{getAccommodationName(userRole.accommodation_id)}</TableCell>
-                      <TableCell>
+                      <TableCell className="text-sm">{getAccommodationName(userRole.accommodation_id)}</TableCell>
+                      <TableCell className="text-sm">
                         <div className="flex items-center gap-2">
                           <Badge variant={getRoleBadgeVariant(userRole.role)}>
                             {getRoleLabel(userRole.role)}
@@ -716,10 +716,10 @@ const Headquarters = () => {
                           </Select>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-sm">
                         {new Date(userRole.created_at).toLocaleDateString("zh-TW")}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right text-sm">
                         <div className="flex items-center justify-end gap-2">
                           {userRole.status === 'pending' && (
                             <Button
