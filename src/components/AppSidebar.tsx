@@ -10,7 +10,15 @@ import {
   Globe,
   Building,
   UserCircle,
-  Database
+  Database,
+  Info,
+  Wrench,
+  Package,
+  Image as ImageIcon,
+  Navigation,
+  HelpCircle,
+  Hotel,
+  Calendar
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { PreloadLink } from "@/components/PreloadLink";
@@ -39,13 +47,13 @@ const menuItems = [
     url: "/admin/website-content", 
     icon: Globe,
     subItems: [
-      { title: "網頁設定", url: "/admin/website-content?tab=basic-info" },
-      { title: "設施服務", url: "/admin/website-content?tab=facilities" },
-      { title: "加購方案", url: "/admin/website-content?tab=addon-plans" },
-      { title: "精選照片", url: "/admin/website-content?tab=gallery" },
-      { title: "交通地圖", url: "/admin/website-content?tab=location" },
-      { title: "訂房須知", url: "/admin/website-content?tab=booking-info" },
-      { title: "常見問題", url: "/admin/website-content?tab=faq" },
+      { title: "網頁設定", url: "/admin/website-content?tab=basic-info", icon: Info },
+      { title: "設施服務", url: "/admin/website-content?tab=facilities", icon: Wrench },
+      { title: "加購方案", url: "/admin/website-content?tab=addon-plans", icon: Package },
+      { title: "精選照片", url: "/admin/website-content?tab=gallery", icon: ImageIcon },
+      { title: "交通地圖", url: "/admin/website-content?tab=location", icon: Navigation },
+      { title: "訂房須知", url: "/admin/website-content?tab=booking-info", icon: Globe },
+      { title: "常見問題", url: "/admin/website-content?tab=faq", icon: HelpCircle },
     ]
   },
   { 
@@ -53,11 +61,11 @@ const menuItems = [
     url: "/admin/pricing", 
     icon: DollarSign,
     subItems: [
-      { title: "房型管理", url: "/admin/pricing?tab=rooms" },
-      { title: "價格管理", url: "/admin/pricing?tab=basic" },
-      { title: "客房設施", url: "/admin/pricing?tab=facilities" },
-      { title: "庫存管理", url: "/admin/pricing?tab=inventory" },
-      { title: "國定假日", url: "/admin/pricing?tab=holidays" },
+      { title: "房型管理", url: "/admin/pricing?tab=rooms", icon: Hotel },
+      { title: "價格管理", url: "/admin/pricing?tab=basic", icon: DollarSign },
+      { title: "客房設施", url: "/admin/pricing?tab=facilities", icon: Wrench },
+      { title: "庫存管理", url: "/admin/pricing?tab=inventory", icon: Package },
+      { title: "國定假日", url: "/admin/pricing?tab=holidays", icon: Calendar },
     ]
   },
   { title: "顧客資料", url: "/admin/customers", icon: UserCircle },
@@ -117,7 +125,7 @@ export function AppSidebar() {
                       </CollapsibleTrigger>
                       <CollapsibleContent className="transition-all duration-300 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
                         <SidebarMenuSub className="ml-2 border-l-2 border-sidebar-border px-0 space-y-1 mt-1">
-                        {item.subItems.map((subItem) => (
+                        {item.subItems.map((subItem: any) => (
                           <SidebarMenuSubItem key={subItem.title}>
                             <SidebarMenuSubButton asChild className="h-10 px-4 pl-8 hover:bg-sidebar-accent/50 transition-all duration-200">
                               <PreloadLink 
@@ -125,6 +133,7 @@ export function AppSidebar() {
                                 onClick={handleLinkClick}
                                 className={isActiveSubItem(subItem.url) ? "bg-sidebar-accent" : ""}
                               >
+                                {subItem.icon && <subItem.icon className="h-4 w-4" />}
                                 <span className="transition-colors duration-200">{subItem.title}</span>
                               </PreloadLink>
                             </SidebarMenuSubButton>
