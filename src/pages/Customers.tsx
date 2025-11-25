@@ -501,7 +501,7 @@ const Customers = () => {
           ) : (
             <>
               {/* Desktop: Table View */}
-              <Card className="hidden md:block">
+              <div className="hidden md:block rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">
@@ -600,7 +600,7 @@ const Customers = () => {
                     ))}
                   </TableBody>
                 </Table>
-              </Card>
+              </div>
 
               {/* Mobile: Card View */}
               <div className="md:hidden space-y-4">

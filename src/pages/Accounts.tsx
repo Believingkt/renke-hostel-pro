@@ -679,21 +679,20 @@ const Accounts = () => {
         }
       />
 
-      <Card>
-        <CardContent className="pt-6">
-          {/* Desktop table view */}
-          <div className="hidden md:block">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead className="text-foreground">名稱</TableHead>
-                  <TableHead className="text-foreground">Email</TableHead>
-                  <TableHead className="text-foreground">角色</TableHead>
-                  <TableHead className="text-foreground">狀態</TableHead>
-                  <TableHead className="text-foreground">最後登入時間</TableHead>
-                  <TableHead className="w-[140px] text-foreground">操作</TableHead>
-                </TableRow>
-              </TableHeader>
+      <>
+        {/* Desktop table view */}
+        <div className="hidden md:block rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                <TableHead className="text-foreground">名稱</TableHead>
+                <TableHead className="text-foreground">Email</TableHead>
+                <TableHead className="text-foreground">角色</TableHead>
+                <TableHead className="text-foreground">狀態</TableHead>
+                <TableHead className="text-foreground">最後登入時間</TableHead>
+                <TableHead className="w-[140px] text-foreground">操作</TableHead>
+              </TableRow>
+            </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
@@ -850,8 +849,7 @@ const Accounts = () => {
               ))
             )}
           </div>
-        </CardContent>
-      </Card>
+        </>
     </div>
   );
 };
