@@ -610,7 +610,7 @@ const KolDiscount = () => {
             variant="ghost"
             size="sm"
             className={cn(
-              "h-8 gap-2 transition-all",
+              "h-8 gap-1.5 transition-all",
               copiedLink === item.code && "bg-success/10 text-success"
             )}
             onClick={() => handleCopyReferralLink(item.code)}
@@ -1437,7 +1437,7 @@ const KolDiscount = () => {
                         variant="outline"
                         size="sm"
                         className={cn(
-                          "w-full gap-2 transition-all",
+                          "w-full gap-1.5 transition-all",
                           copiedLink === item.code && "bg-success/10 text-success border-success/20"
                         )}
                         onClick={() => handleCopyReferralLink(item.code)}
