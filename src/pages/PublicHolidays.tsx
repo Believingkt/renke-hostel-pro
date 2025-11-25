@@ -571,6 +571,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                             <Button
                               variant="ghost"
                               size="sm"
+                              className="group"
                               onClick={() => {
                                 setSelectedHoliday(holiday);
                                 setEditHoliday({
@@ -580,7 +581,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                                 setIsEditDialogOpen(true);
                               }}
                             >
-                              <Edit className="h-4 w-4 text-black hover:text-white transition-colors" />
+                              <Edit className="h-4 w-4 text-black group-hover:text-white transition-colors" />
                             </Button>
                             <Button
                               variant="ghost-destructive"
@@ -630,7 +631,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-8 w-8 p-0"
+                            className="h-8 w-8 p-0 group"
                             onClick={() => {
                               setSelectedHoliday(holiday);
                               setEditHoliday({
@@ -640,7 +641,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                               setIsEditDialogOpen(true);
                             }}
                           >
-                            <Edit className="h-4 w-4 text-black hover:text-white transition-colors" />
+                            <Edit className="h-4 w-4 text-black group-hover:text-white transition-colors" />
                           </Button>
                           <Button
                             variant="ghost-destructive"
