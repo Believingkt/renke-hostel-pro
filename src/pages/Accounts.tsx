@@ -685,13 +685,13 @@ const Accounts = () => {
           <div className="hidden md:block">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>名稱</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>角色</TableHead>
-                  <TableHead>狀態</TableHead>
-                  <TableHead>最後登入時間</TableHead>
-                  <TableHead className="w-[140px]">操作</TableHead>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="text-foreground">名稱</TableHead>
+                  <TableHead className="text-foreground">Email</TableHead>
+                  <TableHead className="text-foreground">角色</TableHead>
+                  <TableHead className="text-foreground">狀態</TableHead>
+                  <TableHead className="text-foreground">最後登入時間</TableHead>
+                  <TableHead className="w-[140px] text-foreground">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

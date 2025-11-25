@@ -1328,17 +1328,17 @@ const KolDiscount = () => {
           <div className="hidden md:block overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12"></TableHead>
-                  <TableHead>名稱</TableHead>
-                  <TableHead>折扣碼</TableHead>
-                  <TableHead>推薦連結</TableHead>
-                  <TableHead>折扣</TableHead>
-                  <TableHead>已使用</TableHead>
-                  <TableHead>使用上限</TableHead>
-                  <TableHead>有效期</TableHead>
-                  <TableHead>狀態</TableHead>
-                  <TableHead>操作</TableHead>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="w-12 text-foreground"></TableHead>
+                  <TableHead className="text-foreground">名稱</TableHead>
+                  <TableHead className="text-foreground">折扣碼</TableHead>
+                  <TableHead className="text-foreground">推薦連結</TableHead>
+                  <TableHead className="text-foreground">折扣</TableHead>
+                  <TableHead className="text-foreground">已使用</TableHead>
+                  <TableHead className="text-foreground">使用上限</TableHead>
+                  <TableHead className="text-foreground">有效期</TableHead>
+                  <TableHead className="text-foreground">狀態</TableHead>
+                  <TableHead className="text-foreground">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

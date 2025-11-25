@@ -261,16 +261,16 @@ const CustomerOrders = () => {
               <div className="hidden md:block rounded-md border">
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>訂單編號</TableHead>
-                      <TableHead>訂單日期</TableHead>
-                      <TableHead>入住/退房日期</TableHead>
-                      <TableHead>房型</TableHead>
-                      <TableHead className="text-center">人數</TableHead>
-                      <TableHead className="text-right">金額</TableHead>
-                      <TableHead>訂單狀態</TableHead>
-                      <TableHead>付款狀態</TableHead>
-                      <TableHead className="text-right">操作</TableHead>
+                    <TableRow className="bg-muted/50">
+                      <TableHead className="text-foreground">訂單編號</TableHead>
+                      <TableHead className="text-foreground">訂單日期</TableHead>
+                      <TableHead className="text-foreground">入住/退房日期</TableHead>
+                      <TableHead className="text-foreground">房型</TableHead>
+                      <TableHead className="text-center text-foreground">人數</TableHead>
+                      <TableHead className="text-right text-foreground">金額</TableHead>
+                      <TableHead className="text-foreground">訂單狀態</TableHead>
+                      <TableHead className="text-foreground">付款狀態</TableHead>
+                      <TableHead className="text-right text-foreground">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

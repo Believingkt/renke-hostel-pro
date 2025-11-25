@@ -180,16 +180,16 @@ const DiscountCodeOrders = () => {
           <div className="hidden md:block rounded-md border">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>訂單編號</TableHead>
-                  <TableHead>顧客資訊</TableHead>
-                  <TableHead>房型</TableHead>
-                  <TableHead>入住日期</TableHead>
-                  <TableHead>金額</TableHead>
-                  <TableHead>折扣</TableHead>
-                  <TableHead>實收</TableHead>
-                  <TableHead>狀態</TableHead>
-                  <TableHead>訂單日期</TableHead>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="text-foreground">訂單編號</TableHead>
+                  <TableHead className="text-foreground">顧客資訊</TableHead>
+                  <TableHead className="text-foreground">房型</TableHead>
+                  <TableHead className="text-foreground">入住日期</TableHead>
+                  <TableHead className="text-foreground">金額</TableHead>
+                  <TableHead className="text-foreground">折扣</TableHead>
+                  <TableHead className="text-foreground">實收</TableHead>
+                  <TableHead className="text-foreground">狀態</TableHead>
+                  <TableHead className="text-foreground">訂單日期</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
