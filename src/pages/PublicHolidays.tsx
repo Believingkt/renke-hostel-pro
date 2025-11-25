@@ -1028,8 +1028,7 @@ export const PublicHolidaysButtons = ({
       </Button>
       <Button onClick={onAddClick} className="text-xs sm:text-sm h-8 sm:h-10">
         <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-        <span className="hidden xs:inline">新增假日</span>
-        <span className="xs:hidden">新增</span>
+        新增假日
       </Button>
     </div>
   );
