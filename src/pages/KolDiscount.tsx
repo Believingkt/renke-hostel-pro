@@ -682,7 +682,7 @@ const KolDiscount = () => {
               title={item.is_active ? "停用" : "啟用"}
             >
               {item.is_active ? (
-                <Pause className="h-4 w-4 text-orange-500 group-hover:text-white transition-colors" />
+                <Pause className="h-4 w-4 text-foreground group-hover:text-white transition-colors" />
               ) : (
                 <Check className="h-4 w-4 text-green-600 group-hover:text-white transition-colors" />
               )}
@@ -1499,7 +1499,7 @@ const KolDiscount = () => {
                         >
                           {item.is_active ? (
                             <>
-                              <Pause className="h-3.5 w-3.5 mr-1" />
+                              <Pause className="h-3.5 w-3.5 mr-1 text-foreground" />
                               停用
                             </>
                           ) : (
