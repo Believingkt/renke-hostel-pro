@@ -28,7 +28,8 @@ import {
   Megaphone,
   BadgePercent,
   Sparkles,
-  BookOpen
+  BookOpen,
+  Bed
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { PreloadLink } from "@/components/PreloadLink";
@@ -71,7 +72,7 @@ const menuItems = [
     url: "/admin/pricing", 
     icon: Hotel,
     subItems: [
-      { title: "房型管理", url: "/admin/pricing?tab=rooms", icon: Hotel },
+      { title: "房型管理", url: "/admin/pricing?tab=rooms", icon: Bed },
       { title: "價格管理", url: "/admin/pricing?tab=basic", icon: DollarSign },
       { title: "客房設施", url: "/admin/pricing?tab=facilities", icon: Wrench },
       { title: "庫存管理", url: "/admin/pricing?tab=inventory", icon: Package },
