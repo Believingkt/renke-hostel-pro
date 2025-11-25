@@ -87,42 +87,15 @@ export function ConditionalLayout() {
   const checkPasswordChangeRequired = async (session: Session) => {
     console.log('[ConditionalLayout] checkPasswordChangeRequired started');
     try {
+      // Use metadata as primary source for password change requirement
       const needsChange = session.user.user_metadata?.force_password_change === true;
       console.log('[ConditionalLayout] needsChange from metadata:', needsChange);
       
-      // Add timeout to prevent hanging
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Profile query timeout')), 5000)
-      );
-      
-      const queryPromise = supabase
-        .from('profiles')
-        .select('force_password_change')
-        .eq('id', session.user.id)
-        .single();
-      
-      const { data: profile, error } = await Promise.race([
-        queryPromise,
-        timeoutPromise
-      ]) as any;
-      
-      console.log('[ConditionalLayout] Profile query result:', { profile, error });
-      
-      if (error) {
-        console.error('[ConditionalLayout] Error fetching profile:', error);
-        // If profile query fails, just use metadata
-        setNeedsPasswordChange(needsChange);
-        return;
-      }
-      
-      const result = needsChange || profile?.force_password_change === true;
-      console.log('[ConditionalLayout] Final password change required result:', result);
-      setNeedsPasswordChange(result);
+      setNeedsPasswordChange(needsChange);
+      console.log('[ConditionalLayout] Set needsPasswordChange to:', needsChange);
     } catch (error) {
       console.error('[ConditionalLayout] Error checking password change requirement:', error);
-      // On error, use metadata or default to false
-      const needsChange = session.user.user_metadata?.force_password_change === true;
-      setNeedsPasswordChange(needsChange);
+      setNeedsPasswordChange(false);
     }
   };
 
