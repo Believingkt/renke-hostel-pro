@@ -685,12 +685,12 @@ const Accounts = () => {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
-                <TableHead className="text-foreground font-semibold">名稱</TableHead>
-                <TableHead className="text-foreground font-semibold">Email</TableHead>
-                <TableHead className="text-foreground font-semibold">角色</TableHead>
-                <TableHead className="text-foreground font-semibold">狀態</TableHead>
-                <TableHead className="text-foreground font-semibold">最後登入時間</TableHead>
-                <TableHead className="w-[140px] text-foreground font-semibold">操作</TableHead>
+                <TableHead className="text-foreground font-semibold text-sm">名稱</TableHead>
+                <TableHead className="text-foreground font-semibold text-sm">Email</TableHead>
+                <TableHead className="text-foreground font-semibold text-sm">角色</TableHead>
+                <TableHead className="text-foreground font-semibold text-sm">狀態</TableHead>
+                <TableHead className="text-foreground font-semibold text-sm">最後登入時間</TableHead>
+                <TableHead className="w-[140px] text-foreground font-semibold text-sm">操作</TableHead>
               </TableRow>
             </TableHeader>
               <TableBody>
@@ -718,14 +718,14 @@ const Accounts = () => {
                 ) : (
                   users.map((user) => (
                     <TableRow key={user.id}>
-                      <TableCell className="font-medium">{user.name}</TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>
+                      <TableCell className="font-medium text-sm">{user.name}</TableCell>
+                      <TableCell className="text-sm">{user.email}</TableCell>
+                      <TableCell className="text-sm">
                         <Badge variant={getRoleBadgeVariant(user.role)}>
                           {user.roleLabel}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-sm">
                         <Badge 
                           variant={user.status === 'active' ? 'default' : 'secondary'}
                           className="gap-1"
@@ -738,8 +738,8 @@ const Accounts = () => {
                           {user.statusLabel}
                         </Badge>
                       </TableCell>
-                      <TableCell>{user.lastLogin}</TableCell>
-                      <TableCell>
+                      <TableCell className="text-sm">{user.lastLogin}</TableCell>
+                      <TableCell className="text-sm">
                         <div className="flex items-center gap-2">
                           {user.status === 'pending' && (
                             <Button

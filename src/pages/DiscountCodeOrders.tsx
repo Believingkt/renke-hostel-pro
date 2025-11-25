@@ -181,15 +181,15 @@ const DiscountCodeOrders = () => {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead className="text-foreground font-semibold">訂單編號</TableHead>
-                  <TableHead className="text-foreground font-semibold">顧客資訊</TableHead>
-                  <TableHead className="text-foreground font-semibold">房型</TableHead>
-                  <TableHead className="text-foreground font-semibold">入住日期</TableHead>
-                  <TableHead className="text-foreground font-semibold">金額</TableHead>
-                  <TableHead className="text-foreground font-semibold">折扣</TableHead>
-                  <TableHead className="text-foreground font-semibold">實收</TableHead>
-                  <TableHead className="text-foreground font-semibold">狀態</TableHead>
-                  <TableHead className="text-foreground font-semibold">訂單日期</TableHead>
+                  <TableHead className="text-foreground font-semibold text-sm">訂單編號</TableHead>
+                  <TableHead className="text-foreground font-semibold text-sm">顧客資訊</TableHead>
+                  <TableHead className="text-foreground font-semibold text-sm">房型</TableHead>
+                  <TableHead className="text-foreground font-semibold text-sm">入住日期</TableHead>
+                  <TableHead className="text-foreground font-semibold text-sm">金額</TableHead>
+                  <TableHead className="text-foreground font-semibold text-sm">折扣</TableHead>
+                  <TableHead className="text-foreground font-semibold text-sm">實收</TableHead>
+                  <TableHead className="text-foreground font-semibold text-sm">狀態</TableHead>
+                  <TableHead className="text-foreground font-semibold text-sm">訂單日期</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -199,8 +199,8 @@ const DiscountCodeOrders = () => {
                     className="cursor-pointer hover:bg-muted/50"
                     onClick={() => navigate(`/admin/orders/${order.id}`)}
                   >
-                    <TableCell className="font-medium">{order.order_number}</TableCell>
-                    <TableCell>
+                    <TableCell className="font-medium text-sm">{order.order_number}</TableCell>
+                    <TableCell className="text-sm">
                       <div className="space-y-1">
                         <div className="flex items-center gap-1.5">
                           <User className="h-3 w-3 text-muted-foreground" />
@@ -218,8 +218,8 @@ const DiscountCodeOrders = () => {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>{order.room_types?.name || "-"}</TableCell>
-                    <TableCell>
+                    <TableCell className="text-sm">{order.room_types?.name || "-"}</TableCell>
+                    <TableCell className="text-sm">
                       <div className="space-y-1">
                         <div className="text-sm">
                           {format(new Date(order.check_in_date), "yyyy/MM/dd")}
@@ -229,16 +229,16 @@ const DiscountCodeOrders = () => {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-muted-foreground text-sm">
                       NT$ {order.total_price.toLocaleString()}
                     </TableCell>
-                    <TableCell className="text-red-500">
+                    <TableCell className="text-red-500 text-sm">
                       -NT$ {order.discount_amount.toLocaleString()}
                     </TableCell>
-                    <TableCell className="font-semibold">
+                    <TableCell className="font-semibold text-sm">
                       NT$ {order.final_price.toLocaleString()}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-sm">
                       <Badge variant="outline" className={statusColors[order.order_status]}>
                         {statusLabels[order.order_status]}
                       </Badge>

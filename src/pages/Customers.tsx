@@ -505,7 +505,7 @@ const Customers = () => {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">
-                      <TableHead className="font-semibold text-foreground pl-8">
+                      <TableHead className="font-semibold text-foreground pl-8 text-sm">
                         <button 
                           onClick={() => handleSort('name')}
                           className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
@@ -514,13 +514,13 @@ const Customers = () => {
                           {getSortIcon('name')}
                         </button>
                       </TableHead>
-                      <TableHead className="font-semibold text-foreground">
+                      <TableHead className="font-semibold text-foreground text-sm">
                         手機
                       </TableHead>
-                      <TableHead className="font-semibold text-foreground">
+                      <TableHead className="font-semibold text-foreground text-sm">
                         Email
                       </TableHead>
-                      <TableHead className="font-semibold text-foreground">
+                      <TableHead className="font-semibold text-foreground text-sm">
                         <button 
                           onClick={() => handleSort('first_order_date')}
                           className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
@@ -529,7 +529,7 @@ const Customers = () => {
                           {getSortIcon('first_order_date')}
                         </button>
                       </TableHead>
-                      <TableHead className="font-semibold text-foreground">
+                      <TableHead className="font-semibold text-foreground text-sm">
                         <button 
                           onClick={() => handleSort('visit_count')}
                           className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
@@ -538,36 +538,36 @@ const Customers = () => {
                           {getSortIcon('visit_count')}
                         </button>
                       </TableHead>
-                      <TableHead className="font-semibold text-foreground">
+                      <TableHead className="font-semibold text-foreground text-sm">
                         備註
                       </TableHead>
-                      <TableHead className="font-semibold text-foreground text-right">操作</TableHead>
+                      <TableHead className="font-semibold text-foreground text-right text-sm">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {paginatedCustomers.map((customer) => (
                       <TableRow key={customer.id} className="hover:bg-muted/30 transition-colors">
-                        <TableCell className="font-medium pl-8">
+                        <TableCell className="font-medium pl-8 text-sm">
                           <CustomerQuickPreview customer={customer}>
                             <span className="cursor-help hover:text-primary transition-colors">{customer.name}</span>
                           </CustomerQuickPreview>
                         </TableCell>
-                        <TableCell className="text-muted-foreground">{customer.phone || "-"}</TableCell>
-                        <TableCell className="text-muted-foreground">{customer.email || "-"}</TableCell>
-                        <TableCell className="text-muted-foreground">
+                        <TableCell className="text-muted-foreground text-sm">{customer.phone || "-"}</TableCell>
+                        <TableCell className="text-muted-foreground text-sm">{customer.email || "-"}</TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
                           {formatDate(customer.first_order_date)}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-sm">
                           <span className="inline-flex items-center justify-center min-w-[2rem] px-2 py-1 rounded-md bg-primary/10 text-primary font-medium text-sm">
                             {customer.visit_count}
                           </span>
                         </TableCell>
-                        <TableCell className="max-w-[200px]">
+                        <TableCell className="max-w-[200px] text-sm">
                           <div className="truncate text-muted-foreground" title={customer.notes || ""}>
                             {customer.notes || "-"}
                           </div>
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right text-sm">
                           <div className="flex justify-end gap-1">
                             <Button
                               variant="ghost"
