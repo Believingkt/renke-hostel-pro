@@ -35,27 +35,11 @@ export default function Auth() {
       return;
     }
 
-    // Check if this is a recovery/invite link from URL hash
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const isRecoveryLink = hashParams.get('type') === 'recovery';
-    
-    // If it's a recovery link, clear any existing session first
-    if (isRecoveryLink) {
-      console.log('Recovery link detected, clearing existing session...');
-      supabase.auth.signOut({ scope: 'local' }).then(() => {
-        console.log('Existing session cleared');
-      });
-    }
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // Check hash again in case it changed
-      const currentHashParams = new URLSearchParams(window.location.hash.substring(1));
-      const isCurrentlyRecoveryLink = currentHashParams.get('type') === 'recovery';
+      console.log("Auth state changed:", event, session?.user?.email);
       
-      console.log("Auth state changed:", event, session?.user?.email, "isRecovery:", isCurrentlyRecoveryLink);
-      
-      if (event === "SIGNED_IN" && session) {
-        // Check if this is from an invite link - check metadata, profile, and URL params
+      // For PASSWORD_RECOVERY or SIGNED_IN events, check if user needs to set password
+      if ((event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") && session) {
         const needsPasswordChange = session.user.user_metadata?.force_password_change === true;
         
         const { data: profile } = await supabase
@@ -64,35 +48,16 @@ export default function Auth() {
           .eq("id", session.user.id)
           .single();
         
-        // Force password change mode if it's a recovery link OR if flags are set
-        if (isCurrentlyRecoveryLink || needsPasswordChange || profile?.force_password_change) {
+        // Show password setup if force_password_change is true in either metadata or profile
+        if (needsPasswordChange || profile?.force_password_change) {
           setInviteEmail(session.user.email || "");
           setIsInviteMode(true);
           toast.info("請設定您的登入密碼");
         } else {
           navigate("/admin");
         }
-      } else if (event === "PASSWORD_RECOVERY") {
-        // This event fires when user clicks the recovery link
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        if (currentSession) {
-          const needsPasswordChange = currentSession.user.user_metadata?.force_password_change === true;
-          
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("force_password_change")
-            .eq("id", currentSession.user.id)
-            .single();
-          
-          if (needsPasswordChange || profile?.force_password_change) {
-            setInviteEmail(currentSession.user.email || "");
-            setIsInviteMode(true);
-            toast.info("請設定您的登入密碼");
-          } else {
-            navigate("/admin");
-          }
-        }
       } else if (event === "USER_UPDATED" && session) {
+        // After password update, check if we should redirect to admin
         const { data: profile } = await supabase
           .from("profiles")
           .select("force_password_change")
@@ -108,27 +73,25 @@ export default function Auth() {
       }
     });
 
-    // Check for existing session (but not if we just cleared it for recovery link)
-    if (!isRecoveryLink) {
-      supabase.auth.getSession().then(async ({ data: { session } }) => {
-        if (session) {
-          const needsPasswordChange = session.user.user_metadata?.force_password_change === true;
-          
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("force_password_change")
-            .eq("id", session.user.id)
-            .single();
-          
-          if (needsPasswordChange || profile?.force_password_change) {
-            setInviteEmail(session.user.email || "");
-            setIsInviteMode(true);
-          } else {
-            navigate("/admin");
-          }
+    // Check for existing session on mount
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session) {
+        const needsPasswordChange = session.user.user_metadata?.force_password_change === true;
+        
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("force_password_change")
+          .eq("id", session.user.id)
+          .single();
+        
+        if (needsPasswordChange || profile?.force_password_change) {
+          setInviteEmail(session.user.email || "");
+          setIsInviteMode(true);
+        } else {
+          navigate("/admin");
         }
-      });
-    }
+      }
+    });
 
     return () => subscription.unsubscribe();
   }, [navigate, searchParams]);
