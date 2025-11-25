@@ -60,6 +60,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { CommissionRecordsDialog } from "@/components/CommissionRecordsDialog";
+import { IntegratedCodeDetailsDialog } from "@/components/IntegratedCodeDetailsDialog";
 
 interface DiscountCode {
   id: string;
@@ -106,7 +107,7 @@ const KolDiscount = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [apiDocOpen, setApiDocOpen] = useState(false);
   const [commissionRate, setCommissionRate] = useState("");
-  const [commissionRecordsOpen, setCommissionRecordsOpen] = useState(false);
+  const [integratedDetailsOpen, setIntegratedDetailsOpen] = useState(false);
   const [selectedCodeForCommission, setSelectedCodeForCommission] = useState<DiscountCode | null>(null);
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "expired" | "full">("all");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
@@ -749,22 +750,13 @@ const KolDiscount = () => {
               variant="ghost"
               size="icon"
               className="h-8 w-8"
-              onClick={() => navigate(`/admin/discount-codes/${item.code}/orders`)}
-              title="查看訂單"
-            >
-              <Eye className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
               onClick={() => {
                 setSelectedCodeForCommission(item);
-                setCommissionRecordsOpen(true);
+                setIntegratedDetailsOpen(true);
               }}
-              title="查看佣金"
+              title="查看詳情"
             >
-              <DollarSign className="h-4 w-4" />
+              <Eye className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
@@ -1624,34 +1616,25 @@ const KolDiscount = () => {
                           variant="outline"
                           size="sm"
                           className="h-9 text-xs"
+                          onClick={() => {
+                            setSelectedCodeForCommission(item);
+                            setIntegratedDetailsOpen(true);
+                          }}
+                        >
+                          <Eye className="h-3.5 w-3.5 mr-1" />
+                          查看詳情
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-9 text-xs"
                           onClick={() => handleOpenEdit(item)}
                         >
                           <Pencil className="h-3.5 w-3.5 mr-1" />
                           編輯
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-9 text-xs"
-                          onClick={() => navigate(`/admin/discount-codes/${item.code}/orders`)}
-                        >
-                          <Eye className="h-3.5 w-3.5 mr-1" />
-                          訂單
-                        </Button>
                       </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-9 text-xs"
-                          onClick={() => {
-                            setSelectedCodeForCommission(item);
-                            setCommissionRecordsOpen(true);
-                          }}
-                        >
-                          <DollarSign className="h-3.5 w-3.5 mr-1" />
-                          佣金
-                        </Button>
+                      <div className="grid grid-cols-2 gap-2">
                         <Button
                           variant={item.is_active ? "outline" : "default"}
                           size="sm"
@@ -2104,14 +2087,15 @@ function setCachedStats(code, data) {
         </DialogContent>
       </Dialog>
 
-      {/* Commission Records Dialog */}
+      {/* Integrated Details Dialog */}
       {selectedCodeForCommission && (
-        <CommissionRecordsDialog
-          open={commissionRecordsOpen}
-          onOpenChange={setCommissionRecordsOpen}
+        <IntegratedCodeDetailsDialog
+          open={integratedDetailsOpen}
+          onOpenChange={setIntegratedDetailsOpen}
           discountCodeId={selectedCodeForCommission.id}
           discountCodeName={selectedCodeForCommission.name}
           discountCode={selectedCodeForCommission.code}
+          accommodationId={accommodationId || ''}
         />
       )}
     </div>
