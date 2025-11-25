@@ -4,8 +4,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import { Order } from "@/types/order";
 import { getPaymentStatusConfig, getOrderStatusConfig } from "@/utils/orderHelpers";
-import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCart } from "lucide-react";
 import { OrderQuickPreview } from "./OrderQuickPreview";
+import { EmptyState } from "@/components/EmptyState";
 
 interface OrdersTableProps {
   orders: Order[];
@@ -63,8 +64,15 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
           <tbody>
             {orders.length === 0 ? (
               <tr>
-                <td colSpan={8} className="py-12 text-center text-muted-foreground">
-                  暫無資料
+                <td colSpan={8} className="p-0">
+                  <div className="py-8">
+                    <EmptyState
+                      icon={ShoppingCart}
+                      title="暫無訂單"
+                      description="目前還沒有任何訂單記錄，當有新訂單時會顯示在這裡"
+                      className="border-0 shadow-none"
+                    />
+                  </div>
                 </td>
               </tr>
             ) : (
@@ -119,9 +127,12 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
       {/* 行動版卡片 */}
       <div className="md:hidden space-y-4">
         {orders.length === 0 ? (
-          <div className="py-12 text-center text-muted-foreground">
-            暫無資料
-          </div>
+          <EmptyState
+            icon={ShoppingCart}
+            title="暫無訂單"
+            description="目前還沒有任何訂單記錄，當有新訂單時會顯示在這裡"
+            className="border-0 shadow-none"
+          />
         ) : (
           orders.map((order) => {
             const orderStatusConfig = getOrderStatusConfig(order.order_status);
