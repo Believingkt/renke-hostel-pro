@@ -573,7 +573,7 @@ const KolDiscount = () => {
 
     return (
       <TableRow ref={setNodeRef} style={style} key={item.id}>
-        <TableCell>
+        <TableCell className="py-4">
           <button
             className="cursor-grab active:cursor-grabbing touch-none"
             {...attributes}
@@ -582,8 +582,8 @@ const KolDiscount = () => {
             <GripVertical className="h-5 w-5 text-muted-foreground" />
           </button>
         </TableCell>
-        <TableCell className="font-medium">{item.name}</TableCell>
-        <TableCell>
+        <TableCell className="font-medium py-4">{item.name}</TableCell>
+        <TableCell className="py-4">
           <div className="flex items-center gap-2">
             <code className="px-2 py-1 bg-muted rounded text-sm font-mono">
               {item.code}
@@ -605,7 +605,7 @@ const KolDiscount = () => {
             </Button>
           </div>
         </TableCell>
-        <TableCell>
+        <TableCell className="py-4">
           <Button
             variant="ghost"
             size="sm"
@@ -628,31 +628,31 @@ const KolDiscount = () => {
             )}
           </Button>
         </TableCell>
-        <TableCell>
+        <TableCell className="text-right py-4">
           {formatDiscount(item.discount_type, item.discount_value)}
         </TableCell>
-        <TableCell>{item.used_count} 次</TableCell>
-        <TableCell>
+        <TableCell className="text-right py-4">{item.used_count} 次</TableCell>
+        <TableCell className="text-right py-4">
           <span>{item.usage_limit} 次</span>
         </TableCell>
-        <TableCell>
-          <div className="text-sm space-y-1">
+        <TableCell className="py-4">
+          <div className="text-sm space-y-0.5">
             <div>{format(new Date(item.valid_from), "yyyy/MM/dd")}</div>
             {item.valid_until && (
-              <div className="text-muted-foreground">
+              <div className="text-muted-foreground text-xs">
                 至 {format(new Date(item.valid_until), "yyyy/MM/dd")}
               </div>
             )}
             {!item.valid_until && (
-              <div className="text-muted-foreground">無期限</div>
+              <div className="text-muted-foreground text-xs">無期限</div>
             )}
           </div>
         </TableCell>
-        <TableCell>
+        <TableCell className="py-4">
           {getStatusBadge(item)}
         </TableCell>
-        <TableCell>
-          <div className="flex items-center gap-1">
+        <TableCell className="py-4">
+          <div className="flex items-center justify-end gap-1">
             <Button
               variant="ghost"
               size="icon"
@@ -1330,15 +1330,15 @@ const KolDiscount = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12"></TableHead>
-                  <TableHead>名稱</TableHead>
-                  <TableHead>折扣碼</TableHead>
-                  <TableHead>推薦連結</TableHead>
-                  <TableHead>折扣</TableHead>
-                  <TableHead>已使用</TableHead>
-                  <TableHead>使用上限</TableHead>
-                  <TableHead>有效期</TableHead>
-                  <TableHead>狀態</TableHead>
-                  <TableHead>操作</TableHead>
+                  <TableHead className="min-w-[120px]">名稱</TableHead>
+                  <TableHead className="min-w-[140px]">折扣碼</TableHead>
+                  <TableHead className="min-w-[120px]">推薦連結</TableHead>
+                  <TableHead className="text-right min-w-[100px]">折扣</TableHead>
+                  <TableHead className="text-right min-w-[80px]">已使用</TableHead>
+                  <TableHead className="text-right min-w-[90px]">使用上限</TableHead>
+                  <TableHead className="min-w-[140px]">有效期</TableHead>
+                  <TableHead className="min-w-[80px]">狀態</TableHead>
+                  <TableHead className="text-right min-w-[140px]">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
