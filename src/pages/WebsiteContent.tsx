@@ -2930,9 +2930,9 @@ const WebsiteContent = () => {
                   <Label>周邊景點</Label>
                   <Button
                     type="button"
-                    variant="outline"
                     size="sm"
                     onClick={handleAddAttraction}
+                    className="bg-blue-500 text-white hover:bg-blue-600"
                   >
                     <Plus className="h-4 w-4 mr-1" />
                     新增景點
