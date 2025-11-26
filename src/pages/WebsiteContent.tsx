@@ -2536,12 +2536,15 @@ const WebsiteContent = () => {
                 <ImageIcon className="h-6 w-6 md:h-7 md:w-7 text-primary" />
                 精選照片
               </h2>
-              <div className="flex flex-col items-start gap-2">
+              <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 sm:ml-auto">
+                <p className="text-xs text-muted-foreground sm:order-1">
+                  支援 JPG、PNG 格式，建議尺寸 1200x800 以上
+                </p>
                 <Button
                   onClick={() => document.getElementById('photo-upload')?.click()}
                   disabled={uploadingPhoto}
                   size="default"
-                  className="gap-2 w-full sm:w-auto"
+                  className="gap-2 w-full sm:w-auto sm:order-2"
                 >
                   <Upload className="h-4 w-4" />
                   {uploadingPhoto ? '上傳中...' : '上傳照片'}
@@ -2553,9 +2556,6 @@ const WebsiteContent = () => {
                   onChange={handlePhotoUpload}
                   className="hidden"
                 />
-                <p className="text-xs text-muted-foreground">
-                  支援 JPG、PNG 格式，建議尺寸 1200x800 以上
-                </p>
               </div>
             </div>
           </div>
