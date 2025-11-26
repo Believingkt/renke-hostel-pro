@@ -416,6 +416,8 @@ const WebsiteContent = () => {
   // FAQ 狀態
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [deleteFaqDialogOpen, setDeleteFaqDialogOpen] = useState(false);
+  const [deletingFaqId, setDeletingFaqId] = useState<string | null>(null);
   const [editingFaq, setEditingFaq] = useState<FaqItem | null>(null);
   const [faqFormData, setFaqFormData] = useState({
     question: "",
@@ -936,11 +938,16 @@ const WebsiteContent = () => {
     }
   };
 
-  const handleDeleteFaq = async (id: string) => {
-    if (!confirm("確定要刪除此常見問題嗎？")) return;
+  const handleDeleteFaqClick = (id: string) => {
+    setDeletingFaqId(id);
+    setDeleteFaqDialogOpen(true);
+  };
+
+  const handleDeleteFaq = async () => {
+    if (!deletingFaqId) return;
 
     try {
-      const { error } = await supabase.from("faqs").delete().eq("id", id);
+      const { error } = await supabase.from("faqs").delete().eq("id", deletingFaqId);
 
       if (error) throw error;
       toast.success("刪除成功");
@@ -957,6 +964,9 @@ const WebsiteContent = () => {
           setFaqs(faqData);
         }
       }
+      
+      setDeleteFaqDialogOpen(false);
+      setDeletingFaqId(null);
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error("Error deleting FAQ:", error);
@@ -2807,7 +2817,7 @@ const WebsiteContent = () => {
                             <Button
                               variant="ghost-destructive"
                               size="icon"
-                              onClick={() => handleDeleteFaq(faq.id)}
+                              onClick={() => handleDeleteFaqClick(faq.id)}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -3126,6 +3136,27 @@ const WebsiteContent = () => {
         feature={editingFeature}
         onSave={handleSaveFeature}
       />
+
+      {/* FAQ 刪除確認對話框 */}
+      <AlertDialog open={deleteFaqDialogOpen} onOpenChange={setDeleteFaqDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認刪除</AlertDialogTitle>
+            <AlertDialogDescription>
+              確定要刪除此常見問題嗎？此操作無法復原。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteFaq}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              確認刪除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

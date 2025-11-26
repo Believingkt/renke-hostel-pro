@@ -999,7 +999,10 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteHoliday}>
+            <AlertDialogAction 
+              onClick={handleDeleteHoliday}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               確認刪除
             </AlertDialogAction>
           </AlertDialogFooter>
