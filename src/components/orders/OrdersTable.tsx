@@ -107,14 +107,16 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-9 w-9 p-0 group touch-manipulation"
-                        onClick={() => onEditOrder(order)}
-                      >
-                        <Edit className="h-4 w-4 text-black group-hover:text-white transition-colors" />
-                      </Button>
+                      <div className="flex justify-start">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-9 w-9 p-0 group touch-manipulation"
+                          onClick={() => onEditOrder(order)}
+                        >
+                          <Edit className="h-4 w-4 text-black group-hover:text-white transition-colors" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 );
