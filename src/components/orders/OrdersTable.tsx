@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import { Order } from "@/types/order";
 import { getPaymentStatusConfig, getOrderStatusConfig } from "@/utils/orderHelpers";
-import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCart } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCart, Edit } from "lucide-react";
 import { OrderQuickPreview } from "./OrderQuickPreview";
 import { EmptyState } from "@/components/EmptyState";
 
@@ -108,12 +108,12 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                     </td>
                     <td className="px-4 py-3 text-sm">
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
-                        className="h-9 touch-manipulation"
+                        className="h-9 w-9 p-0 group touch-manipulation"
                         onClick={() => onEditOrder(order)}
                       >
-                        編輯
+                        <Edit className="h-4 w-4 text-black group-hover:text-white transition-colors" />
                       </Button>
                     </td>
                   </tr>
@@ -200,9 +200,10 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                   <Button
                     variant="outline"
                     size="default"
-                    className="w-full h-11 touch-manipulation"
+                    className="w-full h-11 touch-manipulation gap-2"
                     onClick={() => onEditOrder(order)}
                   >
+                    <Edit className="h-4 w-4" />
                     編輯訂單
                   </Button>
                 </CardContent>
