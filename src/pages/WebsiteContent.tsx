@@ -2531,38 +2531,33 @@ const WebsiteContent = () => {
         {/* 相簿管理 Tab */}
         <TabsContent value="gallery" className="space-y-6">
           <div className="pb-4 md:pb-6 border-b border-primary/20 mb-4 md:mb-6">
-            <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-2 md:gap-3">
-              <ImageIcon className="h-6 w-6 md:h-7 md:w-7 text-primary" />
-              精選照片
-            </h2>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-2 md:gap-3">
+                <ImageIcon className="h-6 w-6 md:h-7 md:w-7 text-primary" />
+                精選照片
+              </h2>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                <Button
+                  onClick={() => document.getElementById('photo-upload')?.click()}
+                  disabled={uploadingPhoto}
+                  size="default"
+                  className="gap-2 w-full sm:w-auto"
+                >
+                  <Upload className="h-4 w-4" />
+                  {uploadingPhoto ? '上傳中...' : '上傳照片'}
+                </Button>
+                <input
+                  id="photo-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  className="hidden"
+                />
+              </div>
+            </div>
           </div>
           <Card>
             <CardContent className="pt-6 space-y-6">
-              {/* 上傳按鈕 */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-muted/30 rounded-lg border border-border/50">
-                <div className="flex flex-col gap-2">
-                  <Button
-                    onClick={() => document.getElementById('photo-upload')?.click()}
-                    disabled={uploadingPhoto}
-                    size="lg"
-                    className="gap-2 w-full sm:w-auto"
-                  >
-                    <Upload className="h-4 w-4" />
-                    {uploadingPhoto ? '上傳中...' : '上傳照片'}
-                  </Button>
-                  <input
-                    id="photo-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                    className="hidden"
-                  />
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  支援 JPG、PNG 格式<br className="sm:hidden" />
-                  建議尺寸 1200x800 以上
-                </p>
-              </div>
 
               {/* 照片網格 */}
               {photos.length === 0 ? (
