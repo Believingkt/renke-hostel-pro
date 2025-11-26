@@ -869,7 +869,6 @@ const Accounts = () => {
             )}
           </div>
         </>
-      )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
