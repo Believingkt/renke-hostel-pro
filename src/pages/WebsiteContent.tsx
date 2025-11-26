@@ -430,6 +430,7 @@ const WebsiteContent = () => {
   const [nearbyAttractions, setNearbyAttractions] = useState<NearbyAttraction[]>([
     { name: "", distance: "", description: "" }
   ]);
+  const [showMapPreview, setShowMapPreview] = useState(true);
 
   // Gallery state
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -2838,7 +2839,17 @@ const WebsiteContent = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="map-address">Google Map 地址</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="map-address">Google Map 地址</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowMapPreview(!showMapPreview)}
+                  >
+                    {showMapPreview ? "隱藏" : "顯示"}地圖預覽
+                  </Button>
+                </div>
                 <Input
                   id="map-address"
                   value={basicInfo.address}
@@ -2849,6 +2860,37 @@ const WebsiteContent = () => {
                   此地址將用於前台頁面的 Google Map 嵌入顯示
                 </p>
               </div>
+
+              {showMapPreview && basicInfo.address && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">地圖預覽</Label>
+                  <div className="relative w-full h-[400px] rounded-lg overflow-hidden border border-border bg-muted">
+                    <iframe
+                      width="100%"
+                      height="100%"
+                      frameBorder="0"
+                      style={{ border: 0 }}
+                      referrerPolicy="no-referrer-when-downgrade"
+                      src={`https://maps.google.com/maps?q=${encodeURIComponent(basicInfo.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                      allowFullScreen
+                      loading="lazy"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    預覽與前台顯示效果相同，請確認地圖標記位置是否正確
+                  </p>
+                </div>
+              )}
+
+              {showMapPreview && !basicInfo.address && (
+                <div className="p-8 text-center border border-dashed border-border rounded-lg bg-muted/50">
+                  <MapPin className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    請輸入地址以顯示地圖預覽
+                  </p>
+                </div>
+              )}
+
 
               <div className="space-y-2">
                 <Label htmlFor="location-description">位置資訊描述</Label>
