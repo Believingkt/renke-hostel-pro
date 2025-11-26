@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { Order } from "@/types/order";
 import { getPaymentStatusConfig, getOrderStatusConfig } from "@/utils/orderHelpers";
@@ -108,14 +109,23 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                     </td>
                     <td className="px-4 py-3 text-sm">
                       <div className="flex justify-start">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-9 w-9 p-0 group touch-manipulation"
-                          onClick={() => onEditOrder(order)}
-                        >
-                          <Edit className="h-4 w-4 text-black group-hover:text-white transition-colors" />
-                        </Button>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-9 w-9 p-0 group touch-manipulation"
+                                onClick={() => onEditOrder(order)}
+                              >
+                                <Edit className="h-4 w-4 text-black group-hover:text-white transition-colors" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>編輯訂單</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                     </td>
                   </tr>
