@@ -1023,6 +1023,15 @@ const WebsiteContent = () => {
 
     setIsSaving(true);
     try {
+      // 更新 accommodation_info 中的地址
+      const { error: addressError } = await supabase
+        .from("accommodation_info")
+        .update({ address: basicInfo.address })
+        .eq("id", accommodationId);
+
+      if (addressError) throw addressError;
+
+      // 更新 location_info
       const { data: existing, error: fetchError } = await supabase
         .from("location_info")
         .select("id")
@@ -2828,6 +2837,19 @@ const WebsiteContent = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="map-address">Google Map 地址</Label>
+                <Input
+                  id="map-address"
+                  value={basicInfo.address}
+                  onChange={(e) => setBasicInfo({ ...basicInfo, address: e.target.value })}
+                  placeholder="請輸入完整地址，用於前台 Google Map 顯示"
+                />
+                <p className="text-xs text-muted-foreground">
+                  此地址將用於前台頁面的 Google Map 嵌入顯示
+                </p>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="location-description">位置資訊描述</Label>
                 <Textarea
