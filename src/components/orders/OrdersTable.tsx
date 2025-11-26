@@ -209,15 +209,24 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                   </div>
 
                   {/* 編輯按鈕 */}
-                  <Button
-                    variant="outline"
-                    size="default"
-                    className="w-full h-11 touch-manipulation gap-2"
-                    onClick={() => onEditOrder(order)}
-                  >
-                    <Edit className="h-4 w-4" />
-                    編輯訂單
-                  </Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="default"
+                          className="w-full h-11 touch-manipulation gap-2"
+                          onClick={() => onEditOrder(order)}
+                        >
+                          <Edit className="h-4 w-4" />
+                          編輯訂單
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>編輯訂單</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </CardContent>
               </Card>
             );
