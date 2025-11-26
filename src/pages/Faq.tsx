@@ -15,6 +15,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -45,6 +55,8 @@ const Faq = () => {
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
   const [accommodationId, setAccommodationId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingFaq, setDeletingFaq] = useState<FaqItem | null>(null);
   const [editingFaq, setEditingFaq] = useState<FaqItem | null>(null);
   const [formData, setFormData] = useState({
     question: "",
@@ -137,15 +149,22 @@ const Faq = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("確定要刪除此常見問題嗎？")) return;
+  const handleDeleteClick = (faq: FaqItem) => {
+    setDeletingFaq(faq);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!deletingFaq) return;
 
     try {
-      const { error } = await supabase.from("faqs").delete().eq("id", id);
+      const { error } = await supabase.from("faqs").delete().eq("id", deletingFaq.id);
 
       if (error) throw error;
       toast.success("刪除成功");
       loadFaqs();
+      setDeleteDialogOpen(false);
+      setDeletingFaq(null);
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error("Error deleting FAQ:", error);
@@ -259,7 +278,7 @@ const Faq = () => {
                         <Button
                           variant="ghost-destructive"
                           size="icon"
-                          onClick={() => handleDelete(faq.id)}
+                          onClick={() => handleDeleteClick(faq)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -332,6 +351,27 @@ const Faq = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認刪除</AlertDialogTitle>
+            <AlertDialogDescription>
+              確定要刪除常見問題「{deletingFaq?.question}」嗎？此操作無法復原。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              確認刪除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -19,6 +19,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -60,6 +70,8 @@ const Accounts = () => {
   const [emailError, setEmailError] = useState<string>("");
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
   const [emailFormatValid, setEmailFormatValid] = useState<boolean | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const { accommodationId } = useSubdomain();
 
   useEffect(() => {
@@ -424,20 +436,27 @@ const Accounts = () => {
     }
   };
 
-  const handleDelete = async (userId: string) => {
-    if (!confirm("確定要移除此帳號的存取權限嗎？\n\n注意：這只會移除該用戶對此住宿設施的存取權限，不會刪除用戶帳號本身。")) return;
+  const handleDeleteClick = (userId: string) => {
+    setDeletingUserId(userId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!deletingUserId) return;
 
     try {
       const { error } = await supabase
         .from("user_roles")
         .delete()
-        .eq("user_id", userId)
+        .eq("user_id", deletingUserId)
         .eq("accommodation_id", accommodationId);
 
       if (error) throw error;
 
       toast.success("已移除用戶存取權限");
       loadUsers();
+      setDeleteDialogOpen(false);
+      setDeletingUserId(null);
     } catch (error: any) {
       if (import.meta.env.DEV) {
         console.error("Error removing user access:", error);
@@ -755,7 +774,7 @@ const Accounts = () => {
                           <Button
                             variant="ghost-destructive"
                             size="icon"
-                            onClick={() => handleDelete(user.id)}
+                            onClick={() => handleDeleteClick(user.id)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -838,7 +857,7 @@ const Accounts = () => {
                         <Button
                           variant="ghost-destructive"
                           size="icon"
-                          onClick={() => handleDelete(user.id)}
+                          onClick={() => handleDeleteClick(user.id)}
                         >
                           <Trash2 className="h-5 w-5" />
                         </Button>
@@ -850,6 +869,28 @@ const Accounts = () => {
             )}
           </div>
         </>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認刪除</AlertDialogTitle>
+            <AlertDialogDescription>
+              確定要移除此帳號的存取權限嗎？此操作將移除該用戶對此住宿設施的存取權限，但不會刪除用戶帳號本身。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              確認移除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
