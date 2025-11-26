@@ -594,7 +594,6 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
               />
               <Button
                 type="button"
-                variant="outline"
                 onClick={() => document.getElementById('photo-upload')?.click()}
                 disabled={uploading}
               >

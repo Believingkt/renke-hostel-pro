@@ -326,7 +326,6 @@ export const AboutFeaturesSection = ({
             <div className="flex items-center justify-between">
               <Label>特色區塊（最多 4 個）</Label>
               <Button
-                variant="outline"
                 size="sm"
                 onClick={onAddFeature}
                 disabled={localFeatures.length >= 4}
