@@ -44,38 +44,6 @@ export const roomTypeSchema = z.object({
     },
     { message: "雙人房數量必須介於 0-10 之間" }
   ).optional(),
-  weekday_2_meals_price: z.string().trim().refine(
-    (val) => {
-      if (!val) return true;
-      const num = parseFloat(val);
-      return !isNaN(num) && num >= 0 && num <= 100000;
-    },
-    { message: "價格必須介於 0-100,000 之間" }
-  ).optional(),
-  weekday_3_meals_price: z.string().trim().refine(
-    (val) => {
-      if (!val) return true;
-      const num = parseFloat(val);
-      return !isNaN(num) && num >= 0 && num <= 100000;
-    },
-    { message: "價格必須介於 0-100,000 之間" }
-  ).optional(),
-  weekend_2_meals_price: z.string().trim().refine(
-    (val) => {
-      if (!val) return true;
-      const num = parseFloat(val);
-      return !isNaN(num) && num >= 0 && num <= 100000;
-    },
-    { message: "價格必須介於 0-100,000 之間" }
-  ).optional(),
-  weekend_3_meals_price: z.string().trim().refine(
-    (val) => {
-      if (!val) return true;
-      const num = parseFloat(val);
-      return !isNaN(num) && num >= 0 && num <= 100000;
-    },
-    { message: "價格必須介於 0-100,000 之間" }
-  ).optional(),
   display_order: z.string().trim().refine(
     (val) => {
       const num = parseInt(val);

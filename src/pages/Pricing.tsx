@@ -111,19 +111,10 @@ const SortableRoomCard = ({ roomType, onEdit, onDelete }: SortableRoomCardProps)
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-4 text-sm">
-              <div>
-                <span className="text-muted-foreground">平日價格：</span>
-                <span className="font-bold text-primary">
-                  {roomType.weekday_price ? `NT$ ${roomType.weekday_price.toLocaleString()}` : '未設定'}
-                </span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">假日價格：</span>
-                <span className="font-bold text-primary">
-                  {roomType.weekend_price ? `NT$ ${roomType.weekend_price.toLocaleString()}` : '未設定'}
-                </span>
-              </div>
+            <div className="mt-4 text-sm">
+              <span className="text-muted-foreground">價格設定請至</span>
+              <span className="font-bold text-primary ml-1">房價庫存設定</span>
+              <span className="text-muted-foreground ml-1">頁面管理</span>
             </div>
           </div>
 

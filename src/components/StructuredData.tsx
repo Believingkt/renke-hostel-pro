@@ -16,8 +16,6 @@ interface RoomType {
   capacity: number;
   size_sqm: number;
   base_price: number;
-  weekday_price?: number;
-  weekend_price?: number;
   room_photos?: { photo_url: string }[];
 }
 
@@ -70,7 +68,7 @@ export const StructuredData = ({
         "ratingCount": reviewCount.toString()
       },
       "priceRange": roomTypes.length > 0 
-        ? `NT$${Math.min(...roomTypes.map(r => r.weekday_price || r.base_price))} - NT$${Math.max(...roomTypes.map(r => r.weekend_price || r.base_price))}`
+        ? `NT$${Math.min(...roomTypes.map(r => r.base_price))} - NT$${Math.max(...roomTypes.map(r => r.base_price))}`
         : "$$",
       "starRating": accommodationInfo.star_rating ? {
         "@type": "Rating",
@@ -104,8 +102,8 @@ export const StructuredData = ({
         "@type": "AggregateOffer",
         "availability": "https://schema.org/InStock",
         "priceCurrency": "TWD",
-        "lowPrice": (room.weekday_price || room.base_price).toString(),
-        "highPrice": (room.weekend_price || room.base_price).toString(),
+        "lowPrice": room.base_price.toString(),
+        "highPrice": room.base_price.toString(),
         "priceValidUntil": new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         "url": `${window.location.origin}#rooms`
       },

@@ -109,10 +109,6 @@ interface RoomType {
   room_count?: number;
   quad_room_count?: number;
   double_room_count?: number;
-  weekday_2_meals_price?: number;
-  weekday_3_meals_price?: number;
-  weekend_2_meals_price?: number;
-  weekend_3_meals_price?: number;
   weekdayPricing?: { type: string; price: number }[];
   weekendPricing?: { type: string; price: number }[];
   room_photos?: { photo_url: string; display_order: number }[];
@@ -143,10 +139,11 @@ const BookingFlow = () => {
     setGuests
   } = useAccommodation();
   
-  const [currentStep, setCurrentStep] = useState<BookingStep>("dates"); // 改為先選日期
+  const [currentStep, setCurrentStep] = useState<BookingStep>("dates");
   const [bookingSettings, setBookingSettings] = useState<BookingSettings | null>(null);
   const [accommodationName, setAccommodationName] = useState("森山寫照");
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
+  const [roomPricing, setRoomPricing] = useState<Record<string, number>>({});
   
   // 訂房資料
   const [selectedRoom, setSelectedRoom] = useState<RoomType | null>(null);
@@ -293,20 +290,8 @@ const BookingFlow = () => {
             room_count: room.room_count,
             quad_room_count: room.quad_room_count,
             double_room_count: room.double_room_count,
-            weekday_2_meals_price: room.weekday_2_meals_price,
-            weekday_3_meals_price: room.weekday_3_meals_price,
-            weekend_2_meals_price: room.weekend_2_meals_price,
-            weekend_3_meals_price: room.weekend_3_meals_price,
             room_photos: (room.room_photos || []).sort((a, b) => a.display_order - b.display_order),
             amenities: (room.room_amenities || []).map((a: any) => a.amenity_name).slice(0, 8),
-            weekdayPricing: (room.weekday_2_meals_price || room.weekday_3_meals_price) ? [
-              ...(room.weekday_2_meals_price ? [{ type: "一泊二食", price: room.weekday_2_meals_price }] : []),
-              ...(room.weekday_3_meals_price ? [{ type: "一泊三食", price: room.weekday_3_meals_price }] : [])
-            ] : undefined,
-            weekendPricing: (room.weekend_2_meals_price || room.weekend_3_meals_price) ? [
-              ...(room.weekend_2_meals_price ? [{ type: "一泊二食", price: room.weekend_2_meals_price }] : []),
-              ...(room.weekend_3_meals_price ? [{ type: "一泊三食", price: room.weekend_3_meals_price }] : [])
-            ] : undefined,
           }));
           
           setRoomTypes(roomTypesWithPhotos);
@@ -357,7 +342,49 @@ const BookingFlow = () => {
   }, [searchParams, roomTypes, selectedRoom]);
 
   // 當日期或餐食方案改變時，檢查已選擇的房型是否仍然適用
-  // 移除房型可用性檢查，不再使用衝突檢測
+  // 當日期或房型變化時，預先獲取價格
+  useEffect(() => {
+    const fetchRoomPricing = async () => {
+      if (!selectedRoom || !checkInDate || !checkOutDate) {
+        setRoomPricing({});
+        return;
+      }
+
+      const nights = calculateNights();
+      if (nights === 0) return;
+
+      const start = new Date(checkInDateStr);
+      const pricing: Record<string, number> = {};
+
+      for (let i = 0; i < nights; i++) {
+        const currentDate = new Date(start);
+        currentDate.setDate(start.getDate() + i);
+        const dateStr = currentDate.toISOString().split('T')[0];
+
+        try {
+          const { data, error } = await supabase
+            .from('room_inventory_pricing')
+            .select('price')
+            .eq('room_type_id', selectedRoom.id)
+            .eq('date', dateStr)
+            .maybeSingle();
+
+          if (error) throw error;
+
+          pricing[dateStr] = data?.price || selectedRoom.base_price;
+        } catch (error) {
+          if (import.meta.env.DEV) {
+            console.error('Error fetching price for date:', dateStr, error);
+          }
+          pricing[dateStr] = selectedRoom.base_price;
+        }
+      }
+
+      setRoomPricing(pricing);
+    };
+
+    fetchRoomPricing();
+  }, [selectedRoom, checkInDate, checkOutDate]);
 
   // 當在選擇房型步驟時，自動預選第一個可用房型
   useEffect(() => {
@@ -445,85 +472,16 @@ const BookingFlow = () => {
     
     const { hasWeekday, hasWeekend } = getDateRangeInfo();
     
-    return roomTypes.filter(room => {
-
-      const mealPlanType = selectedMealPlan === "2_meals" ? "2_meals" : "3_meals";
-      
-      // 取得房型的平日和週末價格
-      const weekdayPrice = mealPlanType === "2_meals" 
-        ? room.weekday_2_meals_price 
-        : room.weekday_3_meals_price;
-      const weekendPrice = mealPlanType === "2_meals"
-        ? room.weekend_2_meals_price
-        : room.weekend_3_meals_price;
-      
-      // 檢查是否為純週末或純平日
-      const isPureWeekend = hasWeekend && !hasWeekday;
-      const isPureWeekday = hasWeekday && !hasWeekend;
-      
-      // 如果是純週末，必須有週末價格
-      if (isPureWeekend) {
-        if (!weekendPrice || weekendPrice === 0) {
-          return false;
-        }
-      }
-      
-      // 如果是純平日，必須有平日價格
-      if (isPureWeekday) {
-        if (!weekdayPrice || weekdayPrice === 0) {
-          return false;
-        }
-      }
-      
-      // 如果是混合（既有平日又有週末）
-      if (hasWeekday && hasWeekend) {
-        // 必須有平日價格
-        if (!weekdayPrice || weekdayPrice === 0) {
-          return false;
-        }
-        // 週末價格可以回退到平日價格
-        const hasValidWeekendPrice = weekendPrice && weekendPrice > 0;
-        const hasValidWeekdayPrice = weekdayPrice && weekdayPrice > 0;
-        if (!hasValidWeekendPrice && !hasValidWeekdayPrice) {
-          return false;
-        }
-      }
-      
-      return true;
-    });
+    // 注意：過濾邏輯現在依賴於 room_inventory_pricing
+    // 這裡暫時返回所有房型，實際價格將在選擇時從庫存獲取
+    return roomTypes;
   };
 
   const calculateTotal = () => {
     if (!selectedRoom || !checkInDate || !checkOutDate) return 0;
-    const nights = calculateNights();
-    if (nights === 0) return 0;
-
-    let total = 0;
-    const start = new Date(checkInDateStr);
     
-    for (let i = 0; i < nights; i++) {
-      const currentDate = new Date(start);
-      currentDate.setDate(start.getDate() + i);
-      
-      const isWeekendDay = isWeekend(currentDate);
-      let pricePerNight = 0;
-      
-      if (selectedMealPlan === "2_meals") {
-        // 優先使用週末價格，如果沒有設定則回退到平日價格
-        pricePerNight = isWeekendDay 
-          ? (selectedRoom.weekend_2_meals_price || selectedRoom.weekday_2_meals_price || 0)
-          : (selectedRoom.weekday_2_meals_price || 0);
-      } else {
-        // 優先使用週末價格，如果沒有設定則回退到平日價格
-        pricePerNight = isWeekendDay
-          ? (selectedRoom.weekend_3_meals_price || selectedRoom.weekday_3_meals_price || 0)
-          : (selectedRoom.weekday_3_meals_price || 0);
-      }
-      
-      total += pricePerNight;
-    }
-    
-    return total;
+    // 使用預先獲取的價格
+    return Object.values(roomPricing).reduce((sum, price) => sum + price, 0);
   };
 
   const calculateDiscount = () => {

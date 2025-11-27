@@ -1216,12 +1216,6 @@ export type Database = {
           size_sqm: number | null
           triple_room_count: number | null
           updated_at: string
-          weekday_2_meals_price: number | null
-          weekday_3_meals_price: number | null
-          weekday_price: number | null
-          weekend_2_meals_price: number | null
-          weekend_3_meals_price: number | null
-          weekend_price: number | null
         }
         Insert: {
           accommodation_id?: string | null
@@ -1239,12 +1233,6 @@ export type Database = {
           size_sqm?: number | null
           triple_room_count?: number | null
           updated_at?: string
-          weekday_2_meals_price?: number | null
-          weekday_3_meals_price?: number | null
-          weekday_price?: number | null
-          weekend_2_meals_price?: number | null
-          weekend_3_meals_price?: number | null
-          weekend_price?: number | null
         }
         Update: {
           accommodation_id?: string | null
@@ -1262,12 +1250,6 @@ export type Database = {
           size_sqm?: number | null
           triple_room_count?: number | null
           updated_at?: string
-          weekday_2_meals_price?: number | null
-          weekday_3_meals_price?: number | null
-          weekday_price?: number | null
-          weekend_2_meals_price?: number | null
-          weekend_3_meals_price?: number | null
-          weekend_price?: number | null
         }
         Relationships: [
           {

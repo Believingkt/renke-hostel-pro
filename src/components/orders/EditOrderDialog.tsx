@@ -73,7 +73,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
       
       const { data, error } = await supabase
         .from("room_types")
-        .select("id, name, capacity, weekday_2_meals_price, weekday_3_meals_price, weekend_2_meals_price, weekend_3_meals_price")
+        .select("id, name, capacity")
         .eq("accommodation_id", currentAccommodationId)
         .order("display_order");
 
