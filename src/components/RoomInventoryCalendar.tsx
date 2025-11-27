@@ -583,7 +583,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
 
             {/* 填充空白日期 */}
             {Array.from({ length: paddingDays }).map((_, index) => (
-              <div key={`padding-${index}`} className="aspect-square" />
+              <div key={`padding-${index}`} className="min-h-[80px] sm:min-h-[90px] md:min-h-[100px]" />
             ))}
 
             {/* 日期格子 */}
