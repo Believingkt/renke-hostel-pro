@@ -219,10 +219,9 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
           </div>
         </div>
         
-        <div 
-          className="text-xs md:text-sm mb-4 md:mb-5 text-muted-foreground leading-relaxed h-10 md:h-12 overflow-hidden prose prose-sm max-w-none"
-          dangerouslySetInnerHTML={{ __html: room.description }}
-        />
+        <p className="text-xs md:text-sm mb-4 md:mb-5 text-muted-foreground leading-relaxed h-10 md:h-12 overflow-hidden line-clamp-2">
+          {room.description}
+        </p>
 
         <div className="flex flex-wrap gap-1.5 md:gap-2 h-14 md:h-16 content-start overflow-hidden">
           {amenities.length > 0 ? (

@@ -6,6 +6,7 @@ export const roomTypeSchema = z.object({
     .min(1, { message: "房型名稱不能為空" })
     .max(50, { message: "房型名稱不能超過 50 字元" }),
   description: z.string().trim()
+    .max(500, { message: "房型描述不能超過 500 字元" })
     .optional(),
   size_sqm: z.string().trim().refine(
     (val) => {
