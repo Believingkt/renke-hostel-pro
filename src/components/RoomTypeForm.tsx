@@ -157,8 +157,10 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         double_room_count: roomType.double_room_count?.toString() || "0",
       });
       loadPhotos(roomType.id);
+      // 編輯模式時清除草稿，避免顯示草稿恢復提示
+      clearDraft();
     }
-  }, [roomType, setFormData]);
+  }, [roomType, setFormData, clearDraft]);
 
   // 監測表單是否有更改
   useEffect(() => {
@@ -364,12 +366,13 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
   const handleConfirmCancel = () => {
     setShowCancelDialog(false);
     setHasChanges(false);
+    clearDraft(); // 取消時清除草稿
     onCancel();
   };
 
   return (
     <div className="space-y-6">
-      {hasDraft && (
+      {hasDraft && !roomType && (
         <DraftRestoreBanner
           onRestore={restoreDraft}
           onDiscard={discardDraft}
