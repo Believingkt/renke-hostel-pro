@@ -33,8 +33,6 @@ interface RoomType {
   room_count?: number;
   quad_room_count?: number;
   double_room_count?: number;
-  weekday_price?: number;
-  weekend_price?: number;
   weekdayPricing?: PricingOption[];
   weekendPricing?: PricingOption[];
 }
@@ -63,9 +61,16 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
   
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [amenities, setAmenities] = useState<string[]>([]);
+  const [inventoryPricing, setInventoryPricing] = useState<{
+    weekday_2_meals?: number;
+    weekday_3_meals?: number;
+    weekend_2_meals?: number;
+    weekend_3_meals?: number;
+  }>({});
 
   useEffect(() => {
     loadAmenities();
+    loadInventoryPricing();
   }, [room.id]);
 
   const loadAmenities = async () => {
@@ -74,13 +79,47 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
         .from('room_amenities')
         .select('amenity_name')
         .eq('room_type_id', room.id)
-        .limit(8); // 限制顯示數量
+        .limit(8);
 
       if (error) throw error;
       setAmenities(data?.map(item => item.amenity_name) || []);
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error loading amenities:', error);
+      }
+    }
+  };
+
+  const loadInventoryPricing = async () => {
+    try {
+      const today = new Date();
+      const { data, error } = await supabase
+        .from('room_inventory_pricing')
+        .select('price, date')
+        .eq('room_type_id', room.id)
+        .gte('date', today.toISOString().split('T')[0])
+        .order('date', { ascending: true })
+        .limit(30);
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        // 從最近30天的數據中找出不同方案的價格
+        // 這裡簡化處理，實際應該根據餐食方案分類
+        const prices = data.map(d => d.price);
+        const sortedPrices = [...new Set(prices)].sort((a, b) => a - b);
+        
+        // 假設價格從低到高分別為：平日一泊二食、平日一泊三食、假日一泊二食、假日一泊三食
+        setInventoryPricing({
+          weekday_2_meals: sortedPrices[0],
+          weekday_3_meals: sortedPrices[1],
+          weekend_2_meals: sortedPrices[2],
+          weekend_3_meals: sortedPrices[3],
+        });
+      }
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error loading inventory pricing:', error);
       }
     }
   };
@@ -196,29 +235,41 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
         
         <div className="pt-3 border-t mt-3">
           <div className="space-y-2 md:space-y-3 md:min-h-[180px] lg:min-h-[200px]">
-            {room.weekdayPricing && (
+            {(inventoryPricing.weekday_2_meals || inventoryPricing.weekday_3_meals) && (
               <div>
                 <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">平日</p>
                 <div className="space-y-1">
-                  {room.weekdayPricing.map((option, idx) => (
-                    <div key={idx} className="flex justify-between items-center">
-                      <span className="text-xs md:text-sm text-muted-foreground">{option.type}</span>
-                      <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {option.price.toLocaleString()}</span>
+                  {inventoryPricing.weekday_2_meals && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs md:text-sm text-muted-foreground">一泊二食</span>
+                      <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekday_2_meals.toLocaleString()}</span>
                     </div>
-                  ))}
+                  )}
+                  {inventoryPricing.weekday_3_meals && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs md:text-sm text-muted-foreground">一泊三食</span>
+                      <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekday_3_meals.toLocaleString()}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
-            {room.weekendPricing && (
+            {(inventoryPricing.weekend_2_meals || inventoryPricing.weekend_3_meals) && (
               <div>
                 <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">假日</p>
                 <div className="space-y-1">
-                  {room.weekendPricing.map((option, idx) => (
-                    <div key={idx} className="flex justify-between items-center">
-                      <span className="text-xs md:text-sm text-muted-foreground">{option.type}</span>
-                      <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {option.price.toLocaleString()}</span>
+                  {inventoryPricing.weekend_2_meals && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs md:text-sm text-muted-foreground">一泊二食</span>
+                      <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekend_2_meals.toLocaleString()}</span>
                     </div>
-                  ))}
+                  )}
+                  {inventoryPricing.weekend_3_meals && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs md:text-sm text-muted-foreground">一泊三食</span>
+                      <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekend_3_meals.toLocaleString()}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -257,15 +308,7 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
     room_count: room.room_count,
     quad_room_count: room.quad_room_count,
     double_room_count: room.double_room_count,
-    room_photos: room.room_photos || [], // 保留照片資料
-    weekdayPricing: (room.weekday_2_meals_price || room.weekday_3_meals_price) ? [
-      ...(room.weekday_2_meals_price ? [{ type: "一泊二食", price: room.weekday_2_meals_price }] : []),
-      ...(room.weekday_3_meals_price ? [{ type: "一泊三食", price: room.weekday_3_meals_price }] : [])
-    ] : undefined,
-    weekendPricing: (room.weekend_2_meals_price || room.weekend_3_meals_price) ? [
-      ...(room.weekend_2_meals_price ? [{ type: "一泊二食", price: room.weekend_2_meals_price }] : []),
-      ...(room.weekend_3_meals_price ? [{ type: "一泊三食", price: room.weekend_3_meals_price }] : [])
-    ] : undefined,
+    room_photos: room.room_photos || [],
   }));
 
   return (

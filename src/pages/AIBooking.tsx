@@ -763,21 +763,18 @@ export default function AIBooking() {
                                       </p>
                                     )}
                                     
-                                    {/* 價格資訊 */}
-                                    <div className="bg-primary/5 rounded-lg p-3 space-y-1.5">
-                                      <div className="flex items-center justify-between text-sm">
-                                        <span className="text-muted-foreground">平日價格</span>
-                                        <span className="font-semibold text-primary text-base">
-                                          NT$ {room.weekday_price?.toLocaleString()}
-                                        </span>
-                                      </div>
-                                      <div className="flex items-center justify-between text-sm">
-                                        <span className="text-muted-foreground">假日價格</span>
-                                        <span className="font-semibold text-primary text-base">
-                                          NT$ {room.weekend_price?.toLocaleString()}
-                                        </span>
-                                      </div>
-                                    </div>
+                                     {/* 價格資訊 */}
+                                     <div className="bg-primary/5 rounded-lg p-3 space-y-1.5">
+                                       <div className="flex items-center justify-between text-sm">
+                                         <span className="text-muted-foreground">參考價格</span>
+                                         <span className="font-semibold text-primary text-base">
+                                           NT$ {room.base_price?.toLocaleString()}
+                                         </span>
+                                       </div>
+                                       <p className="text-xs text-muted-foreground">
+                                         實際價格請至預訂頁面查詢
+                                       </p>
+                                     </div>
                                     
                                     {/* 選擇按鈕 */}
                                     <Button

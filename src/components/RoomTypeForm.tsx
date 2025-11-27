@@ -108,10 +108,6 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
     quad_room_count: "0",
     triple_room_count: "0",
     double_room_count: "0",
-    weekday_2_meals_price: "",
-    weekday_3_meals_price: "",
-    weekend_2_meals_price: "",
-    weekend_3_meals_price: "",
     display_order: "0",
   };
 
@@ -148,10 +144,6 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         quad_room_count: roomType.quad_room_count?.toString() || "0",
         triple_room_count: roomType.triple_room_count?.toString() || "0",
         double_room_count: roomType.double_room_count?.toString() || "0",
-        weekday_2_meals_price: roomType.weekday_2_meals_price?.toString() || "",
-        weekday_3_meals_price: roomType.weekday_3_meals_price?.toString() || "",
-        weekend_2_meals_price: roomType.weekend_2_meals_price?.toString() || "",
-        weekend_3_meals_price: roomType.weekend_3_meals_price?.toString() || "",
         display_order: roomType.display_order?.toString() || "0",
       });
       loadPhotos(roomType.id);
@@ -271,11 +263,7 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         quad_room_count: formData.quad_room_count ? parseInt(formData.quad_room_count) : null,
         triple_room_count: formData.triple_room_count ? parseInt(formData.triple_room_count) : null,
         double_room_count: formData.double_room_count ? parseInt(formData.double_room_count) : null,
-        base_price: formData.weekday_2_meals_price ? parseFloat(formData.weekday_2_meals_price) : 0,
-        weekday_2_meals_price: formData.weekday_2_meals_price ? parseFloat(formData.weekday_2_meals_price) : null,
-        weekday_3_meals_price: formData.weekday_3_meals_price ? parseFloat(formData.weekday_3_meals_price) : null,
-        weekend_2_meals_price: formData.weekend_2_meals_price ? parseFloat(formData.weekend_2_meals_price) : null,
-        weekend_3_meals_price: formData.weekend_3_meals_price ? parseFloat(formData.weekend_3_meals_price) : null,
+        base_price: 0,
         display_order: formData.display_order ? parseInt(formData.display_order) : 0,
       };
 
@@ -479,78 +467,6 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         </CardContent>
       </Card>
 
-      {/* 房型價格 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>房型價格</CardTitle>
-          <CardDescription>設定不同方案的價格</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <ValidatedNumberInput
-              id="weekday_2_meals_price"
-              label="平日一泊二食"
-              value={formData.weekday_2_meals_price ? parseFloat(formData.weekday_2_meals_price) : 0}
-              onChange={(value) => {
-                setFormData(prev => ({ ...prev, weekday_2_meals_price: value.toString() }));
-                validateField('weekday_2_meals_price', value.toString());
-              }}
-              onValidate={(value) => validateField('weekday_2_meals_price', value)}
-              error={errors.weekday_2_meals_price}
-              prefix="NT$"
-              min={0}
-              max={99999}
-            />
-
-            <ValidatedNumberInput
-              id="weekday_3_meals_price"
-              label="平日一泊三食"
-              value={formData.weekday_3_meals_price ? parseFloat(formData.weekday_3_meals_price) : 0}
-              onChange={(value) => {
-                setFormData(prev => ({ ...prev, weekday_3_meals_price: value.toString() }));
-                validateField('weekday_3_meals_price', value.toString());
-              }}
-              onValidate={(value) => validateField('weekday_3_meals_price', value)}
-              error={errors.weekday_3_meals_price}
-              prefix="NT$"
-              min={0}
-              max={99999}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <ValidatedNumberInput
-              id="weekend_2_meals_price"
-              label="假日一泊二食"
-              value={formData.weekend_2_meals_price ? parseFloat(formData.weekend_2_meals_price) : 0}
-              onChange={(value) => {
-                setFormData(prev => ({ ...prev, weekend_2_meals_price: value.toString() }));
-                validateField('weekend_2_meals_price', value.toString());
-              }}
-              onValidate={(value) => validateField('weekend_2_meals_price', value)}
-              error={errors.weekend_2_meals_price}
-              prefix="NT$"
-              min={0}
-              max={99999}
-            />
-
-            <ValidatedNumberInput
-              id="weekend_3_meals_price"
-              label="假日一泊三食"
-              value={formData.weekend_3_meals_price ? parseFloat(formData.weekend_3_meals_price) : 0}
-              onChange={(value) => {
-                setFormData(prev => ({ ...prev, weekend_3_meals_price: value.toString() }));
-                validateField('weekend_3_meals_price', value.toString());
-              }}
-              onValidate={(value) => validateField('weekend_3_meals_price', value)}
-              error={errors.weekend_3_meals_price}
-              prefix="NT$"
-              min={0}
-              max={99999}
-            />
-          </div>
-        </CardContent>
-      </Card>
 
       {/* 顯示順序 */}
       <Card>
