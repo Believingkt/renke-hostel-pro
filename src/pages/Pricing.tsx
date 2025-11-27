@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { RoomTypeForm } from "@/components/RoomTypeForm";
 import { RoomFacilitiesForm } from "@/components/RoomFacilitiesForm";
+import { PricingTemplateManager } from "@/components/PricingTemplateManager";
 import { TabsSkeleton } from "@/components/skeletons/TabsSkeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
@@ -389,32 +390,10 @@ const Pricing = () => {
           <div className="pb-4 md:pb-6 border-b border-primary/20 mb-4 md:mb-6">
             <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-2 md:gap-3">
               <DollarSign className="h-6 w-6 md:h-7 md:w-7 text-primary" />
-              價格設定
+              價格模板
             </h2>
           </div>
-          <Card>
-            <CardHeader>
-              <CardTitle>基本價格</CardTitle>
-              <CardDescription>
-                設定各房型的基本房價
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">基本價格設定內容</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>專案價格</CardTitle>
-              <CardDescription>
-                設定特殊專案的優惠價格
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">專案價格設定內容</p>
-            </CardContent>
-          </Card>
+          <PricingTemplateManager accommodationId={currentAccommodationId || ""} />
         </TabsContent>
 
         <TabsContent value="inventory" className="space-y-4">
