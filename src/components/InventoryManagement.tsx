@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -520,53 +521,65 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
   const selectedRoomTypeData = roomTypes.find(rt => rt.id === selectedRoomType);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+            <Package className="h-4 w-4 sm:h-5 sm:w-5" />
             房型選擇
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-xs sm:text-sm">
             選擇要管理庫存的房型
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-            <div className="flex-1 w-full sm:max-w-[300px]">
-              <Select value={selectedRoomType} onValueChange={setSelectedRoomType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="選擇房型" />
-                </SelectTrigger>
-                <SelectContent>
-                  {roomTypes.map((room) => (
-                    <SelectItem key={room.id} value={room.id}>
-                      {room.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {selectedRoomTypeData && (
-              <div className="text-sm text-muted-foreground">
-                總房間數：{selectedRoomTypeData.room_count || 1} 間
+          {loading && roomTypes.length === 0 ? (
+            <div className="space-y-4 animate-fade-in">
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                <div className="flex-1 w-full sm:max-w-[300px]">
+                  <div className="h-10 bg-muted animate-pulse rounded-md"></div>
+                </div>
+                <div className="text-sm text-muted-foreground">載入中...</div>
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+              <div className="flex-1 w-full sm:max-w-[300px]">
+                <Select value={selectedRoomType} onValueChange={setSelectedRoomType}>
+                  <SelectTrigger className="h-9 sm:h-10">
+                    <SelectValue placeholder="選擇房型" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roomTypes.map((room) => (
+                      <SelectItem key={room.id} value={room.id}>
+                        {room.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {selectedRoomTypeData && (
+                <div className="text-xs sm:text-sm text-muted-foreground">
+                  總房間數：{selectedRoomTypeData.room_count || 1} 間
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {selectedRoomType && (
-        <Card>
+        <Card className="animate-fade-in">
           <CardHeader>
             <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">{selectedRoomTypeData?.name}</CardTitle>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <CardTitle className="text-base sm:text-lg">{selectedRoomTypeData?.name}</CardTitle>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="icon"
                     onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+                    className="h-8 w-8 sm:h-9 sm:w-9"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>

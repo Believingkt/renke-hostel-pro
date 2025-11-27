@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Pencil, Trash2, Check, X, CheckSquare, Square, CalendarCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -555,15 +556,24 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
           </div>
         </CardHeader>
         <CardContent>
-          {templates.length === 0 ? (
-            <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
+          {loading ? (
+            <div className="space-y-4 animate-fade-in">
+              <Skeleton className="h-16 sm:h-20 w-full rounded-lg" />
+              <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
+                {[1, 2].map((i) => (
+                  <Skeleton key={i} className="h-24 sm:h-28 w-full rounded-lg" />
+                ))}
+              </div>
+            </div>
+          ) : templates.length === 0 ? (
+            <div className="flex items-center justify-center min-h-[200px] text-muted-foreground animate-fade-in">
               <div className="text-center space-y-2">
-                <p className="text-lg font-medium">尚無價格模板</p>
-                <p className="text-sm">建立第一個價格模板，快速套用到房型</p>
+                <p className="text-base sm:text-lg font-medium">尚無價格模板</p>
+                <p className="text-xs sm:text-sm">建立第一個價格模板，快速套用到房型</p>
               </div>
             </div>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-3 sm:gap-4 md:grid-cols-2 animate-fade-in">
               {templates.map((template) => (
                 <Card key={template.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-5">

@@ -10,25 +10,25 @@ export function FormSkeleton({ fields = 6, hasImage = false }: FormSkeletonProps
   return (
     <Card>
       <CardHeader>
-        <Skeleton className="h-6 w-48" />
-        <Skeleton className="h-4 w-full max-w-md mt-2" />
+        <Skeleton className="h-5 sm:h-6 w-36 sm:w-48" />
+        <Skeleton className="h-3 sm:h-4 w-full max-w-md mt-2" />
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4 sm:space-y-6">
         {hasImage && (
           <div className="space-y-2">
-            <Skeleton className="h-4 w-20" />
-            <Skeleton className="h-48 w-full rounded-lg" />
+            <Skeleton className="h-3 sm:h-4 w-16 sm:w-20" />
+            <Skeleton className="h-32 sm:h-48 w-full rounded-lg" />
           </div>
         )}
         {Array.from({ length: fields }).map((_, i) => (
           <div key={i} className="space-y-2">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-3 sm:h-4 w-20 sm:w-24" />
+            <Skeleton className="h-9 sm:h-10 w-full" />
           </div>
         ))}
-        <div className="flex gap-3 pt-4">
-          <Skeleton className="h-10 w-24" />
-          <Skeleton className="h-10 w-24" />
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4">
+          <Skeleton className="h-9 sm:h-10 w-full sm:w-24" />
+          <Skeleton className="h-9 sm:h-10 w-full sm:w-24" />
         </div>
       </CardContent>
     </Card>
