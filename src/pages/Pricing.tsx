@@ -261,14 +261,21 @@ const Pricing = () => {
       const newIndex = roomTypes.findIndex((item) => item.id === over.id);
 
       const newRoomTypes = arrayMove(roomTypes, oldIndex, newIndex);
-      setRoomTypes(newRoomTypes);
+      
+      // 立即更新本地狀態的 display_order
+      const updatedRoomTypes = newRoomTypes.map((roomType, index) => ({
+        ...roomType,
+        display_order: index + 1
+      }));
+      
+      setRoomTypes(updatedRoomTypes);
 
       // Update display_order in database
       try {
-        const updates = newRoomTypes.map((roomType, index) => 
+        const updates = updatedRoomTypes.map((roomType) => 
           supabase
             .from('room_types')
-            .update({ display_order: index })
+            .update({ display_order: roomType.display_order })
             .eq('id', roomType.id)
         );
 
