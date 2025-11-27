@@ -5,7 +5,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { format } from "date-fns";
 import { Order } from "@/types/order";
 import { getPaymentStatusConfig, getOrderStatusConfig } from "@/utils/orderHelpers";
-import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCart, Edit } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCart, Edit, Eye } from "lucide-react";
 import { OrderQuickPreview } from "./OrderQuickPreview";
 import { EmptyState } from "@/components/EmptyState";
 
@@ -108,7 +108,26 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm">
-                      <div className="flex justify-start">
+                      <div className="flex justify-start gap-1">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-9 w-9 p-0 group touch-manipulation"
+                                asChild
+                              >
+                                <Link to={`/admin/orders/${order.id}`}>
+                                  <Eye className="h-4 w-4 text-black group-hover:text-white transition-colors" />
+                                </Link>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>查看詳情</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -208,25 +227,47 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                     <span className="font-semibold text-base">NT$ {order.final_price.toLocaleString()}</span>
                   </div>
 
-                  {/* 編輯按鈕 */}
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="default"
-                          className="w-full h-11 touch-manipulation gap-2"
-                          onClick={() => onEditOrder(order)}
-                        >
-                          <Edit className="h-4 w-4" />
-                          編輯訂單
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>編輯訂單</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  {/* 操作按鈕 */}
+                  <div className="flex gap-2">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="default"
+                            className="flex-1 h-11 touch-manipulation gap-2"
+                            asChild
+                          >
+                            <Link to={`/admin/orders/${order.id}`}>
+                              <Eye className="h-4 w-4" />
+                              查看詳情
+                            </Link>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>查看詳情</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="default"
+                            className="flex-1 h-11 touch-manipulation gap-2"
+                            onClick={() => onEditOrder(order)}
+                          >
+                            <Edit className="h-4 w-4" />
+                            編輯訂單
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>編輯訂單</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                 </CardContent>
               </Card>
             );
