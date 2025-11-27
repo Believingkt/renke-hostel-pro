@@ -14,7 +14,7 @@ import { TabsSkeleton } from "@/components/skeletons/TabsSkeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import PublicHolidays, { PublicHolidaysButtons } from "@/pages/PublicHolidays";
-import { InventoryCalendar } from "@/components/InventoryCalendar";
+import { InventoryManagement } from "@/components/InventoryManagement";
 import { PageHeader } from "@/components/PageHeader";
 import {
   AlertDialog,
@@ -403,6 +403,7 @@ const Pricing = () => {
               庫存設定
             </h2>
           </div>
+          <InventoryManagement accommodationId={currentAccommodationId || ""} />
         </TabsContent>
 
         <TabsContent value="holidays" className="space-y-4">
