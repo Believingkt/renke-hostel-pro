@@ -5,6 +5,8 @@ import { ValidatedInput } from "@/components/ui/validated-input";
 import { ValidatedTextarea } from "@/components/ui/validated-textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { DraftRestoreBanner } from "@/components/ui/draft-restore-banner";
 import { Mountain, Sparkles, UserCheck, Camera, Home, Heart, Star, Wifi, Coffee, Car } from "lucide-react";
@@ -44,6 +46,7 @@ const BUILT_IN_ICONS = [
 ];
 
 export function AboutFeatureForm({ open, onOpenChange, feature, onSave }: AboutFeatureFormProps) {
+  const isMobile = useIsMobile();
   const [uploadingIcon, setUploadingIcon] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 

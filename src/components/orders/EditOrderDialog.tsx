@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from "@/components/ui/drawer";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,6 +44,7 @@ interface EditOrderDialogProps {
 }
 
 export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrderDialogProps) {
+  const isMobile = useIsMobile();
   const { toast } = useToast();
   const { currentAccommodationId } = useAccommodation();
   const [isSaving, setIsSaving] = useState(false);
@@ -317,20 +320,15 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
 
   if (!order) return null;
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>編輯訂單</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 py-4">
+  const formContent = (
+    <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label>訂單編號</Label>
-            <Input value={order.order_number} disabled />
+            <Input value={order.order_number} disabled className="h-12 text-base sm:h-10 sm:text-sm" />
           </div>
           <div className="space-y-2">
             <Label>訂購人</Label>
-            <Input value={order.guest_name} disabled />
+            <Input value={order.guest_name} disabled className="h-12 text-base sm:h-10 sm:text-sm" />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -437,6 +435,8 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
                 max="10"
                 value={editForm.guest_count}
                 onChange={(e) => setEditForm({...editForm, guest_count: parseInt(e.target.value) || 1})}
+                className="h-12 text-base sm:h-10 sm:text-sm"
+                inputMode="numeric"
               />
             </div>
           </div>
@@ -479,6 +479,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
               onChange={(e) => setEditForm({...editForm, notes: e.target.value})}
               rows={4}
               placeholder="輸入訂單備註..."
+              className="text-base sm:text-sm"
             />
           </div>
 
@@ -512,8 +513,9 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
                   value={discountCode}
                   onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
                   placeholder="輸入折扣代碼"
-                  className="flex-1"
+                  className="flex-1 h-12 text-base sm:h-10 sm:text-sm"
                   disabled={isValidatingCode}
+                  inputMode="text"
                 />
                 <Button
                   type="button"
@@ -553,13 +555,46 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
             </div>
           )}
         </div>
+      );
+
+  const footerButtons = (
+    <>
+      <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving || isValidating}>
+        取消
+      </Button>
+      <Button onClick={handleSave} disabled={isSaving || isValidating}>
+        {isValidating ? "驗證中..." : isSaving ? "儲存變更中..." : "儲存變更"}
+      </Button>
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent className="max-h-[95vh]">
+          <DrawerHeader>
+            <DrawerTitle>編輯訂單</DrawerTitle>
+          </DrawerHeader>
+          <div className="overflow-y-auto px-4">
+            {formContent}
+          </div>
+          <DrawerFooter className="flex-row gap-2">
+            {footerButtons}
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-[500px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>編輯訂單</DialogTitle>
+        </DialogHeader>
+        {formContent}
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving || isValidating}>
-            取消
-          </Button>
-          <Button onClick={handleSave} disabled={isSaving || isValidating}>
-            {isValidating ? "驗證中..." : isSaving ? "儲存變更中..." : "儲存變更"}
-          </Button>
+          {footerButtons}
         </DialogFooter>
       </DialogContent>
     </Dialog>

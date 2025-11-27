@@ -26,6 +26,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { DateRangePicker } from "@/components/DateRangePicker";
 import { DateRange } from "react-day-picker";
 import { eachDayOfInterval, format } from "date-fns";
@@ -78,6 +87,7 @@ const templateSchema = z.object({
 });
 
 export function PricingTemplateManager({ accommodationId }: PricingTemplateManagerProps) {
+  const isMobile = useIsMobile();
   const [templates, setTemplates] = useState<PricingTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -710,16 +720,17 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
         </AlertDialogContent>
       </AlertDialog>
 
-      <Dialog open={applyDialogOpen} onOpenChange={setApplyDialogOpen}>
-        <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-lg sm:text-xl">套用價格模板</DialogTitle>
-            <DialogDescription className="text-sm">
-              將「{applyingTemplate?.template_name}」套用到選定的房型和日期範圍
-            </DialogDescription>
-          </DialogHeader>
+      {isMobile ? (
+        <Drawer open={applyDialogOpen} onOpenChange={setApplyDialogOpen}>
+          <DrawerContent className="max-h-[95vh]">
+            <DrawerHeader>
+              <DrawerTitle>套用價格模板</DrawerTitle>
+              <DrawerDescription>
+                將「{applyingTemplate?.template_name}」套用到選定的房型和日期範圍
+              </DrawerDescription>
+            </DrawerHeader>
 
-          <div className="space-y-6">
+            <div className="space-y-6 px-4 overflow-y-auto">
             {/* 日期範圍選擇 */}
             <div className="space-y-2">
               <Label>選擇日期範圍 *</Label>
@@ -961,6 +972,8 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                 min="0"
                 value={availableRooms}
                 onChange={(e) => setAvailableRooms(parseInt(e.target.value) || 0)}
+                className="h-12 text-base sm:h-10 sm:text-sm"
+                inputMode="numeric"
               />
               <p className="text-xs text-muted-foreground">
                 設定每天的可用房數（庫存）
@@ -968,25 +981,304 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
             </div>
           </div>
 
-          <DialogFooter className="flex-col sm:flex-row gap-2">
+          <DrawerFooter className="flex-row gap-2">
             <Button 
               variant="outline" 
               onClick={() => setApplyDialogOpen(false)}
               disabled={applying}
-              className="w-full sm:w-auto"
+              className="flex-1"
             >
               取消
             </Button>
             <Button 
               onClick={confirmApply}
               disabled={!dateRange?.from || !dateRange?.to || selectedRoomTypes.length === 0 || applying}
-              className="w-full sm:w-auto"
+              className="flex-1"
             >
               {applying ? '套用中...' : '確認套用'}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+      ) : (
+        <Dialog open={applyDialogOpen} onOpenChange={setApplyDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>套用價格模板</DialogTitle>
+              <DialogDescription>
+                將「{applyingTemplate?.template_name}」套用到選定的房型和日期範圍
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-6">
+              {/* 同樣的內容 - 日期範圍選擇 */}
+              <div className="space-y-2">
+                <Label>選擇日期範圍 *</Label>
+                <DateRangePicker 
+                  dateRange={dateRange} 
+                  onDateRangeChange={setDateRange}
+                  className="w-full"
+                />
+              </div>
+
+              {/* 套用星期選擇 */}
+              <div className="space-y-2">
+                <Label>套用星期</Label>
+                <div className="border rounded-lg p-4 space-y-4">
+                  {/* 快捷選項 */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm text-muted-foreground mr-2">快捷選項：</span>
+                    <button
+                      type="button"
+                      onClick={toggleAllDays}
+                      className={`
+                        flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all text-sm
+                        ${selectedDays.length === 7
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-border hover:border-primary hover:bg-accent'
+                        }
+                      `}
+                    >
+                      <span className="font-medium">全選</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={selectWeekdays}
+                      className={`
+                        flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all text-sm
+                        ${JSON.stringify(selectedDays) === JSON.stringify([1, 2, 3, 4, 5])
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-border hover:border-primary hover:bg-accent'
+                        }
+                      `}
+                    >
+                      <span className="font-medium">工作日</span>
+                      <span className="text-xs opacity-75">(一~五)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={selectWeekend}
+                      className={`
+                        flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all text-sm
+                        ${JSON.stringify(selectedDays) === JSON.stringify([0, 6])
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-border hover:border-primary hover:bg-accent'
+                        }
+                      `}
+                    >
+                      <span className="font-medium">週末</span>
+                      <span className="text-xs opacity-75">(六、日)</span>
+                    </button>
+                  </div>
+
+                  {/* 個別星期選擇 */}
+                  <div className="flex flex-wrap items-center gap-3 pt-3 border-t">
+                    {[
+                      { day: 0, label: '日' },
+                      { day: 1, label: '一' },
+                      { day: 2, label: '二' },
+                      { day: 3, label: '三' },
+                      { day: 4, label: '四' },
+                      { day: 5, label: '五' },
+                      { day: 6, label: '六' },
+                    ].map(({ day, label }) => (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => toggleDay(day)}
+                        className={`
+                          flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all
+                          ${selectedDays.includes(day)
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : 'border-border hover:border-primary hover:bg-accent'
+                          }
+                        `}
+                      >
+                        {selectedDays.includes(day) ? (
+                          <CheckSquare className="h-4 w-4" />
+                        ) : (
+                          <Square className="h-4 w-4" />
+                        )}
+                        <span className="font-medium">{label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  {selectedDays.length > 0 && selectedDays.length < 7 && (
+                    <p className="text-xs text-muted-foreground mt-3">
+                      已選擇 {selectedDays.length} 個星期
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* 價格類型選擇 */}
+              <div className="space-y-2">
+                <Label>選擇價格類型 *</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPriceType('2meals')}
+                    disabled={!applyingTemplate?.weekday_2_meals_price && !applyingTemplate?.weekend_2_meals_price}
+                    className={`
+                      p-4 rounded-lg border-2 transition-all text-left group
+                      ${selectedPriceType === '2meals' 
+                        ? 'border-primary bg-primary text-primary-foreground' 
+                        : 'border-border hover:border-primary hover:bg-primary hover:text-primary-foreground'
+                      }
+                      ${(!applyingTemplate?.weekday_2_meals_price && !applyingTemplate?.weekend_2_meals_price)
+                        ? 'opacity-50 cursor-not-allowed'
+                        : 'cursor-pointer'
+                      }
+                    `}
+                  >
+                    <div className="font-medium mb-1 group-hover:text-primary-foreground">一泊二食</div>
+                    {applyingTemplate && (
+                      <div className="text-sm space-y-1">
+                        {applyingTemplate.weekday_2_meals_price && (
+                          <div className={selectedPriceType === '2meals' ? 'text-primary-foreground/80' : 'text-muted-foreground group-hover:text-primary-foreground/80'}>
+                            平日：<span className={`font-medium ${selectedPriceType === '2meals' ? 'text-primary-foreground' : 'text-foreground group-hover:text-primary-foreground'}`}>
+                              NT$ {applyingTemplate.weekday_2_meals_price.toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+                        {applyingTemplate.weekend_2_meals_price && (
+                          <div className={selectedPriceType === '2meals' ? 'text-primary-foreground/80' : 'text-muted-foreground group-hover:text-primary-foreground/80'}>
+                            假日：<span className={`font-medium ${selectedPriceType === '2meals' ? 'text-primary-foreground' : 'text-foreground group-hover:text-primary-foreground'}`}>
+                              NT$ {applyingTemplate.weekend_2_meals_price.toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+                        {!applyingTemplate.weekday_2_meals_price && !applyingTemplate.weekend_2_meals_price && (
+                          <div className="text-xs text-muted-foreground">未設定</div>
+                        )}
+                      </div>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPriceType('3meals')}
+                    disabled={!applyingTemplate?.weekday_3_meals_price && !applyingTemplate?.weekend_3_meals_price}
+                    className={`
+                      p-4 rounded-lg border-2 transition-all text-left group
+                      ${selectedPriceType === '3meals' 
+                        ? 'border-primary bg-primary text-primary-foreground' 
+                        : 'border-border hover:border-primary hover:bg-primary hover:text-primary-foreground'
+                      }
+                      ${(!applyingTemplate?.weekday_3_meals_price && !applyingTemplate?.weekend_3_meals_price)
+                        ? 'opacity-50 cursor-not-allowed'
+                        : 'cursor-pointer'
+                      }
+                    `}
+                  >
+                    <div className="font-medium mb-1 group-hover:text-primary-foreground">一泊三食</div>
+                    {applyingTemplate && (
+                      <div className="text-sm space-y-1">
+                        {applyingTemplate.weekday_3_meals_price && (
+                          <div className={selectedPriceType === '3meals' ? 'text-primary-foreground/80' : 'text-muted-foreground group-hover:text-primary-foreground/80'}>
+                            平日：<span className={`font-medium ${selectedPriceType === '3meals' ? 'text-primary-foreground' : 'text-foreground group-hover:text-primary-foreground'}`}>
+                              NT$ {applyingTemplate.weekday_3_meals_price.toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+                        {applyingTemplate.weekend_3_meals_price && (
+                          <div className={selectedPriceType === '3meals' ? 'text-primary-foreground/80' : 'text-muted-foreground group-hover:text-primary-foreground/80'}>
+                            假日：<span className={`font-medium ${selectedPriceType === '3meals' ? 'text-primary-foreground' : 'text-foreground group-hover:text-primary-foreground'}`}>
+                              NT$ {applyingTemplate.weekend_3_meals_price.toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+                        {!applyingTemplate.weekday_3_meals_price && !applyingTemplate.weekend_3_meals_price && (
+                          <div className="text-xs text-muted-foreground">未設定</div>
+                        )}
+                      </div>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* 房型選擇 */}
+              <div className="space-y-2">
+                <Label>選擇房型 *</Label>
+                <div className="border rounded-lg p-4 space-y-2 max-h-60 overflow-y-auto">
+                  {roomTypes.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      尚無房型，請先新增房型
+                    </p>
+                  ) : (
+                    roomTypes.map((roomType) => (
+                      <div
+                        key={roomType.id}
+                        className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                          selectedRoomTypes.includes(roomType.id)
+                            ? 'bg-primary text-primary-foreground'
+                            : 'hover:bg-accent'
+                        }`}
+                        onClick={() => toggleRoomType(roomType.id)}
+                      >
+                        {selectedRoomTypes.includes(roomType.id) ? (
+                          <CheckSquare className="h-5 w-5" />
+                        ) : (
+                          <Square className="h-5 w-5 text-muted-foreground" />
+                        )}
+                        <div className="flex-1">
+                          <p className="font-medium">{roomType.name}</p>
+                          <p className={`text-xs ${
+                            selectedRoomTypes.includes(roomType.id)
+                              ? 'text-primary-foreground/80'
+                              : 'text-muted-foreground'
+                          }`}>
+                            共 {roomType.room_count || 0} 間
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+                {selectedRoomTypes.length > 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    已選擇 {selectedRoomTypes.length} 個房型
+                  </p>
+                )}
+              </div>
+
+              {/* 可用房數設定 */}
+              <div className="space-y-2">
+                <Label htmlFor="available_rooms_desktop">可用房數 *</Label>
+                <Input
+                  id="available_rooms_desktop"
+                  type="number"
+                  min="0"
+                  value={availableRooms}
+                  onChange={(e) => setAvailableRooms(parseInt(e.target.value) || 0)}
+                  inputMode="numeric"
+                />
+                <p className="text-xs text-muted-foreground">
+                  設定每天的可用房數（庫存）
+                </p>
+              </div>
+            </div>
+
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setApplyDialogOpen(false)}
+                disabled={applying}
+                className="w-full sm:w-auto"
+              >
+                取消
+              </Button>
+              <Button 
+                onClick={confirmApply}
+                disabled={!dateRange?.from || !dateRange?.to || selectedRoomTypes.length === 0 || applying}
+                className="w-full sm:w-auto"
+              >
+                {applying ? '套用中...' : '確認套用'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }
