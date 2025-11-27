@@ -355,13 +355,29 @@ const Pricing = () => {
           <BreadcrumbSeparator />
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link to="/admin/pricing">價格管理</Link>
+              <Link to="/admin/pricing">物件管理</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>{getTabName(activeTab)}</BreadcrumbPage>
+            {showForm && activeTab === "rooms" ? (
+              <BreadcrumbLink asChild>
+                <Link to="/admin/pricing?tab=rooms">房型管理</Link>
+              </BreadcrumbLink>
+            ) : (
+              <BreadcrumbPage>{getTabName(activeTab)}</BreadcrumbPage>
+            )}
           </BreadcrumbItem>
+          {showForm && activeTab === "rooms" && (
+            <>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>
+                  {editingRoomType ? "編輯房型" : "新增房型"}
+                </BreadcrumbPage>
+              </BreadcrumbItem>
+            </>
+          )}
         </BreadcrumbList>
       </Breadcrumb>
 
