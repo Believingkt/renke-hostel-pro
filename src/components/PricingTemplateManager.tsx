@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, CheckSquare, Square, CalendarCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -17,6 +17,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { DateRangePicker } from "@/components/DateRangePicker";
+import { DateRange } from "react-day-picker";
+import { eachDayOfInterval, format } from "date-fns";
 import { z } from "zod";
 
 interface PricingTemplate {
@@ -30,6 +41,12 @@ interface PricingTemplate {
   weekend_2_meals_price: number | null;
   weekend_3_meals_price: number | null;
   is_default: boolean;
+}
+
+interface RoomType {
+  id: string;
+  name: string;
+  room_count: number | null;
 }
 
 interface PricingTemplateManagerProps {
@@ -54,6 +71,13 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
   const [editingTemplate, setEditingTemplate] = useState<PricingTemplate | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingTemplate, setDeletingTemplate] = useState<PricingTemplate | null>(null);
+  const [applyDialogOpen, setApplyDialogOpen] = useState(false);
+  const [applyingTemplate, setApplyingTemplate] = useState<PricingTemplate | null>(null);
+  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
+  const [selectedRoomTypes, setSelectedRoomTypes] = useState<string[]>([]);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [availableRooms, setAvailableRooms] = useState<number>(1);
+  const [applying, setApplying] = useState(false);
   
   const [formData, setFormData] = useState({
     template_name: "",
@@ -71,6 +95,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
   useEffect(() => {
     if (accommodationId) {
       loadTemplates();
+      loadRoomTypes();
     }
   }, [accommodationId]);
 
@@ -90,6 +115,22 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       toast.error('載入價格模板失敗');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadRoomTypes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('room_types')
+        .select('id, name, room_count')
+        .eq('accommodation_id', accommodationId)
+        .order('display_order');
+
+      if (error) throw error;
+      setRoomTypes(data || []);
+    } catch (error) {
+      console.error('載入房型失敗:', error);
+      toast.error('載入房型失敗');
     }
   };
 
@@ -206,6 +247,73 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
     } finally {
       setDeleteDialogOpen(false);
       setDeletingTemplate(null);
+    }
+  };
+
+  const handleApply = (template: PricingTemplate) => {
+    setApplyingTemplate(template);
+    setSelectedRoomTypes([]);
+    setDateRange(undefined);
+    setAvailableRooms(1);
+    setApplyDialogOpen(true);
+  };
+
+  const toggleRoomType = (roomTypeId: string) => {
+    setSelectedRoomTypes(prev => 
+      prev.includes(roomTypeId) 
+        ? prev.filter(id => id !== roomTypeId)
+        : [...prev, roomTypeId]
+    );
+  };
+
+  const isWeekend = (date: Date): boolean => {
+    const day = date.getDay();
+    return day === 0 || day === 6; // Sunday or Saturday
+  };
+
+  const confirmApply = async () => {
+    if (!applyingTemplate || !dateRange?.from || !dateRange?.to || selectedRoomTypes.length === 0) {
+      toast.error('請選擇日期範圍和房型');
+      return;
+    }
+
+    try {
+      setApplying(true);
+      const dates = eachDayOfInterval({ start: dateRange.from, end: dateRange.to });
+      
+      // 為每個選擇的房型和日期創建記錄
+      const records = [];
+      for (const roomTypeId of selectedRoomTypes) {
+        for (const date of dates) {
+          const weekend = isWeekend(date);
+          records.push({
+            room_type_id: roomTypeId,
+            date: format(date, 'yyyy-MM-dd'),
+            price: weekend ? applyingTemplate.weekend_price : applyingTemplate.weekday_price,
+            available_rooms: availableRooms,
+            is_available: true,
+          });
+        }
+      }
+
+      // 批量插入（使用 upsert 避免重複）
+      const { error } = await supabase
+        .from('room_inventory_pricing')
+        .upsert(records, { 
+          onConflict: 'room_type_id,date',
+          ignoreDuplicates: false 
+        });
+
+      if (error) throw error;
+      
+      toast.success(`已成功套用價格模板到 ${selectedRoomTypes.length} 個房型的 ${dates.length} 天`);
+      setApplyDialogOpen(false);
+      setApplyingTemplate(null);
+    } catch (error) {
+      console.error('套用價格模板失敗:', error);
+      toast.error('套用價格模板失敗');
+    } finally {
+      setApplying(false);
     }
   };
 
@@ -424,6 +532,15 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                       </div>
                       <div className="flex gap-2 ml-4">
                         <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleApply(template)}
+                          className="gap-2"
+                        >
+                          <CalendarCheck className="h-4 w-4" />
+                          套用
+                        </Button>
+                        <Button
                           variant="outline"
                           size="icon"
                           onClick={() => handleEdit(template)}
@@ -466,6 +583,118 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={applyDialogOpen} onOpenChange={setApplyDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>套用價格模板</DialogTitle>
+            <DialogDescription>
+              將「{applyingTemplate?.template_name}」套用到選定的房型和日期範圍
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* 日期範圍選擇 */}
+            <div className="space-y-2">
+              <Label>選擇日期範圍 *</Label>
+              <DateRangePicker 
+                dateRange={dateRange} 
+                onDateRangeChange={setDateRange}
+                className="w-full"
+              />
+            </div>
+
+            {/* 房型選擇 */}
+            <div className="space-y-2">
+              <Label>選擇房型 *</Label>
+              <div className="border rounded-lg p-4 space-y-2 max-h-60 overflow-y-auto">
+                {roomTypes.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    尚無房型，請先新增房型
+                  </p>
+                ) : (
+                  roomTypes.map((roomType) => (
+                    <div
+                      key={roomType.id}
+                      className="flex items-center gap-3 p-3 hover:bg-accent rounded-lg cursor-pointer transition-colors"
+                      onClick={() => toggleRoomType(roomType.id)}
+                    >
+                      {selectedRoomTypes.includes(roomType.id) ? (
+                        <CheckSquare className="h-5 w-5 text-primary" />
+                      ) : (
+                        <Square className="h-5 w-5 text-muted-foreground" />
+                      )}
+                      <div className="flex-1">
+                        <p className="font-medium">{roomType.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          共 {roomType.room_count || 0} 間
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              {selectedRoomTypes.length > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  已選擇 {selectedRoomTypes.length} 個房型
+                </p>
+              )}
+            </div>
+
+            {/* 可用房數設定 */}
+            <div className="space-y-2">
+              <Label htmlFor="available_rooms">可用房數 *</Label>
+              <Input
+                id="available_rooms"
+                type="number"
+                min="0"
+                value={availableRooms}
+                onChange={(e) => setAvailableRooms(parseInt(e.target.value) || 0)}
+              />
+              <p className="text-xs text-muted-foreground">
+                設定每天的可用房數（庫存）
+              </p>
+            </div>
+
+            {/* 價格預覽 */}
+            {applyingTemplate && (
+              <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                <h4 className="font-medium text-sm">套用的價格</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">平日：</span>
+                    <span className="font-bold text-primary ml-1">
+                      NT$ {applyingTemplate.weekday_price.toLocaleString()}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">假日：</span>
+                    <span className="font-bold text-primary ml-1">
+                      NT$ {applyingTemplate.weekend_price.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setApplyDialogOpen(false)}
+              disabled={applying}
+            >
+              取消
+            </Button>
+            <Button 
+              onClick={confirmApply}
+              disabled={!dateRange?.from || !dateRange?.to || selectedRoomTypes.length === 0 || applying}
+            >
+              {applying ? '套用中...' : '確認套用'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
