@@ -373,7 +373,7 @@ export const CommissionRecordsDialog = ({
                     <TableHead>佣金率</TableHead>
                     <TableHead>佣金金額</TableHead>
                     <TableHead>結算狀態</TableHead>
-                    <TableHead>操作</TableHead>
+                    <TableHead className="w-[140px]">操作</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -395,7 +395,7 @@ export const CommissionRecordsDialog = ({
                         NT$ {record.commission_amount.toLocaleString()}
                       </TableCell>
                       <TableCell>{getStatusBadge(record.settlement_status)}</TableCell>
-                      <TableCell>
+                      <TableCell className="w-[140px]">
                         <Select
                           value={record.settlement_status}
                           onValueChange={(value) =>
