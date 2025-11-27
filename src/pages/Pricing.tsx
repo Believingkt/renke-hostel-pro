@@ -107,7 +107,7 @@ const SortableRoomCard = ({ roomType, onEdit, onDelete }: SortableRoomCardProps)
               </div>
               <div>
                 <span className="text-muted-foreground">顯示順序：</span>
-                <span className="font-medium">{roomType.display_order}</span>
+                <span className="font-medium">{(roomType.display_order || 0) < 1 ? 1 : roomType.display_order}</span>
               </div>
             </div>
           </div>
@@ -178,7 +178,32 @@ const Pricing = () => {
         .order('display_order', { ascending: true });
 
       if (error) throw error;
-      setRoomTypes(data || []);
+      
+      // 確保所有房型的 display_order 至少為 1
+      const roomTypesWithOrder = (data || []).map((room, index) => ({
+        ...room,
+        display_order: room.display_order < 1 ? index + 1 : room.display_order
+      }));
+      
+      setRoomTypes(roomTypesWithOrder);
+      
+      // 如果有需要更新的房型（display_order < 1），更新數據庫
+      const needsUpdate = roomTypesWithOrder.some((room, index) => 
+        data![index].display_order < 1
+      );
+      
+      if (needsUpdate) {
+        const updates = roomTypesWithOrder
+          .filter((room, index) => data![index].display_order < 1)
+          .map((room) => 
+            supabase
+              .from('room_types')
+              .update({ display_order: room.display_order })
+              .eq('id', room.id)
+          );
+        
+        await Promise.all(updates);
+      }
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error loading room types:', error);
