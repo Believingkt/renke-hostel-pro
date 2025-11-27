@@ -1,13 +1,37 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Package, ChevronLeft, ChevronRight, Check, Edit } from "lucide-react";
+import { 
+  Package, 
+  ChevronLeft, 
+  ChevronRight, 
+  Check, 
+  Edit, 
+  X, 
+  Calendar,
+  CalendarDays,
+  CalendarRange,
+  Briefcase,
+  Copy
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, addMonths, subMonths } from "date-fns";
+import { 
+  format, 
+  startOfMonth, 
+  endOfMonth, 
+  eachDayOfInterval, 
+  isSameMonth, 
+  isToday, 
+  addMonths, 
+  subMonths,
+  isWeekend as isWeekendDate,
+  startOfWeek,
+  endOfWeek
+} from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import {
@@ -46,6 +70,9 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [batchEditDialogOpen, setBatchEditDialogOpen] = useState(false);
   const [batchInventory, setBatchInventory] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [isCopyMode, setIsCopyMode] = useState(false);
+  const [copiedInventory, setCopiedInventory] = useState<number | null>(null);
 
   useEffect(() => {
     if (accommodationId) {
@@ -58,6 +85,25 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
       loadInventoryData();
     }
   }, [selectedRoomType, currentMonth]);
+
+  // 批量編輯對話框鍵盤快捷鍵
+  useEffect(() => {
+    if (!batchEditDialogOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setBatchEditDialogOpen(false);
+      } else if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (batchInventory && !saving) {
+          confirmBatchEdit();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [batchEditDialogOpen, batchInventory, saving]);
 
   const loadRoomTypes = async () => {
     try {
@@ -115,8 +161,42 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
     }
   };
 
+  const handlePrevMonth = () => {
+    setCurrentMonth(subMonths(currentMonth, 1));
+    setSelectedDates(new Set());
+    setCopiedInventory(null);
+    setIsCopyMode(false);
+  };
+
+  const handleNextMonth = () => {
+    setCurrentMonth(addMonths(currentMonth, 1));
+    setSelectedDates(new Set());
+    setCopiedInventory(null);
+    setIsCopyMode(false);
+  };
+
+  const handleStartBatchEdit = () => {
+    setIsSelectionMode(true);
+    setSelectedDates(new Set());
+    setCopiedInventory(null);
+    setIsCopyMode(false);
+  };
+
   const toggleDateSelection = (dateStr: string) => {
     if (!isSelectionMode) return;
+
+    if (isCopyMode) {
+      const dayInventory = inventory[dateStr];
+      if (dayInventory && dayInventory.availableRooms !== null) {
+        setCopiedInventory(dayInventory.availableRooms);
+        setIsCopyMode(false);
+        setSelectedDates(new Set());
+        toast.success(`已複製庫存設定：${dayInventory.availableRooms} 間`);
+      } else {
+        toast.error('此日期尚未設定庫存');
+      }
+      return;
+    }
 
     const newSelected = new Set(selectedDates);
     if (newSelected.has(dateStr)) {
@@ -127,7 +207,7 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
     setSelectedDates(newSelected);
   };
 
-  const handleBatchEdit = () => {
+  const handleOpenBatchEdit = () => {
     if (selectedDates.size === 0) {
       toast.error('請先選擇要編輯的日期');
       return;
@@ -144,37 +224,28 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
     const inventoryValue = parseInt(batchInventory);
 
     try {
-      const updates = Array.from(selectedDates).map(async (dateStr) => {
+      setSaving(true);
+      const updates = Array.from(selectedDates).map((dateStr) => {
         const existing = inventory[dateStr];
         
-        if (existing?.id) {
-          // 更新現有記錄
-          return supabase
-            .from('room_inventory_pricing')
-            .update({ 
-              available_rooms: inventoryValue,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', existing.id);
-        } else {
-          // 創建新記錄 - 需要價格資訊
-          const roomType = roomTypes.find(rt => rt.id === selectedRoomType);
-          if (!roomType) return;
-
-          return supabase
-            .from('room_inventory_pricing')
-            .insert({
-              room_type_id: selectedRoomType,
-              date: dateStr,
-              available_rooms: inventoryValue,
-              price: 0, // 預設價格為0
-            });
-        }
+        return {
+          room_type_id: selectedRoomType,
+          date: dateStr,
+          available_rooms: inventoryValue,
+          price: existing?.id ? undefined : 0,
+        };
       });
 
-      await Promise.all(updates);
+      const { error } = await supabase
+        .from('room_inventory_pricing')
+        .upsert(updates, {
+          onConflict: 'room_type_id,date',
+          ignoreDuplicates: false,
+        });
+
+      if (error) throw error;
       
-      toast.success(`已更新 ${selectedDates.size} 個日期的庫存`);
+      toast.success(`已成功更新 ${selectedDates.size} 個日期的庫存`);
       setBatchEditDialogOpen(false);
       setBatchInventory("");
       setSelectedDates(new Set());
@@ -183,7 +254,123 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
     } catch (error) {
       console.error('批次更新失敗:', error);
       toast.error('批次更新失敗，請重試');
+    } finally {
+      setSaving(false);
     }
+  };
+
+  const handleApplyCopiedInventory = async () => {
+    if (copiedInventory === null) {
+      toast.error('尚未複製任何設定');
+      return;
+    }
+    
+    if (selectedDates.size === 0) {
+      toast.error('請至少選擇一個日期');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const updates = Array.from(selectedDates).map((dateStr) => {
+        const existing = inventory[dateStr];
+        
+        return {
+          room_type_id: selectedRoomType,
+          date: dateStr,
+          available_rooms: copiedInventory,
+          price: existing?.id ? undefined : 0,
+        };
+      });
+
+      const { error } = await supabase
+        .from('room_inventory_pricing')
+        .upsert(updates, {
+          onConflict: 'room_type_id,date',
+          ignoreDuplicates: false,
+        });
+
+      if (error) throw error;
+
+      toast.success(`已成功套用到 ${selectedDates.size} 個日期`);
+      setSelectedDates(new Set());
+      setCopiedInventory(null);
+      setIsSelectionMode(false);
+      loadInventoryData();
+    } catch (error) {
+      console.error('套用失敗:', error);
+      toast.error('套用失敗');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleStartCopyMode = () => {
+    setIsCopyMode(true);
+    setSelectedDates(new Set());
+    setCopiedInventory(null);
+    toast.info('請點擊要複製的日期');
+  };
+
+  const handleCancelSelection = () => {
+    setIsSelectionMode(false);
+    setSelectedDates(new Set());
+    setCopiedInventory(null);
+    setIsCopyMode(false);
+  };
+
+  // 快速選擇功能
+  const selectWeekends = () => {
+    const monthStart = startOfMonth(currentMonth);
+    const monthEnd = endOfMonth(currentMonth);
+    const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+    
+    const weekendDates = days
+      .filter(day => isWeekendDate(day))
+      .map(day => format(day, 'yyyy-MM-dd'));
+    
+    setSelectedDates(new Set(weekendDates));
+    toast.success(`已選擇 ${weekendDates.length} 個週末日期`);
+  };
+
+  const selectWeekdays = () => {
+    const monthStart = startOfMonth(currentMonth);
+    const monthEnd = endOfMonth(currentMonth);
+    const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+    
+    const weekdayDates = days
+      .filter(day => !isWeekendDate(day))
+      .map(day => format(day, 'yyyy-MM-dd'));
+    
+    setSelectedDates(new Set(weekdayDates));
+    toast.success(`已選擇 ${weekdayDates.length} 個工作日日期`);
+  };
+
+  const selectCurrentWeek = () => {
+    const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
+    const days = eachDayOfInterval({ start: weekStart, end: weekEnd });
+    
+    const weekDates = days.map(day => format(day, 'yyyy-MM-dd'));
+    
+    setSelectedDates(new Set(weekDates));
+    toast.success(`已選擇本週 ${weekDates.length} 個日期`);
+  };
+
+  const selectWholeMonth = () => {
+    const monthStart = startOfMonth(currentMonth);
+    const monthEnd = endOfMonth(currentMonth);
+    const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+    
+    const monthDates = days.map(day => format(day, 'yyyy-MM-dd'));
+    
+    setSelectedDates(new Set(monthDates));
+    toast.success(`已選擇整月 ${monthDates.length} 個日期`);
+  };
+
+  const clearSelection = () => {
+    setSelectedDates(new Set());
+    toast.success('已清除選擇');
   };
 
   const daysInMonth = eachDayOfInterval({
@@ -200,101 +387,228 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            房型選擇
-          </CardTitle>
-          <CardDescription>
-            選擇要管理庫存的房型
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-            <div className="flex-1 w-full sm:max-w-[300px]">
-              <Select value={selectedRoomType} onValueChange={setSelectedRoomType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="選擇房型" />
-                </SelectTrigger>
-                <SelectContent>
-                  {roomTypes.map((room) => (
-                    <SelectItem key={room.id} value={room.id}>
-                      {room.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {selectedRoomTypeData && (
-              <div className="text-sm text-muted-foreground">
-                總房間數：{selectedRoomTypeData.room_count || 1} 間
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {selectedRoomType && (
-        <Card>
-          <CardHeader>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <CardTitle>庫存管理</CardTitle>
-                <CardDescription>
-                  設定每日可用房間數量
-                </CardDescription>
-              </div>
-              <div className="flex gap-2 flex-wrap">
-                {!isSelectionMode ? (
-                  <Button
-                    onClick={() => setIsSelectionMode(true)}
-                    variant="outline"
-                  >
-                    <Edit className="h-4 w-4 mr-2" />
-                    批次編輯
-                  </Button>
-                ) : (
-                  <>
-                    <Button
-                      onClick={handleBatchEdit}
-                      disabled={selectedDates.size === 0}
-                    >
-                      編輯選中日期 ({selectedDates.size})
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setIsSelectionMode(false);
-                        setSelectedDates(new Set());
-                      }}
-                      variant="outline"
-                    >
-                      取消選擇
-                    </Button>
-                  </>
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            <div className="flex-1">
+              <CardTitle className="flex items-center gap-2 mb-2">
+                <Package className="h-5 w-5" />
+                房型選擇
+              </CardTitle>
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                <div className="w-full sm:max-w-[300px]">
+                  <Select value={selectedRoomType} onValueChange={setSelectedRoomType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="選擇房型" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roomTypes.map((room) => (
+                        <SelectItem key={room.id} value={room.id}>
+                          {room.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {selectedRoomTypeData && (
+                  <div className="text-sm text-muted-foreground">
+                    總房間數：{selectedRoomTypeData.room_count || 1} 間
+                  </div>
                 )}
               </div>
             </div>
+          </div>
+        </CardHeader>
+      </Card>
+
+      {selectedRoomType && roomTypes.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg md:text-xl">
+                  {roomTypes.find(r => r.id === selectedRoomType)?.name || ''} - 庫存管理
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handlePrevMonth}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <div className="min-w-[140px] text-center font-semibold">
+                    {format(currentMonth, 'yyyy年 MM月', { locale: zhTW })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleNextMonth}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* 批量編輯工具列 */}
+              {!isSelectionMode ? (
+                <div className="flex justify-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleStartBatchEdit}
+                    className="gap-2"
+                  >
+                    <Edit className="h-4 w-4" />
+                    批量編輯
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {/* 提示訊息 */}
+                  {isCopyMode && (
+                    <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-sm text-blue-800 dark:text-blue-200">
+                      <div className="flex items-center gap-2">
+                        <Copy className="h-4 w-4" />
+                        <span>請點擊一個已設定的日期來複製其庫存設定</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {copiedInventory !== null && !isCopyMode && (
+                    <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-3 text-sm">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
+                          <span className="text-green-800 dark:text-green-200">
+                            已複製：房數 {copiedInventory} 間
+                          </span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setCopiedInventory(null);
+                            setSelectedDates(new Set());
+                          }}
+                          className="h-6 px-2"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <p className="text-xs text-green-700 dark:text-green-300 mt-1">請選擇要套用的目標日期</p>
+                    </div>
+                  )}
+
+                  {/* 快速選擇按鈕組 */}
+                  <div className="flex flex-wrap gap-2">
+                    {copiedInventory === null && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleStartCopyMode}
+                        className="gap-2"
+                        disabled={isCopyMode}
+                      >
+                        <Copy className="h-4 w-4" />
+                        複製設定
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={selectWeekends}
+                      className="gap-2"
+                      disabled={isCopyMode}
+                    >
+                      <Calendar className="h-4 w-4" />
+                      選擇週末
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={selectWeekdays}
+                      className="gap-2"
+                      disabled={isCopyMode}
+                    >
+                      <Briefcase className="h-4 w-4" />
+                      選擇工作日
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={selectCurrentWeek}
+                      className="gap-2"
+                      disabled={isCopyMode}
+                    >
+                      <CalendarDays className="h-4 w-4" />
+                      選擇本週
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={selectWholeMonth}
+                      className="gap-2"
+                      disabled={isCopyMode}
+                    >
+                      <CalendarRange className="h-4 w-4" />
+                      選擇整月
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearSelection}
+                      className="gap-2"
+                      disabled={selectedDates.size === 0 || isCopyMode}
+                    >
+                      <X className="h-4 w-4" />
+                      清除選擇
+                    </Button>
+                  </div>
+
+                  {/* 操作按鈕 */}
+                  <div className="flex items-center justify-between bg-muted/50 p-3 rounded-lg">
+                    <span className="text-sm font-medium">
+                      已選擇 {selectedDates.size} 個日期
+                    </span>
+                    <div className="flex gap-2">
+                      {copiedInventory !== null && !isCopyMode ? (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={handleApplyCopiedInventory}
+                          disabled={selectedDates.size === 0 || saving}
+                          className="gap-2"
+                        >
+                          <Check className="h-4 w-4" />
+                          {saving ? '套用中...' : '套用複製設定'}
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={handleOpenBatchEdit}
+                          disabled={selectedDates.size === 0 || isCopyMode}
+                          className="gap-2"
+                        >
+                          <Check className="h-4 w-4" />
+                          編輯選中日期
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCancelSelection}
+                        className="gap-2"
+                      >
+                        <X className="h-4 w-4" />
+                        取消
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="mb-6 flex items-center justify-between">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <h3 className="text-lg font-semibold">
-                {format(currentMonth, 'yyyy年 MM月', { locale: zhTW })}
-              </h3>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -331,7 +645,9 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
                         isTodayDate && "border-blue-600 border-2",
                         !isCurrentMonth && "opacity-50",
                         isSelectionMode && "cursor-pointer hover:scale-105",
-                        isSelected && "bg-blue-50 dark:bg-blue-950 ring-2 ring-blue-500"
+                        isCopyMode && hasData && "ring-2 ring-blue-400 animate-pulse",
+                        isCopyMode && !hasData && "opacity-30 cursor-not-allowed",
+                        isSelected && !isCopyMode && "bg-blue-50 dark:bg-blue-950 ring-2 ring-blue-500"
                       )}
                     >
                       <div className={cn(
@@ -349,7 +665,7 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
                       ) : (
                         <div className="text-[10px] sm:text-xs text-muted-foreground">未設定</div>
                       )}
-                      {isSelected && (
+                      {isSelected && !isCopyMode && (
                         <div className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5">
                           <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600" />
                         </div>
@@ -381,6 +697,7 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
                 value={batchInventory}
                 onChange={(e) => setBatchInventory(e.target.value)}
                 placeholder="輸入庫存數量"
+                autoFocus
               />
             </div>
             {selectedRoomTypeData && (
@@ -393,8 +710,8 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
             <Button variant="outline" onClick={() => setBatchEditDialogOpen(false)}>
               取消
             </Button>
-            <Button onClick={confirmBatchEdit}>
-              確認更新
+            <Button onClick={confirmBatchEdit} disabled={saving}>
+              {saving ? '更新中...' : '確認更新'}
             </Button>
           </DialogFooter>
         </DialogContent>
