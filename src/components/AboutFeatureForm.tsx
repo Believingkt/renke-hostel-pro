@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ValidatedInput } from "@/components/ui/validated-input";
 import { ValidatedTextarea } from "@/components/ui/validated-textarea";
-import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
@@ -187,18 +186,22 @@ export function AboutFeatureForm({ open, onOpenChange, feature, onSave }: AboutF
             maxLength={30}
           />
 
-          <div className="space-y-2">
-            <Label htmlFor="feature-description">說明文字</Label>
-            <RichTextEditor
-              value={formData.description}
-              onChange={(value) => {
-                setFormData({ ...formData, description: value });
-                validateField('description', value);
-              }}
-              placeholder="請輸入說明文字"
-              error={errors.description}
-            />
-          </div>
+          <ValidatedTextarea
+            id="feature-description"
+            label="說明文字"
+            value={formData.description}
+            onChange={(value) => {
+              setFormData({ ...formData, description: value });
+              validateField('description', value);
+            }}
+            onValidate={(value) => validateField('description', value)}
+            error={errors.description}
+            placeholder="請輸入說明文字"
+            rows={3}
+            required
+            showCharCount
+            maxLength={200}
+          />
 
           <div className="space-y-2">
             <Label>圖示選擇</Label>
