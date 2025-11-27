@@ -76,7 +76,7 @@ const menuItems = [
       { title: "房價庫存", url: "/admin/room-inventory", icon: Package },
       { title: "價格設定", url: "/admin/pricing?tab=basic", icon: DollarSign },
       { title: "客房設施", url: "/admin/pricing?tab=facilities", icon: Wrench },
-      { title: "庫存管理", url: "/admin/pricing?tab=inventory", icon: Package },
+      { title: "庫存設定", url: "/admin/pricing?tab=inventory", icon: Package },
       { title: "國定假日", url: "/admin/pricing?tab=holidays", icon: Calendar },
     ]
   },
