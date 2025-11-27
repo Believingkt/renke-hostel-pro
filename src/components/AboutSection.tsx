@@ -106,10 +106,9 @@ const AboutSection = ({ description, accommodationId }: AboutSectionProps) => {
           <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-3 lg:mb-4">
             {sectionData.title}
           </h2>
-          <div 
-            className="text-center text-muted-foreground text-base md:text-base lg:text-lg mb-8 md:mb-12 lg:mb-16 max-w-3xl mx-auto prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: sectionData.description }}
-          />
+          <p className="text-center text-muted-foreground text-base md:text-base lg:text-lg mb-8 md:mb-12 lg:mb-16 max-w-3xl mx-auto">
+            {sectionData.description}
+          </p>
 
           <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 lg:gap-8">
             {features.map((item, index) => {
@@ -127,10 +126,9 @@ const AboutSection = ({ description, accommodationId }: AboutSectionProps) => {
                     <h3 className="font-semibold text-base md:text-lg lg:text-xl mb-2 md:mb-2 lg:mb-3 text-foreground">
                       {item.title}
                     </h3>
-                    <div 
-                      className="text-xs md:text-sm lg:text-base text-muted-foreground leading-relaxed prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: item.description || item.desc }}
-                    />
+                    <p className="text-xs md:text-sm lg:text-base text-muted-foreground leading-relaxed">
+                      {item.description || item.desc}
+                    </p>
 
                   </CardContent>
                 </Card>

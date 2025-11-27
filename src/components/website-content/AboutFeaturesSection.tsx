@@ -6,7 +6,6 @@ import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { Button } from "@/components/ui/button";
 import { ValidatedInput } from "@/components/ui/validated-input";
 import { ValidatedTextarea } from "@/components/ui/validated-textarea";
-import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { DraftRestoreBanner } from "@/components/ui/draft-restore-banner";
 import { useFormDraft } from "@/hooks/use-form-draft";
 import { supabase } from "@/integrations/supabase/client";
@@ -308,18 +307,21 @@ export const AboutFeaturesSection = ({
         />
 
         {/* 特色說明文字 */}
-        <div className="space-y-2">
-          <Label htmlFor="section-description">特色說明文字</Label>
-          <RichTextEditor
-            value={formData.sectionDescription || ''}
-            onChange={(value) => {
-              setFormData({ sectionDescription: value });
-              validateField('sectionDescription', value);
-            }}
-            placeholder="簡短描述您住宿的特色..."
-            error={errors.sectionDescription}
-          />
-        </div>
+        <ValidatedTextarea
+          id="section-description"
+          label="特色說明文字"
+          value={formData.sectionDescription || ''}
+          onChange={(value) => {
+            setFormData({ sectionDescription: value });
+            validateField('sectionDescription', value);
+          }}
+          onValidate={(value) => validateField('sectionDescription', value)}
+          error={errors.sectionDescription}
+          placeholder="簡短描述您住宿的特色..."
+          rows={4}
+          showCharCount
+          maxLength={300}
+        />
 
         {/* 特色區塊列表 */}
         <div className="space-y-4">

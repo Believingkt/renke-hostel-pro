@@ -60,6 +60,7 @@ export const aboutSectionSchema = z.object({
     .min(1, { message: "標題不能為空" })
     .max(50, { message: "標題不能超過 50 字元" }),
   sectionDescription: z.string().trim()
+    .max(300, { message: "描述不能超過 300 字元" })
     .optional(),
 });
 
@@ -69,7 +70,8 @@ export const featureSchema = z.object({
     .min(1, { message: "標題不能為空" })
     .max(30, { message: "標題不能超過 30 字元" }),
   description: z.string().trim()
-    .min(1, { message: "描述不能為空" }),
+    .min(1, { message: "描述不能為空" })
+    .max(200, { message: "描述不能超過 200 字元" }),
   iconName: z.string().trim()
     .min(1, { message: "請選擇圖示" }),
 });
