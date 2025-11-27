@@ -72,6 +72,7 @@ export function AboutFeatureForm({ open, onOpenChange, feature, onSave }: AboutF
   useEffect(() => {
     if (open) {
       if (feature) {
+        // 編輯模式：直接設置表單資料並清除草稿
         setFormData({
           title: feature.title,
           description: feature.description,
@@ -80,12 +81,14 @@ export function AboutFeatureForm({ open, onOpenChange, feature, onSave }: AboutF
           icon_url: feature.icon_url || '',
           display_order: feature.display_order,
         });
+        clearDraft(); // 清除舊草稿，避免提示
       } else {
+        // 新增模式：使用初始資料
         setFormData(initialFormData);
       }
       setErrors({});
     }
-  }, [feature, open, setFormData]);
+  }, [feature, open, setFormData, clearDraft]);
 
   const validateField = (field: string, value: string) => {
     try {
@@ -162,7 +165,7 @@ export function AboutFeatureForm({ open, onOpenChange, feature, onSave }: AboutF
           <DialogTitle>{feature ? '編輯特色區塊' : '新增特色區塊'}</DialogTitle>
         </DialogHeader>
 
-        {hasDraft && (
+        {hasDraft && !feature && (
           <DraftRestoreBanner
             onRestore={restoreDraft}
             onDiscard={discardDraft}
