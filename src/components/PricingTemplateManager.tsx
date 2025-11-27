@@ -56,12 +56,21 @@ interface PricingTemplateManagerProps {
 const templateSchema = z.object({
   template_name: z.string().trim().min(1, "模板名稱不能為空").max(50, "模板名稱最多50字"),
   description: z.string().trim().max(200, "描述最多200字").optional(),
-  weekday_price: z.number().int().min(0, "價格必須大於等於0"),
-  weekend_price: z.number().int().min(0, "價格必須大於等於0"),
+  weekday_price: z.number().int().min(0).optional().nullable(),
+  weekend_price: z.number().int().min(0).optional().nullable(),
   weekday_2_meals_price: z.number().int().min(0).optional().nullable(),
   weekday_3_meals_price: z.number().int().min(0).optional().nullable(),
   weekend_2_meals_price: z.number().int().min(0).optional().nullable(),
   weekend_3_meals_price: z.number().int().min(0).optional().nullable(),
+}).refine((data) => {
+  // 至少要填寫一組完整的價格（平日+假日）
+  const hasBasicPrice = data.weekday_price != null && data.weekend_price != null;
+  const has2MealsPrice = data.weekday_2_meals_price != null && data.weekend_2_meals_price != null;
+  const has3MealsPrice = data.weekday_3_meals_price != null && data.weekend_3_meals_price != null;
+  return hasBasicPrice || has2MealsPrice || has3MealsPrice;
+}, {
+  message: "至少要填寫一組完整的價格（基本價格、含兩餐或含三餐的平日和假日價格）",
+  path: ["weekday_price"],
 });
 
 export function PricingTemplateManager({ accommodationId }: PricingTemplateManagerProps) {
@@ -82,8 +91,8 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
   const [formData, setFormData] = useState({
     template_name: "",
     description: "",
-    weekday_price: 0,
-    weekend_price: 0,
+    weekday_price: null as number | null,
+    weekend_price: null as number | null,
     weekday_2_meals_price: null as number | null,
     weekday_3_meals_price: null as number | null,
     weekend_2_meals_price: null as number | null,
@@ -139,8 +148,8 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
     setFormData({
       template_name: "",
       description: "",
-      weekday_price: 0,
-      weekend_price: 0,
+      weekday_price: null,
+      weekend_price: null,
       weekday_2_meals_price: null,
       weekday_3_meals_price: null,
       weekend_2_meals_price: null,
@@ -363,7 +372,8 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
           </div>
 
           <div className="border rounded-lg p-4 bg-muted/50">
-            <h4 className="font-medium mb-4">價格設定</h4>
+            <h4 className="font-medium mb-2">價格設定</h4>
+            <p className="text-sm text-muted-foreground mb-4">至少填寫一組完整價格（平日+假日）</p>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -375,32 +385,34 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                 </thead>
                 <tbody>
                   <tr className="border-b">
-                    <td className="py-3 px-2 font-medium">基本價格 *</td>
+                    <td className="py-3 px-2 font-medium">基本價格</td>
                     <td className="py-3 px-2">
                       <Input
                         id="weekday_price"
                         type="number"
                         min="0"
-                        value={formData.weekday_price}
-                        onChange={(e) => setFormData({ ...formData, weekday_price: parseInt(e.target.value) || 0 })}
+                        value={formData.weekday_price ?? ""}
+                        onChange={(e) => setFormData({ 
+                          ...formData, 
+                          weekday_price: e.target.value ? parseInt(e.target.value) : null 
+                        })}
+                        placeholder="選填"
                         className="text-center"
                       />
-                      {errors.weekday_price && (
-                        <p className="text-xs text-destructive mt-1">{errors.weekday_price}</p>
-                      )}
                     </td>
                     <td className="py-3 px-2">
                       <Input
                         id="weekend_price"
                         type="number"
                         min="0"
-                        value={formData.weekend_price}
-                        onChange={(e) => setFormData({ ...formData, weekend_price: parseInt(e.target.value) || 0 })}
+                        value={formData.weekend_price ?? ""}
+                        onChange={(e) => setFormData({ 
+                          ...formData, 
+                          weekend_price: e.target.value ? parseInt(e.target.value) : null 
+                        })}
+                        placeholder="選填"
                         className="text-center"
                       />
-                      {errors.weekend_price && (
-                        <p className="text-xs text-destructive mt-1">{errors.weekend_price}</p>
-                      )}
                     </td>
                   </tr>
                   <tr className="border-b">
@@ -410,7 +422,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                         id="weekday_2_meals_price"
                         type="number"
                         min="0"
-                        value={formData.weekday_2_meals_price || ""}
+                        value={formData.weekday_2_meals_price ?? ""}
                         onChange={(e) => setFormData({ 
                           ...formData, 
                           weekday_2_meals_price: e.target.value ? parseInt(e.target.value) : null 
@@ -424,7 +436,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                         id="weekend_2_meals_price"
                         type="number"
                         min="0"
-                        value={formData.weekend_2_meals_price || ""}
+                        value={formData.weekend_2_meals_price ?? ""}
                         onChange={(e) => setFormData({ 
                           ...formData, 
                           weekend_2_meals_price: e.target.value ? parseInt(e.target.value) : null 
@@ -441,7 +453,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                         id="weekday_3_meals_price"
                         type="number"
                         min="0"
-                        value={formData.weekday_3_meals_price || ""}
+                        value={formData.weekday_3_meals_price ?? ""}
                         onChange={(e) => setFormData({ 
                           ...formData, 
                           weekday_3_meals_price: e.target.value ? parseInt(e.target.value) : null 
@@ -455,7 +467,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                         id="weekend_3_meals_price"
                         type="number"
                         min="0"
-                        value={formData.weekend_3_meals_price || ""}
+                        value={formData.weekend_3_meals_price ?? ""}
                         onChange={(e) => setFormData({ 
                           ...formData, 
                           weekend_3_meals_price: e.target.value ? parseInt(e.target.value) : null 
@@ -468,6 +480,9 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                 </tbody>
               </table>
             </div>
+            {errors.weekday_price && (
+              <p className="text-sm text-destructive mt-2">{errors.weekday_price}</p>
+            )}
           </div>
 
           <div className="flex gap-3 pt-4">
