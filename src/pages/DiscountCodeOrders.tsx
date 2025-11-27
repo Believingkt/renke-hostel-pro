@@ -1,16 +1,24 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubdomain } from "@/hooks/use-subdomain";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Calendar, DollarSign, User, Phone, Mail, Ticket, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Calendar, DollarSign, User, Phone, Mail, Ticket, ShoppingCart, Home, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { ErrorState } from "@/components/ErrorState";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import {
   Table,
   TableBody,
@@ -119,6 +127,28 @@ const DiscountCodeOrders = () => {
 
   return (
     <div className="space-y-6 md:space-y-8">
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link to="/admin" className="flex items-center hover:opacity-70 transition-opacity">
+                <Home className="h-4 w-4" />
+              </Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link to="/admin/discount-codes">網紅導購</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>折扣碼訂單 {discountCode}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
       <PageHeader
         title={`折扣代碼訂單`}
         icon={Ticket}
