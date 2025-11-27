@@ -38,6 +38,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { PageHeader } from "@/components/PageHeader";
 import {
   Dialog,
   DialogContent,
@@ -64,7 +65,6 @@ import { HeroCarouselPreviewDialog } from "@/components/HeroCarouselPreviewDialo
 import { OgImagePreview } from "@/components/OgImagePreview";
 import { OgImageCropDialog } from "@/components/OgImageCropDialog";
 import { bookingSettingsSchema, addonSettingsSchema } from "@/utils/roomValidation";
-import { PageHeader } from "@/components/PageHeader";
 
 // 定義所有設施項目
 const facilitiesData = {
@@ -2113,14 +2113,8 @@ const WebsiteContent = () => {
   return (
     <div className="space-y-6 md:space-y-8 p-4 md:p-0">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        {/* 基本資料 Tab */}
         <TabsContent value="basic-info" className="space-y-6">
-          <div className="pb-4 md:pb-6 border-b border-primary/20 mb-4 md:mb-6">
-            <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-2 md:gap-3">
-              <Info className="h-6 w-6 md:h-7 md:w-7 text-primary" />
-              網頁設定
-            </h2>
-          </div>
+          <PageHeader title="網頁設定" icon={Info} />
           <WebInfoSection
             accommodationId={accommodationId || ''}
             heroPhotos={heroPhotos}
@@ -2206,12 +2200,7 @@ const WebsiteContent = () => {
         </TabsContent>
 
         <TabsContent value="facilities" className="space-y-6">
-          <div className="pb-4 md:pb-6 border-b border-primary/20 mb-4 md:mb-6">
-            <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-2 md:gap-3">
-              <Wrench className="h-6 w-6 md:h-7 md:w-7 text-primary" />
-              設施服務
-            </h2>
-          </div>
+          <PageHeader title="設施服務" icon={Wrench} />
           {/* 公共區設施與服務 */}
           <Card>
             <CardContent className="pt-6">
@@ -2367,14 +2356,8 @@ const WebsiteContent = () => {
           />
         </TabsContent>
 
-        {/* 加購方案 Tab */}
         <TabsContent value="addon-plans" className="space-y-6">
-          <div className="pb-4 md:pb-6 border-b border-primary/20 mb-4 md:mb-6">
-            <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-2 md:gap-3">
-              <Package className="h-6 w-6 md:h-7 md:w-7 text-primary" />
-              加購方案
-            </h2>
-          </div>
+          <PageHeader title="加購方案" icon={Package} />
           {/* 寵物方案 */}
           <Card>
             <CardHeader>
@@ -2550,32 +2533,28 @@ const WebsiteContent = () => {
 
         {/* 相簿管理 Tab */}
         <TabsContent value="gallery" className="space-y-6">
-          <div className="pb-4 md:pb-6 border-b border-primary/20 mb-4 md:mb-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-2 md:gap-3">
-                <ImageIcon className="h-6 w-6 md:h-7 md:w-7 text-primary" />
-                精選照片
-              </h2>
-              <div className="flex justify-end">
-                <Button
-                  onClick={() => document.getElementById('photo-upload')?.click()}
-                  disabled={uploadingPhoto}
-                  size="default"
-                  className="gap-2"
-                >
-                  <Upload className="h-4 w-4" />
-                  {uploadingPhoto ? '上傳中...' : '上傳照片'}
-                </Button>
-                <input
-                  id="photo-upload"
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoUpload}
-                  className="hidden"
-                />
-              </div>
-            </div>
-          </div>
+          <PageHeader 
+            title="精選照片" 
+            icon={ImageIcon}
+            action={
+              <Button
+                onClick={() => document.getElementById('photo-upload')?.click()}
+                disabled={uploadingPhoto}
+                size="default"
+                className="gap-2"
+              >
+                <Upload className="h-4 w-4" />
+                {uploadingPhoto ? '上傳中...' : '上傳照片'}
+              </Button>
+            }
+          />
+          <input
+            id="photo-upload"
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoUpload}
+            className="hidden"
+          />
           <Card>
             <CardContent className="pt-6 space-y-6">
 
@@ -2613,12 +2592,7 @@ const WebsiteContent = () => {
         </TabsContent>
 
         <TabsContent value="booking-info" className="space-y-6">
-          <div className="pb-4 md:pb-6 border-b border-primary/20 mb-4 md:mb-6">
-            <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-2 md:gap-3">
-              <BookOpen className="h-6 w-6 md:h-7 md:w-7 text-primary" />
-              訂房須知
-            </h2>
-          </div>
+          <PageHeader title="訂房須知" icon={BookOpen} />
           {/* 入住退房時間 */}
           <Card>
             <CardHeader>
@@ -2832,14 +2806,8 @@ const WebsiteContent = () => {
           </Card>
         </TabsContent>
 
-        {/* Location Tab */}
         <TabsContent value="location" className="space-y-6">
-          <div className="pb-4 md:pb-6 border-b border-primary/20 mb-4 md:mb-6">
-            <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-2 md:gap-3">
-              <Navigation className="h-6 w-6 md:h-7 md:w-7 text-primary" />
-              交通地圖
-            </h2>
-          </div>
+          <PageHeader title="交通地圖" icon={Navigation} />
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
