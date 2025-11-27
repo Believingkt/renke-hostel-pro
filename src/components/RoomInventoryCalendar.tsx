@@ -322,17 +322,21 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
     }
   };
 
-  const handleDoubleClick = (dateStr: string) => {
-    if (isSelectionMode) return; // 在批量編輯模式下不觸發雙擊編輯
-    
-    const dayData = inventory[dateStr];
-    setEditingDate(dateStr);
-    setSingleEditData({
-      price: dayData?.price?.toString() || "",
-      availableRooms: dayData?.availableRooms?.toString() || "",
-      isAvailable: dayData?.isAvailable ?? true,
-    });
-    setSingleEditDialogOpen(true);
+  const handleSingleClick = (dateStr: string) => {
+    if (isSelectionMode) {
+      // 在批量編輯模式下執行選擇邏輯
+      toggleDateSelection(dateStr);
+    } else {
+      // 在一般模式下開啟單日編輯對話框
+      const dayData = inventory[dateStr];
+      setEditingDate(dateStr);
+      setSingleEditData({
+        price: dayData?.price?.toString() || "",
+        availableRooms: dayData?.availableRooms?.toString() || "",
+        isAvailable: dayData?.isAvailable ?? true,
+      });
+      setSingleEditDialogOpen(true);
+    }
   };
 
   const handleSingleDateUpdate = async () => {
@@ -598,8 +602,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
               return (
                 <div
                   key={dateStr}
-                  onClick={() => toggleDateSelection(dateStr)}
-                  onDoubleClick={() => handleDoubleClick(dateStr)}
+                  onClick={() => handleSingleClick(dateStr)}
                   className={cn(
                     "relative min-h-[80px] sm:min-h-[90px] md:min-h-[100px] border rounded-lg p-1.5 sm:p-2 flex flex-col items-center justify-center transition-all",
                     isTodayDate && "border-blue-600 border-2",
@@ -674,7 +677,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
           </div>
           {!isSelectionMode && (
             <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
-              💡 提示：雙擊日期可快速編輯當天的價格和庫存
+              💡 提示：點擊日期可快速編輯當天的價格和庫存
             </div>
           )}
         </div>
