@@ -47,9 +47,9 @@ export const roomTypeSchema = z.object({
   display_order: z.string().trim().refine(
     (val) => {
       const num = parseInt(val);
-      return !isNaN(num) && num >= 0 && num <= 999;
+      return !isNaN(num) && num >= 1 && num <= 999;
     },
-    { message: "顯示順序必須介於 0-999 之間" }
+    { message: "顯示順序必須介於 1-999 之間" }
   ).optional(),
 });
 
