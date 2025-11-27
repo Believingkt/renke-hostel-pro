@@ -524,51 +524,109 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
               </div>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="grid gap-4 md:grid-cols-2">
               {templates.map((template) => (
                 <Card key={template.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
+                  <CardContent className="p-5">
+                    <div className="space-y-4">
+                      {/* 標題和描述 */}
+                      <div>
                         <h4 className="font-semibold text-lg mb-1">{template.template_name}</h4>
                         {template.description && (
-                          <p className="text-sm text-muted-foreground mb-3">{template.description}</p>
+                          <p className="text-sm text-muted-foreground">{template.description}</p>
                         )}
-                        <div className="grid grid-cols-2 gap-3 text-sm">
-                          <div>
-                            <span className="text-muted-foreground">平日：</span>
-                            <span className="font-bold text-primary ml-1">
-                              NT$ {template.weekday_price.toLocaleString()}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">假日：</span>
-                            <span className="font-bold text-primary ml-1">
-                              NT$ {template.weekend_price.toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
                       </div>
-                      <div className="flex gap-2 ml-4">
+
+                      {/* 價格類型顯示 */}
+                      <div className="space-y-3">
+                        {/* 一泊二食 */}
+                        {(template.weekday_2_meals_price || template.weekend_2_meals_price) && (
+                          <div className="bg-muted/50 rounded-lg p-3">
+                            <div className="font-medium text-sm mb-2 flex items-center gap-2">
+                              <span className="inline-block w-2 h-2 rounded-full bg-primary"></span>
+                              一泊二食
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-sm">
+                              {template.weekday_2_meals_price && (
+                                <div>
+                                  <span className="text-muted-foreground">平日</span>
+                                  <div className="font-bold text-foreground">
+                                    NT$ {template.weekday_2_meals_price.toLocaleString()}
+                                  </div>
+                                </div>
+                              )}
+                              {template.weekend_2_meals_price && (
+                                <div>
+                                  <span className="text-muted-foreground">假日</span>
+                                  <div className="font-bold text-foreground">
+                                    NT$ {template.weekend_2_meals_price.toLocaleString()}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 一泊三食 */}
+                        {(template.weekday_3_meals_price || template.weekend_3_meals_price) && (
+                          <div className="bg-muted/50 rounded-lg p-3">
+                            <div className="font-medium text-sm mb-2 flex items-center gap-2">
+                              <span className="inline-block w-2 h-2 rounded-full bg-secondary"></span>
+                              一泊三食
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-sm">
+                              {template.weekday_3_meals_price && (
+                                <div>
+                                  <span className="text-muted-foreground">平日</span>
+                                  <div className="font-bold text-foreground">
+                                    NT$ {template.weekday_3_meals_price.toLocaleString()}
+                                  </div>
+                                </div>
+                              )}
+                              {template.weekend_3_meals_price && (
+                                <div>
+                                  <span className="text-muted-foreground">假日</span>
+                                  <div className="font-bold text-foreground">
+                                    NT$ {template.weekend_3_meals_price.toLocaleString()}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 如果都沒有價格 */}
+                        {!template.weekday_2_meals_price && !template.weekend_2_meals_price &&
+                         !template.weekday_3_meals_price && !template.weekend_3_meals_price && (
+                          <div className="text-sm text-muted-foreground text-center py-2">
+                            尚未設定價格
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 操作按鈕 */}
+                      <div className="flex gap-2 pt-2 border-t">
                         <Button
                           variant="default"
                           size="sm"
                           onClick={() => handleApply(template)}
-                          className="gap-2"
+                          className="flex-1 gap-2"
+                          disabled={!template.weekday_2_meals_price && !template.weekend_2_meals_price &&
+                                   !template.weekday_3_meals_price && !template.weekend_3_meals_price}
                         >
                           <CalendarCheck className="h-4 w-4" />
                           套用
                         </Button>
                         <Button
                           variant="outline"
-                          size="icon"
+                          size="sm"
                           onClick={() => handleEdit(template)}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost-destructive"
-                          size="icon"
+                          size="sm"
                           onClick={() => handleDelete(template)}
                         >
                           <Trash2 className="h-4 w-4" />
