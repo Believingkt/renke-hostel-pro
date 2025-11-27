@@ -90,6 +90,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [availableRooms, setAvailableRooms] = useState<number>(1);
   const [applying, setApplying] = useState(false);
+  const [selectedPriceType, setSelectedPriceType] = useState<'2meals' | '3meals'>('2meals');
   
   const [formData, setFormData] = useState({
     template_name: "",
@@ -265,6 +266,12 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
     setSelectedRoomTypes([]);
     setDateRange(undefined);
     setAvailableRooms(1);
+    // 預設選擇有值的價格類型
+    if (template.weekday_2_meals_price || template.weekend_2_meals_price) {
+      setSelectedPriceType('2meals');
+    } else {
+      setSelectedPriceType('3meals');
+    }
     setApplyDialogOpen(true);
   };
 
@@ -296,10 +303,17 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       for (const roomTypeId of selectedRoomTypes) {
         for (const date of dates) {
           const weekend = isWeekend(date);
-          // 優先使用一泊二食價格，如果沒有則使用一泊三食價格
-          const price = weekend 
-            ? (applyingTemplate.weekend_2_meals_price ?? applyingTemplate.weekend_3_meals_price ?? 0)
-            : (applyingTemplate.weekday_2_meals_price ?? applyingTemplate.weekday_3_meals_price ?? 0);
+          // 根據選擇的價格類型決定套用哪個價格
+          let price = 0;
+          if (selectedPriceType === '2meals') {
+            price = weekend 
+              ? (applyingTemplate.weekend_2_meals_price ?? 0)
+              : (applyingTemplate.weekday_2_meals_price ?? 0);
+          } else {
+            price = weekend 
+              ? (applyingTemplate.weekend_3_meals_price ?? 0)
+              : (applyingTemplate.weekday_3_meals_price ?? 0);
+          }
           
           records.push({
             room_type_id: roomTypeId,
@@ -609,6 +623,92 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
               />
             </div>
 
+            {/* 價格類型選擇 */}
+            <div className="space-y-2">
+              <Label>選擇價格類型 *</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSelectedPriceType('2meals')}
+                  disabled={!applyingTemplate?.weekday_2_meals_price && !applyingTemplate?.weekend_2_meals_price}
+                  className={`
+                    p-4 rounded-lg border-2 transition-all text-left
+                    ${selectedPriceType === '2meals' 
+                      ? 'border-primary bg-primary/5' 
+                      : 'border-border hover:border-primary/50'
+                    }
+                    ${(!applyingTemplate?.weekday_2_meals_price && !applyingTemplate?.weekend_2_meals_price)
+                      ? 'opacity-50 cursor-not-allowed'
+                      : 'cursor-pointer'
+                    }
+                  `}
+                >
+                  <div className="font-medium mb-1">一泊二食</div>
+                  {applyingTemplate && (
+                    <div className="text-sm space-y-1">
+                      {applyingTemplate.weekday_2_meals_price && (
+                        <div className="text-muted-foreground">
+                          平日：<span className="font-medium text-foreground">
+                            NT$ {applyingTemplate.weekday_2_meals_price.toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                      {applyingTemplate.weekend_2_meals_price && (
+                        <div className="text-muted-foreground">
+                          假日：<span className="font-medium text-foreground">
+                            NT$ {applyingTemplate.weekend_2_meals_price.toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                      {!applyingTemplate.weekday_2_meals_price && !applyingTemplate.weekend_2_meals_price && (
+                        <div className="text-xs text-muted-foreground">未設定</div>
+                      )}
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedPriceType('3meals')}
+                  disabled={!applyingTemplate?.weekday_3_meals_price && !applyingTemplate?.weekend_3_meals_price}
+                  className={`
+                    p-4 rounded-lg border-2 transition-all text-left
+                    ${selectedPriceType === '3meals' 
+                      ? 'border-primary bg-primary/5' 
+                      : 'border-border hover:border-primary/50'
+                    }
+                    ${(!applyingTemplate?.weekday_3_meals_price && !applyingTemplate?.weekend_3_meals_price)
+                      ? 'opacity-50 cursor-not-allowed'
+                      : 'cursor-pointer'
+                    }
+                  `}
+                >
+                  <div className="font-medium mb-1">一泊三食</div>
+                  {applyingTemplate && (
+                    <div className="text-sm space-y-1">
+                      {applyingTemplate.weekday_3_meals_price && (
+                        <div className="text-muted-foreground">
+                          平日：<span className="font-medium text-foreground">
+                            NT$ {applyingTemplate.weekday_3_meals_price.toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                      {applyingTemplate.weekend_3_meals_price && (
+                        <div className="text-muted-foreground">
+                          假日：<span className="font-medium text-foreground">
+                            NT$ {applyingTemplate.weekend_3_meals_price.toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                      {!applyingTemplate.weekday_3_meals_price && !applyingTemplate.weekend_3_meals_price && (
+                        <div className="text-xs text-muted-foreground">未設定</div>
+                      )}
+                    </div>
+                  )}
+                </button>
+              </div>
+            </div>
+
             {/* 房型選擇 */}
             <div className="space-y-2">
               <Label>選擇房型 *</Label>
@@ -660,27 +760,6 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                 設定每天的可用房數（庫存）
               </p>
             </div>
-
-            {/* 價格預覽 */}
-            {applyingTemplate && (
-              <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                <h4 className="font-medium text-sm">套用的價格</h4>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">平日：</span>
-                    <span className="font-bold text-primary ml-1">
-                      NT$ {applyingTemplate.weekday_price.toLocaleString()}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">假日：</span>
-                    <span className="font-bold text-primary ml-1">
-                      NT$ {applyingTemplate.weekend_price.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
           <DialogFooter>
