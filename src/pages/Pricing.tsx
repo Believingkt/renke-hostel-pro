@@ -347,7 +347,7 @@ const Pricing = () => {
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link to="/admin/dashboard">
+              <Link to="/admin/dashboard" className="flex items-center hover:opacity-70 transition-opacity">
                 <Home className="h-4 w-4" />
               </Link>
             </BreadcrumbLink>
