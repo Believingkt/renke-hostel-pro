@@ -293,6 +293,14 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
     }
   };
 
+  const selectWeekdays = () => {
+    setSelectedDays([1, 2, 3, 4, 5]); // 一到五
+  };
+
+  const selectWeekend = () => {
+    setSelectedDays([0, 6]); // 日和六
+  };
+
   const toggleRoomType = (roomTypeId: string) => {
     setSelectedRoomTypes(prev => 
       prev.includes(roomTypeId) 
@@ -715,26 +723,55 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
             {/* 套用星期選擇 */}
             <div className="space-y-2">
               <Label>套用星期</Label>
-              <div className="border rounded-lg p-4">
-                <div className="flex flex-wrap items-center gap-3">
+              <div className="border rounded-lg p-4 space-y-4">
+                {/* 快捷選項 */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm text-muted-foreground mr-2">快捷選項：</span>
                   <button
                     type="button"
                     onClick={toggleAllDays}
                     className={`
-                      flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all
+                      flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all text-sm
                       ${selectedDays.length === 7
                         ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border hover:border-primary'
+                        : 'border-border hover:border-primary hover:bg-accent'
                       }
                     `}
                   >
-                    {selectedDays.length === 7 ? (
-                      <CheckSquare className="h-4 w-4" />
-                    ) : (
-                      <Square className="h-4 w-4" />
-                    )}
                     <span className="font-medium">全選</span>
                   </button>
+                  <button
+                    type="button"
+                    onClick={selectWeekdays}
+                    className={`
+                      flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all text-sm
+                      ${JSON.stringify(selectedDays) === JSON.stringify([1, 2, 3, 4, 5])
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border hover:border-primary hover:bg-accent'
+                      }
+                    `}
+                  >
+                    <span className="font-medium">工作日</span>
+                    <span className="text-xs opacity-75">(一~五)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={selectWeekend}
+                    className={`
+                      flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all text-sm
+                      ${JSON.stringify(selectedDays) === JSON.stringify([0, 6])
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border hover:border-primary hover:bg-accent'
+                      }
+                    `}
+                  >
+                    <span className="font-medium">週末</span>
+                    <span className="text-xs opacity-75">(六、日)</span>
+                  </button>
+                </div>
+
+                {/* 個別星期選擇 */}
+                <div className="flex flex-wrap items-center gap-3 pt-3 border-t">
 
                   {[
                     { day: 0, label: '日' },
@@ -750,10 +787,10 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                       type="button"
                       onClick={() => toggleDay(day)}
                       className={`
-                        flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all
+                        flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all
                         ${selectedDays.includes(day)
                           ? 'border-primary bg-primary text-primary-foreground'
-                          : 'border-border hover:border-primary'
+                          : 'border-border hover:border-primary hover:bg-accent'
                         }
                       `}
                     >
