@@ -403,7 +403,6 @@ const Pricing = () => {
               庫存設定
             </h2>
           </div>
-          <InventoryCalendar accommodationId={currentAccommodationId || ""} />
         </TabsContent>
 
         <TabsContent value="holidays" className="space-y-4">
