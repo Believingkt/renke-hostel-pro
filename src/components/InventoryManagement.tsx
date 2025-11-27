@@ -19,6 +19,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface RoomType {
   id: string;
@@ -38,6 +47,7 @@ interface InventoryManagementProps {
 }
 
 export function InventoryManagement({ accommodationId }: InventoryManagementProps) {
+  const isMobile = useIsMobile();
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [selectedRoomType, setSelectedRoomType] = useState<string>("");
   const [currentMonth, setCurrentMonth] = useState(new Date());
