@@ -4,6 +4,7 @@ import { ConditionalLayout } from "@/components/ConditionalLayout";
 import { AccommodationProvider } from "@/contexts/AccommodationContext";
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
+import { FormSkeleton } from "@/components/skeletons/FormSkeleton";
 import { FrontendSkeleton } from "@/components/skeletons/FrontendSkeleton";
 import { NetworkIndicator } from "@/components/NetworkIndicator";
 import { PageTransition } from "@/components/PageTransition";
@@ -91,7 +92,7 @@ function App() {
                 <Route 
                   path="/admin/website-content" 
                   element={
-                    <Suspense fallback={<DashboardSkeleton />}>
+                    <Suspense fallback={<FormSkeleton fields={12} hasImage={true} />}>
                       <WebsiteContent />
                     </Suspense>
                   } 
@@ -99,7 +100,7 @@ function App() {
                 <Route 
                   path="/admin/faq" 
                   element={
-                    <Suspense fallback={<DashboardSkeleton />}>
+                    <Suspense fallback={<FormSkeleton fields={3} />}>
                       <Faq />
                     </Suspense>
                   } 
@@ -123,7 +124,7 @@ function App() {
                 <Route 
                   path="/admin/pricing" 
                   element={
-                    <Suspense fallback={<DashboardSkeleton />}>
+                    <Suspense fallback={<FormSkeleton fields={8} />}>
                       <Pricing />
                     </Suspense>
                   } 
@@ -131,7 +132,7 @@ function App() {
                 <Route 
                   path="/admin/accounts" 
                   element={
-                    <Suspense fallback={<DashboardSkeleton />}>
+                    <Suspense fallback={<FormSkeleton fields={4} />}>
                       <Accounts />
                     </Suspense>
                   } 
@@ -187,7 +188,7 @@ function App() {
                 <Route 
                   path="/admin/public-holidays" 
                   element={
-                    <Suspense fallback={<DashboardSkeleton />}>
+                    <Suspense fallback={<FormSkeleton fields={2} />}>
                       <PublicHolidays />
                     </Suspense>
                   } 
@@ -195,7 +196,7 @@ function App() {
                 <Route 
                   path="/admin/backup" 
                   element={
-                    <Suspense fallback={<DashboardSkeleton />}>
+                    <Suspense fallback={<FormSkeleton fields={5} />}>
                       <DataBackup />
                     </Suspense>
                   } 
