@@ -28,6 +28,7 @@ const Faq = lazy(() => import("./pages/Faq"));
 const Orders = lazy(() => import("./pages/Orders"));
 const OrderDetail = lazy(() => import("./pages/OrderDetail"));
 const Pricing = lazy(() => import("./pages/Pricing"));
+const RoomInventory = lazy(() => import("./pages/RoomInventory"));
 const Accounts = lazy(() => import("./pages/Accounts"));
 const KolDiscount = lazy(() => import("./pages/KolDiscount"));
 const DiscountCodeOrders = lazy(() => import("./pages/DiscountCodeOrders"));
@@ -127,6 +128,14 @@ function App() {
                   element={
                     <Suspense fallback={<FormSkeleton fields={8} />}>
                       <Pricing />
+                    </Suspense>
+                  } 
+                />
+                <Route 
+                  path="/admin/room-inventory" 
+                  element={
+                    <Suspense fallback={<FormSkeleton fields={6} />}>
+                      <RoomInventory />
                     </Suspense>
                   } 
                 />
