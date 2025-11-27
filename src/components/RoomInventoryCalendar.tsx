@@ -51,6 +51,44 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
     loadInventory();
   }, [roomTypeId, currentMonth]);
 
+  // 批量編輯對話框鍵盤快捷鍵
+  useEffect(() => {
+    if (!batchEditDialogOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setBatchEditDialogOpen(false);
+      } else if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (batchEditData.price && batchEditData.availableRooms && !saving) {
+          handleBatchUpdate();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [batchEditDialogOpen, batchEditData, saving]);
+
+  // 單日期編輯對話框鍵盤快捷鍵
+  useEffect(() => {
+    if (!singleEditDialogOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSingleEditDialogOpen(false);
+      } else if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (singleEditData.price && singleEditData.availableRooms && !saving) {
+          handleSingleDateUpdate();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [singleEditDialogOpen, singleEditData, saving]);
+
   const loadInventory = async () => {
     try {
       setLoading(true);
@@ -647,7 +685,19 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
       <Dialog open={batchEditDialogOpen} onOpenChange={setBatchEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>批量編輯</DialogTitle>
+            <CardTitle className="flex items-center justify-between">
+              <span>批量編輯</span>
+              <div className="flex gap-2 text-xs font-normal text-muted-foreground">
+                <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
+                  <span className="text-xs">ESC</span>
+                </kbd>
+                <span>關閉</span>
+                <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 ml-2">
+                  <span className="text-xs">Enter</span>
+                </kbd>
+                <span>儲存</span>
+              </div>
+            </CardTitle>
             <DialogDescription>
               將對 {selectedDates.size} 個日期進行統一設定
             </DialogDescription>
@@ -722,7 +772,19 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
       <Dialog open={singleEditDialogOpen} onOpenChange={setSingleEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>編輯日期</DialogTitle>
+            <CardTitle className="flex items-center justify-between">
+              <span>編輯日期</span>
+              <div className="flex gap-2 text-xs font-normal text-muted-foreground">
+                <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
+                  <span className="text-xs">ESC</span>
+                </kbd>
+                <span>關閉</span>
+                <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 ml-2">
+                  <span className="text-xs">Enter</span>
+                </kbd>
+                <span>儲存</span>
+              </div>
+            </CardTitle>
             <DialogDescription>
               {editingDate && format(parseISO(editingDate), 'yyyy年 M月 d日（EEEE）', { locale: zhTW })}
             </DialogDescription>
