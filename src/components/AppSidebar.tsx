@@ -73,6 +73,7 @@ const menuItems = [
     icon: Hotel,
     subItems: [
       { title: "房型管理", url: "/admin/pricing?tab=rooms", icon: Bed },
+      { title: "房價庫存", url: "/admin/room-inventory", icon: Package },
       { title: "價格管理", url: "/admin/pricing?tab=basic", icon: DollarSign },
       { title: "客房設施", url: "/admin/pricing?tab=facilities", icon: Wrench },
       { title: "庫存管理", url: "/admin/pricing?tab=inventory", icon: Package },
