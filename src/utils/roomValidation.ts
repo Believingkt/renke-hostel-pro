@@ -44,13 +44,6 @@ export const roomTypeSchema = z.object({
     },
     { message: "雙人房數量必須介於 0-10 之間" }
   ).optional(),
-  display_order: z.string().trim().refine(
-    (val) => {
-      const num = parseInt(val);
-      return !isNaN(num) && num >= 1 && num <= 999;
-    },
-    { message: "顯示順序必須介於 1-999 之間" }
-  ).optional(),
 });
 
 // 訂房設定驗證
