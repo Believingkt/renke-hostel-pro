@@ -108,7 +108,7 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm">
-                      <div className="flex justify-start gap-1">
+                      <div className="flex justify-start gap-1 -ml-2">
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
