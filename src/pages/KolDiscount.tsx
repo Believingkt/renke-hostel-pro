@@ -1506,7 +1506,7 @@ const KolDiscount = () => {
                     <div className="space-y-2">
                       <div className="grid grid-cols-2 gap-2">
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           size="sm"
                           className="h-9 text-xs"
                           onClick={() => {
@@ -1518,7 +1518,7 @@ const KolDiscount = () => {
                           查看詳情
                         </Button>
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           size="sm"
                           className="h-9 text-xs"
                           onClick={() => handleOpenEdit(item)}
@@ -1529,27 +1529,27 @@ const KolDiscount = () => {
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <Button
-                          variant={item.is_active ? "outline" : "default"}
+                          variant="ghost"
                           size="sm"
                           className="h-9 text-xs"
                           onClick={() => toggleActive(item.id, item.is_active)}
                         >
                           {item.is_active ? (
                             <>
-                              <Pause className="h-3.5 w-3.5 mr-1 text-foreground" />
+                              <Pause className="h-3.5 w-3.5 mr-1" />
                               停用
                             </>
                           ) : (
                             <>
-                              <Check className="h-3.5 w-3.5 mr-1" />
+                              <Check className="h-3.5 w-3.5 mr-1 text-green-600" />
                               啟用
                             </>
                           )}
                         </Button>
                         <Button
-                          variant="ghost-destructive"
+                          variant="ghost"
                           size="sm"
-                          className="h-9 text-xs"
+                          className="h-9 text-xs text-destructive hover:text-destructive"
                           onClick={() => handleDelete(item.id)}
                         >
                           <Trash2 className="h-3.5 w-3.5 mr-1" />
