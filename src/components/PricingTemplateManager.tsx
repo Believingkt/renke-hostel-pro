@@ -203,6 +203,8 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
           .from('pricing_templates')
           .update({
             ...formData,
+            weekday_price: null,
+            weekend_price: null,
             accommodation_id: accommodationId,
           })
           .eq('id', editingTemplate.id);
@@ -214,6 +216,8 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
           .from('pricing_templates')
           .insert({
             ...formData,
+            weekday_price: null,
+            weekend_price: null,
             accommodation_id: accommodationId,
           });
 
@@ -292,10 +296,15 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       for (const roomTypeId of selectedRoomTypes) {
         for (const date of dates) {
           const weekend = isWeekend(date);
+          // 優先使用一泊二食價格，如果沒有則使用一泊三食價格
+          const price = weekend 
+            ? (applyingTemplate.weekend_2_meals_price ?? applyingTemplate.weekend_3_meals_price ?? 0)
+            : (applyingTemplate.weekday_2_meals_price ?? applyingTemplate.weekday_3_meals_price ?? 0);
+          
           records.push({
             room_type_id: roomTypeId,
             date: format(date, 'yyyy-MM-dd'),
-            price: weekend ? applyingTemplate.weekend_price : applyingTemplate.weekday_price,
+            price: price,
             available_rooms: availableRooms,
             is_available: true,
           });
