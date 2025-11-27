@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, GripVertical, Hotel, DollarSign, Wrench, Package, Calendar, Bed } from "lucide-react";
+import { Plus, Pencil, Trash2, GripVertical, Hotel, DollarSign, Wrench, Package, Calendar, Bed, Home } from "lucide-react";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -17,6 +17,14 @@ import { ErrorState } from "@/components/ErrorState";
 import PublicHolidays, { PublicHolidaysButtons } from "@/pages/PublicHolidays";
 import { InventoryManagement } from "@/components/InventoryManagement";
 import { PageHeader } from "@/components/PageHeader";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -316,8 +324,47 @@ const Pricing = () => {
     }
   };
 
+  const getTabName = (tab: string) => {
+    switch (tab) {
+      case "rooms":
+        return "房型管理";
+      case "facilities":
+        return "房間設施";
+      case "basic":
+        return "批次設定";
+      case "inventory":
+        return "庫存設定";
+      case "holidays":
+        return "國定假日";
+      default:
+        return "房型管理";
+    }
+  };
+
   return (
     <div className="space-y-6 md:space-y-8 p-4 md:p-0">
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link to="/admin/dashboard">
+                <Home className="h-4 w-4" />
+              </Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link to="/admin/pricing">價格管理</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{getTabName(activeTab)}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
       <Tabs value={activeTab} onValueChange={(value) => {
         setActiveTab(value);
         setSearchParams({ tab: value });
