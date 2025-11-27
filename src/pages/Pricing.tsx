@@ -362,7 +362,15 @@ const Pricing = () => {
           <BreadcrumbItem>
             {showForm && activeTab === "rooms" ? (
               <BreadcrumbLink asChild>
-                <Link to="/admin/pricing?tab=rooms">房型管理</Link>
+                <button 
+                  onClick={() => {
+                    setShowForm(false);
+                    setEditingRoomType(null);
+                  }}
+                  className="hover:underline cursor-pointer"
+                >
+                  房型管理
+                </button>
               </BreadcrumbLink>
             ) : (
               <BreadcrumbPage>{getTabName(activeTab)}</BreadcrumbPage>
