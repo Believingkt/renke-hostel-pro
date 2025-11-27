@@ -2459,20 +2459,18 @@ const WebsiteContent = () => {
                 }}
                 onValidate={(value) => validateAddonField('pet', 'description', value)}
               />
-              <ValidatedTextarea
-                label="詳細說明（顯示在前台「詳細內容」按鈕中）"
-                placeholder="請輸入寵物方案的詳細說明，包含注意事項、規則等..."
-                value={petPlan.detailedDescription}
-                error={petPlanErrors.detailed_description}
-                rows={6}
-                maxLength={500}
-                showCharCount
-                disabled={!petPlan.enabled}
-                onChange={(value) => {
-                  setPetPlan({ ...petPlan, detailedDescription: value });
-                }}
-                onValidate={(value) => validateAddonField('pet', 'detailed_description', value)}
-              />
+              <div className="space-y-2">
+                <Label>詳細說明（顯示在前台「詳細內容」按鈕中）</Label>
+                <RichTextEditor
+                  value={petPlan.detailedDescription}
+                  onChange={(value) => {
+                    setPetPlan({ ...petPlan, detailedDescription: value });
+                    validateAddonField('pet', 'detailed_description', value);
+                  }}
+                  placeholder="請輸入寵物方案的詳細說明，包含注意事項、規則等..."
+                  error={petPlanErrors.detailed_description}
+                />
+              </div>
             </CardContent>
           </Card>
 
@@ -2554,20 +2552,18 @@ const WebsiteContent = () => {
                 }}
                 onValidate={(value) => validateAddonField('meal', 'description', value)}
               />
-              <ValidatedTextarea
-                label="詳細說明（顯示在前台「詳細內容」按鈕中）"
-                placeholder="請輸入餐食方案的詳細說明，包含菜單內容、用餐時間等..."
-                value={mealPlan.detailedDescription}
-                error={mealPlanErrors.detailed_description}
-                rows={6}
-                maxLength={500}
-                showCharCount
-                disabled={!mealPlan.enabled}
-                onChange={(value) => {
-                  setMealPlan({ ...mealPlan, detailedDescription: value });
-                }}
-                onValidate={(value) => validateAddonField('meal', 'detailed_description', value)}
-              />
+              <div className="space-y-2">
+                <Label>詳細說明（顯示在前台「詳細內容」按鈕中）</Label>
+                <RichTextEditor
+                  value={mealPlan.detailedDescription}
+                  onChange={(value) => {
+                    setMealPlan({ ...mealPlan, detailedDescription: value });
+                    validateAddonField('meal', 'detailed_description', value);
+                  }}
+                  placeholder="請輸入餐食方案的詳細說明，包含菜單內容、用餐時間等..."
+                  error={mealPlanErrors.detailed_description}
+                />
+              </div>
             </CardContent>
           </Card>
 

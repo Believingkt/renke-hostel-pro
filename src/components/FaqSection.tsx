@@ -71,8 +71,8 @@ const FaqSection = () => {
                 <AccordionTrigger className="text-left hover:no-underline px-4 md:px-5 lg:px-6 py-3.5 md:py-4 lg:py-5 text-sm md:text-sm lg:text-base font-normal">
                   {faq.question}
                 </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground px-4 md:px-5 lg:px-6 pb-3.5 md:pb-4 lg:pb-5 pt-0 text-xs md:text-sm lg:text-sm leading-relaxed">
-                  {faq.answer}
+                <AccordionContent className="text-muted-foreground px-4 md:px-5 lg:px-6 pb-3.5 md:pb-4 lg:pb-5 pt-0 text-xs md:text-sm lg:text-sm leading-relaxed prose prose-sm max-w-none">
+                  <div dangerouslySetInnerHTML={{ __html: faq.answer }} />
                 </AccordionContent>
               </AccordionItem>
             ))}

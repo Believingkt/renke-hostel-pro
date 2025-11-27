@@ -6,7 +6,6 @@ export const roomTypeSchema = z.object({
     .min(1, { message: "房型名稱不能為空" })
     .max(50, { message: "房型名稱不能超過 50 字元" }),
   description: z.string().trim()
-    .max(500, { message: "房型描述不能超過 500 字元" })
     .optional(),
   size_sqm: z.string().trim().refine(
     (val) => {
@@ -76,7 +75,6 @@ export const addonSettingsSchema = z.object({
     .min(1, { message: "簡短描述不能為空" })
     .max(100, { message: "簡短描述不能超過 100 字元" }),
   detailed_description: z.string().trim()
-    .max(500, { message: "詳細說明不能超過 500 字元" })
     .optional(),
   unit_label: z.string().trim()
     .min(1, { message: "單位標籤不能為空" })
