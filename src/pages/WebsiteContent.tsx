@@ -2145,6 +2145,14 @@ const WebsiteContent = () => {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link to="/admin/website-content" className="hover:opacity-70 transition-opacity">
+                官網內容
+              </Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
             <BreadcrumbPage>{getBreadcrumbTitle()}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
