@@ -603,22 +603,22 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   onDoubleClick={() => handleDoubleClick(dateStr)}
                   className={cn(
                     "relative aspect-square border rounded-lg p-1 flex flex-col items-center justify-center text-xs transition-all",
-                    isTodayDate && "border-primary border-2",
+                    isTodayDate && "border-blue-600 border-2",
                     !isCurrentMonth && "opacity-50",
                     isSelectionMode && "cursor-pointer hover:scale-105",
                     !isSelectionMode && "cursor-pointer hover:scale-105 hover:shadow-md",
                     isCopyMode && hasData && "ring-2 ring-blue-400 animate-pulse",
                     isCopyMode && !hasData && "opacity-30 cursor-not-allowed",
-                    isSelected && "bg-primary/20 border-primary shadow-md",
-                    !isSelected && hasData && dayInventory.isAvailable && "bg-green-50 hover:bg-green-100",
+                    isSelected && "bg-blue-100 border-blue-600 shadow-md",
+                    !isSelected && hasData && dayInventory.isAvailable && "bg-blue-50 hover:bg-blue-100",
                     !isSelected && hasData && !dayInventory.isAvailable && "bg-gray-100",
                     !isSelected && !hasData && "hover:bg-muted"
                   )}
                 >
                   <div className={cn(
                     "font-medium mb-1",
-                    isTodayDate && "text-primary font-bold",
-                    isSelected && "text-primary font-bold"
+                    isTodayDate && "text-blue-600 font-bold",
+                    isSelected && "text-blue-700 font-bold"
                   )}>
                     {format(day, 'd')}
                   </div>
@@ -638,7 +638,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   )}
                   {isSelected && (
                     <div className="absolute top-1 right-1">
-                      <Check className="h-3 w-3 text-primary" />
+                      <Check className="h-3 w-3 text-blue-600" />
                     </div>
                   )}
                 </div>
@@ -651,7 +651,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
         <div className="space-y-3 mt-4 pt-4 border-t">
           <div className="flex flex-wrap gap-4 text-xs">
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-green-50 border rounded"></div>
+              <div className="w-4 h-4 bg-blue-50 border rounded"></div>
               <span>有庫存</span>
             </div>
             <div className="flex items-center gap-2">
@@ -663,12 +663,12 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
               <span>未設定</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-primary rounded"></div>
+              <div className="w-4 h-4 border-2 border-blue-600 rounded"></div>
               <span>今天</span>
             </div>
             {isSelectionMode && (
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-primary/20 border border-primary rounded"></div>
+                <div className="w-4 h-4 bg-blue-100 border border-blue-600 rounded"></div>
                 <span>已選擇</span>
               </div>
             )}
