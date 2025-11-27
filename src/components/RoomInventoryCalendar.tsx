@@ -409,10 +409,10 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
           {!isSelectionMode ? (
             <div className="flex justify-end">
               <Button
-                variant="outline"
+                variant="default"
                 size="sm"
                 onClick={handleStartBatchEdit}
-                className="gap-2"
+                className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <Edit className="h-4 w-4" />
                 批量編輯
