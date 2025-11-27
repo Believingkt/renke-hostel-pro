@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -343,14 +344,10 @@ const Faq = () => {
 
             <div className="space-y-2">
               <Label htmlFor="answer">答案</Label>
-              <Textarea
-                id="answer"
-                placeholder="請輸入答案"
+              <RichTextEditor
                 value={formData.answer}
-                onChange={(e) =>
-                  setFormData({ ...formData, answer: e.target.value })
-                }
-                rows={6}
+                onChange={(value) => setFormData({ ...formData, answer: value })}
+                placeholder="請輸入答案"
               />
             </div>
 

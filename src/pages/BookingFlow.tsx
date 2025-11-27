@@ -2702,26 +2702,27 @@ const BookingFlow = () => {
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 md:p-6">
-            <div className="space-y-4 md:space-y-5 text-sm md:text-base [line-height:1.8] whitespace-pre-wrap">
-              {petPlanSettings.detailedDescription || (
-                <>
-                  <h3 className="text-lg md:text-xl font-semibold">寵物入住守則</h3>
-                  <div className="space-y-4 text-sm md:text-base [line-height:1.8]">
-                    <p className="text-[15px] md:text-base">僅開放毛孩進入指定之 2 棟 Villa 及公共區域。請於訂房時選擇加購毛孩方案。</p>
-                    <p className="text-[15px] md:text-base">毛孩於辦理入住時，預先支付現金 2,000 元押金，退房確認房內各項設備正常後歸還。</p>
-                    <div className="bg-primary/5 p-3 md:p-4 rounded-lg">
-                      <h4 className="font-semibold mb-2 text-sm md:text-base">寵物專屬備品：</h4>
-                      <p className="text-[15px] md:text-base">園區提供寵物餐碗、寵物行軍床、寵物零食。</p>
+            <div 
+              className="space-y-4 md:space-y-5 text-sm md:text-base prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ 
+                __html: petPlanSettings.detailedDescription || `
+                  <h3 class="text-lg md:text-xl font-semibold">寵物入住守則</h3>
+                  <div class="space-y-4 text-sm md:text-base">
+                    <p class="text-[15px] md:text-base">僅開放毛孩進入指定之 2 棟 Villa 及公共區域。請於訂房時選擇加購毛孩方案。</p>
+                    <p class="text-[15px] md:text-base">毛孩於辦理入住時，預先支付現金 2,000 元押金，退房確認房內各項設備正常後歸還。</p>
+                    <div class="bg-primary/5 p-3 md:p-4 rounded-lg">
+                      <h4 class="font-semibold mb-2 text-sm md:text-base">寵物專屬備品：</h4>
+                      <p class="text-[15px] md:text-base">園區提供寵物餐碗、寵物行軍床、寵物零食。</p>
                     </div>
-                    <div className="bg-destructive/10 p-3 md:p-4 rounded-lg border border-destructive/20">
-                      <p className="font-semibold text-destructive text-[15px] md:text-base">
+                    <div class="bg-destructive/10 p-3 md:p-4 rounded-lg border border-destructive/20">
+                      <p class="font-semibold text-destructive text-[15px] md:text-base">
                         若違反下述規範，家長則須支付 5,000 元罰金。
                       </p>
                     </div>
                   </div>
-                </>
-              )}
-            </div>
+                `
+              }}
+            />
           </div>
 
           <div className="p-4 md:p-6 border-t bg-muted/30">
@@ -2744,29 +2745,30 @@ const BookingFlow = () => {
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 md:p-6">
-            <div className="space-y-4 md:space-y-5 text-sm md:text-base [line-height:1.8] whitespace-pre-wrap">
-              {mealPlanSettings.detailedDescription || (
-                <>
+            <div 
+              className="space-y-4 md:space-y-5 text-sm md:text-base prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ 
+                __html: mealPlanSettings.detailedDescription || `
                   <div>
-                    <p className="text-base md:text-lg text-muted-foreground font-semibold mb-1">森山寫照 X 燃甄 RAN RAN</p>
-                    <p className="text-lg md:text-xl font-bold text-primary">炭火饗之夜 Evening Dining Set</p>
+                    <p class="text-base md:text-lg text-muted-foreground font-semibold mb-1">森山寫照 X 燃甄 RAN RAN</p>
+                    <p class="text-lg md:text-xl font-bold text-primary">炭火饗之夜 Evening Dining Set</p>
                   </div>
-                  <div className="bg-muted/50 p-3 md:p-4 rounded-lg">
-                    <h3 className="text-base md:text-lg font-semibold mb-3">📋 注意事項</h3>
-                    <ul className="space-y-3 text-sm md:text-base [line-height:1.8] list-none">
-                      <li className="flex gap-2">
-                        <span className="text-primary font-semibold flex-shrink-0">•</span>
-                        <span className="text-[15px] md:text-base">平日下限{mealPlanSettings.weekdayMinQuantity}人，假日下限{mealPlanSettings.weekendMinQuantity}人，上限{mealPlanSettings.maxQuantity}人</span>
+                  <div class="bg-muted/50 p-3 md:p-4 rounded-lg">
+                    <h3 class="text-base md:text-lg font-semibold mb-3">📋 注意事項</h3>
+                    <ul class="space-y-3 text-sm md:text-base list-none">
+                      <li class="flex gap-2">
+                        <span class="text-primary font-semibold flex-shrink-0">•</span>
+                        <span class="text-[15px] md:text-base">平日下限${mealPlanSettings.weekdayMinQuantity}人，假日下限${mealPlanSettings.weekendMinQuantity}人，上限${mealPlanSettings.maxQuantity}人</span>
                       </li>
-                      <li className="flex gap-2">
-                        <span className="text-primary font-semibold flex-shrink-0">•</span>
-                        <span className="text-[15px] md:text-base">需於訂房時預約，現場恕不接受臨時加購</span>
+                      <li class="flex gap-2">
+                        <span class="text-primary font-semibold flex-shrink-0">•</span>
+                        <span class="text-[15px] md:text-base">需於訂房時預約，現場恕不接受臨時加購</span>
                       </li>
                     </ul>
                   </div>
-                </>
-              )}
-            </div>
+                `
+              }}
+            />
           </div>
 
           <div className="p-4 md:p-6 border-t bg-muted/30">

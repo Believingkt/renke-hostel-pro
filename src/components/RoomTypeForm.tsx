@@ -7,6 +7,7 @@ import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { ValidatedInput } from "@/components/ui/validated-input";
 import { ValidatedTextarea } from "@/components/ui/validated-textarea";
 import { ValidatedNumberInput } from "@/components/ui/validated-number-input";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { DraftRestoreBanner } from "@/components/ui/draft-restore-banner";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -402,21 +403,18 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
             maxLength={50}
           />
 
-          <ValidatedTextarea
-            id="description"
-            label="房型描述"
-            value={formData.description}
-            onChange={(value) => {
-              setFormData(prev => ({ ...prev, description: value }));
-              validateField('description', value);
-            }}
-            onValidate={(value) => validateField('description', value)}
-            error={errors.description}
-            placeholder="描述房型特色..."
-            rows={3}
-            showCharCount
-            maxLength={500}
-          />
+          <div className="space-y-2">
+            <Label htmlFor="description">房型描述</Label>
+            <RichTextEditor
+              value={formData.description}
+              onChange={(value) => {
+                setFormData(prev => ({ ...prev, description: value }));
+                validateField('description', value);
+              }}
+              placeholder="描述房型特色..."
+              error={errors.description}
+            />
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <ValidatedNumberInput
