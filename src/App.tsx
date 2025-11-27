@@ -5,6 +5,7 @@ import { AccommodationProvider } from "@/contexts/AccommodationContext";
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { FormSkeleton } from "@/components/skeletons/FormSkeleton";
+import { DetailSkeleton } from "@/components/skeletons/DetailSkeleton";
 import { FrontendSkeleton } from "@/components/skeletons/FrontendSkeleton";
 import { NetworkIndicator } from "@/components/NetworkIndicator";
 import { PageTransition } from "@/components/PageTransition";
@@ -116,7 +117,7 @@ function App() {
                 <Route 
                   path="/admin/orders/:orderId" 
                   element={
-                    <Suspense fallback={<DashboardSkeleton />}>
+                    <Suspense fallback={<DetailSkeleton sections={4} />}>
                       <OrderDetail />
                     </Suspense>
                   } 
