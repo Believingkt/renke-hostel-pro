@@ -27,6 +27,12 @@ export function useFormDraft<T extends Record<string, any>>({
   const [isDraftRestored, setIsDraftRestored] = useState(false);
   const autoSaveTimerRef = useRef<NodeJS.Timeout>();
   const isInitialMount = useRef(true);
+  const initialDataRef = useRef<T>(initialData);
+
+  // 更新 initialDataRef 當 initialData 改變時
+  useEffect(() => {
+    initialDataRef.current = initialData;
+  }, [initialData]);
 
   // 檢查是否有草稿
   useEffect(() => {
@@ -46,7 +52,7 @@ export function useFormDraft<T extends Record<string, any>>({
 
   // 自動儲存草稿
   useEffect(() => {
-    // 跳過初始掛載和已恢復草稿的情況
+    // 跳過初始掛載
     if (isInitialMount.current) {
       return;
     }
@@ -59,16 +65,41 @@ export function useFormDraft<T extends Record<string, any>>({
     // 設置新的定時器
     autoSaveTimerRef.current = setTimeout(() => {
       try {
-        // 檢查表單是否有實際內容（不是空的初始狀態）
-        const hasContent = Object.values(formData).some(value => {
-          if (typeof value === 'string') return value.trim().length > 0;
-          if (typeof value === 'number') return value !== 0;
-          if (Array.isArray(value)) return value.length > 0;
-          return value != null;
+        // 比較當前數據和初始數據，檢查是否有變更
+        const hasChanges = Object.keys(formData).some(key => {
+          const currentValue = formData[key];
+          const initialValue = initialDataRef.current[key];
+          
+          // 處理不同類型的比較
+          if (typeof currentValue === 'string' && typeof initialValue === 'string') {
+            return currentValue.trim() !== initialValue.trim();
+          }
+          if (Array.isArray(currentValue) && Array.isArray(initialValue)) {
+            return JSON.stringify(currentValue) !== JSON.stringify(initialValue);
+          }
+          return currentValue !== initialValue;
         });
 
-        if (hasContent) {
-          localStorage.setItem(key, JSON.stringify(formData));
+        if (hasChanges) {
+          // 有變更時才儲存草稿
+          const hasContent = Object.values(formData).some(value => {
+            if (typeof value === 'string') return value.trim().length > 0;
+            if (typeof value === 'number') return value !== 0;
+            if (Array.isArray(value)) return value.length > 0;
+            return value != null;
+          });
+
+          if (hasContent) {
+            localStorage.setItem(key, JSON.stringify(formData));
+            setHasDraft(true);
+          }
+        } else {
+          // 沒有變更時清除草稿
+          const existingDraft = localStorage.getItem(key);
+          if (existingDraft && !isDraftRestored) {
+            localStorage.removeItem(key);
+            setHasDraft(false);
+          }
         }
       } catch (error) {
         console.error('Failed to save draft:', error);
@@ -80,7 +111,7 @@ export function useFormDraft<T extends Record<string, any>>({
         clearTimeout(autoSaveTimerRef.current);
       }
     };
-  }, [formData, key, autoSaveDelay]);
+  }, [formData, key, autoSaveDelay, isDraftRestored]);
 
   // 恢復草稿
   const restoreDraft = () => {
