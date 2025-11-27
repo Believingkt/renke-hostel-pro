@@ -69,7 +69,7 @@ const templateSchema = z.object({
   const has3MealsPrice = data.weekday_3_meals_price != null && data.weekend_3_meals_price != null;
   return hasBasicPrice || has2MealsPrice || has3MealsPrice;
 }, {
-  message: "至少要填寫一組完整的價格（基本價格、含兩餐或含三餐的平日和假日價格）",
+  message: "至少要填寫一組完整的價格（無附餐食、一泊二食或一泊三食的平日和假日價格）",
   path: ["weekday_price"],
 });
 
@@ -373,7 +373,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
 
           <div className="border rounded-lg p-4 bg-muted/50">
             <h4 className="font-medium mb-2">價格設定</h4>
-            <p className="text-sm text-muted-foreground mb-4">至少填寫一組完整價格（平日+假日）</p>
+            <p className="text-sm text-muted-foreground mb-4">至少填寫一組完整價格（無附餐食/一泊二食/一泊三食的平日+假日）</p>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -385,7 +385,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                 </thead>
                 <tbody>
                   <tr className="border-b">
-                    <td className="py-3 px-2 font-medium">基本價格</td>
+                    <td className="py-3 px-2 font-medium">無附餐食</td>
                     <td className="py-3 px-2">
                       <Input
                         id="weekday_price"
