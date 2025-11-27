@@ -893,9 +893,9 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
 
       {/* 批量編輯對話框 */}
       <Dialog open={batchEditDialogOpen} onOpenChange={setBatchEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-[95vw] sm:max-w-md">
           <DialogHeader>
-            <CardTitle className="flex items-center justify-between">
+            <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <span>批量編輯</span>
               <div className="flex gap-2 text-xs font-normal text-muted-foreground">
                 <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
@@ -943,17 +943,19 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button
               variant="outline"
               onClick={() => setBatchEditDialogOpen(false)}
               disabled={saving}
+              className="w-full sm:w-auto"
             >
               取消
             </Button>
             <Button
               onClick={confirmBatchEdit}
               disabled={saving || !batchInventory}
+              className="w-full sm:w-auto"
             >
               {saving ? '更新中...' : '確認更新'}
             </Button>
@@ -963,9 +965,9 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
 
       {/* 單日期編輯對話框 */}
       <Dialog open={singleEditDialogOpen} onOpenChange={setSingleEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-[95vw] sm:max-w-md">
           <DialogHeader>
-            <CardTitle className="flex items-center justify-between">
+            <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <span>編輯日期</span>
               <div className="flex gap-2 text-xs font-normal text-muted-foreground">
                 <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
@@ -1003,17 +1005,19 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
             )}
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button
               variant="outline"
               onClick={() => setSingleEditDialogOpen(false)}
               disabled={saving}
+              className="w-full sm:w-auto"
             >
               取消
             </Button>
             <Button
               onClick={handleSingleDateUpdate}
               disabled={saving || !singleEditInventory}
+              className="w-full sm:w-auto"
             >
               {saving ? '更新中...' : '確認更新'}
             </Button>

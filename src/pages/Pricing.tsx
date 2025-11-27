@@ -68,28 +68,28 @@ const SortableRoomCard = ({ roomType, onEdit, onDelete }: SortableRoomCardProps)
 
   return (
     <Card ref={setNodeRef} style={style}>
-      <CardContent className="pt-6">
-        <div className="flex items-start gap-3">
+      <CardContent className="pt-4 sm:pt-6">
+        <div className="flex flex-col sm:flex-row items-start gap-3">
           <button
-            className="mt-1 cursor-grab active:cursor-grabbing touch-none"
+            className="mt-1 cursor-grab active:cursor-grabbing touch-none self-start"
             {...attributes}
             {...listeners}
           >
             <GripVertical className="h-5 w-5 text-muted-foreground" />
           </button>
           
-          <div className="flex-1">
+          <div className="flex-1 min-w-0 w-full">
             <div className="mb-3">
-              <h3 className="text-xl font-bold">{roomType.name}</h3>
+              <h3 className="text-lg sm:text-xl font-bold break-words">{roomType.name}</h3>
             </div>
             
             {roomType.description && (
-              <p className="text-sm text-muted-foreground mb-4">
+              <p className="text-sm text-muted-foreground mb-4 break-words">
                 {roomType.description}
               </p>
             )}
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 text-sm">
               <div>
                 <span className="text-muted-foreground">坪數：</span>
                 <span className="font-medium">
@@ -110,7 +110,7 @@ const SortableRoomCard = ({ roomType, onEdit, onDelete }: SortableRoomCardProps)
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-4 text-sm">
               <div>
                 <span className="text-muted-foreground">平日價格：</span>
                 <span className="font-bold text-primary">
@@ -126,11 +126,12 @@ const SortableRoomCard = ({ roomType, onEdit, onDelete }: SortableRoomCardProps)
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex sm:flex-col gap-2 w-full sm:w-auto">
             <Button
               variant="outline"
               size="icon"
               onClick={() => onEdit(roomType)}
+              className="flex-1 sm:flex-initial"
             >
               <Pencil className="h-4 w-4" />
             </Button>
@@ -138,6 +139,7 @@ const SortableRoomCard = ({ roomType, onEdit, onDelete }: SortableRoomCardProps)
               variant="ghost-destructive"
               size="icon"
               onClick={() => onDelete(roomType)}
+              className="flex-1 sm:flex-initial"
             >
               <Trash2 className="h-4 w-4" />
             </Button>

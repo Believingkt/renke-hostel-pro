@@ -515,8 +515,8 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
             )}
           </div>
 
-          <div className="flex gap-3 pt-4">
-            <Button onClick={handleSubmit} className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row gap-3 pt-4">
+            <Button onClick={handleSubmit} className="flex items-center justify-center gap-2 w-full sm:w-auto">
               <Check className="h-4 w-4" />
               {editingTemplate ? '更新' : '新增'}
             </Button>
@@ -526,7 +526,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                 setShowForm(false);
                 setEditingTemplate(null);
               }}
-              className="flex items-center gap-2"
+              className="flex items-center justify-center gap-2 w-full sm:w-auto"
             >
               <X className="h-4 w-4" />
               取消
@@ -541,14 +541,14 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
     <>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div className="space-y-1">
               <CardTitle>價格模板</CardTitle>
               <CardDescription>
                 建立並管理可重複使用的價格方案
               </CardDescription>
             </div>
-            <Button onClick={handleAddNew} className="flex items-center gap-2">
+            <Button onClick={handleAddNew} className="flex items-center justify-center gap-2 w-full sm:w-auto">
               <Plus className="h-4 w-4" />
               新增模板
             </Button>
@@ -701,10 +701,10 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       </AlertDialog>
 
       <Dialog open={applyDialogOpen} onOpenChange={setApplyDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>套用價格模板</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">套用價格模板</DialogTitle>
+            <DialogDescription className="text-sm">
               將「{applyingTemplate?.template_name}」套用到選定的房型和日期範圍
             </DialogDescription>
           </DialogHeader>
@@ -958,17 +958,19 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button 
               variant="outline" 
               onClick={() => setApplyDialogOpen(false)}
               disabled={applying}
+              className="w-full sm:w-auto"
             >
               取消
             </Button>
             <Button 
               onClick={confirmApply}
               disabled={!dateRange?.from || !dateRange?.to || selectedRoomTypes.length === 0 || applying}
+              className="w-full sm:w-auto"
             >
               {applying ? '套用中...' : '確認套用'}
             </Button>
