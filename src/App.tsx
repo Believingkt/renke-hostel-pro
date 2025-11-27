@@ -48,16 +48,37 @@ function App() {
         <NetworkIndicator />
         <PageTransition>
           <ChunkErrorBoundary>
-            <Suspense fallback={<FrontendSkeleton />}>
-              <Routes>
+            <Routes>
               <Route element={<ConditionalLayout />}>
-                <Route path="/" element={<Index />} />
-                <Route path="/booking" element={<BookingFlow />} />
-                <Route path="/ai-booking" element={<AIBooking />} />
-                <Route path="/order-search" element={<OrderSearch />} />
+                {/* 前台頁面 - 使用 FrontendSkeleton */}
+                <Route path="/" element={
+                  <Suspense fallback={<FrontendSkeleton />}>
+                    <Index />
+                  </Suspense>
+                } />
+                <Route path="/booking" element={
+                  <Suspense fallback={<FrontendSkeleton />}>
+                    <BookingFlow />
+                  </Suspense>
+                } />
+                <Route path="/ai-booking" element={
+                  <Suspense fallback={<FrontendSkeleton />}>
+                    <AIBooking />
+                  </Suspense>
+                } />
+                <Route path="/order-search" element={
+                  <Suspense fallback={<FrontendSkeleton />}>
+                    <OrderSearch />
+                  </Suspense>
+                } />
+                
+                {/* Auth 頁面 - 無需骨架屏 */}
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/change-password" element={<ChangePassword />} />
+                <Route path="/admin/change-password" element={<ChangePassword />} />
                 <Route path="/hq" element={<Headquarters />} />
+                
+                {/* 後台管理頁面 - 使用 DashboardSkeleton */}
                 <Route 
                   path="/admin" 
                   element={
@@ -186,12 +207,20 @@ function App() {
                     </Suspense>
                   } 
                 />
-                <Route path="/admin/change-password" element={<ChangePassword />} />
-                <Route path="/og-preview" element={<OgImagePreview />} />
-                <Route path="*" element={<NotFound />} />
+                
+                {/* 其他頁面 */}
+                <Route path="/og-preview" element={
+                  <Suspense fallback={<FrontendSkeleton />}>
+                    <OgImagePreview />
+                  </Suspense>
+                } />
+                <Route path="*" element={
+                  <Suspense fallback={<FrontendSkeleton />}>
+                    <NotFound />
+                  </Suspense>
+                } />
               </Route>
-              </Routes>
-            </Suspense>
+            </Routes>
           </ChunkErrorBoundary>
         </PageTransition>
       </AccommodationProvider>
