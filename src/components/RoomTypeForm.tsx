@@ -108,7 +108,6 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
     quad_room_count: "0",
     triple_room_count: "0",
     double_room_count: "0",
-    display_order: "0",
   };
 
   const {
@@ -144,7 +143,6 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         quad_room_count: roomType.quad_room_count?.toString() || "0",
         triple_room_count: roomType.triple_room_count?.toString() || "0",
         double_room_count: roomType.double_room_count?.toString() || "0",
-        display_order: roomType.display_order?.toString() || "0",
       });
       loadPhotos(roomType.id);
     }
@@ -253,6 +251,21 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
     setErrors({});
 
     try {
+      let displayOrder = roomType?.display_order || 0;
+      
+      // 如果是新增房型，自動設定為最大順序 + 1
+      if (!roomType) {
+        const { data: maxOrderData } = await supabase
+          .from("room_types")
+          .select("display_order")
+          .eq("accommodation_id", accommodationId)
+          .order("display_order", { ascending: false })
+          .limit(1)
+          .single();
+        
+        displayOrder = (maxOrderData?.display_order || 0) + 1;
+      }
+
       const roomData = {
         accommodation_id: accommodationId,
         name: formData.name.trim(),
@@ -264,7 +277,7 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         triple_room_count: formData.triple_room_count ? parseInt(formData.triple_room_count) : null,
         double_room_count: formData.double_room_count ? parseInt(formData.double_room_count) : null,
         base_price: 0,
-        display_order: formData.display_order ? parseInt(formData.display_order) : 0,
+        display_order: displayOrder,
       };
 
       let savedRoomId = roomType?.id;
@@ -463,30 +476,6 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
             error={errors.double_room_count}
             min={0}
             max={100}
-          />
-        </CardContent>
-      </Card>
-
-
-      {/* 顯示順序 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>顯示順序</CardTitle>
-          <CardDescription>設定在網站上的顯示順序</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ValidatedNumberInput
-            id="display_order"
-            label="顯示順序"
-            value={formData.display_order ? parseInt(formData.display_order) : 0}
-            onChange={(value) => {
-              setFormData(prev => ({ ...prev, display_order: value.toString() }));
-              validateField('display_order', value.toString());
-            }}
-            onValidate={(value) => validateField('display_order', value)}
-            error={errors.display_order}
-            min={0}
-            max={999}
           />
         </CardContent>
       </Card>
