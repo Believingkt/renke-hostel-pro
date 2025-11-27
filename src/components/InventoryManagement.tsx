@@ -316,6 +316,51 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
     }
   };
 
+  const clearInventoryForSelectedDates = async () => {
+    if (selectedDates.size === 0) {
+      toast.error('請至少選擇一個日期');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const updates = Array.from(selectedDates).map(async (dateStr) => {
+        const existing = inventory[dateStr];
+        
+        if (existing?.id) {
+          return supabase
+            .from('room_inventory_pricing')
+            .update({ 
+              available_rooms: 0,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existing.id);
+        } else {
+          return supabase
+            .from('room_inventory_pricing')
+            .insert({
+              room_type_id: selectedRoomType,
+              date: dateStr,
+              available_rooms: 0,
+              price: 0,
+            });
+        }
+      });
+
+      await Promise.all(updates);
+
+      toast.success(`已清空 ${selectedDates.size} 個日期的庫存`);
+      setIsSelectionMode(false);
+      setSelectedDates(new Set());
+      loadInventoryData();
+    } catch (error) {
+      console.error('清空庫存失敗:', error);
+      toast.error('清空庫存失敗');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const confirmBatchEdit = async () => {
     if (!batchInventory || isNaN(parseInt(batchInventory))) {
       toast.error('請輸入有效的庫存數量');
@@ -656,7 +701,7 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
 
                   {/* 快速套用功能 */}
                   {selectedRoomTypeData && selectedRoomTypeData.room_count && (
-                    <div className="bg-muted/30 border rounded-lg p-3">
+                    <div className="bg-muted/30 border rounded-lg p-3 space-y-3">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 text-sm">
                           <Package className="h-4 w-4 text-muted-foreground" />
@@ -674,8 +719,24 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
                           {saving ? '套用中...' : '套用到選中日期'}
                         </Button>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        將此房型的總房間數快速套用為選中日期的可用庫存
+                      <div className="flex items-center justify-between gap-3 pt-3 border-t">
+                        <div className="flex items-center gap-2 text-sm">
+                          <X className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">清空庫存</span>
+                        </div>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={clearInventoryForSelectedDates}
+                          disabled={selectedDates.size === 0 || isCopyMode || saving}
+                          className="gap-2"
+                        >
+                          <X className="h-4 w-4" />
+                          {saving ? '清空中...' : '清空選中日期'}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        將選中日期的可用庫存快速設為0（適用於維護期或特殊情況）
                       </p>
                     </div>
                   )}
