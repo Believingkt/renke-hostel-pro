@@ -377,46 +377,40 @@ const Pricing = () => {
         </TabsContent>
 
         <TabsContent value="facilities" className="space-y-4">
-          <div className="pb-4 md:pb-6 border-b border-primary/20 mb-4 md:mb-6">
-            <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-2 md:gap-3">
-              <Wrench className="h-6 w-6 md:h-7 md:w-7 text-primary" />
-              房間設施
-            </h2>
-          </div>
+          <PageHeader
+            title="房間設施"
+            icon={Wrench}
+          />
           <RoomFacilitiesForm accommodationId={currentAccommodationId || ""} />
         </TabsContent>
 
         <TabsContent value="basic" className="space-y-4">
-          <div className="pb-4 md:pb-6 border-b border-primary/20 mb-4 md:mb-6">
-            <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-2 md:gap-3">
-              <DollarSign className="h-6 w-6 md:h-7 md:w-7 text-primary" />
-              批次設定
-            </h2>
-          </div>
+          <PageHeader
+            title="批次設定"
+            icon={DollarSign}
+          />
           <PricingTemplateManager accommodationId={currentAccommodationId || ""} />
         </TabsContent>
 
         <TabsContent value="inventory" className="space-y-4">
-          <div className="pb-4 md:pb-6 border-b border-primary/20 mb-4 md:mb-6">
-            <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-2 md:gap-3">
-              <Package className="h-6 w-6 md:h-7 md:w-7 text-primary" />
-              庫存設定
-            </h2>
-          </div>
+          <PageHeader
+            title="庫存設定"
+            icon={Package}
+          />
           <InventoryManagement accommodationId={currentAccommodationId || ""} />
         </TabsContent>
 
         <TabsContent value="holidays" className="space-y-4">
-          <div className="pb-4 md:pb-6 border-b border-primary/20 mb-4 md:mb-6 flex flex-wrap items-center justify-between gap-4">
-            <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-2 md:gap-3">
-              <Calendar className="h-6 w-6 md:h-7 md:w-7 text-primary" />
-              國定假日
-            </h2>
-            <PublicHolidaysButtons 
-              onAddClick={() => publicHolidaysRef.current?.openAddDialog()}
-              onBatchClick={() => publicHolidaysRef.current?.openBatchDialog()}
-            />
-          </div>
+          <PageHeader
+            title="國定假日"
+            icon={Calendar}
+            action={
+              <PublicHolidaysButtons 
+                onAddClick={() => publicHolidaysRef.current?.openAddDialog()}
+                onBatchClick={() => publicHolidaysRef.current?.openBatchDialog()}
+              />
+            }
+          />
           <PublicHolidays ref={publicHolidaysRef} showInPricingPage={true} />
         </TabsContent>
       </Tabs>
