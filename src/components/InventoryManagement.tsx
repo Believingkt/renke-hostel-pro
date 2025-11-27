@@ -266,6 +266,56 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
     toast.success('已清除選擇');
   };
 
+  const applyRoomCountAsInventory = async () => {
+    if (!selectedRoomTypeData?.room_count) {
+      toast.error('無法取得房型的總房間數');
+      return;
+    }
+
+    if (selectedDates.size === 0) {
+      toast.error('請至少選擇一個日期');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const updates = Array.from(selectedDates).map(async (dateStr) => {
+        const existing = inventory[dateStr];
+        
+        if (existing?.id) {
+          return supabase
+            .from('room_inventory_pricing')
+            .update({ 
+              available_rooms: selectedRoomTypeData.room_count,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existing.id);
+        } else {
+          return supabase
+            .from('room_inventory_pricing')
+            .insert({
+              room_type_id: selectedRoomType,
+              date: dateStr,
+              available_rooms: selectedRoomTypeData.room_count,
+              price: 0,
+            });
+        }
+      });
+
+      await Promise.all(updates);
+
+      toast.success(`已將 ${selectedRoomTypeData.room_count} 間房套用到 ${selectedDates.size} 個日期`);
+      setIsSelectionMode(false);
+      setSelectedDates(new Set());
+      loadInventoryData();
+    } catch (error) {
+      console.error('套用房間數失敗:', error);
+      toast.error('套用房間數失敗');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const confirmBatchEdit = async () => {
     if (!batchInventory || isNaN(parseInt(batchInventory))) {
       toast.error('請輸入有效的庫存數量');
@@ -603,6 +653,32 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
                       清除選擇
                     </Button>
                   </div>
+
+                  {/* 快速套用功能 */}
+                  {selectedRoomTypeData && selectedRoomTypeData.room_count && (
+                    <div className="bg-muted/30 border rounded-lg p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Package className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">快速套用：</span>
+                          <span className="font-semibold">{selectedRoomTypeData.room_count} 間房</span>
+                        </div>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={applyRoomCountAsInventory}
+                          disabled={selectedDates.size === 0 || isCopyMode || saving}
+                          className="gap-2"
+                        >
+                          <Check className="h-4 w-4" />
+                          {saving ? '套用中...' : '套用到選中日期'}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        將此房型的總房間數快速套用為選中日期的可用庫存
+                      </p>
+                    </div>
+                  )}
 
                   {/* 操作按鈕 */}
                   <div className="flex items-center justify-between bg-muted/50 p-3 rounded-lg">
