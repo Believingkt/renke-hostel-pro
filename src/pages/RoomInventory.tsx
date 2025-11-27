@@ -1,32 +1,103 @@
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Package } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAccommodation } from "@/contexts/AccommodationContext";
+import { toast } from "sonner";
+import { RoomInventoryCalendar } from "@/components/RoomInventoryCalendar";
+
+interface RoomType {
+  id: string;
+  name: string;
+}
 
 export default function RoomInventory() {
+  const { currentAccommodationId } = useAccommodation();
+  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
+  const [selectedRoomType, setSelectedRoomType] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (currentAccommodationId) {
+      loadRoomTypes();
+    }
+  }, [currentAccommodationId]);
+
+  const loadRoomTypes = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('room_types')
+        .select('id, name')
+        .eq('accommodation_id', currentAccommodationId)
+        .order('display_order', { ascending: true });
+
+      if (error) throw error;
+
+      setRoomTypes(data || []);
+      if (data && data.length > 0) {
+        setSelectedRoomType(data[0].id);
+      }
+    } catch (error) {
+      console.error('載入房型失敗:', error);
+      toast.error('載入房型資料失敗');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="房價庫存"
-      />
+      <PageHeader title="房價庫存" />
 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
-            房價庫存管理
+            選擇房型
           </CardTitle>
           <CardDescription>
-            此功能開發中，敬請期待
+            查看並管理各房型的每日價格與庫存數量
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center min-h-[400px] text-muted-foreground">
-            <div className="text-center space-y-2">
-              <Package className="h-16 w-16 mx-auto opacity-20" />
-              <p className="text-lg font-medium">房價庫存功能</p>
-              <p className="text-sm">即將推出</p>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
-          </div>
+          ) : roomTypes.length === 0 ? (
+            <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
+              <div className="text-center space-y-2">
+                <Package className="h-16 w-16 mx-auto opacity-20" />
+                <p className="text-lg font-medium">尚無房型資料</p>
+                <p className="text-sm">請先前往房型管理新增房型</p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <Select value={selectedRoomType} onValueChange={setSelectedRoomType}>
+                <SelectTrigger className="w-full md:w-[300px]">
+                  <SelectValue placeholder="選擇房型" />
+                </SelectTrigger>
+                <SelectContent>
+                  {roomTypes.map((room) => (
+                    <SelectItem key={room.id} value={room.id}>
+                      {room.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {selectedRoomType && (
+                <RoomInventoryCalendar
+                  roomTypeId={selectedRoomType}
+                  roomTypeName={roomTypes.find(r => r.id === selectedRoomType)?.name || ''}
+                />
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

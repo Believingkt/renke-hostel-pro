@@ -1061,6 +1061,56 @@ export type Database = {
           },
         ]
       }
+      room_inventory_pricing: {
+        Row: {
+          available_rooms: number
+          created_at: string
+          date: string
+          id: string
+          is_available: boolean | null
+          max_nights: number | null
+          min_nights: number | null
+          notes: string | null
+          price: number
+          room_type_id: string
+          updated_at: string
+        }
+        Insert: {
+          available_rooms?: number
+          created_at?: string
+          date: string
+          id?: string
+          is_available?: boolean | null
+          max_nights?: number | null
+          min_nights?: number | null
+          notes?: string | null
+          price: number
+          room_type_id: string
+          updated_at?: string
+        }
+        Update: {
+          available_rooms?: number
+          created_at?: string
+          date?: string
+          id?: string
+          is_available?: boolean | null
+          max_nights?: number | null
+          min_nights?: number | null
+          notes?: string | null
+          price?: number
+          room_type_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_inventory_pricing_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "room_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_photos: {
         Row: {
           created_at: string
