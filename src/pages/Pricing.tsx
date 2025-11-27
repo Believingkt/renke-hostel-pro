@@ -110,12 +110,6 @@ const SortableRoomCard = ({ roomType, onEdit, onDelete }: SortableRoomCardProps)
                 <span className="font-medium">{roomType.display_order}</span>
               </div>
             </div>
-
-            <div className="mt-4 text-sm">
-              <span className="text-muted-foreground">價格設定請至</span>
-              <span className="font-bold text-primary ml-1">房價庫存設定</span>
-              <span className="text-muted-foreground ml-1">頁面管理</span>
-            </div>
           </div>
 
           <div className="flex sm:flex-col gap-2 w-full sm:w-auto">
