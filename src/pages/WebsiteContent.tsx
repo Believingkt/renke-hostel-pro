@@ -2703,8 +2703,6 @@ const WebsiteContent = () => {
                 value={bookingInfo.cancellationPolicy}
                 error={bookingErrors.cancellation_policy}
                 rows={6}
-                maxLength={1000}
-                showCharCount
                 onChange={(value) => setBookingInfo(prev => ({ ...prev, cancellationPolicy: value }))}
                 onValidate={(value) => validateBookingField("cancellation_policy", value)}
               />
@@ -2744,8 +2742,6 @@ const WebsiteContent = () => {
                 value={bookingInfo.petPolicy}
                 error={bookingErrors.pet_policy}
                 rows={8}
-                maxLength={500}
-                showCharCount
                 onChange={(value) => setBookingInfo(prev => ({ ...prev, petPolicy: value }))}
                 onValidate={(value) => validateBookingField("pet_policy", value)}
               />
@@ -2764,8 +2760,6 @@ const WebsiteContent = () => {
                 value={bookingInfo.otherNotes}
                 error={bookingErrors.other_notes}
                 rows={8}
-                maxLength={1000}
-                showCharCount
                 onChange={(value) => setBookingInfo(prev => ({ ...prev, otherNotes: value }))}
                 onValidate={(value) => validateBookingField("other_notes", value)}
               />

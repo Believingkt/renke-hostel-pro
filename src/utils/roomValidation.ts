@@ -63,13 +63,10 @@ export const bookingSettingsSchema = z.object({
     { message: "訂金比例必須介於 0-100 之間" }
   ).optional(),
   cancellation_policy: z.string().trim()
-    .max(1000, { message: "取消政策不能超過 1000 字元" })
     .optional(),
   pet_policy: z.string().trim()
-    .max(500, { message: "寵物政策不能超過 500 字元" })
     .optional(),
   other_notes: z.string().trim()
-    .max(1000, { message: "其他說明不能超過 1000 字元" })
     .optional(),
 });
 
