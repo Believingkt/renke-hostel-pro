@@ -961,6 +961,62 @@ export type Database = {
           },
         ]
       }
+      pricing_templates: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          description: string | null
+          id: string
+          is_default: boolean | null
+          template_name: string
+          updated_at: string
+          weekday_2_meals_price: number | null
+          weekday_3_meals_price: number | null
+          weekday_price: number
+          weekend_2_meals_price: number | null
+          weekend_3_meals_price: number | null
+          weekend_price: number
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          template_name: string
+          updated_at?: string
+          weekday_2_meals_price?: number | null
+          weekday_3_meals_price?: number | null
+          weekday_price: number
+          weekend_2_meals_price?: number | null
+          weekend_3_meals_price?: number | null
+          weekend_price: number
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          template_name?: string
+          updated_at?: string
+          weekday_2_meals_price?: number | null
+          weekday_3_meals_price?: number | null
+          weekday_price?: number
+          weekend_2_meals_price?: number | null
+          weekend_3_meals_price?: number | null
+          weekend_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_templates_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
