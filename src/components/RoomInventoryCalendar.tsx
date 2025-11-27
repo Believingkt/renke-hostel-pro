@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { format, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, parseISO } from "date-fns";
+import { format, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, parseISO, isWeekend as isWeekendDate, startOfWeek, endOfWeek } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { ChevronLeft, ChevronRight, DollarSign, Package, Edit, X, Check } from "lucide-react";
+import { ChevronLeft, ChevronRight, DollarSign, Package, Edit, X, Check, Calendar, CalendarDays, CalendarRange, Briefcase } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -159,6 +159,60 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
     }
   };
 
+  // 快速選擇功能
+  const selectWeekends = () => {
+    const monthStart = startOfMonth(currentMonth);
+    const monthEnd = endOfMonth(currentMonth);
+    const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+    
+    const weekendDates = days
+      .filter(day => isWeekendDate(day))
+      .map(day => format(day, 'yyyy-MM-dd'));
+    
+    setSelectedDates(new Set(weekendDates));
+    toast.success(`已選擇 ${weekendDates.length} 個週末日期`);
+  };
+
+  const selectWeekdays = () => {
+    const monthStart = startOfMonth(currentMonth);
+    const monthEnd = endOfMonth(currentMonth);
+    const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+    
+    const weekdayDates = days
+      .filter(day => !isWeekendDate(day))
+      .map(day => format(day, 'yyyy-MM-dd'));
+    
+    setSelectedDates(new Set(weekdayDates));
+    toast.success(`已選擇 ${weekdayDates.length} 個工作日日期`);
+  };
+
+  const selectCurrentWeek = () => {
+    const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
+    const days = eachDayOfInterval({ start: weekStart, end: weekEnd });
+    
+    const weekDates = days.map(day => format(day, 'yyyy-MM-dd'));
+    
+    setSelectedDates(new Set(weekDates));
+    toast.success(`已選擇本週 ${weekDates.length} 個日期`);
+  };
+
+  const selectWholeMonth = () => {
+    const monthStart = startOfMonth(currentMonth);
+    const monthEnd = endOfMonth(currentMonth);
+    const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+    
+    const monthDates = days.map(day => format(day, 'yyyy-MM-dd'));
+    
+    setSelectedDates(new Set(monthDates));
+    toast.success(`已選擇整月 ${monthDates.length} 個日期`);
+  };
+
+  const clearSelection = () => {
+    setSelectedDates(new Set());
+    toast.success('已清除選擇');
+  };
+
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
@@ -208,30 +262,83 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
               </Button>
             </div>
           ) : (
-            <div className="flex items-center justify-between bg-muted/50 p-3 rounded-lg">
-              <span className="text-sm font-medium">
-                已選擇 {selectedDates.size} 個日期
-              </span>
-              <div className="flex gap-2">
+            <div className="space-y-3">
+              {/* 快速選擇按鈕組 */}
+              <div className="flex flex-wrap gap-2">
                 <Button
-                  variant="default"
+                  variant="outline"
                   size="sm"
-                  onClick={handleOpenBatchEdit}
-                  disabled={selectedDates.size === 0}
+                  onClick={selectWeekends}
                   className="gap-2"
                 >
-                  <Check className="h-4 w-4" />
-                  編輯選中日期
+                  <Calendar className="h-4 w-4" />
+                  選擇週末
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleCancelSelection}
+                  onClick={selectWeekdays}
                   className="gap-2"
                 >
-                  <X className="h-4 w-4" />
-                  取消
+                  <Briefcase className="h-4 w-4" />
+                  選擇工作日
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={selectCurrentWeek}
+                  className="gap-2"
+                >
+                  <CalendarDays className="h-4 w-4" />
+                  選擇本週
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={selectWholeMonth}
+                  className="gap-2"
+                >
+                  <CalendarRange className="h-4 w-4" />
+                  選擇整月
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearSelection}
+                  className="gap-2"
+                  disabled={selectedDates.size === 0}
+                >
+                  <X className="h-4 w-4" />
+                  清除選擇
+                </Button>
+              </div>
+
+              {/* 操作按鈕 */}
+              <div className="flex items-center justify-between bg-muted/50 p-3 rounded-lg">
+                <span className="text-sm font-medium">
+                  已選擇 {selectedDates.size} 個日期
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={handleOpenBatchEdit}
+                    disabled={selectedDates.size === 0}
+                    className="gap-2"
+                  >
+                    <Check className="h-4 w-4" />
+                    編輯選中日期
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCancelSelection}
+                    className="gap-2"
+                  >
+                    <X className="h-4 w-4" />
+                    取消
+                  </Button>
+                </div>
               </div>
             </div>
           )}
