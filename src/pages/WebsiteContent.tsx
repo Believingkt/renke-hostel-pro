@@ -1439,7 +1439,7 @@ const WebsiteContent = () => {
         document.title = basicInfo.name;
       }
 
-      toast.success('網頁設定已儲存');
+      toast.success('官網內容已儲存');
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error("Error saving basic info:", error);
@@ -2131,14 +2131,14 @@ const WebsiteContent = () => {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>網頁設定</BreadcrumbPage>
+            <BreadcrumbPage>官網內容</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsContent value="basic-info" className="space-y-6">
-          <PageHeader title="網頁設定" icon={Info} />
+          <PageHeader title="官網內容" icon={Info} />
           <WebInfoSection
             accommodationId={accommodationId || ''}
             heroPhotos={heroPhotos}
