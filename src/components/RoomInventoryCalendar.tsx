@@ -8,9 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ChevronLeft, ChevronRight, DollarSign, Package, Edit, X, Check, Calendar, CalendarDays, CalendarRange, Briefcase, Copy } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface RoomInventoryCalendarProps {
   roomTypeId: string;
@@ -25,6 +27,7 @@ interface DayInventory {
 }
 
 export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventoryCalendarProps) {
+  const isMobile = useIsMobile();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [inventory, setInventory] = useState<Record<string, DayInventory>>({});
   const [loading, setLoading] = useState(true);
@@ -387,24 +390,26 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
       <CardHeader>
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">{roomTypeName}</CardTitle>
-            <div className="flex items-center gap-2">
+            <CardTitle className="text-base sm:text-lg">{roomTypeName}</CardTitle>
+            <div className="flex items-center gap-1 sm:gap-2">
               <Button
                 variant="outline"
                 size="icon"
                 onClick={handlePrevMonth}
+                className="h-9 w-9 sm:h-10 sm:w-10"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
-              <span className="font-semibold min-w-[120px] text-center">
+              <span className="font-semibold min-w-[100px] sm:min-w-[120px] text-center text-sm sm:text-base">
                 {format(currentMonth, 'yyyy年 M月', { locale: zhTW })}
               </span>
               <Button
                 variant="outline"
                 size="icon"
                 onClick={handleNextMonth}
+                className="h-9 w-9 sm:h-10 sm:w-10"
               >
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
             </div>
           </div>
@@ -416,10 +421,11 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                 variant="outline"
                 size="sm"
                 onClick={handleStartBatchEdit}
-                className="gap-2"
+                className="gap-1 sm:gap-2 h-9 sm:h-8 px-3"
               >
                 <Edit className="h-4 w-4" />
-                批量編輯
+                <span className="hidden sm:inline">批量編輯</span>
+                <span className="sm:hidden">編輯</span>
               </Button>
             </div>
           ) : (
@@ -466,68 +472,74 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                     variant="outline"
                     size="sm"
                     onClick={handleStartCopyMode}
-                    className="gap-2"
+                    className="gap-2 h-9 sm:h-8"
                     disabled={isCopyMode}
                   >
                     <Copy className="h-4 w-4" />
-                    複製設定
+                    <span className="hidden sm:inline">複製設定</span>
+                    <span className="sm:hidden">複製</span>
                   </Button>
                 )}
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={selectWeekends}
-                  className="gap-2"
+                  className="gap-2 h-9 sm:h-8"
                   disabled={isCopyMode}
                 >
                   <Calendar className="h-4 w-4" />
-                  選擇週末
+                  <span className="hidden sm:inline">選擇週末</span>
+                  <span className="sm:hidden">週末</span>
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={selectWeekdays}
-                  className="gap-2"
+                  className="gap-2 h-9 sm:h-8"
                   disabled={isCopyMode}
                 >
                   <Briefcase className="h-4 w-4" />
-                  選擇工作日
+                  <span className="hidden sm:inline">選擇工作日</span>
+                  <span className="sm:hidden">工作日</span>
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={selectCurrentWeek}
-                  className="gap-2"
+                  className="gap-2 h-9 sm:h-8"
                   disabled={isCopyMode}
                 >
                   <CalendarDays className="h-4 w-4" />
-                  選擇本週
+                  <span className="hidden sm:inline">選擇本週</span>
+                  <span className="sm:hidden">本週</span>
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={selectWholeMonth}
-                  className="gap-2"
+                  className="gap-2 h-9 sm:h-8"
                   disabled={isCopyMode}
                 >
                   <CalendarRange className="h-4 w-4" />
-                  選擇整月
+                  <span className="hidden sm:inline">選擇整月</span>
+                  <span className="sm:hidden">整月</span>
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={clearSelection}
-                  className="gap-2"
+                  className="gap-2 h-9 sm:h-8"
                   disabled={selectedDates.size === 0 || isCopyMode}
                 >
                   <X className="h-4 w-4" />
-                  清除選擇
+                  <span className="hidden sm:inline">清除選擇</span>
+                  <span className="sm:hidden">清除</span>
                 </Button>
               </div>
 
               {/* 操作按鈕 */}
-              <div className="flex items-center justify-between bg-muted/50 p-3 rounded-lg">
-                <span className="text-sm font-medium">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between bg-muted/50 p-3 rounded-lg gap-3 sm:gap-0">
+                <span className="text-sm font-medium text-center sm:text-left">
                   已選擇 {selectedDates.size} 個日期
                 </span>
                 <div className="flex gap-2">
@@ -537,7 +549,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                       size="sm"
                       onClick={handleApplyCopiedData}
                       disabled={selectedDates.size === 0 || saving}
-                      className="gap-2"
+                      className="gap-2 flex-1 sm:flex-none h-10 sm:h-8"
                     >
                       <Check className="h-4 w-4" />
                       {saving ? '套用中...' : '套用複製設定'}
@@ -548,7 +560,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                       size="sm"
                       onClick={handleOpenBatchEdit}
                       disabled={selectedDates.size === 0 || isCopyMode}
-                      className="gap-2"
+                      className="gap-2 flex-1 sm:flex-none h-10 sm:h-8"
                     >
                       <Check className="h-4 w-4" />
                       編輯選中日期
@@ -558,10 +570,11 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                     variant="outline"
                     size="sm"
                     onClick={handleCancelSelection}
-                    className="gap-2"
+                    className="gap-2 flex-1 sm:flex-none h-10 sm:h-8"
                   >
                     <X className="h-4 w-4" />
-                    取消
+                    <span className="hidden sm:inline">取消</span>
+                    <span className="sm:hidden">取消</span>
                   </Button>
                 </div>
               </div>
@@ -575,11 +588,11 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         ) : (
-          <div className="grid grid-cols-7 gap-0.5 sm:gap-1">{/* 星期標題 */}
+          <div className="grid grid-cols-7 gap-1 sm:gap-1">{/* 星期標題 */}
             {['一', '二', '三', '四', '五', '六', '日'].map((day) => (
               <div
                 key={day}
-                className="text-center text-xs sm:text-sm font-medium text-muted-foreground py-1 sm:py-2"
+                className="text-center text-xs sm:text-sm font-medium text-muted-foreground py-2 sm:py-2"
               >
                 {day}
               </div>
@@ -604,11 +617,11 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   key={dateStr}
                   onClick={() => handleSingleClick(dateStr)}
                   className={cn(
-                    "relative min-h-[80px] sm:min-h-[90px] md:min-h-[100px] border rounded-lg p-1.5 sm:p-2 flex flex-col items-center justify-center transition-all",
+                    "relative min-h-[90px] sm:min-h-[90px] md:min-h-[100px] border rounded-lg p-2 sm:p-2 flex flex-col items-center justify-center transition-all touch-manipulation active:scale-95",
                     isTodayDate && "border-blue-600 border-2",
                     !isCurrentMonth && "opacity-50",
-                    isSelectionMode && "cursor-pointer hover:scale-105",
-                    !isSelectionMode && "cursor-pointer hover:scale-105 hover:shadow-md",
+                    isSelectionMode && "cursor-pointer",
+                    !isSelectionMode && "cursor-pointer hover:shadow-md",
                     isCopyMode && hasData && "ring-2 ring-blue-400 animate-pulse",
                     isCopyMode && !hasData && "opacity-30 cursor-not-allowed",
                     isSelected && "bg-blue-100 border-blue-600 shadow-md",
@@ -618,7 +631,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   )}
                 >
                   <div className={cn(
-                    "font-semibold mb-1 sm:mb-1.5 md:mb-2 text-sm sm:text-base",
+                    "font-semibold mb-1.5 sm:mb-1.5 md:mb-2 text-base sm:text-base",
                     isTodayDate && "text-blue-600 font-bold",
                     isSelected && "text-blue-700 font-bold"
                   )}>
@@ -626,17 +639,17 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   </div>
                   {hasData ? (
                     <>
-                      <div className="flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs text-muted-foreground mb-0.5 sm:mb-1">
-                        <DollarSign className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                      <div className="flex items-center gap-1 text-xs sm:text-xs text-muted-foreground mb-1">
+                        <DollarSign className="h-3.5 w-3.5 sm:h-3.5 sm:w-3.5" />
                         <span className="font-medium">{dayInventory.price}</span>
                       </div>
-                      <div className="flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs text-muted-foreground">
-                        <Package className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                      <div className="flex items-center gap-1 text-xs sm:text-xs text-muted-foreground">
+                        <Package className="h-3.5 w-3.5 sm:h-3.5 sm:w-3.5" />
                         <span className="font-medium">{dayInventory.availableRooms}</span>
                       </div>
                     </>
                   ) : (
-                    <div className="text-[10px] sm:text-xs text-muted-foreground">未設定</div>
+                    <div className="text-xs sm:text-xs text-muted-foreground">未設定</div>
                   )}
                   {isSelected && (
                     <div className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5">
@@ -676,176 +689,330 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
             )}
           </div>
           {!isSelectionMode && (
-            <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
-              💡 提示：點擊日期可快速編輯當天的價格和庫存
+            <div className="text-xs sm:text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2.5 sm:py-2">
+              💡 提示：<span className="hidden sm:inline">點擊日期可快速編輯當天的價格和庫存</span><span className="sm:hidden">點擊日期快速編輯</span>
             </div>
           )}
         </div>
       </CardContent>
 
-      {/* 批量編輯對話框 */}
-      <Dialog open={batchEditDialogOpen} onOpenChange={setBatchEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>批量編輯</span>
-              <div className="flex gap-2 text-xs font-normal text-muted-foreground">
-                <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
-                  <span className="text-xs">ESC</span>
-                </kbd>
-                <span>關閉</span>
-                <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 ml-2">
-                  <span className="text-xs">Enter</span>
-                </kbd>
-                <span>儲存</span>
+      {/* 批量編輯對話框 - 響應式版本 */}
+      {isMobile ? (
+        <Drawer open={batchEditDialogOpen} onOpenChange={setBatchEditDialogOpen}>
+          <DrawerContent className="max-h-[90vh]">
+            <DrawerHeader>
+              <DrawerTitle>批量編輯</DrawerTitle>
+              <DrawerDescription>
+                將對 {selectedDates.size} 個日期進行統一設定
+              </DrawerDescription>
+            </DrawerHeader>
+
+            <div className="px-4 space-y-4 overflow-y-auto">
+              <div className="space-y-2">
+                <Label htmlFor="price">房價 *</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  placeholder="輸入房價"
+                  value={batchEditData.price}
+                  onChange={(e) => setBatchEditData({ ...batchEditData, price: e.target.value })}
+                  className="h-12 text-base"
+                />
               </div>
-            </CardTitle>
-            <DialogDescription>
-              將對 {selectedDates.size} 個日期進行統一設定
-            </DialogDescription>
-          </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="price">房價 *</Label>
-              <Input
-                id="price"
-                type="number"
-                min="0"
-                placeholder="輸入房價"
-                value={batchEditData.price}
-                onChange={(e) => setBatchEditData({ ...batchEditData, price: e.target.value })}
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="availableRooms">可用房數 *</Label>
+                <Input
+                  id="availableRooms"
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  placeholder="輸入可用房數"
+                  value={batchEditData.availableRooms}
+                  onChange={(e) => setBatchEditData({ ...batchEditData, availableRooms: e.target.value })}
+                  className="h-12 text-base"
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="availableRooms">可用房數 *</Label>
-              <Input
-                id="availableRooms"
-                type="number"
-                min="0"
-                placeholder="輸入可用房數"
-                value={batchEditData.availableRooms}
-                onChange={(e) => setBatchEditData({ ...batchEditData, availableRooms: e.target.value })}
-              />
-            </div>
+              <div className="flex items-center space-x-2 py-2">
+                <Switch
+                  id="isAvailable"
+                  checked={batchEditData.isAvailable}
+                  onCheckedChange={(checked) => setBatchEditData({ ...batchEditData, isAvailable: checked })}
+                />
+                <Label htmlFor="isAvailable" className="cursor-pointer text-base">
+                  開放預訂
+                </Label>
+              </div>
 
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="isAvailable"
-                checked={batchEditData.isAvailable}
-                onCheckedChange={(checked) => setBatchEditData({ ...batchEditData, isAvailable: checked })}
-              />
-              <Label htmlFor="isAvailable" className="cursor-pointer">
-                開放預訂
-              </Label>
-            </div>
-
-            {/* 顯示選中的日期 */}
-            <div className="border rounded-lg p-3 bg-muted/50">
-              <p className="text-sm font-medium mb-2">選中的日期：</p>
-              <div className="max-h-32 overflow-y-auto text-xs text-muted-foreground">
-                {Array.from(selectedDates).sort().map(date => (
-                  <div key={date}>{format(parseISO(date), 'yyyy年 M月 d日', { locale: zhTW })}</div>
-                ))}
+              {/* 顯示選中的日期 */}
+              <div className="border rounded-lg p-3 bg-muted/50">
+                <p className="text-sm font-medium mb-2">選中的日期：</p>
+                <div className="max-h-32 overflow-y-auto text-xs text-muted-foreground">
+                  {Array.from(selectedDates).sort().map(date => (
+                    <div key={date}>{format(parseISO(date), 'yyyy年 M月 d日', { locale: zhTW })}</div>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
 
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setBatchEditDialogOpen(false)}
-              disabled={saving}
-            >
-              取消
-            </Button>
-            <Button
-              onClick={handleBatchUpdate}
-              disabled={saving || !batchEditData.price || !batchEditData.availableRooms}
-            >
-              {saving ? '更新中...' : '確認更新'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DrawerFooter className="pt-4">
+              <Button
+                onClick={handleBatchUpdate}
+                disabled={saving || !batchEditData.price || !batchEditData.availableRooms}
+                className="h-12 text-base"
+              >
+                {saving ? '更新中...' : '確認更新'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setBatchEditDialogOpen(false)}
+                disabled={saving}
+                className="h-12 text-base"
+              >
+                取消
+              </Button>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={batchEditDialogOpen} onOpenChange={setBatchEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>批量編輯</span>
+                <div className="flex gap-2 text-xs font-normal text-muted-foreground">
+                  <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
+                    <span className="text-xs">ESC</span>
+                  </kbd>
+                  <span>關閉</span>
+                  <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 ml-2">
+                    <span className="text-xs">Enter</span>
+                  </kbd>
+                  <span>儲存</span>
+                </div>
+              </CardTitle>
+              <DialogDescription>
+                將對 {selectedDates.size} 個日期進行統一設定
+              </DialogDescription>
+            </DialogHeader>
 
-      {/* 單日期編輯對話框 */}
-      <Dialog open={singleEditDialogOpen} onOpenChange={setSingleEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>編輯日期</span>
-              <div className="flex gap-2 text-xs font-normal text-muted-foreground">
-                <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
-                  <span className="text-xs">ESC</span>
-                </kbd>
-                <span>關閉</span>
-                <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 ml-2">
-                  <span className="text-xs">Enter</span>
-                </kbd>
-                <span>儲存</span>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="price">房價 *</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  min="0"
+                  placeholder="輸入房價"
+                  value={batchEditData.price}
+                  onChange={(e) => setBatchEditData({ ...batchEditData, price: e.target.value })}
+                />
               </div>
-            </CardTitle>
-            <DialogDescription>
-              {editingDate && format(parseISO(editingDate), 'yyyy年 M月 d日（EEEE）', { locale: zhTW })}
-            </DialogDescription>
-          </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="single-price">房價 *</Label>
-              <Input
-                id="single-price"
-                type="number"
-                min="0"
-                placeholder="輸入房價"
-                value={singleEditData.price}
-                onChange={(e) => setSingleEditData({ ...singleEditData, price: e.target.value })}
-              />
+              <div className="space-y-2">
+                <Label htmlFor="availableRooms">可用房數 *</Label>
+                <Input
+                  id="availableRooms"
+                  type="number"
+                  min="0"
+                  placeholder="輸入可用房數"
+                  value={batchEditData.availableRooms}
+                  onChange={(e) => setBatchEditData({ ...batchEditData, availableRooms: e.target.value })}
+                />
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="isAvailable"
+                  checked={batchEditData.isAvailable}
+                  onCheckedChange={(checked) => setBatchEditData({ ...batchEditData, isAvailable: checked })}
+                />
+                <Label htmlFor="isAvailable" className="cursor-pointer">
+                  開放預訂
+                </Label>
+              </div>
+
+              {/* 顯示選中的日期 */}
+              <div className="border rounded-lg p-3 bg-muted/50">
+                <p className="text-sm font-medium mb-2">選中的日期：</p>
+                <div className="max-h-32 overflow-y-auto text-xs text-muted-foreground">
+                  {Array.from(selectedDates).sort().map(date => (
+                    <div key={date}>{format(parseISO(date), 'yyyy年 M月 d日', { locale: zhTW })}</div>
+                  ))}
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="single-availableRooms">可用房數 *</Label>
-              <Input
-                id="single-availableRooms"
-                type="number"
-                min="0"
-                placeholder="輸入可用房數"
-                value={singleEditData.availableRooms}
-                onChange={(e) => setSingleEditData({ ...singleEditData, availableRooms: e.target.value })}
-              />
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setBatchEditDialogOpen(false)}
+                disabled={saving}
+              >
+                取消
+              </Button>
+              <Button
+                onClick={handleBatchUpdate}
+                disabled={saving || !batchEditData.price || !batchEditData.availableRooms}
+              >
+                {saving ? '更新中...' : '確認更新'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* 單日期編輯對話框 - 響應式版本 */}
+      {isMobile ? (
+        <Drawer open={singleEditDialogOpen} onOpenChange={setSingleEditDialogOpen}>
+          <DrawerContent className="max-h-[90vh]">
+            <DrawerHeader>
+              <DrawerTitle>編輯日期</DrawerTitle>
+              <DrawerDescription>
+                {editingDate && format(parseISO(editingDate), 'yyyy年 M月 d日（EEEE）', { locale: zhTW })}
+              </DrawerDescription>
+            </DrawerHeader>
+
+            <div className="px-4 space-y-4 overflow-y-auto">
+              <div className="space-y-2">
+                <Label htmlFor="single-price">房價 *</Label>
+                <Input
+                  id="single-price"
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  placeholder="輸入房價"
+                  value={singleEditData.price}
+                  onChange={(e) => setSingleEditData({ ...singleEditData, price: e.target.value })}
+                  className="h-12 text-base"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="single-availableRooms">可用房數 *</Label>
+                <Input
+                  id="single-availableRooms"
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  placeholder="輸入可用房數"
+                  value={singleEditData.availableRooms}
+                  onChange={(e) => setSingleEditData({ ...singleEditData, availableRooms: e.target.value })}
+                  className="h-12 text-base"
+                />
+              </div>
+
+              <div className="flex items-center space-x-2 py-2">
+                <Switch
+                  id="single-isAvailable"
+                  checked={singleEditData.isAvailable}
+                  onCheckedChange={(checked) => setSingleEditData({ ...singleEditData, isAvailable: checked })}
+                />
+                <Label htmlFor="single-isAvailable" className="cursor-pointer text-base">
+                  開放預訂
+                </Label>
+              </div>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="single-isAvailable"
-                checked={singleEditData.isAvailable}
-                onCheckedChange={(checked) => setSingleEditData({ ...singleEditData, isAvailable: checked })}
-              />
-              <Label htmlFor="single-isAvailable" className="cursor-pointer">
-                開放預訂
-              </Label>
-            </div>
-          </div>
+            <DrawerFooter className="pt-4">
+              <Button
+                onClick={handleSingleDateUpdate}
+                disabled={saving || !singleEditData.price || !singleEditData.availableRooms}
+                className="h-12 text-base"
+              >
+                {saving ? '更新中...' : '確認更新'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setSingleEditDialogOpen(false)}
+                disabled={saving}
+                className="h-12 text-base"
+              >
+                取消
+              </Button>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={singleEditDialogOpen} onOpenChange={setSingleEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>編輯日期</span>
+                <div className="flex gap-2 text-xs font-normal text-muted-foreground">
+                  <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
+                    <span className="text-xs">ESC</span>
+                  </kbd>
+                  <span>關閉</span>
+                  <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 ml-2">
+                    <span className="text-xs">Enter</span>
+                  </kbd>
+                  <span>儲存</span>
+                </div>
+              </CardTitle>
+              <DialogDescription>
+                {editingDate && format(parseISO(editingDate), 'yyyy年 M月 d日（EEEE）', { locale: zhTW })}
+              </DialogDescription>
+            </DialogHeader>
 
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setSingleEditDialogOpen(false)}
-              disabled={saving}
-            >
-              取消
-            </Button>
-            <Button
-              onClick={handleSingleDateUpdate}
-              disabled={saving || !singleEditData.price || !singleEditData.availableRooms}
-            >
-              {saving ? '更新中...' : '確認更新'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="single-price">房價 *</Label>
+                <Input
+                  id="single-price"
+                  type="number"
+                  min="0"
+                  placeholder="輸入房價"
+                  value={singleEditData.price}
+                  onChange={(e) => setSingleEditData({ ...singleEditData, price: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="single-availableRooms">可用房數 *</Label>
+                <Input
+                  id="single-availableRooms"
+                  type="number"
+                  min="0"
+                  placeholder="輸入可用房數"
+                  value={singleEditData.availableRooms}
+                  onChange={(e) => setSingleEditData({ ...singleEditData, availableRooms: e.target.value })}
+                />
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="single-isAvailable"
+                  checked={singleEditData.isAvailable}
+                  onCheckedChange={(checked) => setSingleEditData({ ...singleEditData, isAvailable: checked })}
+                />
+                <Label htmlFor="single-isAvailable" className="cursor-pointer">
+                  開放預訂
+                </Label>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setSingleEditDialogOpen(false)}
+                disabled={saving}
+              >
+                取消
+              </Button>
+              <Button
+                onClick={handleSingleDateUpdate}
+                disabled={saving || !singleEditData.price || !singleEditData.availableRooms}
+              >
+                {saving ? '更新中...' : '確認更新'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </Card>
   );
 }
