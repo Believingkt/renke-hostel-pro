@@ -692,7 +692,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                   className={`
                     p-4 rounded-lg border-2 transition-all text-left
                     ${selectedPriceType === '2meals' 
-                      ? 'border-primary bg-primary/5' 
+                      ? 'border-primary bg-primary text-primary-foreground' 
                       : 'border-border hover:border-primary/50'
                     }
                     ${(!applyingTemplate?.weekday_2_meals_price && !applyingTemplate?.weekend_2_meals_price)
@@ -705,15 +705,15 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                   {applyingTemplate && (
                     <div className="text-sm space-y-1">
                       {applyingTemplate.weekday_2_meals_price && (
-                        <div className="text-muted-foreground">
-                          平日：<span className="font-medium text-foreground">
+                        <div className={selectedPriceType === '2meals' ? 'text-primary-foreground/80' : 'text-muted-foreground'}>
+                          平日：<span className={`font-medium ${selectedPriceType === '2meals' ? 'text-primary-foreground' : 'text-foreground'}`}>
                             NT$ {applyingTemplate.weekday_2_meals_price.toLocaleString()}
                           </span>
                         </div>
                       )}
                       {applyingTemplate.weekend_2_meals_price && (
-                        <div className="text-muted-foreground">
-                          假日：<span className="font-medium text-foreground">
+                        <div className={selectedPriceType === '2meals' ? 'text-primary-foreground/80' : 'text-muted-foreground'}>
+                          假日：<span className={`font-medium ${selectedPriceType === '2meals' ? 'text-primary-foreground' : 'text-foreground'}`}>
                             NT$ {applyingTemplate.weekend_2_meals_price.toLocaleString()}
                           </span>
                         </div>
@@ -732,7 +732,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                   className={`
                     p-4 rounded-lg border-2 transition-all text-left
                     ${selectedPriceType === '3meals' 
-                      ? 'border-primary bg-primary/5' 
+                      ? 'border-primary bg-primary text-primary-foreground' 
                       : 'border-border hover:border-primary/50'
                     }
                     ${(!applyingTemplate?.weekday_3_meals_price && !applyingTemplate?.weekend_3_meals_price)
@@ -745,15 +745,15 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                   {applyingTemplate && (
                     <div className="text-sm space-y-1">
                       {applyingTemplate.weekday_3_meals_price && (
-                        <div className="text-muted-foreground">
-                          平日：<span className="font-medium text-foreground">
+                        <div className={selectedPriceType === '3meals' ? 'text-primary-foreground/80' : 'text-muted-foreground'}>
+                          平日：<span className={`font-medium ${selectedPriceType === '3meals' ? 'text-primary-foreground' : 'text-foreground'}`}>
                             NT$ {applyingTemplate.weekday_3_meals_price.toLocaleString()}
                           </span>
                         </div>
                       )}
                       {applyingTemplate.weekend_3_meals_price && (
-                        <div className="text-muted-foreground">
-                          假日：<span className="font-medium text-foreground">
+                        <div className={selectedPriceType === '3meals' ? 'text-primary-foreground/80' : 'text-muted-foreground'}>
+                          假日：<span className={`font-medium ${selectedPriceType === '3meals' ? 'text-primary-foreground' : 'text-foreground'}`}>
                             NT$ {applyingTemplate.weekend_3_meals_price.toLocaleString()}
                           </span>
                         </div>
@@ -779,17 +779,25 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                   roomTypes.map((roomType) => (
                     <div
                       key={roomType.id}
-                      className="flex items-center gap-3 p-3 hover:bg-accent rounded-lg cursor-pointer transition-colors"
+                      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                        selectedRoomTypes.includes(roomType.id)
+                          ? 'bg-primary text-primary-foreground'
+                          : 'hover:bg-accent'
+                      }`}
                       onClick={() => toggleRoomType(roomType.id)}
                     >
                       {selectedRoomTypes.includes(roomType.id) ? (
-                        <CheckSquare className="h-5 w-5 text-primary" />
+                        <CheckSquare className="h-5 w-5" />
                       ) : (
                         <Square className="h-5 w-5 text-muted-foreground" />
                       )}
                       <div className="flex-1">
                         <p className="font-medium">{roomType.name}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className={`text-xs ${
+                          selectedRoomTypes.includes(roomType.id)
+                            ? 'text-primary-foreground/80'
+                            : 'text-muted-foreground'
+                        }`}>
                           共 {roomType.room_count || 0} 間
                         </p>
                       </div>
