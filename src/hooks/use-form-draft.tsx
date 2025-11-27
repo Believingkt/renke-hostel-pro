@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { toast } from 'sonner';
 
 interface UseFormDraftOptions<T> {
@@ -113,15 +113,15 @@ export function useFormDraft<T extends Record<string, any>>({
     toast.info('已放棄草稿');
   };
 
-  // 更新表單數據
-  const updateFormData = (updates: Partial<T> | ((prev: T) => T)) => {
+  // 更新表單數據（使用 useCallback 確保穩定引用）
+  const updateFormData = useCallback((updates: Partial<T> | ((prev: T) => T)) => {
     setFormData(prev => {
       if (typeof updates === 'function') {
         return updates(prev);
       }
       return { ...prev, ...updates };
     });
-  };
+  }, []);
 
   return {
     formData,

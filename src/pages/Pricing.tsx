@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2, GripVertical, Hotel, DollarSign, Wrench, Package, Calendar, Bed } from "lucide-react";
 import { useAccommodation } from "@/contexts/AccommodationContext";
@@ -333,7 +334,31 @@ const Pricing = () => {
               </CardHeader>
               <CardContent>
                 {isLoading ? (
-                  <TabsSkeleton />
+                  <div className="space-y-3 sm:space-y-4">
+                    {[1, 2, 3].map((i) => (
+                      <Card key={i} className="animate-fade-in" style={{ animationDelay: `${i * 50}ms` }}>
+                        <CardContent className="pt-4 sm:pt-6">
+                          <div className="flex flex-col sm:flex-row items-start gap-3">
+                            <Skeleton className="h-5 w-5 shrink-0 mt-1" />
+                            <div className="flex-1 min-w-0 w-full space-y-3">
+                              <Skeleton className="h-5 sm:h-6 w-3/4" />
+                              <Skeleton className="h-3 sm:h-4 w-full" />
+                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
+                                <Skeleton className="h-4 w-full" />
+                                <Skeleton className="h-4 w-full" />
+                                <Skeleton className="h-4 w-full" />
+                                <Skeleton className="h-4 w-full" />
+                              </div>
+                            </div>
+                            <div className="flex sm:flex-col gap-2 w-full sm:w-auto">
+                              <Skeleton className="h-9 w-9 flex-1 sm:flex-initial" />
+                              <Skeleton className="h-9 w-9 flex-1 sm:flex-initial" />
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 ) : error ? (
                   <ErrorState
                     title="無法載入房型資料"
