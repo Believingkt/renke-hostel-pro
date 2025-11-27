@@ -57,7 +57,7 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
               <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
                 付款狀態
               </th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
+              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground w-[120px]">
                 操作
               </th>
             </tr>
@@ -107,7 +107,7 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                         {paymentStatusConfig.label}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm">
+                    <td className="px-4 py-3 text-sm w-[120px]">
                       <div className="flex justify-start gap-1 -ml-3">
                         <TooltipProvider>
                           <Tooltip>

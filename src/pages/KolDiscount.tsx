@@ -659,8 +659,8 @@ const KolDiscount = () => {
         <TableCell>
           {getStatusBadge(item)}
         </TableCell>
-        <TableCell>
-          <div className="flex items-center gap-1">
+        <TableCell className="w-[180px]">
+          <div className="flex items-center gap-1 -ml-2">
             <Button
               variant="ghost"
               size="icon"
@@ -1361,7 +1361,7 @@ const KolDiscount = () => {
                 <TableHead className="text-foreground font-semibold text-sm">使用上限</TableHead>
                 <TableHead className="text-foreground font-semibold text-sm">有效期</TableHead>
                 <TableHead className="text-foreground font-semibold text-sm">狀態</TableHead>
-                <TableHead className="text-foreground font-semibold text-sm">操作</TableHead>
+                <TableHead className="text-foreground font-semibold text-sm w-[180px]">操作</TableHead>
               </TableRow>
             </TableHeader>
               <TableBody>
