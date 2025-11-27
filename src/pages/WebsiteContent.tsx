@@ -1,6 +1,14 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
-import { Globe, Plus, Trash2, Edit2, GripVertical, MapPin, Image as ImageIcon, Upload, Info, Wrench, Package, HelpCircle, Navigation, icons, AlertCircle, BookOpen } from "lucide-react";
+import { useSearchParams, Link } from "react-router-dom";
+import { Globe, Plus, Trash2, Edit2, GripVertical, MapPin, Image as ImageIcon, Upload, Info, Wrench, Package, HelpCircle, Navigation, icons, AlertCircle, BookOpen, Home } from "lucide-react";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { AboutFeatureForm } from "@/components/AboutFeatureForm";
 import { ResponsiveTabs, TabItem } from "@/components/ResponsiveTabs";
 import { WebInfoSection } from "@/components/website-content/WebInfoSection";
@@ -2112,6 +2120,22 @@ const WebsiteContent = () => {
 
   return (
     <div className="space-y-6 md:space-y-8 p-4 md:p-0">
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link to="/admin" className="flex items-center hover:opacity-70 transition-opacity">
+                <Home className="h-4 w-4" />
+              </Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>網頁設定</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsContent value="basic-info" className="space-y-6">
           <PageHeader title="網頁設定" icon={Info} />
