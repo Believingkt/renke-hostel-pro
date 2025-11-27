@@ -400,7 +400,7 @@ const Pricing = () => {
           <div className="pb-4 md:pb-6 border-b border-primary/20 mb-4 md:mb-6">
             <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-2 md:gap-3">
               <Package className="h-6 w-6 md:h-7 md:w-7 text-primary" />
-              房量管理
+              庫存設定
             </h2>
           </div>
           <InventoryCalendar accommodationId={currentAccommodationId || ""} />
