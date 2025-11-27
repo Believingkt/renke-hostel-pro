@@ -63,13 +63,20 @@ const templateSchema = z.object({
   weekend_2_meals_price: z.number().int().min(0).optional().nullable(),
   weekend_3_meals_price: z.number().int().min(0).optional().nullable(),
 }).refine((data) => {
-  // 至少要填寫一組完整的價格（平日+假日）
-  const hasBasicPrice = data.weekday_price != null && data.weekend_price != null;
-  const has2MealsPrice = data.weekday_2_meals_price != null && data.weekend_2_meals_price != null;
-  const has3MealsPrice = data.weekday_3_meals_price != null && data.weekend_3_meals_price != null;
-  return hasBasicPrice || has2MealsPrice || has3MealsPrice;
+  // 至少要填寫一個完整的區塊（平日或假日的三種價格都填）
+  const hasCompleteWeekday = 
+    data.weekday_price != null && 
+    data.weekday_2_meals_price != null && 
+    data.weekday_3_meals_price != null;
+  
+  const hasCompleteWeekend = 
+    data.weekend_price != null && 
+    data.weekend_2_meals_price != null && 
+    data.weekend_3_meals_price != null;
+  
+  return hasCompleteWeekday || hasCompleteWeekend;
 }, {
-  message: "至少要填寫一組完整的價格（無附餐食、一泊二食或一泊三食的平日和假日價格）",
+  message: "至少要填寫一個完整的價格區塊（平日或假日的三種價格都需填寫）",
   path: ["weekday_price"],
 });
 
@@ -371,117 +378,118 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
             )}
           </div>
 
-          <div className="border rounded-lg p-4 bg-muted/50">
-            <h4 className="font-medium mb-2">價格設定</h4>
-            <p className="text-sm text-muted-foreground mb-4">至少填寫一組完整價格（無附餐食/一泊二食/一泊三食的平日+假日）</p>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-2 font-medium text-muted-foreground"></th>
-                    <th className="text-center py-3 px-2 font-medium">平日</th>
-                    <th className="text-center py-3 px-2 font-medium">假日</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b">
-                    <td className="py-3 px-2 font-medium">無附餐食</td>
-                    <td className="py-3 px-2">
-                      <Input
-                        id="weekday_price"
-                        type="number"
-                        min="0"
-                        value={formData.weekday_price ?? ""}
-                        onChange={(e) => setFormData({ 
-                          ...formData, 
-                          weekday_price: e.target.value ? parseInt(e.target.value) : null 
-                        })}
-                        placeholder="選填"
-                        className="text-center"
-                      />
-                    </td>
-                    <td className="py-3 px-2">
-                      <Input
-                        id="weekend_price"
-                        type="number"
-                        min="0"
-                        value={formData.weekend_price ?? ""}
-                        onChange={(e) => setFormData({ 
-                          ...formData, 
-                          weekend_price: e.target.value ? parseInt(e.target.value) : null 
-                        })}
-                        placeholder="選填"
-                        className="text-center"
-                      />
-                    </td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="py-3 px-2 font-medium">一泊二食</td>
-                    <td className="py-3 px-2">
-                      <Input
-                        id="weekday_2_meals_price"
-                        type="number"
-                        min="0"
-                        value={formData.weekday_2_meals_price ?? ""}
-                        onChange={(e) => setFormData({ 
-                          ...formData, 
-                          weekday_2_meals_price: e.target.value ? parseInt(e.target.value) : null 
-                        })}
-                        placeholder="選填"
-                        className="text-center"
-                      />
-                    </td>
-                    <td className="py-3 px-2">
-                      <Input
-                        id="weekend_2_meals_price"
-                        type="number"
-                        min="0"
-                        value={formData.weekend_2_meals_price ?? ""}
-                        onChange={(e) => setFormData({ 
-                          ...formData, 
-                          weekend_2_meals_price: e.target.value ? parseInt(e.target.value) : null 
-                        })}
-                        placeholder="選填"
-                        className="text-center"
-                      />
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="py-3 px-2 font-medium">一泊三食</td>
-                    <td className="py-3 px-2">
-                      <Input
-                        id="weekday_3_meals_price"
-                        type="number"
-                        min="0"
-                        value={formData.weekday_3_meals_price ?? ""}
-                        onChange={(e) => setFormData({ 
-                          ...formData, 
-                          weekday_3_meals_price: e.target.value ? parseInt(e.target.value) : null 
-                        })}
-                        placeholder="選填"
-                        className="text-center"
-                      />
-                    </td>
-                    <td className="py-3 px-2">
-                      <Input
-                        id="weekend_3_meals_price"
-                        type="number"
-                        min="0"
-                        value={formData.weekend_3_meals_price ?? ""}
-                        onChange={(e) => setFormData({ 
-                          ...formData, 
-                          weekend_3_meals_price: e.target.value ? parseInt(e.target.value) : null 
-                        })}
-                        placeholder="選填"
-                        className="text-center"
-                      />
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="font-medium">價格設定</h4>
+              <p className="text-sm text-muted-foreground">至少填寫一個完整區塊</p>
             </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* 平日價格區塊 */}
+              <div className="border rounded-lg p-4 bg-muted/50">
+                <h5 className="font-medium mb-3 text-center">平日價格</h5>
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="weekday_price">無附餐食</Label>
+                    <Input
+                      id="weekday_price"
+                      type="number"
+                      min="0"
+                      value={formData.weekday_price ?? ""}
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
+                        weekday_price: e.target.value ? parseInt(e.target.value) : null 
+                      })}
+                      placeholder="選填"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="weekday_2_meals_price">一泊二食</Label>
+                    <Input
+                      id="weekday_2_meals_price"
+                      type="number"
+                      min="0"
+                      value={formData.weekday_2_meals_price ?? ""}
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
+                        weekday_2_meals_price: e.target.value ? parseInt(e.target.value) : null 
+                      })}
+                      placeholder="選填"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="weekday_3_meals_price">一泊三食</Label>
+                    <Input
+                      id="weekday_3_meals_price"
+                      type="number"
+                      min="0"
+                      value={formData.weekday_3_meals_price ?? ""}
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
+                        weekday_3_meals_price: e.target.value ? parseInt(e.target.value) : null 
+                      })}
+                      placeholder="選填"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 假日價格區塊 */}
+              <div className="border rounded-lg p-4 bg-muted/50">
+                <h5 className="font-medium mb-3 text-center">假日價格</h5>
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="weekend_price">無附餐食</Label>
+                    <Input
+                      id="weekend_price"
+                      type="number"
+                      min="0"
+                      value={formData.weekend_price ?? ""}
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
+                        weekend_price: e.target.value ? parseInt(e.target.value) : null 
+                      })}
+                      placeholder="選填"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="weekend_2_meals_price">一泊二食</Label>
+                    <Input
+                      id="weekend_2_meals_price"
+                      type="number"
+                      min="0"
+                      value={formData.weekend_2_meals_price ?? ""}
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
+                        weekend_2_meals_price: e.target.value ? parseInt(e.target.value) : null 
+                      })}
+                      placeholder="選填"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="weekend_3_meals_price">一泊三食</Label>
+                    <Input
+                      id="weekend_3_meals_price"
+                      type="number"
+                      min="0"
+                      value={formData.weekend_3_meals_price ?? ""}
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
+                        weekend_3_meals_price: e.target.value ? parseInt(e.target.value) : null 
+                      })}
+                      placeholder="選填"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            
             {errors.weekday_price && (
-              <p className="text-sm text-destructive mt-2">{errors.weekday_price}</p>
+              <p className="text-sm text-destructive">{errors.weekday_price}</p>
             )}
           </div>
 
