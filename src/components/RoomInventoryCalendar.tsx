@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { ChevronLeft, ChevronRight, DollarSign, Package, Edit, X, Check, Calendar, CalendarDays, CalendarRange, Briefcase } from "lucide-react";
+import { ChevronLeft, ChevronRight, DollarSign, Package, Edit, X, Check, Calendar, CalendarDays, CalendarRange, Briefcase, Copy } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -37,6 +37,8 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
     isAvailable: true,
   });
   const [saving, setSaving] = useState(false);
+  const [isCopyMode, setIsCopyMode] = useState(false);
+  const [copiedData, setCopiedData] = useState<DayInventory | null>(null);
 
   useEffect(() => {
     loadInventory();
@@ -87,6 +89,16 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
   const toggleDateSelection = (dateStr: string) => {
     if (!isSelectionMode) return;
     
+    // 如果在複製模式下，點擊有資料的日期會複製它
+    if (isCopyMode && inventory[dateStr]) {
+      const dayData = inventory[dateStr];
+      setCopiedData(dayData);
+      setIsCopyMode(false);
+      setSelectedDates(new Set());
+      toast.success(`已複製 ${format(parseISO(dateStr), 'M月d日', { locale: zhTW })} 的設定`);
+      return;
+    }
+    
     setSelectedDates(prev => {
       const newSet = new Set(prev);
       if (newSet.has(dateStr)) {
@@ -106,6 +118,8 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
   const handleCancelSelection = () => {
     setIsSelectionMode(false);
     setSelectedDates(new Set());
+    setIsCopyMode(false);
+    setCopiedData(null);
   };
 
   const handleOpenBatchEdit = () => {
@@ -213,6 +227,56 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
     toast.success('已清除選擇');
   };
 
+  const handleStartCopyMode = () => {
+    setIsCopyMode(true);
+    setSelectedDates(new Set());
+    setCopiedData(null);
+    toast.info('請點擊要複製的日期');
+  };
+
+  const handleApplyCopiedData = async () => {
+    if (!copiedData) {
+      toast.error('尚未複製任何設定');
+      return;
+    }
+    
+    if (selectedDates.size === 0) {
+      toast.error('請至少選擇一個日期');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const updates = Array.from(selectedDates).map(date => ({
+        room_type_id: roomTypeId,
+        date,
+        price: copiedData.price!,
+        available_rooms: copiedData.availableRooms!,
+        is_available: copiedData.isAvailable,
+      }));
+
+      const { error } = await supabase
+        .from('room_inventory_pricing')
+        .upsert(updates, {
+          onConflict: 'room_type_id,date',
+          ignoreDuplicates: false,
+        });
+
+      if (error) throw error;
+
+      toast.success(`已成功套用到 ${selectedDates.size} 個日期`);
+      setIsSelectionMode(false);
+      setSelectedDates(new Set());
+      setCopiedData(null);
+      loadInventory();
+    } catch (error) {
+      console.error('套用複製設定失敗:', error);
+      toast.error('套用複製設定失敗');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
@@ -263,13 +327,61 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
             </div>
           ) : (
             <div className="space-y-3">
+              {/* 提示訊息 */}
+              {isCopyMode && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+                  <div className="flex items-center gap-2">
+                    <Copy className="h-4 w-4" />
+                    <span>請點擊一個已設定的日期來複製其價格和庫存設定</span>
+                  </div>
+                </div>
+              )}
+              
+              {copiedData && !isCopyMode && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-green-600" />
+                      <span className="text-green-800">
+                        已複製：價格 NT$ {copiedData.price?.toLocaleString()} / 房數 {copiedData.availableRooms}
+                      </span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setCopiedData(null);
+                        setSelectedDates(new Set());
+                      }}
+                      className="h-6 px-2"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-green-700 mt-1">請選擇要套用的目標日期</p>
+                </div>
+              )}
+
               {/* 快速選擇按鈕組 */}
               <div className="flex flex-wrap gap-2">
+                {!copiedData && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleStartCopyMode}
+                    className="gap-2"
+                    disabled={isCopyMode}
+                  >
+                    <Copy className="h-4 w-4" />
+                    複製設定
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={selectWeekends}
                   className="gap-2"
+                  disabled={isCopyMode}
                 >
                   <Calendar className="h-4 w-4" />
                   選擇週末
@@ -279,6 +391,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   size="sm"
                   onClick={selectWeekdays}
                   className="gap-2"
+                  disabled={isCopyMode}
                 >
                   <Briefcase className="h-4 w-4" />
                   選擇工作日
@@ -288,6 +401,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   size="sm"
                   onClick={selectCurrentWeek}
                   className="gap-2"
+                  disabled={isCopyMode}
                 >
                   <CalendarDays className="h-4 w-4" />
                   選擇本週
@@ -297,6 +411,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   size="sm"
                   onClick={selectWholeMonth}
                   className="gap-2"
+                  disabled={isCopyMode}
                 >
                   <CalendarRange className="h-4 w-4" />
                   選擇整月
@@ -306,7 +421,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   size="sm"
                   onClick={clearSelection}
                   className="gap-2"
-                  disabled={selectedDates.size === 0}
+                  disabled={selectedDates.size === 0 || isCopyMode}
                 >
                   <X className="h-4 w-4" />
                   清除選擇
@@ -319,16 +434,29 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   已選擇 {selectedDates.size} 個日期
                 </span>
                 <div className="flex gap-2">
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={handleOpenBatchEdit}
-                    disabled={selectedDates.size === 0}
-                    className="gap-2"
-                  >
-                    <Check className="h-4 w-4" />
-                    編輯選中日期
-                  </Button>
+                  {copiedData && !isCopyMode ? (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={handleApplyCopiedData}
+                      disabled={selectedDates.size === 0 || saving}
+                      className="gap-2"
+                    >
+                      <Check className="h-4 w-4" />
+                      {saving ? '套用中...' : '套用複製設定'}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={handleOpenBatchEdit}
+                      disabled={selectedDates.size === 0 || isCopyMode}
+                      className="gap-2"
+                    >
+                      <Check className="h-4 w-4" />
+                      編輯選中日期
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
@@ -384,6 +512,8 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                     isTodayDate && "border-primary border-2",
                     !isCurrentMonth && "opacity-50",
                     isSelectionMode && "cursor-pointer hover:scale-105",
+                    isCopyMode && hasData && "ring-2 ring-blue-400 animate-pulse",
+                    isCopyMode && !hasData && "opacity-30 cursor-not-allowed",
                     isSelected && "bg-primary/20 border-primary shadow-md",
                     !isSelected && hasData && dayInventory.isAvailable && "bg-green-50 hover:bg-green-100",
                     !isSelected && hasData && !dayInventory.isAvailable && "bg-gray-100",
