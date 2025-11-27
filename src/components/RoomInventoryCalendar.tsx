@@ -602,7 +602,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   onClick={() => toggleDateSelection(dateStr)}
                   onDoubleClick={() => handleDoubleClick(dateStr)}
                   className={cn(
-                    "relative aspect-square border rounded-lg p-1 flex flex-col items-center justify-center text-xs transition-all",
+                    "relative aspect-square border rounded-lg p-2 flex flex-col items-center justify-center text-sm transition-all",
                     isTodayDate && "border-blue-600 border-2",
                     !isCurrentMonth && "opacity-50",
                     isSelectionMode && "cursor-pointer hover:scale-105",
@@ -616,7 +616,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   )}
                 >
                   <div className={cn(
-                    "font-medium mb-1",
+                    "font-semibold mb-1.5 text-base",
                     isTodayDate && "text-blue-600 font-bold",
                     isSelected && "text-blue-700 font-bold"
                   )}>
@@ -624,21 +624,21 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   </div>
                   {hasData ? (
                     <>
-                      <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
-                        <DollarSign className="h-3 w-3" />
-                        <span>{dayInventory.price}</span>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <DollarSign className="h-3.5 w-3.5" />
+                        <span className="font-medium">{dayInventory.price}</span>
                       </div>
-                      <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
-                        <Package className="h-3 w-3" />
-                        <span>{dayInventory.availableRooms}</span>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Package className="h-3.5 w-3.5" />
+                        <span className="font-medium">{dayInventory.availableRooms}</span>
                       </div>
                     </>
                   ) : (
-                    <div className="text-[10px] text-muted-foreground">未設定</div>
+                    <div className="text-xs text-muted-foreground">未設定</div>
                   )}
                   {isSelected && (
                     <div className="absolute top-1 right-1">
-                      <Check className="h-3 w-3 text-blue-600" />
+                      <Check className="h-4 w-4 text-blue-600" />
                     </div>
                   )}
                 </div>
