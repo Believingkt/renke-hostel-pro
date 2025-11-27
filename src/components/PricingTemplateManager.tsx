@@ -416,7 +416,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                     </td>
                   </tr>
                   <tr className="border-b">
-                    <td className="py-3 px-2 font-medium">含兩餐</td>
+                    <td className="py-3 px-2 font-medium">一泊二食</td>
                     <td className="py-3 px-2">
                       <Input
                         id="weekday_2_meals_price"
@@ -447,7 +447,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                     </td>
                   </tr>
                   <tr>
-                    <td className="py-3 px-2 font-medium">含三餐</td>
+                    <td className="py-3 px-2 font-medium">一泊三食</td>
                     <td className="py-3 px-2">
                       <Input
                         id="weekday_3_meals_price"
