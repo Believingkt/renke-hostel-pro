@@ -602,7 +602,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   onClick={() => toggleDateSelection(dateStr)}
                   onDoubleClick={() => handleDoubleClick(dateStr)}
                   className={cn(
-                    "relative aspect-square border rounded-lg p-2 flex flex-col items-center justify-center text-sm transition-all",
+                    "relative min-h-[100px] border rounded-lg p-2 flex flex-col items-center justify-center text-sm transition-all",
                     isTodayDate && "border-blue-600 border-2",
                     !isCurrentMonth && "opacity-50",
                     isSelectionMode && "cursor-pointer hover:scale-105",
@@ -616,7 +616,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   )}
                 >
                   <div className={cn(
-                    "font-semibold mb-1.5 text-base",
+                    "font-semibold mb-2 text-base",
                     isTodayDate && "text-blue-600 font-bold",
                     isSelected && "text-blue-700 font-bold"
                   )}>
@@ -624,7 +624,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   </div>
                   {hasData ? (
                     <>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
                         <DollarSign className="h-3.5 w-3.5" />
                         <span className="font-medium">{dayInventory.price}</span>
                       </div>
@@ -637,7 +637,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                     <div className="text-xs text-muted-foreground">未設定</div>
                   )}
                   {isSelected && (
-                    <div className="absolute top-1 right-1">
+                    <div className="absolute top-1.5 right-1.5">
                       <Check className="h-4 w-4 text-blue-600" />
                     </div>
                   )}
