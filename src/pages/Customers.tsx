@@ -595,7 +595,7 @@ const Customers = () => {
                         <TableCell className="text-right text-sm w-[140px]">
                           <div className="flex justify-end gap-1 pr-2">
                             <Button
-                              variant="outline"
+                              variant="ghost"
                               size="sm"
                               onClick={() => navigate(`/admin/customers/${customer.id}/orders`)}
                               className="h-9 w-9 p-0"
@@ -604,7 +604,7 @@ const Customers = () => {
                               <FileText className="h-4 w-4" />
                             </Button>
                             <Button
-                              variant="outline"
+                              variant="ghost"
                               size="sm"
                               onClick={() => handleOpenDialog(customer)}
                               className="h-9 w-9 p-0"
@@ -612,7 +612,7 @@ const Customers = () => {
                               <Pencil className="h-4 w-4" />
                             </Button>
                             <Button
-                              variant="outline"
+                              variant="ghost"
                               size="sm"
                               onClick={() => setDeleteCustomerId(customer.id)}
                               className="h-9 w-9 p-0 text-destructive hover:text-destructive"

@@ -662,7 +662,7 @@ const KolDiscount = () => {
         <TableCell className="w-[180px]">
           <div className="flex items-center gap-1 -ml-2">
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
               className="h-9 w-9"
               onClick={() => handleOpenEdit(item)}
@@ -671,7 +671,7 @@ const KolDiscount = () => {
               <Pencil className="h-4 w-4" />
             </Button>
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
               className="h-9 w-9"
               onClick={() => {
@@ -683,7 +683,7 @@ const KolDiscount = () => {
               <Eye className="h-4 w-4" />
             </Button>
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
               className="h-9 w-9"
               onClick={() => toggleActive(item.id, item.is_active)}
@@ -696,7 +696,7 @@ const KolDiscount = () => {
               )}
             </Button>
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
               className="h-9 w-9 text-destructive hover:text-destructive"
               onClick={() => handleDelete(item.id)}

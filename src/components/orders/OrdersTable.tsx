@@ -113,7 +113,7 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
-                                variant="outline"
+                                variant="ghost"
                                 size="sm"
                                 className="h-9 w-9 p-0 touch-manipulation"
                                 asChild
@@ -132,7 +132,7 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
-                                variant="outline"
+                                variant="ghost"
                                 size="sm"
                                 className="h-9 w-9 p-0 touch-manipulation"
                                 onClick={() => onEditOrder(order)}
