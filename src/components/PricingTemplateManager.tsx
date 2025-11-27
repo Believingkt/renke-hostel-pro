@@ -91,6 +91,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
   const [availableRooms, setAvailableRooms] = useState<number>(1);
   const [applying, setApplying] = useState(false);
   const [selectedPriceType, setSelectedPriceType] = useState<'2meals' | '3meals'>('2meals');
+  const [selectedDays, setSelectedDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]); // 0=日, 1=一, ..., 6=六
   
   const [formData, setFormData] = useState({
     template_name: "",
@@ -266,6 +267,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
     setSelectedRoomTypes([]);
     setDateRange(undefined);
     setAvailableRooms(1);
+    setSelectedDays([0, 1, 2, 3, 4, 5, 6]); // 預設全選
     // 預設選擇有值的價格類型
     if (template.weekday_2_meals_price || template.weekend_2_meals_price) {
       setSelectedPriceType('2meals');
@@ -273,6 +275,22 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       setSelectedPriceType('3meals');
     }
     setApplyDialogOpen(true);
+  };
+
+  const toggleDay = (day: number) => {
+    setSelectedDays(prev => 
+      prev.includes(day) 
+        ? prev.filter(d => d !== day)
+        : [...prev, day].sort((a, b) => a - b)
+    );
+  };
+
+  const toggleAllDays = () => {
+    if (selectedDays.length === 7) {
+      setSelectedDays([]);
+    } else {
+      setSelectedDays([0, 1, 2, 3, 4, 5, 6]);
+    }
   };
 
   const toggleRoomType = (roomTypeId: string) => {
@@ -294,9 +312,22 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       return;
     }
 
+    if (selectedDays.length === 0) {
+      toast.error('請至少選擇一個星期');
+      return;
+    }
+
     try {
       setApplying(true);
-      const dates = eachDayOfInterval({ start: dateRange.from, end: dateRange.to });
+      const allDates = eachDayOfInterval({ start: dateRange.from, end: dateRange.to });
+      
+      // 只保留選中星期的日期
+      const dates = allDates.filter(date => selectedDays.includes(date.getDay()));
+      
+      if (dates.length === 0) {
+        toast.error('所選日期範圍內沒有符合的星期');
+        return;
+      }
       
       // 為每個選擇的房型和日期創建記錄
       const records = [];
@@ -679,6 +710,68 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                 onDateRangeChange={setDateRange}
                 className="w-full"
               />
+            </div>
+
+            {/* 套用星期選擇 */}
+            <div className="space-y-2">
+              <Label>套用星期</Label>
+              <div className="border rounded-lg p-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={toggleAllDays}
+                    className={`
+                      flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all
+                      ${selectedDays.length === 7
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border hover:border-primary'
+                      }
+                    `}
+                  >
+                    {selectedDays.length === 7 ? (
+                      <CheckSquare className="h-4 w-4" />
+                    ) : (
+                      <Square className="h-4 w-4" />
+                    )}
+                    <span className="font-medium">全選</span>
+                  </button>
+
+                  {[
+                    { day: 0, label: '日' },
+                    { day: 1, label: '一' },
+                    { day: 2, label: '二' },
+                    { day: 3, label: '三' },
+                    { day: 4, label: '四' },
+                    { day: 5, label: '五' },
+                    { day: 6, label: '六' },
+                  ].map(({ day, label }) => (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => toggleDay(day)}
+                      className={`
+                        flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all
+                        ${selectedDays.includes(day)
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-border hover:border-primary'
+                        }
+                      `}
+                    >
+                      {selectedDays.includes(day) ? (
+                        <CheckSquare className="h-4 w-4" />
+                      ) : (
+                        <Square className="h-4 w-4" />
+                      )}
+                      <span className="font-medium">{label}</span>
+                    </button>
+                  ))}
+                </div>
+                {selectedDays.length > 0 && selectedDays.length < 7 && (
+                  <p className="text-xs text-muted-foreground mt-3">
+                    已選擇 {selectedDays.length} 個星期
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* 價格類型選擇 */}
