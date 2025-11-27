@@ -66,13 +66,13 @@ const ValidatedInput = React.forwardRef<HTMLInputElement, ValidatedInputProps>(
           {...props}
         />
         {error && (
-          <div className="flex items-center gap-1 text-destructive text-sm">
-            <AlertCircle className="h-3 w-3" />
-            <span>{error}</span>
+          <div className="flex items-start gap-1.5 text-destructive text-xs sm:text-sm mt-1.5">
+            <AlertCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0 mt-0.5" />
+            <span className="break-words leading-relaxed flex-1">{error}</span>
           </div>
         )}
         {showCharCount && maxLength && (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-[10px] sm:text-xs text-muted-foreground text-right">
             {charCount}/{maxLength} 字元
           </p>
         )}
