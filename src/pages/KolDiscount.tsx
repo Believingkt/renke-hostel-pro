@@ -662,18 +662,18 @@ const KolDiscount = () => {
         <TableCell className="w-[180px]">
           <div className="flex items-center gap-1 -ml-2">
             <Button
-              variant="ghost"
+              variant="outline"
               size="icon"
-              className="h-8 w-8"
+              className="h-9 w-9"
               onClick={() => handleOpenEdit(item)}
               title="編輯"
             >
               <Pencil className="h-4 w-4" />
             </Button>
             <Button
-              variant="ghost"
+              variant="outline"
               size="icon"
-              className="h-8 w-8"
+              className="h-9 w-9"
               onClick={() => {
                 setSelectedCodeForCommission(item);
                 setIntegratedDetailsOpen(true);
@@ -683,22 +683,22 @@ const KolDiscount = () => {
               <Eye className="h-4 w-4" />
             </Button>
             <Button
-              variant="ghost"
+              variant="outline"
               size="icon"
-              className="h-8 w-8 group"
+              className="h-9 w-9"
               onClick={() => toggleActive(item.id, item.is_active)}
               title={item.is_active ? "停用" : "啟用"}
             >
               {item.is_active ? (
-                <Pause className="h-4 w-4 text-foreground group-hover:text-white transition-colors" />
+                <Pause className="h-4 w-4" />
               ) : (
-                <Check className="h-4 w-4 text-green-600 group-hover:text-white transition-colors" />
+                <Check className="h-4 w-4 text-green-600" />
               )}
             </Button>
             <Button
-              variant="ghost-destructive"
+              variant="outline"
               size="icon"
-              className="group"
+              className="h-9 w-9 text-destructive hover:text-destructive"
               onClick={() => handleDelete(item.id)}
             >
               <Trash2 className="h-4 w-4" />

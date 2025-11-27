@@ -113,13 +113,13 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="sm"
-                                className="h-9 w-9 p-0 group touch-manipulation"
+                                className="h-9 w-9 p-0 touch-manipulation"
                                 asChild
                               >
                                 <Link to={`/admin/orders/${order.id}`}>
-                                  <Eye className="h-4 w-4 text-black group-hover:text-white transition-colors" />
+                                  <Eye className="h-4 w-4" />
                                 </Link>
                               </Button>
                             </TooltipTrigger>
@@ -132,12 +132,12 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="sm"
-                                className="h-9 w-9 p-0 group touch-manipulation"
+                                className="h-9 w-9 p-0 touch-manipulation"
                                 onClick={() => onEditOrder(order)}
                               >
-                                <Edit className="h-4 w-4 text-black group-hover:text-white transition-colors" />
+                                <Edit className="h-4 w-4" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
