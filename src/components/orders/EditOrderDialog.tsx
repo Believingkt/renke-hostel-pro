@@ -20,10 +20,6 @@ interface RoomType {
   id: string;
   name: string;
   capacity: number;
-  weekday_2_meals_price?: number;
-  weekday_3_meals_price?: number;
-  weekend_2_meals_price?: number;
-  weekend_3_meals_price?: number;
 }
 
 interface EditOrderDialogProps {
@@ -151,13 +147,10 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
     return appliedDiscount.value;
   };
 
-  const calculatePrice = () => {
+  const calculatePrice = async () => {
     if (!editForm.room_type_id || !editForm.check_in_date || !editForm.check_out_date) {
       return { total: 0, discount: 0, final: 0 };
     }
-
-    const selectedRoomType = roomTypes.find(r => r.id === editForm.room_type_id);
-    if (!selectedRoomType) return { total: 0, discount: 0, final: 0 };
 
     const nights = calculateNights();
     if (nights === 0) return { total: 0, discount: 0, final: 0 };
@@ -165,20 +158,23 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
     let total = 0;
     const start = new Date(editForm.check_in_date);
 
-    // Assuming 3 meals plan (一泊三食) - you can make this dynamic if needed
+    // Fetch prices from room_inventory_pricing for each night
     for (let i = 0; i < nights; i++) {
       const currentDate = new Date(start);
       currentDate.setDate(start.getDate() + i);
+      const dateStr = format(currentDate, "yyyy-MM-dd");
       
-      const isWeekendDay = isWeekend(currentDate);
-      let pricePerNight = 0;
+      // Query price from inventory
+      const { data: inventoryData } = await supabase
+        .from("room_inventory_pricing")
+        .select("price")
+        .eq("room_type_id", editForm.room_type_id)
+        .eq("date", dateStr)
+        .maybeSingle();
       
-      // Use 3 meals pricing
-      pricePerNight = isWeekendDay
-        ? (selectedRoomType.weekend_3_meals_price || selectedRoomType.weekday_3_meals_price || 0)
-        : (selectedRoomType.weekday_3_meals_price || 0);
-      
-      total += pricePerNight;
+      if (inventoryData?.price) {
+        total += inventoryData.price;
+      }
     }
 
     const discount = calculateDiscount(total);
@@ -189,8 +185,11 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
 
   // Recalculate price when dates, room type, or discount change
   useEffect(() => {
-    const newPrice = calculatePrice();
-    setCalculatedPrice(newPrice);
+    const fetchPrice = async () => {
+      const newPrice = await calculatePrice();
+      setCalculatedPrice(newPrice);
+    };
+    fetchPrice();
   }, [editForm.check_in_date, editForm.check_out_date, editForm.room_type_id, roomTypes, publicHolidays, appliedDiscount]);
 
   const handleApplyDiscount = async () => {
