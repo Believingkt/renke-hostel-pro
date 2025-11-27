@@ -87,9 +87,10 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                   <h3 className="font-semibold text-base md:text-base lg:text-lg">取消政策</h3>
                 </div>
                 <div className="space-y-0.5 text-sm md:text-sm text-muted-foreground">
-                  {bookingSettings?.cancellation_policy?.split('\n').map((line: string, index: number) => (
-                    <p key={index} className="py-1.5 leading-relaxed">{line}</p>
-                  ))}
+                  <div 
+                    className="py-1.5 leading-relaxed prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: bookingSettings?.cancellation_policy || '' }}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -104,11 +105,12 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                 </div>
                 <div className="flex-1 flex flex-col">
                   <div className="space-y-0.5 text-sm md:text-sm text-muted-foreground overflow-hidden" style={{ maxHeight: "180px" }}>
-                    {checkInNotice?.split('\n').map((line: string, index: number) => (
-                      <p key={index} className="py-1.5 leading-relaxed">{line}</p>
-                    ))}
+                    <div 
+                      className="prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: checkInNotice || '' }}
+                    />
                   </div>
-                  {checkInNotice && checkInNotice.split('\n').length > 4 && (
+                  {checkInNotice && checkInNotice.length > 200 && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -133,11 +135,12 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                   </div>
                   <div className="flex-1 flex flex-col">
                     <div className="space-y-0.5 text-sm md:text-sm text-muted-foreground overflow-hidden" style={{ maxHeight: "180px" }}>
-                      {bookingSettings.pet_policy?.split('\n').map((line: string, index: number) => (
-                        <p key={index} className="py-1.5 leading-relaxed">{line}</p>
-                      ))}
+                      <div 
+                        className="prose prose-sm max-w-none"
+                        dangerouslySetInnerHTML={{ __html: bookingSettings.pet_policy || '' }}
+                      />
                     </div>
-                    {bookingSettings.pet_policy && bookingSettings.pet_policy.split('\n').length > 4 && (
+                    {bookingSettings.pet_policy && bookingSettings.pet_policy.length > 200 && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -163,11 +166,12 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                   </div>
                   <div className="flex-1 flex flex-col">
                     <div className="space-y-0.5 text-sm md:text-sm text-muted-foreground overflow-hidden" style={{ maxHeight: "180px" }}>
-                      {bookingSettings.other_notes?.split('\n').map((line: string, index: number) => (
-                        <p key={index} className="py-1.5 leading-relaxed">{line}</p>
-                      ))}
+                      <div 
+                        className="prose prose-sm max-w-none"
+                        dangerouslySetInnerHTML={{ __html: bookingSettings.other_notes || '' }}
+                      />
                     </div>
-                    {bookingSettings.other_notes && bookingSettings.other_notes.split('\n').length > 4 && (
+                    {bookingSettings.other_notes && bookingSettings.other_notes.length > 200 && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -191,11 +195,10 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
             <DialogTitle className="text-2xl font-bold">{dialogContent.title}</DialogTitle>
           </DialogHeader>
           <div className="space-y-0 mt-4 text-sm">
-            {dialogContent.content.split('\n').map((line: string, index: number) => (
-              <p key={index} className="p-2 rounded-lg leading-snug text-muted-foreground">
-                {line}
-              </p>
-            ))}
+            <div 
+              className="prose prose-sm max-w-none text-muted-foreground"
+              dangerouslySetInnerHTML={{ __html: dialogContent.content }}
+            />
           </div>
         </DialogContent>
       </Dialog>

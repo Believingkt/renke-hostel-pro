@@ -19,6 +19,7 @@ import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { ValidatedInput } from "@/components/ui/validated-input";
 import { ValidatedTextarea } from "@/components/ui/validated-textarea";
 import { ValidatedNumberInput } from "@/components/ui/validated-number-input";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { compressImage, validateImageFile, formatFileSize } from "@/utils/imageCompression";
 import {
   DndContext,
@@ -2697,15 +2698,15 @@ const WebsiteContent = () => {
               <CardTitle>取消政策</CardTitle>
             </CardHeader>
             <CardContent>
-              <ValidatedTextarea
-                label="政策說明"
-                placeholder="例如：入住前7天免費取消，7天內取消收取50%費用"
-                value={bookingInfo.cancellationPolicy}
-                error={bookingErrors.cancellation_policy}
-                rows={6}
-                onChange={(value) => setBookingInfo(prev => ({ ...prev, cancellationPolicy: value }))}
-                onValidate={(value) => validateBookingField("cancellation_policy", value)}
-              />
+              <div className="space-y-2">
+                <Label>政策說明</Label>
+                <RichTextEditor
+                  value={bookingInfo.cancellationPolicy}
+                  onChange={(value) => setBookingInfo(prev => ({ ...prev, cancellationPolicy: value }))}
+                  placeholder="例如：入住前7天免費取消，7天內取消收取50%費用"
+                  error={bookingErrors.cancellation_policy}
+                />
+              </div>
             </CardContent>
           </Card>
 
@@ -2717,14 +2718,10 @@ const WebsiteContent = () => {
             <CardContent>
               <div className="space-y-2">
                 <Label>入住須知</Label>
-                <Textarea
-                  rows={8}
-                  placeholder="例如：&#10;請出示身分證件&#10;禁止吸菸&#10;不可攜帶寵物"
+                <RichTextEditor
                   value={bookingInfo.checkInNotice}
-                  onChange={(e) => setBookingInfo(prev => ({
-                    ...prev,
-                    checkInNotice: e.target.value
-                  }))}
+                  onChange={(value) => setBookingInfo(prev => ({ ...prev, checkInNotice: value }))}
+                  placeholder="例如：請出示身分證件、禁止吸菸、不可攜帶寵物"
                 />
               </div>
             </CardContent>
@@ -2736,15 +2733,15 @@ const WebsiteContent = () => {
               <CardTitle>寵物入住守則</CardTitle>
             </CardHeader>
             <CardContent>
-              <ValidatedTextarea
-                label="守則說明"
-                placeholder="例如：&#10;歡迎攜帶寵物入住&#10;寵物需加收清潔費用&#10;請主人隨時清理寵物排泄物&#10;寵物不可上床"
-                value={bookingInfo.petPolicy}
-                error={bookingErrors.pet_policy}
-                rows={8}
-                onChange={(value) => setBookingInfo(prev => ({ ...prev, petPolicy: value }))}
-                onValidate={(value) => validateBookingField("pet_policy", value)}
-              />
+              <div className="space-y-2">
+                <Label>守則說明</Label>
+                <RichTextEditor
+                  value={bookingInfo.petPolicy}
+                  onChange={(value) => setBookingInfo(prev => ({ ...prev, petPolicy: value }))}
+                  placeholder="例如：歡迎攜帶寵物入住、寵物需加收清潔費用、請主人隨時清理寵物排泄物、寵物不可上床"
+                  error={bookingErrors.pet_policy}
+                />
+              </div>
             </CardContent>
           </Card>
 
@@ -2754,15 +2751,15 @@ const WebsiteContent = () => {
               <CardTitle>其他注意事項</CardTitle>
             </CardHeader>
             <CardContent>
-              <ValidatedTextarea
-                label="注意事項說明"
-                placeholder="例如：&#10;房間內禁止吸菸&#10;晚上10點後請降低音量&#10;使用設施請遵守安全規範&#10;貴重物品請自行保管"
-                value={bookingInfo.otherNotes}
-                error={bookingErrors.other_notes}
-                rows={8}
-                onChange={(value) => setBookingInfo(prev => ({ ...prev, otherNotes: value }))}
-                onValidate={(value) => validateBookingField("other_notes", value)}
-              />
+              <div className="space-y-2">
+                <Label>注意事項說明</Label>
+                <RichTextEditor
+                  value={bookingInfo.otherNotes}
+                  onChange={(value) => setBookingInfo(prev => ({ ...prev, otherNotes: value }))}
+                  placeholder="例如：房間內禁止吸菸、晚上10點後請降低音量、使用設施請遵守安全規範、貴重物品請自行保管"
+                  error={bookingErrors.other_notes}
+                />
+              </div>
             </CardContent>
           </Card>
 
