@@ -371,6 +371,20 @@ const WebsiteContent = () => {
   const [accommodationId, setAccommodationId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   
+  // 麵包屑名稱映射
+  const getBreadcrumbTitle = () => {
+    const titleMap: Record<string, string> = {
+      'basic-info': '網頁設定',
+      'facilities': '設施服務',
+      'addon-plans': '加購方案',
+      'gallery': '精選照片',
+      'booking-info': '訂房須知',
+      'faq': '常見問題',
+      'location': '交通地圖'
+    };
+    return titleMap[activeTab] || '官網內容';
+  };
+  
   // 基本資料狀態
   const [basicInfo, setBasicInfo] = useState({
     name: "",
@@ -1439,7 +1453,7 @@ const WebsiteContent = () => {
         document.title = basicInfo.name;
       }
 
-      toast.success('官網內容已儲存');
+      toast.success('網頁設定已儲存');
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error("Error saving basic info:", error);
@@ -2131,14 +2145,14 @@ const WebsiteContent = () => {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>官網內容</BreadcrumbPage>
+            <BreadcrumbPage>{getBreadcrumbTitle()}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsContent value="basic-info" className="space-y-6">
-          <PageHeader title="官網內容" icon={Info} />
+          <PageHeader title="網頁設定" icon={Info} />
           <WebInfoSection
             accommodationId={accommodationId || ''}
             heroPhotos={heroPhotos}
