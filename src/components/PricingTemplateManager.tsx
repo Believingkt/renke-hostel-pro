@@ -690,10 +690,10 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                   onClick={() => setSelectedPriceType('2meals')}
                   disabled={!applyingTemplate?.weekday_2_meals_price && !applyingTemplate?.weekend_2_meals_price}
                   className={`
-                    p-4 rounded-lg border-2 transition-all text-left
+                    p-4 rounded-lg border-2 transition-all text-left group
                     ${selectedPriceType === '2meals' 
                       ? 'border-primary bg-primary text-primary-foreground' 
-                      : 'border-border hover:border-primary/50'
+                      : 'border-border hover:border-primary hover:bg-primary hover:text-primary-foreground'
                     }
                     ${(!applyingTemplate?.weekday_2_meals_price && !applyingTemplate?.weekend_2_meals_price)
                       ? 'opacity-50 cursor-not-allowed'
@@ -701,19 +701,19 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                     }
                   `}
                 >
-                  <div className="font-medium mb-1">一泊二食</div>
+                  <div className="font-medium mb-1 group-hover:text-primary-foreground">一泊二食</div>
                   {applyingTemplate && (
                     <div className="text-sm space-y-1">
                       {applyingTemplate.weekday_2_meals_price && (
-                        <div className={selectedPriceType === '2meals' ? 'text-primary-foreground/80' : 'text-muted-foreground'}>
-                          平日：<span className={`font-medium ${selectedPriceType === '2meals' ? 'text-primary-foreground' : 'text-foreground'}`}>
+                        <div className={selectedPriceType === '2meals' ? 'text-primary-foreground/80' : 'text-muted-foreground group-hover:text-primary-foreground/80'}>
+                          平日：<span className={`font-medium ${selectedPriceType === '2meals' ? 'text-primary-foreground' : 'text-foreground group-hover:text-primary-foreground'}`}>
                             NT$ {applyingTemplate.weekday_2_meals_price.toLocaleString()}
                           </span>
                         </div>
                       )}
                       {applyingTemplate.weekend_2_meals_price && (
-                        <div className={selectedPriceType === '2meals' ? 'text-primary-foreground/80' : 'text-muted-foreground'}>
-                          假日：<span className={`font-medium ${selectedPriceType === '2meals' ? 'text-primary-foreground' : 'text-foreground'}`}>
+                        <div className={selectedPriceType === '2meals' ? 'text-primary-foreground/80' : 'text-muted-foreground group-hover:text-primary-foreground/80'}>
+                          假日：<span className={`font-medium ${selectedPriceType === '2meals' ? 'text-primary-foreground' : 'text-foreground group-hover:text-primary-foreground'}`}>
                             NT$ {applyingTemplate.weekend_2_meals_price.toLocaleString()}
                           </span>
                         </div>
@@ -730,10 +730,10 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                   onClick={() => setSelectedPriceType('3meals')}
                   disabled={!applyingTemplate?.weekday_3_meals_price && !applyingTemplate?.weekend_3_meals_price}
                   className={`
-                    p-4 rounded-lg border-2 transition-all text-left
+                    p-4 rounded-lg border-2 transition-all text-left group
                     ${selectedPriceType === '3meals' 
                       ? 'border-primary bg-primary text-primary-foreground' 
-                      : 'border-border hover:border-primary/50'
+                      : 'border-border hover:border-primary hover:bg-primary hover:text-primary-foreground'
                     }
                     ${(!applyingTemplate?.weekday_3_meals_price && !applyingTemplate?.weekend_3_meals_price)
                       ? 'opacity-50 cursor-not-allowed'
@@ -741,19 +741,19 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                     }
                   `}
                 >
-                  <div className="font-medium mb-1">一泊三食</div>
+                  <div className="font-medium mb-1 group-hover:text-primary-foreground">一泊三食</div>
                   {applyingTemplate && (
                     <div className="text-sm space-y-1">
                       {applyingTemplate.weekday_3_meals_price && (
-                        <div className={selectedPriceType === '3meals' ? 'text-primary-foreground/80' : 'text-muted-foreground'}>
-                          平日：<span className={`font-medium ${selectedPriceType === '3meals' ? 'text-primary-foreground' : 'text-foreground'}`}>
+                        <div className={selectedPriceType === '3meals' ? 'text-primary-foreground/80' : 'text-muted-foreground group-hover:text-primary-foreground/80'}>
+                          平日：<span className={`font-medium ${selectedPriceType === '3meals' ? 'text-primary-foreground' : 'text-foreground group-hover:text-primary-foreground'}`}>
                             NT$ {applyingTemplate.weekday_3_meals_price.toLocaleString()}
                           </span>
                         </div>
                       )}
                       {applyingTemplate.weekend_3_meals_price && (
-                        <div className={selectedPriceType === '3meals' ? 'text-primary-foreground/80' : 'text-muted-foreground'}>
-                          假日：<span className={`font-medium ${selectedPriceType === '3meals' ? 'text-primary-foreground' : 'text-foreground'}`}>
+                        <div className={selectedPriceType === '3meals' ? 'text-primary-foreground/80' : 'text-muted-foreground group-hover:text-primary-foreground/80'}>
+                          假日：<span className={`font-medium ${selectedPriceType === '3meals' ? 'text-primary-foreground' : 'text-foreground group-hover:text-primary-foreground'}`}>
                             NT$ {applyingTemplate.weekend_3_meals_price.toLocaleString()}
                           </span>
                         </div>
