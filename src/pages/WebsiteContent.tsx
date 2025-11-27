@@ -2905,34 +2905,28 @@ const WebsiteContent = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="location-description">位置資訊描述</Label>
-                <Textarea
-                  id="location-description"
+                <RichTextEditor
                   value={locationDescription}
-                  onChange={(e) => setLocationDescription(e.target.value)}
+                  onChange={setLocationDescription}
                   placeholder="位於風景秀麗的山區，周邊有多處自然景點與步道"
-                  rows={3}
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="driving-info">自行開車</Label>
-                <Textarea
-                  id="driving-info"
+                <RichTextEditor
                   value={drivingInfo}
-                  onChange={(e) => setDrivingInfo(e.target.value)}
-                  placeholder="從台北出發：國道3號 → 名間交流道 → 台16線 → 台21線 → 約3.5小時&#10;旅宿提供免費停車場，無需預約"
-                  rows={4}
+                  onChange={setDrivingInfo}
+                  placeholder="從台北出發：國道3號 → 名間交流道 → 台16線 → 台21線 → 約3.5小時"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="public-transport-info">大眾運輸</Label>
-                <Textarea
-                  id="public-transport-info"
+                <RichTextEditor
                   value={publicTransportInfo}
-                  onChange={(e) => setPublicTransportInfo(e.target.value)}
-                  placeholder="高鐵 + 巴士：高鐵台中站 → 轉乘南投客運 → 東埔站 → 步行約10分鐘&#10;建議提前預約接駁服務（需額外付費）"
-                  rows={4}
+                  onChange={setPublicTransportInfo}
+                  placeholder="高鐵 + 巴士：高鐵台中站 → 轉乘南投客運 → 東埔站 → 步行約10分鐘"
                 />
               </div>
 

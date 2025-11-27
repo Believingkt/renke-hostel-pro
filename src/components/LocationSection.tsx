@@ -70,9 +70,10 @@ const LocationSection = ({ address, locationInfo }: LocationSectionProps) => {
                   <p className="text-xs md:text-sm lg:text-sm font-medium text-foreground">{address || "台灣南投縣信義鄉東埔村開高巷123號"}</p>
                 </div>
                 {locationInfo?.location_description && (
-                  <p className="text-xs md:text-sm lg:text-sm text-muted-foreground ml-6 md:ml-6 lg:ml-7 mt-1">
-                    {locationInfo.location_description}
-                  </p>
+                  <div 
+                    className="text-xs md:text-sm lg:text-sm text-muted-foreground ml-6 md:ml-6 lg:ml-7 mt-1 prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: locationInfo.location_description }}
+                  />
                 )}
               </CardContent>
             </Card>
@@ -88,31 +89,10 @@ const LocationSection = ({ address, locationInfo }: LocationSectionProps) => {
                   </h3>
                   <div className="space-y-3 md:space-y-4">
                     {locationInfo?.driving_info ? (
-                      <div className="text-base text-foreground/90 whitespace-pre-line leading-relaxed">
-                        {locationInfo.driving_info.split('\n\n').map((section, index) => {
-                          const lines = section.split('\n');
-                          const isTitle = lines[0].includes('從') && lines[0].includes('出發');
-                          
-                          return (
-                            <div key={index} className={index > 0 ? "mt-5" : ""}>
-                              {lines.map((line, lineIndex) => {
-                                if (lineIndex === 0 && isTitle) {
-                                  return (
-                                    <p key={lineIndex} className="font-semibold text-foreground mb-2 text-base">
-                                      {line}
-                                    </p>
-                                  );
-                                }
-                                return (
-                                  <p key={lineIndex} className="text-sm text-muted-foreground leading-relaxed mb-1.5">
-                                    {line}
-                                  </p>
-                                );
-                              })}
-                            </div>
-                          );
-                        })}
-                      </div>
+                      <div 
+                        className="prose prose-sm max-w-none text-foreground/90"
+                        dangerouslySetInnerHTML={{ __html: locationInfo.driving_info }}
+                      />
                     ) : (
                       <>
                         <div>
@@ -139,31 +119,10 @@ const LocationSection = ({ address, locationInfo }: LocationSectionProps) => {
                   </h3>
                   <div className="space-y-3 md:space-y-4">
                     {locationInfo?.public_transport_info ? (
-                      <div className="text-base text-foreground/90 whitespace-pre-line leading-relaxed">
-                        {locationInfo.public_transport_info.split('\n\n').map((section, index) => {
-                          const lines = section.split('\n');
-                          const isTitle = lines[0].includes('從') && lines[0].includes('出發');
-                          
-                          return (
-                            <div key={index} className={index > 0 ? "mt-5" : ""}>
-                              {lines.map((line, lineIndex) => {
-                                if (lineIndex === 0 && isTitle) {
-                                  return (
-                                    <p key={lineIndex} className="font-semibold text-foreground mb-2 text-base">
-                                      {line}
-                                    </p>
-                                  );
-                                }
-                                return (
-                                  <p key={lineIndex} className="text-sm text-muted-foreground leading-relaxed mb-1.5">
-                                    {line}
-                                  </p>
-                                );
-                              })}
-                            </div>
-                          );
-                        })}
-                      </div>
+                      <div 
+                        className="prose prose-sm max-w-none text-foreground/90"
+                        dangerouslySetInnerHTML={{ __html: locationInfo.public_transport_info }}
+                      />
                     ) : (
                       <>
                         <div>
