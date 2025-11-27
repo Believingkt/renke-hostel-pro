@@ -39,6 +39,13 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
   const [saving, setSaving] = useState(false);
   const [isCopyMode, setIsCopyMode] = useState(false);
   const [copiedData, setCopiedData] = useState<DayInventory | null>(null);
+  const [singleEditDialogOpen, setSingleEditDialogOpen] = useState(false);
+  const [editingDate, setEditingDate] = useState<string | null>(null);
+  const [singleEditData, setSingleEditData] = useState({
+    price: "",
+    availableRooms: "",
+    isAvailable: true,
+  });
 
   useEffect(() => {
     loadInventory();
@@ -277,6 +284,54 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
     }
   };
 
+  const handleDoubleClick = (dateStr: string) => {
+    if (isSelectionMode) return; // 在批量編輯模式下不觸發雙擊編輯
+    
+    const dayData = inventory[dateStr];
+    setEditingDate(dateStr);
+    setSingleEditData({
+      price: dayData?.price?.toString() || "",
+      availableRooms: dayData?.availableRooms?.toString() || "",
+      isAvailable: dayData?.isAvailable ?? true,
+    });
+    setSingleEditDialogOpen(true);
+  };
+
+  const handleSingleDateUpdate = async () => {
+    if (!editingDate || !singleEditData.price || !singleEditData.availableRooms) {
+      toast.error('請填寫價格和可用房數');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const { error } = await supabase
+        .from('room_inventory_pricing')
+        .upsert({
+          room_type_id: roomTypeId,
+          date: editingDate,
+          price: parseInt(singleEditData.price),
+          available_rooms: parseInt(singleEditData.availableRooms),
+          is_available: singleEditData.isAvailable,
+        }, {
+          onConflict: 'room_type_id,date',
+          ignoreDuplicates: false,
+        });
+
+      if (error) throw error;
+
+      toast.success('已成功更新日期資料');
+      setSingleEditDialogOpen(false);
+      setEditingDate(null);
+      loadInventory();
+    } catch (error) {
+      console.error('更新失敗:', error);
+      toast.error('更新日期資料失敗');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
@@ -507,11 +562,13 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                 <div
                   key={dateStr}
                   onClick={() => toggleDateSelection(dateStr)}
+                  onDoubleClick={() => handleDoubleClick(dateStr)}
                   className={cn(
                     "relative aspect-square border rounded-lg p-1 flex flex-col items-center justify-center text-xs transition-all",
                     isTodayDate && "border-primary border-2",
                     !isCurrentMonth && "opacity-50",
                     isSelectionMode && "cursor-pointer hover:scale-105",
+                    !isSelectionMode && "cursor-pointer hover:scale-105 hover:shadow-md",
                     isCopyMode && hasData && "ring-2 ring-blue-400 animate-pulse",
                     isCopyMode && !hasData && "opacity-30 cursor-not-allowed",
                     isSelected && "bg-primary/20 border-primary shadow-md",
@@ -553,27 +610,34 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
         )}
 
         {/* 圖例 */}
-        <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t text-xs">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-green-50 border rounded"></div>
-            <span>有庫存</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-gray-100 border rounded"></div>
-            <span>無庫存</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 border rounded"></div>
-            <span>未設定</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 border-2 border-primary rounded"></div>
-            <span>今天</span>
-          </div>
-          {isSelectionMode && (
+        <div className="space-y-3 mt-4 pt-4 border-t">
+          <div className="flex flex-wrap gap-4 text-xs">
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-primary/20 border border-primary rounded"></div>
-              <span>已選擇</span>
+              <div className="w-4 h-4 bg-green-50 border rounded"></div>
+              <span>有庫存</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-gray-100 border rounded"></div>
+              <span>無庫存</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 border rounded"></div>
+              <span>未設定</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-primary rounded"></div>
+              <span>今天</span>
+            </div>
+            {isSelectionMode && (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-primary/20 border border-primary rounded"></div>
+                <span>已選擇</span>
+              </div>
+            )}
+          </div>
+          {!isSelectionMode && (
+            <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
+              💡 提示：雙擊日期可快速編輯當天的價格和庫存
             </div>
           )}
         </div>
@@ -647,6 +711,71 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
             <Button
               onClick={handleBatchUpdate}
               disabled={saving || !batchEditData.price || !batchEditData.availableRooms}
+            >
+              {saving ? '更新中...' : '確認更新'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 單日期編輯對話框 */}
+      <Dialog open={singleEditDialogOpen} onOpenChange={setSingleEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>編輯日期</DialogTitle>
+            <DialogDescription>
+              {editingDate && format(parseISO(editingDate), 'yyyy年 M月 d日（EEEE）', { locale: zhTW })}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="single-price">房價 *</Label>
+              <Input
+                id="single-price"
+                type="number"
+                min="0"
+                placeholder="輸入房價"
+                value={singleEditData.price}
+                onChange={(e) => setSingleEditData({ ...singleEditData, price: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="single-availableRooms">可用房數 *</Label>
+              <Input
+                id="single-availableRooms"
+                type="number"
+                min="0"
+                placeholder="輸入可用房數"
+                value={singleEditData.availableRooms}
+                onChange={(e) => setSingleEditData({ ...singleEditData, availableRooms: e.target.value })}
+              />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="single-isAvailable"
+                checked={singleEditData.isAvailable}
+                onCheckedChange={(checked) => setSingleEditData({ ...singleEditData, isAvailable: checked })}
+              />
+              <Label htmlFor="single-isAvailable" className="cursor-pointer">
+                開放預訂
+              </Label>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setSingleEditDialogOpen(false)}
+              disabled={saving}
+            >
+              取消
+            </Button>
+            <Button
+              onClick={handleSingleDateUpdate}
+              disabled={saving || !singleEditData.price || !singleEditData.availableRooms}
             >
               {saving ? '更新中...' : '確認更新'}
             </Button>
