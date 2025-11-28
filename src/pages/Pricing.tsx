@@ -15,7 +15,6 @@ import { TabsSkeleton } from "@/components/skeletons/TabsSkeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import PublicHolidays, { PublicHolidaysButtons } from "@/pages/PublicHolidays";
-import { InventoryManagement } from "@/components/InventoryManagement";
 import { PageHeader } from "@/components/PageHeader";
 import {
   Breadcrumb,
@@ -163,7 +162,7 @@ const Pricing = () => {
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab && (tab === "rooms" || tab === "basic" || tab === "inventory" || tab === "facilities" || tab === "holidays")) {
+    if (tab && (tab === "rooms" || tab === "basic" || tab === "facilities" || tab === "holidays")) {
       setActiveTab(tab);
     }
   }, [searchParams]);
@@ -332,8 +331,6 @@ const Pricing = () => {
         return "房間設施";
       case "basic":
         return "批次設定";
-      case "inventory":
-        return "庫存設定";
       case "holidays":
         return "國定假日";
       default:
@@ -505,14 +502,6 @@ const Pricing = () => {
             icon={DollarSign}
           />
           <PricingTemplateManager accommodationId={currentAccommodationId || ""} />
-        </TabsContent>
-
-        <TabsContent value="inventory" className="space-y-4">
-          <PageHeader
-            title="庫存設定"
-            icon={Package}
-          />
-          <InventoryManagement accommodationId={currentAccommodationId || ""} />
         </TabsContent>
 
         <TabsContent value="holidays" className="space-y-4">
