@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Pencil, Trash2, Check, X, CheckSquare, Square, CalendarCheck, Clock, History } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, CheckSquare, Square, CalendarCheck, Clock, History, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -71,6 +71,17 @@ interface RoomType {
   room_count: number | null;
 }
 
+interface PreviewItem {
+  roomTypeName: string;
+  date: string;
+  dateLabel: string;
+  dayOfWeek: string;
+  isWeekend: boolean;
+  price: number;
+  priceType: string;
+  isNewRecord: boolean;
+}
+
 interface PricingTemplateManagerProps {
   accommodationId: string;
 }
@@ -118,6 +129,9 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
   const [templateApplications, setTemplateApplications] = useState<Record<string, TemplateApplication[]>>({});
   const [showApplicationsDialog, setShowApplicationsDialog] = useState(false);
   const [viewingApplicationsTemplate, setViewingApplicationsTemplate] = useState<PricingTemplate | null>(null);
+  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
+  const [previewData, setPreviewData] = useState<PreviewItem[]>([]);
+  const [loadingPreview, setLoadingPreview] = useState(false);
   
   const [formData, setFormData] = useState({
     template_name: "",
@@ -377,6 +391,97 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
   const isWeekend = (date: Date): boolean => {
     const day = date.getDay();
     return day === 0 || day === 6; // Sunday or Saturday
+  };
+
+  const getDayOfWeekLabel = (date: Date): string => {
+    const days = ['日', '一', '二', '三', '四', '五', '六'];
+    return days[date.getDay()];
+  };
+
+  const generatePreview = async () => {
+    if (!applyingTemplate || !dateRange?.from || !dateRange?.to || selectedRoomTypes.length === 0) {
+      toast.error('請選擇日期範圍和房型');
+      return;
+    }
+
+    if (selectedDays.length === 0) {
+      toast.error('請至少選擇一個星期');
+      return;
+    }
+
+    if (!selectedPriceType) {
+      toast.error('請選擇價格類型');
+      return;
+    }
+
+    try {
+      setLoadingPreview(true);
+      const allDates = eachDayOfInterval({ start: dateRange.from, end: dateRange.to });
+      const dates = allDates.filter(date => selectedDays.includes(date.getDay()));
+      
+      if (dates.length === 0) {
+        toast.error('所選日期範圍內沒有符合的星期');
+        return;
+      }
+
+      const preview: PreviewItem[] = [];
+      const priceTypeName = selectedPriceType === '2meals' ? '一泊二食' : '一泊三食';
+
+      for (const roomTypeId of selectedRoomTypes) {
+        const roomType = roomTypes.find(rt => rt.id === roomTypeId);
+        if (!roomType) continue;
+
+        for (const date of dates) {
+          const weekend = isWeekend(date);
+          const dateStr = format(date, 'yyyy-MM-dd');
+          
+          let price = 0;
+          if (selectedPriceType === '2meals') {
+            price = weekend 
+              ? (applyingTemplate.weekend_2_meals_price || 0)
+              : (applyingTemplate.weekday_2_meals_price || 0);
+          } else {
+            price = weekend 
+              ? (applyingTemplate.weekend_3_meals_price || 0)
+              : (applyingTemplate.weekday_3_meals_price || 0);
+          }
+
+          if (price === 0) continue;
+
+          // 檢查是否已存在記錄
+          const { data: existing } = await supabase
+            .from('room_inventory_pricing')
+            .select('id')
+            .eq('room_type_id', roomTypeId)
+            .eq('date', dateStr)
+            .maybeSingle();
+
+          preview.push({
+            roomTypeName: roomType.name,
+            date: dateStr,
+            dateLabel: format(date, 'MM/dd'),
+            dayOfWeek: getDayOfWeekLabel(date),
+            isWeekend: weekend,
+            price,
+            priceType: priceTypeName,
+            isNewRecord: !existing,
+          });
+        }
+      }
+
+      preview.sort((a, b) => {
+        if (a.date !== b.date) return a.date.localeCompare(b.date);
+        return a.roomTypeName.localeCompare(b.roomTypeName);
+      });
+
+      setPreviewData(preview);
+      setShowPreviewDialog(true);
+    } catch (error) {
+      console.error('生成預覽失敗:', error);
+      toast.error('生成預覽失敗');
+    } finally {
+      setLoadingPreview(false);
+    }
   };
 
   const confirmApply = async () => {
@@ -1180,16 +1285,23 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
 
           <DrawerFooter className="flex-col gap-2 pt-2">
             <Button 
-              onClick={confirmApply}
-              disabled={!dateRange?.from || !dateRange?.to || selectedRoomTypes.length === 0 || applying}
-              className="w-full h-12"
+              onClick={generatePreview}
+              disabled={!dateRange?.from || !dateRange?.to || selectedRoomTypes.length === 0 || loadingPreview}
+              className="w-full h-12 gap-2"
             >
-              {applying ? '套用中...' : '確認套用'}
+              {loadingPreview ? (
+                <>載入預覽中...</>
+              ) : (
+                <>
+                  <Eye className="h-4 w-4" />
+                  預覽套用效果
+                </>
+              )}
             </Button>
             <Button 
               variant="outline" 
               onClick={() => setApplyDialogOpen(false)}
-              disabled={applying}
+              disabled={loadingPreview}
               className="w-full h-12"
             >
               取消
@@ -1460,17 +1572,24 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
               <Button 
                 variant="outline" 
                 onClick={() => setApplyDialogOpen(false)}
-                disabled={applying}
+                disabled={loadingPreview}
                 className="w-full sm:w-auto h-11 sm:h-10 touch-manipulation"
               >
                 取消
               </Button>
               <Button 
-                onClick={confirmApply}
-                disabled={!dateRange?.from || !dateRange?.to || selectedRoomTypes.length === 0 || applying}
-                className="w-full sm:w-auto h-11 sm:h-10 touch-manipulation"
+                onClick={generatePreview}
+                disabled={!dateRange?.from || !dateRange?.to || selectedRoomTypes.length === 0 || loadingPreview}
+                className="w-full sm:w-auto h-11 sm:h-10 touch-manipulation gap-2"
               >
-                {applying ? '套用中...' : '確認套用'}
+                {loadingPreview ? (
+                  <>載入預覽中...</>
+                ) : (
+                  <>
+                    <Eye className="h-4 w-4" />
+                    預覽套用效果
+                  </>
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1623,6 +1742,195 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                 onClick={() => setShowApplicationsDialog(false)}
               >
                 關閉
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* 預覽對話框 */}
+      {isMobile ? (
+        <Drawer open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
+          <DrawerContent className="max-h-[90vh]">
+            <DrawerHeader>
+              <DrawerTitle>套用預覽</DrawerTitle>
+              <DrawerDescription>
+                確認即將套用的價格明細
+              </DrawerDescription>
+            </DrawerHeader>
+            
+            <div className="px-4 space-y-4 overflow-y-auto pb-4">
+              {/* 統計摘要 */}
+              <div className="grid grid-cols-2 gap-3">
+                <Card className="p-3">
+                  <div className="text-xs text-muted-foreground mb-1">總影響天數</div>
+                  <div className="text-2xl font-bold text-primary">{previewData.length}</div>
+                </Card>
+                <Card className="p-3">
+                  <div className="text-xs text-muted-foreground mb-1">新增/更新</div>
+                  <div className="text-sm font-medium">
+                    <span className="text-green-600">{previewData.filter(p => p.isNewRecord).length}</span>
+                    {' / '}
+                    <span className="text-blue-600">{previewData.filter(p => !p.isNewRecord).length}</span>
+                  </div>
+                </Card>
+              </div>
+
+              {/* 價格明細列表 */}
+              <div className="space-y-2">
+                <h4 className="font-medium text-sm">價格明細</h4>
+                <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+                  {previewData.map((item, index) => (
+                    <Card key={index} className="p-3">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="font-medium">{item.roomTypeName}</div>
+                          <div className={`px-2 py-0.5 rounded text-xs ${
+                            item.isNewRecord ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            {item.isNewRecord ? '新增' : '更新'}
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{item.dateLabel}</span>
+                            <span className={`text-xs px-1.5 py-0.5 rounded ${
+                              item.isWeekend ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-700'
+                            }`}>
+                              ({item.dayOfWeek})
+                            </span>
+                          </div>
+                          <div className="font-bold text-primary">
+                            NT$ {item.price.toLocaleString()}
+                          </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {item.priceType}
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            <DrawerFooter className="flex-col gap-2">
+              <Button 
+                onClick={() => {
+                  setShowPreviewDialog(false);
+                  confirmApply();
+                }}
+                disabled={applying}
+                className="w-full h-12"
+              >
+                {applying ? '套用中...' : '確認套用'}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowPreviewDialog(false)}
+                disabled={applying}
+                className="w-full h-12"
+              >
+                返回修改
+              </Button>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
+          <DialogContent className="max-w-4xl max-h-[90vh]">
+            <DialogHeader>
+              <DialogTitle>套用預覽</DialogTitle>
+              <DialogDescription>
+                確認即將套用的價格明細
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 overflow-y-auto">
+              {/* 統計摘要 */}
+              <div className="grid grid-cols-3 gap-4">
+                <Card className="p-4">
+                  <div className="text-sm text-muted-foreground mb-2">總影響天數</div>
+                  <div className="text-3xl font-bold text-primary">{previewData.length}</div>
+                </Card>
+                <Card className="p-4">
+                  <div className="text-sm text-muted-foreground mb-2">新增記錄</div>
+                  <div className="text-3xl font-bold text-green-600">
+                    {previewData.filter(p => p.isNewRecord).length}
+                  </div>
+                </Card>
+                <Card className="p-4">
+                  <div className="text-sm text-muted-foreground mb-2">更新記錄</div>
+                  <div className="text-3xl font-bold text-blue-600">
+                    {previewData.filter(p => !p.isNewRecord).length}
+                  </div>
+                </Card>
+              </div>
+
+              {/* 價格明細列表 */}
+              <div className="space-y-3">
+                <h4 className="font-medium">價格明細</h4>
+                <div className="border rounded-lg max-h-[50vh] overflow-y-auto">
+                  <table className="w-full">
+                    <thead className="bg-muted/50 sticky top-0">
+                      <tr>
+                        <th className="text-left p-3 text-sm font-medium">房型</th>
+                        <th className="text-left p-3 text-sm font-medium">日期</th>
+                        <th className="text-left p-3 text-sm font-medium">星期</th>
+                        <th className="text-left p-3 text-sm font-medium">價格類型</th>
+                        <th className="text-right p-3 text-sm font-medium">價格</th>
+                        <th className="text-center p-3 text-sm font-medium">狀態</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previewData.map((item, index) => (
+                        <tr key={index} className="border-t hover:bg-muted/30">
+                          <td className="p-3 font-medium">{item.roomTypeName}</td>
+                          <td className="p-3">{item.dateLabel}</td>
+                          <td className="p-3">
+                            <span className={`px-2 py-1 rounded text-xs ${
+                              item.isWeekend ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-700'
+                            }`}>
+                              {item.dayOfWeek}
+                            </span>
+                          </td>
+                          <td className="p-3 text-sm">{item.priceType}</td>
+                          <td className="p-3 text-right font-bold text-primary">
+                            NT$ {item.price.toLocaleString()}
+                          </td>
+                          <td className="p-3 text-center">
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                              item.isNewRecord ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                            }`}>
+                              {item.isNewRecord ? '新增' : '更新'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowPreviewDialog(false)}
+                disabled={applying}
+                className="w-full sm:w-auto"
+              >
+                返回修改
+              </Button>
+              <Button 
+                onClick={() => {
+                  setShowPreviewDialog(false);
+                  confirmApply();
+                }}
+                disabled={applying}
+                className="w-full sm:w-auto"
+              >
+                {applying ? '套用中...' : '確認套用'}
               </Button>
             </DialogFooter>
           </DialogContent>
