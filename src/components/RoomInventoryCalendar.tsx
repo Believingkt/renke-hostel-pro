@@ -791,7 +791,10 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                           "flex items-center justify-between gap-1 text-xs sm:text-xs rounded px-1.5 py-1",
                           isHoliday ? "bg-orange-100/60" : "bg-blue-100/60"
                         )}>
-                          <span className="text-muted-foreground font-medium text-[10px] sm:text-xs whitespace-nowrap">一泊二食</span>
+                          <span className="text-muted-foreground font-medium text-[10px] sm:text-xs whitespace-nowrap">
+                            <span className="md:hidden">二</span>
+                            <span className="hidden md:inline">一泊二食</span>
+                          </span>
                           <span className="font-bold text-foreground text-[12px] sm:text-xs truncate">${formatPrice(dayInventory.price_2_meals)}</span>
                         </div>
                       )}
@@ -800,7 +803,10 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                           "flex items-center justify-between gap-1 text-xs sm:text-xs rounded px-1.5 py-1",
                           isHoliday ? "bg-orange-100/60" : "bg-blue-100/60"
                         )}>
-                          <span className="text-muted-foreground font-medium text-[10px] sm:text-xs whitespace-nowrap">一泊三食</span>
+                          <span className="text-muted-foreground font-medium text-[10px] sm:text-xs whitespace-nowrap">
+                            <span className="md:hidden">三</span>
+                            <span className="hidden md:inline">一泊三食</span>
+                          </span>
                           <span className="font-bold text-foreground text-[12px] sm:text-xs truncate">${formatPrice(dayInventory.price_3_meals)}</span>
                         </div>
                       )}
