@@ -776,15 +776,20 @@ const Customers = () => {
 
           {/* Pagination */}
           {sortedCustomers.length > 0 && (
-            <Card className="border-border/40">
-              <CardContent className="p-5">
+            <Card className="border-border/40 bg-card/50">
+              <CardContent className="p-6">
                 <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full lg:w-auto">
-                    <div className="text-sm text-muted-foreground whitespace-nowrap">
-                      顯示 {startIndex + 1} 至 {Math.min(endIndex, sortedCustomers.length)} 筆，共 {sortedCustomers.length} 筆資料
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span className="font-medium text-foreground">
+                        {startIndex + 1} - {Math.min(endIndex, sortedCustomers.length)}
+                      </span>
+                      <span>筆，共</span>
+                      <span className="font-medium text-foreground">{sortedCustomers.length}</span>
+                      <span>筆資料</span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm text-muted-foreground whitespace-nowrap">每頁顯示</span>
+                    <div className="flex items-center gap-2 sm:pl-4 sm:border-l">
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">每頁</span>
                       <Select
                         value={itemsPerPage.toString()}
                         onValueChange={(value) => {
@@ -792,7 +797,7 @@ const Customers = () => {
                           setCurrentPage(1);
                         }}
                       >
-                        <SelectTrigger className="w-24 h-11 md:h-9 touch-manipulation">
+                        <SelectTrigger className="w-20 h-9 border-border bg-background">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-background border-border z-50">
@@ -808,13 +813,14 @@ const Customers = () => {
                   
                   {totalPages > 1 && (
                     <Pagination className="mx-0 w-full lg:w-auto justify-start lg:justify-end">
-                      <PaginationContent>
+                      <PaginationContent className="gap-1">
                         <PaginationItem>
                           <PaginationPrevious 
                             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                            className={`h-10 min-w-[44px] touch-manipulation ${currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
+                            className={`h-9 px-3 border border-border ${currentPage === 1 ? "pointer-events-none opacity-40" : "cursor-pointer hover:bg-accent hover:text-accent-foreground"}`}
                           >
-                            上一頁
+                            <span className="hidden sm:inline">上一頁</span>
+                            <span className="sm:hidden">上一頁</span>
                           </PaginationPrevious>
                         </PaginationItem>
                         
@@ -830,7 +836,11 @@ const Customers = () => {
                                 <PaginationLink
                                   onClick={() => setCurrentPage(page)}
                                   isActive={currentPage === page}
-                                  className="cursor-pointer h-10 min-w-[44px] touch-manipulation"
+                                  className={`cursor-pointer h-9 min-w-[36px] border ${
+                                    currentPage === page 
+                                      ? "border-primary bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground" 
+                                      : "border-border hover:bg-accent hover:text-accent-foreground"
+                                  }`}
                                 >
                                   {page}
                                 </PaginationLink>
@@ -839,7 +849,9 @@ const Customers = () => {
                           } else if (page === currentPage - 2 || page === currentPage + 2) {
                             return (
                               <PaginationItem key={page}>
-                                <span className="px-2">...</span>
+                                <span className="flex h-9 min-w-[36px] items-center justify-center text-muted-foreground text-sm">
+                                  ...
+                                </span>
                               </PaginationItem>
                             );
                           }
@@ -849,9 +861,10 @@ const Customers = () => {
                         <PaginationItem>
                           <PaginationNext 
                             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                            className={`h-10 min-w-[44px] touch-manipulation ${currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
+                            className={`h-9 px-3 border border-border ${currentPage === totalPages ? "pointer-events-none opacity-40" : "cursor-pointer hover:bg-accent hover:text-accent-foreground"}`}
                           >
-                            下一頁
+                            <span className="hidden sm:inline">下一頁</span>
+                            <span className="sm:hidden">下一頁</span>
                           </PaginationNext>
                         </PaginationItem>
                       </PaginationContent>
