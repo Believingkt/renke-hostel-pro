@@ -743,46 +743,228 @@ const WebsiteContent = () => {
     loadData();
   }, []);
 
-  // 當切換到 location tab 時重新載入交通地圖資料
+  // 當切換 tab 時重新載入對應資料
   useEffect(() => {
-    if (activeTab === 'location' && accommodationId) {
-      const reloadLocationData = async () => {
-        try {
-          const { data: locationData } = await supabase
-            .from("location_info")
-            .select("*")
-            .eq("accommodation_id", accommodationId)
-            .maybeSingle();
+    if (!accommodationId) return;
 
-          if (locationData) {
-            setDrivingInfo(locationData.driving_info || "");
-            setPublicTransportInfo(locationData.public_transport_info || "");
-            
-            const attractions = locationData.nearby_attractions;
-            if (attractions && Array.isArray(attractions)) {
-              const typedAttractions = attractions as Array<{
-                name?: string;
-                distance?: string;
-                description?: string;
-              }>;
-              setNearbyAttractions(
-                typedAttractions.map(a => ({
-                  name: a.name || "",
-                  distance: a.distance || "",
-                  description: a.description || ""
-                }))
-              );
+    const reloadTabData = async () => {
+      try {
+        switch (activeTab) {
+          case 'basic-info':
+            // 重新載入基本資訊、Hero 輪播、特色說明和社群分享
+            const { data: infoData } = await supabase
+              .from("accommodation_info")
+              .select("*")
+              .eq("id", accommodationId)
+              .maybeSingle();
+
+            if (infoData) {
+              setBasicInfo({
+                name: infoData.name || "",
+                description: infoData.description || "",
+                address: infoData.address || "",
+                phone: infoData.phone || "",
+                email: infoData.email || "",
+                line_id: infoData.line_id || "",
+                facebook_url: infoData.facebook_url || "",
+                instagram_url: infoData.instagram_url || "",
+                threads_url: infoData.threads_url || "",
+                youtube_url: infoData.youtube_url || "",
+                tiktok_url: infoData.tiktok_url || "",
+                header_logo_url: infoData.header_logo_url || "",
+                footer_logo_url: infoData.footer_logo_url || "",
+                og_title: infoData.og_title || "",
+                og_description: infoData.og_description || "",
+                og_image_url: infoData.og_image_url || "",
+                website_url: infoData.website_url || "",
+                hero_main_title: infoData.hero_main_title || "",
+                hero_subtitle: infoData.hero_subtitle || "",
+                hero_description: infoData.hero_description || "",
+                hero_overlay_opacity: infoData.hero_overlay_opacity ?? 40,
+                hero_autoplay_delay: infoData.hero_autoplay_delay ?? 8
+              });
+
+              // 重新載入首頁輪播圖
+              const { data: heroData } = await supabase
+                .from("accommodation_photos")
+                .select("*")
+                .eq("accommodation_id", accommodationId)
+                .eq("photo_type", "hero")
+                .order("display_order");
+              if (heroData) setHeroPhotos(heroData);
+
+              // 重新載入特色說明
+              const { data: aboutData } = await supabase
+                .from("about_section")
+                .select("*")
+                .eq("accommodation_id", accommodationId)
+                .maybeSingle();
+              if (aboutData) {
+                setAboutSection({
+                  sectionTitle: aboutData.section_title || "自然中的秘境 X 宿泊空間",
+                  sectionDescription: aboutData.section_description || ""
+                });
+              }
+
+              // 重新載入特色區塊
+              const { data: featuresData } = await supabase
+                .from("about_features")
+                .select("*")
+                .eq("accommodation_id", accommodationId)
+                .order("display_order");
+              if (featuresData) setAboutFeatures(featuresData);
             }
-          }
-        } catch (error) {
-          if (import.meta.env.DEV) {
-            console.error('Error reloading location data:', error);
-          }
+            break;
+
+          case 'facilities':
+            // 重新載入設施資料
+            const { data: facilities } = await supabase
+              .from("accommodation_facilities")
+              .select("*")
+              .eq("accommodation_id", accommodationId)
+              .eq("is_available", true);
+
+            if (facilities) {
+              const selected: Record<string, boolean> = {};
+              const pricing: Record<string, string> = {};
+
+              facilities.forEach(facility => {
+                selected[facility.facility_name] = true;
+                if (facility.pricing_type) {
+                  pricing[facility.facility_name] = facility.pricing_type;
+                }
+              });
+
+              setSelectedFacilities(selected);
+              setPricingTypes(pricing);
+            }
+            break;
+
+          case 'addon-plans':
+            // 重新載入加購方案資料
+            const { data: addonData } = await supabase
+              .from("addon_settings")
+              .select("*")
+              .eq("accommodation_id", accommodationId);
+
+            if (addonData) {
+              const petData = addonData.find(a => a.addon_type === 'pet');
+              const mealData = addonData.find(a => a.addon_type === 'meal');
+
+              if (petData) {
+                setPetPlan({
+                  enabled: petData.enabled || true,
+                  pricePerUnit: petData.price_per_unit,
+                  maxQuantity: petData.max_quantity,
+                  description: petData.unit_label || "每隻寵物",
+                  detailedDescription: petData.detailed_description || ""
+                });
+              }
+
+              if (mealData) {
+                setMealPlan({
+                  enabled: mealData.enabled || true,
+                  pricePerUnit: mealData.price_per_unit,
+                  weekdayMinQuantity: mealData.weekday_min_quantity || 12,
+                  weekendMinQuantity: mealData.weekend_min_quantity || 18,
+                  maxQuantity: mealData.max_quantity,
+                  description: mealData.unit_label || "每人每日",
+                  detailedDescription: mealData.detailed_description || ""
+                });
+              }
+            }
+            break;
+
+          case 'gallery':
+            // 重新載入相簿照片
+            const { data: photosData } = await supabase
+              .from("accommodation_photos")
+              .select("*")
+              .eq("accommodation_id", accommodationId)
+              .eq("photo_type", "gallery")
+              .order("display_order");
+
+            if (photosData) setPhotos(photosData);
+            break;
+
+          case 'booking-info':
+            // 重新載入訂房須知資料
+            const { data: bookingSettings } = await supabase
+              .from("booking_settings")
+              .select("*")
+              .eq("accommodation_id", accommodationId)
+              .maybeSingle();
+
+            if (bookingSettings) {
+              const { data: checkInNotice } = await supabase
+                .from("accommodation_info")
+                .select("check_in_notice")
+                .eq("id", accommodationId)
+                .maybeSingle();
+
+              setBookingInfo({
+                checkInTime: bookingSettings.check_in_time || "15:00",
+                checkOutTime: bookingSettings.check_out_time || "11:00",
+                paymentMethods: Array.isArray(bookingSettings.payment_methods) 
+                  ? (bookingSettings.payment_methods as string[])
+                  : [],
+                cancellationPolicy: bookingSettings.cancellation_policy || "",
+                checkInNotice: checkInNotice?.check_in_notice || "",
+                petPolicy: bookingSettings.pet_policy || "",
+                otherNotes: bookingSettings.other_notes || ""
+              });
+            }
+            break;
+
+          case 'faq':
+            // 重新載入常見問題
+            const { data: faqData } = await supabase
+              .from("faqs")
+              .select("*")
+              .eq("accommodation_id", accommodationId)
+              .order("display_order");
+
+            if (faqData) setFaqs(faqData);
+            break;
+
+          case 'location':
+            // 重新載入交通地圖資料
+            const { data: locationData } = await supabase
+              .from("location_info")
+              .select("*")
+              .eq("accommodation_id", accommodationId)
+              .maybeSingle();
+
+            if (locationData) {
+              setDrivingInfo(locationData.driving_info || "");
+              setPublicTransportInfo(locationData.public_transport_info || "");
+              
+              const attractions = locationData.nearby_attractions;
+              if (attractions && Array.isArray(attractions)) {
+                const typedAttractions = attractions as Array<{
+                  name?: string;
+                  distance?: string;
+                  description?: string;
+                }>;
+                setNearbyAttractions(
+                  typedAttractions.map(a => ({
+                    name: a.name || "",
+                    distance: a.distance || "",
+                    description: a.description || ""
+                  }))
+                );
+              }
+            }
+            break;
         }
-      };
-      
-      reloadLocationData();
-    }
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.error('Error reloading tab data:', error);
+        }
+      }
+    };
+    
+    reloadTabData();
   }, [activeTab, accommodationId]);
 
   const handleCheckboxChange = (facilityName: string, checked: boolean) => {
