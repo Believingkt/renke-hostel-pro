@@ -13,16 +13,6 @@ import { toast } from "sonner";
 import { roomTypeSchema } from "@/utils/roomValidation";
 import { useFormDraft } from "@/hooks/use-form-draft";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
   DndContext,
   closestCenter,
   KeyboardSensor,
@@ -108,8 +98,6 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
 
   const initialFormData = {
     name: "",
@@ -162,15 +150,6 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
     }
   }, [roomType, setFormData, clearDraft]);
 
-  // 監測表單是否有更改
-  useEffect(() => {
-    const hasFormChanges = Object.keys(formData).some(key => {
-      const currentValue = formData[key as keyof typeof formData];
-      const initialValue = initialFormData[key as keyof typeof initialFormData];
-      return currentValue !== initialValue;
-    });
-    setHasChanges(hasFormChanges);
-  }, [formData]);
 
   const loadPhotos = async (roomTypeId: string) => {
     try {
@@ -346,7 +325,6 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
 
       toast.success(roomType ? '房型已更新' : '房型已新增');
       clearDraft();
-      setHasChanges(false);
       onSuccess();
     } catch (error: any) {
       toast.error('儲存失敗：' + error.message);
@@ -356,16 +334,6 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
   };
 
   const handleCancel = () => {
-    if (hasChanges) {
-      setShowCancelDialog(true);
-    } else {
-      onCancel();
-    }
-  };
-
-  const handleConfirmCancel = () => {
-    setShowCancelDialog(false);
-    setHasChanges(false);
     clearDraft(); // 取消時清除草稿
     onCancel();
   };
@@ -576,26 +544,6 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
           取消
         </Button>
       </SaveButtonContainer>
-
-      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>確認取消</AlertDialogTitle>
-            <AlertDialogDescription>
-              您有未保存的更改，確定要取消嗎？所有未保存的內容將會遺失。
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>繼續編輯</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleConfirmCancel}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              確認取消
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
