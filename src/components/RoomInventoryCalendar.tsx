@@ -41,7 +41,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
     price: "",
     price_2_meals: "",
     price_3_meals: "",
-    mealPlan: "none" as "none" | "2meals" | "3meals",
+    mealPlan: "2meals" as "2meals" | "3meals",
     availableRooms: "",
     isAvailable: true,
   });
@@ -54,7 +54,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
     price: "",
     price_2_meals: "",
     price_3_meals: "",
-    mealPlan: "none" as "none" | "2meals" | "3meals",
+    mealPlan: "2meals" as "2meals" | "3meals",
     availableRooms: "",
     isAvailable: true,
   });
@@ -73,8 +73,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
       } else if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         const hasRequiredData = batchEditData.availableRooms && 
-          (batchEditData.mealPlan === 'none' ? batchEditData.price :
-           batchEditData.mealPlan === '2meals' ? batchEditData.price_2_meals :
+          (batchEditData.mealPlan === '2meals' ? batchEditData.price_2_meals :
            batchEditData.price_3_meals);
         if (hasRequiredData && !saving) {
           handleBatchUpdate();
@@ -96,8 +95,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
       } else if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         const hasRequiredData = singleEditData.availableRooms && 
-          (singleEditData.mealPlan === 'none' ? singleEditData.price :
-           singleEditData.mealPlan === '2meals' ? singleEditData.price_2_meals :
+          (singleEditData.mealPlan === '2meals' ? singleEditData.price_2_meals :
            singleEditData.price_3_meals);
         if (hasRequiredData && !saving) {
           handleSingleDateUpdate();
@@ -198,7 +196,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
       price: "",
       price_2_meals: "",
       price_3_meals: "",
-      mealPlan: "none",
+      mealPlan: "2meals",
       availableRooms: "",
       isAvailable: true,
     });
@@ -212,10 +210,6 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
     }
 
     // 驗證價格：根據選擇的方案檢查對應價格是否填寫
-    if (batchEditData.mealPlan === 'none' && !batchEditData.price) {
-      toast.error('請填寫基礎房價');
-      return;
-    }
     if (batchEditData.mealPlan === '2meals' && !batchEditData.price_2_meals) {
       toast.error('請填寫一泊二食價格');
       return;
@@ -238,9 +232,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
         };
         
         // 只更新選中的價格欄位
-        if (batchEditData.mealPlan === 'none') {
-          updateData.price = parseInt(batchEditData.price);
-        } else if (batchEditData.mealPlan === '2meals') {
+        if (batchEditData.mealPlan === '2meals') {
           updateData.price_2_meals = parseInt(batchEditData.price_2_meals);
         } else {
           updateData.price_3_meals = parseInt(batchEditData.price_3_meals);
@@ -384,11 +376,11 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
       const dayData = inventory[dateStr];
       setEditingDate(dateStr);
       
-      // 判斷預設選擇哪個方案
-      let defaultMealPlan: "none" | "2meals" | "3meals" = "none";
-      if (dayData?.price_2_meals || dayData?.price_3_meals) {
-        // 如果有餐飲價格，預設選擇有值的那個
-        defaultMealPlan = dayData?.price_2_meals ? "2meals" : "3meals";
+      // 判斷預設選擇哪個方案 - 優先選擇一泊二食
+      let defaultMealPlan: "2meals" | "3meals" = "2meals";
+      if (dayData?.price_3_meals && !dayData?.price_2_meals) {
+        // 如果只有一泊三食，則選擇一泊三食
+        defaultMealPlan = "3meals";
       }
       
       setSingleEditData({
@@ -410,10 +402,6 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
     }
 
     // 驗證價格：根據選擇的方案檢查對應價格是否填寫
-    if (singleEditData.mealPlan === 'none' && !singleEditData.price) {
-      toast.error('請填寫基礎房價');
-      return;
-    }
     if (singleEditData.mealPlan === '2meals' && !singleEditData.price_2_meals) {
       toast.error('請填寫一泊二食價格');
       return;
@@ -435,9 +423,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
       };
       
       // 只更新選中的價格欄位
-      if (singleEditData.mealPlan === 'none') {
-        updateData.price = parseInt(singleEditData.price);
-      } else if (singleEditData.mealPlan === '2meals') {
+      if (singleEditData.mealPlan === '2meals') {
         updateData.price_2_meals = parseInt(singleEditData.price_2_meals);
       } else {
         updateData.price_3_meals = parseInt(singleEditData.price_3_meals);
@@ -814,15 +800,11 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                 <Label>餐飲方案 *</Label>
                 <RadioGroup
                   value={batchEditData.mealPlan}
-                  onValueChange={(value: "none" | "2meals" | "3meals") => 
+                  onValueChange={(value: "2meals" | "3meals") => 
                     setBatchEditData({ ...batchEditData, mealPlan: value })
                   }
                   className="space-y-2"
                 >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="none" id="batch-meal-none" />
-                    <Label htmlFor="batch-meal-none" className="cursor-pointer font-normal">不含餐（基礎房價）</Label>
-                  </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="2meals" id="batch-meal-2" />
                     <Label htmlFor="batch-meal-2" className="cursor-pointer font-normal">一泊二食</Label>
@@ -835,22 +817,6 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
               </div>
 
               {/* 價格輸入 - 根據選擇的方案顯示對應欄位 */}
-              {batchEditData.mealPlan === 'none' && (
-                <div className="space-y-2">
-                  <Label htmlFor="batch-price">基礎房價 *</Label>
-                  <Input
-                    id="batch-price"
-                    type="number"
-                    inputMode="numeric"
-                    min="0"
-                    placeholder="輸入基礎房價"
-                    value={batchEditData.price}
-                    onChange={(e) => setBatchEditData({ ...batchEditData, price: e.target.value })}
-                    className="h-12 text-base touch-manipulation"
-                  />
-                </div>
-              )}
-
               {batchEditData.mealPlan === '2meals' && (
                 <div className="space-y-2">
                   <Label htmlFor="batch-price-2meals">一泊二食價格 *</Label>
@@ -924,7 +890,6 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
               <Button
                 onClick={handleBatchUpdate}
                 disabled={saving || !batchEditData.availableRooms || 
-                  (batchEditData.mealPlan === 'none' && !batchEditData.price) ||
                   (batchEditData.mealPlan === '2meals' && !batchEditData.price_2_meals) ||
                   (batchEditData.mealPlan === '3meals' && !batchEditData.price_3_meals)}
                 className="h-12 text-base touch-manipulation"
@@ -970,15 +935,11 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                 <Label>餐飲方案 *</Label>
                 <RadioGroup
                   value={batchEditData.mealPlan}
-                  onValueChange={(value: "none" | "2meals" | "3meals") => 
+                  onValueChange={(value: "2meals" | "3meals") => 
                     setBatchEditData({ ...batchEditData, mealPlan: value })
                   }
                   className="space-y-2"
                 >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="none" id="batch-meal-none-desktop" />
-                    <Label htmlFor="batch-meal-none-desktop" className="cursor-pointer font-normal">不含餐（基礎房價）</Label>
-                  </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="2meals" id="batch-meal-2-desktop" />
                     <Label htmlFor="batch-meal-2-desktop" className="cursor-pointer font-normal">一泊二食</Label>
@@ -991,22 +952,6 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
               </div>
 
               {/* 價格輸入 - 根據選擇的方案顯示對應欄位 */}
-              {batchEditData.mealPlan === 'none' && (
-                <div className="space-y-2">
-                  <Label htmlFor="batch-price-desktop">基礎房價 *</Label>
-                  <Input
-                    id="batch-price-desktop"
-                    type="number"
-                    inputMode="numeric"
-                    min="0"
-                    placeholder="輸入基礎房價"
-                    value={batchEditData.price}
-                    onChange={(e) => setBatchEditData({ ...batchEditData, price: e.target.value })}
-                    className="touch-manipulation"
-                  />
-                </div>
-              )}
-
               {batchEditData.mealPlan === '2meals' && (
                 <div className="space-y-2">
                   <Label htmlFor="batch-price-2meals-desktop">一泊二食價格 *</Label>
@@ -1088,7 +1033,6 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
               <Button
                 onClick={handleBatchUpdate}
                 disabled={saving || !batchEditData.availableRooms || 
-                  (batchEditData.mealPlan === 'none' && !batchEditData.price) ||
                   (batchEditData.mealPlan === '2meals' && !batchEditData.price_2_meals) ||
                   (batchEditData.mealPlan === '3meals' && !batchEditData.price_3_meals)}
                 className="touch-manipulation"
@@ -1117,15 +1061,11 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                 <Label>餐飲方案 *</Label>
                 <RadioGroup
                   value={singleEditData.mealPlan}
-                  onValueChange={(value: "none" | "2meals" | "3meals") => 
+                  onValueChange={(value: "2meals" | "3meals") => 
                     setSingleEditData({ ...singleEditData, mealPlan: value })
                   }
                   className="space-y-2"
                 >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="none" id="meal-none" />
-                    <Label htmlFor="meal-none" className="cursor-pointer font-normal">不含餐（基礎房價）</Label>
-                  </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="2meals" id="meal-2" />
                     <Label htmlFor="meal-2" className="cursor-pointer font-normal">一泊二食</Label>
@@ -1138,22 +1078,6 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
               </div>
 
               {/* 價格輸入 - 根據選擇的方案顯示對應欄位 */}
-              {singleEditData.mealPlan === 'none' && (
-                <div className="space-y-2">
-                  <Label htmlFor="single-price">基礎房價 *</Label>
-                  <Input
-                    id="single-price"
-                    type="number"
-                    inputMode="numeric"
-                    min="0"
-                    placeholder="輸入基礎房價"
-                    value={singleEditData.price}
-                    onChange={(e) => setSingleEditData({ ...singleEditData, price: e.target.value })}
-                    className="h-12 text-base touch-manipulation"
-                  />
-                </div>
-              )}
-
               {singleEditData.mealPlan === '2meals' && (
                 <div className="space-y-2">
                   <Label htmlFor="single-price-2meals">一泊二食價格 *</Label>
@@ -1217,7 +1141,6 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
               <Button
                 onClick={handleSingleDateUpdate}
                 disabled={saving || !singleEditData.availableRooms || 
-                  (singleEditData.mealPlan === 'none' && !singleEditData.price) ||
                   (singleEditData.mealPlan === '2meals' && !singleEditData.price_2_meals) ||
                   (singleEditData.mealPlan === '3meals' && !singleEditData.price_3_meals)}
                 className="h-12 text-base touch-manipulation"
@@ -1263,15 +1186,11 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                 <Label>餐飲方案 *</Label>
                 <RadioGroup
                   value={singleEditData.mealPlan}
-                  onValueChange={(value: "none" | "2meals" | "3meals") => 
+                  onValueChange={(value: "2meals" | "3meals") => 
                     setSingleEditData({ ...singleEditData, mealPlan: value })
                   }
                   className="space-y-2"
                 >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="none" id="meal-none-desktop" />
-                    <Label htmlFor="meal-none-desktop" className="cursor-pointer font-normal">不含餐（基礎房價）</Label>
-                  </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="2meals" id="meal-2-desktop" />
                     <Label htmlFor="meal-2-desktop" className="cursor-pointer font-normal">一泊二食</Label>
@@ -1284,22 +1203,6 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
               </div>
 
               {/* 價格輸入 - 根據選擇的方案顯示對應欄位 */}
-              {singleEditData.mealPlan === 'none' && (
-                <div className="space-y-2">
-                  <Label htmlFor="single-price-desktop">基礎房價 *</Label>
-                  <Input
-                    id="single-price-desktop"
-                    type="number"
-                    inputMode="numeric"
-                    min="0"
-                    placeholder="輸入基礎房價"
-                    value={singleEditData.price}
-                    onChange={(e) => setSingleEditData({ ...singleEditData, price: e.target.value })}
-                    className="touch-manipulation"
-                  />
-                </div>
-              )}
-
               {singleEditData.mealPlan === '2meals' && (
                 <div className="space-y-2">
                   <Label htmlFor="single-price-2meals-desktop">一泊二食價格 *</Label>
@@ -1371,7 +1274,6 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
               <Button
                 onClick={handleSingleDateUpdate}
                 disabled={saving || !singleEditData.availableRooms || 
-                  (singleEditData.mealPlan === 'none' && !singleEditData.price) ||
                   (singleEditData.mealPlan === '2meals' && !singleEditData.price_2_meals) ||
                   (singleEditData.mealPlan === '3meals' && !singleEditData.price_3_meals)}
                 className="touch-manipulation"
