@@ -416,13 +416,13 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
       {!showInPricingPage && (
         <Breadcrumb>
           <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link to="/admin" className="flex items-center hover:opacity-70 transition-opacity">
-                  <Home className="h-4 w-4" />
-                </Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/admin" className="hover:opacity-70 transition-opacity">
+                    <Home className="h-4 w-4" />
+                  </Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbPage>國定假日</BreadcrumbPage>
