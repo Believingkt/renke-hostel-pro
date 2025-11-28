@@ -19,6 +19,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -95,6 +105,7 @@ interface DiscountCode {
 const KolDiscount = () => {
   const navigate = useNavigate();
   const { accommodationId } = useSubdomain();
+  const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editingCode, setEditingCode] = useState<DiscountCode | null>(null);
@@ -1002,22 +1013,26 @@ const KolDiscount = () => {
               <Input
                 id="commissionRate"
                 type="number"
+                inputMode="numeric"
                 min="0"
                 max="100"
                 step="0.1"
                 value={commissionRate}
                 onChange={(e) => setCommissionRate(e.target.value)}
                 placeholder="例如：10（表示 10%）"
+                className="h-9 sm:h-10"
               />
               <p className="text-xs text-muted-foreground">
                 佣金將根據折扣金額計算，例如折扣 1000 元且佣金率 10%，則佣金為 100 元
               </p>
             </div>
-            <DialogFooter>
-              <Button onClick={handleSubmit}>新增</Button>
-            </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setOpen(false)} className="w-full sm:w-auto">取消</Button>
+            <Button onClick={handleSubmit} className="w-full sm:w-auto">新增</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
           </>
         }
       />
