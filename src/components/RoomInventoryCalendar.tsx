@@ -980,7 +980,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                       </div>
                     </div>
                   ) : (
-                    <div className="flex-1 flex items-center justify-center">
+                    <div className="flex-1 flex items-center justify-center min-h-[40px]">
                       <div className="text-xs sm:text-xs text-muted-foreground font-medium leading-tight">未設定</div>
                     </div>
                   )}
