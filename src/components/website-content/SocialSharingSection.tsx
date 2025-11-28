@@ -187,47 +187,63 @@ export const SocialSharingSection = ({
         </div>
 
         {/* 社群分享縮圖 */}
-        <div className="space-y-2">
-          <Label>社群分享預覽圖 (OG Image)</Label>
-          <p className="text-xs text-muted-foreground">
-            建議尺寸：1200x630 像素
-          </p>
-          <div className="flex items-start gap-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => document.getElementById('og-image-upload')?.click()}
-              disabled={uploadingOgImage}
-              className="flex items-center gap-2 h-11 sm:h-10 touch-manipulation"
-            >
-              <Upload className="h-4 w-4" />
-              {uploadingOgImage ? "上傳中..." : "上傳縮圖"}
-            </Button>
-            <input
-              id="og-image-upload"
-              type="file"
-              accept="image/*"
-              onChange={onOgImageUpload}
-              className="hidden"
-            />
+        <div className="space-y-4">
+          <div>
+            <Label className="text-base font-semibold">社群分享預覽圖 (OG Image)</Label>
+            <p className="text-sm text-muted-foreground mt-1">
+              建議尺寸：1200x630 像素
+            </p>
+          </div>
+          
+          <div className="space-y-4">
+            {/* 上傳按鈕 */}
+            <div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => document.getElementById('og-image-upload')?.click()}
+                disabled={uploadingOgImage}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 h-12 sm:h-11 touch-manipulation"
+              >
+                <Upload className="h-5 w-5 sm:h-4 sm:w-4" />
+                <span className="text-base sm:text-sm">{uploadingOgImage ? "上傳中..." : "上傳縮圖"}</span>
+              </Button>
+              <input
+                id="og-image-upload"
+                type="file"
+                accept="image/*"
+                onChange={onOgImageUpload}
+                className="hidden"
+              />
+            </div>
+
+            {/* 預覽圖區域 */}
             {ogImageUrl && (
-              <div className="flex items-center gap-2">
-                <div className="relative w-48 h-24 border rounded overflow-hidden">
-                  <img 
-                    src={ogImageUrl} 
-                    alt="社群分享縮圖" 
-                    className="w-full h-full object-cover"
-                  />
+              <div className="relative rounded-lg border-2 border-border bg-muted/30 p-4 transition-all duration-200 hover:border-primary/50">
+                <div className="flex flex-col sm:flex-row items-start gap-4">
+                  <div className="relative w-full sm:w-64 aspect-[1.91/1] rounded-lg overflow-hidden border border-border shadow-sm bg-background">
+                    <img 
+                      src={ogImageUrl} 
+                      alt="社群分享縮圖預覽" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2 flex-1">
+                    <p className="text-sm text-muted-foreground">
+                      此圖片將在社群媒體（Facebook、Twitter、LinkedIn 等）分享時顯示
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={onDeleteOgImage}
+                      className="w-full sm:w-auto h-10 touch-manipulation text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      刪除圖片
+                    </Button>
+                  </div>
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost-destructive"
-                  size="icon"
-                  onClick={onDeleteOgImage}
-                  className="h-11 w-11 sm:h-10 sm:w-10 touch-manipulation"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
               </div>
             )}
           </div>
