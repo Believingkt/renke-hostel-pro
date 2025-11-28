@@ -2565,7 +2565,7 @@ const WebsiteContent = () => {
 
   return (
     <div className="space-y-6 md:space-y-8 p-4 md:p-0">
-      <Breadcrumb>
+      <Breadcrumb className="-ml-1">
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
