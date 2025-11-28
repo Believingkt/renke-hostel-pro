@@ -743,6 +743,48 @@ const WebsiteContent = () => {
     loadData();
   }, []);
 
+  // 當切換到 location tab 時重新載入交通地圖資料
+  useEffect(() => {
+    if (activeTab === 'location' && accommodationId) {
+      const reloadLocationData = async () => {
+        try {
+          const { data: locationData } = await supabase
+            .from("location_info")
+            .select("*")
+            .eq("accommodation_id", accommodationId)
+            .maybeSingle();
+
+          if (locationData) {
+            setDrivingInfo(locationData.driving_info || "");
+            setPublicTransportInfo(locationData.public_transport_info || "");
+            
+            const attractions = locationData.nearby_attractions;
+            if (attractions && Array.isArray(attractions)) {
+              const typedAttractions = attractions as Array<{
+                name?: string;
+                distance?: string;
+                description?: string;
+              }>;
+              setNearbyAttractions(
+                typedAttractions.map(a => ({
+                  name: a.name || "",
+                  distance: a.distance || "",
+                  description: a.description || ""
+                }))
+              );
+            }
+          }
+        } catch (error) {
+          if (import.meta.env.DEV) {
+            console.error('Error reloading location data:', error);
+          }
+        }
+      };
+      
+      reloadLocationData();
+    }
+  }, [activeTab, accommodationId]);
+
   const handleCheckboxChange = (facilityName: string, checked: boolean) => {
     setSelectedFacilities(prev => ({
       ...prev,
