@@ -439,9 +439,28 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       const totalRecords = selectedRoomTypes.length * dates.length;
       setApplyProgress({ current: 0, total: totalRecords, currentRoom: '' });
       
+      // 查詢日期範圍內的國定假日記錄
+      setApplyProgress(prev => ({ ...prev, currentRoom: '查詢國定假日資料...' }));
+      const dateStrings = dates.map(date => format(date, 'yyyy-MM-dd'));
+      const { data: publicHolidays, error: holidayError } = await supabase
+        .from('public_holidays')
+        .select('holiday_date, holiday_type')
+        .eq('accommodation_id', accommodationId)
+        .in('holiday_date', dateStrings);
+        
+      if (holidayError) {
+        console.error('查詢國定假日失敗:', holidayError);
+        throw holidayError;
+      }
+      
+      // 建立國定假日類型的 Map
+      const holidayTypeMap = new Map<string, string>();
+      (publicHolidays || []).forEach(holiday => {
+        holidayTypeMap.set(holiday.holiday_date, holiday.holiday_type);
+      });
+      
       // 批量查詢現有記錄
       setApplyProgress(prev => ({ ...prev, currentRoom: '查詢現有價格記錄...' }));
-      const dateStrings = dates.map(date => format(date, 'yyyy-MM-dd'));
       const { data: existingRecords, error: queryError } = await supabase
         .from('room_inventory_pricing')
         .select('*')
@@ -475,37 +494,51 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
         for (const date of dates) {
           processedCount++;
           setApplyProgress(prev => ({ ...prev, current: processedCount }));
-          const weekend = isWeekend(date);
           const dateStr = format(date, 'yyyy-MM-dd');
           const key = `${roomTypeId}_${dateStr}`;
           const existing = existingMap.get(key);
+          
+          // 判斷是否為假日（考慮國定假日類型）
+          const isWeekendDay = isWeekend(date);
+          const holidayType = holidayTypeMap.get(dateStr);
+          
+          let isHolidayPricing = isWeekendDay;
+          
+          // 根據國定假日類型調整價格判斷
+          if (holidayType === 'work_on_weekend') {
+            // 補班日：即使是週末也使用平日價格
+            isHolidayPricing = false;
+          } else if (holidayType === 'holiday' || holidayType === 'compensatory_day_off') {
+            // 國定假日或補休日：使用假日價格
+            isHolidayPricing = true;
+          }
           
           // 根據選擇的價格類型和平日/假日決定價格
           let price_2_meals = null;
           let price_3_meals = null;
           
           if (selectedPriceType === '2meals') {
-            price_2_meals = weekend 
+            price_2_meals = isHolidayPricing 
               ? applyingTemplate.weekend_2_meals_price 
               : applyingTemplate.weekday_2_meals_price;
             
             if (!price_2_meals) {
-              console.warn(`模板缺少${weekend ? '假日' : '平日'}一泊二食價格`);
+              console.warn(`模板缺少${isHolidayPricing ? '假日' : '平日'}一泊二食價格`);
               continue;
             }
           } else if (selectedPriceType === '3meals') {
-            price_3_meals = weekend 
+            price_3_meals = isHolidayPricing 
               ? applyingTemplate.weekend_3_meals_price 
               : applyingTemplate.weekday_3_meals_price;
             
             if (!price_3_meals) {
-              console.warn(`模板缺少${weekend ? '假日' : '平日'}一泊三食價格`);
+              console.warn(`模板缺少${isHolidayPricing ? '假日' : '平日'}一泊三食價格`);
               continue;
             }
           }
           
           // 決定基礎價格
-          const basePrice = weekend 
+          const basePrice = isHolidayPricing 
             ? (applyingTemplate.weekend_price || price_2_meals || price_3_meals || existing?.price || 0)
             : (applyingTemplate.weekday_price || price_2_meals || price_3_meals || existing?.price || 0);
           
