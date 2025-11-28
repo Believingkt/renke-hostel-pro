@@ -776,103 +776,82 @@ const Customers = () => {
 
           {/* Pagination */}
           {sortedCustomers.length > 0 && (
-            <Card className="border-border/40 bg-card/50">
-              <CardContent className="p-6">
-                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full lg:w-auto">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <span className="font-medium text-foreground">
-                        {startIndex + 1} - {Math.min(endIndex, sortedCustomers.length)}
-                      </span>
-                      <span>筆，共</span>
-                      <span className="font-medium text-foreground">{sortedCustomers.length}</span>
-                      <span>筆資料</span>
-                    </div>
-                    <div className="flex items-center gap-2 sm:pl-4 sm:border-l">
-                      <span className="text-sm text-muted-foreground whitespace-nowrap">每頁</span>
-                      <Select
-                        value={itemsPerPage.toString()}
-                        onValueChange={(value) => {
-                          setItemsPerPage(Number(value));
-                          setCurrentPage(1);
-                        }}
-                      >
-                        <SelectTrigger className="w-20 h-9 border-border bg-background">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-background border-border z-50">
-                          <SelectItem value="10">10</SelectItem>
-                          <SelectItem value="20">20</SelectItem>
-                          <SelectItem value="50">50</SelectItem>
-                          <SelectItem value="100">100</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <span className="text-sm text-muted-foreground whitespace-nowrap">筆</span>
-                    </div>
+            <div className="mt-6 p-4 bg-muted/30 rounded-lg">
+              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full lg:w-auto">
+                  <div className="text-sm text-muted-foreground whitespace-nowrap">
+                    顯示 {startIndex + 1} 至 {Math.min(endIndex, sortedCustomers.length)} 筆，共 {sortedCustomers.length} 筆資料
                   </div>
-                  
-                  {totalPages > 1 && (
-                    <Pagination className="mx-0 w-full lg:w-auto justify-start lg:justify-end">
-                      <PaginationContent className="gap-1">
-                        <PaginationItem>
-                          <PaginationPrevious 
-                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                            className={`h-9 px-3 border border-border ${currentPage === 1 ? "pointer-events-none opacity-40" : "cursor-pointer hover:bg-accent hover:text-accent-foreground"}`}
-                          >
-                            <span className="hidden sm:inline">上一頁</span>
-                            <span className="sm:hidden">上一頁</span>
-                          </PaginationPrevious>
-                        </PaginationItem>
-                        
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                          // 只顯示當前頁面附近的頁碼
-                          if (
-                            page === 1 ||
-                            page === totalPages ||
-                            (page >= currentPage - 1 && page <= currentPage + 1)
-                          ) {
-                            return (
-                              <PaginationItem key={page}>
-                                <PaginationLink
-                                  onClick={() => setCurrentPage(page)}
-                                  isActive={currentPage === page}
-                                  className={`cursor-pointer h-9 min-w-[36px] border ${
-                                    currentPage === page 
-                                      ? "border-primary bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground" 
-                                      : "border-border hover:bg-accent hover:text-accent-foreground"
-                                  }`}
-                                >
-                                  {page}
-                                </PaginationLink>
-                              </PaginationItem>
-                            );
-                          } else if (page === currentPage - 2 || page === currentPage + 2) {
-                            return (
-                              <PaginationItem key={page}>
-                                <span className="flex h-9 min-w-[36px] items-center justify-center text-muted-foreground text-sm">
-                                  ...
-                                </span>
-                              </PaginationItem>
-                            );
-                          }
-                          return null;
-                        })}
-                        
-                        <PaginationItem>
-                          <PaginationNext 
-                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                            className={`h-9 px-3 border border-border ${currentPage === totalPages ? "pointer-events-none opacity-40" : "cursor-pointer hover:bg-accent hover:text-accent-foreground"}`}
-                          >
-                            <span className="hidden sm:inline">下一頁</span>
-                            <span className="sm:hidden">下一頁</span>
-                          </PaginationNext>
-                        </PaginationItem>
-                      </PaginationContent>
-                    </Pagination>
-                  )}
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-muted-foreground whitespace-nowrap">每頁顯示</span>
+                    <Select
+                      value={itemsPerPage.toString()}
+                      onValueChange={(value) => {
+                        setItemsPerPage(Number(value));
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <SelectTrigger className="w-24 h-11 sm:h-9 touch-manipulation">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background border-border z-50">
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="20">20</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
+                
+                {totalPages > 1 && (
+                  <Pagination className="mx-0 w-full lg:w-auto justify-start lg:justify-end">
+                    <PaginationContent className="gap-2 md:gap-1.5 flex-wrap">
+                      <PaginationItem>
+                        <PaginationPrevious 
+                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                          className={`h-10 touch-manipulation ${currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
+                        >
+                          上一頁
+                        </PaginationPrevious>
+                      </PaginationItem>
+                      
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter(page => {
+                          // 顯示第一頁、最後一頁、當前頁及其前後各一頁
+                          return page === 1 || 
+                                 page === totalPages || 
+                                 Math.abs(page - currentPage) <= 1;
+                        })
+                        .map((page, index, array) => (
+                          <PaginationItem key={page}>
+                            {/* 顯示省略號 */}
+                            {index > 0 && array[index - 1] !== page - 1 && (
+                              <span className="px-2 md:px-2 text-muted-foreground">...</span>
+                            )}
+                            <PaginationLink
+                              onClick={() => setCurrentPage(page)}
+                              isActive={currentPage === page}
+                              className="h-10 touch-manipulation cursor-pointer"
+                            >
+                              {page}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ))}
+                      
+                      <PaginationItem>
+                        <PaginationNext 
+                          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                          className={`h-10 touch-manipulation ${currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
+                        >
+                          下一頁
+                        </PaginationNext>
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                )}
+              </div>
+            </div>
           )}
         </>
       )}
