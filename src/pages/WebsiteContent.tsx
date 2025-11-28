@@ -797,6 +797,28 @@ const WebsiteContent = () => {
         if (error) throw error;
       }
 
+      // 重新載入設施資料
+      const { data: updatedFacilities } = await supabase
+        .from("accommodation_facilities")
+        .select("*")
+        .eq("accommodation_id", accommodationId)
+        .eq("is_available", true);
+
+      if (updatedFacilities) {
+        const selected: Record<string, boolean> = {};
+        const pricing: Record<string, string> = {};
+
+        updatedFacilities.forEach(facility => {
+          selected[facility.facility_name] = true;
+          if (facility.pricing_type) {
+            pricing[facility.facility_name] = facility.pricing_type;
+          }
+        });
+
+        setSelectedFacilities(selected);
+        setPricingTypes(pricing);
+      }
+
       toast.success('設施資料已儲存');
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -865,6 +887,33 @@ const WebsiteContent = () => {
         .eq("id", accommodationId);
 
       if (infoError) throw infoError;
+
+      // 重新載入訂房須知資料
+      const { data: updatedBookingSettings } = await supabase
+        .from("booking_settings")
+        .select("*")
+        .eq("accommodation_id", accommodationId)
+        .maybeSingle();
+
+      if (updatedBookingSettings) {
+        const { data: updatedInfo } = await supabase
+          .from("accommodation_info")
+          .select("check_in_notice")
+          .eq("id", accommodationId)
+          .maybeSingle();
+
+        setBookingInfo({
+          checkInTime: updatedBookingSettings.check_in_time || "15:00",
+          checkOutTime: updatedBookingSettings.check_out_time || "11:00",
+          paymentMethods: Array.isArray(updatedBookingSettings.payment_methods) 
+            ? (updatedBookingSettings.payment_methods as string[])
+            : [],
+          cancellationPolicy: updatedBookingSettings.cancellation_policy || "",
+          checkInNotice: updatedInfo?.check_in_notice || "",
+          petPolicy: updatedBookingSettings.pet_policy || "",
+          otherNotes: updatedBookingSettings.other_notes || ""
+        });
+      }
 
       toast.success('訂房須知已儲存');
       setBookingErrors({});
@@ -1484,6 +1533,40 @@ const WebsiteContent = () => {
 
       if (error) throw error;
 
+      // 重新載入網頁設定資料
+      const { data: updatedInfo } = await supabase
+        .from("accommodation_info")
+        .select("id, name, description, address, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url, og_title, og_description, og_image_url, website_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay")
+        .eq("id", accommodationId)
+        .maybeSingle();
+
+      if (updatedInfo) {
+        setBasicInfo({
+          name: updatedInfo.name || "",
+          description: updatedInfo.description || "",
+          address: updatedInfo.address || "",
+          phone: updatedInfo.phone || "",
+          email: updatedInfo.email || "",
+          line_id: updatedInfo.line_id || "",
+          facebook_url: updatedInfo.facebook_url || "",
+          instagram_url: updatedInfo.instagram_url || "",
+          threads_url: updatedInfo.threads_url || "",
+          youtube_url: updatedInfo.youtube_url || "",
+          tiktok_url: updatedInfo.tiktok_url || "",
+          header_logo_url: updatedInfo.header_logo_url || "",
+          footer_logo_url: updatedInfo.footer_logo_url || "",
+          og_title: updatedInfo.og_title || "",
+          og_description: updatedInfo.og_description || "",
+          og_image_url: updatedInfo.og_image_url || "",
+          website_url: updatedInfo.website_url || "",
+          hero_main_title: updatedInfo.hero_main_title || "",
+          hero_subtitle: updatedInfo.hero_subtitle || "",
+          hero_description: updatedInfo.hero_description || "",
+          hero_overlay_opacity: updatedInfo.hero_overlay_opacity ?? 40,
+          hero_autoplay_delay: updatedInfo.hero_autoplay_delay ?? 8
+        });
+      }
+
       // 更新瀏覽器標題
       if (basicInfo.name) {
         document.title = basicInfo.name;
@@ -1990,6 +2073,39 @@ const WebsiteContent = () => {
 
       if (mealError) throw mealError;
 
+      // 重新載入加購方案資料
+      const { data: updatedAddonData } = await supabase
+        .from("addon_settings")
+        .select("*")
+        .eq("accommodation_id", accommodationId);
+
+      if (updatedAddonData) {
+        const petData = updatedAddonData.find(a => a.addon_type === 'pet');
+        const mealData = updatedAddonData.find(a => a.addon_type === 'meal');
+
+        if (petData) {
+          setPetPlan({
+            enabled: petData.enabled || true,
+            pricePerUnit: petData.price_per_unit,
+            maxQuantity: petData.max_quantity,
+            description: petData.unit_label || "每隻寵物",
+            detailedDescription: petData.detailed_description || ""
+          });
+        }
+
+        if (mealData) {
+          setMealPlan({
+            enabled: mealData.enabled || true,
+            pricePerUnit: mealData.price_per_unit,
+            maxQuantity: mealData.max_quantity,
+            weekdayMinQuantity: mealData.weekday_min_quantity || 0,
+            weekendMinQuantity: mealData.weekend_min_quantity || 0,
+            description: mealData.unit_label || "每人每日",
+            detailedDescription: mealData.detailed_description || ""
+          });
+        }
+      }
+
       toast.success('加購方案設定已儲存');
       setPetPlanErrors({});
       setMealPlanErrors({});
@@ -2023,6 +2139,20 @@ const WebsiteContent = () => {
         });
 
       if (sectionError) throw sectionError;
+
+      // 重新載入特色說明資料
+      const { data: updatedSection } = await supabase
+        .from("about_section")
+        .select("*")
+        .eq("accommodation_id", accommodationId)
+        .maybeSingle();
+
+      if (updatedSection) {
+        setAboutSection({
+          sectionTitle: updatedSection.section_title || "自然中的秘境 X 宿泊空間",
+          sectionDescription: updatedSection.section_description || ""
+        });
+      }
 
       toast.success('特色說明已儲存');
     } catch (error) {
