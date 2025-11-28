@@ -7,6 +7,7 @@ const routePreloadMap: Record<string, () => Promise<any>> = {
   '/admin': () => import('@/pages/Dashboard'),
   '/admin/website-content': () => import('@/pages/WebsiteContent'),
   '/admin/orders': () => import('@/pages/Orders'),
+  '/admin/pricing': () => import('@/pages/Pricing'),
   '/admin/accounts': () => import('@/pages/Accounts'),
   '/admin/kol-discount': () => import('@/pages/KolDiscount'),
   '/admin/customers': () => import('@/pages/Customers'),
