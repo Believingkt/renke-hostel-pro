@@ -556,10 +556,10 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
               <div className="flex-1 w-full sm:max-w-[300px]">
                 <Select value={selectedRoomType} onValueChange={setSelectedRoomType}>
-                  <SelectTrigger className="h-9 sm:h-10">
+                  <SelectTrigger className="h-12 sm:h-10 text-base sm:text-sm touch-manipulation">
                     <SelectValue placeholder="選擇房型" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-background border-border z-50">
                     {roomTypes.map((room) => (
                       <SelectItem key={room.id} value={room.id}>
                         {room.name}
@@ -589,19 +589,20 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
                     variant="outline"
                     size="icon"
                     onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-                    className="h-8 w-8 sm:h-9 sm:w-9"
+                    className="h-10 w-10 sm:h-9 sm:w-9 touch-manipulation"
                   >
-                    <ChevronLeft className="h-4 w-4" />
+                    <ChevronLeft className="h-5 w-5 sm:h-4 sm:w-4" />
                   </Button>
-                  <span className="font-semibold min-w-[120px] text-center">
+                  <span className="font-semibold min-w-[120px] text-center text-base sm:text-sm">
                     {format(currentMonth, 'yyyy年 M月', { locale: zhTW })}
                   </span>
                   <Button
                     variant="outline"
                     size="icon"
                     onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+                    className="h-10 w-10 sm:h-9 sm:w-9 touch-manipulation"
                   >
-                    <ChevronRight className="h-4 w-4" />
+                    <ChevronRight className="h-5 w-5 sm:h-4 sm:w-4" />
                   </Button>
                 </div>
               </div>
@@ -613,7 +614,7 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
                     variant="outline"
                     size="sm"
                     onClick={() => setIsSelectionMode(true)}
-                    className="gap-2"
+                    className="gap-2 h-10 sm:h-9 touch-manipulation"
                   >
                     <Edit className="h-4 w-4" />
                     批量編輯
@@ -663,7 +664,7 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
                         variant="outline"
                         size="sm"
                         onClick={handleStartCopyMode}
-                        className="gap-2"
+                        className="gap-2 h-10 sm:h-9 touch-manipulation"
                         disabled={isCopyMode}
                       >
                         <Copy className="h-4 w-4" />
@@ -674,7 +675,7 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
                       variant="outline"
                       size="sm"
                       onClick={selectWeekends}
-                      className="gap-2"
+                      className="gap-2 h-10 sm:h-9 touch-manipulation"
                       disabled={isCopyMode}
                     >
                       <Calendar className="h-4 w-4" />
@@ -684,7 +685,7 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
                       variant="outline"
                       size="sm"
                       onClick={selectWeekdays}
-                      className="gap-2"
+                      className="gap-2 h-10 sm:h-9 touch-manipulation"
                       disabled={isCopyMode}
                     >
                       <Briefcase className="h-4 w-4" />
@@ -694,7 +695,7 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
                       variant="outline"
                       size="sm"
                       onClick={selectCurrentWeek}
-                      className="gap-2"
+                      className="gap-2 h-10 sm:h-9 touch-manipulation"
                       disabled={isCopyMode}
                     >
                       <CalendarDays className="h-4 w-4" />
@@ -704,7 +705,7 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
                       variant="outline"
                       size="sm"
                       onClick={selectWholeMonth}
-                      className="gap-2"
+                      className="gap-2 h-10 sm:h-9 touch-manipulation"
                       disabled={isCopyMode}
                     >
                       <CalendarRange className="h-4 w-4" />
@@ -714,7 +715,7 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
                       variant="ghost"
                       size="sm"
                       onClick={clearSelection}
-                      className="gap-2"
+                      className="gap-2 h-10 sm:h-9 touch-manipulation"
                       disabled={selectedDates.size === 0 || isCopyMode}
                     >
                       <X className="h-4 w-4" />
@@ -736,7 +737,7 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
                           size="sm"
                           onClick={applyRoomCountAsInventory}
                           disabled={selectedDates.size === 0 || isCopyMode || saving}
-                          className="gap-2"
+                          className="gap-2 h-10 sm:h-9 touch-manipulation"
                         >
                           <Check className="h-4 w-4" />
                           {saving ? '套用中...' : '套用到選中日期'}
@@ -752,7 +753,7 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
                           size="sm"
                           onClick={clearInventoryForSelectedDates}
                           disabled={selectedDates.size === 0 || isCopyMode || saving}
-                          className="gap-2"
+                          className="gap-2 h-10 sm:h-9 touch-manipulation"
                         >
                           <X className="h-4 w-4" />
                           {saving ? '清空中...' : '清空選中日期'}
@@ -776,7 +777,7 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
                           size="sm"
                           onClick={handleApplyCopiedData}
                           disabled={selectedDates.size === 0 || saving}
-                          className="gap-2"
+                          className="gap-2 h-11 sm:h-9 touch-manipulation"
                         >
                           <Check className="h-4 w-4" />
                           {saving ? '套用中...' : '套用複製設定'}
@@ -787,7 +788,7 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
                           size="sm"
                           onClick={handleOpenBatchEdit}
                           disabled={selectedDates.size === 0 || isCopyMode}
-                          className="gap-2"
+                          className="gap-2 h-11 sm:h-9 touch-manipulation"
                         >
                           <Check className="h-4 w-4" />
                           編輯選中日期
@@ -797,7 +798,7 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
                         variant="outline"
                         size="sm"
                         onClick={handleCancelSelection}
-                        className="gap-2"
+                        className="gap-2 h-11 sm:h-9 touch-manipulation"
                       >
                         <X className="h-4 w-4" />
                         取消

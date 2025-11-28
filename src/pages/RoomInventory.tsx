@@ -103,10 +103,10 @@ export default function RoomInventory() {
           ) : (
             <div className="space-y-6">
               <Select value={selectedRoomType} onValueChange={setSelectedRoomType}>
-                <SelectTrigger className="w-full md:w-[300px]">
+                <SelectTrigger className="w-full md:w-[300px] h-12 md:h-10 text-base md:text-sm touch-manipulation">
                   <SelectValue placeholder="選擇房型" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-background border-border z-50">
                   {roomTypes.map((room) => (
                     <SelectItem key={room.id} value={room.id}>
                       {room.name}
