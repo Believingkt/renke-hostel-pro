@@ -136,6 +136,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
   const [applying, setApplying] = useState(false);
   const [selectedPriceType, setSelectedPriceType] = useState<'2meals' | '3meals'>('2meals');
   const [selectedDays, setSelectedDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]); // 0=日, 1=一, ..., 6=六
+  const [includePublicHolidays, setIncludePublicHolidays] = useState(true); // 是否包含國定假日和補休日
   const [templateApplications, setTemplateApplications] = useState<Record<string, TemplateApplication[]>>({});
   const [showApplicationsDialog, setShowApplicationsDialog] = useState(false);
   const [viewingApplicationsTemplate, setViewingApplicationsTemplate] = useState<PricingTemplate | null>(null);
@@ -359,6 +360,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
     setDateRange(undefined);
     setAvailableRooms(1);
     setSelectedDays([0, 1, 2, 3, 4, 5, 6]); // 預設全選
+    setIncludePublicHolidays(true); // 預設包含國定假日
     // 預設選擇有值的價格類型
     if (template.weekday_2_meals_price || template.weekend_2_meals_price) {
       setSelectedPriceType('2meals');
@@ -374,6 +376,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
         ? prev.filter(d => d !== day)
         : [...prev, day].sort((a, b) => a - b)
     );
+    setIncludePublicHolidays(false); // 手動選擇時取消國定假日標記
   };
 
   const toggleAllDays = () => {
@@ -382,14 +385,17 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
     } else {
       setSelectedDays([0, 1, 2, 3, 4, 5, 6]);
     }
+    setIncludePublicHolidays(false);
   };
 
   const selectWeekdays = () => {
     setSelectedDays([1, 2, 3, 4, 5]); // 一到五
+    setIncludePublicHolidays(false);
   };
 
-  const selectWeekend = () => {
+  const selectHolidays = () => {
     setSelectedDays([0, 6]); // 日和六
+    setIncludePublicHolidays(true); // 包含國定假日和補休日
   };
 
   const toggleRoomType = (roomTypeId: string) => {
@@ -431,8 +437,32 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       setApplying(true);
       const allDates = eachDayOfInterval({ start: dateRange.from, end: dateRange.to });
       
-      // 只保留選中星期的日期
-      const dates = allDates.filter(date => selectedDays.includes(date.getDay()));
+      // 查詢日期範圍內的國定假日記錄（如果需要）
+      let publicHolidayDates = new Set<string>();
+      if (includePublicHolidays) {
+        setApplyProgress(prev => ({ ...prev, currentRoom: '查詢國定假日資料...' }));
+        const allDateStrings = allDates.map(date => format(date, 'yyyy-MM-dd'));
+        const { data: publicHolidays, error: holidayQueryError } = await supabase
+          .from('public_holidays')
+          .select('holiday_date, holiday_type')
+          .eq('accommodation_id', accommodationId)
+          .in('holiday_date', allDateStrings)
+          .in('holiday_type', ['holiday', 'compensatory_day_off']); // 只包含國定假日和補休日
+          
+        if (holidayQueryError) {
+          console.error('查詢國定假日失敗:', holidayQueryError);
+        } else {
+          (publicHolidays || []).forEach(holiday => {
+            publicHolidayDates.add(holiday.holiday_date);
+          });
+        }
+      }
+      
+      // 只保留選中星期的日期，或國定假日/補休日的日期
+      const dates = allDates.filter(date => {
+        const dateStr = format(date, 'yyyy-MM-dd');
+        return selectedDays.includes(date.getDay()) || publicHolidayDates.has(dateStr);
+      });
       
       if (dates.length === 0) {
         toast.error('所選日期範圍內沒有符合的星期');
@@ -1226,17 +1256,17 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                   </button>
                   <button
                     type="button"
-                    onClick={selectWeekend}
+                    onClick={selectHolidays}
                     className={`
-                      flex items-center gap-2 px-3 py-2 h-10 sm:h-9 rounded-md border transition-all text-sm touch-manipulation
-                      ${JSON.stringify(selectedDays) === JSON.stringify([0, 6])
+                      flex flex-col items-center gap-1 px-3 py-2 h-auto sm:h-9 rounded-md border transition-all text-sm touch-manipulation
+                      ${JSON.stringify(selectedDays) === JSON.stringify([0, 6]) && includePublicHolidays
                         ? 'border-primary bg-primary text-primary-foreground'
                         : 'border-border hover:border-primary hover:bg-accent'
                       }
                     `}
                   >
-                    <span className="font-medium">週末</span>
-                    <span className="text-xs opacity-75">(六、日)</span>
+                    <span className="font-medium">假日</span>
+                    <span className="text-xs opacity-75">(六、日、國定假日)</span>
                   </button>
                 </div>
 
@@ -1520,17 +1550,17 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                   </button>
                   <button
                     type="button"
-                    onClick={selectWeekend}
+                    onClick={selectHolidays}
                     className={`
-                      flex items-center gap-2 px-3 py-2 h-10 sm:h-9 rounded-md border transition-all text-sm touch-manipulation
-                      ${JSON.stringify(selectedDays) === JSON.stringify([0, 6])
+                      flex flex-col items-center gap-1 px-3 py-2 h-auto sm:h-9 rounded-md border transition-all text-sm touch-manipulation
+                      ${JSON.stringify(selectedDays) === JSON.stringify([0, 6]) && includePublicHolidays
                         ? 'border-primary bg-primary text-primary-foreground'
                         : 'border-border hover:border-primary hover:bg-accent'
                       }
                     `}
                   >
-                    <span className="font-medium">週末</span>
-                    <span className="text-xs opacity-75">(六、日)</span>
+                    <span className="font-medium">假日</span>
+                    <span className="text-xs opacity-75">(六、日、國定假日)</span>
                   </button>
                   </div>
 
