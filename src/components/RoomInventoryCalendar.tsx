@@ -548,7 +548,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                   variant="ghost"
                   size="icon"
                   onClick={handlePrevMonth}
-                  className="h-7 w-7 sm:h-8 sm:w-8 hover:bg-background touch-manipulation"
+                  className="h-7 w-7 sm:h-8 sm:w-8 hover:bg-background hover:text-foreground touch-manipulation"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -559,7 +559,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                   variant="ghost"
                   size="icon"
                   onClick={handleNextMonth}
-                  className="h-7 w-7 sm:h-8 sm:w-8 hover:bg-background touch-manipulation"
+                  className="h-7 w-7 sm:h-8 sm:w-8 hover:bg-background hover:text-foreground touch-manipulation"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
