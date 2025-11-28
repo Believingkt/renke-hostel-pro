@@ -75,14 +75,11 @@ export default function RoomInventory() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <PageHeader title="房價庫存" />
+      <PageHeader title="房價庫存" icon={Package} />
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            選擇房型
-          </CardTitle>
+          <CardTitle>選擇房型</CardTitle>
           <CardDescription>
             查看並管理各房型的每日價格與庫存數量
           </CardDescription>
