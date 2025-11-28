@@ -388,8 +388,8 @@ const HeroSection = ({
           </CarouselContent>
           
           {/* 輪播指示器 */}
-          <div className="absolute bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 z-20">
-            <div className="flex items-center gap-1 md:gap-2 px-2 py-2">
+          <div className="absolute bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 z-20 hidden md:block">
+            <div className="flex items-center gap-2 px-2 py-2">
               {slides.map((_, index) => (
                 <button
                   key={index}
