@@ -396,7 +396,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                 variant="outline"
                 size="icon"
                 onClick={handlePrevMonth}
-                className="h-9 w-9 sm:h-10 sm:w-10"
+                className="h-9 w-9 sm:h-10 sm:w-10 touch-manipulation"
               >
                 <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
@@ -407,7 +407,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                 variant="outline"
                 size="icon"
                 onClick={handleNextMonth}
-                className="h-9 w-9 sm:h-10 sm:w-10"
+                className="h-9 w-9 sm:h-10 sm:w-10 touch-manipulation"
               >
                 <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
@@ -421,7 +421,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                 variant="outline"
                 size="sm"
                 onClick={handleStartBatchEdit}
-                className="gap-1 sm:gap-2 h-9 sm:h-8 px-3"
+                className="gap-1 sm:gap-2 h-11 sm:h-8 px-3 touch-manipulation"
               >
                 <Edit className="h-4 w-4" />
                 <span className="hidden sm:inline">批量編輯</span>
@@ -456,7 +456,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                         setCopiedData(null);
                         setSelectedDates(new Set());
                       }}
-                      className="h-6 px-2"
+                      className="h-6 px-2 touch-manipulation"
                     >
                       <X className="h-3 w-3" />
                     </Button>
@@ -472,7 +472,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                     variant="outline"
                     size="sm"
                     onClick={handleStartCopyMode}
-                    className="gap-2 h-9 sm:h-8"
+                    className="gap-2 h-11 sm:h-8 touch-manipulation"
                     disabled={isCopyMode}
                   >
                     <Copy className="h-4 w-4" />
@@ -484,7 +484,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   variant="outline"
                   size="sm"
                   onClick={selectWeekends}
-                  className="gap-2 h-9 sm:h-8"
+                  className="gap-2 h-11 sm:h-8 touch-manipulation"
                   disabled={isCopyMode}
                 >
                   <Calendar className="h-4 w-4" />
@@ -495,7 +495,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   variant="outline"
                   size="sm"
                   onClick={selectWeekdays}
-                  className="gap-2 h-9 sm:h-8"
+                  className="gap-2 h-11 sm:h-8 touch-manipulation"
                   disabled={isCopyMode}
                 >
                   <Briefcase className="h-4 w-4" />
@@ -506,7 +506,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   variant="outline"
                   size="sm"
                   onClick={selectCurrentWeek}
-                  className="gap-2 h-9 sm:h-8"
+                  className="gap-2 h-11 sm:h-8 touch-manipulation"
                   disabled={isCopyMode}
                 >
                   <CalendarDays className="h-4 w-4" />
@@ -517,7 +517,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   variant="outline"
                   size="sm"
                   onClick={selectWholeMonth}
-                  className="gap-2 h-9 sm:h-8"
+                  className="gap-2 h-11 sm:h-8 touch-manipulation"
                   disabled={isCopyMode}
                 >
                   <CalendarRange className="h-4 w-4" />
@@ -528,7 +528,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   variant="ghost"
                   size="sm"
                   onClick={clearSelection}
-                  className="gap-2 h-9 sm:h-8"
+                  className="gap-2 h-11 sm:h-8 touch-manipulation"
                   disabled={selectedDates.size === 0 || isCopyMode}
                 >
                   <X className="h-4 w-4" />
@@ -549,7 +549,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                       size="sm"
                       onClick={handleApplyCopiedData}
                       disabled={selectedDates.size === 0 || saving}
-                      className="gap-2 flex-1 sm:flex-none h-10 sm:h-8"
+                      className="gap-2 flex-1 sm:flex-none h-11 sm:h-8 touch-manipulation"
                     >
                       <Check className="h-4 w-4" />
                       {saving ? '套用中...' : '套用複製設定'}
@@ -560,7 +560,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                       size="sm"
                       onClick={handleOpenBatchEdit}
                       disabled={selectedDates.size === 0 || isCopyMode}
-                      className="gap-2 flex-1 sm:flex-none h-10 sm:h-8"
+                      className="gap-2 flex-1 sm:flex-none h-11 sm:h-8 touch-manipulation"
                     >
                       <Check className="h-4 w-4" />
                       編輯選中日期
@@ -570,7 +570,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                     variant="outline"
                     size="sm"
                     onClick={handleCancelSelection}
-                    className="gap-2 flex-1 sm:flex-none h-10 sm:h-8"
+                    className="gap-2 flex-1 sm:flex-none h-11 sm:h-8 touch-manipulation"
                   >
                     <X className="h-4 w-4" />
                     <span className="hidden sm:inline">取消</span>
@@ -718,7 +718,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   placeholder="輸入房價"
                   value={batchEditData.price}
                   onChange={(e) => setBatchEditData({ ...batchEditData, price: e.target.value })}
-                  className="h-12 text-base"
+                  className="h-12 text-base touch-manipulation"
                 />
               </div>
 
@@ -732,7 +732,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   placeholder="輸入可用房數"
                   value={batchEditData.availableRooms}
                   onChange={(e) => setBatchEditData({ ...batchEditData, availableRooms: e.target.value })}
-                  className="h-12 text-base"
+                  className="h-12 text-base touch-manipulation"
                 />
               </div>
 
@@ -741,6 +741,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   id="isAvailable"
                   checked={batchEditData.isAvailable}
                   onCheckedChange={(checked) => setBatchEditData({ ...batchEditData, isAvailable: checked })}
+                  className="touch-manipulation"
                 />
                 <Label htmlFor="isAvailable" className="cursor-pointer text-base">
                   開放預訂
@@ -762,7 +763,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
               <Button
                 onClick={handleBatchUpdate}
                 disabled={saving || !batchEditData.price || !batchEditData.availableRooms}
-                className="h-12 text-base"
+                className="h-12 text-base touch-manipulation"
               >
                 {saving ? '更新中...' : '確認更新'}
               </Button>
@@ -770,7 +771,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                 variant="outline"
                 onClick={() => setBatchEditDialogOpen(false)}
                 disabled={saving}
-                className="h-12 text-base"
+                className="h-12 text-base touch-manipulation"
               >
                 取消
               </Button>
@@ -805,10 +806,12 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                 <Input
                   id="price"
                   type="number"
+                  inputMode="numeric"
                   min="0"
                   placeholder="輸入房價"
                   value={batchEditData.price}
                   onChange={(e) => setBatchEditData({ ...batchEditData, price: e.target.value })}
+                  className="touch-manipulation"
                 />
               </div>
 
@@ -817,10 +820,12 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                 <Input
                   id="availableRooms"
                   type="number"
+                  inputMode="numeric"
                   min="0"
                   placeholder="輸入可用房數"
                   value={batchEditData.availableRooms}
                   onChange={(e) => setBatchEditData({ ...batchEditData, availableRooms: e.target.value })}
+                  className="touch-manipulation"
                 />
               </div>
 
@@ -829,6 +834,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   id="isAvailable"
                   checked={batchEditData.isAvailable}
                   onCheckedChange={(checked) => setBatchEditData({ ...batchEditData, isAvailable: checked })}
+                  className="touch-manipulation"
                 />
                 <Label htmlFor="isAvailable" className="cursor-pointer">
                   開放預訂
@@ -851,12 +857,14 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                 variant="outline"
                 onClick={() => setBatchEditDialogOpen(false)}
                 disabled={saving}
+                className="touch-manipulation"
               >
                 取消
               </Button>
               <Button
                 onClick={handleBatchUpdate}
                 disabled={saving || !batchEditData.price || !batchEditData.availableRooms}
+                className="touch-manipulation"
               >
                 {saving ? '更新中...' : '確認更新'}
               </Button>
@@ -887,7 +895,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   placeholder="輸入房價"
                   value={singleEditData.price}
                   onChange={(e) => setSingleEditData({ ...singleEditData, price: e.target.value })}
-                  className="h-12 text-base"
+                  className="h-12 text-base touch-manipulation"
                 />
               </div>
 
@@ -901,7 +909,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   placeholder="輸入可用房數"
                   value={singleEditData.availableRooms}
                   onChange={(e) => setSingleEditData({ ...singleEditData, availableRooms: e.target.value })}
-                  className="h-12 text-base"
+                  className="h-12 text-base touch-manipulation"
                 />
               </div>
 
@@ -910,6 +918,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   id="single-isAvailable"
                   checked={singleEditData.isAvailable}
                   onCheckedChange={(checked) => setSingleEditData({ ...singleEditData, isAvailable: checked })}
+                  className="touch-manipulation"
                 />
                 <Label htmlFor="single-isAvailable" className="cursor-pointer text-base">
                   開放預訂
@@ -921,7 +930,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
               <Button
                 onClick={handleSingleDateUpdate}
                 disabled={saving || !singleEditData.price || !singleEditData.availableRooms}
-                className="h-12 text-base"
+                className="h-12 text-base touch-manipulation"
               >
                 {saving ? '更新中...' : '確認更新'}
               </Button>
@@ -929,7 +938,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                 variant="outline"
                 onClick={() => setSingleEditDialogOpen(false)}
                 disabled={saving}
-                className="h-12 text-base"
+                className="h-12 text-base touch-manipulation"
               >
                 取消
               </Button>
@@ -964,10 +973,12 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                 <Input
                   id="single-price"
                   type="number"
+                  inputMode="numeric"
                   min="0"
                   placeholder="輸入房價"
                   value={singleEditData.price}
                   onChange={(e) => setSingleEditData({ ...singleEditData, price: e.target.value })}
+                  className="touch-manipulation"
                 />
               </div>
 
@@ -976,10 +987,12 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                 <Input
                   id="single-availableRooms"
                   type="number"
+                  inputMode="numeric"
                   min="0"
                   placeholder="輸入可用房數"
                   value={singleEditData.availableRooms}
                   onChange={(e) => setSingleEditData({ ...singleEditData, availableRooms: e.target.value })}
+                  className="touch-manipulation"
                 />
               </div>
 
@@ -988,6 +1001,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   id="single-isAvailable"
                   checked={singleEditData.isAvailable}
                   onCheckedChange={(checked) => setSingleEditData({ ...singleEditData, isAvailable: checked })}
+                  className="touch-manipulation"
                 />
                 <Label htmlFor="single-isAvailable" className="cursor-pointer">
                   開放預訂
@@ -1000,12 +1014,14 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                 variant="outline"
                 onClick={() => setSingleEditDialogOpen(false)}
                 disabled={saving}
+                className="touch-manipulation"
               >
                 取消
               </Button>
               <Button
                 onClick={handleSingleDateUpdate}
                 disabled={saving || !singleEditData.price || !singleEditData.availableRooms}
+                className="touch-manipulation"
               >
                 {saving ? '更新中...' : '確認更新'}
               </Button>
