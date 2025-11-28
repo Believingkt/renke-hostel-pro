@@ -507,49 +507,63 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
   return (
     <Card>
       <CardHeader>
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base sm:text-lg">{roomTypeName}</CardTitle>
-            <div className="flex items-center gap-1 sm:gap-2">
-              {/* 視圖切換按鈕 - 僅在小螢幕顯示 */}
-              <div className="flex sm:hidden">
+        <div className="flex flex-col gap-4">
+          {/* 頂部控制區 - 優化佈局 */}
+          <div className="flex items-center justify-between gap-3">
+            {/* 左側：房型名稱 */}
+            <CardTitle className="text-base sm:text-lg font-bold">{roomTypeName}</CardTitle>
+            
+            {/* 右側：視圖切換和月份導航 */}
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* 視圖切換按鈕組 - 優化設計 */}
+              <div className="flex sm:hidden border rounded-lg overflow-hidden">
                 <Button
-                  variant={viewMode === 'calendar' ? 'default' : 'outline'}
-                  size="icon"
+                  variant={viewMode === 'calendar' ? 'default' : 'ghost'}
+                  size="sm"
                   onClick={() => setViewMode('calendar')}
-                  className="h-9 w-9 rounded-r-none touch-manipulation"
+                  className={cn(
+                    "h-9 w-9 rounded-none border-0 touch-manipulation transition-all",
+                    viewMode === 'calendar' && "shadow-sm"
+                  )}
                 >
                   <Grid3x3 className="h-4 w-4" />
                 </Button>
+                <div className="w-px bg-border" />
                 <Button
-                  variant={viewMode === 'list' ? 'default' : 'outline'}
-                  size="icon"
+                  variant={viewMode === 'list' ? 'default' : 'ghost'}
+                  size="sm"
                   onClick={() => setViewMode('list')}
-                  className="h-9 w-9 rounded-l-none touch-manipulation"
+                  className={cn(
+                    "h-9 w-9 rounded-none border-0 touch-manipulation transition-all",
+                    viewMode === 'list' && "shadow-sm"
+                  )}
                 >
                   <List className="h-4 w-4" />
                 </Button>
               </div>
               
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handlePrevMonth}
-                className="h-9 w-9 sm:h-10 sm:w-10 touch-manipulation"
-              >
-                <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
-              </Button>
-              <span className="font-semibold min-w-[100px] sm:min-w-[120px] text-center text-sm sm:text-base">
-                {format(currentMonth, 'yyyy年 M月', { locale: zhTW })}
-              </span>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleNextMonth}
-                className="h-9 w-9 sm:h-10 sm:w-10 touch-manipulation"
-              >
-                <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
-              </Button>
+              {/* 月份導航 - 優化設計 */}
+              <div className="flex items-center gap-1 sm:gap-2 border rounded-lg p-1 bg-muted/30">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handlePrevMonth}
+                  className="h-7 w-7 sm:h-8 sm:w-8 hover:bg-background touch-manipulation"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="font-semibold min-w-[90px] sm:min-w-[110px] text-center text-sm sm:text-base px-2">
+                  {format(currentMonth, 'yyyy年M月', { locale: zhTW })}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleNextMonth}
+                  className="h-7 w-7 sm:h-8 sm:w-8 hover:bg-background touch-manipulation"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
 
