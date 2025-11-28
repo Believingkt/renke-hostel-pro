@@ -250,34 +250,52 @@ export const RoomFacilitiesForm = ({ accommodationId }: RoomFacilitiesFormProps)
         </CardContent>
       </Card>
 
-      {Object.entries(FACILITY_CATEGORIES).map(([key, { title, items }]) => (
-        <Card key={key}>
-          <CardHeader>
-            <CardTitle>{title}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {items.map((item) => (
-                <div key={item} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`${key}-${item}`}
-                    checked={selectedFacilities[key]?.includes(item) || false}
-                    onCheckedChange={(checked) => 
-                      handleCheckboxChange(key, item, checked as boolean)
-                    }
-                  />
-                  <Label
-                    htmlFor={`${key}-${item}`}
-                    className="text-sm font-normal cursor-pointer"
-                  >
-                    {item}
-                  </Label>
+      {Object.entries(FACILITY_CATEGORIES).map(([key, { title, items }]) => {
+        const descriptions: Record<string, string> = {
+          general: "選擇房間的基本設施與配備",
+          bedTypes: "設定房間內提供的床型選項",
+          ventilation: "提供的進階設施與特色服務",
+          bathroom: "浴室內的設備與備品",
+          media: "娛樂與通訊相關設施",
+          foodBeverage: "房內的餐飲設備與服務",
+          family: "適合家庭的親子設施"
+        };
+
+        return (
+          <Card key={key}>
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-1.5 bg-primary rounded-full" />
+                <div>
+                  <CardTitle className="text-xl">{title}</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">{descriptions[key]}</p>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {items.map((item) => (
+                  <div key={item} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`${key}-${item}`}
+                      checked={selectedFacilities[key]?.includes(item) || false}
+                      onCheckedChange={(checked) => 
+                        handleCheckboxChange(key, item, checked as boolean)
+                      }
+                    />
+                    <Label
+                      htmlFor={`${key}-${item}`}
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      {item}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
 
       <SaveButtonContainer 
         onSave={handleSave} 
