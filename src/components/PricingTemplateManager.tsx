@@ -390,6 +390,11 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       return;
     }
 
+    if (!selectedPriceType) {
+      toast.error('請選擇價格類型');
+      return;
+    }
+
     try {
       setApplying(true);
       const allDates = eachDayOfInterval({ start: dateRange.from, end: dateRange.to });
@@ -402,53 +407,71 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
         return;
       }
       
-      // 為每個選擇的房型和日期創建記錄
-      const records = [];
+      // 分別處理更新和插入
+      const updateRecords = [];
+      const insertRecords = [];
+      
       for (const roomTypeId of selectedRoomTypes) {
         for (const date of dates) {
           const weekend = isWeekend(date);
-          // 根據選擇的價格類型決定套用哪個價格
-          let price = 0;
+          const dateStr = format(date, 'yyyy-MM-dd');
+          
+          // 根據選擇的價格類型和平日/假日決定價格
           let price_2_meals = null;
           let price_3_meals = null;
           
           if (selectedPriceType === '2meals') {
             price_2_meals = weekend 
-              ? (applyingTemplate.weekend_2_meals_price ?? 0)
-              : (applyingTemplate.weekday_2_meals_price ?? 0);
-          } else {
+              ? applyingTemplate.weekend_2_meals_price 
+              : applyingTemplate.weekday_2_meals_price;
+            
+            if (!price_2_meals) {
+              console.warn(`模板缺少${weekend ? '假日' : '平日'}一泊二食價格`);
+              continue;
+            }
+          } else if (selectedPriceType === '3meals') {
             price_3_meals = weekend 
-              ? (applyingTemplate.weekend_3_meals_price ?? 0)
-              : (applyingTemplate.weekday_3_meals_price ?? 0);
+              ? applyingTemplate.weekend_3_meals_price 
+              : applyingTemplate.weekday_3_meals_price;
+            
+            if (!price_3_meals) {
+              console.warn(`模板缺少${weekend ? '假日' : '平日'}一泊三食價格`);
+              continue;
+            }
           }
           
-          // 先查詢該日期是否已有記錄
+          // 查詢該日期是否已有記錄
           const { data: existing } = await supabase
             .from('room_inventory_pricing')
             .select('*')
             .eq('room_type_id', roomTypeId)
-            .eq('date', format(date, 'yyyy-MM-dd'))
+            .eq('date', dateStr)
             .maybeSingle();
           
           if (existing) {
-            // 如果已存在，只更新對應的價格欄位
-            const updateData: any = {};
+            // 更新現有記錄
+            const updateData: any = {
+              room_type_id: roomTypeId,
+              date: dateStr,
+            };
+            
             if (selectedPriceType === '2meals') {
               updateData.price_2_meals = price_2_meals;
             } else {
               updateData.price_3_meals = price_3_meals;
             }
             
-            records.push({
-              id: existing.id,
-              ...updateData
-            });
+            updateRecords.push(updateData);
           } else {
-            // 如果不存在，創建新記錄
-            records.push({
+            // 創建新記錄 - 使用模板的基礎價格或餐飲方案價格
+            const basePrice = weekend 
+              ? (applyingTemplate.weekend_price || price_2_meals || price_3_meals || 0)
+              : (applyingTemplate.weekday_price || price_2_meals || price_3_meals || 0);
+              
+            insertRecords.push({
               room_type_id: roomTypeId,
-              date: format(date, 'yyyy-MM-dd'),
-              price: price,
+              date: dateStr,
+              price: basePrice,
               price_2_meals: price_2_meals,
               price_3_meals: price_3_meals,
               available_rooms: availableRooms,
@@ -458,15 +481,37 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
         }
       }
 
-      // 批量更新
-      const { error } = await supabase
-        .from('room_inventory_pricing')
-        .upsert(records, { 
-          onConflict: 'room_type_id,date',
-          ignoreDuplicates: false 
-        });
-
-      if (error) throw error;
+      // 執行批量操作
+      if (updateRecords.length > 0) {
+        const { error: updateError } = await supabase
+          .from('room_inventory_pricing')
+          .upsert(updateRecords, { 
+            onConflict: 'room_type_id,date',
+            ignoreDuplicates: false 
+          });
+        
+        if (updateError) {
+          console.error('更新記錄失敗:', updateError);
+          throw updateError;
+        }
+      }
+      
+      if (insertRecords.length > 0) {
+        const { error: insertError } = await supabase
+          .from('room_inventory_pricing')
+          .insert(insertRecords);
+        
+        if (insertError) {
+          console.error('插入記錄失敗:', insertError);
+          throw insertError;
+        }
+      }
+      
+      const totalRecords = updateRecords.length + insertRecords.length;
+      if (totalRecords === 0) {
+        toast.error('沒有可套用的記錄，請檢查模板價格設定');
+        return;
+      }
       
       // 記錄套用歷史
       const { data: { user } } = await supabase.auth.getUser();
@@ -482,21 +527,21 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
           room_type_ids: selectedRoomTypes,
           price_type: selectedPriceType,
           available_rooms: availableRooms,
-          affected_dates_count: dates.length,
+          affected_dates_count: totalRecords,
         });
 
       if (applicationError) {
         console.error('記錄套用歷史失敗:', applicationError);
-        // 不影響主要功能，只記錄錯誤
       }
       
-      toast.success(`已成功套用價格模板到 ${selectedRoomTypes.length} 個房型的 ${dates.length} 天`);
+      const priceTypeName = selectedPriceType === '2meals' ? '一泊二食' : '一泊三食';
+      toast.success(`已成功套用${priceTypeName}價格到 ${selectedRoomTypes.length} 個房型的 ${totalRecords} 天`);
       setApplyDialogOpen(false);
       setApplyingTemplate(null);
-      loadTemplateApplications(); // 重新載入套用記錄
+      loadTemplateApplications();
     } catch (error) {
       console.error('套用價格模板失敗:', error);
-      toast.error('套用價格模板失敗');
+      toast.error(`套用價格模板失敗：${error.message || '未知錯誤'}`);
     } finally {
       setApplying(false);
     }
