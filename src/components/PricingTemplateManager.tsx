@@ -1258,15 +1258,15 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                     type="button"
                     onClick={selectHolidays}
                     className={`
-                      flex flex-col items-center gap-1 px-3 py-2 h-auto sm:h-9 rounded-md border transition-all text-sm touch-manipulation
+                      flex flex-col items-center justify-center gap-0.5 px-3 py-2 h-auto min-h-[44px] sm:min-h-[36px] rounded-md border transition-all touch-manipulation
                       ${JSON.stringify(selectedDays) === JSON.stringify([0, 6]) && includePublicHolidays
                         ? 'border-primary bg-primary text-primary-foreground'
                         : 'border-border hover:border-primary hover:bg-accent'
                       }
                     `}
                   >
-                    <span className="font-medium">假日</span>
-                    <span className="text-xs opacity-75">(六、日、國定假日)</span>
+                    <span className="font-medium text-sm">假日</span>
+                    <span className="text-[10px] leading-tight opacity-70">(六、日、國定假日)</span>
                   </button>
                 </div>
 
@@ -1552,15 +1552,15 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                     type="button"
                     onClick={selectHolidays}
                     className={`
-                      flex flex-col items-center gap-1 px-3 py-2 h-auto sm:h-9 rounded-md border transition-all text-sm touch-manipulation
+                      flex flex-col items-center justify-center gap-0.5 px-3 py-2 h-auto min-h-[44px] sm:min-h-[36px] rounded-md border transition-all touch-manipulation
                       ${JSON.stringify(selectedDays) === JSON.stringify([0, 6]) && includePublicHolidays
                         ? 'border-primary bg-primary text-primary-foreground'
                         : 'border-border hover:border-primary hover:bg-accent'
                       }
                     `}
                   >
-                    <span className="font-medium">假日</span>
-                    <span className="text-xs opacity-75">(六、日、國定假日)</span>
+                    <span className="font-medium text-sm">假日</span>
+                    <span className="text-[10px] leading-tight opacity-70">(六、日、國定假日)</span>
                   </button>
                   </div>
 
