@@ -8,8 +8,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { toast } from "sonner";
 import { RoomInventoryCalendar } from "@/components/RoomInventoryCalendar";
-import { PricingRulesManager } from "@/components/PricingRulesManager";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -115,26 +113,11 @@ export default function RoomInventory() {
               </Select>
 
               {selectedRoomType && currentAccommodationId && (
-                <Tabs defaultValue="calendar" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 max-w-md">
-                    <TabsTrigger value="calendar">日曆檢視</TabsTrigger>
-                    <TabsTrigger value="rules">價格規則</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="calendar" className="mt-6">
-                    <RoomInventoryCalendar
-                      roomTypeId={selectedRoomType}
-                      roomTypeName={roomTypes.find(r => r.id === selectedRoomType)?.name || ''}
-                      accommodationId={currentAccommodationId}
-                    />
-                  </TabsContent>
-                  <TabsContent value="rules" className="mt-6">
-                    <PricingRulesManager
-                      roomTypeId={selectedRoomType}
-                      roomTypeName={roomTypes.find(r => r.id === selectedRoomType)?.name || ''}
-                      accommodationId={currentAccommodationId}
-                    />
-                  </TabsContent>
-                </Tabs>
+                <RoomInventoryCalendar
+                  roomTypeId={selectedRoomType}
+                  roomTypeName={roomTypes.find(r => r.id === selectedRoomType)?.name || ''}
+                  accommodationId={currentAccommodationId}
+                />
               )}
             </div>
           )}
