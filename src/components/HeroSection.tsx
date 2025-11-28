@@ -389,16 +389,16 @@ const HeroSection = ({
           
           {/* 輪播指示器 */}
           <div className="absolute bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 z-20">
-            <div className="flex items-center gap-2 px-2 py-2">
+            <div className="flex items-center gap-1.5 md:gap-2 px-2 py-2">
               {slides.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => carouselApi?.scrollTo(index)}
                   className={cn(
-                    "h-2 rounded-full transition-all duration-500 ease-out",
+                    "h-1.5 md:h-2 rounded-full transition-all duration-500 ease-out",
                     current === index 
-                      ? "w-8 bg-white" 
-                      : "w-2 bg-white/60 hover:bg-white/80 hover:w-3"
+                      ? "w-6 md:w-8 bg-white" 
+                      : "w-1.5 md:w-2 bg-white/60 hover:bg-white/80 hover:w-2.5 md:hover:w-3"
                   )}
                   aria-label={`前往第 ${index + 1} 張輪播圖`}
                 />
