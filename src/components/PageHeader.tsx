@@ -15,7 +15,7 @@ interface PageHeaderProps {
  */
 export function PageHeader({ title, icon: Icon, action, className }: PageHeaderProps) {
   return (
-    <div className={cn("pb-4 md:pb-6 border-b border-primary/20 mb-4 md:mb-6", className)}>
+    <div className={cn("pb-4 md:pb-6 border-b border-primary/20 mb-6 md:mb-8", className)}>
       <div className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <h2 className="text-xl sm:text-2xl md:text-3xl font-bold flex items-center gap-2 md:gap-3 min-w-0">
