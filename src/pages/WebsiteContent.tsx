@@ -2844,7 +2844,7 @@ const WebsiteContent = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                <span>🐾 寵物方案</span>
+                <span>寵物方案</span>
                 <div className="flex items-center gap-2">
                   <Label htmlFor="pet-enabled" className="text-sm font-normal">啟用</Label>
                   <Switch
@@ -2914,7 +2914,7 @@ const WebsiteContent = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                <span>🍖 餐食方案</span>
+                <span>餐食方案</span>
                 <div className="flex items-center gap-2">
                   <Label htmlFor="meal-enabled" className="text-sm font-normal">啟用</Label>
                   <Switch
