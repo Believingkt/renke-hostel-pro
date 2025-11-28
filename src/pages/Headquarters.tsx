@@ -255,18 +255,30 @@ const Headquarters = () => {
     }
   };
 
-  const handleDeleteRole = async (roleId: string) => {
+  const handleDeleteRoleClick = (roleId: string) => {
+    setDeletingRoleId(roleId);
+    setDeleteRoleDialogOpen(true);
+  };
+
+  const handleDeleteRole = async () => {
+    if (!deletingRoleId) return;
+
     const { error } = await supabase
       .from("user_roles")
       .delete()
-      .eq("id", roleId);
+      .eq("id", deletingRoleId);
 
     if (error) {
       toast.error("刪除用戶權限失敗");
-    } else {
-      toast.success("用戶權限已刪除");
-      loadUserRoles();
+      setDeleteRoleDialogOpen(false);
+      setDeletingRoleId(null);
+      return;
     }
+
+    toast.success("用戶權限已刪除");
+    loadUserRoles();
+    setDeleteRoleDialogOpen(false);
+    setDeletingRoleId(null);
   };
 
   const handleUpdateRole = async (roleId: string, newRole: "super_admin" | "hotel_admin" | "staff") => {
@@ -1042,32 +1054,6 @@ const Headquarters = () => {
                 </>
               )}
             </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={deleteRoleDialogOpen} onOpenChange={setDeleteRoleDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>確認刪除</AlertDialogTitle>
-            <AlertDialogDescription>確定要刪除此用戶的權限嗎？此操作無法復原。</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="h-11 sm:h-10 touch-manipulation">取消</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteRole} className="bg-destructive hover:bg-destructive/90 h-11 sm:h-10 touch-manipulation">刪除</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={deleteBackupDialogOpen} onOpenChange={setDeleteBackupDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>確認刪除</AlertDialogTitle>
-            <AlertDialogDescription>確定要刪除此備份嗎？此操作無法復原，備份文件將被永久刪除。</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="h-11 sm:h-10 touch-manipulation">取消</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteBackup} className="bg-destructive hover:bg-destructive/90 h-11 sm:h-10 touch-manipulation">刪除</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

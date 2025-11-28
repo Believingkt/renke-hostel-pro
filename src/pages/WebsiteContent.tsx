@@ -451,6 +451,13 @@ const WebsiteContent = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [deleteFaqDialogOpen, setDeleteFaqDialogOpen] = useState(false);
   const [deletingFaqId, setDeletingFaqId] = useState<string | null>(null);
+  const [deletePhotoDialogOpen, setDeletePhotoDialogOpen] = useState(false);
+  const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
+  const [deleteHeroPhotoDialogOpen, setDeleteHeroPhotoDialogOpen] = useState(false);
+  const [deletingHeroPhotoId, setDeletingHeroPhotoId] = useState<string | null>(null);
+  const [deleteFeatureDialogOpen, setDeleteFeatureDialogOpen] = useState(false);
+  const [deletingFeatureId, setDeletingFeatureId] = useState<string | null>(null);
+  const [deleteOgImageDialogOpen, setDeleteOgImageDialogOpen] = useState(false);
   const [editingFaq, setEditingFaq] = useState<FaqItem | null>(null);
   const [faqFormData, setFaqFormData] = useState({
     question: "",
@@ -1694,6 +1701,10 @@ const WebsiteContent = () => {
     }
   };
 
+  const handleDeleteOgImageClick = () => {
+    setDeleteOgImageDialogOpen(true);
+  };
+
   const handleDeleteOgImage = async () => {
     if (!accommodationId || !basicInfo.og_image_url) return;
 
@@ -1720,6 +1731,8 @@ const WebsiteContent = () => {
         console.error('Error deleting OG image:', error);
       }
       toast.error('刪除失敗，請稍後再試');
+    } finally {
+      setDeleteOgImageDialogOpen(false);
     }
   };
 
@@ -1903,22 +1916,32 @@ const WebsiteContent = () => {
     }
   };
 
-  const handleDeletePhoto = async (photoId: string) => {
+  const handleDeletePhotoClick = (photoId: string) => {
+    setDeletingPhotoId(photoId);
+    setDeletePhotoDialogOpen(true);
+  };
+
+  const handleDeletePhoto = async () => {
+    if (!deletingPhotoId) return;
+
     try {
       const { error } = await supabase
         .from('accommodation_photos')
         .delete()
-        .eq('id', photoId);
+        .eq('id', deletingPhotoId);
 
       if (error) throw error;
 
-      setPhotos(photos.filter(p => p.id !== photoId));
+      setPhotos(photos.filter(p => p.id !== deletingPhotoId));
       toast.success('照片已刪除');
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error deleting photo:', error);
       }
       toast.error('刪除失敗，請稍後再試');
+    } finally {
+      setDeletePhotoDialogOpen(false);
+      setDeletingPhotoId(null);
     }
   };
 
@@ -2057,22 +2080,32 @@ const WebsiteContent = () => {
     }
   };
 
-  const handleDeleteHeroPhoto = async (photoId: string) => {
+  const handleDeleteHeroPhotoClick = (photoId: string) => {
+    setDeletingHeroPhotoId(photoId);
+    setDeleteHeroPhotoDialogOpen(true);
+  };
+
+  const handleDeleteHeroPhoto = async () => {
+    if (!deletingHeroPhotoId) return;
+
     try {
       const { error } = await supabase
         .from('accommodation_photos')
         .delete()
-        .eq('id', photoId);
+        .eq('id', deletingHeroPhotoId);
 
       if (error) throw error;
 
-      setHeroPhotos(heroPhotos.filter(p => p.id !== photoId));
+      setHeroPhotos(heroPhotos.filter(p => p.id !== deletingHeroPhotoId));
       toast.success('輪播圖已刪除');
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error deleting hero photo:', error);
       }
       toast.error('刪除失敗，請稍後再試');
+    } finally {
+      setDeleteHeroPhotoDialogOpen(false);
+      setDeletingHeroPhotoId(null);
     }
   };
 
@@ -2448,14 +2481,19 @@ const WebsiteContent = () => {
     }
   };
 
-  const handleDeleteFeature = async (featureId: string) => {
-    if (!accommodationId) return;
+  const handleDeleteFeatureClick = (featureId: string) => {
+    setDeletingFeatureId(featureId);
+    setDeleteFeatureDialogOpen(true);
+  };
+
+  const handleDeleteFeature = async () => {
+    if (!accommodationId || !deletingFeatureId) return;
 
     try {
       const { error } = await supabase
         .from("about_features")
         .delete()
-        .eq("id", featureId);
+        .eq("id", deletingFeatureId);
 
       if (error) throw error;
 
@@ -2470,12 +2508,15 @@ const WebsiteContent = () => {
         setAboutFeatures(featuresData);
       }
 
-      toast.success('特色已刪除');
+      toast.success("特色區塊已刪除");
     } catch (error) {
       if (import.meta.env.DEV) {
-        console.error('Error deleting feature:', error);
+        console.error("Error deleting feature:", error);
       }
-      toast.error('刪除失敗，請稍後再試');
+      toast.error("刪除失敗，請稍後再試");
+    } finally {
+      setDeleteFeatureDialogOpen(false);
+      setDeletingFeatureId(null);
     }
   };
 
@@ -2561,7 +2602,7 @@ const WebsiteContent = () => {
             heroAutoplayDelay={basicInfo.hero_autoplay_delay}
             onUpdate={loadData}
             onHeroPhotoUpload={handleHeroPhotoUpload}
-            onDeleteHeroPhoto={handleDeleteHeroPhoto}
+            onDeleteHeroPhoto={handleDeleteHeroPhotoClick}
             onHeroPhotoReorder={handleHeroPhotoReorder}
             onPreviewCarousel={handlePreviewCarousel}
             onHeroTitleChange={(field, value) => {
@@ -2591,7 +2632,7 @@ const WebsiteContent = () => {
               setEditingFeature(feature);
               setFeatureFormOpen(true);
             }}
-            onDeleteFeature={handleDeleteFeature}
+            onDeleteFeature={handleDeleteFeatureClick}
             onAddFeature={() => {
               if (aboutFeatures.length >= 4) {
                 toast.error('最多只能添加 4 個特色區塊');
@@ -2609,7 +2650,7 @@ const WebsiteContent = () => {
             ogImageUrl={basicInfo.og_image_url}
             onUpdate={loadData}
             onOgImageUpload={handleOgImageUpload}
-            onDeleteOgImage={handleDeleteOgImage}
+            onDeleteOgImage={handleDeleteOgImageClick}
             uploadingOgImage={uploadingOgImage}
           />
 
@@ -3019,7 +3060,7 @@ const WebsiteContent = () => {
                           key={photo.id}
                           photo={photo}
                           index={index}
-                          onDelete={handleDeletePhoto}
+                          onDelete={handleDeletePhotoClick}
                         />
                       ))}
                     </div>
@@ -3604,6 +3645,90 @@ const WebsiteContent = () => {
             <AlertDialogCancel>取消</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteFaq}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              確認刪除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* 照片刪除確認對話框 */}
+      <AlertDialog open={deletePhotoDialogOpen} onOpenChange={setDeletePhotoDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認刪除</AlertDialogTitle>
+            <AlertDialogDescription>
+              確定要刪除此照片嗎？此操作無法復原。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeletePhoto}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              確認刪除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* 輪播圖刪除確認對話框 */}
+      <AlertDialog open={deleteHeroPhotoDialogOpen} onOpenChange={setDeleteHeroPhotoDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認刪除</AlertDialogTitle>
+            <AlertDialogDescription>
+              確定要刪除此輪播圖嗎？此操作無法復原。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteHeroPhoto}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              確認刪除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* 特色區塊刪除確認對話框 */}
+      <AlertDialog open={deleteFeatureDialogOpen} onOpenChange={setDeleteFeatureDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認刪除</AlertDialogTitle>
+            <AlertDialogDescription>
+              確定要刪除此特色區塊嗎？此操作無法復原。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteFeature}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              確認刪除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* OG 圖片刪除確認對話框 */}
+      <AlertDialog open={deleteOgImageDialogOpen} onOpenChange={setDeleteOgImageDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認刪除</AlertDialogTitle>
+            <AlertDialogDescription>
+              確定要刪除社群分享縮圖嗎？此操作無法復原。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteOgImage}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               確認刪除
