@@ -691,6 +691,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
               const isCurrentMonth = isSameMonth(day, currentMonth);
               const isTodayDate = isToday(day);
               const isSelected = selectedDates.has(dateStr);
+              const isWeekend = isWeekendDate(day);
 
               return (
                 <div
@@ -705,7 +706,10 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                     isCopyMode && hasData && "ring-2 ring-blue-400 animate-pulse",
                     isCopyMode && !hasData && "opacity-30 cursor-not-allowed",
                     isSelected && "bg-blue-100 border-blue-600 shadow-md",
-                    !isSelected && hasData && dayInventory.isAvailable && "bg-blue-50/80 hover:bg-blue-100",
+                    // 週末有資料：使用暖色調
+                    !isSelected && hasData && dayInventory.isAvailable && isWeekend && "bg-orange-50/80 hover:bg-orange-100 border-orange-200/50",
+                    // 平日有資料：使用藍色調
+                    !isSelected && hasData && dayInventory.isAvailable && !isWeekend && "bg-blue-50/80 hover:bg-blue-100 border-blue-200/50",
                     !isSelected && hasData && !dayInventory.isAvailable && "bg-gray-100",
                     !isSelected && !hasData && "hover:bg-muted"
                   )}
@@ -714,33 +718,53 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                     "font-bold mb-2 text-lg sm:text-base w-full text-center pb-1.5 border-b",
                     isTodayDate && "text-primary border-primary/30",
                     isSelected && "text-blue-700 border-blue-300",
-                    !isTodayDate && !isSelected && "border-border/30"
+                    !isTodayDate && !isSelected && isWeekend && hasData && "text-orange-700 border-orange-200/50",
+                    !isTodayDate && !isSelected && !isWeekend && hasData && "text-blue-700 border-blue-200/50",
+                    !isTodayDate && !isSelected && !hasData && "border-border/30"
                   )}>
                     {format(day, 'd')}
                   </div>
                   {hasData ? (
                     <div className="w-full space-y-1 px-0.5">
                       {dayInventory.price_2_meals && (
-                        <div className="flex items-center justify-between gap-1 text-[11px] sm:text-xs bg-background/50 rounded px-1.5 py-0.5">
+                        <div className={cn(
+                          "flex items-center justify-between gap-1 text-[11px] sm:text-xs rounded px-1.5 py-0.5",
+                          isWeekend ? "bg-orange-100/60" : "bg-blue-100/60"
+                        )}>
                           <span className="text-muted-foreground font-medium">一泊二食</span>
                           <span className="font-bold text-foreground">${formatPrice(dayInventory.price_2_meals)}</span>
                         </div>
                       )}
                       {dayInventory.price_3_meals && (
-                        <div className="flex items-center justify-between gap-1 text-[11px] sm:text-xs bg-background/50 rounded px-1.5 py-0.5">
+                        <div className={cn(
+                          "flex items-center justify-between gap-1 text-[11px] sm:text-xs rounded px-1.5 py-0.5",
+                          isWeekend ? "bg-orange-100/60" : "bg-blue-100/60"
+                        )}>
                           <span className="text-muted-foreground font-medium">一泊三食</span>
                           <span className="font-bold text-foreground">${formatPrice(dayInventory.price_3_meals)}</span>
                         </div>
                       )}
                       {!dayInventory.price_2_meals && !dayInventory.price_3_meals && dayInventory.price && (
-                        <div className="flex items-center justify-center gap-1 text-[11px] sm:text-xs bg-background/50 rounded px-1.5 py-0.5">
+                        <div className={cn(
+                          "flex items-center justify-center gap-1 text-[11px] sm:text-xs rounded px-1.5 py-0.5",
+                          isWeekend ? "bg-orange-100/60" : "bg-blue-100/60"
+                        )}>
                           <DollarSign className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                           <span className="font-bold text-foreground">{formatPrice(dayInventory.price)}</span>
                         </div>
                       )}
-                      <div className="flex items-center justify-center gap-1 text-[11px] sm:text-xs bg-primary/10 rounded px-1.5 py-0.5 mt-1.5">
-                        <Package className="h-3 w-3 text-primary flex-shrink-0" />
-                        <span className="font-bold text-primary">{dayInventory.availableRooms} 間</span>
+                      <div className={cn(
+                        "flex items-center justify-center gap-1 text-[11px] sm:text-xs rounded px-1.5 py-0.5 mt-1.5",
+                        isWeekend ? "bg-orange-200/50" : "bg-primary/10"
+                      )}>
+                        <Package className={cn(
+                          "h-3 w-3 flex-shrink-0",
+                          isWeekend ? "text-orange-700" : "text-primary"
+                        )} />
+                        <span className={cn(
+                          "font-bold",
+                          isWeekend ? "text-orange-700" : "text-primary"
+                        )}>{dayInventory.availableRooms} 間</span>
                       </div>
                     </div>
                   ) : (
@@ -761,8 +785,12 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
         <div className="space-y-3 mt-4 pt-4 border-t">
           <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-3 sm:gap-4 text-xs sm:text-sm">
             <div className="flex items-center gap-2">
-              <div className="w-5 h-5 sm:w-4 sm:h-4 bg-blue-50/80 border rounded flex-shrink-0"></div>
-              <span className="font-medium">有庫存</span>
+              <div className="w-5 h-5 sm:w-4 sm:h-4 bg-blue-50/80 border border-blue-200/50 rounded flex-shrink-0"></div>
+              <span className="font-medium">平日有庫存</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 sm:w-4 sm:h-4 bg-orange-50/80 border border-orange-200/50 rounded flex-shrink-0"></div>
+              <span className="font-medium">假日有庫存</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 sm:w-4 sm:h-4 bg-gray-100 border rounded flex-shrink-0"></div>
@@ -786,8 +814,8 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
           {!isSelectionMode && (
             <div className="text-xs sm:text-sm text-muted-foreground bg-gradient-to-r from-muted/80 to-muted/40 rounded-lg px-4 py-3 sm:py-2.5 border border-muted">
               💡 <span className="font-medium">提示：</span>
-              <span className="hidden sm:inline">點擊日期可快速編輯當天的價格和庫存</span>
-              <span className="sm:hidden">點擊日期快速編輯</span>
+              <span className="hidden sm:inline">平日使用藍色調，假日使用橙色調。點擊日期可快速編輯價格和庫存</span>
+              <span className="sm:hidden">平日藍色、假日橙色。點擊日期快速編輯</span>
             </div>
           )}
         </div>
