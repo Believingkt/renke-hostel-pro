@@ -453,7 +453,7 @@ const Customers = () => {
             title="顧客資料"
             icon={Users}
             action={
-              <Button onClick={() => handleOpenDialog()} className="gap-2 h-10 sm:h-9">
+              <Button onClick={() => handleOpenDialog()} className="gap-2 h-11 sm:h-10 touch-manipulation">
                 <Plus className="h-4 w-4" />
                 <span>新增顧客</span>
               </Button>
@@ -812,7 +812,7 @@ const Customers = () => {
                         <PaginationItem>
                           <PaginationPrevious 
                             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                            className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                            className={`h-10 min-w-[44px] touch-manipulation ${currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
                           >
                             上一頁
                           </PaginationPrevious>
@@ -830,7 +830,7 @@ const Customers = () => {
                                 <PaginationLink
                                   onClick={() => setCurrentPage(page)}
                                   isActive={currentPage === page}
-                                  className="cursor-pointer"
+                                  className="cursor-pointer h-10 min-w-[44px] touch-manipulation"
                                 >
                                   {page}
                                 </PaginationLink>
@@ -849,7 +849,7 @@ const Customers = () => {
                         <PaginationItem>
                           <PaginationNext 
                             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                            className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                            className={`h-10 min-w-[44px] touch-manipulation ${currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
                           >
                             下一頁
                           </PaginationNext>
@@ -874,8 +874,8 @@ const Customers = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+            <AlertDialogCancel className="h-11 sm:h-10 touch-manipulation">取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90 h-11 sm:h-10 touch-manipulation">
               刪除
             </AlertDialogAction>
           </AlertDialogFooter>
