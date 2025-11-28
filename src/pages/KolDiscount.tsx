@@ -615,7 +615,7 @@ const KolDiscount = () => {
               variant="ghost"
               size="icon"
               className={cn(
-                "h-8 w-8 transition-all",
+                "h-8 w-8 transition-all touch-manipulation",
                 copiedCode === item.code && "bg-success/10"
               )}
               onClick={() => handleCopyCodeText(item.code)}
@@ -679,7 +679,7 @@ const KolDiscount = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9"
+              className="h-9 w-9 touch-manipulation"
               onClick={() => handleOpenEdit(item)}
               title="編輯"
             >
@@ -688,7 +688,7 @@ const KolDiscount = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9"
+              className="h-9 w-9 touch-manipulation"
               onClick={() => {
                 setSelectedCodeForCommission(item);
                 setIntegratedDetailsOpen(true);
@@ -700,7 +700,7 @@ const KolDiscount = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9"
+              className="h-9 w-9 touch-manipulation"
               onClick={() => toggleActive(item.id, item.is_active)}
               title={item.is_active ? "停用" : "啟用"}
             >
@@ -713,7 +713,7 @@ const KolDiscount = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 text-destructive hover:text-destructive"
+              className="h-9 w-9 text-destructive hover:text-destructive touch-manipulation"
               onClick={() => handleDelete(item.id)}
             >
               <Trash2 className="h-4 w-4" />
@@ -758,7 +758,7 @@ const KolDiscount = () => {
           <>
             <Button 
               variant="outline" 
-              className="gap-2"
+              className="gap-2 h-11 sm:h-10 touch-manipulation"
               onClick={() => setApiDocOpen(true)}
             >
               <Code className="h-4 w-4" />
@@ -767,7 +767,7 @@ const KolDiscount = () => {
             {isMobile ? (
               <Drawer open={open} onOpenChange={handleDialogClose}>
                 <DrawerTrigger asChild>
-                  <Button className="gap-2">
+                  <Button className="gap-2 h-11 sm:h-10 touch-manipulation">
                     <Plus className="h-4 w-4" />
                     新增折扣碼
                   </Button>
@@ -788,7 +788,7 @@ const KolDiscount = () => {
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="例如：春季促銷、網紅合作"
-                        className="h-12"
+                        className="h-12 text-base touch-manipulation"
                       />
               </div>
               <div className="grid gap-2">
@@ -799,10 +799,10 @@ const KolDiscount = () => {
                     setDiscountType(value as "percentage" | "amount")
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-12 text-base touch-manipulation">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-background border-border z-50">
                     <SelectItem value="percentage">百分比</SelectItem>
                     <SelectItem value="amount">固定金額</SelectItem>
                   </SelectContent>
@@ -822,7 +822,7 @@ const KolDiscount = () => {
                         placeholder={
                           discountType === "percentage" ? "例如：10" : "例如：500"
                         }
-                        className="h-12"
+                        className="h-12 text-base touch-manipulation"
                       />
               </div>
               <div className="grid gap-2">
@@ -835,19 +835,19 @@ const KolDiscount = () => {
                         value={usageLimit}
                         onChange={(e) => setUsageLimit(e.target.value)}
                         placeholder="例如：100"
-                        className="h-12"
+                        className="h-12 text-base touch-manipulation"
                       />
               </div>
               <div className="grid gap-2">
                 <Label>生效日期</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("justify-start text-left font-normal")}>
+                    <Button variant="outline" className={cn("justify-start text-left font-normal h-12 text-base touch-manipulation")}>
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {format(validFrom, "yyyy/MM/dd")}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0 bg-background border-border z-50" align="start">
                     <Calendar
                       mode="single"
                       selected={validFrom}
@@ -865,7 +865,7 @@ const KolDiscount = () => {
                     <Button
                       variant="outline"
                       className={cn(
-                        "justify-start text-left font-normal",
+                        "justify-start text-left font-normal h-12 text-base touch-manipulation",
                         !validUntil && "text-muted-foreground"
                       )}
                     >
@@ -873,7 +873,7 @@ const KolDiscount = () => {
                       {validUntil ? format(validUntil, "yyyy/MM/dd") : "無期限"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0 bg-background border-border z-50" align="start">
                     <Calendar
                       mode="single"
                       selected={validUntil}
@@ -887,7 +887,7 @@ const KolDiscount = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="w-full"
+                          className="w-full h-11 touch-manipulation"
                           onClick={() => setValidUntil(undefined)}
                         >
                           清除到期日期
@@ -906,10 +906,12 @@ const KolDiscount = () => {
                 <Input
                   id="minOrderAmount"
                   type="number"
+                  inputMode="numeric"
                   min="0"
                   value={minOrderAmount}
                   onChange={(e) => setMinOrderAmount(e.target.value)}
                   placeholder="例如：1000（0 表示無限制）"
+                  className="h-12 text-base touch-manipulation"
                 />
               </div>
               
@@ -928,6 +930,7 @@ const KolDiscount = () => {
                             setSelectedRoomTypes(selectedRoomTypes.filter(id => id !== room.id));
                           }
                         }}
+                        className="h-5 w-5 touch-manipulation"
                       />
                       <Label htmlFor={`room-${room.id}`} className="cursor-pointer">
                         {room.name}
@@ -1021,26 +1024,26 @@ const KolDiscount = () => {
             
             <div className="grid gap-2">
               <Label htmlFor="commissionRate">佣金率 (%)</Label>
-              <Input
-                id="commissionRate"
-                type="number"
-                inputMode="numeric"
-                min="0"
-                max="100"
-                step="0.1"
-                value={commissionRate}
-                onChange={(e) => setCommissionRate(e.target.value)}
-                placeholder="例如：10（表示 10%）"
-                className="h-9 sm:h-10"
-              />
+                      <Input
+                        id="commissionRate"
+                        type="number"
+                        inputMode="numeric"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        value={commissionRate}
+                        onChange={(e) => setCommissionRate(e.target.value)}
+                        placeholder="例如：10（表示 10%）"
+                        className="h-9 sm:h-10 touch-manipulation"
+                      />
               <p className="text-xs text-muted-foreground">
                         佣金將根據折扣金額計算，例如折扣 1000 元且佣金率 10%，則佣金為 100 元
                       </p>
                     </div>
                   </div>
                   <DrawerFooter className="flex-col gap-2 px-4">
-                    <Button onClick={handleSubmit} className="w-full h-12">新增</Button>
-                    <Button variant="outline" onClick={() => setOpen(false)} className="w-full h-12">取消</Button>
+                    <Button onClick={handleSubmit} className="w-full h-12 touch-manipulation">新增</Button>
+                    <Button variant="outline" onClick={() => setOpen(false)} className="w-full h-12 touch-manipulation">取消</Button>
                   </DrawerFooter>
                 </DrawerContent>
               </Drawer>
@@ -1067,6 +1070,7 @@ const KolDiscount = () => {
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="例如：春季促銷、網紅合作"
+                        className="touch-manipulation"
                       />
                     </div>
                     <div className="grid gap-2">
@@ -1077,13 +1081,13 @@ const KolDiscount = () => {
                           setDiscountType(value as "percentage" | "amount")
                         }
                       >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="percentage">百分比</SelectItem>
-                          <SelectItem value="amount">固定金額</SelectItem>
-                        </SelectContent>
+                  <SelectTrigger className="h-12 text-base touch-manipulation">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border-border z-50">
+                    <SelectItem value="percentage">百分比</SelectItem>
+                    <SelectItem value="amount">固定金額</SelectItem>
+                  </SelectContent>
                       </Select>
                     </div>
                     <div className="grid gap-2">
@@ -1100,6 +1104,7 @@ const KolDiscount = () => {
                         placeholder={
                           discountType === "percentage" ? "例如：10" : "例如：500"
                         }
+                        className="touch-manipulation"
                       />
                     </div>
                     <div className="grid gap-2">
@@ -1112,18 +1117,19 @@ const KolDiscount = () => {
                         value={usageLimit}
                         onChange={(e) => setUsageLimit(e.target.value)}
                         placeholder="例如：100"
+                        className="touch-manipulation"
                       />
                     </div>
                     <div className="grid gap-2">
                       <Label>生效日期</Label>
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button variant="outline" className={cn("justify-start text-left font-normal")}>
+                          <Button variant="outline" className={cn("justify-start text-left font-normal h-12 text-base touch-manipulation")}>
                             <CalendarIcon className="mr-2 h-4 w-4" />
                             {format(validFrom, "yyyy/MM/dd")}
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
+                        <PopoverContent className="w-auto p-0 bg-background border-border z-50" align="start">
                           <Calendar
                             mode="single"
                             selected={validFrom}
@@ -1141,7 +1147,7 @@ const KolDiscount = () => {
                           <Button
                             variant="outline"
                             className={cn(
-                              "justify-start text-left font-normal",
+                              "justify-start text-left font-normal h-12 text-base touch-manipulation",
                               !validUntil && "text-muted-foreground"
                             )}
                           >
@@ -1149,7 +1155,7 @@ const KolDiscount = () => {
                             {validUntil ? format(validUntil, "yyyy/MM/dd") : "選擇日期"}
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
+                        <PopoverContent className="w-auto p-0 bg-background border-border z-50" align="start">
                           <Calendar
                             mode="single"
                             selected={validUntil}
@@ -1163,7 +1169,7 @@ const KolDiscount = () => {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="w-full"
+                                className="w-full h-11 touch-manipulation"
                                 onClick={() => setValidUntil(undefined)}
                               >
                                 清除
@@ -1184,6 +1190,7 @@ const KolDiscount = () => {
                         value={minOrderAmount}
                         onChange={(e) => setMinOrderAmount(e.target.value)}
                         placeholder="例如：1000（不填表示無限制）"
+                        className="touch-manipulation"
                       />
                     </div>
                     
@@ -1192,19 +1199,20 @@ const KolDiscount = () => {
                       <div className="space-y-2">
                         {roomTypes.map((room) => (
                           <div key={room.id} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`room-${room.id}`}
-                              checked={applicableRoomTypes.includes(room.id)}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  setApplicableRoomTypes([...applicableRoomTypes, room.id]);
-                                } else {
-                                  setApplicableRoomTypes(
-                                    applicableRoomTypes.filter((id) => id !== room.id)
-                                  );
-                                }
-                              }}
-                            />
+                          <Checkbox
+                            id={`room-${room.id}`}
+                            checked={applicableRoomTypes.includes(room.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setApplicableRoomTypes([...applicableRoomTypes, room.id]);
+                              } else {
+                                setApplicableRoomTypes(
+                                  applicableRoomTypes.filter((id) => id !== room.id)
+                                );
+                              }
+                            }}
+                            className="h-5 w-5 touch-manipulation"
+                          />
                             <Label
                               htmlFor={`room-${room.id}`}
                               className="text-sm font-normal cursor-pointer"
@@ -1222,6 +1230,7 @@ const KolDiscount = () => {
                           id="enableDateRange"
                           checked={enableDateRange}
                           onCheckedChange={setEnableDateRange}
+                          className="touch-manipulation"
                         />
                         <Label htmlFor="enableDateRange" className="text-sm cursor-pointer">
                           限制入住日期範圍
@@ -1234,12 +1243,12 @@ const KolDiscount = () => {
                             <Label>入住開始日期</Label>
                             <Popover>
                               <PopoverTrigger asChild>
-                                <Button variant="outline" className={cn("justify-start text-left font-normal")}>
+                                <Button variant="outline" className={cn("justify-start text-left font-normal h-12 text-base touch-manipulation")}>
                                   <CalendarIcon className="mr-2 h-4 w-4" />
                                   {applicableDateFrom ? format(applicableDateFrom, "yyyy/MM/dd") : "選擇日期"}
                                 </Button>
                               </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
+                              <PopoverContent className="w-auto p-0 bg-background border-border z-50" align="start">
                                 <Calendar
                                   mode="single"
                                   selected={applicableDateFrom}
@@ -1258,7 +1267,7 @@ const KolDiscount = () => {
                                 <Button
                                   variant="outline"
                                   className={cn(
-                                    "justify-start text-left font-normal",
+                                    "justify-start text-left font-normal h-12 text-base touch-manipulation",
                                     !applicableDateTo && "text-muted-foreground"
                                   )}
                                 >
@@ -1266,7 +1275,7 @@ const KolDiscount = () => {
                                   {applicableDateTo ? format(applicableDateTo, "yyyy/MM/dd") : "選擇日期"}
                                 </Button>
                               </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
+                              <PopoverContent className="w-auto p-0 bg-background border-border z-50" align="start">
                                 <Calendar
                                   mode="single"
                                   selected={applicableDateTo}
@@ -1280,7 +1289,7 @@ const KolDiscount = () => {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      className="w-full"
+                                      className="w-full h-11 touch-manipulation"
                                       onClick={() => setApplicableDateTo(undefined)}
                                     >
                                       清除
@@ -1309,6 +1318,7 @@ const KolDiscount = () => {
                         value={commissionRate}
                         onChange={(e) => setCommissionRate(e.target.value)}
                         placeholder="例如：10（表示 10%）"
+                        className="touch-manipulation"
                       />
                       <p className="text-xs text-muted-foreground">
                         佣金將根據折扣金額計算，例如折扣 1000 元且佣金率 10%，則佣金為 100 元
@@ -1316,7 +1326,7 @@ const KolDiscount = () => {
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button onClick={handleSubmit}>新增</Button>
+                    <Button onClick={handleSubmit} className="touch-manipulation">新增</Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
@@ -1350,6 +1360,7 @@ const KolDiscount = () => {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="例如：春季促銷、網紅合作"
+                className="h-12 text-base touch-manipulation"
               />
             </div>
             <div className="grid gap-2">
@@ -1360,10 +1371,10 @@ const KolDiscount = () => {
                   setDiscountType(value as "percentage" | "amount")
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-12 text-base touch-manipulation">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-background border-border z-50">
                   <SelectItem value="percentage">百分比</SelectItem>
                   <SelectItem value="amount">固定金額</SelectItem>
                 </SelectContent>
@@ -1376,12 +1387,14 @@ const KolDiscount = () => {
               <Input
                 id="edit-discountValue"
                 type="number"
+                inputMode="numeric"
                 min="1"
                 value={discountValue}
                 onChange={(e) => setDiscountValue(e.target.value)}
                 placeholder={
                   discountType === "percentage" ? "例如：10" : "例如：500"
                 }
+                className="h-12 text-base touch-manipulation"
               />
             </div>
             <div className="grid gap-2">
@@ -1389,22 +1402,24 @@ const KolDiscount = () => {
               <Input
                 id="edit-usageLimit"
                 type="number"
+                inputMode="numeric"
                 min="1"
                 value={usageLimit}
                 onChange={(e) => setUsageLimit(e.target.value)}
                 placeholder="例如：100"
+                className="h-12 text-base touch-manipulation"
               />
             </div>
             <div className="grid gap-2">
               <Label>生效日期</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("justify-start text-left font-normal")}>
+                  <Button variant="outline" className={cn("justify-start text-left font-normal h-12 text-base touch-manipulation")}>
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {format(validFrom, "yyyy/MM/dd")}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0 bg-background border-border z-50" align="start">
                   <Calendar
                     mode="single"
                     selected={validFrom}
@@ -1422,7 +1437,7 @@ const KolDiscount = () => {
                   <Button
                     variant="outline"
                     className={cn(
-                      "justify-start text-left font-normal",
+                      "justify-start text-left font-normal h-12 text-base touch-manipulation",
                       !validUntil && "text-muted-foreground"
                     )}
                   >
@@ -1430,7 +1445,7 @@ const KolDiscount = () => {
                     {validUntil ? format(validUntil, "yyyy/MM/dd") : "無期限"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0 bg-background border-border z-50" align="start">
                   <Calendar
                     mode="single"
                     selected={validUntil}
@@ -1444,7 +1459,7 @@ const KolDiscount = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="w-full"
+                        className="w-full h-11 touch-manipulation"
                         onClick={() => setValidUntil(undefined)}
                       >
                         清除到期日期
@@ -1463,10 +1478,12 @@ const KolDiscount = () => {
               <Input
                 id="edit-minOrderAmount"
                 type="number"
+                inputMode="numeric"
                 min="0"
                 value={minOrderAmount}
                 onChange={(e) => setMinOrderAmount(e.target.value)}
                 placeholder="例如：1000（0 表示無限制）"
+                className="h-12 text-base touch-manipulation"
               />
             </div>
             
@@ -1485,6 +1502,7 @@ const KolDiscount = () => {
                           setSelectedRoomTypes(selectedRoomTypes.filter(id => id !== room.id));
                         }
                       }}
+                      className="h-5 w-5 touch-manipulation"
                     />
                     <Label htmlFor={`edit-room-${room.id}`} className="cursor-pointer">
                       {room.name}
@@ -1510,7 +1528,7 @@ const KolDiscount = () => {
                       {applicableDateFrom ? format(applicableDateFrom, "yyyy/MM/dd") : "開始日期"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0 bg-background border-border z-50" align="start">
                     <Calendar
                       mode="single"
                       selected={applicableDateFrom}
@@ -1523,7 +1541,7 @@ const KolDiscount = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="w-full"
+                          className="w-full h-11 touch-manipulation"
                           onClick={() => setApplicableDateFrom(undefined)}
                         >
                           清除
@@ -1546,7 +1564,7 @@ const KolDiscount = () => {
                       {applicableDateTo ? format(applicableDateTo, "yyyy/MM/dd") : "結束日期"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0 bg-background border-border z-50" align="start">
                     <Calendar
                       mode="single"
                       selected={applicableDateTo}
@@ -1560,7 +1578,7 @@ const KolDiscount = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="w-full"
+                          className="w-full h-11 touch-manipulation"
                           onClick={() => setApplicableDateTo(undefined)}
                         >
                           清除
@@ -1588,7 +1606,7 @@ const KolDiscount = () => {
                     value={commissionRate}
                     onChange={(e) => setCommissionRate(e.target.value)}
                     placeholder="例如：10（表示 10%）"
-                    className="h-12"
+                    className="h-12 text-base touch-manipulation"
                   />
             <p className="text-xs text-muted-foreground">
                   佣金將根據折扣金額計算，例如折扣 1000 元且佣金率 10%，則佣金為 100 元
@@ -1596,8 +1614,8 @@ const KolDiscount = () => {
               </div>
             </div>
             <DrawerFooter className="flex-col gap-2 px-4">
-              <Button onClick={handleUpdateCode} className="w-full h-12">更新</Button>
-              <Button variant="outline" onClick={() => setEditOpen(false)} className="w-full h-12">取消</Button>
+              <Button onClick={handleUpdateCode} className="w-full h-12 touch-manipulation">更新</Button>
+              <Button variant="outline" onClick={() => setEditOpen(false)} className="w-full h-12 touch-manipulation">取消</Button>
             </DrawerFooter>
           </DrawerContent>
         </Drawer>
@@ -1644,13 +1662,13 @@ const KolDiscount = () => {
                     )
                   }
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="percentage">百分比</SelectItem>
-                    <SelectItem value="amount">固定金額</SelectItem>
-                  </SelectContent>
+                        <SelectTrigger className="touch-manipulation">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background border-border z-50">
+                          <SelectItem value="percentage">百分比</SelectItem>
+                          <SelectItem value="amount">固定金額</SelectItem>
+                        </SelectContent>
                 </Select>
               </div>
               <div className="grid gap-2">
@@ -1702,22 +1720,22 @@ const KolDiscount = () => {
                       {editingCode && format(new Date(editingCode.valid_from), "yyyy/MM/dd")}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={editingCode ? new Date(editingCode.valid_from) : undefined}
-                      onSelect={(date) =>
-                        date &&
-                        setEditingCode(
-                          editingCode
-                            ? { ...editingCode, valid_from: format(date, "yyyy-MM-dd") }
-                            : null
-                        )
-                      }
-                      initialFocus
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
+                <PopoverContent className="w-auto p-0 bg-background border-border z-50" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={editingCode ? new Date(editingCode.valid_from) : undefined}
+                    onSelect={(date) =>
+                      date &&
+                      setEditingCode(
+                        editingCode
+                          ? { ...editingCode, valid_from: format(date, "yyyy-MM-dd") }
+                          : null
+                      )
+                    }
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
                 </Popover>
               </div>
               <div className="grid gap-2">
@@ -1737,7 +1755,7 @@ const KolDiscount = () => {
                         : "選擇日期"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0 bg-background border-border z-50" align="start">
                     <Calendar
                       mode="single"
                       selected={
@@ -1768,7 +1786,7 @@ const KolDiscount = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="w-full"
+                          className="w-full touch-manipulation"
                           onClick={() =>
                             setEditingCode(
                               editingCode
@@ -1999,10 +2017,10 @@ const KolDiscount = () => {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setEditOpen(false)}>
+              <Button variant="outline" onClick={() => setEditOpen(false)} className="touch-manipulation">
                 取消
               </Button>
-              <Button onClick={handleUpdateCode}>更新</Button>
+              <Button onClick={handleUpdateCode} className="touch-manipulation">更新</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -2015,7 +2033,7 @@ const KolDiscount = () => {
             variant={filterStatus === "all" ? "default" : "outline"}
             size="sm"
             onClick={() => setFilterStatus("all")}
-            className="h-9"
+            className="h-11 sm:h-9 touch-manipulation"
           >
             全部
             <Badge variant="secondary" className="ml-2 bg-muted">
@@ -2026,7 +2044,7 @@ const KolDiscount = () => {
             variant={filterStatus === "active" ? "default" : "outline"}
             size="sm"
             onClick={() => setFilterStatus("active")}
-            className="h-9"
+            className="h-11 sm:h-9 touch-manipulation"
           >
             進行中
             <Badge variant="secondary" className="ml-2 bg-muted">
@@ -2037,7 +2055,7 @@ const KolDiscount = () => {
             variant={filterStatus === "expired" ? "default" : "outline"}
             size="sm"
             onClick={() => setFilterStatus("expired")}
-            className="h-9"
+            className="h-11 sm:h-9 touch-manipulation"
           >
             已到期
             <Badge variant="secondary" className="ml-2 bg-muted">
@@ -2048,7 +2066,7 @@ const KolDiscount = () => {
             variant={filterStatus === "full" ? "default" : "outline"}
             size="sm"
             onClick={() => setFilterStatus("full")}
-            className="h-9"
+            className="h-11 sm:h-9 touch-manipulation"
           >
             已額滿
             <Badge variant="secondary" className="ml-2 bg-muted">
@@ -2140,7 +2158,7 @@ const KolDiscount = () => {
                           variant="outline"
                           size="sm"
                           className={cn(
-                            "h-8 shrink-0 transition-all",
+                            "h-10 shrink-0 transition-all touch-manipulation",
                             copiedCode === item.code && "bg-success/10 text-success border-success/20"
                           )}
                           onClick={() => handleCopyCodeText(item.code)}
@@ -2167,7 +2185,7 @@ const KolDiscount = () => {
                         variant="outline"
                         size="sm"
                         className={cn(
-                          "w-full gap-1.5 transition-all",
+                          "w-full gap-1.5 transition-all h-11 touch-manipulation",
                           copiedLink === item.code && "bg-success/10 text-success border-success/20"
                         )}
                         onClick={() => handleCopyReferralLink(item.code)}
@@ -2220,7 +2238,7 @@ const KolDiscount = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-9 text-xs"
+                          className="h-11 text-xs touch-manipulation"
                           onClick={() => {
                             setSelectedCodeForCommission(item);
                             setIntegratedDetailsOpen(true);
@@ -2232,7 +2250,7 @@ const KolDiscount = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-9 text-xs"
+                          className="h-11 text-xs touch-manipulation"
                           onClick={() => handleOpenEdit(item)}
                         >
                           <Pencil className="h-3.5 w-3.5 mr-1" />
@@ -2243,7 +2261,7 @@ const KolDiscount = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-9 text-xs"
+                          className="h-11 text-xs touch-manipulation"
                           onClick={() => toggleActive(item.id, item.is_active)}
                         >
                           {item.is_active ? (
@@ -2261,7 +2279,7 @@ const KolDiscount = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-9 text-xs text-destructive hover:text-destructive"
+                          className="h-11 text-xs text-destructive hover:text-destructive touch-manipulation"
                           onClick={() => handleDelete(item.id)}
                         >
                           <Trash2 className="h-3.5 w-3.5 mr-1" />
