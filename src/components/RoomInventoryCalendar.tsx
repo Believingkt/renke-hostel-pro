@@ -815,13 +815,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                         "flex items-center justify-between rounded px-3 py-2",
                         isHoliday ? "bg-orange-200/50" : "bg-primary/10"
                       )}>
-                        <div className="flex items-center gap-2">
-                          <Package className={cn(
-                            "h-4 w-4",
-                            isHoliday ? "text-orange-700" : "text-primary"
-                          )} />
-                          <span className="text-sm font-medium">可用房數</span>
-                        </div>
+                        <span className="text-sm font-medium">可用房數</span>
                         <span className={cn(
                           "text-base font-bold",
                           isHoliday ? "text-orange-700" : "text-primary"
@@ -957,7 +951,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                         isHoliday ? "bg-orange-200/50" : "bg-primary/10"
                       )}>
                         <Package className={cn(
-                          "h-3.5 w-3.5 flex-shrink-0",
+                          "h-3.5 w-3.5 flex-shrink-0 hidden md:inline-block",
                           isHoliday ? "text-orange-700" : "text-primary"
                         )} />
                         <span className={cn(
