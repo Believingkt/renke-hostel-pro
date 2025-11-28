@@ -784,7 +784,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                       }
                     `}
                   >
-                    <span className="font-medium">工作日</span>
+                    <span className="font-medium">平日</span>
                     <span className="text-xs opacity-75">(一~五)</span>
                   </button>
                   <button
@@ -1064,7 +1064,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                       }
                     `}
                   >
-                    <span className="font-medium">工作日</span>
+                    <span className="font-medium">平日</span>
                     <span className="text-xs opacity-75">(一~五)</span>
                   </button>
                   <button
