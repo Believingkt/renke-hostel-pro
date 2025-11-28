@@ -661,11 +661,12 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         ) : (
-          <div className="grid grid-cols-7 gap-1 sm:gap-1">{/* 星期標題 */}
+          <div className="grid grid-cols-7 gap-1 sm:gap-2">
+            {/* 星期標題 */}
             {['一', '二', '三', '四', '五', '六', '日'].map((day) => (
               <div
                 key={day}
-                className="text-center text-xs sm:text-sm font-medium text-muted-foreground py-2 sm:py-2"
+                className="text-center text-sm sm:text-sm font-semibold text-foreground py-2.5 sm:py-2 bg-muted/50 rounded-t-lg"
               >
                 {day}
               </div>
@@ -673,7 +674,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
 
             {/* 填充空白日期 */}
             {Array.from({ length: paddingDays }).map((_, index) => (
-              <div key={`padding-${index}`} className="min-h-[80px] sm:min-h-[90px] md:min-h-[100px]" />
+              <div key={`padding-${index}`} className="min-h-[100px] sm:min-h-[90px] md:min-h-[100px]" />
             ))}
 
             {/* 日期格子 */}
@@ -690,57 +691,60 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   key={dateStr}
                   onClick={() => handleSingleClick(dateStr)}
                   className={cn(
-                    "relative min-h-[90px] sm:min-h-[90px] md:min-h-[100px] border rounded-lg p-2 sm:p-2 flex flex-col items-center justify-center transition-all touch-manipulation active:scale-95",
-                    isTodayDate && "border-blue-600 border-2",
+                    "relative min-h-[100px] sm:min-h-[90px] md:min-h-[100px] border rounded-lg p-2 sm:p-2 flex flex-col items-center justify-start transition-all touch-manipulation active:scale-95",
+                    isTodayDate && "border-primary border-2 ring-2 ring-primary/20",
                     !isCurrentMonth && "opacity-50",
                     isSelectionMode && "cursor-pointer",
                     !isSelectionMode && "cursor-pointer hover:shadow-md",
                     isCopyMode && hasData && "ring-2 ring-blue-400 animate-pulse",
                     isCopyMode && !hasData && "opacity-30 cursor-not-allowed",
                     isSelected && "bg-blue-100 border-blue-600 shadow-md",
-                    !isSelected && hasData && dayInventory.isAvailable && "bg-blue-50 hover:bg-blue-100",
+                    !isSelected && hasData && dayInventory.isAvailable && "bg-blue-50/80 hover:bg-blue-100",
                     !isSelected && hasData && !dayInventory.isAvailable && "bg-gray-100",
                     !isSelected && !hasData && "hover:bg-muted"
                   )}
                 >
                   <div className={cn(
-                    "font-semibold mb-1.5 sm:mb-1.5 md:mb-2 text-base sm:text-base",
-                    isTodayDate && "text-blue-600 font-bold",
-                    isSelected && "text-blue-700 font-bold"
+                    "font-bold mb-2 text-lg sm:text-base w-full text-center pb-1.5 border-b",
+                    isTodayDate && "text-primary border-primary/30",
+                    isSelected && "text-blue-700 border-blue-300",
+                    !isTodayDate && !isSelected && "border-border/30"
                   )}>
                     {format(day, 'd')}
                   </div>
                   {hasData ? (
-                    <div className="space-y-0.5">
+                    <div className="w-full space-y-1 px-0.5">
                       {dayInventory.price_2_meals && (
-                        <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground">
-                          <DollarSign className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                          <span className="font-medium">二:{dayInventory.price_2_meals}</span>
+                        <div className="flex items-center justify-start gap-0.5 text-[11px] sm:text-xs">
+                          <DollarSign className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted-foreground flex-shrink-0" />
+                          <span className="font-medium text-foreground">二:</span>
+                          <span className="font-semibold text-foreground">{dayInventory.price_2_meals}</span>
                         </div>
                       )}
                       {dayInventory.price_3_meals && (
-                        <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground">
-                          <DollarSign className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                          <span className="font-medium">三:{dayInventory.price_3_meals}</span>
+                        <div className="flex items-center justify-start gap-0.5 text-[11px] sm:text-xs">
+                          <DollarSign className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted-foreground flex-shrink-0" />
+                          <span className="font-medium text-foreground">三:</span>
+                          <span className="font-semibold text-foreground">{dayInventory.price_3_meals}</span>
                         </div>
                       )}
                       {!dayInventory.price_2_meals && !dayInventory.price_3_meals && dayInventory.price && (
-                        <div className="flex items-center gap-1 text-xs sm:text-xs text-muted-foreground">
-                          <DollarSign className="h-3.5 w-3.5 sm:h-3.5 sm:w-3.5" />
-                          <span className="font-medium">{dayInventory.price}</span>
+                        <div className="flex items-center justify-start gap-0.5 text-[11px] sm:text-xs">
+                          <DollarSign className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted-foreground flex-shrink-0" />
+                          <span className="font-semibold text-foreground">{dayInventory.price}</span>
                         </div>
                       )}
-                      <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground">
-                        <Package className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                        <span className="font-medium">{dayInventory.availableRooms}</span>
+                      <div className="flex items-center justify-start gap-0.5 text-[11px] sm:text-xs">
+                        <Package className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted-foreground flex-shrink-0" />
+                        <span className="font-semibold text-foreground">{dayInventory.availableRooms}</span>
                       </div>
                     </div>
                   ) : (
-                    <div className="text-xs sm:text-xs text-muted-foreground">未設定</div>
+                    <div className="text-[11px] sm:text-xs text-muted-foreground font-medium mt-1">未設定</div>
                   )}
                   {isSelected && (
-                    <div className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5">
-                      <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600" />
+                    <div className="absolute top-1.5 right-1.5 sm:top-1.5 sm:right-1.5 bg-blue-600 rounded-full p-0.5">
+                      <Check className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
                     </div>
                   )}
                 </div>
@@ -751,33 +755,35 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
 
         {/* 圖例 */}
         <div className="space-y-3 mt-4 pt-4 border-t">
-          <div className="flex flex-wrap gap-4 text-xs">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-3 sm:gap-4 text-xs sm:text-sm">
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-blue-50 border rounded"></div>
-              <span>有庫存</span>
+              <div className="w-5 h-5 sm:w-4 sm:h-4 bg-blue-50/80 border rounded flex-shrink-0"></div>
+              <span className="font-medium">有庫存</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-gray-100 border rounded"></div>
-              <span>無庫存</span>
+              <div className="w-5 h-5 sm:w-4 sm:h-4 bg-gray-100 border rounded flex-shrink-0"></div>
+              <span className="font-medium">無庫存</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 border rounded"></div>
-              <span>未設定</span>
+              <div className="w-5 h-5 sm:w-4 sm:h-4 border rounded flex-shrink-0"></div>
+              <span className="font-medium">未設定</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-blue-600 rounded"></div>
-              <span>今天</span>
+              <div className="w-5 h-5 sm:w-4 sm:h-4 border-2 border-primary rounded flex-shrink-0 ring-2 ring-primary/20"></div>
+              <span className="font-medium">今天</span>
             </div>
             {isSelectionMode && (
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-blue-100 border border-blue-600 rounded"></div>
-                <span>已選擇</span>
+              <div className="flex items-center gap-2 col-span-2 sm:col-span-1">
+                <div className="w-5 h-5 sm:w-4 sm:h-4 bg-blue-100 border border-blue-600 rounded flex-shrink-0"></div>
+                <span className="font-medium">已選擇</span>
               </div>
             )}
           </div>
           {!isSelectionMode && (
-            <div className="text-xs sm:text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2.5 sm:py-2">
-              💡 提示：<span className="hidden sm:inline">點擊日期可快速編輯當天的價格和庫存</span><span className="sm:hidden">點擊日期快速編輯</span>
+            <div className="text-xs sm:text-sm text-muted-foreground bg-gradient-to-r from-muted/80 to-muted/40 rounded-lg px-4 py-3 sm:py-2.5 border border-muted">
+              💡 <span className="font-medium">提示：</span>
+              <span className="hidden sm:inline">點擊日期可快速編輯當天的價格和庫存</span>
+              <span className="sm:hidden">點擊日期快速編輯</span>
             </div>
           )}
         </div>
