@@ -542,26 +542,28 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                 </Button>
               </div>
               
-              {/* 月份導航 - 優化設計 */}
-              <div className="flex items-center gap-1 sm:gap-2 border rounded-lg p-1 bg-muted/30">
+              {/* 月份導航 - 手機版優化 */}
+              <div className="flex items-center gap-0.5 sm:gap-2 border rounded-lg p-0.5 sm:p-1 bg-muted/30">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={handlePrevMonth}
-                  className="h-7 w-7 sm:h-8 sm:w-8 hover:bg-background hover:text-foreground touch-manipulation"
+                  className="h-9 w-9 sm:h-8 sm:w-8 hover:bg-background hover:text-foreground active:scale-95 transition-transform touch-manipulation"
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft className="h-5 w-5 sm:h-4 sm:w-4" />
                 </Button>
-                <span className="font-semibold min-w-[90px] sm:min-w-[110px] text-center text-sm sm:text-base px-2">
-                  {format(currentMonth, 'yyyy年M月', { locale: zhTW })}
-                </span>
+                <div className="flex items-center justify-center min-w-[110px] sm:min-w-[110px] px-3 sm:px-2">
+                  <span className="font-bold text-sm sm:text-base tracking-tight">
+                    {format(currentMonth, 'yyyy年M月', { locale: zhTW })}
+                  </span>
+                </div>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={handleNextMonth}
-                  className="h-7 w-7 sm:h-8 sm:w-8 hover:bg-background hover:text-foreground touch-manipulation"
+                  className="h-9 w-9 sm:h-8 sm:w-8 hover:bg-background hover:text-foreground active:scale-95 transition-transform touch-manipulation"
                 >
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight className="h-5 w-5 sm:h-4 sm:w-4" />
                 </Button>
               </div>
             </div>
