@@ -1106,6 +1106,34 @@ const WebsiteContent = () => {
         if (error) throw error;
       }
 
+      // 儲存成功後重新載入資料
+      const { data: updatedLocationData } = await supabase
+        .from("location_info")
+        .select("*")
+        .eq("accommodation_id", accommodationId)
+        .maybeSingle();
+
+      if (updatedLocationData) {
+        setDrivingInfo(updatedLocationData.driving_info || "");
+        setPublicTransportInfo(updatedLocationData.public_transport_info || "");
+        
+        const attractions = updatedLocationData.nearby_attractions;
+        if (attractions && Array.isArray(attractions)) {
+          const typedAttractions = attractions as Array<{
+            name?: string;
+            distance?: string;
+            description?: string;
+          }>;
+          setNearbyAttractions(
+            typedAttractions.map(a => ({
+              name: a.name || "",
+              distance: a.distance || "",
+              description: a.description || ""
+            }))
+          );
+        }
+      }
+
       toast.success('交通與地圖資訊已儲存');
     } catch (error) {
       if (import.meta.env.DEV) {
