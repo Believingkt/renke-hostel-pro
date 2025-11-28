@@ -60,6 +60,8 @@ import { cn } from "@/lib/utils";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import type { Json } from "@/integrations/supabase/types";
 import {
   DndContext,
   closestCenter,
@@ -117,6 +119,8 @@ const KolDiscount = () => {
   const [validUntil, setValidUntil] = useState<Date | undefined>();
   const [minOrderAmount, setMinOrderAmount] = useState("");
   const [selectedRoomTypes, setSelectedRoomTypes] = useState<string[]>([]);
+  const [applicableRoomTypes, setApplicableRoomTypes] = useState<string[]>([]);
+  const [enableDateRange, setEnableDateRange] = useState(false);
   const [applicableDateFrom, setApplicableDateFrom] = useState<Date | undefined>();
   const [applicableDateTo, setApplicableDateTo] = useState<Date | undefined>();
   const [roomTypes, setRoomTypes] = useState<Array<{ id: string; name: string }>>([]);
@@ -760,29 +764,32 @@ const KolDiscount = () => {
               <Code className="h-4 w-4" />
               <span className="hidden sm:inline">API 文件</span>
             </Button>
-            <Dialog open={open} onOpenChange={handleDialogClose}>
-              <DialogTrigger asChild>
-                <Button className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  新增折扣碼
-                </Button>
-              </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>新增折扣碼</DialogTitle>
-              <DialogDescription>
-                填寫折扣碼資訊，系統將自動生成折扣碼
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
+            {isMobile ? (
+              <Drawer open={open} onOpenChange={handleDialogClose}>
+                <DrawerTrigger asChild>
+                  <Button className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    新增折扣碼
+                  </Button>
+                </DrawerTrigger>
+                <DrawerContent className="max-h-[90vh]">
+                  <DrawerHeader>
+                    <DrawerTitle>新增折扣碼</DrawerTitle>
+                    <DrawerDescription>
+                      填寫折扣碼資訊，系統將自動生成折扣碼
+                    </DrawerDescription>
+                  </DrawerHeader>
+                  <div className="overflow-y-auto px-4 pb-4">
+                    <div className="grid gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="name">名稱</Label>
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="例如：春季促銷、網紅合作"
-                />
+                      <Label htmlFor="name">名稱</Label>
+                      <Input
+                        id="name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="例如：春季促銷、網紅合作"
+                        className="h-12"
+                      />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="discountType">折扣類型</Label>
@@ -805,27 +812,31 @@ const KolDiscount = () => {
                 <Label htmlFor="discountValue">
                   折扣值 {discountType === "percentage" ? "(%)" : "(NT$)"}
                 </Label>
-                <Input
-                  id="discountValue"
-                  type="number"
-                  min="1"
-                  value={discountValue}
-                  onChange={(e) => setDiscountValue(e.target.value)}
-                  placeholder={
-                    discountType === "percentage" ? "例如：10" : "例如：500"
-                  }
-                />
+                      <Input
+                        id="discountValue"
+                        type="number"
+                        inputMode="numeric"
+                        min="1"
+                        value={discountValue}
+                        onChange={(e) => setDiscountValue(e.target.value)}
+                        placeholder={
+                          discountType === "percentage" ? "例如：10" : "例如：500"
+                        }
+                        className="h-12"
+                      />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="usageLimit">使用次數上限</Label>
-                <Input
-                  id="usageLimit"
-                  type="number"
-                  min="1"
-                  value={usageLimit}
-                  onChange={(e) => setUsageLimit(e.target.value)}
-                  placeholder="例如：100"
-                />
+                      <Input
+                        id="usageLimit"
+                        type="number"
+                        inputMode="numeric"
+                        min="1"
+                        value={usageLimit}
+                        onChange={(e) => setUsageLimit(e.target.value)}
+                        placeholder="例如：100"
+                        className="h-12"
+                      />
               </div>
               <div className="grid gap-2">
                 <Label>生效日期</Label>
@@ -1023,30 +1034,309 @@ const KolDiscount = () => {
                 className="h-9 sm:h-10"
               />
               <p className="text-xs text-muted-foreground">
-                佣金將根據折扣金額計算，例如折扣 1000 元且佣金率 10%，則佣金為 100 元
-              </p>
-            </div>
-          </div>
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={() => setOpen(false)} className="w-full sm:w-auto">取消</Button>
-            <Button onClick={handleSubmit} className="w-full sm:w-auto">新增</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                        佣金將根據折扣金額計算，例如折扣 1000 元且佣金率 10%，則佣金為 100 元
+                      </p>
+                    </div>
+                  </div>
+                  <DrawerFooter className="flex-col gap-2 px-4">
+                    <Button onClick={handleSubmit} className="w-full h-12">新增</Button>
+                    <Button variant="outline" onClick={() => setOpen(false)} className="w-full h-12">取消</Button>
+                  </DrawerFooter>
+                </DrawerContent>
+              </Drawer>
+            ) : (
+              <Dialog open={open} onOpenChange={handleDialogClose}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    新增折扣碼
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>新增折扣碼</DialogTitle>
+                    <DialogDescription>
+                      填寫折扣碼資訊，系統將自動生成折扣碼
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="name">名稱</Label>
+                      <Input
+                        id="name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="例如：春季促銷、網紅合作"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="discountType">折扣類型</Label>
+                      <Select
+                        value={discountType}
+                        onValueChange={(value) =>
+                          setDiscountType(value as "percentage" | "amount")
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="percentage">百分比</SelectItem>
+                          <SelectItem value="amount">固定金額</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="discountValue">
+                        折扣值 {discountType === "percentage" ? "(%)" : "(NT$)"}
+                      </Label>
+                      <Input
+                        id="discountValue"
+                        type="number"
+                        inputMode="numeric"
+                        min="1"
+                        value={discountValue}
+                        onChange={(e) => setDiscountValue(e.target.value)}
+                        placeholder={
+                          discountType === "percentage" ? "例如：10" : "例如：500"
+                        }
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="usageLimit">使用次數上限</Label>
+                      <Input
+                        id="usageLimit"
+                        type="number"
+                        inputMode="numeric"
+                        min="1"
+                        value={usageLimit}
+                        onChange={(e) => setUsageLimit(e.target.value)}
+                        placeholder="例如：100"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>生效日期</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className={cn("justify-start text-left font-normal")}>
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {format(validFrom, "yyyy/MM/dd")}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={validFrom}
+                            onSelect={(date) => date && setValidFrom(date)}
+                            initialFocus
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>到期日期（選填）</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "justify-start text-left font-normal",
+                              !validUntil && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {validUntil ? format(validUntil, "yyyy/MM/dd") : "選擇日期"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={validUntil}
+                            onSelect={setValidUntil}
+                            initialFocus
+                            disabled={(date) => date < validFrom}
+                            className="pointer-events-auto"
+                          />
+                          {validUntil && (
+                            <div className="p-3 border-t">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="w-full"
+                                onClick={() => setValidUntil(undefined)}
+                              >
+                                清除
+                              </Button>
+                            </div>
+                          )}
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    
+                    <div className="grid gap-2">
+                      <Label htmlFor="minOrderAmount">最低消費金額（選填）</Label>
+                      <Input
+                        id="minOrderAmount"
+                        type="number"
+                        inputMode="numeric"
+                        min="0"
+                        value={minOrderAmount}
+                        onChange={(e) => setMinOrderAmount(e.target.value)}
+                        placeholder="例如：1000（不填表示無限制）"
+                      />
+                    </div>
+                    
+                    <div className="grid gap-2">
+                      <Label>適用房型（選填，不選表示全部適用）</Label>
+                      <div className="space-y-2">
+                        {roomTypes.map((room) => (
+                          <div key={room.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`room-${room.id}`}
+                              checked={applicableRoomTypes.includes(room.id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setApplicableRoomTypes([...applicableRoomTypes, room.id]);
+                                } else {
+                                  setApplicableRoomTypes(
+                                    applicableRoomTypes.filter((id) => id !== room.id)
+                                  );
+                                }
+                              }}
+                            />
+                            <Label
+                              htmlFor={`room-${room.id}`}
+                              className="text-sm font-normal cursor-pointer"
+                            >
+                              {room.name}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="enableDateRange"
+                          checked={enableDateRange}
+                          onCheckedChange={setEnableDateRange}
+                        />
+                        <Label htmlFor="enableDateRange" className="text-sm cursor-pointer">
+                          限制入住日期範圍
+                        </Label>
+                      </div>
+                      
+                      {enableDateRange && (
+                        <div className="grid gap-2 pl-8">
+                          <div className="grid gap-2">
+                            <Label>入住開始日期</Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button variant="outline" className={cn("justify-start text-left font-normal")}>
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {applicableDateFrom ? format(applicableDateFrom, "yyyy/MM/dd") : "選擇日期"}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={applicableDateFrom}
+                                  onSelect={setApplicableDateFrom}
+                                  initialFocus
+                                  className="pointer-events-auto"
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                          
+                          <div className="grid gap-2">
+                            <Label>入住結束日期</Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    "justify-start text-left font-normal",
+                                    !applicableDateTo && "text-muted-foreground"
+                                  )}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {applicableDateTo ? format(applicableDateTo, "yyyy/MM/dd") : "選擇日期"}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={applicableDateTo}
+                                  onSelect={setApplicableDateTo}
+                                  initialFocus
+                                  disabled={(date) => applicableDateFrom ? date < applicableDateFrom : false}
+                                  className="pointer-events-auto"
+                                />
+                                {applicableDateTo && (
+                                  <div className="p-3 border-t">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="w-full"
+                                      onClick={() => setApplicableDateTo(undefined)}
+                                    >
+                                      清除
+                                    </Button>
+                                  </div>
+                                )}
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <Separator className="my-2" />
+                    <p className="text-sm font-medium">網紅佣金設定</p>
+                    
+                    <div className="grid gap-2">
+                      <Label htmlFor="commissionRate">佣金率 (%)</Label>
+                      <Input
+                        id="commissionRate"
+                        type="number"
+                        inputMode="numeric"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        value={commissionRate}
+                        onChange={(e) => setCommissionRate(e.target.value)}
+                        placeholder="例如：10（表示 10%）"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        佣金將根據折扣金額計算，例如折扣 1000 元且佣金率 10%，則佣金為 100 元
+                      </p>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button onClick={handleSubmit}>新增</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
           </>
         }
       />
 
       {/* Edit Discount Code Dialog */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>編輯折扣碼</DialogTitle>
-            <DialogDescription>
-              修改折扣碼資訊（折扣碼本身無法修改）
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
+      {isMobile ? (
+        <Drawer open={editOpen} onOpenChange={setEditOpen}>
+          <DrawerContent className="max-h-[90vh]">
+            <DrawerHeader>
+              <DrawerTitle>編輯折扣碼</DrawerTitle>
+              <DrawerDescription>
+                修改折扣碼資訊（折扣碼本身無法修改）
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="overflow-y-auto px-4 pb-4">
+              <div className="grid gap-4">
             <div className="grid gap-2">
               <Label>折扣碼（不可修改）</Label>
               <code className="px-3 py-2 bg-muted rounded text-sm font-mono">
@@ -1288,28 +1578,435 @@ const KolDiscount = () => {
           
           <div className="grid gap-2">
             <Label htmlFor="edit-commissionRate">佣金率 (%)</Label>
-            <Input
-              id="edit-commissionRate"
-              type="number"
-              min="0"
-              max="100"
-              step="0.1"
-              value={commissionRate}
-              onChange={(e) => setCommissionRate(e.target.value)}
-              placeholder="例如：10（表示 10%）"
-            />
+                  <Input
+                    id="edit-commissionRate"
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={commissionRate}
+                    onChange={(e) => setCommissionRate(e.target.value)}
+                    placeholder="例如：10（表示 10%）"
+                    className="h-12"
+                  />
             <p className="text-xs text-muted-foreground">
-              佣金將根據折扣金額計算，例如折扣 1000 元且佣金率 10%，則佣金為 100 元
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditOpen(false)}>
-              取消
-            </Button>
-            <Button onClick={handleUpdateCode}>更新</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                  佣金將根據折扣金額計算，例如折扣 1000 元且佣金率 10%，則佣金為 100 元
+                </p>
+              </div>
+            </div>
+            <DrawerFooter className="flex-col gap-2 px-4">
+              <Button onClick={handleUpdateCode} className="w-full h-12">更新</Button>
+              <Button variant="outline" onClick={() => setEditOpen(false)} className="w-full h-12">取消</Button>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={editOpen} onOpenChange={setEditOpen}>
+          <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>編輯折扣碼</DialogTitle>
+              <DialogDescription>
+                修改折扣碼資訊（折扣碼本身無法修改）
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-name">名稱</Label>
+                <Input
+                  id="edit-name"
+                  value={editingCode?.name}
+                  onChange={(e) =>
+                    setEditingCode(
+                      editingCode ? { ...editingCode, name: e.target.value } : null
+                    )
+                  }
+                  placeholder="例如：春季促銷、網紅合作"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>折扣碼（無法修改）</Label>
+                <Input
+                  value={editingCode?.code}
+                  disabled
+                  className="bg-muted"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-discountType">折扣類型</Label>
+                <Select
+                  value={editingCode?.discount_type}
+                  onValueChange={(value) =>
+                    setEditingCode(
+                      editingCode
+                        ? { ...editingCode, discount_type: value as "percentage" | "amount" }
+                        : null
+                    )
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="percentage">百分比</SelectItem>
+                    <SelectItem value="amount">固定金額</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-discountValue">
+                  折扣值 {editingCode?.discount_type === "percentage" ? "(%)" : "(NT$)"}
+                </Label>
+                <Input
+                  id="edit-discountValue"
+                  type="number"
+                  inputMode="numeric"
+                  min="1"
+                  value={editingCode?.discount_value}
+                  onChange={(e) =>
+                    setEditingCode(
+                      editingCode
+                        ? { ...editingCode, discount_value: Number(e.target.value) }
+                        : null
+                    )
+                  }
+                  placeholder={
+                    editingCode?.discount_type === "percentage" ? "例如：10" : "例如：500"
+                  }
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-usageLimit">使用次數上限</Label>
+                <Input
+                  id="edit-usageLimit"
+                  type="number"
+                  inputMode="numeric"
+                  min="1"
+                  value={editingCode?.usage_limit}
+                  onChange={(e) =>
+                    setEditingCode(
+                      editingCode
+                        ? { ...editingCode, usage_limit: Number(e.target.value) }
+                        : null
+                    )
+                  }
+                  placeholder="例如：100"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>生效日期</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("justify-start text-left font-normal")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {editingCode && format(new Date(editingCode.valid_from), "yyyy/MM/dd")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={editingCode ? new Date(editingCode.valid_from) : undefined}
+                      onSelect={(date) =>
+                        date &&
+                        setEditingCode(
+                          editingCode
+                            ? { ...editingCode, valid_from: format(date, "yyyy-MM-dd") }
+                            : null
+                        )
+                      }
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="grid gap-2">
+                <Label>到期日期（選填）</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "justify-start text-left font-normal",
+                        !editingCode?.valid_until && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {editingCode?.valid_until
+                        ? format(new Date(editingCode.valid_until), "yyyy/MM/dd")
+                        : "選擇日期"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={
+                        editingCode?.valid_until
+                          ? new Date(editingCode.valid_until)
+                          : undefined
+                      }
+                      onSelect={(date) =>
+                        setEditingCode(
+                          editingCode
+                            ? {
+                                ...editingCode,
+                                valid_until: date ? format(date, "yyyy-MM-dd") : null,
+                              }
+                            : null
+                        )
+                      }
+                      initialFocus
+                      disabled={(date) =>
+                        editingCode
+                          ? date < new Date(editingCode.valid_from)
+                          : false
+                      }
+                      className="pointer-events-auto"
+                    />
+                    {editingCode?.valid_until && (
+                      <div className="p-3 border-t">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full"
+                          onClick={() =>
+                            setEditingCode(
+                              editingCode
+                                ? { ...editingCode, valid_until: null }
+                                : null
+                            )
+                          }
+                        >
+                          清除
+                        </Button>
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="edit-minOrderAmount">最低消費金額（選填）</Label>
+                <Input
+                  id="edit-minOrderAmount"
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  value={editingCode?.min_order_amount || ""}
+                  onChange={(e) =>
+                    setEditingCode(
+                      editingCode
+                        ? {
+                            ...editingCode,
+                            min_order_amount: e.target.value ? Number(e.target.value) : null,
+                          }
+                        : null
+                    )
+                  }
+                  placeholder="例如：1000（不填表示無限制）"
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label>適用房型（選填，不選表示全部適用）</Label>
+                <div className="space-y-2">
+                  {roomTypes.map((room) => (
+                    <div key={room.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`edit-room-${room.id}`}
+                        checked={
+                          editingCode?.applicable_room_types
+                            ? (editingCode.applicable_room_types as string[]).includes(room.id)
+                            : false
+                        }
+                        onCheckedChange={(checked) => {
+                          if (!editingCode) return;
+                          const currentTypes = (editingCode.applicable_room_types as string[]) || [];
+                          if (checked) {
+                            setEditingCode({
+                              ...editingCode,
+                              applicable_room_types: [...currentTypes, room.id],
+                            });
+                          } else {
+                            setEditingCode({
+                              ...editingCode,
+                              applicable_room_types: currentTypes.filter(
+                                (id) => id !== room.id
+                              ),
+                            });
+                          }
+                        }}
+                      />
+                      <Label
+                        htmlFor={`edit-room-${room.id}`}
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        {room.name}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="edit-enableDateRange"
+                    checked={!!(editingCode?.applicable_date_from || editingCode?.applicable_date_to)}
+                    onCheckedChange={(checked) => {
+                      if (!checked && editingCode) {
+                        setEditingCode({
+                          ...editingCode,
+                          applicable_date_from: null,
+                          applicable_date_to: null,
+                        });
+                      }
+                    }}
+                  />
+                  <Label htmlFor="edit-enableDateRange" className="text-sm cursor-pointer">
+                    限制入住日期範圍
+                  </Label>
+                </div>
+                
+                {(editingCode?.applicable_date_from || editingCode?.applicable_date_to) && (
+                  <div className="grid gap-2 pl-8">
+                    <div className="grid gap-2">
+                      <Label>入住開始日期</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className={cn("justify-start text-left font-normal")}>
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {editingCode.applicable_date_from
+                              ? format(new Date(editingCode.applicable_date_from), "yyyy/MM/dd")
+                              : "選擇日期"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={
+                              editingCode.applicable_date_from
+                                ? new Date(editingCode.applicable_date_from)
+                                : undefined
+                            }
+                            onSelect={(date) =>
+                              date &&
+                              setEditingCode(
+                                editingCode
+                                  ? {
+                                      ...editingCode,
+                                      applicable_date_from: format(date, "yyyy-MM-dd"),
+                                    }
+                                  : null
+                              )
+                            }
+                            initialFocus
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    
+                    <div className="grid gap-2">
+                      <Label>入住結束日期</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "justify-start text-left font-normal",
+                              !editingCode.applicable_date_to && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {editingCode.applicable_date_to
+                              ? format(new Date(editingCode.applicable_date_to), "yyyy/MM/dd")
+                              : "選擇日期"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={
+                              editingCode.applicable_date_to
+                                ? new Date(editingCode.applicable_date_to)
+                                : undefined
+                            }
+                            onSelect={(date) =>
+                              setEditingCode(
+                                editingCode
+                                  ? {
+                                      ...editingCode,
+                                      applicable_date_to: date
+                                        ? format(date, "yyyy-MM-dd")
+                                        : null,
+                                    }
+                                  : null
+                              )
+                            }
+                            initialFocus
+                            disabled={(date) =>
+                              editingCode.applicable_date_from
+                                ? date < new Date(editingCode.applicable_date_from)
+                                : false
+                            }
+                            className="pointer-events-auto"
+                          />
+                          {editingCode.applicable_date_to && (
+                            <div className="p-3 border-t">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="w-full"
+                                onClick={() =>
+                                  setEditingCode(
+                                    editingCode
+                                      ? { ...editingCode, applicable_date_to: null }
+                                      : null
+                                  )
+                                }
+                              >
+                                清除
+                              </Button>
+                            </div>
+                          )}
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <Separator className="my-2" />
+              <p className="text-sm font-medium">網紅佣金設定</p>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="edit-commissionRate">佣金率 (%)</Label>
+                <Input
+                  id="edit-commissionRate"
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  value={commissionRate}
+                  onChange={(e) => setCommissionRate(e.target.value)}
+                  placeholder="例如：10（表示 10%）"
+                />
+                <p className="text-xs text-muted-foreground">
+                  佣金將根據折扣金額計算，例如折扣 1000 元且佣金率 10%，則佣金為 100 元
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditOpen(false)}>
+                取消
+              </Button>
+              <Button onClick={handleUpdateCode}>更新</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Quick Filter Buttons */}
       <Card className="p-4">
@@ -1580,15 +2277,17 @@ const KolDiscount = () => {
         </>
 
       {/* API Documentation Dialog */}
-      <Dialog open={apiDocOpen} onOpenChange={setApiDocOpen}>
-        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>網紅 API 使用說明</DialogTitle>
-            <DialogDescription>
-              透過以下 API 端點，網紅可以在自己的網站查詢訂單和佣金數據
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-6 py-4">
+      {isMobile ? (
+        <Drawer open={apiDocOpen} onOpenChange={setApiDocOpen}>
+          <DrawerContent className="max-h-[90vh]">
+            <DrawerHeader>
+              <DrawerTitle>網紅 API 使用說明</DrawerTitle>
+              <DrawerDescription>
+                透過以下 API 端點，網紅可以在自己的網站查詢訂單和佣金數據
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="overflow-y-auto px-4 pb-4">
+              <div className="space-y-6">
             {/* Base URL */}
             <div>
               <h3 className="font-semibold mb-2 flex items-center gap-2">
@@ -1985,14 +2684,204 @@ function setCachedStats(code, data) {
                 <li>API 支援 CORS，可直接從瀏覽器調用</li>
                 <li>請妥善保管您的折扣碼，避免洩露給非授權人員</li>
                 <li>API 回應時間通常在 100-500ms 之間</li>
-              </ul>
+                </ul>
+              </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button onClick={() => setApiDocOpen(false)}>關閉</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <DrawerFooter className="px-4">
+            <Button onClick={() => setApiDocOpen(false)} className="w-full h-12">關閉</Button>
+          </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={apiDocOpen} onOpenChange={setApiDocOpen}>
+          <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>網紅 API 使用說明</DialogTitle>
+              <DialogDescription>
+                透過以下 API 端點，網紅可以在自己的網站查詢訂單和佣金數據
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6 py-4">
+              {/* Base URL */}
+              <div className="space-y-2">
+                <h3 className="font-semibold">基礎 URL</h3>
+                <div className="p-3 bg-muted rounded font-mono text-sm break-all">
+                  {import.meta.env.VITE_SUPABASE_URL}/functions/v1/kol-api
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Endpoint 1: Get Orders */}
+              <div className="space-y-3">
+                <h3 className="font-semibold">1. 查詢訂單列表</h3>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">端點：</p>
+                  <div className="p-3 bg-muted rounded font-mono text-sm">
+                    GET /orders?code=YOUR_DISCOUNT_CODE
+                  </div>
+                  
+                  <p className="text-sm font-medium mt-4">回應範例：</p>
+                  <pre className="p-3 bg-muted rounded text-xs overflow-x-auto">
+{`{
+  "success": true,
+  "data": {
+    "orders": [
+      {
+        "order_number": "ORD-20240101-001",
+        "guest_name": "王小明",
+        "check_in_date": "2024-01-15",
+        "check_out_date": "2024-01-17",
+        "total_price": 5000,
+        "discount_amount": 500,
+        "order_status": "confirmed",
+        "created_at": "2024-01-01T10:00:00Z"
+      }
+    ],
+    "stats": {
+      "total_orders": 10,
+      "total_revenue": 50000,
+      "total_discount": 5000
+    }
+  }
+}`}
+                  </pre>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Endpoint 2: Get Commission Records */}
+              <div className="space-y-3">
+                <h3 className="font-semibold">2. 查詢佣金記錄</h3>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">端點：</p>
+                  <div className="p-3 bg-muted rounded font-mono text-sm">
+                    GET /commissions?code=YOUR_DISCOUNT_CODE
+                  </div>
+                  
+                  <p className="text-sm font-medium mt-4">查詢參數（選填）：</p>
+                  <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground pl-3">
+                    <li><code>status</code> - 結算狀態（pending/approved/paid/cancelled）</li>
+                    <li><code>from_date</code> - 開始日期（YYYY-MM-DD）</li>
+                    <li><code>to_date</code> - 結束日期（YYYY-MM-DD）</li>
+                  </ul>
+                  
+                  <p className="text-sm font-medium mt-4">回應範例：</p>
+                  <pre className="p-3 bg-muted rounded text-xs overflow-x-auto">
+{`{
+  "success": true,
+  "data": {
+    "commissions": [
+      {
+        "order_number": "ORD-20240101-001",
+        "order_total": 5000,
+        "discount_amount": 500,
+        "commission_rate": 10,
+        "commission_amount": 50,
+        "settlement_status": "pending",
+        "created_at": "2024-01-01T10:00:00Z"
+      }
+    ],
+    "summary": {
+      "total_commission": 500,
+      "pending_commission": 300,
+      "paid_commission": 200
+    }
+  }
+}`}
+                  </pre>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Usage Example */}
+              <div className="space-y-3">
+                <h3 className="font-semibold">使用範例（JavaScript）</h3>
+                <pre className="p-3 bg-muted rounded text-xs overflow-x-auto">
+{`// 查詢訂單
+const response = await fetch(
+  '${import.meta.env.VITE_SUPABASE_URL}/functions/v1/kol-api/orders?code=YOUR_CODE'
+);
+const data = await response.json();
+
+// 查詢佣金（帶篩選）
+const commissionResponse = await fetch(
+  '${import.meta.env.VITE_SUPABASE_URL}/functions/v1/kol-api/commissions?' +
+  'code=YOUR_CODE&status=pending&from_date=2024-01-01'
+);
+const commissionData = await commissionResponse.json();`}
+                </pre>
+              </div>
+
+              <Separator />
+
+              {/* Best Practices */}
+              <div className="space-y-2">
+                <h3 className="font-semibold">最佳實踐建議</h3>
+                <div className="space-y-2">
+                  <div className="p-3 bg-muted rounded">
+                    <strong className="text-foreground">1. 錯誤處理</strong>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      檢查 response.success 狀態，並妥善處理錯誤訊息
+                    </p>
+                  </div>
+
+                  <div className="p-3 bg-muted rounded">
+                    <strong className="text-foreground">2. 快取策略</strong>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      實作本地快取，減少 API 請求頻率（建議 5-10 分鐘更新一次）
+                    </p>
+                  </div>
+
+                  <div className="p-3 bg-muted rounded">
+                    <strong className="text-foreground">3. 載入狀態指示</strong>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      在請求期間顯示載入動畫，提升用戶體驗
+                    </p>
+                  </div>
+
+                  <div className="p-3 bg-muted rounded">
+                    <strong className="text-foreground">4. 定期重試機制</strong>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      網路暫時失敗時，自動重試 2-3 次後再顯示錯誤
+                    </p>
+                  </div>
+
+                  <div className="p-3 bg-muted rounded">
+                    <strong className="text-foreground">5. 資料驗證</strong>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      檢查 API 回應的資料結構是否正確，避免程式錯誤
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Notes */}
+              <div className="space-y-2">
+                <h3 className="font-semibold">注意事項</h3>
+                <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                  <li>API 端點不需要身份驗證，但需要提供有效的折扣碼</li>
+                  <li>回應格式為 JSON</li>
+                  <li>佣金根據折扣碼設定的佣金率自動計算</li>
+                  <li>結算狀態：pending（待結算）、approved（已核准）、paid（已付款）、cancelled（已取消）</li>
+                  <li>建議在外部網站實作快取機制，避免頻繁請求</li>
+                  <li>API 支援 CORS，可直接從瀏覽器調用</li>
+                  <li>請妥善保管您的折扣碼，避免洩露給非授權人員</li>
+                  <li>API 回應時間通常在 100-500ms 之間</li>
+                </ul>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setApiDocOpen(false)}>關閉</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Integrated Details Dialog */}
       {selectedCodeForCommission && (
