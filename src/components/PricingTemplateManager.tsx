@@ -1244,15 +1244,15 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                     type="button"
                     onClick={selectWeekdays}
                     className={`
-                      flex items-center gap-2 px-3 py-2 h-10 sm:h-9 rounded-md border transition-all text-sm touch-manipulation
+                      flex flex-col items-center justify-center gap-0.5 px-3 py-2 h-auto min-h-[44px] sm:min-h-[36px] rounded-md border transition-all touch-manipulation
                       ${JSON.stringify(selectedDays) === JSON.stringify([1, 2, 3, 4, 5])
                         ? 'border-primary bg-primary text-primary-foreground'
                         : 'border-border hover:border-primary hover:bg-accent'
                       }
                     `}
                   >
-                    <span className="font-medium">平日</span>
-                    <span className="text-xs opacity-75">(一~五)</span>
+                    <span className="font-medium text-sm">平日</span>
+                    <span className="text-[10px] leading-tight opacity-70">(一～五)</span>
                   </button>
                   <button
                     type="button"
@@ -1538,15 +1538,15 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                     type="button"
                     onClick={selectWeekdays}
                     className={`
-                      flex items-center gap-2 px-3 py-2 h-10 sm:h-9 rounded-md border transition-all text-sm touch-manipulation
+                      flex flex-col items-center justify-center gap-0.5 px-3 py-2 h-auto min-h-[44px] sm:min-h-[36px] rounded-md border transition-all touch-manipulation
                       ${JSON.stringify(selectedDays) === JSON.stringify([1, 2, 3, 4, 5])
                         ? 'border-primary bg-primary text-primary-foreground'
                         : 'border-border hover:border-primary hover:bg-accent'
                       }
                     `}
                   >
-                    <span className="font-medium">平日</span>
-                    <span className="text-xs opacity-75">(一~五)</span>
+                    <span className="font-medium text-sm">平日</span>
+                    <span className="text-[10px] leading-tight opacity-70">(一～五)</span>
                   </button>
                   <button
                     type="button"
