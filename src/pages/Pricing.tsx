@@ -125,7 +125,7 @@ const SortableRoomCard = ({ roomType, onEdit, onDelete }: SortableRoomCardProps)
               variant="outline"
               size="icon"
               onClick={() => onEdit(roomType)}
-              className="flex-1 sm:flex-initial"
+              className="flex-1 sm:flex-initial h-10 sm:h-9 touch-manipulation"
             >
               <Pencil className="h-4 w-4" />
             </Button>
@@ -133,7 +133,7 @@ const SortableRoomCard = ({ roomType, onEdit, onDelete }: SortableRoomCardProps)
               variant="ghost-destructive"
               size="icon"
               onClick={() => onDelete(roomType)}
-              className="flex-1 sm:flex-initial"
+              className="flex-1 sm:flex-initial h-10 sm:h-9 touch-manipulation"
             >
               <Trash2 className="h-4 w-4" />
             </Button>
