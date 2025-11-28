@@ -413,14 +413,35 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
         return;
       }
       
-      // 分別處理更新和插入
-      const updateRecords = [];
-      const insertRecords = [];
+      // 批量查詢現有記錄
+      const dateStrings = dates.map(date => format(date, 'yyyy-MM-dd'));
+      const { data: existingRecords, error: queryError } = await supabase
+        .from('room_inventory_pricing')
+        .select('*')
+        .in('room_type_id', selectedRoomTypes)
+        .in('date', dateStrings);
+        
+      if (queryError) {
+        console.error('查詢現有記錄失敗:', queryError);
+        throw queryError;
+      }
+      
+      // 創建現有記錄的索引
+      const existingMap = new Map<string, any>();
+      (existingRecords || []).forEach(record => {
+        const key = `${record.room_type_id}_${record.date}`;
+        existingMap.set(key, record);
+      });
+      
+      // 準備 upsert 記錄
+      const upsertRecords = [];
       
       for (const roomTypeId of selectedRoomTypes) {
         for (const date of dates) {
           const weekend = isWeekend(date);
           const dateStr = format(date, 'yyyy-MM-dd');
+          const key = `${roomTypeId}_${dateStr}`;
+          const existing = existingMap.get(key);
           
           // 根據選擇的價格類型和平日/假日決定價格
           let price_2_meals = null;
@@ -446,83 +467,52 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
             }
           }
           
-          // 查詢該日期是否已有記錄
-          const { data: existing } = await supabase
-            .from('room_inventory_pricing')
-            .select('*')
-            .eq('room_type_id', roomTypeId)
-            .eq('date', dateStr)
-            .maybeSingle();
+          // 決定基礎價格
+          const basePrice = weekend 
+            ? (applyingTemplate.weekend_price || price_2_meals || price_3_meals || existing?.price || 0)
+            : (applyingTemplate.weekday_price || price_2_meals || price_3_meals || existing?.price || 0);
           
-          if (existing) {
-            // 更新現有記錄
-            const basePrice = weekend 
-              ? (applyingTemplate.weekend_price || price_2_meals || price_3_meals || existing.price)
-              : (applyingTemplate.weekday_price || price_2_meals || price_3_meals || existing.price);
-            
-            const updateData: any = {
-              room_type_id: roomTypeId,
-              date: dateStr,
-              price: basePrice, // 確保 price 欄位始終有值
-            };
-            
-            if (selectedPriceType === '2meals') {
-              updateData.price_2_meals = price_2_meals;
-            } else {
-              updateData.price_3_meals = price_3_meals;
-            }
-            
-            updateRecords.push(updateData);
+          // 準備 upsert 數據
+          const upsertData: any = {
+            room_type_id: roomTypeId,
+            date: dateStr,
+            price: basePrice,
+            available_rooms: existing?.available_rooms || availableRooms,
+            is_available: true,
+          };
+          
+          // 保留現有的另一個價格欄位
+          if (selectedPriceType === '2meals') {
+            upsertData.price_2_meals = price_2_meals;
+            upsertData.price_3_meals = existing?.price_3_meals || null;
           } else {
-            // 創建新記錄 - 使用模板的基礎價格或餐飲方案價格
-            const basePrice = weekend 
-              ? (applyingTemplate.weekend_price || price_2_meals || price_3_meals || 0)
-              : (applyingTemplate.weekday_price || price_2_meals || price_3_meals || 0);
-              
-            insertRecords.push({
-              room_type_id: roomTypeId,
-              date: dateStr,
-              price: basePrice,
-              price_2_meals: price_2_meals,
-              price_3_meals: price_3_meals,
-              available_rooms: availableRooms,
-              is_available: true,
-            });
+            upsertData.price_2_meals = existing?.price_2_meals || null;
+            upsertData.price_3_meals = price_3_meals;
           }
+          
+          upsertRecords.push(upsertData);
         }
       }
 
-      // 執行批量操作
-      if (updateRecords.length > 0) {
-        const { error: updateError } = await supabase
-          .from('room_inventory_pricing')
-          .upsert(updateRecords, { 
-            onConflict: 'room_type_id,date',
-            ignoreDuplicates: false 
-          });
-        
-        if (updateError) {
-          console.error('更新記錄失敗:', updateError);
-          throw updateError;
-        }
-      }
-      
-      if (insertRecords.length > 0) {
-        const { error: insertError } = await supabase
-          .from('room_inventory_pricing')
-          .insert(insertRecords);
-        
-        if (insertError) {
-          console.error('插入記錄失敗:', insertError);
-          throw insertError;
-        }
-      }
-      
-      const totalRecords = updateRecords.length + insertRecords.length;
-      if (totalRecords === 0) {
+      if (upsertRecords.length === 0) {
         toast.error('沒有可套用的記錄，請檢查模板價格設定');
         return;
       }
+      
+      // 執行批量 upsert
+      const { error: upsertError } = await supabase
+        .from('room_inventory_pricing')
+        .upsert(upsertRecords, { 
+          onConflict: 'room_type_id,date',
+          ignoreDuplicates: false 
+        });
+      
+      if (upsertError) {
+        console.error('批量更新失敗:', upsertError);
+        throw upsertError;
+      }
+      
+      const totalRecords = upsertRecords.length;
       
       // 記錄套用歷史
       const { data: { user } } = await supabase.auth.getUser();
