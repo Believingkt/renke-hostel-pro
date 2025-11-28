@@ -788,33 +788,33 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                     <div className="w-full space-y-1.5 px-0.5">
                       {dayInventory.price_2_meals && (
                         <div className={cn(
-                          "flex items-center justify-between gap-1 text-xs sm:text-xs rounded px-2 py-1",
+                          "flex items-center justify-between gap-1 text-xs sm:text-xs rounded px-1.5 py-1",
                           isHoliday ? "bg-orange-100/60" : "bg-blue-100/60"
                         )}>
-                          <span className="text-muted-foreground font-medium text-[11px] sm:text-xs">一泊二食</span>
-                          <span className="font-bold text-foreground text-[13px] sm:text-xs">${formatPrice(dayInventory.price_2_meals)}</span>
+                          <span className="text-muted-foreground font-medium text-[10px] sm:text-xs whitespace-nowrap">一泊二食</span>
+                          <span className="font-bold text-foreground text-[12px] sm:text-xs truncate">${formatPrice(dayInventory.price_2_meals)}</span>
                         </div>
                       )}
                       {dayInventory.price_3_meals && (
                         <div className={cn(
-                          "flex items-center justify-between gap-1 text-xs sm:text-xs rounded px-2 py-1",
+                          "flex items-center justify-between gap-1 text-xs sm:text-xs rounded px-1.5 py-1",
                           isHoliday ? "bg-orange-100/60" : "bg-blue-100/60"
                         )}>
-                          <span className="text-muted-foreground font-medium text-[11px] sm:text-xs">一泊三食</span>
-                          <span className="font-bold text-foreground text-[13px] sm:text-xs">${formatPrice(dayInventory.price_3_meals)}</span>
+                          <span className="text-muted-foreground font-medium text-[10px] sm:text-xs whitespace-nowrap">一泊三食</span>
+                          <span className="font-bold text-foreground text-[12px] sm:text-xs truncate">${formatPrice(dayInventory.price_3_meals)}</span>
                         </div>
                       )}
                       {!dayInventory.price_2_meals && !dayInventory.price_3_meals && dayInventory.price && (
                         <div className={cn(
-                          "flex items-center justify-center gap-1 text-xs sm:text-xs rounded px-2 py-1",
+                          "flex items-center justify-center gap-1 text-xs sm:text-xs rounded px-1.5 py-1",
                           isHoliday ? "bg-orange-100/60" : "bg-blue-100/60"
                         )}>
                           <DollarSign className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                          <span className="font-bold text-foreground text-[13px]">{formatPrice(dayInventory.price)}</span>
+                          <span className="font-bold text-foreground text-[12px] truncate">{formatPrice(dayInventory.price)}</span>
                         </div>
                       )}
                       <div className={cn(
-                        "flex items-center justify-center gap-1.5 text-xs sm:text-xs rounded px-2 py-1 mt-2",
+                        "flex items-center justify-center gap-1.5 text-xs sm:text-xs rounded px-1.5 py-1 mt-1.5",
                         isHoliday ? "bg-orange-200/50" : "bg-primary/10"
                       )}>
                         <Package className={cn(
@@ -822,7 +822,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                           isHoliday ? "text-orange-700" : "text-primary"
                         )} />
                         <span className={cn(
-                          "font-bold text-[13px] sm:text-xs",
+                          "font-bold text-[12px] sm:text-xs whitespace-nowrap",
                           isHoliday ? "text-orange-700" : "text-primary"
                         )}>{dayInventory.availableRooms} 間</span>
                       </div>
