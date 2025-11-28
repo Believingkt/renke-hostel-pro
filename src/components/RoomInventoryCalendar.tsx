@@ -873,7 +873,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                   key={dateStr}
                   onClick={() => handleSingleClick(dateStr)}
                   className={cn(
-                    "relative min-h-[110px] sm:min-h-[90px] md:min-h-[100px] border rounded-lg p-2.5 sm:p-2 flex flex-col items-center justify-start transition-all touch-manipulation active:scale-95",
+                    "relative min-h-[95px] sm:min-h-[90px] md:min-h-[100px] border rounded-lg p-1.5 sm:p-2 flex flex-col items-center justify-start transition-all touch-manipulation active:scale-95",
                     isTodayDate && "border-primary border-2 ring-2 ring-primary/20",
                     !isCurrentMonth && "opacity-50",
                     isSelectionMode && "cursor-pointer",
@@ -890,7 +890,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                   )}
                 >
                   <div className={cn(
-                    "font-bold mb-2 text-base sm:text-base w-full text-center pb-1.5 border-b",
+                    "font-bold mb-1 text-base sm:text-base w-full text-center pb-1 border-b",
                     isTodayDate && "text-primary border-primary/30",
                     isSelected && "text-blue-700 border-blue-300",
                     !isTodayDate && !isSelected && isHoliday && hasData && "text-orange-700 border-orange-200/50",
@@ -912,29 +912,29 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                     )}
                   </div>
                   {hasData ? (
-                    <div className="w-full space-y-1.5 px-0.5">
+                    <div className="w-full space-y-1 px-0.5">
                       {dayInventory.price_2_meals && (
                         <div className={cn(
-                          "flex items-center justify-between gap-1 text-xs sm:text-xs rounded px-1.5 py-1",
+                          "flex items-center justify-between gap-1 text-xs sm:text-xs rounded px-1.5 py-0.5",
                           isHoliday ? "bg-orange-100/60" : "bg-blue-100/60"
                         )}>
                           <span className="text-muted-foreground font-medium text-[10px] sm:text-xs whitespace-nowrap">
                             <span className="md:hidden">二</span>
                             <span className="hidden md:inline">一泊二食</span>
                           </span>
-                          <span className="font-bold text-foreground text-[12px] sm:text-xs truncate">${formatPrice(dayInventory.price_2_meals)}</span>
+                          <span className="font-bold text-foreground text-[11px] sm:text-xs truncate">${formatPrice(dayInventory.price_2_meals)}</span>
                         </div>
                       )}
                       {dayInventory.price_3_meals && (
                         <div className={cn(
-                          "flex items-center justify-between gap-1 text-xs sm:text-xs rounded px-1.5 py-1",
+                          "flex items-center justify-between gap-1 text-xs sm:text-xs rounded px-1.5 py-0.5",
                           isHoliday ? "bg-orange-100/60" : "bg-blue-100/60"
                         )}>
                           <span className="text-muted-foreground font-medium text-[10px] sm:text-xs whitespace-nowrap">
                             <span className="md:hidden">三</span>
                             <span className="hidden md:inline">一泊三食</span>
                           </span>
-                          <span className="font-bold text-foreground text-[12px] sm:text-xs truncate">${formatPrice(dayInventory.price_3_meals)}</span>
+                          <span className="font-bold text-foreground text-[11px] sm:text-xs truncate">${formatPrice(dayInventory.price_3_meals)}</span>
                         </div>
                       )}
                       {!dayInventory.price_2_meals && !dayInventory.price_3_meals && dayInventory.price && (
@@ -947,7 +947,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                         </div>
                       )}
                       <div className={cn(
-                        "flex items-center justify-center gap-1.5 text-xs sm:text-xs rounded px-1.5 py-1 mt-1.5",
+                        "flex items-center justify-center gap-1.5 text-xs sm:text-xs rounded px-1.5 py-0.5 mt-1",
                         isHoliday ? "bg-orange-200/50" : "bg-primary/10"
                       )}>
                         <Package className={cn(
@@ -955,7 +955,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                           isHoliday ? "text-orange-700" : "text-primary"
                         )} />
                         <span className={cn(
-                          "font-bold text-[12px] sm:text-xs whitespace-nowrap",
+                          "font-bold text-[11px] sm:text-xs whitespace-nowrap",
                           isHoliday ? "text-orange-700" : "text-primary"
                         )}>
                           <span className="md:hidden">{dayInventory.availableRooms}</span>
