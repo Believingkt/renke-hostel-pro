@@ -911,22 +911,29 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
         <Dialog open={batchEditDialogOpen} onOpenChange={setBatchEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>批量編輯</span>
-                <div className="flex gap-2 text-xs font-normal text-muted-foreground">
-                  <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
-                    <span className="text-xs">ESC</span>
-                  </kbd>
-                  <span>關閉</span>
-                  <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 ml-2">
-                    <span className="text-xs">Enter</span>
-                  </kbd>
-                  <span>儲存</span>
+              <div className="flex items-start justify-between">
+                <div>
+                  <CardTitle>批量編輯</CardTitle>
+                  <DialogDescription className="mt-1.5">
+                    將對 {selectedDates.size} 個日期進行統一設定
+                  </DialogDescription>
                 </div>
-              </CardTitle>
-              <DialogDescription>
-                將對 {selectedDates.size} 個日期進行統一設定
-              </DialogDescription>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1.5">
+                    <kbd className="inline-flex h-6 min-w-[28px] items-center justify-center rounded-md border border-border bg-muted/50 px-2 font-mono text-xs font-medium shadow-sm">
+                      ESC
+                    </kbd>
+                    <span className="text-muted-foreground/80">關閉</span>
+                  </div>
+                  <div className="h-4 w-px bg-border"></div>
+                  <div className="flex items-center gap-1.5">
+                    <kbd className="inline-flex h-6 min-w-[28px] items-center justify-center rounded-md border border-border bg-muted/50 px-2 font-mono text-xs font-medium shadow-sm">
+                      Enter
+                    </kbd>
+                    <span className="text-muted-foreground/80">儲存</span>
+                  </div>
+                </div>
+              </div>
             </DialogHeader>
 
             <div className="space-y-4 py-4">
@@ -1162,22 +1169,29 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
         <Dialog open={singleEditDialogOpen} onOpenChange={setSingleEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>編輯日期</span>
-                <div className="flex gap-2 text-xs font-normal text-muted-foreground">
-                  <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
-                    <span className="text-xs">ESC</span>
-                  </kbd>
-                  <span>關閉</span>
-                  <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 ml-2">
-                    <span className="text-xs">Enter</span>
-                  </kbd>
-                  <span>儲存</span>
+              <div className="flex items-start justify-between">
+                <div>
+                  <CardTitle>編輯日期</CardTitle>
+                  <DialogDescription className="mt-1.5">
+                    {editingDate && format(parseISO(editingDate), 'yyyy年 M月 d日（EEEE）', { locale: zhTW })}
+                  </DialogDescription>
                 </div>
-              </CardTitle>
-              <DialogDescription>
-                {editingDate && format(parseISO(editingDate), 'yyyy年 M月 d日（EEEE）', { locale: zhTW })}
-              </DialogDescription>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1.5">
+                    <kbd className="inline-flex h-6 min-w-[28px] items-center justify-center rounded-md border border-border bg-muted/50 px-2 font-mono text-xs font-medium shadow-sm">
+                      ESC
+                    </kbd>
+                    <span className="text-muted-foreground/80">關閉</span>
+                  </div>
+                  <div className="h-4 w-px bg-border"></div>
+                  <div className="flex items-center gap-1.5">
+                    <kbd className="inline-flex h-6 min-w-[28px] items-center justify-center rounded-md border border-border bg-muted/50 px-2 font-mono text-xs font-medium shadow-sm">
+                      Enter
+                    </kbd>
+                    <span className="text-muted-foreground/80">儲存</span>
+                  </div>
+                </div>
+              </div>
             </DialogHeader>
 
             <div className="space-y-4 py-4">
