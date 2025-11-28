@@ -872,6 +872,11 @@ All colors MUST be HSL.
   margin-bottom: 0.75em;
 }
 
+/* 確保空段落也能顯示（用於創建空白行距） */
+.prose p:empty {
+  min-height: 1.5em;
+}
+
 .prose p:first-child {
   margin-top: 0;
 }
@@ -929,6 +934,11 @@ All colors MUST be HSL.
 .prose-sm p {
   margin-top: 0.5em;
   margin-bottom: 0.5em;
+}
+
+/* 確保小尺寸的空段落也能顯示 */
+.prose-sm p:empty {
+  min-height: 1.25em;
 }
 
 .prose-sm h2 {
