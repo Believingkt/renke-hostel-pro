@@ -846,7 +846,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
 
             {/* 填充空白日期 */}
             {Array.from({ length: paddingDays }).map((_, index) => (
-              <div key={`padding-${index}`} className="min-h-[100px] sm:min-h-[90px] md:min-h-[100px]" />
+              <div key={`padding-${index}`} className="min-h-[80px] sm:min-h-[90px] md:min-h-[100px]" />
             ))}
 
             {/* 日期格子 */}
@@ -873,7 +873,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                   key={dateStr}
                   onClick={() => handleSingleClick(dateStr)}
                   className={cn(
-                    "relative min-h-[95px] sm:min-h-[90px] md:min-h-[100px] border rounded-lg p-1.5 sm:p-2 flex flex-col items-center justify-start transition-all touch-manipulation active:scale-95",
+                    "relative min-h-[80px] sm:min-h-[90px] md:min-h-[100px] border rounded-lg p-1.5 sm:p-2 flex flex-col items-center justify-start transition-all touch-manipulation active:scale-95",
                     isTodayDate && "border-primary border-2 ring-2 ring-primary/20",
                     !isCurrentMonth && "opacity-50",
                     isSelectionMode && "cursor-pointer",
