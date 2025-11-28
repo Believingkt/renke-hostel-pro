@@ -41,7 +41,7 @@ export function OrderFilters({
         <Label className="text-sm mb-2 block">日期區間</Label>
         <div className="flex flex-col md:flex-row items-start md:items-center gap-2">
           <select 
-            className="w-full md:w-auto h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+            className="w-full md:w-auto h-12 md:h-10 rounded-md border border-input bg-background px-3 py-2 text-base md:text-sm touch-manipulation"
             value={dateType}
             onChange={(e) => onDateTypeChange(e.target.value)}
           >
@@ -56,14 +56,14 @@ export function OrderFilters({
               type="date"
               value={startDate}
               onChange={(e) => onStartDateChange(e.target.value)}
-              className="h-10 flex-1 md:w-auto"
+              className="h-12 md:h-10 flex-1 md:w-auto text-base md:text-sm touch-manipulation"
             />
             <span className="text-muted-foreground">-</span>
             <Input
               type="date"
               value={endDate}
               onChange={(e) => onEndDateChange(e.target.value)}
-              className="h-10 flex-1 md:w-auto"
+              className="h-12 md:h-10 flex-1 md:w-auto text-base md:text-sm touch-manipulation"
             />
           </div>
         </div>
@@ -74,7 +74,7 @@ export function OrderFilters({
         <div>
           <Label className="text-sm mb-2 block">付款狀態</Label>
           <select 
-            className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+            className="w-full h-12 md:h-10 rounded-md border border-input bg-background px-3 py-2 text-base md:text-sm touch-manipulation"
             value={paymentStatus}
             onChange={(e) => onPaymentStatusChange(e.target.value)}
           >
@@ -90,7 +90,7 @@ export function OrderFilters({
         <div>
           <Label className="text-sm mb-2 block">訂單狀態</Label>
           <select 
-            className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+            className="w-full h-12 md:h-10 rounded-md border border-input bg-background px-3 py-2 text-base md:text-sm touch-manipulation"
             value={orderStatus}
             onChange={(e) => onOrderStatusChange(e.target.value)}
           >
@@ -112,14 +112,14 @@ export function OrderFilters({
               placeholder="訂單編號/顧客/電話"
               value={searchKeyword}
               onChange={(e) => onSearchKeywordChange(e.target.value)}
-              className="h-10 pr-8"
+              className="h-12 md:h-10 pr-10 text-base md:text-sm touch-manipulation"
             />
             {searchKeyword && (
               <button
                 onClick={() => onSearchKeywordChange("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-2 touch-manipulation"
               >
-                <X className="h-4 w-4" />
+                <X className="h-5 w-5 md:h-4 md:w-4" />
               </button>
             )}
           </div>
@@ -132,7 +132,7 @@ export function OrderFilters({
           variant="ghost"
           size="sm"
           onClick={onClear}
-          className="text-muted-foreground"
+          className="text-muted-foreground h-10 md:h-9 touch-manipulation"
         >
           清除所有篩選
         </Button>

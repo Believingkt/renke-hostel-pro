@@ -414,7 +414,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
             <div className="space-y-2">
               <Label>房型</Label>
               <Select value={editForm.room_type_id} onValueChange={(value) => setEditForm({...editForm, room_type_id: value})}>
-                <SelectTrigger>
+                <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
                   <SelectValue placeholder="選擇房型" />
                 </SelectTrigger>
                 <SelectContent>
@@ -444,7 +444,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
           <div className="space-y-2">
             <Label>訂單狀態</Label>
             <Select value={editForm.order_status} onValueChange={(value) => setEditForm({...editForm, order_status: value})}>
-              <SelectTrigger>
+              <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -460,7 +460,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
           <div className="space-y-2">
             <Label>付款狀態</Label>
             <Select value={editForm.payment_status} onValueChange={(value) => setEditForm({...editForm, payment_status: value})}>
-              <SelectTrigger>
+              <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -479,7 +479,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
               onChange={(e) => setEditForm({...editForm, notes: e.target.value})}
               rows={4}
               placeholder="輸入訂單備註..."
-              className="text-base sm:text-sm"
+              className="text-base sm:text-sm min-h-[120px]"
             />
           </div>
 
@@ -522,6 +522,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
                   onClick={handleApplyDiscount}
                   disabled={isValidatingCode || !discountCode.trim()}
                   variant="outline"
+                  className="h-12 sm:h-10"
                 >
                   {isValidatingCode ? "驗證中..." : "套用"}
                 </Button>
@@ -558,14 +559,23 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
       );
 
   const footerButtons = (
-    <>
-      <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving || isValidating}>
+    <div className="flex flex-col sm:flex-row gap-2 w-full">
+      <Button 
+        variant="outline" 
+        onClick={() => onOpenChange(false)} 
+        disabled={isSaving || isValidating}
+        className="h-12 sm:h-10 w-full sm:w-auto touch-manipulation"
+      >
         取消
       </Button>
-      <Button onClick={handleSave} disabled={isSaving || isValidating}>
+      <Button 
+        onClick={handleSave} 
+        disabled={isSaving || isValidating}
+        className="h-12 sm:h-10 w-full sm:w-auto touch-manipulation"
+      >
         {isValidating ? "驗證中..." : isSaving ? "儲存變更中..." : "儲存變更"}
       </Button>
-    </>
+    </div>
   );
 
   if (isMobile) {
@@ -578,7 +588,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
           <div className="overflow-y-auto px-4">
             {formContent}
           </div>
-          <DrawerFooter className="flex-row gap-2">
+          <DrawerFooter className="pt-4">
             {footerButtons}
           </DrawerFooter>
         </DrawerContent>
