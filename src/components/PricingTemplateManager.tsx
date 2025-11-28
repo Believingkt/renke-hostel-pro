@@ -1644,7 +1644,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                   <Card 
                     key={app.id} 
                     className={`p-4 cursor-pointer transition-all ${
-                      selectedApplicationIds.includes(app.id) ? 'ring-2 ring-primary bg-accent' : ''
+                      selectedApplicationIds.includes(app.id) ? 'ring-2 ring-primary' : ''
                     }`}
                     onClick={() => toggleApplicationSelection(app.id)}
                   >
@@ -1781,7 +1781,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                   <Card 
                     key={app.id} 
                     className={`p-4 cursor-pointer transition-all ${
-                      selectedApplicationIds.includes(app.id) ? 'ring-2 ring-primary bg-accent' : ''
+                      selectedApplicationIds.includes(app.id) ? 'ring-2 ring-primary' : ''
                     }`}
                     onClick={() => toggleApplicationSelection(app.id)}
                   >
