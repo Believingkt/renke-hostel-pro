@@ -29,6 +29,12 @@ interface DayInventory {
   isAvailable: boolean;
 }
 
+// 價格千分位格式化函數
+const formatPrice = (price: number | null | undefined): string => {
+  if (!price) return '0';
+  return price.toLocaleString('zh-TW');
+};
+
 export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventoryCalendarProps) {
   const isMobile = useIsMobile();
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -717,19 +723,19 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                       {dayInventory.price_2_meals && (
                         <div className="flex items-center justify-between gap-1 text-[11px] sm:text-xs bg-background/50 rounded px-1.5 py-0.5">
                           <span className="text-muted-foreground font-medium">一泊二食</span>
-                          <span className="font-bold text-foreground">${dayInventory.price_2_meals}</span>
+                          <span className="font-bold text-foreground">${formatPrice(dayInventory.price_2_meals)}</span>
                         </div>
                       )}
                       {dayInventory.price_3_meals && (
                         <div className="flex items-center justify-between gap-1 text-[11px] sm:text-xs bg-background/50 rounded px-1.5 py-0.5">
                           <span className="text-muted-foreground font-medium">一泊三食</span>
-                          <span className="font-bold text-foreground">${dayInventory.price_3_meals}</span>
+                          <span className="font-bold text-foreground">${formatPrice(dayInventory.price_3_meals)}</span>
                         </div>
                       )}
                       {!dayInventory.price_2_meals && !dayInventory.price_3_meals && dayInventory.price && (
                         <div className="flex items-center justify-center gap-1 text-[11px] sm:text-xs bg-background/50 rounded px-1.5 py-0.5">
                           <DollarSign className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                          <span className="font-bold text-foreground">{dayInventory.price}</span>
+                          <span className="font-bold text-foreground">{formatPrice(dayInventory.price)}</span>
                         </div>
                       )}
                       <div className="flex items-center justify-center gap-1 text-[11px] sm:text-xs bg-primary/10 rounded px-1.5 py-0.5 mt-1.5">
