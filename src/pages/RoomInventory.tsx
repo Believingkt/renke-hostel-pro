@@ -112,10 +112,11 @@ export default function RoomInventory() {
                 </SelectContent>
               </Select>
 
-              {selectedRoomType && (
+              {selectedRoomType && currentAccommodationId && (
                 <RoomInventoryCalendar
                   roomTypeId={selectedRoomType}
                   roomTypeName={roomTypes.find(r => r.id === selectedRoomType)?.name || ''}
+                  accommodationId={currentAccommodationId}
                 />
               )}
             </div>
