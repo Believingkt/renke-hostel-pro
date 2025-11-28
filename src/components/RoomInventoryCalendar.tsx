@@ -890,7 +890,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                   )}
                 >
                   <div className={cn(
-                    "font-bold mb-1 text-sm sm:text-base w-full text-center pb-1 border-b",
+                    "font-bold mb-1 text-sm sm:text-base w-full text-center pb-1 border-b leading-tight",
                     isTodayDate && "text-primary border-primary/30",
                     isSelected && "text-blue-700 border-blue-300",
                     !isTodayDate && !isSelected && isHoliday && hasData && "text-orange-700 border-orange-200/50",
@@ -900,7 +900,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                     {format(day, 'd')}
                     {holidayInfo && (
                       <span className={cn(
-                        "ml-1 text-[9px] sm:text-[10px] px-1 py-0.5 rounded font-medium",
+                        "ml-1 text-[9px] sm:text-[10px] px-1 py-0.5 rounded font-medium leading-none",
                         isRegularHoliday && "bg-orange-600 text-white",
                         isCompensatoryDayOff && "bg-green-600 text-white",
                         isWorkOnWeekend && "bg-blue-600 text-white"
@@ -918,11 +918,11 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                           "flex items-center justify-between gap-1 text-xs sm:text-xs rounded px-1.5 py-0.5",
                           isHoliday ? "bg-orange-100/60" : "bg-blue-100/60"
                         )}>
-                          <span className="text-muted-foreground font-semibold text-[9px] sm:text-xs whitespace-nowrap">
+                          <span className="text-muted-foreground font-semibold text-[9px] sm:text-xs whitespace-nowrap leading-tight tracking-tight">
                             <span className="md:hidden">二</span>
                             <span className="hidden md:inline">一泊二食</span>
                           </span>
-                          <span className="font-bold text-foreground text-[10px] sm:text-xs truncate">${formatPrice(dayInventory.price_2_meals)}</span>
+                          <span className="font-bold text-foreground text-[10px] sm:text-xs truncate leading-tight tracking-wide">${formatPrice(dayInventory.price_2_meals)}</span>
                         </div>
                       )}
                       {dayInventory.price_3_meals && (
@@ -930,11 +930,11 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                           "flex items-center justify-between gap-1 text-xs sm:text-xs rounded px-1.5 py-0.5",
                           isHoliday ? "bg-orange-100/60" : "bg-blue-100/60"
                         )}>
-                          <span className="text-muted-foreground font-semibold text-[9px] sm:text-xs whitespace-nowrap">
+                          <span className="text-muted-foreground font-semibold text-[9px] sm:text-xs whitespace-nowrap leading-tight tracking-tight">
                             <span className="md:hidden">三</span>
                             <span className="hidden md:inline">一泊三食</span>
                           </span>
-                          <span className="font-bold text-foreground text-[10px] sm:text-xs truncate">${formatPrice(dayInventory.price_3_meals)}</span>
+                          <span className="font-bold text-foreground text-[10px] sm:text-xs truncate leading-tight tracking-wide">${formatPrice(dayInventory.price_3_meals)}</span>
                         </div>
                       )}
                       {!dayInventory.price_2_meals && !dayInventory.price_3_meals && dayInventory.price && (
@@ -955,7 +955,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                           isHoliday ? "text-orange-700" : "text-primary"
                         )} />
                         <span className={cn(
-                          "font-bold text-[10px] sm:text-xs whitespace-nowrap",
+                          "font-bold text-[10px] sm:text-xs whitespace-nowrap leading-tight tracking-wide",
                           isHoliday ? "text-orange-700" : "text-primary"
                         )}>
                           <span className="md:hidden">{dayInventory.availableRooms}</span>
@@ -964,7 +964,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                       </div>
                     </div>
                   ) : (
-                    <div className="text-xs sm:text-xs text-muted-foreground font-medium mt-2">未設定</div>
+                    <div className="text-xs sm:text-xs text-muted-foreground font-medium mt-2 leading-tight">未設定</div>
                   )}
                   {isSelected && (
                     <div className="absolute top-1.5 right-1.5 sm:top-1.5 sm:right-1.5 bg-blue-600 rounded-full p-0.5">
