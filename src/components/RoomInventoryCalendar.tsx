@@ -315,12 +315,12 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
     const monthEnd = endOfMonth(currentMonth);
     const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
     
-    const weekendDates = days
-      .filter(day => isWeekendDate(day))
+    const saturdayDates = days
+      .filter(day => day.getDay() === 6) // Only Saturday
       .map(day => format(day, 'yyyy-MM-dd'));
     
-    setSelectedDates(new Set(weekendDates));
-    toast.success(`已選擇 ${weekendDates.length} 個週末日期`);
+    setSelectedDates(new Set(saturdayDates));
+    toast.success(`已選擇 ${saturdayDates.length} 個星期六`);
   };
 
   const selectWeekdays = () => {
@@ -329,11 +329,14 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
     const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
     
     const weekdayDates = days
-      .filter(day => !isWeekendDate(day))
+      .filter(day => {
+        const dayOfWeek = day.getDay();
+        return dayOfWeek >= 0 && dayOfWeek <= 5; // Sunday to Friday
+      })
       .map(day => format(day, 'yyyy-MM-dd'));
     
     setSelectedDates(new Set(weekdayDates));
-    toast.success(`已選擇 ${weekdayDates.length} 個工作日日期`);
+    toast.success(`已選擇 ${weekdayDates.length} 個平日（日～五）`);
   };
 
   const selectCurrentWeek = () => {
@@ -644,8 +647,8 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                   disabled={isCopyMode}
                 >
                   <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  <span className="hidden sm:inline">選擇週末</span>
-                  <span className="sm:hidden">週末</span>
+                  <span className="hidden sm:inline">選擇星期六</span>
+                  <span className="sm:hidden">六</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -655,8 +658,8 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                   disabled={isCopyMode}
                 >
                   <Briefcase className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  <span className="hidden sm:inline">選擇工作日</span>
-                  <span className="sm:hidden">工作日</span>
+                  <span className="hidden sm:inline">選擇平日</span>
+                  <span className="sm:hidden">平日</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -752,13 +755,13 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
               const isCurrentMonth = isSameMonth(day, currentMonth);
               const isTodayDate = isToday(day);
               const isSelected = selectedDates.has(dateStr);
-              const isWeekend = isWeekendDate(day);
+              const isSaturday = day.getDay() === 6; // Only Saturday is weekend
               const holidayInfo = publicHolidays.get(dateStr);
               
               const isWorkOnWeekend = holidayInfo?.type === 'work_on_weekend';
               const isCompensatoryDayOff = holidayInfo?.type === 'compensatory_day_off';
               const isRegularHoliday = holidayInfo?.type === 'holiday';
-              const isHoliday = (isWeekend && !isWorkOnWeekend) || isCompensatoryDayOff || isRegularHoliday;
+              const isHoliday = (isSaturday && !isWorkOnWeekend) || isCompensatoryDayOff || isRegularHoliday;
 
               if (!isCurrentMonth) return null;
 
@@ -873,16 +876,16 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
               const isCurrentMonth = isSameMonth(day, currentMonth);
               const isTodayDate = isToday(day);
               const isSelected = selectedDates.has(dateStr);
-              const isWeekend = isWeekendDate(day);
+              const isSaturday = day.getDay() === 6; // Only Saturday is weekend
               const holidayInfo = publicHolidays.get(dateStr);
               
               // 判斷是否為假日價格：
-              // 1. 週末 + 不是補班日
+              // 1. 星期六 + 不是補班日
               // 2. 平日 + 是補休日或國定假日
               const isWorkOnWeekend = holidayInfo?.type === 'work_on_weekend';
               const isCompensatoryDayOff = holidayInfo?.type === 'compensatory_day_off';
               const isRegularHoliday = holidayInfo?.type === 'holiday';
-              const isHoliday = (isWeekend && !isWorkOnWeekend) || isCompensatoryDayOff || isRegularHoliday;
+              const isHoliday = (isSaturday && !isWorkOnWeekend) || isCompensatoryDayOff || isRegularHoliday;
 
               return (
                 <div

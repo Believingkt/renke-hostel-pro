@@ -389,12 +389,12 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
   };
 
   const selectWeekdays = () => {
-    setSelectedDays([1, 2, 3, 4, 5]); // 一到五
+    setSelectedDays([0, 1, 2, 3, 4, 5]); // 日到五
     setIncludePublicHolidays(false);
   };
 
   const selectHolidays = () => {
-    setSelectedDays([0, 6]); // 日和六
+    setSelectedDays([6]); // 六
     setIncludePublicHolidays(true); // 包含國定假日和補休日
   };
 
@@ -408,7 +408,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
 
   const isWeekend = (date: Date): boolean => {
     const day = date.getDay();
-    return day === 0 || day === 6; // Sunday or Saturday
+    return day === 6; // Saturday only
   };
 
   const getDayOfWeekLabel = (date: Date): string => {
@@ -1246,28 +1246,28 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                     onClick={selectWeekdays}
                     className={`
                       flex flex-col items-center justify-center gap-0.5 px-3 py-2 h-auto min-h-[44px] sm:min-h-[36px] rounded-md border transition-all touch-manipulation
-                      ${JSON.stringify(selectedDays) === JSON.stringify([1, 2, 3, 4, 5])
+                      ${JSON.stringify(selectedDays) === JSON.stringify([0, 1, 2, 3, 4, 5])
                         ? 'border-primary bg-primary text-primary-foreground'
                         : 'border-border hover:bg-accent hover:text-white'
                       }
                     `}
                   >
                     <span className="font-medium text-sm">平日</span>
-                    <span className="text-[10px] leading-tight opacity-70">(一～五)</span>
+                    <span className="text-[10px] leading-tight opacity-70">(日～五)</span>
                   </button>
                   <button
                     type="button"
                     onClick={selectHolidays}
                     className={`
                       flex flex-col items-center justify-center gap-0.5 px-3 py-2 h-auto min-h-[44px] sm:min-h-[36px] rounded-md border transition-all touch-manipulation
-                      ${JSON.stringify(selectedDays) === JSON.stringify([0, 6]) && includePublicHolidays
+                      ${JSON.stringify(selectedDays) === JSON.stringify([6]) && includePublicHolidays
                         ? 'border-primary bg-primary text-primary-foreground'
                         : 'border-border hover:bg-accent hover:text-white'
                       }
                     `}
                   >
                     <span className="font-medium text-sm">假日</span>
-                    <span className="text-[10px] leading-tight opacity-70">(六、日、國定假日)</span>
+                    <span className="text-[10px] leading-tight opacity-70">(六、國定假日)</span>
                   </button>
                 </div>
 
@@ -1541,28 +1541,28 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                     onClick={selectWeekdays}
                     className={`
                       flex flex-col items-center justify-center gap-0.5 px-3 py-2 h-auto min-h-[44px] sm:min-h-[36px] rounded-md border transition-all touch-manipulation
-                      ${JSON.stringify(selectedDays) === JSON.stringify([1, 2, 3, 4, 5])
+                      ${JSON.stringify(selectedDays) === JSON.stringify([0, 1, 2, 3, 4, 5])
                         ? 'border-primary bg-primary text-primary-foreground'
                         : 'border-border hover:bg-accent hover:text-white'
                       }
                     `}
                   >
                     <span className="font-medium text-sm">平日</span>
-                    <span className="text-[10px] leading-tight opacity-70">(一～五)</span>
+                    <span className="text-[10px] leading-tight opacity-70">(日～五)</span>
                   </button>
                   <button
                     type="button"
                     onClick={selectHolidays}
                     className={`
                       flex flex-col items-center justify-center gap-0.5 px-3 py-2 h-auto min-h-[44px] sm:min-h-[36px] rounded-md border transition-all touch-manipulation
-                      ${JSON.stringify(selectedDays) === JSON.stringify([0, 6]) && includePublicHolidays
+                      ${JSON.stringify(selectedDays) === JSON.stringify([6]) && includePublicHolidays
                         ? 'border-primary bg-primary text-primary-foreground'
                         : 'border-border hover:bg-accent hover:text-white'
                       }
                     `}
                   >
                     <span className="font-medium text-sm">假日</span>
-                    <span className="text-[10px] leading-tight opacity-70">(六、日、國定假日)</span>
+                    <span className="text-[10px] leading-tight opacity-70">(六、國定假日)</span>
                   </button>
                   </div>
 
