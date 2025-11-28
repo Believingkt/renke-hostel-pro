@@ -3122,8 +3122,14 @@ const WebsiteContent = () => {
 
           {/* 付款方式 */}
           <Card>
-            <CardHeader>
-              <CardTitle>付款方式</CardTitle>
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-1.5 bg-primary rounded-full" />
+                <div>
+                  <CardTitle className="text-xl">付款方式</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">選擇接受的付款方式</p>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -3148,8 +3154,14 @@ const WebsiteContent = () => {
 
           {/* 取消政策 */}
           <Card>
-            <CardHeader>
-              <CardTitle>取消政策</CardTitle>
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-1.5 bg-primary rounded-full" />
+                <div>
+                  <CardTitle className="text-xl">取消政策</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">設定訂單取消的相關規定</p>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -3166,8 +3178,14 @@ const WebsiteContent = () => {
 
           {/* 重要事項 */}
           <Card>
-            <CardHeader>
-              <CardTitle>重要事項</CardTitle>
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-1.5 bg-primary rounded-full" />
+                <div>
+                  <CardTitle className="text-xl">重要事項</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">提醒訪客入住時的重要注意事項</p>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -3183,8 +3201,14 @@ const WebsiteContent = () => {
 
           {/* 寵物入住守則 */}
           <Card>
-            <CardHeader>
-              <CardTitle>寵物入住守則</CardTitle>
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-1.5 bg-primary rounded-full" />
+                <div>
+                  <CardTitle className="text-xl">寵物入住守則</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">說明寵物入住的規範與要求</p>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -3201,8 +3225,14 @@ const WebsiteContent = () => {
 
           {/* 其他注意事項 */}
           <Card>
-            <CardHeader>
-              <CardTitle>其他注意事項</CardTitle>
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-1.5 bg-primary rounded-full" />
+                <div>
+                  <CardTitle className="text-xl">其他注意事項</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">補充其他需要告知訪客的事項</p>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
