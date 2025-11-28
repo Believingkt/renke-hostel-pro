@@ -1366,9 +1366,9 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
               )}
             </div>
 
-            {/* 可用房數設定 */}
+            {/* 庫存設定 */}
             <div className="space-y-2">
-              <Label htmlFor="available_rooms">可用房數 *</Label>
+              <Label htmlFor="available_rooms">庫存 *</Label>
               <Input
                 id="available_rooms"
                 type="number"
@@ -1659,9 +1659,9 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                 )}
               </div>
 
-              {/* 可用房數設定 */}
+              {/* 庫存設定 */}
               <div className="space-y-2">
-                <Label htmlFor="available_rooms_desktop">可用房數 *</Label>
+                <Label htmlFor="available_rooms_desktop">庫存 *</Label>
                 <Input
                   id="available_rooms_desktop"
                   type="number"
