@@ -715,28 +715,26 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                   {hasData ? (
                     <div className="w-full space-y-1 px-0.5">
                       {dayInventory.price_2_meals && (
-                        <div className="flex items-center justify-start gap-0.5 text-[11px] sm:text-xs">
-                          <DollarSign className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted-foreground flex-shrink-0" />
-                          <span className="font-medium text-foreground">二:</span>
-                          <span className="font-semibold text-foreground">{dayInventory.price_2_meals}</span>
+                        <div className="flex items-center justify-between gap-1 text-[11px] sm:text-xs bg-background/50 rounded px-1.5 py-0.5">
+                          <span className="text-muted-foreground font-medium">一泊二食</span>
+                          <span className="font-bold text-foreground">${dayInventory.price_2_meals}</span>
                         </div>
                       )}
                       {dayInventory.price_3_meals && (
-                        <div className="flex items-center justify-start gap-0.5 text-[11px] sm:text-xs">
-                          <DollarSign className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted-foreground flex-shrink-0" />
-                          <span className="font-medium text-foreground">三:</span>
-                          <span className="font-semibold text-foreground">{dayInventory.price_3_meals}</span>
+                        <div className="flex items-center justify-between gap-1 text-[11px] sm:text-xs bg-background/50 rounded px-1.5 py-0.5">
+                          <span className="text-muted-foreground font-medium">一泊三食</span>
+                          <span className="font-bold text-foreground">${dayInventory.price_3_meals}</span>
                         </div>
                       )}
                       {!dayInventory.price_2_meals && !dayInventory.price_3_meals && dayInventory.price && (
-                        <div className="flex items-center justify-start gap-0.5 text-[11px] sm:text-xs">
-                          <DollarSign className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted-foreground flex-shrink-0" />
-                          <span className="font-semibold text-foreground">{dayInventory.price}</span>
+                        <div className="flex items-center justify-center gap-1 text-[11px] sm:text-xs bg-background/50 rounded px-1.5 py-0.5">
+                          <DollarSign className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                          <span className="font-bold text-foreground">{dayInventory.price}</span>
                         </div>
                       )}
-                      <div className="flex items-center justify-start gap-0.5 text-[11px] sm:text-xs">
-                        <Package className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted-foreground flex-shrink-0" />
-                        <span className="font-semibold text-foreground">{dayInventory.availableRooms}</span>
+                      <div className="flex items-center justify-center gap-1 text-[11px] sm:text-xs bg-primary/10 rounded px-1.5 py-0.5 mt-1.5">
+                        <Package className="h-3 w-3 text-primary flex-shrink-0" />
+                        <span className="font-bold text-primary">{dayInventory.availableRooms} 間</span>
                       </div>
                     </div>
                   ) : (
