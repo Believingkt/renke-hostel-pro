@@ -711,9 +711,9 @@ const KolDiscount = () => {
               )}
             </Button>
             <Button
-              variant="ghost"
+              variant="ghost-destructive"
               size="icon"
-              className="h-9 w-9 text-destructive hover:text-destructive touch-manipulation"
+              className="h-9 w-9 touch-manipulation"
               onClick={() => handleDelete(item.id)}
             >
               <Trash2 className="h-4 w-4" />
@@ -2277,9 +2277,9 @@ const KolDiscount = () => {
                           )}
                         </Button>
                         <Button
-                          variant="ghost"
+                          variant="ghost-destructive"
                           size="sm"
-                          className="h-11 text-xs text-destructive hover:text-destructive touch-manipulation"
+                          className="h-11 text-xs touch-manipulation"
                           onClick={() => handleDelete(item.id)}
                         >
                           <Trash2 className="h-3.5 w-3.5 mr-1" />
