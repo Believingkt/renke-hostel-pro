@@ -3280,20 +3280,22 @@ const WebsiteContent = () => {
                   faqs.map((faq) => (
                     <div
                       key={faq.id}
-                      className="flex items-start gap-4 p-4 border rounded-lg"
+                      className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4 p-4 sm:p-5 border rounded-lg bg-card"
                     >
-                      <GripVertical className="h-5 w-5 text-muted-foreground mt-1 cursor-move" />
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <h3 className="font-semibold">{faq.question}</h3>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {faq.answer}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2">
+                      <GripVertical className="hidden sm:block h-5 w-5 text-muted-foreground mt-1 cursor-move flex-shrink-0" />
+                      <div className="flex-1 space-y-3 min-w-0">
+                        <div className="space-y-2">
+                          <h3 className="font-semibold text-base sm:text-lg leading-tight">{faq.question}</h3>
+                          <p className="text-sm text-muted-foreground leading-relaxed break-words">
+                            {faq.answer}
+                          </p>
+                        </div>
+                        
+                        {/* Mobile: Controls below content */}
+                        <div className="flex flex-col sm:hidden gap-3 pt-2 border-t">
+                          <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <Label htmlFor={`publish-${faq.id}`} className="text-sm">
+                              <Label htmlFor={`publish-${faq.id}`} className="text-sm font-medium">
                                 {faq.is_published ? "已發布" : "已隱藏"}
                               </Label>
                               <Switch
@@ -3303,23 +3305,60 @@ const WebsiteContent = () => {
                                 className="touch-manipulation"
                               />
                             </div>
+                          </div>
+                          <div className="flex gap-2">
                             <Button
-                              variant="ghost"
-                              size="icon"
+                              variant="outline"
+                              size="sm"
                               onClick={() => handleEditFaq(faq)}
-                              className="h-10 w-10 sm:h-9 sm:w-9 touch-manipulation"
+                              className="flex-1 h-11 touch-manipulation"
                             >
-                              <Edit2 className="h-4 w-4" />
+                              <Edit2 className="h-4 w-4 mr-2" />
+                              編輯
                             </Button>
                             <Button
-                              variant="ghost-destructive"
-                              size="icon"
+                              variant="outline"
+                              size="sm"
                               onClick={() => handleDeleteFaqClick(faq.id)}
-                              className="h-10 w-10 sm:h-9 sm:w-9 touch-manipulation"
+                              className="flex-1 h-11 touch-manipulation text-destructive hover:bg-destructive/10"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              刪除
                             </Button>
                           </div>
+                        </div>
+                      </div>
+                      
+                      {/* Desktop: Controls on the right */}
+                      <div className="hidden sm:flex sm:flex-col sm:items-end gap-3 flex-shrink-0">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`publish-desktop-${faq.id}`} className="text-sm">
+                            {faq.is_published ? "已發布" : "已隱藏"}
+                          </Label>
+                          <Switch
+                            id={`publish-desktop-${faq.id}`}
+                            checked={faq.is_published}
+                            onCheckedChange={() => handleTogglePublishFaq(faq)}
+                            className="touch-manipulation"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEditFaq(faq)}
+                            className="h-9 w-9 touch-manipulation"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost-destructive"
+                            size="icon"
+                            onClick={() => handleDeleteFaqClick(faq.id)}
+                            className="h-9 w-9 touch-manipulation"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
                     </div>
