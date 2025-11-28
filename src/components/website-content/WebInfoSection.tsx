@@ -89,13 +89,13 @@ const SortablePhoto = ({ photo, onDelete }: SortablePhotoProps) => {
         type="button"
         variant="destructive"
         size="icon"
-        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
+        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-10 w-10 sm:h-8 sm:w-8 touch-manipulation"
         onClick={(e) => {
           e.stopPropagation();
           onDelete(photo.id);
         }}
       >
-        <Trash2 className="h-4 w-4" />
+        <Trash2 className="h-5 w-5 sm:h-4 sm:w-4" />
       </Button>
       {photo.title && (
         <div className="absolute bottom-2 left-2 right-2 bg-black/60 text-white text-xs p-2 rounded">
@@ -168,7 +168,7 @@ export const WebInfoSection = ({
               variant="outline"
               onClick={() => document.getElementById('hero-photo-upload')?.click()}
               disabled={uploadingHeroPhoto || heroPhotos.length >= 5}
-              className="flex items-center gap-2 min-w-[140px]"
+              className="flex items-center gap-2 min-w-[140px] h-11 sm:h-10 touch-manipulation"
             >
               <Upload className="h-4 w-4" />
               {uploadingHeroPhoto ? "上傳中..." : "上傳輪播圖"}
@@ -245,7 +245,7 @@ export const WebInfoSection = ({
                 type="button"
                 variant="secondary"
                 onClick={onPreviewCarousel}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 h-11 sm:h-10 touch-manipulation"
               >
                 <Eye className="h-4 w-4" />
                 預覽輪播效果
@@ -274,7 +274,7 @@ export const WebInfoSection = ({
                       onChange={(e) => onHeroTitleChange('hero_main_title', e.target.value)}
                       placeholder="例：歡迎來到我們的民宿"
                       maxLength={20}
-                      className="text-base"
+                      className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
                     />
                     <p className="text-xs text-muted-foreground">
                       {heroMainTitle.length}/20 字元
@@ -289,7 +289,7 @@ export const WebInfoSection = ({
                       onChange={(e) => onHeroTitleChange('hero_subtitle', e.target.value)}
                       placeholder="例：體驗最舒適的住宿環境"
                       maxLength={20}
-                      className="text-base"
+                      className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
                     />
                     <p className="text-xs text-muted-foreground">
                       {heroSubtitle.length}/20 字元
@@ -306,7 +306,7 @@ export const WebInfoSection = ({
                       onChange={(e) => onHeroTitleChange('hero_description', e.target.value)}
                       placeholder="例：享受自然與寧靜的完美結合"
                       maxLength={20}
-                      className="text-base"
+                      className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
                     />
                     <p className="text-xs text-muted-foreground">
                       {heroDescription.length}/20 字元

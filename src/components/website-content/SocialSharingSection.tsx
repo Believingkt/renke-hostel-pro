@@ -198,7 +198,7 @@ export const SocialSharingSection = ({
               variant="outline"
               onClick={() => document.getElementById('og-image-upload')?.click()}
               disabled={uploadingOgImage}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 h-11 sm:h-10 touch-manipulation"
             >
               <Upload className="h-4 w-4" />
               {uploadingOgImage ? "上傳中..." : "上傳縮圖"}
@@ -224,6 +224,7 @@ export const SocialSharingSection = ({
                   variant="ghost-destructive"
                   size="icon"
                   onClick={onDeleteOgImage}
+                  className="h-11 w-11 sm:h-10 sm:w-10 touch-manipulation"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
