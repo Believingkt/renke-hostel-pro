@@ -21,6 +21,12 @@ interface RoomInventoryCalendarProps {
   accommodationId: string;
 }
 
+interface PublicHoliday {
+  date: string;
+  type: 'holiday' | 'compensatory_day_off' | 'work_on_weekend';
+  name: string;
+}
+
 interface DayInventory {
   date: string;
   price: number | null;
@@ -40,7 +46,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
   const isMobile = useIsMobile();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [inventory, setInventory] = useState<Record<string, DayInventory>>({});
-  const [publicHolidays, setPublicHolidays] = useState<Set<string>>(new Set());
+  const [publicHolidays, setPublicHolidays] = useState<Map<string, PublicHoliday>>(new Map());
   const [loading, setLoading] = useState(true);
   const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -159,15 +165,24 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
 
       const { data, error } = await supabase
         .from('public_holidays')
-        .select('holiday_date')
+        .select('holiday_date, holiday_type, holiday_name')
         .eq('accommodation_id', accommodationId)
         .gte('holiday_date', format(monthStart, 'yyyy-MM-dd'))
         .lte('holiday_date', format(monthEnd, 'yyyy-MM-dd'));
 
       if (error) throw error;
 
-      const holidaySet = new Set(data?.map(h => h.holiday_date) || []);
-      setPublicHolidays(holidaySet);
+      const holidayMap = new Map(
+        data?.map(h => [
+          h.holiday_date,
+          {
+            date: h.holiday_date,
+            type: h.holiday_type as 'holiday' | 'compensatory_day_off' | 'work_on_weekend',
+            name: h.holiday_name,
+          }
+        ]) || []
+      );
+      setPublicHolidays(holidayMap);
     } catch (error) {
       console.error('載入國定假日失敗:', error);
     }
@@ -716,8 +731,15 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
               const isTodayDate = isToday(day);
               const isSelected = selectedDates.has(dateStr);
               const isWeekend = isWeekendDate(day);
-              const isPublicHoliday = publicHolidays.has(dateStr);
-              const isHoliday = isWeekend || isPublicHoliday;
+              const holidayInfo = publicHolidays.get(dateStr);
+              
+              // 判斷是否為假日價格：
+              // 1. 週末 + 不是補班日
+              // 2. 平日 + 是補休日或國定假日
+              const isWorkOnWeekend = holidayInfo?.type === 'work_on_weekend';
+              const isCompensatoryDayOff = holidayInfo?.type === 'compensatory_day_off';
+              const isRegularHoliday = holidayInfo?.type === 'holiday';
+              const isHoliday = (isWeekend && !isWorkOnWeekend) || isCompensatoryDayOff || isRegularHoliday;
 
               return (
                 <div
@@ -749,8 +771,17 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                     !isTodayDate && !isSelected && !hasData && "border-border/30"
                   )}>
                     {format(day, 'd')}
-                    {isPublicHoliday && (
-                      <span className="ml-1 text-[9px] sm:text-[10px] px-1 py-0.5 bg-orange-600 text-white rounded font-medium">假</span>
+                    {holidayInfo && (
+                      <span className={cn(
+                        "ml-1 text-[9px] sm:text-[10px] px-1 py-0.5 rounded font-medium",
+                        isRegularHoliday && "bg-orange-600 text-white",
+                        isCompensatoryDayOff && "bg-green-600 text-white",
+                        isWorkOnWeekend && "bg-blue-600 text-white"
+                      )}>
+                        {isRegularHoliday && '假'}
+                        {isCompensatoryDayOff && '休'}
+                        {isWorkOnWeekend && '班'}
+                      </span>
                     )}
                   </div>
                   {hasData ? (
@@ -843,8 +874,25 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
           {!isSelectionMode && (
             <div className="text-xs sm:text-sm text-muted-foreground bg-gradient-to-r from-muted/80 to-muted/40 rounded-lg px-4 py-3 sm:py-2.5 border border-muted">
               💡 <span className="font-medium">提示：</span>
-              <span className="hidden sm:inline">平日使用藍色調，假日（週末及國定假日）使用橙色調。點擊日期可快速編輯價格和庫存</span>
-              <span className="sm:hidden">平日藍色、假日橙色。點擊日期快速編輯</span>
+              <span className="hidden sm:inline">
+                平日使用藍色調，假日（週末及國定假日）使用橙色調。
+                <span className="mx-1">•</span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="px-1 py-0.5 bg-orange-600 text-white rounded text-[10px]">假</span>
+                  國定假日
+                </span>
+                <span className="mx-1">•</span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="px-1 py-0.5 bg-green-600 text-white rounded text-[10px]">休</span>
+                  補休
+                </span>
+                <span className="mx-1">•</span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="px-1 py-0.5 bg-blue-600 text-white rounded text-[10px]">班</span>
+                  補班
+                </span>
+              </span>
+              <span className="sm:hidden">平日藍色、假日橙色。假=國定假日、休=補休、班=補班</span>
             </div>
           )}
         </div>

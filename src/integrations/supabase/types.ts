@@ -1119,6 +1119,7 @@ export type Database = {
           created_at: string
           holiday_date: string
           holiday_name: string
+          holiday_type: string
           id: string
           updated_at: string
         }
@@ -1127,6 +1128,7 @@ export type Database = {
           created_at?: string
           holiday_date: string
           holiday_name: string
+          holiday_type?: string
           id?: string
           updated_at?: string
         }
@@ -1135,6 +1137,7 @@ export type Database = {
           created_at?: string
           holiday_date?: string
           holiday_name?: string
+          holiday_type?: string
           id?: string
           updated_at?: string
         }
