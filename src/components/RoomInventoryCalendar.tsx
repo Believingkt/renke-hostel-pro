@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ChevronLeft, ChevronRight, DollarSign, Package, Edit, X, Check, Calendar, CalendarDays, CalendarRange, Briefcase, Copy } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
@@ -48,6 +49,9 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
   const [editingDate, setEditingDate] = useState<string | null>(null);
   const [singleEditData, setSingleEditData] = useState({
     price: "",
+    price_2_meals: "",
+    price_3_meals: "",
+    mealPlan: "none" as "none" | "2meals" | "3meals",
     availableRooms: "",
     isAvailable: true,
   });
@@ -84,7 +88,11 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
         setSingleEditDialogOpen(false);
       } else if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        if (singleEditData.price && singleEditData.availableRooms && !saving) {
+        const hasRequiredData = singleEditData.availableRooms && 
+          (singleEditData.mealPlan === 'none' ? singleEditData.price :
+           singleEditData.mealPlan === '2meals' ? singleEditData.price_2_meals :
+           singleEditData.price_3_meals);
+        if (hasRequiredData && !saving) {
           handleSingleDateUpdate();
         }
       }
@@ -337,8 +345,19 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
       // 在一般模式下開啟單日編輯對話框
       const dayData = inventory[dateStr];
       setEditingDate(dateStr);
+      
+      // 判斷預設選擇哪個方案
+      let defaultMealPlan: "none" | "2meals" | "3meals" = "none";
+      if (dayData?.price_2_meals || dayData?.price_3_meals) {
+        // 如果有餐飲價格，預設選擇有值的那個
+        defaultMealPlan = dayData?.price_2_meals ? "2meals" : "3meals";
+      }
+      
       setSingleEditData({
         price: dayData?.price?.toString() || "",
+        price_2_meals: dayData?.price_2_meals?.toString() || "",
+        price_3_meals: dayData?.price_3_meals?.toString() || "",
+        mealPlan: defaultMealPlan,
         availableRooms: dayData?.availableRooms?.toString() || "",
         isAvailable: dayData?.isAvailable ?? true,
       });
@@ -347,22 +366,48 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
   };
 
   const handleSingleDateUpdate = async () => {
-    if (!editingDate || !singleEditData.price || !singleEditData.availableRooms) {
-      toast.error('請填寫價格和可用房數');
+    if (!editingDate || !singleEditData.availableRooms) {
+      toast.error('請填寫可用房數');
+      return;
+    }
+
+    // 驗證價格：根據選擇的方案檢查對應價格是否填寫
+    if (singleEditData.mealPlan === 'none' && !singleEditData.price) {
+      toast.error('請填寫基礎房價');
+      return;
+    }
+    if (singleEditData.mealPlan === '2meals' && !singleEditData.price_2_meals) {
+      toast.error('請填寫一泊二食價格');
+      return;
+    }
+    if (singleEditData.mealPlan === '3meals' && !singleEditData.price_3_meals) {
+      toast.error('請填寫一泊三食價格');
       return;
     }
 
     try {
       setSaving(true);
+      
+      // 根據選擇的方案構建更新資料
+      const updateData: any = {
+        room_type_id: roomTypeId,
+        date: editingDate,
+        available_rooms: parseInt(singleEditData.availableRooms),
+        is_available: singleEditData.isAvailable,
+      };
+      
+      // 只更新選中的價格欄位
+      if (singleEditData.mealPlan === 'none') {
+        updateData.price = parseInt(singleEditData.price);
+      } else if (singleEditData.mealPlan === '2meals') {
+        updateData.price_2_meals = parseInt(singleEditData.price_2_meals);
+      } else {
+        updateData.price_3_meals = parseInt(singleEditData.price_3_meals);
+      }
+      
       const { error } = await supabase
         .from('room_inventory_pricing')
-        .upsert({
-          room_type_id: roomTypeId,
-          date: editingDate,
-          price: parseInt(singleEditData.price),
-          available_rooms: parseInt(singleEditData.availableRooms),
-          is_available: singleEditData.isAvailable,
-        }, {
+        .upsert(updateData, {
           onConflict: 'room_type_id,date',
           ignoreDuplicates: false,
         });
@@ -903,19 +948,79 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
             </DrawerHeader>
 
             <div className="px-4 space-y-4 overflow-y-auto">
-              <div className="space-y-2">
-                <Label htmlFor="single-price">房價 *</Label>
-                <Input
-                  id="single-price"
-                  type="number"
-                  inputMode="numeric"
-                  min="0"
-                  placeholder="輸入房價"
-                  value={singleEditData.price}
-                  onChange={(e) => setSingleEditData({ ...singleEditData, price: e.target.value })}
-                  className="h-12 text-base touch-manipulation"
-                />
+              {/* 餐飲方案選擇 */}
+              <div className="space-y-3">
+                <Label>餐飲方案 *</Label>
+                <RadioGroup
+                  value={singleEditData.mealPlan}
+                  onValueChange={(value: "none" | "2meals" | "3meals") => 
+                    setSingleEditData({ ...singleEditData, mealPlan: value })
+                  }
+                  className="space-y-2"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="none" id="meal-none" />
+                    <Label htmlFor="meal-none" className="cursor-pointer font-normal">不含餐（基礎房價）</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="2meals" id="meal-2" />
+                    <Label htmlFor="meal-2" className="cursor-pointer font-normal">一泊二食</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="3meals" id="meal-3" />
+                    <Label htmlFor="meal-3" className="cursor-pointer font-normal">一泊三食</Label>
+                  </div>
+                </RadioGroup>
               </div>
+
+              {/* 價格輸入 - 根據選擇的方案顯示對應欄位 */}
+              {singleEditData.mealPlan === 'none' && (
+                <div className="space-y-2">
+                  <Label htmlFor="single-price">基礎房價 *</Label>
+                  <Input
+                    id="single-price"
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    placeholder="輸入基礎房價"
+                    value={singleEditData.price}
+                    onChange={(e) => setSingleEditData({ ...singleEditData, price: e.target.value })}
+                    className="h-12 text-base touch-manipulation"
+                  />
+                </div>
+              )}
+
+              {singleEditData.mealPlan === '2meals' && (
+                <div className="space-y-2">
+                  <Label htmlFor="single-price-2meals">一泊二食價格 *</Label>
+                  <Input
+                    id="single-price-2meals"
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    placeholder="輸入一泊二食價格"
+                    value={singleEditData.price_2_meals}
+                    onChange={(e) => setSingleEditData({ ...singleEditData, price_2_meals: e.target.value })}
+                    className="h-12 text-base touch-manipulation"
+                  />
+                </div>
+              )}
+
+              {singleEditData.mealPlan === '3meals' && (
+                <div className="space-y-2">
+                  <Label htmlFor="single-price-3meals">一泊三食價格 *</Label>
+                  <Input
+                    id="single-price-3meals"
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    placeholder="輸入一泊三食價格"
+                    value={singleEditData.price_3_meals}
+                    onChange={(e) => setSingleEditData({ ...singleEditData, price_3_meals: e.target.value })}
+                    className="h-12 text-base touch-manipulation"
+                  />
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="single-availableRooms">可用房數 *</Label>
@@ -947,7 +1052,10 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
             <DrawerFooter className="pt-4">
               <Button
                 onClick={handleSingleDateUpdate}
-                disabled={saving || !singleEditData.price || !singleEditData.availableRooms}
+                disabled={saving || !singleEditData.availableRooms || 
+                  (singleEditData.mealPlan === 'none' && !singleEditData.price) ||
+                  (singleEditData.mealPlan === '2meals' && !singleEditData.price_2_meals) ||
+                  (singleEditData.mealPlan === '3meals' && !singleEditData.price_3_meals)}
                 className="h-12 text-base touch-manipulation"
               >
                 {saving ? '更新中...' : '確認更新'}
@@ -986,24 +1094,84 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
             </DialogHeader>
 
             <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="single-price">房價 *</Label>
-                <Input
-                  id="single-price"
-                  type="number"
-                  inputMode="numeric"
-                  min="0"
-                  placeholder="輸入房價"
-                  value={singleEditData.price}
-                  onChange={(e) => setSingleEditData({ ...singleEditData, price: e.target.value })}
-                  className="touch-manipulation"
-                />
+              {/* 餐飲方案選擇 */}
+              <div className="space-y-3">
+                <Label>餐飲方案 *</Label>
+                <RadioGroup
+                  value={singleEditData.mealPlan}
+                  onValueChange={(value: "none" | "2meals" | "3meals") => 
+                    setSingleEditData({ ...singleEditData, mealPlan: value })
+                  }
+                  className="space-y-2"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="none" id="meal-none-desktop" />
+                    <Label htmlFor="meal-none-desktop" className="cursor-pointer font-normal">不含餐（基礎房價）</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="2meals" id="meal-2-desktop" />
+                    <Label htmlFor="meal-2-desktop" className="cursor-pointer font-normal">一泊二食</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="3meals" id="meal-3-desktop" />
+                    <Label htmlFor="meal-3-desktop" className="cursor-pointer font-normal">一泊三食</Label>
+                  </div>
+                </RadioGroup>
               </div>
 
+              {/* 價格輸入 - 根據選擇的方案顯示對應欄位 */}
+              {singleEditData.mealPlan === 'none' && (
+                <div className="space-y-2">
+                  <Label htmlFor="single-price-desktop">基礎房價 *</Label>
+                  <Input
+                    id="single-price-desktop"
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    placeholder="輸入基礎房價"
+                    value={singleEditData.price}
+                    onChange={(e) => setSingleEditData({ ...singleEditData, price: e.target.value })}
+                    className="touch-manipulation"
+                  />
+                </div>
+              )}
+
+              {singleEditData.mealPlan === '2meals' && (
+                <div className="space-y-2">
+                  <Label htmlFor="single-price-2meals-desktop">一泊二食價格 *</Label>
+                  <Input
+                    id="single-price-2meals-desktop"
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    placeholder="輸入一泊二食價格"
+                    value={singleEditData.price_2_meals}
+                    onChange={(e) => setSingleEditData({ ...singleEditData, price_2_meals: e.target.value })}
+                    className="touch-manipulation"
+                  />
+                </div>
+              )}
+
+              {singleEditData.mealPlan === '3meals' && (
+                <div className="space-y-2">
+                  <Label htmlFor="single-price-3meals-desktop">一泊三食價格 *</Label>
+                  <Input
+                    id="single-price-3meals-desktop"
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    placeholder="輸入一泊三食價格"
+                    value={singleEditData.price_3_meals}
+                    onChange={(e) => setSingleEditData({ ...singleEditData, price_3_meals: e.target.value })}
+                    className="touch-manipulation"
+                  />
+                </div>
+              )}
+
               <div className="space-y-2">
-                <Label htmlFor="single-availableRooms">可用房數 *</Label>
+                <Label htmlFor="single-availableRooms-desktop">可用房數 *</Label>
                 <Input
-                  id="single-availableRooms"
+                  id="single-availableRooms-desktop"
                   type="number"
                   inputMode="numeric"
                   min="0"
@@ -1016,12 +1184,12 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
 
               <div className="flex items-center space-x-2">
                 <Switch
-                  id="single-isAvailable"
+                  id="single-isAvailable-desktop"
                   checked={singleEditData.isAvailable}
                   onCheckedChange={(checked) => setSingleEditData({ ...singleEditData, isAvailable: checked })}
                   className="touch-manipulation"
                 />
-                <Label htmlFor="single-isAvailable" className="cursor-pointer">
+                <Label htmlFor="single-isAvailable-desktop" className="cursor-pointer">
                   開放預訂
                 </Label>
               </div>
@@ -1038,7 +1206,10 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
               </Button>
               <Button
                 onClick={handleSingleDateUpdate}
-                disabled={saving || !singleEditData.price || !singleEditData.availableRooms}
+                disabled={saving || !singleEditData.availableRooms || 
+                  (singleEditData.mealPlan === 'none' && !singleEditData.price) ||
+                  (singleEditData.mealPlan === '2meals' && !singleEditData.price_2_meals) ||
+                  (singleEditData.mealPlan === '3meals' && !singleEditData.price_3_meals)}
                 className="touch-manipulation"
               >
                 {saving ? '更新中...' : '確認更新'}
