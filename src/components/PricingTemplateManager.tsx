@@ -81,6 +81,7 @@ interface TemplateApplication {
   price_type: '2meals' | '3meals';
   affected_dates_count: number;
   applied_by: string | null;
+  available_rooms: number;
 }
 
 interface RoomType {
@@ -222,6 +223,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
           price_type: app.price_type,
           affected_dates_count: app.affected_dates_count,
           applied_by: app.applied_by,
+          available_rooms: app.available_rooms,
         });
       });
       
@@ -788,7 +790,8 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                   <div className="text-xs text-muted-foreground">
                     {format(new Date(templateApplications[template.id][0].applied_at), 'yyyy/MM/dd HH:mm')} •{' '}
                     {templateApplications[template.id][0].affected_dates_count} 天 •{' '}
-                    {templateApplications[template.id][0].room_type_ids.length} 個房型
+                    {templateApplications[template.id][0].room_type_ids.length} 個房型 •{' '}
+                    庫存 {templateApplications[template.id][0].available_rooms}
                   </div>
                 </div>
               )}
