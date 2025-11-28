@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { Globe, Plus, Trash2, Edit2, GripVertical, MapPin, Image as ImageIcon, Upload, Info, Wrench, Package, HelpCircle, Navigation, icons, AlertCircle, BookOpen, Home } from "lucide-react";
+import { Globe, Plus, Trash2, Edit2, GripVertical, MapPin, Image as ImageIcon, Upload, Info, Wrench, Package, HelpCircle, Navigation, icons, AlertCircle, BookOpen, Home, Clock } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -3075,27 +3075,47 @@ const WebsiteContent = () => {
           <PageHeader title="訂房須知" icon={BookOpen} />
           {/* 入住退房時間 */}
           <Card>
-            <CardHeader>
-              <CardTitle>入住時間</CardTitle>
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-1.5 bg-primary rounded-full" />
+                <div>
+                  <CardTitle className="text-xl">入住時間</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">設定入住與退房的時間</p>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-6">
-                <ValidatedInput
-                  type="time"
-                  label="入住時間"
-                  value={bookingInfo.checkInTime}
-                  error={bookingErrors.check_in_time}
-                  onChange={(value) => setBookingInfo(prev => ({ ...prev, checkInTime: value }))}
-                  onValidate={(value) => validateBookingField("check_in_time", value)}
-                />
-                <ValidatedInput
-                  type="time"
-                  label="退房時間"
-                  value={bookingInfo.checkOutTime}
-                  error={bookingErrors.check_out_time}
-                  onChange={(value) => setBookingInfo(prev => ({ ...prev, checkOutTime: value }))}
-                  onValidate={(value) => validateBookingField("check_out_time", value)}
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-base font-medium flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-primary" />
+                    入住時間
+                  </Label>
+                  <ValidatedInput
+                    type="time"
+                    value={bookingInfo.checkInTime}
+                    error={bookingErrors.check_in_time}
+                    onChange={(value) => setBookingInfo(prev => ({ ...prev, checkInTime: value }))}
+                    onValidate={(value) => validateBookingField("check_in_time", value)}
+                    className="h-12 text-base"
+                  />
+                  <p className="text-xs text-muted-foreground">訪客可在此時間之後辦理入住</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-base font-medium flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-primary" />
+                    退房時間
+                  </Label>
+                  <ValidatedInput
+                    type="time"
+                    value={bookingInfo.checkOutTime}
+                    error={bookingErrors.check_out_time}
+                    onChange={(value) => setBookingInfo(prev => ({ ...prev, checkOutTime: value }))}
+                    onValidate={(value) => validateBookingField("check_out_time", value)}
+                    className="h-12 text-base"
+                  />
+                  <p className="text-xs text-muted-foreground">訪客須在此時間之前退房</p>
+                </div>
               </div>
             </CardContent>
           </Card>
