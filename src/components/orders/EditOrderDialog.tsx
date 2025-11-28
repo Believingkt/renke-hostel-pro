@@ -502,7 +502,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
                   variant="ghost"
                   size="sm"
                   onClick={handleRemoveDiscount}
-                  className="h-8 w-8 p-0"
+                  className="h-10 w-10 sm:h-8 sm:w-8 p-0 touch-manipulation"
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -522,7 +522,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
                   onClick={handleApplyDiscount}
                   disabled={isValidatingCode || !discountCode.trim()}
                   variant="outline"
-                  className="h-12 sm:h-10"
+                  className="h-12 sm:h-10 touch-manipulation"
                 >
                   {isValidatingCode ? "驗證中..." : "套用"}
                 </Button>

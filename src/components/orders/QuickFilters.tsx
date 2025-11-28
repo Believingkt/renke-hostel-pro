@@ -21,7 +21,7 @@ export function QuickFilters({ quickFilter, onFilterChange, getFilterCount }: Qu
           size="sm"
           onClick={() => onFilterChange("")}
           disabled={!hasActiveFilter}
-          className={`gap-2 transition-all ${
+          className={`gap-2 transition-all h-10 sm:h-9 touch-manipulation ${
             hasActiveFilter 
               ? "shadow-md" 
               : "opacity-50"
@@ -36,7 +36,7 @@ export function QuickFilters({ quickFilter, onFilterChange, getFilterCount }: Qu
         {/* 今日入住 */}
         <button
           onClick={() => onFilterChange("today_checkin")}
-          className={`relative group flex flex-col items-start p-4 rounded-xl border-2 transition-all duration-300 ${
+          className={`relative group flex flex-col items-start p-4 rounded-xl border-2 transition-all duration-300 touch-manipulation min-h-[100px] ${
             quickFilter === "today_checkin"
               ? "border-primary bg-primary/5 shadow-lg scale-[1.02]"
               : "border-border bg-card hover:border-primary/30 hover:shadow-md"
@@ -70,7 +70,7 @@ export function QuickFilters({ quickFilter, onFilterChange, getFilterCount }: Qu
         {/* 今日退房 */}
         <button
           onClick={() => onFilterChange("today_checkout")}
-          className={`relative group flex flex-col items-start p-4 rounded-xl border-2 transition-all duration-300 ${
+          className={`relative group flex flex-col items-start p-4 rounded-xl border-2 transition-all duration-300 touch-manipulation min-h-[100px] ${
             quickFilter === "today_checkout"
               ? "border-info bg-info-light shadow-lg scale-[1.02]"
               : "border-border bg-card hover:border-info/30 hover:shadow-md"
@@ -104,7 +104,7 @@ export function QuickFilters({ quickFilter, onFilterChange, getFilterCount }: Qu
         {/* 待確認 */}
         <button
           onClick={() => onFilterChange("pending")}
-          className={`relative group flex flex-col items-start p-4 rounded-xl border-2 transition-all duration-300 ${
+          className={`relative group flex flex-col items-start p-4 rounded-xl border-2 transition-all duration-300 touch-manipulation min-h-[100px] ${
             quickFilter === "pending"
               ? "border-warning bg-warning-light shadow-lg scale-[1.02]"
               : "border-border bg-card hover:border-warning/30 hover:shadow-md"
@@ -138,7 +138,7 @@ export function QuickFilters({ quickFilter, onFilterChange, getFilterCount }: Qu
         {/* 未付款 */}
         <button
           onClick={() => onFilterChange("unpaid")}
-          className={`relative group flex flex-col items-start p-4 rounded-xl border-2 transition-all duration-300 ${
+          className={`relative group flex flex-col items-start p-4 rounded-xl border-2 transition-all duration-300 touch-manipulation min-h-[100px] ${
             quickFilter === "unpaid"
               ? "border-error bg-error-light shadow-lg scale-[1.02]"
               : "border-border bg-card hover:border-error/30 hover:shadow-md"
@@ -172,7 +172,7 @@ export function QuickFilters({ quickFilter, onFilterChange, getFilterCount }: Qu
         {/* 即將到來 */}
         <button
           onClick={() => onFilterChange("upcoming")}
-          className={`relative group flex flex-col items-start p-4 rounded-xl border-2 transition-all duration-300 ${
+          className={`relative group flex flex-col items-start p-4 rounded-xl border-2 transition-all duration-300 touch-manipulation min-h-[100px] ${
             quickFilter === "upcoming"
               ? "border-success bg-success-light shadow-lg scale-[1.02]"
               : "border-border bg-card hover:border-success/30 hover:shadow-md"

@@ -582,7 +582,7 @@ const Orders = () => {
                               setCurrentPage(1);
                             }}
                           >
-                            <SelectTrigger className="w-24 h-9">
+                            <SelectTrigger className="w-24 h-11 sm:h-9 touch-manipulation">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="bg-background border-border z-50">
