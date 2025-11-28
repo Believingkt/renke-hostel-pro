@@ -166,7 +166,7 @@ const PhotoGallerySection = ({ photos }: PhotoGallerySectionProps) => {
           </div>
           
           {totalPages > 1 && (
-            <div className="flex justify-center items-center gap-2 mt-5 md:mt-6">
+            <div className="hidden md:flex justify-center items-center gap-2 mt-5 md:mt-6">
               {Array.from({ length: totalPages }).map((_, idx) => (
                 <button
                   key={idx}
