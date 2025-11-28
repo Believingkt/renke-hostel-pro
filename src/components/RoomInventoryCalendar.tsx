@@ -911,14 +911,14 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
         <Dialog open={batchEditDialogOpen} onOpenChange={setBatchEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between gap-6">
                 <div>
                   <CardTitle>批量編輯</CardTitle>
                   <DialogDescription className="mt-1.5">
                     將對 {selectedDates.size} 個日期進行統一設定
                   </DialogDescription>
                 </div>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
                   <div className="flex items-center gap-1.5">
                     <kbd className="inline-flex h-6 min-w-[28px] items-center justify-center rounded-md border border-border bg-muted/50 px-2 font-mono text-xs font-medium shadow-sm">
                       ESC
@@ -1169,14 +1169,14 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
         <Dialog open={singleEditDialogOpen} onOpenChange={setSingleEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between gap-6">
                 <div>
                   <CardTitle>編輯日期</CardTitle>
                   <DialogDescription className="mt-1.5">
                     {editingDate && format(parseISO(editingDate), 'yyyy年 M月 d日（EEEE）', { locale: zhTW })}
                   </DialogDescription>
                 </div>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
                   <div className="flex items-center gap-1.5">
                     <kbd className="inline-flex h-6 min-w-[28px] items-center justify-center rounded-md border border-border bg-muted/50 px-2 font-mono text-xs font-medium shadow-sm">
                       ESC
