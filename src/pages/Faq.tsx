@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Trash2, Edit2, GripVertical, HelpCircle, MessageSquare, Home } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -25,6 +26,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -62,6 +72,7 @@ const faqSchema = z.object({
 });
 
 const Faq = () => {
+  const isMobile = useIsMobile();
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
   const [accommodationId, setAccommodationId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -243,7 +254,7 @@ const Faq = () => {
         title="常見問題"
         icon={HelpCircle}
         action={
-          <Button onClick={() => setIsDialogOpen(true)}>
+          <Button onClick={() => setIsDialogOpen(true)} className="h-11 sm:h-10 touch-manipulation">
             <Plus className="mr-2 h-4 w-4" />
             新增問題
           </Button>
@@ -298,6 +309,7 @@ const Faq = () => {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleEdit(faq)}
+                          className="h-10 w-10 sm:h-9 sm:w-9 touch-manipulation"
                         >
                           <Edit2 className="h-4 w-4" />
                         </Button>
@@ -305,6 +317,7 @@ const Faq = () => {
                           variant="ghost-destructive"
                           size="icon"
                           onClick={() => handleDeleteClick(faq)}
+                          className="h-10 w-10 sm:h-9 sm:w-9 touch-manipulation"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -318,61 +331,125 @@ const Faq = () => {
         </CardContent>
       </Card>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              {editingFaq ? "編輯常見問題" : "新增常見問題"}
-            </DialogTitle>
-            <DialogDescription>
-              填寫常見問題的內容，這些內容將顯示在網站前台
-            </DialogDescription>
-          </DialogHeader>
+      {isMobile ? (
+        <Drawer open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle className="text-lg">
+                {editingFaq ? "編輯常見問題" : "新增常見問題"}
+              </DrawerTitle>
+              <DrawerDescription className="text-sm">
+                填寫常見問題的內容，這些內容將顯示在網站前台
+              </DrawerDescription>
+            </DrawerHeader>
 
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="question">問題</Label>
-              <Input
-                id="question"
-                placeholder="請輸入問題"
-                value={formData.question}
-                onChange={(e) =>
-                  setFormData({ ...formData, question: e.target.value })
-                }
-              />
+            <div className="px-4 space-y-4 overflow-y-auto max-h-[60vh]">
+              <div className="space-y-2">
+                <Label htmlFor="question" className="text-base">問題</Label>
+                <Input
+                  id="question"
+                  placeholder="請輸入問題"
+                  value={formData.question}
+                  onChange={(e) =>
+                    setFormData({ ...formData, question: e.target.value })
+                  }
+                  className="h-12 text-base touch-manipulation"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="answer" className="text-base">答案</Label>
+                <RichTextEditor
+                  value={formData.answer}
+                  onChange={(value) => setFormData({ ...formData, answer: value })}
+                  placeholder="請輸入答案"
+                />
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="is_published"
+                  checked={formData.is_published}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, is_published: checked })
+                  }
+                  className="touch-manipulation"
+                />
+                <Label htmlFor="is_published" className="text-base">立即發布</Label>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="answer">答案</Label>
-              <RichTextEditor
-                value={formData.answer}
-                onChange={(value) => setFormData({ ...formData, answer: value })}
-                placeholder="請輸入答案"
-              />
+            <DrawerFooter className="pt-4">
+              <Button onClick={handleSave} className="w-full h-12 text-base touch-manipulation">
+                {editingFaq ? "更新" : "新增"}
+              </Button>
+              <DrawerClose asChild>
+                <Button variant="outline" className="w-full h-12 text-base touch-manipulation">
+                  取消
+                </Button>
+              </DrawerClose>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                {editingFaq ? "編輯常見問題" : "新增常見問題"}
+              </DialogTitle>
+              <DialogDescription>
+                填寫常見問題的內容，這些內容將顯示在網站前台
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="question">問題</Label>
+                <Input
+                  id="question"
+                  placeholder="請輸入問題"
+                  value={formData.question}
+                  onChange={(e) =>
+                    setFormData({ ...formData, question: e.target.value })
+                  }
+                  className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="answer">答案</Label>
+                <RichTextEditor
+                  value={formData.answer}
+                  onChange={(value) => setFormData({ ...formData, answer: value })}
+                  placeholder="請輸入答案"
+                />
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="is_published"
+                  checked={formData.is_published}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, is_published: checked })
+                  }
+                  className="touch-manipulation"
+                />
+                <Label htmlFor="is_published">立即發布</Label>
+              </div>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="is_published"
-                checked={formData.is_published}
-                onCheckedChange={(checked) =>
-                  setFormData({ ...formData, is_published: checked })
-                }
-              />
-              <Label htmlFor="is_published">立即發布</Label>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={handleCloseDialog}>
-              取消
-            </Button>
-            <Button onClick={handleSave}>
-              {editingFaq ? "更新" : "新增"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCloseDialog} className="h-11 sm:h-10 touch-manipulation">
+                取消
+              </Button>
+              <Button onClick={handleSave} className="h-11 sm:h-10 touch-manipulation">
+                {editingFaq ? "更新" : "新增"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -384,10 +461,10 @@ const Faq = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogCancel className="h-11 sm:h-10 touch-manipulation">取消</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 h-11 sm:h-10 touch-manipulation"
             >
               確認刪除
             </AlertDialogAction>
