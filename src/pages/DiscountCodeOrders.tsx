@@ -131,7 +131,7 @@ const DiscountCodeOrders = () => {
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link to="/admin" className="flex items-center hover:opacity-70 transition-opacity">
+              <Link to="/admin" className="hover:opacity-70 transition-opacity">
                 <Home className="h-4 w-4" />
               </Link>
             </BreadcrumbLink>
