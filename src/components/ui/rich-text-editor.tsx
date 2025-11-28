@@ -1,6 +1,7 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
+import { useEffect } from 'react';
 import { 
   Bold, 
   Italic, 
@@ -48,6 +49,13 @@ export function RichTextEditor({
       },
     },
   });
+
+  // 當 value prop 改變時更新編輯器內容
+  useEffect(() => {
+    if (editor && value !== editor.getHTML()) {
+      editor.commands.setContent(value);
+    }
+  }, [value, editor]);
 
   if (!editor) {
     return null;
