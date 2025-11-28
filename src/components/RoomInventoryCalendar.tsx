@@ -889,7 +889,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                   key={dateStr}
                   onClick={() => handleSingleClick(dateStr)}
                   className={cn(
-                    "relative min-h-[80px] sm:min-h-[90px] md:min-h-[100px] border rounded-lg p-1.5 sm:p-2 flex flex-col items-center justify-start transition-all touch-manipulation active:scale-95",
+                    "relative min-h-[80px] sm:min-h-[90px] md:min-h-[100px] border rounded-lg p-2 sm:p-2 flex flex-col items-center justify-start transition-all touch-manipulation active:scale-95",
                     isTodayDate && "border-primary border-2 ring-2 ring-primary/20",
                     !isCurrentMonth && "opacity-50",
                     isSelectionMode && "cursor-pointer",
@@ -906,7 +906,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                   )}
                 >
                   <div className={cn(
-                    "font-bold mb-1 text-sm sm:text-base w-full text-center pb-1 border-b leading-tight",
+                    "font-bold mb-1.5 text-sm sm:text-base w-full text-center pb-1 border-b leading-tight",
                     isTodayDate && "text-primary border-primary/30",
                     isSelected && "text-blue-700 border-blue-300",
                     !isTodayDate && !isSelected && isHoliday && hasData && "text-orange-700 border-orange-200/50",
@@ -928,7 +928,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                     )}
                   </div>
                   {hasData ? (
-                    <div className="w-full space-y-1 px-0.5">
+                    <div className="w-full space-y-1 px-0">
                       {dayInventory.price_2_meals && (
                         <div className={cn(
                           "flex items-center justify-between gap-1 text-xs sm:text-xs rounded px-1.5 py-0.5",
@@ -980,7 +980,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                       </div>
                     </div>
                   ) : (
-                    <div className="flex-1 flex items-center justify-center min-h-[40px]">
+                    <div className="flex-1 flex items-center justify-center min-h-[40px] mt-1">
                       <div className="text-xs sm:text-xs text-muted-foreground font-medium leading-tight">未設定</div>
                     </div>
                   )}
