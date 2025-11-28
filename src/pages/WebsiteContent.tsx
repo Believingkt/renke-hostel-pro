@@ -2273,6 +2273,7 @@ const WebsiteContent = () => {
                           onCheckedChange={(checked) => 
                             handleCheckboxChange(facility.name, checked as boolean)
                           }
+                          className="h-5 w-5 touch-manipulation"
                         />
                         <Label htmlFor={facility.id}>{facility.name}</Label>
                       </div>
@@ -2281,7 +2282,7 @@ const WebsiteContent = () => {
                           value={pricingTypes[facility.name] || 'free'}
                           onValueChange={(value) => handlePricingTypeChange(facility.name, value)}
                         >
-                          <SelectTrigger className="w-full">
+                          <SelectTrigger className="w-full h-12 text-base sm:h-10 sm:text-sm touch-manipulation">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -2312,6 +2313,7 @@ const WebsiteContent = () => {
                       onCheckedChange={(checked) => 
                         handleCheckboxChange(facility.name, checked as boolean)
                       }
+                      className="h-5 w-5 touch-manipulation"
                     />
                     <Label htmlFor={facility.id}>{facility.name}</Label>
                   </div>
@@ -2335,6 +2337,7 @@ const WebsiteContent = () => {
                       onCheckedChange={(checked) => 
                         handleCheckboxChange(facility.name, checked as boolean)
                       }
+                      className="h-5 w-5 touch-manipulation"
                     />
                     <Label htmlFor={facility.id}>{facility.name}</Label>
                   </div>
@@ -2352,22 +2355,23 @@ const WebsiteContent = () => {
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {facilitiesData.entertainment.map((facility) => (
                   <div key={facility.id} className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id={facility.id}
-                        checked={selectedFacilities[facility.name] || false}
-                        onCheckedChange={(checked) => 
-                          handleCheckboxChange(facility.name, checked as boolean)
-                        }
-                      />
-                      <Label htmlFor={facility.id}>{facility.name}</Label>
-                    </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id={facility.id}
+                          checked={selectedFacilities[facility.name] || false}
+                          onCheckedChange={(checked) => 
+                            handleCheckboxChange(facility.name, checked as boolean)
+                          }
+                          className="h-5 w-5 touch-manipulation"
+                        />
+                        <Label htmlFor={facility.id}>{facility.name}</Label>
+                      </div>
                     {facility.hasPrice && selectedFacilities[facility.name] && (
                       <Select
                         value={pricingTypes[facility.name] || 'free'}
                         onValueChange={(value) => handlePricingTypeChange(facility.name, value)}
                       >
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="w-full h-12 text-base sm:h-10 sm:text-sm touch-manipulation">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -2398,6 +2402,7 @@ const WebsiteContent = () => {
                       onCheckedChange={(checked) => 
                         handleCheckboxChange(facility.name, checked as boolean)
                       }
+                      className="h-5 w-5 touch-manipulation"
                     />
                     <Label htmlFor={facility.id}>{facility.name}</Label>
                   </div>
@@ -2426,6 +2431,7 @@ const WebsiteContent = () => {
                     id="pet-enabled"
                     checked={petPlan.enabled}
                     onCheckedChange={(checked) => setPetPlan({ ...petPlan, enabled: checked })}
+                    className="touch-manipulation"
                   />
                 </div>
               </CardTitle>
@@ -2495,6 +2501,7 @@ const WebsiteContent = () => {
                     id="meal-enabled"
                     checked={mealPlan.enabled}
                     onCheckedChange={(checked) => setMealPlan({ ...mealPlan, enabled: checked })}
+                    className="touch-manipulation"
                   />
                 </div>
               </CardTitle>
@@ -2689,6 +2696,7 @@ const WebsiteContent = () => {
                         onCheckedChange={(checked) => 
                           handlePaymentMethodToggle(method, checked as boolean)
                         }
+                        className="h-5 w-5 touch-manipulation"
                       />
                       <Label htmlFor={`payment-${method}`}>{method}</Label>
                     </div>
@@ -2822,6 +2830,7 @@ const WebsiteContent = () => {
                                 id={`publish-${faq.id}`}
                                 checked={faq.is_published}
                                 onCheckedChange={() => handleTogglePublishFaq(faq)}
+                                className="touch-manipulation"
                               />
                             </div>
                             <Button
@@ -2951,6 +2960,7 @@ const WebsiteContent = () => {
                     type="button"
                     size="sm"
                     onClick={handleAddAttraction}
+                    className="h-10 sm:h-9 touch-manipulation"
                   >
                     <Plus className="h-4 w-4 mr-1" />
                     新增景點
@@ -2971,6 +2981,7 @@ const WebsiteContent = () => {
                                 handleAttractionChange(index, "name", e.target.value)
                               }
                               placeholder="例：東埔溫泉"
+                              className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
                             />
                           </div>
 
@@ -2983,6 +2994,7 @@ const WebsiteContent = () => {
                                 handleAttractionChange(index, "distance", e.target.value)
                               }
                               placeholder="例：步行5分鐘"
+                              className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
                             />
                           </div>
 
@@ -2998,6 +3010,7 @@ const WebsiteContent = () => {
                               }
                               placeholder="例：著名的碳酸氫鈉泉，有美人湯之稱"
                               rows={2}
+                              className="touch-manipulation"
                             />
                           </div>
                         </div>
@@ -3008,7 +3021,7 @@ const WebsiteContent = () => {
                             variant="ghost-destructive"
                             size="icon"
                             onClick={() => handleRemoveAttraction(index)}
-                            className="mt-6"
+                            className="mt-6 h-11 w-11 sm:h-9 sm:w-9 touch-manipulation"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -3074,16 +3087,17 @@ const WebsiteContent = () => {
                   onCheckedChange={(checked) =>
                     setFaqFormData({ ...faqFormData, is_published: checked })
                   }
+                  className="touch-manipulation"
                 />
                 <Label htmlFor="is_published">立即發布</Label>
               </div>
             </div>
 
             <DrawerFooter className="pt-2">
-              <Button onClick={handleSaveFaq} className="w-full h-12">
+              <Button onClick={handleSaveFaq} className="w-full h-12 touch-manipulation">
                 {editingFaq ? "更新" : "新增"}
               </Button>
-              <Button variant="outline" onClick={handleCloseFaqDialog} className="w-full h-12">
+              <Button variant="outline" onClick={handleCloseFaqDialog} className="w-full h-12 touch-manipulation">
                 取消
               </Button>
             </DrawerFooter>
@@ -3131,16 +3145,17 @@ const WebsiteContent = () => {
                   onCheckedChange={(checked) =>
                     setFaqFormData({ ...faqFormData, is_published: checked })
                   }
+                  className="touch-manipulation"
                 />
                 <Label htmlFor="is_published">立即發布</Label>
               </div>
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={handleCloseFaqDialog}>
+              <Button variant="outline" onClick={handleCloseFaqDialog} className="h-11 sm:h-10 touch-manipulation">
                 取消
               </Button>
-              <Button onClick={handleSaveFaq}>
+              <Button onClick={handleSaveFaq} className="h-11 sm:h-10 touch-manipulation">
                 {editingFaq ? "更新" : "新增"}
               </Button>
             </DialogFooter>

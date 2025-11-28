@@ -70,12 +70,12 @@ export function RichTextEditor({
       size="sm"
       onClick={onClick}
       className={cn(
-        'h-8 w-8 p-0',
+        'h-11 w-11 sm:h-8 sm:w-8 p-0 touch-manipulation',
         isActive && 'bg-muted'
       )}
       title={title}
     >
-      <Icon className="h-4 w-4" />
+      <Icon className="h-5 w-5 sm:h-4 sm:w-4" />
     </Button>
   );
 
