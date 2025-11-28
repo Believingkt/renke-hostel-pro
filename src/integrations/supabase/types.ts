@@ -961,6 +961,69 @@ export type Database = {
           },
         ]
       }
+      pricing_rules: {
+        Row: {
+          accommodation_id: string
+          available_rooms: number
+          created_at: string
+          day_type: string
+          id: string
+          is_active: boolean
+          price: number | null
+          price_2_meals: number | null
+          price_3_meals: number | null
+          priority: number
+          room_type_id: string
+          rule_name: string
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          available_rooms: number
+          created_at?: string
+          day_type: string
+          id?: string
+          is_active?: boolean
+          price?: number | null
+          price_2_meals?: number | null
+          price_3_meals?: number | null
+          priority?: number
+          room_type_id: string
+          rule_name: string
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          available_rooms?: number
+          created_at?: string
+          day_type?: string
+          id?: string
+          is_active?: boolean
+          price?: number | null
+          price_2_meals?: number | null
+          price_3_meals?: number | null
+          priority?: number
+          room_type_id?: string
+          rule_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_rules_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_rules_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "room_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pricing_template_applications: {
         Row: {
           accommodation_id: string

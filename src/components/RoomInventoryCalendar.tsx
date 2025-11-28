@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ChevronLeft, ChevronRight, DollarSign, Package, Edit, X, Check, Calendar, CalendarDays, CalendarRange, Briefcase, Copy } from "lucide-react";
+import { ChevronLeft, ChevronRight, DollarSign, Package, Edit, X, Check, Calendar, CalendarDays, CalendarRange, Briefcase, Copy, Sparkles } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,6 +62,8 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
   const [saving, setSaving] = useState(false);
   const [isCopyMode, setIsCopyMode] = useState(false);
   const [copiedData, setCopiedData] = useState<DayInventory | null>(null);
+  const [applyRulesDialogOpen, setApplyRulesDialogOpen] = useState(false);
+  const [applyingRules, setApplyingRules] = useState(false);
   const [singleEditDialogOpen, setSingleEditDialogOpen] = useState(false);
   const [editingDate, setEditingDate] = useState<string | null>(null);
   const [singleEditData, setSingleEditData] = useState({
@@ -495,6 +497,95 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
     }
   };
 
+  const handleApplyPricingRules = async () => {
+    try {
+      setApplyingRules(true);
+
+      // 1. 載入該房型的所有啟用規則
+      const { data: rulesData, error: rulesError } = await supabase
+        .from('pricing_rules')
+        .select('*')
+        .eq('room_type_id', roomTypeId)
+        .eq('is_active', true)
+        .order('priority', { ascending: false });
+
+      if (rulesError) throw rulesError;
+
+      if (!rulesData || rulesData.length === 0) {
+        toast.error('此房型尚未設定價格規則');
+        setApplyRulesDialogOpen(false);
+        return;
+      }
+
+      // 2. 遍歷當月所有日期，根據日期類型匹配規則
+      const updates: any[] = [];
+      const monthStart = startOfMonth(currentMonth);
+      const monthEnd = endOfMonth(currentMonth);
+      const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+
+      for (const day of days) {
+        const dateStr = format(day, 'yyyy-MM-dd');
+        const isWeekend = isWeekendDate(day);
+        const holidayInfo = publicHolidays.get(dateStr);
+
+        // 判斷日期類型
+        let dayType: 'weekday' | 'weekend' | 'holiday' | 'compensatory_day_off' | 'work_on_weekend';
+        
+        if (holidayInfo) {
+          if (holidayInfo.type === 'work_on_weekend') {
+            dayType = 'work_on_weekend';
+          } else if (holidayInfo.type === 'compensatory_day_off') {
+            dayType = 'compensatory_day_off';
+          } else {
+            dayType = 'holiday';
+          }
+        } else {
+          dayType = isWeekend ? 'weekend' : 'weekday';
+        }
+
+        // 找到匹配的規則（已按優先級降序排列，取第一個匹配的）
+        const matchedRule = rulesData.find(rule => rule.day_type === dayType);
+
+        if (matchedRule) {
+          updates.push({
+            room_type_id: roomTypeId,
+            date: dateStr,
+            price: matchedRule.price,
+            price_2_meals: matchedRule.price_2_meals,
+            price_3_meals: matchedRule.price_3_meals,
+            available_rooms: matchedRule.available_rooms,
+            is_available: true,
+          });
+        }
+      }
+
+      if (updates.length === 0) {
+        toast.error('沒有找到可套用的日期');
+        setApplyRulesDialogOpen(false);
+        return;
+      }
+
+      // 3. 批量更新
+      const { error: updateError } = await supabase
+        .from('room_inventory_pricing')
+        .upsert(updates, {
+          onConflict: 'room_type_id,date',
+          ignoreDuplicates: false,
+        });
+
+      if (updateError) throw updateError;
+
+      toast.success(`已成功套用價格規則到 ${updates.length} 個日期`);
+      setApplyRulesDialogOpen(false);
+      loadInventory();
+    } catch (error) {
+      console.error('套用價格規則失敗:', error);
+      toast.error('套用價格規則失敗');
+    } finally {
+      setApplyingRules(false);
+    }
+  };
+
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
@@ -534,7 +625,17 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
 
           {/* 批量編輯工具列 */}
           {!isSelectionMode ? (
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setApplyRulesDialogOpen(true)}
+                className="gap-1 sm:gap-2 h-11 sm:h-8 px-3 touch-manipulation"
+              >
+                <Sparkles className="h-4 w-4" />
+                <span className="hidden sm:inline">套用規則</span>
+                <span className="sm:hidden">規則</span>
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -1375,6 +1476,67 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
           </DialogContent>
         </Dialog>
       )}
+
+      {/* 套用規則確認對話框 */}
+      <Dialog open={applyRulesDialogOpen} onOpenChange={setApplyRulesDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              套用價格規則
+            </DialogTitle>
+            <DialogDescription>
+              將根據已設定的價格規則，自動為本月所有日期設定價格和庫存。
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+              <p className="text-sm font-medium">規則說明：</p>
+              <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                <li>系統會自動識別每個日期的類型（平日、週末、國定假日、補休、補班）</li>
+                <li>根據日期類型套用對應的價格規則</li>
+                <li>如有多個規則符合，將使用優先級最高的規則</li>
+                <li>現有的價格和庫存資料將會被覆蓋</li>
+              </ul>
+            </div>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <p className="text-sm text-yellow-800">
+                ⚠️ <span className="font-medium">注意：</span>
+                套用規則後，本月所有日期的價格和庫存將被規則設定覆蓋，此操作無法復原。
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setApplyRulesDialogOpen(false)}
+              disabled={applyingRules}
+            >
+              取消
+            </Button>
+            <Button
+              onClick={handleApplyPricingRules}
+              disabled={applyingRules}
+              className="gap-2"
+            >
+              {applyingRules ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  套用中...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  確認套用
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
