@@ -911,8 +911,8 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
         <Dialog open={batchEditDialogOpen} onOpenChange={setBatchEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <div className="flex items-start justify-between gap-6">
-                <div>
+              <div className="flex items-start gap-8">
+                <div className="flex-1">
                   <CardTitle>批量編輯</CardTitle>
                   <DialogDescription className="mt-1.5">
                     將對 {selectedDates.size} 個日期進行統一設定
@@ -1169,8 +1169,8 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
         <Dialog open={singleEditDialogOpen} onOpenChange={setSingleEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <div className="flex items-start justify-between gap-6">
-                <div>
+              <div className="flex items-start gap-8">
+                <div className="flex-1">
                   <CardTitle>編輯日期</CardTitle>
                   <DialogDescription className="mt-1.5">
                     {editingDate && format(parseISO(editingDate), 'yyyy年 M月 d日（EEEE）', { locale: zhTW })}
