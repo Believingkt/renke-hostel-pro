@@ -148,18 +148,18 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                   dot={(props: any) => {
                     const { cx, cy, payload } = props;
                     return (
-                      <circle
-                        cx={cx}
-                        cy={cy}
-                        r={5}
-                        fill="hsl(var(--background))"
-                        stroke={index === 0 ? "hsl(var(--chart-booking-secondary))" : "hsl(var(--chart-booking-primary))"}
-                        strokeWidth={2}
-                        opacity={payload.isFuture ? 0.3 : 1}
-                        style={{ cursor: 'pointer' }}
-                        className="hover:scale-125 transition-transform duration-200"
-                        onClick={() => handleDotClick(payload)}
-                      />
+                    <circle
+                      cx={cx}
+                      cy={cy}
+                      r={7}
+                      fill="hsl(var(--background))"
+                      stroke={index === 0 ? "hsl(var(--chart-booking-secondary))" : "hsl(var(--chart-booking-primary))"}
+                      strokeWidth={2}
+                      opacity={payload.isFuture ? 0.3 : 1}
+                      style={{ cursor: 'pointer', touchAction: 'none' }}
+                      className="hover:scale-125 transition-transform duration-200"
+                      onClick={() => handleDotClick(payload)}
+                    />
                     );
                   }}
                   activeDot={(props: any) => {
@@ -169,7 +169,7 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                         <circle
                           cx={cx}
                           cy={cy}
-                          r={12}
+                          r={14}
                           fill={index === 0 ? "hsl(var(--chart-booking-secondary))" : "hsl(var(--chart-booking-primary))"}
                           opacity={0.1}
                           className="animate-scale-in"
@@ -177,12 +177,12 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                         <circle
                           cx={cx}
                           cy={cy}
-                          r={8}
+                          r={10}
                           fill="hsl(var(--background))"
                           stroke={index === 0 ? "hsl(var(--chart-booking-secondary))" : "hsl(var(--chart-booking-primary))"}
                           strokeWidth={3}
                           opacity={payload.isFuture ? 0.3 : 1}
-                          style={{ cursor: 'pointer' }}
+                          style={{ cursor: 'pointer', touchAction: 'none' }}
                           onClick={() => handleDotClick(payload)}
                           className="animate-scale-in"
                         />

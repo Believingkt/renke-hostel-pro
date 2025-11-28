@@ -169,10 +169,11 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
                   activeBar={{
                     fill: chartConfig[category as keyof typeof chartConfig]?.color || "hsl(var(--chart-1))",
                     opacity: 0.8,
-                    strokeWidth: 2,
+                    strokeWidth: 3,
                     stroke: 'hsl(var(--foreground))',
                   }}
                   className="transition-all duration-200 hover:opacity-80"
+                  style={{ touchAction: 'none' }}
                 >
                   {data.map((entry, entryIndex) => (
                     <Cell 

@@ -48,10 +48,10 @@ export function StatCard({ title, value, change, icon: Icon, variant, isUpdating
 
   return (
     <Card className={cn(
-      "p-3 md:p-6 transition-all hover:shadow-lg hover:scale-[1.02] duration-300",
+      "p-3 md:p-6 transition-all hover:shadow-lg hover:scale-[1.02] duration-300 touch-manipulation cursor-pointer",
       isUpdating && "ring-2 ring-primary animate-pulse"
     )}>
-      <div className="flex items-center justify-between gap-2 md:gap-3">
+      <div className="flex items-center justify-between gap-2 md:gap-3 select-none">
         <div className="space-y-0.5 md:space-y-2 flex-1 min-w-0">
           <p className="text-[10px] md:text-sm font-medium text-muted-foreground truncate leading-tight">{title}</p>
           <div className="flex items-baseline gap-1 md:gap-2 flex-wrap">
