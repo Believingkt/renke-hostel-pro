@@ -17,7 +17,7 @@ const BreadcrumbList = React.forwardRef<HTMLOListElement, React.ComponentPropsWi
     <ol
       ref={ref}
       className={cn(
-        "flex flex-wrap items-center gap-1.5 break-words text-sm text-muted-foreground sm:gap-2.5 leading-none",
+        "flex flex-wrap items-center gap-1 break-words text-xs text-muted-foreground sm:text-sm sm:gap-2 leading-none",
         className,
       )}
       {...props}
@@ -28,7 +28,7 @@ BreadcrumbList.displayName = "BreadcrumbList";
 
 const BreadcrumbItem = React.forwardRef<HTMLLIElement, React.ComponentPropsWithoutRef<"li">>(
   ({ className, ...props }, ref) => (
-    <li ref={ref} className={cn("inline-flex items-center gap-1.5", className)} {...props} />
+    <li ref={ref} className={cn("inline-flex items-center gap-1 sm:gap-1.5", className)} {...props} />
   ),
 );
 BreadcrumbItem.displayName = "BreadcrumbItem";
@@ -60,7 +60,7 @@ const BreadcrumbPage = React.forwardRef<HTMLSpanElement, React.ComponentPropsWit
 BreadcrumbPage.displayName = "BreadcrumbPage";
 
 const BreadcrumbSeparator = ({ children, className, ...props }: React.ComponentProps<"li">) => (
-  <li role="presentation" aria-hidden="true" className={cn("flex items-center [&>svg]:size-3.5", className)} {...props}>
+  <li role="presentation" aria-hidden="true" className={cn("flex items-center [&>svg]:size-3 sm:[&>svg]:size-3.5", className)} {...props}>
     {children ?? <ChevronRight />}
   </li>
 );
