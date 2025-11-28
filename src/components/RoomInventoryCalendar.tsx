@@ -22,6 +22,8 @@ interface RoomInventoryCalendarProps {
 interface DayInventory {
   date: string;
   price: number | null;
+  price_2_meals: number | null;
+  price_3_meals: number | null;
   availableRooms: number | null;
   isAvailable: boolean;
 }
@@ -112,6 +114,8 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
         inventoryMap[item.date] = {
           date: item.date,
           price: item.price,
+          price_2_meals: item.price_2_meals,
+          price_3_meals: item.price_3_meals,
           availableRooms: item.available_rooms,
           isAvailable: item.is_available,
         };
@@ -638,16 +642,30 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                     {format(day, 'd')}
                   </div>
                   {hasData ? (
-                    <>
-                      <div className="flex items-center gap-1 text-xs sm:text-xs text-muted-foreground mb-1">
-                        <DollarSign className="h-3.5 w-3.5 sm:h-3.5 sm:w-3.5" />
-                        <span className="font-medium">{dayInventory.price}</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-xs sm:text-xs text-muted-foreground">
-                        <Package className="h-3.5 w-3.5 sm:h-3.5 sm:w-3.5" />
+                    <div className="space-y-0.5">
+                      {dayInventory.price_2_meals && (
+                        <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground">
+                          <DollarSign className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                          <span className="font-medium">二:{dayInventory.price_2_meals}</span>
+                        </div>
+                      )}
+                      {dayInventory.price_3_meals && (
+                        <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground">
+                          <DollarSign className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                          <span className="font-medium">三:{dayInventory.price_3_meals}</span>
+                        </div>
+                      )}
+                      {!dayInventory.price_2_meals && !dayInventory.price_3_meals && dayInventory.price && (
+                        <div className="flex items-center gap-1 text-xs sm:text-xs text-muted-foreground">
+                          <DollarSign className="h-3.5 w-3.5 sm:h-3.5 sm:w-3.5" />
+                          <span className="font-medium">{dayInventory.price}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground">
+                        <Package className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                         <span className="font-medium">{dayInventory.availableRooms}</span>
                       </div>
-                    </>
+                    </div>
                   ) : (
                     <div className="text-xs sm:text-xs text-muted-foreground">未設定</div>
                   )}
