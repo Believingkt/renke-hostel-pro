@@ -1138,24 +1138,24 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                   roomTypes.map((roomType) => (
                     <div
                       key={roomType.id}
-                      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors touch-manipulation ${
+                      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors touch-manipulation group ${
                         selectedRoomTypes.includes(roomType.id)
                           ? 'bg-primary text-primary-foreground'
-                          : 'hover:bg-accent'
+                          : 'hover:bg-accent hover:text-white'
                       }`}
                       onClick={() => toggleRoomType(roomType.id)}
                     >
                       {selectedRoomTypes.includes(roomType.id) ? (
                         <CheckSquare className="h-5 w-5" />
                       ) : (
-                        <Square className="h-5 w-5 text-muted-foreground" />
+                        <Square className="h-5 w-5 text-muted-foreground group-hover:text-white" />
                       )}
                       <div className="flex-1">
                         <p className="font-medium">{roomType.name}</p>
                         <p className={`text-xs ${
                           selectedRoomTypes.includes(roomType.id)
                             ? 'text-primary-foreground/80'
-                            : 'text-muted-foreground'
+                            : 'text-muted-foreground group-hover:text-white'
                         }`}>
                           共 {roomType.room_count || 0} 間
                         </p>
@@ -1431,24 +1431,24 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                     roomTypes.map((roomType) => (
                       <div
                         key={roomType.id}
-                        className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors touch-manipulation ${
+                        className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors touch-manipulation group ${
                           selectedRoomTypes.includes(roomType.id)
                             ? 'bg-primary text-primary-foreground'
-                            : 'hover:bg-accent'
+                            : 'hover:bg-accent hover:text-white'
                         }`}
                         onClick={() => toggleRoomType(roomType.id)}
                       >
                         {selectedRoomTypes.includes(roomType.id) ? (
                           <CheckSquare className="h-5 w-5" />
                         ) : (
-                          <Square className="h-5 w-5 text-muted-foreground" />
+                          <Square className="h-5 w-5 text-muted-foreground group-hover:text-white" />
                         )}
                         <div className="flex-1">
                           <p className="font-medium">{roomType.name}</p>
                           <p className={`text-xs ${
                             selectedRoomTypes.includes(roomType.id)
                               ? 'text-primary-foreground/80'
-                              : 'text-muted-foreground'
+                              : 'text-muted-foreground group-hover:text-white'
                           }`}>
                             共 {roomType.room_count || 0} 間
                           </p>
