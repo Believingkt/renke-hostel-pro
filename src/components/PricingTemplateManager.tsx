@@ -421,6 +421,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
               value={formData.template_name}
               onChange={(e) => setFormData({ ...formData, template_name: e.target.value })}
               placeholder="例如：平日方案、假日方案"
+              className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
             />
             {errors.template_name && (
               <p className="text-sm text-destructive">{errors.template_name}</p>
@@ -435,6 +436,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="描述此價格模板的用途"
               rows={2}
+              className="min-h-[48px] text-base sm:text-sm touch-manipulation"
             />
             {errors.description && (
               <p className="text-sm text-destructive">{errors.description}</p>
@@ -464,6 +466,8 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                         weekday_2_meals_price: e.target.value ? parseInt(e.target.value) : null 
                       })}
                       placeholder="選填"
+                      className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
+                      inputMode="numeric"
                     />
                   </div>
                   
@@ -479,6 +483,8 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                         weekday_3_meals_price: e.target.value ? parseInt(e.target.value) : null 
                       })}
                       placeholder="選填"
+                      className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
+                      inputMode="numeric"
                     />
                   </div>
                 </div>
@@ -497,9 +503,11 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                       value={formData.weekend_2_meals_price ?? ""}
                       onChange={(e) => setFormData({ 
                         ...formData, 
-                        weekend_2_meals_price: e.target.value ? parseInt(e.target.value) : null 
+                        weekend_2_meals_price: e.target.value ? parseInt(e.target.value) : null
                       })}
                       placeholder="選填"
+                      className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
+                      inputMode="numeric"
                     />
                   </div>
                   
@@ -515,6 +523,8 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                         weekend_3_meals_price: e.target.value ? parseInt(e.target.value) : null 
                       })}
                       placeholder="選填"
+                      className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
+                      inputMode="numeric"
                     />
                   </div>
                 </div>
@@ -527,7 +537,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
-            <Button onClick={handleSubmit} className="flex items-center justify-center gap-2 w-full sm:w-auto">
+            <Button onClick={handleSubmit} className="flex items-center justify-center gap-2 w-full sm:w-auto h-11 sm:h-10 touch-manipulation">
               <Check className="h-4 w-4" />
               {editingTemplate ? '更新' : '新增'}
             </Button>
@@ -537,7 +547,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                 setShowForm(false);
                 setEditingTemplate(null);
               }}
-              className="flex items-center justify-center gap-2 w-full sm:w-auto"
+              className="flex items-center justify-center gap-2 w-full sm:w-auto h-11 sm:h-10 touch-manipulation"
             >
               <X className="h-4 w-4" />
               取消
@@ -559,7 +569,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                 建立並管理可重複使用的價格方案
               </CardDescription>
             </div>
-            <Button onClick={handleAddNew} className="flex items-center justify-center gap-2 w-full sm:w-auto">
+            <Button onClick={handleAddNew} className="flex items-center justify-center gap-2 w-full sm:w-auto h-11 sm:h-10 touch-manipulation">
               <Plus className="h-4 w-4" />
               新增模板
             </Button>
@@ -669,7 +679,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                           variant="default"
                           size="sm"
                           onClick={() => handleApply(template)}
-                          className="flex-1 gap-2"
+                          className="flex-1 gap-2 h-10 sm:h-9 touch-manipulation"
                           disabled={!template.weekday_2_meals_price && !template.weekend_2_meals_price &&
                                    !template.weekday_3_meals_price && !template.weekend_3_meals_price}
                         >
@@ -680,6 +690,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                           variant="outline"
                           size="sm"
                           onClick={() => handleEdit(template)}
+                          className="h-10 sm:h-9 touch-manipulation"
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -687,6 +698,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                           variant="ghost-destructive"
                           size="sm"
                           onClick={() => handleDelete(template)}
+                          className="h-10 sm:h-9 touch-manipulation"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -752,7 +764,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                     type="button"
                     onClick={toggleAllDays}
                     className={`
-                      flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all text-sm
+                      flex items-center gap-2 px-3 py-2 h-10 sm:h-9 rounded-md border transition-all text-sm touch-manipulation
                       ${selectedDays.length === 7
                         ? 'border-primary bg-primary text-primary-foreground'
                         : 'border-border hover:border-primary hover:bg-accent'
@@ -765,7 +777,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                     type="button"
                     onClick={selectWeekdays}
                     className={`
-                      flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all text-sm
+                      flex items-center gap-2 px-3 py-2 h-10 sm:h-9 rounded-md border transition-all text-sm touch-manipulation
                       ${JSON.stringify(selectedDays) === JSON.stringify([1, 2, 3, 4, 5])
                         ? 'border-primary bg-primary text-primary-foreground'
                         : 'border-border hover:border-primary hover:bg-accent'
@@ -779,7 +791,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                     type="button"
                     onClick={selectWeekend}
                     className={`
-                      flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all text-sm
+                      flex items-center gap-2 px-3 py-2 h-10 sm:h-9 rounded-md border transition-all text-sm touch-manipulation
                       ${JSON.stringify(selectedDays) === JSON.stringify([0, 6])
                         ? 'border-primary bg-primary text-primary-foreground'
                         : 'border-border hover:border-primary hover:bg-accent'
@@ -808,7 +820,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                       type="button"
                       onClick={() => toggleDay(day)}
                       className={`
-                        flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all
+                        flex items-center gap-2 px-3 py-2 h-10 sm:h-9 rounded-md border transition-all touch-manipulation
                         ${selectedDays.includes(day)
                           ? 'border-primary bg-primary text-primary-foreground'
                           : 'border-border hover:border-primary hover:bg-accent'
@@ -841,7 +853,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                   onClick={() => setSelectedPriceType('2meals')}
                   disabled={!applyingTemplate?.weekday_2_meals_price && !applyingTemplate?.weekend_2_meals_price}
                   className={`
-                    p-4 rounded-lg border-2 transition-all text-left group
+                    p-4 rounded-lg border-2 transition-all text-left group touch-manipulation
                     ${selectedPriceType === '2meals' 
                       ? 'border-primary bg-primary text-primary-foreground' 
                       : 'border-border hover:border-primary hover:bg-primary hover:text-primary-foreground'
@@ -881,7 +893,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                   onClick={() => setSelectedPriceType('3meals')}
                   disabled={!applyingTemplate?.weekday_3_meals_price && !applyingTemplate?.weekend_3_meals_price}
                   className={`
-                    p-4 rounded-lg border-2 transition-all text-left group
+                    p-4 rounded-lg border-2 transition-all text-left group touch-manipulation
                     ${selectedPriceType === '3meals' 
                       ? 'border-primary bg-primary text-primary-foreground' 
                       : 'border-border hover:border-primary hover:bg-primary hover:text-primary-foreground'
@@ -930,7 +942,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                   roomTypes.map((roomType) => (
                     <div
                       key={roomType.id}
-                      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors touch-manipulation ${
                         selectedRoomTypes.includes(roomType.id)
                           ? 'bg-primary text-primary-foreground'
                           : 'hover:bg-accent'
@@ -1028,47 +1040,47 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                   {/* 快捷選項 */}
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm text-muted-foreground mr-2">快捷選項：</span>
-                    <button
-                      type="button"
-                      onClick={toggleAllDays}
-                      className={`
-                        flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all text-sm
-                        ${selectedDays.length === 7
-                          ? 'border-primary bg-primary text-primary-foreground'
-                          : 'border-border hover:border-primary hover:bg-accent'
-                        }
-                      `}
-                    >
-                      <span className="font-medium">全選</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={selectWeekdays}
-                      className={`
-                        flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all text-sm
-                        ${JSON.stringify(selectedDays) === JSON.stringify([1, 2, 3, 4, 5])
-                          ? 'border-primary bg-primary text-primary-foreground'
-                          : 'border-border hover:border-primary hover:bg-accent'
-                        }
-                      `}
-                    >
-                      <span className="font-medium">工作日</span>
-                      <span className="text-xs opacity-75">(一~五)</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={selectWeekend}
-                      className={`
-                        flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all text-sm
-                        ${JSON.stringify(selectedDays) === JSON.stringify([0, 6])
-                          ? 'border-primary bg-primary text-primary-foreground'
-                          : 'border-border hover:border-primary hover:bg-accent'
-                        }
-                      `}
-                    >
-                      <span className="font-medium">週末</span>
-                      <span className="text-xs opacity-75">(六、日)</span>
-                    </button>
+                  <button
+                    type="button"
+                    onClick={toggleAllDays}
+                    className={`
+                      flex items-center gap-2 px-3 py-2 h-10 sm:h-9 rounded-md border transition-all text-sm touch-manipulation
+                      ${selectedDays.length === 7
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border hover:border-primary hover:bg-accent'
+                      }
+                    `}
+                  >
+                    <span className="font-medium">全選</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={selectWeekdays}
+                    className={`
+                      flex items-center gap-2 px-3 py-2 h-10 sm:h-9 rounded-md border transition-all text-sm touch-manipulation
+                      ${JSON.stringify(selectedDays) === JSON.stringify([1, 2, 3, 4, 5])
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border hover:border-primary hover:bg-accent'
+                      }
+                    `}
+                  >
+                    <span className="font-medium">工作日</span>
+                    <span className="text-xs opacity-75">(一~五)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={selectWeekend}
+                    className={`
+                      flex items-center gap-2 px-3 py-2 h-10 sm:h-9 rounded-md border transition-all text-sm touch-manipulation
+                      ${JSON.stringify(selectedDays) === JSON.stringify([0, 6])
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border hover:border-primary hover:bg-accent'
+                      }
+                    `}
+                  >
+                    <span className="font-medium">週末</span>
+                    <span className="text-xs opacity-75">(六、日)</span>
+                  </button>
                   </div>
 
                   {/* 個別星期選擇 */}
@@ -1083,17 +1095,17 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                       { day: 6, label: '六' },
                     ].map(({ day, label }) => (
                       <button
-                        key={day}
-                        type="button"
-                        onClick={() => toggleDay(day)}
-                        className={`
-                          flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all
-                          ${selectedDays.includes(day)
-                            ? 'border-primary bg-primary text-primary-foreground'
-                            : 'border-border hover:border-primary hover:bg-accent'
-                          }
-                        `}
-                      >
+                      key={day}
+                      type="button"
+                      onClick={() => toggleDay(day)}
+                      className={`
+                        flex items-center gap-2 px-3 py-2 h-10 sm:h-9 rounded-md border transition-all touch-manipulation
+                        ${selectedDays.includes(day)
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-border hover:border-primary hover:bg-accent'
+                        }
+                      `}
+                    >
                         {selectedDays.includes(day) ? (
                           <CheckSquare className="h-4 w-4" />
                         ) : (
@@ -1120,7 +1132,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                     onClick={() => setSelectedPriceType('2meals')}
                     disabled={!applyingTemplate?.weekday_2_meals_price && !applyingTemplate?.weekend_2_meals_price}
                     className={`
-                      p-4 rounded-lg border-2 transition-all text-left group
+                      p-4 rounded-lg border-2 transition-all text-left group touch-manipulation
                       ${selectedPriceType === '2meals' 
                         ? 'border-primary bg-primary text-primary-foreground' 
                         : 'border-border hover:border-primary hover:bg-primary hover:text-primary-foreground'
@@ -1160,7 +1172,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                     onClick={() => setSelectedPriceType('3meals')}
                     disabled={!applyingTemplate?.weekday_3_meals_price && !applyingTemplate?.weekend_3_meals_price}
                     className={`
-                      p-4 rounded-lg border-2 transition-all text-left group
+                      p-4 rounded-lg border-2 transition-all text-left group touch-manipulation
                       ${selectedPriceType === '3meals' 
                         ? 'border-primary bg-primary text-primary-foreground' 
                         : 'border-border hover:border-primary hover:bg-primary hover:text-primary-foreground'
@@ -1209,7 +1221,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                     roomTypes.map((roomType) => (
                       <div
                         key={roomType.id}
-                        className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                        className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors touch-manipulation ${
                           selectedRoomTypes.includes(roomType.id)
                             ? 'bg-primary text-primary-foreground'
                             : 'hover:bg-accent'
@@ -1264,14 +1276,14 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                 variant="outline" 
                 onClick={() => setApplyDialogOpen(false)}
                 disabled={applying}
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto h-11 sm:h-10 touch-manipulation"
               >
                 取消
               </Button>
               <Button 
                 onClick={confirmApply}
                 disabled={!dateRange?.from || !dateRange?.to || selectedRoomTypes.length === 0 || applying}
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto h-11 sm:h-10 touch-manipulation"
               >
                 {applying ? '套用中...' : '確認套用'}
               </Button>
