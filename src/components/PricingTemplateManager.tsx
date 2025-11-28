@@ -409,27 +409,56 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
           const weekend = isWeekend(date);
           // 根據選擇的價格類型決定套用哪個價格
           let price = 0;
+          let price_2_meals = null;
+          let price_3_meals = null;
+          
           if (selectedPriceType === '2meals') {
-            price = weekend 
+            price_2_meals = weekend 
               ? (applyingTemplate.weekend_2_meals_price ?? 0)
               : (applyingTemplate.weekday_2_meals_price ?? 0);
           } else {
-            price = weekend 
+            price_3_meals = weekend 
               ? (applyingTemplate.weekend_3_meals_price ?? 0)
               : (applyingTemplate.weekday_3_meals_price ?? 0);
           }
           
-          records.push({
-            room_type_id: roomTypeId,
-            date: format(date, 'yyyy-MM-dd'),
-            price: price,
-            available_rooms: availableRooms,
-            is_available: true,
-          });
+          // 先查詢該日期是否已有記錄
+          const { data: existing } = await supabase
+            .from('room_inventory_pricing')
+            .select('*')
+            .eq('room_type_id', roomTypeId)
+            .eq('date', format(date, 'yyyy-MM-dd'))
+            .maybeSingle();
+          
+          if (existing) {
+            // 如果已存在，只更新對應的價格欄位
+            const updateData: any = {};
+            if (selectedPriceType === '2meals') {
+              updateData.price_2_meals = price_2_meals;
+            } else {
+              updateData.price_3_meals = price_3_meals;
+            }
+            
+            records.push({
+              id: existing.id,
+              ...updateData
+            });
+          } else {
+            // 如果不存在，創建新記錄
+            records.push({
+              room_type_id: roomTypeId,
+              date: format(date, 'yyyy-MM-dd'),
+              price: price,
+              price_2_meals: price_2_meals,
+              price_3_meals: price_3_meals,
+              available_rooms: availableRooms,
+              is_available: true,
+            });
+          }
         }
       }
 
-      // 批量插入（使用 upsert 避免重複）
+      // 批量更新
       const { error } = await supabase
         .from('room_inventory_pricing')
         .upsert(records, { 

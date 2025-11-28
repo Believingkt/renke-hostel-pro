@@ -1191,6 +1191,8 @@ export type Database = {
           min_nights: number | null
           notes: string | null
           price: number
+          price_2_meals: number | null
+          price_3_meals: number | null
           room_type_id: string
           updated_at: string
         }
@@ -1204,6 +1206,8 @@ export type Database = {
           min_nights?: number | null
           notes?: string | null
           price: number
+          price_2_meals?: number | null
+          price_3_meals?: number | null
           room_type_id: string
           updated_at?: string
         }
@@ -1217,6 +1221,8 @@ export type Database = {
           min_nights?: number | null
           notes?: string | null
           price?: number
+          price_2_meals?: number | null
+          price_3_meals?: number | null
           room_type_id?: string
           updated_at?: string
         }
