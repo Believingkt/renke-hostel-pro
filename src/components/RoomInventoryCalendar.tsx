@@ -746,7 +746,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                   key={dateStr}
                   onClick={() => handleSingleClick(dateStr)}
                   className={cn(
-                    "relative min-h-[100px] sm:min-h-[90px] md:min-h-[100px] border rounded-lg p-2 sm:p-2 flex flex-col items-center justify-start transition-all touch-manipulation active:scale-95",
+                    "relative min-h-[110px] sm:min-h-[90px] md:min-h-[100px] border rounded-lg p-2.5 sm:p-2 flex flex-col items-center justify-start transition-all touch-manipulation active:scale-95",
                     isTodayDate && "border-primary border-2 ring-2 ring-primary/20",
                     !isCurrentMonth && "opacity-50",
                     isSelectionMode && "cursor-pointer",
@@ -763,7 +763,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                   )}
                 >
                   <div className={cn(
-                    "font-bold mb-2 text-lg sm:text-base w-full text-center pb-1.5 border-b",
+                    "font-bold mb-2 text-xl sm:text-base w-full text-center pb-1.5 border-b",
                     isTodayDate && "text-primary border-primary/30",
                     isSelected && "text-blue-700 border-blue-300",
                     !isTodayDate && !isSelected && isHoliday && hasData && "text-orange-700 border-orange-200/50",
@@ -773,7 +773,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                     {format(day, 'd')}
                     {holidayInfo && (
                       <span className={cn(
-                        "ml-1 text-[9px] sm:text-[10px] px-1 py-0.5 rounded font-medium",
+                        "ml-1 text-[10px] sm:text-[10px] px-1 py-0.5 rounded font-medium",
                         isRegularHoliday && "bg-orange-600 text-white",
                         isCompensatoryDayOff && "bg-green-600 text-white",
                         isWorkOnWeekend && "bg-blue-600 text-white"
@@ -785,50 +785,50 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                     )}
                   </div>
                   {hasData ? (
-                    <div className="w-full space-y-1 px-0.5">
+                    <div className="w-full space-y-1.5 px-0.5">
                       {dayInventory.price_2_meals && (
                         <div className={cn(
-                          "flex items-center justify-between gap-1 text-[11px] sm:text-xs rounded px-1.5 py-0.5",
+                          "flex items-center justify-between gap-1 text-xs sm:text-xs rounded px-2 py-1",
                           isHoliday ? "bg-orange-100/60" : "bg-blue-100/60"
                         )}>
-                          <span className="text-muted-foreground font-medium">一泊二食</span>
-                          <span className="font-bold text-foreground">${formatPrice(dayInventory.price_2_meals)}</span>
+                          <span className="text-muted-foreground font-medium text-[11px] sm:text-xs">一泊二食</span>
+                          <span className="font-bold text-foreground text-[13px] sm:text-xs">${formatPrice(dayInventory.price_2_meals)}</span>
                         </div>
                       )}
                       {dayInventory.price_3_meals && (
                         <div className={cn(
-                          "flex items-center justify-between gap-1 text-[11px] sm:text-xs rounded px-1.5 py-0.5",
+                          "flex items-center justify-between gap-1 text-xs sm:text-xs rounded px-2 py-1",
                           isHoliday ? "bg-orange-100/60" : "bg-blue-100/60"
                         )}>
-                          <span className="text-muted-foreground font-medium">一泊三食</span>
-                          <span className="font-bold text-foreground">${formatPrice(dayInventory.price_3_meals)}</span>
+                          <span className="text-muted-foreground font-medium text-[11px] sm:text-xs">一泊三食</span>
+                          <span className="font-bold text-foreground text-[13px] sm:text-xs">${formatPrice(dayInventory.price_3_meals)}</span>
                         </div>
                       )}
                       {!dayInventory.price_2_meals && !dayInventory.price_3_meals && dayInventory.price && (
                         <div className={cn(
-                          "flex items-center justify-center gap-1 text-[11px] sm:text-xs rounded px-1.5 py-0.5",
+                          "flex items-center justify-center gap-1 text-xs sm:text-xs rounded px-2 py-1",
                           isHoliday ? "bg-orange-100/60" : "bg-blue-100/60"
                         )}>
-                          <DollarSign className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                          <span className="font-bold text-foreground">{formatPrice(dayInventory.price)}</span>
+                          <DollarSign className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                          <span className="font-bold text-foreground text-[13px]">{formatPrice(dayInventory.price)}</span>
                         </div>
                       )}
                       <div className={cn(
-                        "flex items-center justify-center gap-1 text-[11px] sm:text-xs rounded px-1.5 py-0.5 mt-1.5",
+                        "flex items-center justify-center gap-1.5 text-xs sm:text-xs rounded px-2 py-1 mt-2",
                         isHoliday ? "bg-orange-200/50" : "bg-primary/10"
                       )}>
                         <Package className={cn(
-                          "h-3 w-3 flex-shrink-0",
+                          "h-3.5 w-3.5 flex-shrink-0",
                           isHoliday ? "text-orange-700" : "text-primary"
                         )} />
                         <span className={cn(
-                          "font-bold",
+                          "font-bold text-[13px] sm:text-xs",
                           isHoliday ? "text-orange-700" : "text-primary"
                         )}>{dayInventory.availableRooms} 間</span>
                       </div>
                     </div>
                   ) : (
-                    <div className="text-[11px] sm:text-xs text-muted-foreground font-medium mt-1">未設定</div>
+                    <div className="text-xs sm:text-xs text-muted-foreground font-medium mt-2">未設定</div>
                   )}
                   {isSelected && (
                     <div className="absolute top-1.5 right-1.5 sm:top-1.5 sm:right-1.5 bg-blue-600 rounded-full p-0.5">
