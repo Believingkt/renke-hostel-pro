@@ -1234,7 +1234,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                       flex flex-col items-center justify-center gap-0.5 px-3 py-2 h-auto min-h-[44px] sm:min-h-[36px] rounded-md border transition-all touch-manipulation
                       ${selectedDays.length === 7
                         ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border hover:border-primary hover:bg-accent hover:text-white'
+                        : 'border-border hover:bg-accent hover:text-white'
                       }
                     `}
                   >
@@ -1248,7 +1248,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                       flex flex-col items-center justify-center gap-0.5 px-3 py-2 h-auto min-h-[44px] sm:min-h-[36px] rounded-md border transition-all touch-manipulation
                       ${JSON.stringify(selectedDays) === JSON.stringify([1, 2, 3, 4, 5])
                         ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border hover:border-primary hover:bg-accent hover:text-white'
+                        : 'border-border hover:bg-accent hover:text-white'
                       }
                     `}
                   >
@@ -1262,7 +1262,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                       flex flex-col items-center justify-center gap-0.5 px-3 py-2 h-auto min-h-[44px] sm:min-h-[36px] rounded-md border transition-all touch-manipulation
                       ${JSON.stringify(selectedDays) === JSON.stringify([0, 6]) && includePublicHolidays
                         ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border hover:border-primary hover:bg-accent hover:text-white'
+                        : 'border-border hover:bg-accent hover:text-white'
                       }
                     `}
                   >
@@ -1529,7 +1529,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                       flex flex-col items-center justify-center gap-0.5 px-3 py-2 h-auto min-h-[44px] sm:min-h-[36px] rounded-md border transition-all touch-manipulation
                       ${selectedDays.length === 7
                         ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border hover:border-primary hover:bg-accent hover:text-white'
+                        : 'border-border hover:bg-accent hover:text-white'
                       }
                     `}
                   >
@@ -1543,7 +1543,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                       flex flex-col items-center justify-center gap-0.5 px-3 py-2 h-auto min-h-[44px] sm:min-h-[36px] rounded-md border transition-all touch-manipulation
                       ${JSON.stringify(selectedDays) === JSON.stringify([1, 2, 3, 4, 5])
                         ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border hover:border-primary hover:bg-accent hover:text-white'
+                        : 'border-border hover:bg-accent hover:text-white'
                       }
                     `}
                   >
@@ -1557,7 +1557,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                       flex flex-col items-center justify-center gap-0.5 px-3 py-2 h-auto min-h-[44px] sm:min-h-[36px] rounded-md border transition-all touch-manipulation
                       ${JSON.stringify(selectedDays) === JSON.stringify([0, 6]) && includePublicHolidays
                         ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border hover:border-primary hover:bg-accent hover:text-white'
+                        : 'border-border hover:bg-accent hover:text-white'
                       }
                     `}
                   >
