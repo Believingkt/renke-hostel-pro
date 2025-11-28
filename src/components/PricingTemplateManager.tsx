@@ -450,9 +450,14 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
           
           if (existing) {
             // 更新現有記錄
+            const basePrice = weekend 
+              ? (applyingTemplate.weekend_price || price_2_meals || price_3_meals || existing.price)
+              : (applyingTemplate.weekday_price || price_2_meals || price_3_meals || existing.price);
+            
             const updateData: any = {
               room_type_id: roomTypeId,
               date: dateStr,
+              price: basePrice, // 確保 price 欄位始終有值
             };
             
             if (selectedPriceType === '2meals') {
