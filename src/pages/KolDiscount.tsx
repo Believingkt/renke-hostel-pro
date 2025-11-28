@@ -793,12 +793,12 @@ const KolDiscount = () => {
                 <DrawerTrigger asChild>
                   <Button className="gap-2 h-11 sm:h-10 touch-manipulation">
                     <Plus className="h-4 w-4" />
-                    新增折扣碼
+                    新增網紅
                   </Button>
                 </DrawerTrigger>
                 <DrawerContent className="max-h-[90vh]">
                   <DrawerHeader>
-                    <DrawerTitle>新增折扣碼</DrawerTitle>
+                    <DrawerTitle>新增網紅折扣碼</DrawerTitle>
                     <DrawerDescription>
                       填寫折扣碼資訊，系統將自動生成折扣碼
                     </DrawerDescription>
@@ -1076,12 +1076,12 @@ const KolDiscount = () => {
                 <DialogTrigger asChild>
                   <Button className="gap-2">
                     <Plus className="h-4 w-4" />
-                    新增折扣碼
+                    新增網紅
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle>新增折扣碼</DialogTitle>
+                    <DialogTitle>新增網紅折扣碼</DialogTitle>
                     <DialogDescription>
                       填寫折扣碼資訊，系統將自動生成折扣碼
                     </DialogDescription>
@@ -2126,7 +2126,7 @@ const KolDiscount = () => {
                         <EmptyState
                           icon={Tag}
                           title="暫無折扣碼"
-                          description="目前還沒有建立任何折扣碼，點擊右上角的「新增折扣碼」按鈕開始建立"
+                          description="目前還沒有建立任何折扣碼，點擊右上角的「新增網紅」按鈕開始建立"
                           className="border-0 shadow-none"
                         />
                       </div>
@@ -2158,7 +2158,7 @@ const KolDiscount = () => {
               <EmptyState
                 icon={Tag}
                 title="暫無折扣碼"
-                description="目前還沒有建立任何折扣碼，點擊右上角的「新增折扣碼」按鈕開始建立"
+                description="目前還沒有建立任何折扣碼，點擊右上角的「新增網紅」按鈕開始建立"
                 className="border-0 shadow-none"
               />
             ) : (
