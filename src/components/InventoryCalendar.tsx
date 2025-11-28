@@ -14,6 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
@@ -48,6 +50,7 @@ interface InventoryCalendarProps {
 }
 
 export const InventoryCalendar = ({ accommodationId }: InventoryCalendarProps) => {
+  const isMobile = useIsMobile();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [bookingCounts, setBookingCounts] = useState<BookingCount[]>([]);
@@ -212,14 +215,14 @@ export const InventoryCalendar = ({ accommodationId }: InventoryCalendarProps) =
         <div className="flex items-center justify-between">
           <CardTitle>庫存管理 - 房型預訂狀態</CardTitle>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handlePreviousMonth}>
-              <ChevronLeft className="h-4 w-4" />
+            <Button variant="outline" size="sm" onClick={handlePreviousMonth} className="h-10 sm:h-9 touch-manipulation">
+              <ChevronLeft className="h-5 w-5 sm:h-4 sm:w-4" />
             </Button>
-            <span className="text-lg font-semibold min-w-[150px] text-center">
+            <span className="text-base sm:text-lg font-semibold min-w-[150px] text-center">
               {format(currentDate, "yyyy年 M月", { locale: zhTW })}
             </span>
-            <Button variant="outline" size="sm" onClick={handleNextMonth}>
-              <ChevronRight className="h-4 w-4" />
+            <Button variant="outline" size="sm" onClick={handleNextMonth} className="h-10 sm:h-9 touch-manipulation">
+              <ChevronRight className="h-5 w-5 sm:h-4 sm:w-4" />
             </Button>
           </div>
         </div>
