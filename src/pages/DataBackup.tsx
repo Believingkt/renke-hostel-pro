@@ -71,6 +71,8 @@ const DataBackup = () => {
   const [creating, setCreating] = useState(false);
   const [restoring, setRestoring] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingBackup, setDeletingBackup] = useState<BackupLog | null>(null);
   const [cleaning, setCleaning] = useState(false);
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
   const [selectedBackup, setSelectedBackup] = useState<BackupLog | null>(null);
@@ -173,16 +175,21 @@ const DataBackup = () => {
     }
   };
 
-  const handleDeleteBackup = async (backup: BackupLog) => {
-    if (!accommodationId) return;
+  const handleDeleteBackupClick = (backup: BackupLog) => {
+    setDeletingBackup(backup);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteBackup = async () => {
+    if (!accommodationId || !deletingBackup) return;
 
     try {
-      setDeleting(backup.id);
+      setDeleting(deletingBackup.id);
 
       // Delete file from storage
       const { error: storageError } = await supabase.storage
         .from('backups')
-        .remove([backup.file_path]);
+        .remove([deletingBackup.file_path]);
 
       if (storageError) throw storageError;
 
@@ -190,7 +197,7 @@ const DataBackup = () => {
       const { error: dbError } = await supabase
         .from('backup_logs')
         .delete()
-        .eq('id', backup.id);
+        .eq('id', deletingBackup.id);
 
       if (dbError) throw dbError;
 
@@ -499,7 +506,7 @@ const DataBackup = () => {
                     <Button
                       variant="ghost-destructive"
                       size="sm"
-                      onClick={() => handleDeleteBackup(backup)}
+                      onClick={() => handleDeleteBackupClick(backup)}
                       disabled={restoring === backup.id || deleting === backup.id}
                     >
                       <Trash2 className="h-4 w-4" />

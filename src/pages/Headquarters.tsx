@@ -117,6 +117,10 @@ const Headquarters = () => {
   const [clearExisting, setClearExisting] = useState(false);
   const [backupMode, setBackupMode] = useState<'full' | 'incremental'>('full');
   const [selectedBackupAccommodation, setSelectedBackupAccommodation] = useState("");
+  const [deleteRoleDialogOpen, setDeleteRoleDialogOpen] = useState(false);
+  const [deletingRoleId, setDeletingRoleId] = useState<string | null>(null);
+  const [deleteBackupDialogOpen, setDeleteBackupDialogOpen] = useState(false);
+  const [deletingBackup, setDeletingBackup] = useState<BackupLog | null>(null);
 
   useEffect(() => {
     loadAccommodations();
@@ -441,16 +445,21 @@ const Headquarters = () => {
     }
   };
 
-  const handleDeleteBackup = async (backup: BackupLog) => {
-    if (!selectedBackupAccommodation) return;
+  const handleDeleteBackupClick = (backup: BackupLog) => {
+    setDeletingBackup(backup);
+    setDeleteBackupDialogOpen(true);
+  };
+
+  const handleDeleteBackup = async () => {
+    if (!selectedBackupAccommodation || !deletingBackup) return;
 
     try {
-      setDeleting(backup.id);
+      setDeleting(deletingBackup.id);
 
       // Delete file from storage
       const { error: storageError } = await supabase.storage
         .from('backups')
-        .remove([backup.file_path]);
+        .remove([deletingBackup.file_path]);
 
       if (storageError) throw storageError;
 
@@ -458,7 +467,7 @@ const Headquarters = () => {
       const { error: dbError } = await supabase
         .from('backup_logs')
         .delete()
-        .eq('id', backup.id);
+        .eq('id', deletingBackup.id);
 
       if (dbError) throw dbError;
 
@@ -469,6 +478,8 @@ const Headquarters = () => {
       toast.error('刪除備份失敗');
     } finally {
       setDeleting(null);
+      setDeleteBackupDialogOpen(false);
+      setDeletingBackup(null);
     }
   };
 
@@ -731,13 +742,13 @@ const Headquarters = () => {
                               <Mail className="h-4 w-4 text-primary" />
                             </Button>
                           )}
-                          <Button
-                            variant="ghost-destructive"
-                            size="icon"
-                            onClick={() => handleDeleteRole(userRole.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                            <Button
+                              variant="ghost-destructive"
+                              size="icon"
+                              onClick={() => handleDeleteRoleClick(userRole.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -964,7 +975,7 @@ const Headquarters = () => {
                       <Button
                         variant="ghost-destructive"
                         size="sm"
-                        onClick={() => handleDeleteBackup(backup)}
+                        onClick={() => handleDeleteBackupClick(backup)}
                         disabled={restoring === backup.id || deleting === backup.id}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -1031,6 +1042,58 @@ const Headquarters = () => {
                 </>
               )}
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={deleteRoleDialogOpen} onOpenChange={setDeleteRoleDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認刪除</AlertDialogTitle>
+            <AlertDialogDescription>確定要刪除此用戶的權限嗎？此操作無法復原。</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-11 sm:h-10 touch-manipulation">取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteRole} className="bg-destructive hover:bg-destructive/90 h-11 sm:h-10 touch-manipulation">刪除</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={deleteBackupDialogOpen} onOpenChange={setDeleteBackupDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認刪除</AlertDialogTitle>
+            <AlertDialogDescription>確定要刪除此備份嗎？此操作無法復原，備份文件將被永久刪除。</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-11 sm:h-10 touch-manipulation">取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteBackup} className="bg-destructive hover:bg-destructive/90 h-11 sm:h-10 touch-manipulation">刪除</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={deleteRoleDialogOpen} onOpenChange={setDeleteRoleDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認刪除</AlertDialogTitle>
+            <AlertDialogDescription>確定要刪除此用戶的權限嗎？此操作無法復原。</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-11 sm:h-10 touch-manipulation">取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteRole} className="bg-destructive hover:bg-destructive/90 h-11 sm:h-10 touch-manipulation">刪除</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={deleteBackupDialogOpen} onOpenChange={setDeleteBackupDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認刪除</AlertDialogTitle>
+            <AlertDialogDescription>確定要刪除此備份嗎？此操作無法復原，備份文件將被永久刪除。</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-11 sm:h-10 touch-manipulation">取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteBackup} className="bg-destructive hover:bg-destructive/90 h-11 sm:h-10 touch-manipulation">刪除</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
