@@ -52,15 +52,15 @@ export function StatCard({ title, value, change, icon: Icon, variant, isUpdating
       isUpdating && "ring-2 ring-primary animate-pulse"
     )}>
       <div className="flex items-center justify-between gap-2 md:gap-3 select-none">
-        <div className="space-y-0.5 md:space-y-2 flex-1 min-w-0">
-          <p className="text-[10px] md:text-sm font-medium text-muted-foreground truncate leading-tight">{title}</p>
-          <div className="flex items-baseline gap-1 md:gap-2 flex-wrap">
+        <div className="space-y-1 md:space-y-2 flex-1 min-w-0">
+          <p className="text-xs md:text-sm font-medium text-muted-foreground truncate leading-tight">{title}</p>
+          <div className="flex items-baseline gap-1.5 md:gap-2 flex-wrap">
             <h3 className={cn(
-              "text-lg md:text-2xl lg:text-3xl font-bold tracking-tight transition-all duration-300",
+              "text-2xl md:text-2xl lg:text-3xl font-bold tracking-tight transition-all duration-300",
               isUpdating && "text-primary scale-105"
             )}>{displayValue}</h3>
             {change && (
-              <span className="text-[10px] md:text-sm font-medium text-primary whitespace-nowrap">{change}</span>
+              <span className="text-xs md:text-sm font-medium text-primary whitespace-nowrap">{change}</span>
             )}
           </div>
         </div>
