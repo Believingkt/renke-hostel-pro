@@ -1379,7 +1379,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                 inputMode="numeric"
               />
               <p className="text-xs text-muted-foreground">
-                設定每天的可用房數（庫存）
+                設定每天的可用房數
               </p>
             </div>
           </div>
@@ -1671,7 +1671,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                   inputMode="numeric"
                 />
                 <p className="text-xs text-muted-foreground">
-                  設定每天的可用房數（庫存）
+                  設定每天的可用房數
                 </p>
               </div>
             </div>
