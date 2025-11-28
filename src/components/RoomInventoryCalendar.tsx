@@ -890,7 +890,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                   )}
                 >
                   <div className={cn(
-                    "font-bold mb-2 text-xl sm:text-base w-full text-center pb-1.5 border-b",
+                    "font-bold mb-2 text-base sm:text-base w-full text-center pb-1.5 border-b",
                     isTodayDate && "text-primary border-primary/30",
                     isSelected && "text-blue-700 border-blue-300",
                     !isTodayDate && !isSelected && isHoliday && hasData && "text-orange-700 border-orange-200/50",
