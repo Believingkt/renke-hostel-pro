@@ -118,6 +118,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
   const [templateApplications, setTemplateApplications] = useState<Record<string, TemplateApplication[]>>({});
   const [showApplicationsDialog, setShowApplicationsDialog] = useState(false);
   const [viewingApplicationsTemplate, setViewingApplicationsTemplate] = useState<PricingTemplate | null>(null);
+  const [applyProgress, setApplyProgress] = useState({ current: 0, total: 0, currentRoom: '' });
   
   const [formData, setFormData] = useState({
     template_name: "",
@@ -177,10 +178,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
     try {
       const { data, error } = await supabase
         .from('pricing_template_applications')
-        .select(`
-          *,
-          profiles:applied_by (name)
-        `)
+        .select('*')
         .eq('accommodation_id', accommodationId)
         .order('applied_at', { ascending: false });
 
@@ -413,7 +411,12 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
         return;
       }
       
+      // 初始化進度
+      const totalRecords = selectedRoomTypes.length * dates.length;
+      setApplyProgress({ current: 0, total: totalRecords, currentRoom: '' });
+      
       // 批量查詢現有記錄
+      setApplyProgress(prev => ({ ...prev, currentRoom: '查詢現有價格記錄...' }));
       const dateStrings = dates.map(date => format(date, 'yyyy-MM-dd'));
       const { data: existingRecords, error: queryError } = await supabase
         .from('room_inventory_pricing')
@@ -435,9 +438,19 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       
       // 準備 upsert 記錄
       const upsertRecords = [];
+      let processedCount = 0;
       
-      for (const roomTypeId of selectedRoomTypes) {
+      for (let i = 0; i < selectedRoomTypes.length; i++) {
+        const roomTypeId = selectedRoomTypes[i];
+        const roomTypeName = roomTypes.find(r => r.id === roomTypeId)?.name || '未知房型';
+        setApplyProgress(prev => ({ 
+          ...prev, 
+          currentRoom: `處理 ${roomTypeName} (${i + 1}/${selectedRoomTypes.length})` 
+        }));
+        
         for (const date of dates) {
+          processedCount++;
+          setApplyProgress(prev => ({ ...prev, current: processedCount }));
           const weekend = isWeekend(date);
           const dateStr = format(date, 'yyyy-MM-dd');
           const key = `${roomTypeId}_${dateStr}`;
@@ -500,6 +513,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       }
       
       // 執行批量 upsert
+      setApplyProgress(prev => ({ ...prev, currentRoom: '正在儲存價格資料...' }));
       const { error: upsertError } = await supabase
         .from('room_inventory_pricing')
         .upsert(upsertRecords, { 
@@ -512,7 +526,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
         throw upsertError;
       }
       
-      const totalRecords = upsertRecords.length;
+      setApplyProgress(prev => ({ ...prev, currentRoom: '記錄套用歷史...' }));
       
       // 記錄套用歷史
       const { data: { user } } = await supabase.auth.getUser();
@@ -528,7 +542,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
           room_type_ids: selectedRoomTypes,
           price_type: selectedPriceType,
           available_rooms: availableRooms,
-          affected_dates_count: totalRecords,
+          affected_dates_count: upsertRecords.length,
         });
 
       if (applicationError) {
@@ -536,7 +550,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       }
       
       const priceTypeName = selectedPriceType === '2meals' ? '一泊二食' : '一泊三食';
-      toast.success(`已成功套用${priceTypeName}價格到 ${selectedRoomTypes.length} 個房型的 ${totalRecords} 天`);
+      toast.success(`已成功套用${priceTypeName}價格到 ${selectedRoomTypes.length} 個房型的 ${upsertRecords.length} 天`);
       setApplyDialogOpen(false);
       setApplyingTemplate(null);
       loadTemplateApplications();
@@ -545,6 +559,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       toast.error(`套用價格模板失敗：${error.message || '未知錯誤'}`);
     } finally {
       setApplying(false);
+      setApplyProgress({ current: 0, total: 0, currentRoom: '' });
     }
   };
 
@@ -1175,6 +1190,20 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
           </div>
 
           <DrawerFooter className="flex-col gap-2 pt-2">
+            {applying && applyProgress.total > 0 && (
+              <div className="w-full space-y-2 mb-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{applyProgress.currentRoom}</span>
+                  <span className="font-medium">{applyProgress.current}/{applyProgress.total}</span>
+                </div>
+                <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
+                  <div 
+                    className="bg-primary h-full transition-all duration-300"
+                    style={{ width: `${(applyProgress.current / applyProgress.total) * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
             <Button 
               onClick={confirmApply}
               disabled={!dateRange?.from || !dateRange?.to || selectedRoomTypes.length === 0 || applying}
@@ -1451,6 +1480,21 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                 </p>
               </div>
             </div>
+
+            {applying && applyProgress.total > 0 && (
+              <div className="w-full space-y-2 px-6 pb-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{applyProgress.currentRoom}</span>
+                  <span className="font-medium">{applyProgress.current}/{applyProgress.total}</span>
+                </div>
+                <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
+                  <div 
+                    className="bg-primary h-full transition-all duration-300"
+                    style={{ width: `${(applyProgress.current / applyProgress.total) * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
 
             <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button 
