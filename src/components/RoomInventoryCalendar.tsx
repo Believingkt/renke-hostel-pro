@@ -567,16 +567,16 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
             </div>
           </div>
 
-          {/* 批量編輯工具列 */}
+          {/* 批量編輯工具列 - 優化佈局 */}
           {!isSelectionMode ? (
             <div className="flex justify-end">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleStartBatchEdit}
-                className="gap-1 sm:gap-2 h-11 sm:h-8 px-3 touch-manipulation"
+                className="gap-1.5 sm:gap-2 h-9 sm:h-8 px-3 sm:px-4 touch-manipulation text-xs sm:text-sm"
               >
-                <Edit className="h-4 w-4" />
+                <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 <span className="hidden sm:inline">批量編輯</span>
                 <span className="sm:hidden">編輯</span>
               </Button>
@@ -618,17 +618,17 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                 </div>
               )}
 
-              {/* 快速選擇按鈕組 */}
-              <div className="flex flex-wrap gap-2">
+              {/* 快速選擇按鈕組 - 優化手機版設計 */}
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
                 {!copiedData && (
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleStartCopyMode}
-                    className="gap-2 h-11 sm:h-8 touch-manipulation"
+                    className="gap-1 sm:gap-2 h-9 sm:h-8 px-2 sm:px-3 touch-manipulation text-xs sm:text-sm"
                     disabled={isCopyMode}
                   >
-                    <Copy className="h-4 w-4" />
+                    <Copy className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     <span className="hidden sm:inline">複製設定</span>
                     <span className="sm:hidden">複製</span>
                   </Button>
@@ -637,10 +637,10 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                   variant="outline"
                   size="sm"
                   onClick={selectWeekends}
-                  className="gap-2 h-11 sm:h-8 touch-manipulation"
+                  className="gap-1 sm:gap-2 h-9 sm:h-8 px-2 sm:px-3 touch-manipulation text-xs sm:text-sm"
                   disabled={isCopyMode}
                 >
-                  <Calendar className="h-4 w-4" />
+                  <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   <span className="hidden sm:inline">選擇週末</span>
                   <span className="sm:hidden">週末</span>
                 </Button>
@@ -648,10 +648,10 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                   variant="outline"
                   size="sm"
                   onClick={selectWeekdays}
-                  className="gap-2 h-11 sm:h-8 touch-manipulation"
+                  className="gap-1 sm:gap-2 h-9 sm:h-8 px-2 sm:px-3 touch-manipulation text-xs sm:text-sm"
                   disabled={isCopyMode}
                 >
-                  <Briefcase className="h-4 w-4" />
+                  <Briefcase className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   <span className="hidden sm:inline">選擇工作日</span>
                   <span className="sm:hidden">工作日</span>
                 </Button>
@@ -659,10 +659,10 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                   variant="outline"
                   size="sm"
                   onClick={selectCurrentWeek}
-                  className="gap-2 h-11 sm:h-8 touch-manipulation"
+                  className="gap-1 sm:gap-2 h-9 sm:h-8 px-2 sm:px-3 touch-manipulation text-xs sm:text-sm"
                   disabled={isCopyMode}
                 >
-                  <CalendarDays className="h-4 w-4" />
+                  <CalendarDays className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   <span className="hidden sm:inline">選擇本週</span>
                   <span className="sm:hidden">本週</span>
                 </Button>
@@ -670,10 +670,10 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                   variant="outline"
                   size="sm"
                   onClick={selectWholeMonth}
-                  className="gap-2 h-11 sm:h-8 touch-manipulation"
+                  className="gap-1 sm:gap-2 h-9 sm:h-8 px-2 sm:px-3 touch-manipulation text-xs sm:text-sm"
                   disabled={isCopyMode}
                 >
-                  <CalendarRange className="h-4 w-4" />
+                  <CalendarRange className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   <span className="hidden sm:inline">選擇整月</span>
                   <span className="sm:hidden">整月</span>
                 </Button>
@@ -681,19 +681,19 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                   variant="ghost"
                   size="sm"
                   onClick={clearSelection}
-                  className="gap-2 h-11 sm:h-8 touch-manipulation"
+                  className="gap-1 sm:gap-2 h-9 sm:h-8 px-2 sm:px-3 touch-manipulation text-xs sm:text-sm"
                   disabled={selectedDates.size === 0 || isCopyMode}
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   <span className="hidden sm:inline">清除選擇</span>
                   <span className="sm:hidden">清除</span>
                 </Button>
               </div>
 
-              {/* 操作按鈕 */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between bg-muted/50 p-3 rounded-lg gap-3 sm:gap-0">
-                <span className="text-sm font-medium text-center sm:text-left">
-                  已選擇 {selectedDates.size} 個日期
+              {/* 操作按鈕 - 優化設計 */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between bg-muted/40 p-2.5 sm:p-3 rounded-lg gap-2 sm:gap-0 border">
+                <span className="text-xs sm:text-sm font-medium text-center sm:text-left">
+                  已選擇 <span className="text-primary font-bold">{selectedDates.size}</span> 個日期
                 </span>
                 <div className="flex gap-2">
                   {copiedData && !isCopyMode ? (
@@ -702,9 +702,9 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                       size="sm"
                       onClick={handleApplyCopiedData}
                       disabled={selectedDates.size === 0 || saving}
-                      className="gap-2 flex-1 sm:flex-none h-11 sm:h-8 touch-manipulation"
+                      className="gap-1.5 sm:gap-2 flex-1 sm:flex-none h-9 sm:h-8 touch-manipulation text-xs sm:text-sm"
                     >
-                      <Check className="h-4 w-4" />
+                      <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       {saving ? '套用中...' : '套用複製設定'}
                     </Button>
                   ) : (
@@ -713,9 +713,9 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                       size="sm"
                       onClick={handleOpenBatchEdit}
                       disabled={selectedDates.size === 0 || isCopyMode}
-                      className="gap-2 flex-1 sm:flex-none h-11 sm:h-8 touch-manipulation"
+                      className="gap-1.5 sm:gap-2 flex-1 sm:flex-none h-9 sm:h-8 touch-manipulation text-xs sm:text-sm"
                     >
-                      <Check className="h-4 w-4" />
+                      <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       編輯選中日期
                     </Button>
                   )}
@@ -723,11 +723,10 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                     variant="outline"
                     size="sm"
                     onClick={handleCancelSelection}
-                    className="gap-2 flex-1 sm:flex-none h-11 sm:h-8 touch-manipulation"
+                    className="gap-1.5 sm:gap-2 flex-1 sm:flex-none h-9 sm:h-8 touch-manipulation text-xs sm:text-sm"
                   >
-                    <X className="h-4 w-4" />
-                    <span className="hidden sm:inline">取消</span>
-                    <span className="sm:hidden">取消</span>
+                    <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    取消
                   </Button>
                 </div>
               </div>
