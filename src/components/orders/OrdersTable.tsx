@@ -229,44 +229,26 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
 
                   {/* 操作按鈕 */}
                   <div className="flex gap-2">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="default"
-                            className="flex-1 h-11 touch-manipulation gap-2"
-                            asChild
-                          >
-                            <Link to={`/admin/orders/${order.id}`}>
-                              <Eye className="h-4 w-4" />
-                              查看詳情
-                            </Link>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>查看詳情</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="default"
-                            className="flex-1 h-11 touch-manipulation gap-2"
-                            onClick={() => onEditOrder(order)}
-                          >
-                            <Edit className="h-4 w-4" />
-                            編輯訂單
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>編輯訂單</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <Button
+                      variant="outline"
+                      size="default"
+                      className="flex-1 h-12 touch-manipulation gap-2"
+                      asChild
+                    >
+                      <Link to={`/admin/orders/${order.id}`}>
+                        <Eye className="h-5 w-5" />
+                        <span>查看詳情</span>
+                      </Link>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="default"
+                      className="flex-1 h-12 touch-manipulation gap-2"
+                      onClick={() => onEditOrder(order)}
+                    >
+                      <Edit className="h-5 w-5" />
+                      <span>編輯訂單</span>
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
