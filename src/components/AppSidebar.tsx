@@ -128,23 +128,27 @@ export function AppSidebar() {
                   {item.subItems ? (
                     <Collapsible defaultOpen={isActiveRoute(item.url)} className="group/collapsible">
                       <CollapsibleTrigger asChild>
-                        <SidebarMenuButton className="h-12 py-3 text-base transition-all duration-200">
-                          <item.icon className="h-5 w-5 transition-transform duration-200" />
+                        <SidebarMenuButton className="h-12 py-3 text-base transition-all duration-200 hover:scale-[1.02]">
+                          <item.icon className="h-5 w-5 transition-all duration-200 group-hover:scale-110" />
                           <span className="transition-all duration-200">{item.title}</span>
-                          <ChevronDown className="ml-auto h-4 w-4 transition-transform duration-300 ease-out group-data-[state=open]/collapsible:rotate-180" />
+                          <ChevronDown className="ml-auto h-4 w-4 transition-all duration-300 ease-in-out group-data-[state=open]/collapsible:rotate-180 group-hover:scale-110" />
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
-                      <CollapsibleContent className="transition-all duration-300 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                      <CollapsibleContent className="overflow-hidden transition-all duration-300 ease-in-out data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
                         <SidebarMenuSub className="ml-2 border-l-2 border-sidebar-border px-0 space-y-1 mt-1">
-                        {item.subItems.map((subItem: any) => (
-                          <SidebarMenuSubItem key={subItem.title}>
-                            <SidebarMenuSubButton asChild className="h-10 px-4 pl-8 hover:bg-sidebar-accent/50 transition-all duration-200">
+                        {item.subItems.map((subItem: any, index: number) => (
+                          <SidebarMenuSubItem 
+                            key={subItem.title}
+                            className="animate-in fade-in-0 slide-in-from-left-2"
+                            style={{ animationDelay: `${index * 30}ms`, animationDuration: '200ms' }}
+                          >
+                            <SidebarMenuSubButton asChild className="h-10 px-4 pl-8 hover:bg-sidebar-accent/50 hover:translate-x-1 transition-all duration-200">
                               <PreloadLink 
                                 to={subItem.url}
                                 onClick={handleLinkClick}
                                 className={isActiveSubItem(subItem.url) ? "bg-sidebar-accent" : ""}
                               >
-                                {subItem.icon && <subItem.icon className="h-4 w-4" />}
+                                {subItem.icon && <subItem.icon className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />}
                                 <span className="transition-colors duration-200">{subItem.title}</span>
                               </PreloadLink>
                             </SidebarMenuSubButton>
@@ -154,12 +158,12 @@ export function AppSidebar() {
                       </CollapsibleContent>
                     </Collapsible>
                   ) : (
-                    <SidebarMenuButton asChild isActive={isActiveRoute(item.url)} className="h-12 py-3 text-base transition-all duration-200">
+                    <SidebarMenuButton asChild isActive={isActiveRoute(item.url)} className="h-12 py-3 text-base transition-all duration-200 hover:scale-[1.02]">
                       <PreloadLink 
                         to={item.url}
                         onClick={handleLinkClick}
                       >
-                        <item.icon className="h-5 w-5 transition-transform duration-200" />
+                        <item.icon className="h-5 w-5 transition-all duration-200 group-hover:scale-110" />
                         <span className="transition-all duration-200">{item.title}</span>
                       </PreloadLink>
                     </SidebarMenuButton>
