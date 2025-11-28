@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Pencil, Trash2, Check, X, CheckSquare, Square, CalendarCheck } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, CheckSquare, Square, CalendarCheck, Clock, History } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -51,6 +51,18 @@ interface PricingTemplate {
   weekend_2_meals_price: number | null;
   weekend_3_meals_price: number | null;
   is_default: boolean;
+}
+
+interface TemplateApplication {
+  id: string;
+  applied_at: string;
+  date_from: string;
+  date_to: string;
+  selected_days: number[];
+  room_type_ids: string[];
+  price_type: '2meals' | '3meals';
+  affected_dates_count: number;
+  applied_by: string | null;
 }
 
 interface RoomType {
@@ -103,6 +115,9 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
   const [applying, setApplying] = useState(false);
   const [selectedPriceType, setSelectedPriceType] = useState<'2meals' | '3meals'>('2meals');
   const [selectedDays, setSelectedDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]); // 0=日, 1=一, ..., 6=六
+  const [templateApplications, setTemplateApplications] = useState<Record<string, TemplateApplication[]>>({});
+  const [showApplicationsDialog, setShowApplicationsDialog] = useState(false);
+  const [viewingApplicationsTemplate, setViewingApplicationsTemplate] = useState<PricingTemplate | null>(null);
   
   const [formData, setFormData] = useState({
     template_name: "",
@@ -119,6 +134,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
     if (accommodationId) {
       loadTemplates();
       loadRoomTypes();
+      loadTemplateApplications();
     }
   }, [accommodationId]);
 
@@ -154,6 +170,44 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
     } catch (error) {
       console.error('載入房型失敗:', error);
       toast.error('載入房型失敗');
+    }
+  };
+
+  const loadTemplateApplications = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('pricing_template_applications')
+        .select(`
+          *,
+          profiles:applied_by (name)
+        `)
+        .eq('accommodation_id', accommodationId)
+        .order('applied_at', { ascending: false });
+
+      if (error) throw error;
+      
+      // 按模板 ID 分組
+      const grouped: Record<string, TemplateApplication[]> = {};
+      (data || []).forEach((app: any) => {
+        if (!grouped[app.template_id]) {
+          grouped[app.template_id] = [];
+        }
+        grouped[app.template_id].push({
+          id: app.id,
+          applied_at: app.applied_at,
+          date_from: app.date_from,
+          date_to: app.date_to,
+          selected_days: app.selected_days || [],
+          room_type_ids: app.room_type_ids || [],
+          price_type: app.price_type,
+          affected_dates_count: app.affected_dates_count,
+          applied_by: app.applied_by,
+        });
+      });
+      
+      setTemplateApplications(grouped);
+    } catch (error) {
+      console.error('載入套用記錄失敗:', error);
     }
   };
 
@@ -385,9 +439,32 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
 
       if (error) throw error;
       
+      // 記錄套用歷史
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error: applicationError } = await supabase
+        .from('pricing_template_applications')
+        .insert({
+          template_id: applyingTemplate.id,
+          accommodation_id: accommodationId,
+          applied_by: user?.id,
+          date_from: format(dateRange.from, 'yyyy-MM-dd'),
+          date_to: format(dateRange.to, 'yyyy-MM-dd'),
+          selected_days: selectedDays,
+          room_type_ids: selectedRoomTypes,
+          price_type: selectedPriceType,
+          available_rooms: availableRooms,
+          affected_dates_count: dates.length,
+        });
+
+      if (applicationError) {
+        console.error('記錄套用歷史失敗:', applicationError);
+        // 不影響主要功能，只記錄錯誤
+      }
+      
       toast.success(`已成功套用價格模板到 ${selectedRoomTypes.length} 個房型的 ${dates.length} 天`);
       setApplyDialogOpen(false);
       setApplyingTemplate(null);
+      loadTemplateApplications(); // 重新載入套用記錄
     } catch (error) {
       console.error('套用價格模板失敗:', error);
       toast.error('套用價格模板失敗');
@@ -664,14 +741,43 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                           </div>
                         )}
 
-                        {/* 如果都沒有價格 */}
-                        {!template.weekday_2_meals_price && !template.weekend_2_meals_price &&
-                         !template.weekday_3_meals_price && !template.weekend_3_meals_price && (
-                          <div className="text-sm text-muted-foreground text-center py-2">
-                            尚未設定價格
+                      {/* 如果都沒有價格 */}
+                      {!template.weekday_2_meals_price && !template.weekend_2_meals_price &&
+                       !template.weekday_3_meals_price && !template.weekend_3_meals_price && (
+                        <div className="text-sm text-muted-foreground text-center py-2">
+                          尚未設定價格
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 套用記錄 */}
+                    {templateApplications[template.id] && templateApplications[template.id].length > 0 && (
+                      <div className="pt-3 border-t">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Clock className="h-3.5 w-3.5" />
+                            <span>最近套用</span>
                           </div>
-                        )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setViewingApplicationsTemplate(template);
+                              setShowApplicationsDialog(true);
+                            }}
+                            className="h-7 text-xs"
+                          >
+                            <History className="h-3.5 w-3.5 mr-1" />
+                            查看全部 ({templateApplications[template.id].length})
+                          </Button>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {format(new Date(templateApplications[template.id][0].applied_at), 'yyyy/MM/dd HH:mm')} •{' '}
+                          {templateApplications[template.id][0].affected_dates_count} 天 •{' '}
+                          {templateApplications[template.id][0].room_type_ids.length} 個房型
+                        </div>
                       </div>
+                    )}
 
                       {/* 操作按鈕 */}
                       <div className="flex gap-2 pt-2 border-t">
@@ -1286,6 +1392,158 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                 className="w-full sm:w-auto h-11 sm:h-10 touch-manipulation"
               >
                 {applying ? '套用中...' : '確認套用'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* 套用記錄對話框 */}
+      {isMobile ? (
+        <Drawer open={showApplicationsDialog} onOpenChange={setShowApplicationsDialog}>
+          <DrawerContent className="max-h-[90vh]">
+            <DrawerHeader>
+              <DrawerTitle>套用記錄</DrawerTitle>
+              <DrawerDescription>
+                {viewingApplicationsTemplate?.template_name}
+              </DrawerDescription>
+            </DrawerHeader>
+            
+            <div className="px-4 space-y-3 overflow-y-auto">
+              {viewingApplicationsTemplate && templateApplications[viewingApplicationsTemplate.id]?.map((app) => {
+                const dayLabels = ['日', '一', '二', '三', '四', '五', '六'];
+                const selectedDayLabels = app.selected_days.map(d => dayLabels[d]).join('、');
+                
+                return (
+                  <Card key={app.id} className="p-4">
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          {format(new Date(app.applied_at), 'yyyy/MM/dd HH:mm')}
+                        </div>
+                        <div className={`px-2 py-1 rounded text-xs font-medium ${
+                          app.price_type === '2meals' ? 'bg-primary/10 text-primary' : 'bg-secondary/10 text-secondary'
+                        }`}>
+                          {app.price_type === '2meals' ? '一泊二食' : '一泊三食'}
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">日期範圍</span>
+                          <div className="font-medium">
+                            {format(new Date(app.date_from), 'yyyy/MM/dd')} - {format(new Date(app.date_to), 'yyyy/MM/dd')}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">受影響天數</span>
+                          <div className="font-medium">{app.affected_dates_count} 天</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">套用星期</span>
+                          <div className="font-medium">{selectedDayLabels}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">房型數量</span>
+                          <div className="font-medium">{app.room_type_ids.length} 個</div>
+                        </div>
+                      </div>
+                      
+                      <div className="pt-2 border-t">
+                        <div className="text-xs text-muted-foreground">
+                          套用房型：{app.room_type_ids.map(id => 
+                            roomTypes.find(rt => rt.id === id)?.name || '未知房型'
+                          ).join('、')}
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+            
+            <DrawerFooter>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowApplicationsDialog(false)}
+                className="w-full h-11"
+              >
+                關閉
+              </Button>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={showApplicationsDialog} onOpenChange={setShowApplicationsDialog}>
+          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>套用記錄</DialogTitle>
+              <DialogDescription>
+                {viewingApplicationsTemplate?.template_name}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-3">
+              {viewingApplicationsTemplate && templateApplications[viewingApplicationsTemplate.id]?.map((app) => {
+                const dayLabels = ['日', '一', '二', '三', '四', '五', '六'];
+                const selectedDayLabels = app.selected_days.map(d => dayLabels[d]).join('、');
+                
+                return (
+                  <Card key={app.id} className="p-4">
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          {format(new Date(app.applied_at), 'yyyy/MM/dd HH:mm')}
+                        </div>
+                        <div className={`px-2 py-1 rounded text-xs font-medium ${
+                          app.price_type === '2meals' ? 'bg-primary/10 text-primary' : 'bg-secondary/10 text-secondary'
+                        }`}>
+                          {app.price_type === '2meals' ? '一泊二食' : '一泊三食'}
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">日期範圍</span>
+                          <div className="font-medium">
+                            {format(new Date(app.date_from), 'yyyy/MM/dd')} - {format(new Date(app.date_to), 'yyyy/MM/dd')}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">受影響天數</span>
+                          <div className="font-medium">{app.affected_dates_count} 天</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">套用星期</span>
+                          <div className="font-medium">{selectedDayLabels}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">房型數量</span>
+                          <div className="font-medium">{app.room_type_ids.length} 個</div>
+                        </div>
+                      </div>
+                      
+                      <div className="pt-2 border-t">
+                        <div className="text-xs text-muted-foreground">
+                          套用房型：{app.room_type_ids.map(id => 
+                            roomTypes.find(rt => rt.id === id)?.name || '未知房型'
+                          ).join('、')}
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+            
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowApplicationsDialog(false)}
+              >
+                關閉
               </Button>
             </DialogFooter>
           </DialogContent>
