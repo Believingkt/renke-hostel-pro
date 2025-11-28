@@ -734,7 +734,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                   {/* 一泊三食 */}
                   <div className="grid grid-cols-3 border-t">
                     <div className="px-3 py-2.5 text-sm font-medium border-r bg-background flex items-center gap-2">
-                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary"></span>
                       一泊三食
                     </div>
                     <div className="px-3 py-2.5 text-sm text-center border-r bg-background">
