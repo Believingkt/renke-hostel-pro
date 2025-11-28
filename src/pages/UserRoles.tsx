@@ -276,10 +276,10 @@ export default function UserRoles() {
               placeholder="用戶 Email"
               value={newUserEmail}
               onChange={(e) => setNewUserEmail(e.target.value)}
-              className="flex-1"
+              className="flex-1 h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
             />
             <Select value={newUserRole} onValueChange={(value: "hotel_admin" | "staff") => setNewUserRole(value)}>
-              <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px] h-12 text-base sm:h-10 sm:text-sm touch-manipulation">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -287,7 +287,7 @@ export default function UserRoles() {
                 <SelectItem value="staff">現場營運</SelectItem>
               </SelectContent>
             </Select>
-            <Button onClick={handleAddUser} className="w-full sm:w-auto">
+            <Button onClick={handleAddUser} className="w-full sm:w-auto h-12 sm:h-10 touch-manipulation">
               <Plus className="h-4 w-4 mr-2" />
               新增
             </Button>
@@ -345,7 +345,7 @@ export default function UserRoles() {
                             value={userRole.role}
                             onValueChange={(value) => handleUpdateRole(userRole.id, value as "super_admin" | "hotel_admin" | "staff")}
                           >
-                            <SelectTrigger className="w-[180px]">
+                            <SelectTrigger className="w-[180px] touch-manipulation">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -361,6 +361,7 @@ export default function UserRoles() {
                             variant="ghost-destructive"
                             size="icon"
                             onClick={() => handleDeleteRole(userRole.id)}
+                            className="touch-manipulation"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -390,20 +391,20 @@ export default function UserRoles() {
                         <Button
                           variant="ghost-destructive"
                           size="icon"
-                          className="h-9 w-9 flex-shrink-0"
+                          className="h-11 w-11 flex-shrink-0 touch-manipulation"
                           onClick={() => handleDeleteRole(userRole.id)}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-5 w-5" />
                         </Button>
                       </div>
                       
                       <div className="pt-2 border-t">
-                        <Label className="text-xs text-muted-foreground">角色</Label>
+                        <Label className="text-xs text-muted-foreground mb-2 block">角色</Label>
                         <Select
                           value={userRole.role}
                           onValueChange={(value) => handleUpdateRole(userRole.id, value as "super_admin" | "hotel_admin" | "staff")}
                         >
-                          <SelectTrigger className="w-full mt-1">
+                          <SelectTrigger className="w-full h-12 text-base touch-manipulation">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
