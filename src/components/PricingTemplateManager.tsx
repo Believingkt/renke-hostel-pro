@@ -889,7 +889,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
         <CardHeader>
           <CardTitle>{editingTemplate ? '編輯' : '新增'}房價庫存模板</CardTitle>
           <CardDescription>
-            建立可重複使用的價格方案，快速套用到不同房型
+            建立可重複使用的房價庫存方案，快速套用到不同房型
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -1045,7 +1045,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
             <div className="space-y-1">
               <CardTitle>房價庫存模板</CardTitle>
               <CardDescription>
-                建立並管理可重複使用的價格方案
+                建立並管理可重複使用的房價庫存方案
               </CardDescription>
             </div>
             <Button onClick={handleAddNew} className="flex items-center justify-center gap-2 w-full sm:w-auto h-11 sm:h-10 touch-manipulation">
