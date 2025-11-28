@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter, DrawerDescription } from "@/components/ui/drawer";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Plus, Pencil, Trash2, Search, FileText, Users, Phone, Mail, Calendar, UserRound, ArrowUpDown, ArrowUp, ArrowDown, Home } from "lucide-react";
@@ -71,6 +73,7 @@ interface Customer {
 }
 
 const Customers = () => {
+  const isMobile = useIsMobile();
   const { currentAccommodationId } = useAccommodation();
   const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -324,6 +327,100 @@ const Customers = () => {
     return new Date(dateString).toLocaleDateString("zh-TW");
   };
 
+  // Form content for both Dialog and Drawer
+  const formContent = (
+    <div className="space-y-4 py-4">
+      <div className="space-y-2">
+        <Label htmlFor="name">姓名 *</Label>
+        <Input
+          id="name"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          placeholder="請輸入姓名"
+          className="h-12 text-base sm:h-10 sm:text-sm"
+        />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="phone">手機號碼</Label>
+          <Input
+            id="phone"
+            value={formData.phone}
+            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            placeholder="0912-345-678"
+            className="h-12 text-base sm:h-10 sm:text-sm"
+            inputMode="tel"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            placeholder="example@email.com"
+            className="h-12 text-base sm:h-10 sm:text-sm"
+            inputMode="email"
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="first_order_date">首筆訂單日</Label>
+          <Input
+            id="first_order_date"
+            type="date"
+            value={formData.first_order_date}
+            onChange={(e) => setFormData({ ...formData, first_order_date: e.target.value })}
+            className="h-12 text-base sm:h-10 sm:text-sm"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="visit_count">來訪次數</Label>
+          <Input
+            id="visit_count"
+            type="number"
+            min="0"
+            value={formData.visit_count}
+            onChange={(e) => setFormData({ ...formData, visit_count: e.target.value })}
+            className="h-12 text-base sm:h-10 sm:text-sm"
+            inputMode="numeric"
+          />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="notes">備註</Label>
+        <Input
+          id="notes"
+          value={formData.notes}
+          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+          placeholder="其他備註資訊"
+          className="h-12 text-base sm:h-10 sm:text-sm"
+        />
+      </div>
+    </div>
+  );
+
+  const footerButtons = (
+    <div className="flex flex-col sm:flex-row gap-2 w-full">
+      <Button 
+        variant="outline" 
+        onClick={() => setIsDialogOpen(false)}
+        className="h-12 sm:h-10 w-full sm:w-auto touch-manipulation"
+      >
+        取消
+      </Button>
+      <Button 
+        onClick={handleSave} 
+        disabled={isLoading}
+        className="h-12 sm:h-10 w-full sm:w-auto touch-manipulation"
+      >
+        {isLoading ? "儲存中..." : "儲存變更"}
+      </Button>
+    </div>
+  );
+
   return (
     <div className="space-y-6 md:space-y-8">
       {isLoading ? (
@@ -356,94 +453,50 @@ const Customers = () => {
             title="顧客資料"
             icon={Users}
             action={
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button onClick={() => handleOpenDialog()} className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    <span>新增顧客</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>{editingCustomer ? "編輯顧客" : "新增顧客"}</DialogTitle>
-                    <DialogDescription>填寫顧客的基本資料</DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">姓名 *</Label>
-                      <Input
-                        id="name"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        placeholder="請輸入姓名"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="phone">手機號碼</Label>
-                        <Input
-                          id="phone"
-                          value={formData.phone}
-                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                          placeholder="0912-345-678"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={formData.email}
-                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                          placeholder="example@email.com"
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="first_order_date">首筆訂單日</Label>
-                        <Input
-                          id="first_order_date"
-                          type="date"
-                          value={formData.first_order_date}
-                          onChange={(e) => setFormData({ ...formData, first_order_date: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="visit_count">來訪次數</Label>
-                        <Input
-                          id="visit_count"
-                          type="number"
-                          min="0"
-                          value={formData.visit_count}
-                          onChange={(e) => setFormData({ ...formData, visit_count: e.target.value })}
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="notes">備註</Label>
-                      <Input
-                        id="notes"
-                        value={formData.notes}
-                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                        placeholder="其他備註資訊"
-                      />
-                    </div>
-                  </div>
-                  <SaveButtonContainer 
-                    onSave={handleSave} 
-                    isSaving={isLoading}
-                    saveText="儲存變更"
-                    className="border-t-0"
-                  >
-                    <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                      取消
-                    </Button>
-                  </SaveButtonContainer>
-                </DialogContent>
-              </Dialog>
+              <Button onClick={() => handleOpenDialog()} className="gap-2 h-10 sm:h-9">
+                <Plus className="h-4 w-4" />
+                <span>新增顧客</span>
+              </Button>
             }
           />
+
+          {/* Customer Dialog/Drawer */}
+          {isMobile ? (
+            <Drawer open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DrawerContent className="max-h-[95vh]">
+                <DrawerHeader>
+                  <DrawerTitle>{editingCustomer ? "編輯顧客" : "新增顧客"}</DrawerTitle>
+                  <DrawerDescription>填寫顧客的基本資料</DrawerDescription>
+                </DrawerHeader>
+                <div className="overflow-y-auto px-4">
+                  {formContent}
+                </div>
+                <DrawerFooter className="pt-4">
+                  {footerButtons}
+                </DrawerFooter>
+              </DrawerContent>
+            </Drawer>
+          ) : (
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>{editingCustomer ? "編輯顧客" : "新增顧客"}</DialogTitle>
+                  <DialogDescription>填寫顧客的基本資料</DialogDescription>
+                </DialogHeader>
+                {formContent}
+                <SaveButtonContainer 
+                  onSave={handleSave} 
+                  isSaving={isLoading}
+                  saveText="儲存變更"
+                  className="border-t-0"
+                >
+                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    取消
+                  </Button>
+                </SaveButtonContainer>
+              </DialogContent>
+            </Dialog>
+          )}
 
           {/* Search Bar */}
           <div className="flex flex-col sm:flex-row gap-4">
@@ -453,9 +506,9 @@ const Customers = () => {
                 placeholder="搜尋顧客姓名或手機號碼..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pr-10"
+                className="h-12 md:h-10 pr-10 text-base md:text-sm touch-manipulation"
               />
-              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 md:h-4 md:w-4 text-muted-foreground pointer-events-none" />
             </div>
             
             {/* Mobile Sort Options */}
@@ -470,7 +523,7 @@ const Customers = () => {
                   }
                 }}
               >
-                <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectTrigger className="w-full h-12 text-base touch-manipulation">
                   <SelectValue placeholder="排序方式" />
                 </SelectTrigger>
                 <SelectContent className="bg-background border-border z-50">
@@ -526,7 +579,7 @@ const Customers = () => {
           ) : (
             <>
               {/* Desktop: Table View */}
-              <div className="hidden md:block table-scroll-container overflow-x-auto rounded-md border">
+              <div className="hidden md:block table-scroll-container overflow-x-auto rounded-md border touch-pan-x">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">
@@ -598,7 +651,7 @@ const Customers = () => {
                               variant="ghost"
                               size="icon"
                               onClick={() => navigate(`/admin/customers/${customer.id}/orders`)}
-                              className="h-9 w-9"
+                              className="h-9 w-9 touch-manipulation"
                               title="查看訂單詳情"
                             >
                               <FileText className="h-4 w-4" />
@@ -607,7 +660,7 @@ const Customers = () => {
                               variant="ghost"
                               size="icon"
                               onClick={() => handleOpenDialog(customer)}
-                              className="h-9 w-9"
+                              className="h-9 w-9 touch-manipulation"
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
@@ -615,7 +668,7 @@ const Customers = () => {
                               variant="ghost"
                               size="icon"
                               onClick={() => setDeleteCustomerId(customer.id)}
-                              className="h-9 w-9 text-destructive hover:text-destructive"
+                              className="h-9 w-9 text-destructive hover:text-destructive touch-manipulation"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -659,26 +712,26 @@ const Customers = () => {
                               variant="ghost"
                               size="icon"
                               onClick={() => navigate(`/admin/customers/${customer.id}/orders`)}
-                              className="h-9 w-9"
+                              className="h-10 w-10 touch-manipulation"
                               title="查看訂單詳情"
                             >
-                              <FileText className="h-4 w-4" />
+                              <FileText className="h-5 w-5" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
                               onClick={() => handleOpenDialog(customer)}
-                              className="h-9 w-9"
+                              className="h-10 w-10 touch-manipulation"
                             >
-                              <Pencil className="h-4 w-4" />
+                              <Pencil className="h-5 w-5" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
                               onClick={() => setDeleteCustomerId(customer.id)}
-                              className="h-9 w-9 text-destructive hover:text-destructive"
+                              className="h-10 w-10 text-destructive hover:text-destructive touch-manipulation"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-5 w-5" />
                             </Button>
                           </div>
                         </div>
@@ -739,7 +792,7 @@ const Customers = () => {
                           setCurrentPage(1);
                         }}
                       >
-                        <SelectTrigger className="w-24 h-9">
+                        <SelectTrigger className="w-24 h-11 md:h-9 touch-manipulation">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-background border-border z-50">
