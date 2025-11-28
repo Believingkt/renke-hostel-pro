@@ -5,7 +5,7 @@ import { ValidatedInput } from "@/components/ui/validated-input";
 import { ValidatedTextarea } from "@/components/ui/validated-textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { DraftRestoreBanner } from "@/components/ui/draft-restore-banner";
@@ -161,163 +161,198 @@ export function AboutFeatureForm({ open, onOpenChange, feature, onSave }: AboutF
   const selectedIcon = BUILT_IN_ICONS.find(icon => icon.name === formData.icon_name);
   const IconComponent = selectedIcon?.icon;
 
-  return (
+  const FormContent = () => (
+    <>
+      {hasDraft && !feature && (
+        <DraftRestoreBanner
+          onRestore={restoreDraft}
+          onDiscard={discardDraft}
+        />
+      )}
+
+      <div className="space-y-4">
+        <ValidatedInput
+          id="feature-title"
+          label="標題"
+          value={formData.title}
+          onChange={(value) => {
+            setFormData({ ...formData, title: value });
+            validateField('title', value);
+          }}
+          onValidate={(value) => validateField('title', value)}
+          error={errors.title}
+          placeholder="例如：山林環抱"
+          required
+          showCharCount
+          maxLength={30}
+        />
+
+        <ValidatedTextarea
+          id="feature-description"
+          label="說明文字"
+          value={formData.description}
+          onChange={(value) => {
+            setFormData({ ...formData, description: value });
+            validateField('description', value);
+          }}
+          onValidate={(value) => validateField('description', value)}
+          error={errors.description}
+          placeholder="請輸入說明文字"
+          rows={3}
+          required
+          showCharCount
+          maxLength={200}
+        />
+
+        <div className="space-y-2">
+          <Label>圖示選擇</Label>
+          <Select
+            value={formData.icon_type}
+            onValueChange={(value) => setFormData({ ...formData, icon_type: value })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="lucide">使用內建圖示</SelectItem>
+              <SelectItem value="custom">上傳自訂圖示</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {formData.icon_type === 'lucide' && (
+          <div className="space-y-2">
+            <Label>選擇圖示</Label>
+            <div className="grid grid-cols-5 gap-3">
+              {BUILT_IN_ICONS.map((icon) => {
+                const Icon = icon.icon;
+                return (
+                  <button
+                    key={icon.name}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, icon_name: icon.name })}
+                    className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
+                      formData.icon_name === icon.name
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                  >
+                    <Icon className="h-6 w-6" />
+                    <span className="text-xs">{icon.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {formData.icon_type === 'custom' && (
+          <div className="space-y-2">
+            <Label>上傳圖示</Label>
+            <div className="flex items-center gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => document.getElementById('icon-upload')?.click()}
+                disabled={uploadingIcon}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                {uploadingIcon ? '上傳中...' : '選擇圖示'}
+              </Button>
+              <input
+                id="icon-upload"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleIconUpload}
+              />
+              {formData.icon_url && (
+                <div className="relative w-12 h-12 rounded-lg border overflow-hidden">
+                  <img src={formData.icon_url} alt="Custom icon" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, icon_url: '' })}
+                    className="absolute top-0 right-0 p-1 bg-destructive text-destructive-foreground rounded-bl"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 預覽 */}
+        <div className="space-y-2">
+          <Label>預覽</Label>
+          <div className="p-6 border rounded-lg bg-muted/30">
+            <div className="flex flex-col items-center gap-3 text-center">
+              {formData.icon_type === 'lucide' && IconComponent && (
+                <div className="p-3 rounded-full bg-primary/10">
+                  <IconComponent className="h-8 w-8 text-primary" />
+                </div>
+              )}
+              {formData.icon_type === 'custom' && formData.icon_url && (
+                <div className="w-14 h-14 rounded-full overflow-hidden">
+                  <img src={formData.icon_url} alt="Custom icon" className="w-full h-full object-cover" />
+                </div>
+              )}
+              <div>
+                <h3 className="font-semibold text-lg">{formData.title || '標題預覽'}</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {formData.description || '說明文字預覽'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+  return isMobile ? (
+    <Drawer open={open} onOpenChange={onOpenChange}>
+      <DrawerContent className="max-h-[90vh]">
+        <DrawerHeader>
+          <DrawerTitle>{feature ? '編輯特色區塊' : '新增特色區塊'}</DrawerTitle>
+        </DrawerHeader>
+        
+        <div className="overflow-y-auto px-4 pb-4">
+          <FormContent />
+        </div>
+
+        <DrawerFooter className="pt-2">
+          <Button 
+            onClick={handleSubmit}
+            className="w-full h-12"
+          >
+            儲存
+          </Button>
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => onOpenChange(false)}
+            className="w-full h-12"
+          >
+            取消
+          </Button>
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
+  ) : (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{feature ? '編輯特色區塊' : '新增特色區塊'}</DialogTitle>
         </DialogHeader>
 
-        {hasDraft && !feature && (
-          <DraftRestoreBanner
-            onRestore={restoreDraft}
-            onDiscard={discardDraft}
-          />
-        )}
+        <FormContent />
 
-        <div className="space-y-4">
-          <ValidatedInput
-            id="feature-title"
-            label="標題"
-            value={formData.title}
-            onChange={(value) => {
-              setFormData({ ...formData, title: value });
-              validateField('title', value);
-            }}
-            onValidate={(value) => validateField('title', value)}
-            error={errors.title}
-            placeholder="例如：山林環抱"
-            required
-            showCharCount
-            maxLength={30}
-          />
-
-          <ValidatedTextarea
-            id="feature-description"
-            label="說明文字"
-            value={formData.description}
-            onChange={(value) => {
-              setFormData({ ...formData, description: value });
-              validateField('description', value);
-            }}
-            onValidate={(value) => validateField('description', value)}
-            error={errors.description}
-            placeholder="請輸入說明文字"
-            rows={3}
-            required
-            showCharCount
-            maxLength={200}
-          />
-
-          <div className="space-y-2">
-            <Label>圖示選擇</Label>
-            <Select
-              value={formData.icon_type}
-              onValueChange={(value) => setFormData({ ...formData, icon_type: value })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="lucide">使用內建圖示</SelectItem>
-                <SelectItem value="custom">上傳自訂圖示</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {formData.icon_type === 'lucide' && (
-            <div className="space-y-2">
-              <Label>選擇圖示</Label>
-              <div className="grid grid-cols-5 gap-3">
-                {BUILT_IN_ICONS.map((icon) => {
-                  const Icon = icon.icon;
-                  return (
-                    <button
-                      key={icon.name}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, icon_name: icon.name })}
-                      className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
-                        formData.icon_name === icon.name
-                          ? 'border-primary bg-primary/10'
-                          : 'border-border hover:border-primary/50'
-                      }`}
-                    >
-                      <Icon className="h-6 w-6" />
-                      <span className="text-xs">{icon.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {formData.icon_type === 'custom' && (
-            <div className="space-y-2">
-              <Label>上傳圖示</Label>
-              <div className="flex items-center gap-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => document.getElementById('icon-upload')?.click()}
-                  disabled={uploadingIcon}
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  {uploadingIcon ? '上傳中...' : '選擇圖示'}
-                </Button>
-                <input
-                  id="icon-upload"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleIconUpload}
-                />
-                {formData.icon_url && (
-                  <div className="relative w-12 h-12 rounded-lg border overflow-hidden">
-                    <img src={formData.icon_url} alt="Custom icon" className="w-full h-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, icon_url: '' })}
-                      className="absolute top-0 right-0 p-1 bg-destructive text-destructive-foreground rounded-bl"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* 預覽 */}
-          <div className="space-y-2">
-            <Label>預覽</Label>
-            <div className="p-6 border rounded-lg bg-muted/30">
-              <div className="flex flex-col items-center gap-3 text-center">
-                {formData.icon_type === 'lucide' && IconComponent && (
-                  <div className="p-3 rounded-full bg-primary/10">
-                    <IconComponent className="h-8 w-8 text-primary" />
-                  </div>
-                )}
-                {formData.icon_type === 'custom' && formData.icon_url && (
-                  <div className="w-14 h-14 rounded-full overflow-hidden">
-                    <img src={formData.icon_url} alt="Custom icon" className="w-full h-full object-cover" />
-                  </div>
-                )}
-                <div>
-                  <h3 className="font-semibold text-lg">{formData.title || '標題預覽'}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {formData.description || '說明文字預覽'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <SaveButtonContainer onSave={handleSubmit}>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              取消
-            </Button>
-          </SaveButtonContainer>
-        </div>
+        <SaveButtonContainer onSave={handleSubmit}>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            取消
+          </Button>
+        </SaveButtonContainer>
       </DialogContent>
     </Dialog>
   );

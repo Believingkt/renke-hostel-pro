@@ -915,138 +915,280 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
       )}
 
       {/* 批量編輯對話框 */}
-      <Dialog open={batchEditDialogOpen} onOpenChange={setBatchEditDialogOpen}>
-        <DialogContent className="max-w-[95vw] sm:max-w-md">
-          <DialogHeader>
-            <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <span>批量編輯</span>
-              <div className="flex gap-2 text-xs font-normal text-muted-foreground">
-                <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
-                  <span className="text-xs">ESC</span>
-                </kbd>
-                <span>關閉</span>
-                <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 ml-2">
-                  <span className="text-xs">Enter</span>
-                </kbd>
-                <span>儲存</span>
-              </div>
-            </CardTitle>
-            <DialogDescription>
-              將對 {selectedDates.size} 個日期進行統一設定
-            </DialogDescription>
-          </DialogHeader>
+      {isMobile ? (
+        <Drawer open={batchEditDialogOpen} onOpenChange={setBatchEditDialogOpen}>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle className="flex flex-col gap-2">
+                <span>批量編輯</span>
+                <div className="flex gap-2 text-xs font-normal text-muted-foreground">
+                  <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
+                    <span className="text-xs">ESC</span>
+                  </kbd>
+                  <span>關閉</span>
+                  <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 ml-2">
+                    <span className="text-xs">Enter</span>
+                  </kbd>
+                  <span>儲存</span>
+                </div>
+              </DrawerTitle>
+              <DrawerDescription>
+                將對 {selectedDates.size} 個日期進行統一設定
+              </DrawerDescription>
+            </DrawerHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="availableRooms">可用房數 *</Label>
-              <Input
-                id="availableRooms"
-                type="number"
-                min="0"
-                placeholder="輸入可用房數"
-                value={batchInventory}
-                onChange={(e) => setBatchInventory(e.target.value)}
-              />
+            <div className="space-y-4 px-4 pb-4">
+              <div className="space-y-2">
+                <Label htmlFor="availableRooms">可用房數 *</Label>
+                <Input
+                  id="availableRooms"
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  placeholder="輸入可用房數"
+                  value={batchInventory}
+                  onChange={(e) => setBatchInventory(e.target.value)}
+                  className="h-12 text-base"
+                />
+              </div>
+
+              {selectedRoomTypeData && (
+                <div className="text-sm text-muted-foreground">
+                  提示：該房型總共有 {selectedRoomTypeData.room_count || 1} 間房
+                </div>
+              )}
+
+              {/* 顯示選中的日期 */}
+              <div className="border rounded-lg p-3 bg-muted/50">
+                <p className="text-sm font-medium mb-2">選中的日期：</p>
+                <div className="max-h-32 overflow-y-auto text-xs text-muted-foreground">
+                  {Array.from(selectedDates).sort().map(date => (
+                    <div key={date}>{format(parseISO(date), 'yyyy年 M月 d日', { locale: zhTW })}</div>
+                  ))}
+                </div>
+              </div>
             </div>
 
-            {selectedRoomTypeData && (
-              <div className="text-sm text-muted-foreground">
-                提示：該房型總共有 {selectedRoomTypeData.room_count || 1} 間房
-              </div>
-            )}
+            <DrawerFooter className="flex-col gap-2 pt-2">
+              <Button
+                onClick={confirmBatchEdit}
+                disabled={saving || !batchInventory}
+                className="w-full h-12"
+              >
+                {saving ? '更新中...' : '確認更新'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setBatchEditDialogOpen(false)}
+                disabled={saving}
+                className="w-full h-12"
+              >
+                取消
+              </Button>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={batchEditDialogOpen} onOpenChange={setBatchEditDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <CardTitle className="flex items-center justify-between gap-2">
+                <span>批量編輯</span>
+                <div className="flex gap-2 text-xs font-normal text-muted-foreground">
+                  <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
+                    <span className="text-xs">ESC</span>
+                  </kbd>
+                  <span>關閉</span>
+                  <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 ml-2">
+                    <span className="text-xs">Enter</span>
+                  </kbd>
+                  <span>儲存</span>
+                </div>
+              </CardTitle>
+              <DialogDescription>
+                將對 {selectedDates.size} 個日期進行統一設定
+              </DialogDescription>
+            </DialogHeader>
 
-            {/* 顯示選中的日期 */}
-            <div className="border rounded-lg p-3 bg-muted/50">
-              <p className="text-sm font-medium mb-2">選中的日期：</p>
-              <div className="max-h-32 overflow-y-auto text-xs text-muted-foreground">
-                {Array.from(selectedDates).sort().map(date => (
-                  <div key={date}>{format(parseISO(date), 'yyyy年 M月 d日', { locale: zhTW })}</div>
-                ))}
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="availableRooms">可用房數 *</Label>
+                <Input
+                  id="availableRooms"
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  placeholder="輸入可用房數"
+                  value={batchInventory}
+                  onChange={(e) => setBatchInventory(e.target.value)}
+                />
+              </div>
+
+              {selectedRoomTypeData && (
+                <div className="text-sm text-muted-foreground">
+                  提示：該房型總共有 {selectedRoomTypeData.room_count || 1} 間房
+                </div>
+              )}
+
+              {/* 顯示選中的日期 */}
+              <div className="border rounded-lg p-3 bg-muted/50">
+                <p className="text-sm font-medium mb-2">選中的日期：</p>
+                <div className="max-h-32 overflow-y-auto text-xs text-muted-foreground">
+                  {Array.from(selectedDates).sort().map(date => (
+                    <div key={date}>{format(parseISO(date), 'yyyy年 M月 d日', { locale: zhTW })}</div>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
 
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setBatchEditDialogOpen(false)}
-              disabled={saving}
-              className="w-full sm:w-auto"
-            >
-              取消
-            </Button>
-            <Button
-              onClick={confirmBatchEdit}
-              disabled={saving || !batchInventory}
-              className="w-full sm:w-auto"
-            >
-              {saving ? '更新中...' : '確認更新'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setBatchEditDialogOpen(false)}
+                disabled={saving}
+                className="w-full sm:w-auto"
+              >
+                取消
+              </Button>
+              <Button
+                onClick={confirmBatchEdit}
+                disabled={saving || !batchInventory}
+                className="w-full sm:w-auto"
+              >
+                {saving ? '更新中...' : '確認更新'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* 單日期編輯對話框 */}
-      <Dialog open={singleEditDialogOpen} onOpenChange={setSingleEditDialogOpen}>
-        <DialogContent className="max-w-[95vw] sm:max-w-md">
-          <DialogHeader>
-            <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <span>編輯日期</span>
-              <div className="flex gap-2 text-xs font-normal text-muted-foreground">
-                <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
-                  <span className="text-xs">ESC</span>
-                </kbd>
-                <span>關閉</span>
-                <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 ml-2">
-                  <span className="text-xs">Enter</span>
-                </kbd>
-                <span>儲存</span>
-              </div>
-            </CardTitle>
-            <DialogDescription>
-              {editingDate && format(parseISO(editingDate), 'yyyy年 M月 d日（EEEE）', { locale: zhTW })}
-            </DialogDescription>
-          </DialogHeader>
+      {isMobile ? (
+        <Drawer open={singleEditDialogOpen} onOpenChange={setSingleEditDialogOpen}>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle className="flex flex-col gap-2">
+                <span>編輯日期</span>
+                <div className="flex gap-2 text-xs font-normal text-muted-foreground">
+                  <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
+                    <span className="text-xs">ESC</span>
+                  </kbd>
+                  <span>關閉</span>
+                  <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 ml-2">
+                    <span className="text-xs">Enter</span>
+                  </kbd>
+                  <span>儲存</span>
+                </div>
+              </DrawerTitle>
+              <DrawerDescription>
+                {editingDate && format(parseISO(editingDate), 'yyyy年 M月 d日（EEEE）', { locale: zhTW })}
+              </DrawerDescription>
+            </DrawerHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="single-availableRooms">可用房數 *</Label>
-              <Input
-                id="single-availableRooms"
-                type="number"
-                min="0"
-                placeholder="輸入可用房數"
-                value={singleEditInventory}
-                onChange={(e) => setSingleEditInventory(e.target.value)}
-              />
+            <div className="space-y-4 px-4 pb-4">
+              <div className="space-y-2">
+                <Label htmlFor="single-availableRooms">可用房數 *</Label>
+                <Input
+                  id="single-availableRooms"
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  placeholder="輸入可用房數"
+                  value={singleEditInventory}
+                  onChange={(e) => setSingleEditInventory(e.target.value)}
+                  className="h-12 text-base"
+                />
+              </div>
+
+              {selectedRoomTypeData && (
+                <div className="text-sm text-muted-foreground">
+                  提示：該房型總共有 {selectedRoomTypeData.room_count || 1} 間房
+                </div>
+              )}
             </div>
 
-            {selectedRoomTypeData && (
-              <div className="text-sm text-muted-foreground">
-                提示：該房型總共有 {selectedRoomTypeData.room_count || 1} 間房
-              </div>
-            )}
-          </div>
+            <DrawerFooter className="flex-col gap-2 pt-2">
+              <Button
+                onClick={handleSingleDateUpdate}
+                disabled={saving || !singleEditInventory}
+                className="w-full h-12"
+              >
+                {saving ? '更新中...' : '確認更新'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setSingleEditDialogOpen(false)}
+                disabled={saving}
+                className="w-full h-12"
+              >
+                取消
+              </Button>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={singleEditDialogOpen} onOpenChange={setSingleEditDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <CardTitle className="flex items-center justify-between gap-2">
+                <span>編輯日期</span>
+                <div className="flex gap-2 text-xs font-normal text-muted-foreground">
+                  <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
+                    <span className="text-xs">ESC</span>
+                  </kbd>
+                  <span>關閉</span>
+                  <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 ml-2">
+                    <span className="text-xs">Enter</span>
+                  </kbd>
+                  <span>儲存</span>
+                </div>
+              </CardTitle>
+              <DialogDescription>
+                {editingDate && format(parseISO(editingDate), 'yyyy年 M月 d日（EEEE）', { locale: zhTW })}
+              </DialogDescription>
+            </DialogHeader>
 
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setSingleEditDialogOpen(false)}
-              disabled={saving}
-              className="w-full sm:w-auto"
-            >
-              取消
-            </Button>
-            <Button
-              onClick={handleSingleDateUpdate}
-              disabled={saving || !singleEditInventory}
-              className="w-full sm:w-auto"
-            >
-              {saving ? '更新中...' : '確認更新'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="single-availableRooms">可用房數 *</Label>
+                <Input
+                  id="single-availableRooms"
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  placeholder="輸入可用房數"
+                  value={singleEditInventory}
+                  onChange={(e) => setSingleEditInventory(e.target.value)}
+                />
+              </div>
+
+              {selectedRoomTypeData && (
+                <div className="text-sm text-muted-foreground">
+                  提示：該房型總共有 {selectedRoomTypeData.room_count || 1} 間房
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setSingleEditDialogOpen(false)}
+                disabled={saving}
+                className="w-full sm:w-auto"
+              >
+                取消
+              </Button>
+              <Button
+                onClick={handleSingleDateUpdate}
+                disabled={saving || !singleEditInventory}
+                className="w-full sm:w-auto"
+              >
+                {saving ? '更新中...' : '確認更新'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
