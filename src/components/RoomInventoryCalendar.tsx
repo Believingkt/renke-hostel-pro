@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ChevronLeft, ChevronRight, DollarSign, Package, Edit, X, Check, Calendar, CalendarDays, CalendarRange, Briefcase, Copy } from "lucide-react";
+import { ChevronLeft, ChevronRight, DollarSign, Package, Edit, X, Check, Calendar, CalendarDays, CalendarRange, Briefcase, Copy, List, Grid3x3 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,6 +50,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
   const [loading, setLoading] = useState(true);
   const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
   const [batchEditDialogOpen, setBatchEditDialogOpen] = useState(false);
   const [batchEditData, setBatchEditData] = useState({
     price: "",
@@ -510,6 +511,26 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
           <div className="flex items-center justify-between">
             <CardTitle className="text-base sm:text-lg">{roomTypeName}</CardTitle>
             <div className="flex items-center gap-1 sm:gap-2">
+              {/* 視圖切換按鈕 - 僅在小螢幕顯示 */}
+              <div className="flex sm:hidden">
+                <Button
+                  variant={viewMode === 'calendar' ? 'default' : 'outline'}
+                  size="icon"
+                  onClick={() => setViewMode('calendar')}
+                  className="h-9 w-9 rounded-r-none touch-manipulation"
+                >
+                  <Grid3x3 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'list' ? 'default' : 'outline'}
+                  size="icon"
+                  onClick={() => setViewMode('list')}
+                  className="h-9 w-9 rounded-l-none touch-manipulation"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              </div>
+              
               <Button
                 variant="outline"
                 size="icon"
@@ -705,7 +726,119 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
+        ) : viewMode === 'list' ? (
+          /* 列表視圖 - 僅在小螢幕顯示 */
+          <div className="space-y-2 sm:hidden">
+            {daysInMonth.map((day) => {
+              const dateStr = format(day, 'yyyy-MM-dd');
+              const dayInventory = inventory[dateStr];
+              const hasData = dayInventory !== undefined;
+              const isCurrentMonth = isSameMonth(day, currentMonth);
+              const isTodayDate = isToday(day);
+              const isSelected = selectedDates.has(dateStr);
+              const isWeekend = isWeekendDate(day);
+              const holidayInfo = publicHolidays.get(dateStr);
+              
+              const isWorkOnWeekend = holidayInfo?.type === 'work_on_weekend';
+              const isCompensatoryDayOff = holidayInfo?.type === 'compensatory_day_off';
+              const isRegularHoliday = holidayInfo?.type === 'holiday';
+              const isHoliday = (isWeekend && !isWorkOnWeekend) || isCompensatoryDayOff || isRegularHoliday;
+
+              if (!isCurrentMonth) return null;
+
+              return (
+                <div
+                  key={dateStr}
+                  onClick={() => handleSingleClick(dateStr)}
+                  className={cn(
+                    "border rounded-lg p-3 transition-all touch-manipulation active:scale-[0.98]",
+                    isTodayDate && "border-primary border-2 ring-2 ring-primary/20",
+                    isSelectionMode && "cursor-pointer",
+                    !isSelectionMode && "cursor-pointer hover:shadow-md",
+                    isSelected && "bg-blue-100 border-blue-600 shadow-md",
+                    !isSelected && hasData && dayInventory.isAvailable && isHoliday && "bg-orange-50/80 hover:bg-orange-100",
+                    !isSelected && hasData && dayInventory.isAvailable && !isHoliday && "bg-blue-50/80 hover:bg-blue-100",
+                    !isSelected && hasData && !dayInventory.isAvailable && "bg-gray-100",
+                    !isSelected && !hasData && "hover:bg-muted"
+                  )}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className={cn(
+                        "font-bold text-lg",
+                        isTodayDate && "text-primary",
+                        isSelected && "text-blue-700",
+                        !isTodayDate && !isSelected && isHoliday && hasData && "text-orange-700",
+                        !isTodayDate && !isSelected && !isHoliday && hasData && "text-blue-700"
+                      )}>
+                        {format(day, 'd日 (E)', { locale: zhTW })}
+                      </span>
+                      {holidayInfo && (
+                        <span className={cn(
+                          "text-xs px-1.5 py-0.5 rounded font-medium",
+                          isRegularHoliday && "bg-orange-600 text-white",
+                          isCompensatoryDayOff && "bg-green-600 text-white",
+                          isWorkOnWeekend && "bg-blue-600 text-white"
+                        )}>
+                          {isRegularHoliday && '假'}
+                          {isCompensatoryDayOff && '休'}
+                          {isWorkOnWeekend && '班'}
+                        </span>
+                      )}
+                    </div>
+                    {isSelected && (
+                      <Check className="h-5 w-5 text-blue-600" />
+                    )}
+                  </div>
+                  
+                  {hasData ? (
+                    <div className="space-y-2">
+                      {dayInventory.price_2_meals && (
+                        <div className={cn(
+                          "flex items-center justify-between rounded px-3 py-2",
+                          isHoliday ? "bg-orange-100/60" : "bg-blue-100/60"
+                        )}>
+                          <span className="text-sm font-medium text-muted-foreground">一泊二食</span>
+                          <span className="text-base font-bold">${formatPrice(dayInventory.price_2_meals)}</span>
+                        </div>
+                      )}
+                      {dayInventory.price_3_meals && (
+                        <div className={cn(
+                          "flex items-center justify-between rounded px-3 py-2",
+                          isHoliday ? "bg-orange-100/60" : "bg-blue-100/60"
+                        )}>
+                          <span className="text-sm font-medium text-muted-foreground">一泊三食</span>
+                          <span className="text-base font-bold">${formatPrice(dayInventory.price_3_meals)}</span>
+                        </div>
+                      )}
+                      <div className={cn(
+                        "flex items-center justify-between rounded px-3 py-2",
+                        isHoliday ? "bg-orange-200/50" : "bg-primary/10"
+                      )}>
+                        <div className="flex items-center gap-2">
+                          <Package className={cn(
+                            "h-4 w-4",
+                            isHoliday ? "text-orange-700" : "text-primary"
+                          )} />
+                          <span className="text-sm font-medium">可用房數</span>
+                        </div>
+                        <span className={cn(
+                          "text-base font-bold",
+                          isHoliday ? "text-orange-700" : "text-primary"
+                        )}>
+                          {dayInventory.availableRooms} 間
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-muted-foreground text-center py-4">未設定</div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         ) : (
+          /* 月曆視圖 */
           <div className="grid grid-cols-7 gap-1 sm:gap-2">
             {/* 星期標題 */}
             {['一', '二', '三', '四', '五', '六', '日'].map((day) => (
@@ -850,7 +983,8 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
           </div>
         )}
 
-        {/* 圖例 */}
+        {/* 圖例 - 僅在月曆視圖顯示 */}
+        {viewMode === 'calendar' && (
         <div className="space-y-3 mt-4 pt-4 border-t">
           <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-3 sm:gap-4 text-xs sm:text-sm">
             <div className="flex items-center gap-2">
@@ -905,6 +1039,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
             </div>
           )}
         </div>
+        )}
       </CardContent>
 
       {/* 批量編輯對話框 - 響應式版本 */}
