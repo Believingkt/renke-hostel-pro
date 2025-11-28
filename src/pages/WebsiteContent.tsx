@@ -2680,10 +2680,17 @@ const WebsiteContent = () => {
           <PageHeader title="設施服務" icon={Wrench} />
           {/* 公共區設施與服務 */}
           <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-6">
-                <h3 className="font-semibold">公共區設施與服務</h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-1.5 bg-primary rounded-full" />
+                <div>
+                  <CardTitle className="text-xl">公共區設施與服務</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">選擇提供的公共設施與服務項目</p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {facilitiesData.public.map((facility) => (
                     <div key={facility.id} className="space-y-2">
                       <div className="flex items-center space-x-2">
@@ -2714,14 +2721,19 @@ const WebsiteContent = () => {
                     </div>
                   ))}
                 </div>
-              </div>
             </CardContent>
           </Card>
 
           {/* 餐飲設施 */}
           <Card>
-            <CardHeader>
-              <h3 className="font-semibold">餐飲設施</h3>
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-1.5 bg-primary rounded-full" />
+                <div>
+                  <CardTitle className="text-xl">餐飲設施</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">設定餐飲相關的設施與服務</p>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -2744,8 +2756,14 @@ const WebsiteContent = () => {
 
           {/* 安全設施 */}
           <Card>
-            <CardHeader>
-              <h3 className="font-semibold">安全設施</h3>
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-1.5 bg-primary rounded-full" />
+                <div>
+                  <CardTitle className="text-xl">安全設施</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">確保住客安全的相關設備</p>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -2768,8 +2786,14 @@ const WebsiteContent = () => {
 
           {/* 休閒娛樂設施 */}
           <Card>
-            <CardHeader>
-              <h3 className="font-semibold">休閒娛樂設施</h3>
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-1.5 bg-primary rounded-full" />
+                <div>
+                  <CardTitle className="text-xl">休閒娛樂設施</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">提供的休閒與娛樂設施選項</p>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -2809,8 +2833,14 @@ const WebsiteContent = () => {
 
           {/* 服務語言 */}
           <Card>
-            <CardHeader>
-              <h3 className="font-semibold">服務語言</h3>
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-1.5 bg-primary rounded-full" />
+                <div>
+                  <CardTitle className="text-xl">服務語言</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">選擇可提供服務的語言</p>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
