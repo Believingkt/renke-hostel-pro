@@ -18,6 +18,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 interface RoomInventoryCalendarProps {
   roomTypeId: string;
   roomTypeName: string;
+  accommodationId: string;
 }
 
 interface DayInventory {
@@ -35,10 +36,11 @@ const formatPrice = (price: number | null | undefined): string => {
   return price.toLocaleString('zh-TW');
 };
 
-export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventoryCalendarProps) {
+export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationId }: RoomInventoryCalendarProps) {
   const isMobile = useIsMobile();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [inventory, setInventory] = useState<Record<string, DayInventory>>({});
+  const [publicHolidays, setPublicHolidays] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -67,7 +69,8 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
 
   useEffect(() => {
     loadInventory();
-  }, [roomTypeId, currentMonth]);
+    loadPublicHolidays();
+  }, [roomTypeId, currentMonth, accommodationId]);
 
   // 批量編輯對話框鍵盤快捷鍵
   useEffect(() => {
@@ -146,6 +149,27 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
       toast.error('載入庫存資料失敗');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadPublicHolidays = async () => {
+    try {
+      const monthStart = startOfMonth(currentMonth);
+      const monthEnd = endOfMonth(currentMonth);
+
+      const { data, error } = await supabase
+        .from('public_holidays')
+        .select('holiday_date')
+        .eq('accommodation_id', accommodationId)
+        .gte('holiday_date', format(monthStart, 'yyyy-MM-dd'))
+        .lte('holiday_date', format(monthEnd, 'yyyy-MM-dd'));
+
+      if (error) throw error;
+
+      const holidaySet = new Set(data?.map(h => h.holiday_date) || []);
+      setPublicHolidays(holidaySet);
+    } catch (error) {
+      console.error('載入國定假日失敗:', error);
     }
   };
 
@@ -692,6 +716,8 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
               const isTodayDate = isToday(day);
               const isSelected = selectedDates.has(dateStr);
               const isWeekend = isWeekendDate(day);
+              const isPublicHoliday = publicHolidays.has(dateStr);
+              const isHoliday = isWeekend || isPublicHoliday;
 
               return (
                 <div
@@ -706,10 +732,10 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                     isCopyMode && hasData && "ring-2 ring-blue-400 animate-pulse",
                     isCopyMode && !hasData && "opacity-30 cursor-not-allowed",
                     isSelected && "bg-blue-100 border-blue-600 shadow-md",
-                    // 週末有資料：使用暖色調
-                    !isSelected && hasData && dayInventory.isAvailable && isWeekend && "bg-orange-50/80 hover:bg-orange-100 border-orange-200/50",
+                    // 假日（週末或國定假日）有資料：使用暖色調
+                    !isSelected && hasData && dayInventory.isAvailable && isHoliday && "bg-orange-50/80 hover:bg-orange-100 border-orange-200/50",
                     // 平日有資料：使用藍色調
-                    !isSelected && hasData && dayInventory.isAvailable && !isWeekend && "bg-blue-50/80 hover:bg-blue-100 border-blue-200/50",
+                    !isSelected && hasData && dayInventory.isAvailable && !isHoliday && "bg-blue-50/80 hover:bg-blue-100 border-blue-200/50",
                     !isSelected && hasData && !dayInventory.isAvailable && "bg-gray-100",
                     !isSelected && !hasData && "hover:bg-muted"
                   )}
@@ -718,18 +744,21 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                     "font-bold mb-2 text-lg sm:text-base w-full text-center pb-1.5 border-b",
                     isTodayDate && "text-primary border-primary/30",
                     isSelected && "text-blue-700 border-blue-300",
-                    !isTodayDate && !isSelected && isWeekend && hasData && "text-orange-700 border-orange-200/50",
-                    !isTodayDate && !isSelected && !isWeekend && hasData && "text-blue-700 border-blue-200/50",
+                    !isTodayDate && !isSelected && isHoliday && hasData && "text-orange-700 border-orange-200/50",
+                    !isTodayDate && !isSelected && !isHoliday && hasData && "text-blue-700 border-blue-200/50",
                     !isTodayDate && !isSelected && !hasData && "border-border/30"
                   )}>
                     {format(day, 'd')}
+                    {isPublicHoliday && (
+                      <span className="ml-1 text-[9px] sm:text-[10px] px-1 py-0.5 bg-orange-600 text-white rounded font-medium">假</span>
+                    )}
                   </div>
                   {hasData ? (
                     <div className="w-full space-y-1 px-0.5">
                       {dayInventory.price_2_meals && (
                         <div className={cn(
                           "flex items-center justify-between gap-1 text-[11px] sm:text-xs rounded px-1.5 py-0.5",
-                          isWeekend ? "bg-orange-100/60" : "bg-blue-100/60"
+                          isHoliday ? "bg-orange-100/60" : "bg-blue-100/60"
                         )}>
                           <span className="text-muted-foreground font-medium">一泊二食</span>
                           <span className="font-bold text-foreground">${formatPrice(dayInventory.price_2_meals)}</span>
@@ -738,7 +767,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                       {dayInventory.price_3_meals && (
                         <div className={cn(
                           "flex items-center justify-between gap-1 text-[11px] sm:text-xs rounded px-1.5 py-0.5",
-                          isWeekend ? "bg-orange-100/60" : "bg-blue-100/60"
+                          isHoliday ? "bg-orange-100/60" : "bg-blue-100/60"
                         )}>
                           <span className="text-muted-foreground font-medium">一泊三食</span>
                           <span className="font-bold text-foreground">${formatPrice(dayInventory.price_3_meals)}</span>
@@ -747,7 +776,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                       {!dayInventory.price_2_meals && !dayInventory.price_3_meals && dayInventory.price && (
                         <div className={cn(
                           "flex items-center justify-center gap-1 text-[11px] sm:text-xs rounded px-1.5 py-0.5",
-                          isWeekend ? "bg-orange-100/60" : "bg-blue-100/60"
+                          isHoliday ? "bg-orange-100/60" : "bg-blue-100/60"
                         )}>
                           <DollarSign className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                           <span className="font-bold text-foreground">{formatPrice(dayInventory.price)}</span>
@@ -755,15 +784,15 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
                       )}
                       <div className={cn(
                         "flex items-center justify-center gap-1 text-[11px] sm:text-xs rounded px-1.5 py-0.5 mt-1.5",
-                        isWeekend ? "bg-orange-200/50" : "bg-primary/10"
+                        isHoliday ? "bg-orange-200/50" : "bg-primary/10"
                       )}>
                         <Package className={cn(
                           "h-3 w-3 flex-shrink-0",
-                          isWeekend ? "text-orange-700" : "text-primary"
+                          isHoliday ? "text-orange-700" : "text-primary"
                         )} />
                         <span className={cn(
                           "font-bold",
-                          isWeekend ? "text-orange-700" : "text-primary"
+                          isHoliday ? "text-orange-700" : "text-primary"
                         )}>{dayInventory.availableRooms} 間</span>
                       </div>
                     </div>
@@ -814,7 +843,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName }: RoomInventor
           {!isSelectionMode && (
             <div className="text-xs sm:text-sm text-muted-foreground bg-gradient-to-r from-muted/80 to-muted/40 rounded-lg px-4 py-3 sm:py-2.5 border border-muted">
               💡 <span className="font-medium">提示：</span>
-              <span className="hidden sm:inline">平日使用藍色調，假日使用橙色調。點擊日期可快速編輯價格和庫存</span>
+              <span className="hidden sm:inline">平日使用藍色調，假日（週末及國定假日）使用橙色調。點擊日期可快速編輯價格和庫存</span>
               <span className="sm:hidden">平日藍色、假日橙色。點擊日期快速編輯</span>
             </div>
           )}
