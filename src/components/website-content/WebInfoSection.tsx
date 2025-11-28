@@ -229,13 +229,13 @@ export const WebInfoSection = ({
         </div>
 
         {/* 全局設定區塊 */}
-        <div className="rounded-lg border bg-muted/30 p-6 space-y-6">
-          <div className="flex items-center justify-between pb-2 border-b">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-1 bg-primary rounded-full" />
-              <div>
-                <h3 className="font-semibold text-lg">輪播圖全局設定</h3>
-                <p className="text-sm text-muted-foreground">
+        <div className="rounded-lg border-2 bg-gradient-to-br from-muted/30 to-muted/10 p-6 md:p-8 space-y-6 shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 pb-6 border-b">
+            <div className="flex items-start gap-3">
+              <div className="h-10 w-1.5 bg-primary rounded-full flex-shrink-0 mt-1" />
+              <div className="space-y-2">
+                <h3 className="font-bold text-xl md:text-2xl">輪播圖全局設定</h3>
+                <p className="text-sm md:text-base text-muted-foreground leading-relaxed max-w-2xl">
                   統一設定所有輪播圖的標題、視覺效果和播放行為。這些設定會套用到所有輪播圖上，確保視覺呈現的一致性。
                 </p>
               </div>
@@ -245,36 +245,33 @@ export const WebInfoSection = ({
                 type="button"
                 variant="secondary"
                 onClick={onPreviewCarousel}
-                className="flex items-center gap-2 h-11 sm:h-10 touch-manipulation"
+                className="w-full md:w-auto flex items-center justify-center gap-2 h-12 md:h-11 text-base md:text-sm touch-manipulation flex-shrink-0 shadow-sm hover:shadow-md transition-shadow"
               >
-                <Eye className="h-4 w-4" />
+                <Eye className="h-5 w-5 md:h-4 md:w-4" />
                 預覽輪播效果
               </Button>
             )}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10">
             {/* 左側：設定表單 */}
-            <div className="space-y-6">
+            <div className="space-y-8">
               {/* 標題設定 */}
-              <div className="space-y-4">
-                <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
-                  標題內容
-                </h4>
-                <p className="text-xs text-muted-foreground -mt-2">
-                  輪播圖全局設定
-                </p>
+              <div className="space-y-5">
+                <div className="flex items-center gap-2 pb-3 border-b border-border/50">
+                  <h4 className="font-semibold text-base text-foreground">標題內容</h4>
+                </div>
                 
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 gap-5">
                   <div className="space-y-2">
-                    <Label htmlFor="hero-main-title" className="text-base">主標題</Label>
+                    <Label htmlFor="hero-main-title" className="text-base font-medium">主標題</Label>
                     <Input
                       id="hero-main-title"
                       value={heroMainTitle}
                       onChange={(e) => onHeroTitleChange('hero_main_title', e.target.value)}
                       placeholder="例：歡迎來到我們的民宿"
                       maxLength={20}
-                      className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
+                      className="h-12 text-base sm:h-11 sm:text-sm touch-manipulation"
                     />
                     <p className="text-xs text-muted-foreground">
                       {heroMainTitle.length}/20 字元
@@ -282,14 +279,14 @@ export const WebInfoSection = ({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="hero-subtitle" className="text-base">副標題</Label>
+                    <Label htmlFor="hero-subtitle" className="text-base font-medium">副標題</Label>
                     <Input
                       id="hero-subtitle"
                       value={heroSubtitle}
                       onChange={(e) => onHeroTitleChange('hero_subtitle', e.target.value)}
                       placeholder="例：體驗最舒適的住宿環境"
                       maxLength={20}
-                      className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
+                      className="h-12 text-base sm:h-11 sm:text-sm touch-manipulation"
                     />
                     <p className="text-xs text-muted-foreground">
                       {heroSubtitle.length}/20 字元
@@ -297,8 +294,8 @@ export const WebInfoSection = ({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="hero-description" className="text-base">
-                      次標題 <span className="text-muted-foreground font-normal">(選填)</span>
+                    <Label htmlFor="hero-description" className="text-base font-medium">
+                      次標題 <span className="text-muted-foreground font-normal text-sm">(選填)</span>
                     </Label>
                     <Input
                       id="hero-description"
@@ -306,7 +303,7 @@ export const WebInfoSection = ({
                       onChange={(e) => onHeroTitleChange('hero_description', e.target.value)}
                       placeholder="例：享受自然與寧靜的完美結合"
                       maxLength={20}
-                      className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
+                      className="h-12 text-base sm:h-11 sm:text-sm touch-manipulation"
                     />
                     <p className="text-xs text-muted-foreground">
                       {heroDescription.length}/20 字元
@@ -316,19 +313,16 @@ export const WebInfoSection = ({
               </div>
 
               {/* 視覺效果設定 */}
-              <div className="space-y-4 pt-4 border-t">
-                <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
-                  視覺效果
-                </h4>
-                <p className="text-xs text-muted-foreground -mt-2">
-                  視覺效果調整
-                </p>
+              <div className="space-y-5">
+                <div className="flex items-center gap-2 pb-3 border-b border-border/50">
+                  <h4 className="font-semibold text-base text-foreground">視覺效果</h4>
+                </div>
                 
-                <div className="space-y-4">
-                  <div className="space-y-3">
+                <div className="space-y-5">
+                  <div className="space-y-3 p-4 rounded-lg bg-background/50 border">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="hero-overlay-opacity" className="text-base">背景遮罩</Label>
-                      <span className="text-sm font-semibold text-primary">{heroOverlayOpacity}%</span>
+                      <Label htmlFor="hero-overlay-opacity" className="text-base font-medium">背景遮罩</Label>
+                      <span className="text-base font-bold text-primary tabular-nums">{heroOverlayOpacity}%</span>
                     </div>
                     <input
                       id="hero-overlay-opacity"
@@ -338,17 +332,17 @@ export const WebInfoSection = ({
                       step="5"
                       value={heroOverlayOpacity}
                       onChange={(e) => onHeroSettingChange('hero_overlay_opacity', parseInt(e.target.value))}
-                      className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                      className="w-full h-2.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary transition-all hover:h-3"
                     />
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground leading-relaxed">
                       調整圖片上的黑色遮罩透明度，提升文字可讀性
                     </p>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="space-y-3 p-4 rounded-lg bg-background/50 border">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="hero-autoplay-delay" className="text-base">播放速度</Label>
-                      <span className="text-sm font-semibold text-primary">{heroAutoplayDelay} 秒</span>
+                      <Label htmlFor="hero-autoplay-delay" className="text-base font-medium">播放速度</Label>
+                      <span className="text-base font-bold text-primary tabular-nums">{heroAutoplayDelay} 秒</span>
                     </div>
                     <input
                       id="hero-autoplay-delay"
@@ -358,9 +352,9 @@ export const WebInfoSection = ({
                       step="1"
                       value={heroAutoplayDelay}
                       onChange={(e) => onHeroSettingChange('hero_autoplay_delay', parseInt(e.target.value))}
-                      className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                      className="w-full h-2.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary transition-all hover:h-3"
                     />
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground leading-relaxed">
                       每張輪播圖停留時間，建議 5-10 秒。太短會讓訪客無法完整瀏覽，太長則可能失去注意力
                     </p>
                   </div>
@@ -369,12 +363,12 @@ export const WebInfoSection = ({
             </div>
 
             {/* 右側：即時預覽 */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label className="text-base font-medium">即時預覽</Label>
-                <span className="text-xs text-muted-foreground">調整設定即時顯示效果</span>
+            <div className="space-y-4">
+              <div className="flex flex-col gap-2 pb-3 border-b border-border/50">
+                <Label className="text-base font-semibold">即時預覽</Label>
+                <span className="text-sm text-muted-foreground">調整設定即時顯示效果</span>
               </div>
-              <div className="relative aspect-video rounded-lg overflow-hidden border bg-muted">
+              <div className="relative aspect-video rounded-lg overflow-hidden border-2 shadow-lg bg-muted">
                 {heroPhotos.length > 0 ? (
                   <>
                     <img
