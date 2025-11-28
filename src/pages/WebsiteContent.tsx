@@ -459,7 +459,6 @@ const WebsiteContent = () => {
   });
 
   // Location state
-  const [locationDescription, setLocationDescription] = useState("");
   const [drivingInfo, setDrivingInfo] = useState("");
   const [publicTransportInfo, setPublicTransportInfo] = useState("");
   const [nearbyAttractions, setNearbyAttractions] = useState<NearbyAttraction[]>([
@@ -627,7 +626,6 @@ const WebsiteContent = () => {
           .maybeSingle();
 
         if (locationData) {
-          setLocationDescription(locationData.location_description || "");
           setDrivingInfo(locationData.driving_info || "");
           setPublicTransportInfo(locationData.public_transport_info || "");
           
@@ -1086,7 +1084,6 @@ const WebsiteContent = () => {
 
       const locationData = {
         accommodation_id: accommodationId,
-        location_description: locationDescription,
         driving_info: drivingInfo,
         public_transport_info: publicTransportInfo,
         nearby_attractions: nearbyAttractions.filter(
@@ -2924,16 +2921,6 @@ const WebsiteContent = () => {
                   </p>
                 </div>
               )}
-
-
-              <div className="space-y-2">
-                <Label htmlFor="location-description">位置資訊描述</Label>
-                <RichTextEditor
-                  value={locationDescription}
-                  onChange={setLocationDescription}
-                  placeholder="位於風景秀麗的山區，周邊有多處自然景點與步道"
-                />
-              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="driving-info">自行開車</Label>
