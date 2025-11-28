@@ -597,11 +597,11 @@ const Orders = () => {
                       
                       {totalPages > 1 && (
                         <Pagination className="mx-0 w-full lg:w-auto justify-start lg:justify-end">
-                          <PaginationContent className="gap-1">
+                          <PaginationContent className="gap-2 md:gap-1.5 flex-wrap">
                             <PaginationItem>
                               <PaginationPrevious 
                                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                                className={`h-10 min-w-[44px] touch-manipulation ${currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
+                                className={`h-10 touch-manipulation ${currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
                               >
                                 上一頁
                               </PaginationPrevious>
@@ -618,12 +618,12 @@ const Orders = () => {
                                 <PaginationItem key={page}>
                                   {/* 顯示省略號 */}
                                   {index > 0 && array[index - 1] !== page - 1 && (
-                                    <span className="px-1 md:px-2 text-muted-foreground">...</span>
+                                    <span className="px-2 md:px-2 text-muted-foreground">...</span>
                                   )}
                                   <PaginationLink
                                     onClick={() => setCurrentPage(page)}
                                     isActive={currentPage === page}
-                                    className="h-10 min-w-[44px] touch-manipulation cursor-pointer"
+                                    className="h-10 touch-manipulation cursor-pointer"
                                   >
                                     {page}
                                   </PaginationLink>
@@ -633,7 +633,7 @@ const Orders = () => {
                             <PaginationItem>
                               <PaginationNext 
                                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                                className={`h-10 min-w-[44px] touch-manipulation ${currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
+                                className={`h-10 touch-manipulation ${currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
                               >
                                 下一頁
                               </PaginationNext>

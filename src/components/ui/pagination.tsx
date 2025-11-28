@@ -16,7 +16,7 @@ Pagination.displayName = "Pagination";
 
 const PaginationContent = React.forwardRef<HTMLUListElement, React.ComponentProps<"ul">>(
   ({ className, ...props }, ref) => (
-    <ul ref={ref} className={cn("flex flex-row items-center gap-1", className)} {...props} />
+    <ul ref={ref} className={cn("flex flex-row items-center gap-1 md:gap-1.5", className)} {...props} />
   ),
 );
 PaginationContent.displayName = "PaginationContent";
@@ -39,6 +39,7 @@ const PaginationLink = ({ className, isActive, size = "icon", ...props }: Pagina
         variant: isActive ? "outline" : "ghost",
         size,
       }),
+      "min-w-[40px] md:min-w-[36px]",
       className,
     )}
     {...props}
@@ -47,7 +48,7 @@ const PaginationLink = ({ className, isActive, size = "icon", ...props }: Pagina
 PaginationLink.displayName = "PaginationLink";
 
 const PaginationPrevious = ({ className, children, ...props }: React.ComponentProps<typeof PaginationLink>) => (
-  <PaginationLink aria-label="Go to previous page" size="default" className={cn("gap-1 pl-2.5", className)} {...props}>
+  <PaginationLink aria-label="Go to previous page" size="default" className={cn("gap-1 pl-2.5 min-w-[80px] md:min-w-auto", className)} {...props}>
     <ChevronLeft className="h-4 w-4" />
     <span>{children || "Previous"}</span>
   </PaginationLink>
@@ -55,7 +56,7 @@ const PaginationPrevious = ({ className, children, ...props }: React.ComponentPr
 PaginationPrevious.displayName = "PaginationPrevious";
 
 const PaginationNext = ({ className, children, ...props }: React.ComponentProps<typeof PaginationLink>) => (
-  <PaginationLink aria-label="Go to next page" size="default" className={cn("gap-1 pr-2.5", className)} {...props}>
+  <PaginationLink aria-label="Go to next page" size="default" className={cn("gap-1 pr-2.5 min-w-[80px] md:min-w-auto", className)} {...props}>
     <span>{children || "Next"}</span>
     <ChevronRight className="h-4 w-4" />
   </PaginationLink>
