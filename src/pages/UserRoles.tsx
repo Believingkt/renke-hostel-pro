@@ -58,6 +58,8 @@ export default function UserRoles() {
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingRoleId, setDeletingRoleId] = useState<string | null>(null);
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserRole, setNewUserRole] = useState<"hotel_admin" | "staff">("staff");
 
@@ -178,12 +180,19 @@ export default function UserRoles() {
     }
   };
 
-  const handleDeleteRole = async (roleId: string) => {
+  const handleDeleteRoleClick = (roleId: string) => {
+    setDeletingRoleId(roleId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteRole = async () => {
+    if (!deletingRoleId) return;
+
     try {
       const { error } = await supabase
         .from('user_roles')
         .delete()
-        .eq('id', roleId);
+        .eq('id', deletingRoleId);
 
       if (error) throw error;
 
@@ -202,6 +211,9 @@ export default function UserRoles() {
       }
       
       toast.error(errorMessage);
+    } finally {
+      setDeleteDialogOpen(false);
+      setDeletingRoleId(null);
     }
   };
 
@@ -360,7 +372,7 @@ export default function UserRoles() {
                           <Button
                             variant="ghost-destructive"
                             size="icon"
-                            onClick={() => handleDeleteRole(userRole.id)}
+                            onClick={() => handleDeleteRoleClick(userRole.id)}
                             className="touch-manipulation"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -392,7 +404,7 @@ export default function UserRoles() {
                           variant="ghost-destructive"
                           size="icon"
                           className="h-11 w-11 flex-shrink-0 touch-manipulation"
-                          onClick={() => handleDeleteRole(userRole.id)}
+                          onClick={() => handleDeleteRoleClick(userRole.id)}
                         >
                           <Trash2 className="h-5 w-5" />
                         </Button>
@@ -422,6 +434,26 @@ export default function UserRoles() {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認刪除</AlertDialogTitle>
+            <AlertDialogDescription>
+              確定要刪除此用戶的權限嗎？此操作無法復原。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-11 sm:h-10 touch-manipulation">取消</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteRole}
+              className="bg-destructive hover:bg-destructive/90 h-11 sm:h-10 touch-manipulation"
+            >
+              刪除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

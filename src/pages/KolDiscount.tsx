@@ -48,6 +48,16 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Trash2, Copy, Pencil, Check, Pause, X, Eye, Calendar as CalendarIcon, GripVertical, Code, DollarSign, Ticket, Tag, Megaphone, BadgePercent, Sparkles, Home } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { EmptyState } from "@/components/EmptyState";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -133,6 +143,8 @@ const KolDiscount = () => {
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "expired" | "full">("all");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -278,25 +290,37 @@ const KolDiscount = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDeleteClick = (id: string) => {
+    setDeletingId(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!deletingId) return;
+
     try {
       const { error } = await supabase
         .from("discount_codes")
         .delete()
-        .eq("id", id);
+        .eq("id", deletingId);
 
       if (error) throw error;
 
       toast({
-        title: "折扣碼已刪除",
+        title: "刪除成功",
+        description: "網紅導購已刪除",
       });
       fetchDiscountCodes();
     } catch (error) {
       console.error("Error deleting discount code:", error);
       toast({
         title: "刪除失敗",
+        description: "無法刪除網紅導購",
         variant: "destructive",
       });
+    } finally {
+      setDeleteDialogOpen(false);
+      setDeletingId(null);
     }
   };
 
@@ -714,7 +738,7 @@ const KolDiscount = () => {
               variant="ghost-destructive"
               size="icon"
               className="h-9 w-9 touch-manipulation"
-              onClick={() => handleDelete(item.id)}
+              onClick={() => handleDeleteClick(item.id)}
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -2280,7 +2304,7 @@ const KolDiscount = () => {
                           variant="ghost-destructive"
                           size="sm"
                           className="h-11 text-xs touch-manipulation"
-                          onClick={() => handleDelete(item.id)}
+                          onClick={() => handleDeleteClick(item.id)}
                         >
                           <Trash2 className="h-3.5 w-3.5 mr-1" />
                           <span>刪除</span>
@@ -2912,6 +2936,27 @@ const commissionData = await commissionResponse.json();`}
           accommodationId={accommodationId || ''}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認刪除</AlertDialogTitle>
+            <AlertDialogDescription>
+              確定要刪除此網紅導購代碼嗎？此操作無法復原。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-11 sm:h-10 touch-manipulation">取消</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete}
+              className="bg-destructive hover:bg-destructive/90 h-11 sm:h-10 touch-manipulation"
+            >
+              刪除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
