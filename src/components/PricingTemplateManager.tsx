@@ -1231,14 +1231,15 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                     type="button"
                     onClick={toggleAllDays}
                     className={`
-                      flex items-center gap-2 px-3 py-2 h-10 sm:h-9 rounded-md border transition-all text-sm touch-manipulation
+                      flex flex-col items-center justify-center gap-0.5 px-3 py-2 h-auto min-h-[44px] sm:min-h-[36px] rounded-md border transition-all touch-manipulation
                       ${selectedDays.length === 7
                         ? 'border-primary bg-primary text-primary-foreground'
                         : 'border-border hover:border-primary hover:bg-accent'
                       }
                     `}
                   >
-                    <span className="font-medium">全選</span>
+                    <span className="font-medium text-sm">全選</span>
+                    <span className="text-[10px] leading-tight opacity-70">(一～日)</span>
                   </button>
                   <button
                     type="button"
@@ -1525,14 +1526,15 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                     type="button"
                     onClick={toggleAllDays}
                     className={`
-                      flex items-center gap-2 px-3 py-2 h-10 sm:h-9 rounded-md border transition-all text-sm touch-manipulation
+                      flex flex-col items-center justify-center gap-0.5 px-3 py-2 h-auto min-h-[44px] sm:min-h-[36px] rounded-md border transition-all touch-manipulation
                       ${selectedDays.length === 7
                         ? 'border-primary bg-primary text-primary-foreground'
                         : 'border-border hover:border-primary hover:bg-accent'
                       }
                     `}
                   >
-                    <span className="font-medium">全選</span>
+                    <span className="font-medium text-sm">全選</span>
+                    <span className="text-[10px] leading-tight opacity-70">(一～日)</span>
                   </button>
                   <button
                     type="button"
