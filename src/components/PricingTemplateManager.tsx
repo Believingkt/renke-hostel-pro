@@ -981,21 +981,21 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
             </div>
           </div>
 
-          <DrawerFooter className="flex-row gap-2">
+          <DrawerFooter className="flex-col gap-2 pt-2">
+            <Button 
+              onClick={confirmApply}
+              disabled={!dateRange?.from || !dateRange?.to || selectedRoomTypes.length === 0 || applying}
+              className="w-full h-12"
+            >
+              {applying ? '套用中...' : '確認套用'}
+            </Button>
             <Button 
               variant="outline" 
               onClick={() => setApplyDialogOpen(false)}
               disabled={applying}
-              className="flex-1"
+              className="w-full h-12"
             >
               取消
-            </Button>
-            <Button 
-              onClick={confirmApply}
-              disabled={!dateRange?.from || !dateRange?.to || selectedRoomTypes.length === 0 || applying}
-              className="flex-1"
-            >
-              {applying ? '套用中...' : '確認套用'}
             </Button>
           </DrawerFooter>
         </DrawerContent>
