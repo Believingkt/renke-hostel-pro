@@ -1029,6 +1029,7 @@ export type Database = {
           accommodation_id: string
           created_at: string
           description: string | null
+          display_order: number | null
           id: string
           is_default: boolean | null
           template_name: string
@@ -1044,6 +1045,7 @@ export type Database = {
           accommodation_id: string
           created_at?: string
           description?: string | null
+          display_order?: number | null
           id?: string
           is_default?: boolean | null
           template_name: string
@@ -1059,6 +1061,7 @@ export type Database = {
           accommodation_id?: string
           created_at?: string
           description?: string | null
+          display_order?: number | null
           id?: string
           is_default?: boolean | null
           template_name?: string

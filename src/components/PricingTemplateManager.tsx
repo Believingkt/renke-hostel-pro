@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Pencil, Trash2, Check, X, CheckSquare, Square, CalendarCheck, Clock, History } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, CheckSquare, Square, CalendarCheck, Clock, History, GripVertical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -34,6 +34,23 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useIsMobile } from "@/hooks/use-mobile";
 import { DateRangePicker } from "@/components/DateRangePicker";
 import { DateRange } from "react-day-picker";
@@ -51,6 +68,7 @@ interface PricingTemplate {
   weekend_2_meals_price: number | null;
   weekend_3_meals_price: number | null;
   is_default: boolean;
+  display_order: number;
 }
 
 interface TemplateApplication {
@@ -149,6 +167,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
         .from('pricing_templates')
         .select('*')
         .eq('accommodation_id', accommodationId)
+        .order('display_order', { ascending: true })
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -623,6 +642,234 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
     }
   };
 
+  interface SortableTemplateCardProps {
+    template: PricingTemplate;
+    onEdit: (template: PricingTemplate) => void;
+    onDelete: (template: PricingTemplate) => void;
+    onApply: (template: PricingTemplate) => void;
+    templateApplications: Record<string, TemplateApplication[]>;
+    onViewApplications: (template: PricingTemplate) => void;
+  }
+
+  const SortableTemplateCard = ({ 
+    template, 
+    onEdit, 
+    onDelete, 
+    onApply,
+    templateApplications,
+    onViewApplications 
+  }: SortableTemplateCardProps) => {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id: template.id });
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+      <Card ref={setNodeRef} style={style} className="hover:shadow-md transition-shadow">
+        <CardContent className="p-5">
+          <div className="flex items-start gap-3">
+            <button
+              className="mt-1 cursor-grab active:cursor-grabbing touch-none self-start"
+              {...attributes}
+              {...listeners}
+            >
+              <GripVertical className="h-5 w-5 text-muted-foreground" />
+            </button>
+
+            <div className="flex-1 space-y-4">
+              {/* 標題和描述 */}
+              <div>
+                <h4 className="font-semibold text-lg mb-1">{template.template_name}</h4>
+                {template.description && (
+                  <p className="text-sm text-muted-foreground">{template.description}</p>
+                )}
+              </div>
+
+              {/* 價格類型顯示 */}
+              <div className="space-y-3">
+                {/* 一泊二食 */}
+                {(template.weekday_2_meals_price || template.weekend_2_meals_price) && (
+                  <div className="bg-muted/50 rounded-lg p-3">
+                    <div className="font-medium text-sm mb-2 flex items-center gap-2">
+                      <span className="inline-block w-2 h-2 rounded-full bg-primary"></span>
+                      一泊二食
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      {template.weekday_2_meals_price && (
+                        <div>
+                          <span className="text-muted-foreground">平日</span>
+                          <div className="font-bold text-foreground">
+                            NT$ {template.weekday_2_meals_price.toLocaleString()}
+                          </div>
+                        </div>
+                      )}
+                      {template.weekend_2_meals_price && (
+                        <div>
+                          <span className="text-muted-foreground">假日</span>
+                          <div className="font-bold text-foreground">
+                            NT$ {template.weekend_2_meals_price.toLocaleString()}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* 一泊三食 */}
+                {(template.weekday_3_meals_price || template.weekend_3_meals_price) && (
+                  <div className="bg-muted/50 rounded-lg p-3">
+                    <div className="font-medium text-sm mb-2 flex items-center gap-2">
+                      <span className="inline-block w-2 h-2 rounded-full bg-secondary"></span>
+                      一泊三食
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      {template.weekday_3_meals_price && (
+                        <div>
+                          <span className="text-muted-foreground">平日</span>
+                          <div className="font-bold text-foreground">
+                            NT$ {template.weekday_3_meals_price.toLocaleString()}
+                          </div>
+                        </div>
+                      )}
+                      {template.weekend_3_meals_price && (
+                        <div>
+                          <span className="text-muted-foreground">假日</span>
+                          <div className="font-bold text-foreground">
+                            NT$ {template.weekend_3_meals_price.toLocaleString()}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* 如果都沒有價格 */}
+                {!template.weekday_2_meals_price && !template.weekend_2_meals_price &&
+                 !template.weekday_3_meals_price && !template.weekend_3_meals_price && (
+                  <div className="text-sm text-muted-foreground text-center py-2">
+                    尚未設定價格
+                  </div>
+                )}
+              </div>
+
+              {/* 套用記錄 */}
+              {templateApplications[template.id] && templateApplications[template.id].length > 0 && (
+                <div className="pt-3 border-t">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Clock className="h-3.5 w-3.5" />
+                      <span>最近套用</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onViewApplications(template)}
+                      className="h-7 text-xs"
+                    >
+                      <History className="h-3.5 w-3.5 mr-1" />
+                      查看全部 ({templateApplications[template.id].length})
+                    </Button>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {format(new Date(templateApplications[template.id][0].applied_at), 'yyyy/MM/dd HH:mm')} •{' '}
+                    {templateApplications[template.id][0].affected_dates_count} 天 •{' '}
+                    {templateApplications[template.id][0].room_type_ids.length} 個房型
+                  </div>
+                </div>
+              )}
+
+              {/* 操作按鈕 */}
+              <div className="flex gap-2 pt-2 border-t">
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => onApply(template)}
+                  className="flex-1 gap-2 h-10 sm:h-9 touch-manipulation"
+                  disabled={!template.weekday_2_meals_price && !template.weekend_2_meals_price &&
+                           !template.weekday_3_meals_price && !template.weekend_3_meals_price}
+                >
+                  <CalendarCheck className="h-4 w-4" />
+                  套用
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onEdit(template)}
+                  className="h-10 sm:h-9 touch-manipulation"
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost-destructive"
+                  size="sm"
+                  onClick={() => onDelete(template)}
+                  className="h-10 sm:h-9 touch-manipulation"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = templates.findIndex((item) => item.id === active.id);
+      const newIndex = templates.findIndex((item) => item.id === over.id);
+
+      const newTemplates = arrayMove(templates, oldIndex, newIndex);
+      
+      // 更新本地狀態
+      const updatedTemplates = newTemplates.map((template, index) => ({
+        ...template,
+        display_order: index
+      }));
+      
+      setTemplates(updatedTemplates);
+
+      // 更新數據庫
+      try {
+        const updates = updatedTemplates.map((template) => 
+          supabase
+            .from('pricing_templates')
+            .update({ display_order: template.display_order })
+            .eq('id', template.id)
+        );
+
+        await Promise.all(updates);
+        toast.success("模板順序已更新");
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.error('Error updating template order:', error);
+        }
+        toast.error("無法更新模板順序");
+        loadTemplates(); // 重新載入以重置順序
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -820,150 +1067,33 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
               </div>
             </div>
           ) : (
-            <div className="grid gap-3 sm:gap-4 md:grid-cols-2 animate-fade-in">
-              {templates.map((template) => (
-                <Card key={template.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-5">
-                    <div className="space-y-4">
-                      {/* 標題和描述 */}
-                      <div>
-                        <h4 className="font-semibold text-lg mb-1">{template.template_name}</h4>
-                        {template.description && (
-                          <p className="text-sm text-muted-foreground">{template.description}</p>
-                        )}
-                      </div>
-
-                      {/* 價格類型顯示 */}
-                      <div className="space-y-3">
-                        {/* 一泊二食 */}
-                        {(template.weekday_2_meals_price || template.weekend_2_meals_price) && (
-                          <div className="bg-muted/50 rounded-lg p-3">
-                            <div className="font-medium text-sm mb-2 flex items-center gap-2">
-                              <span className="inline-block w-2 h-2 rounded-full bg-primary"></span>
-                              一泊二食
-                            </div>
-                            <div className="grid grid-cols-2 gap-2 text-sm">
-                              {template.weekday_2_meals_price && (
-                                <div>
-                                  <span className="text-muted-foreground">平日</span>
-                                  <div className="font-bold text-foreground">
-                                    NT$ {template.weekday_2_meals_price.toLocaleString()}
-                                  </div>
-                                </div>
-                              )}
-                              {template.weekend_2_meals_price && (
-                                <div>
-                                  <span className="text-muted-foreground">假日</span>
-                                  <div className="font-bold text-foreground">
-                                    NT$ {template.weekend_2_meals_price.toLocaleString()}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* 一泊三食 */}
-                        {(template.weekday_3_meals_price || template.weekend_3_meals_price) && (
-                          <div className="bg-muted/50 rounded-lg p-3">
-                            <div className="font-medium text-sm mb-2 flex items-center gap-2">
-                              <span className="inline-block w-2 h-2 rounded-full bg-secondary"></span>
-                              一泊三食
-                            </div>
-                            <div className="grid grid-cols-2 gap-2 text-sm">
-                              {template.weekday_3_meals_price && (
-                                <div>
-                                  <span className="text-muted-foreground">平日</span>
-                                  <div className="font-bold text-foreground">
-                                    NT$ {template.weekday_3_meals_price.toLocaleString()}
-                                  </div>
-                                </div>
-                              )}
-                              {template.weekend_3_meals_price && (
-                                <div>
-                                  <span className="text-muted-foreground">假日</span>
-                                  <div className="font-bold text-foreground">
-                                    NT$ {template.weekend_3_meals_price.toLocaleString()}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                      {/* 如果都沒有價格 */}
-                      {!template.weekday_2_meals_price && !template.weekend_2_meals_price &&
-                       !template.weekday_3_meals_price && !template.weekend_3_meals_price && (
-                        <div className="text-sm text-muted-foreground text-center py-2">
-                          尚未設定價格
-                        </div>
-                      )}
-                    </div>
-
-                    {/* 套用記錄 */}
-                    {templateApplications[template.id] && templateApplications[template.id].length > 0 && (
-                      <div className="pt-3 border-t">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Clock className="h-3.5 w-3.5" />
-                            <span>最近套用</span>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setViewingApplicationsTemplate(template);
-                              setShowApplicationsDialog(true);
-                            }}
-                            className="h-7 text-xs"
-                          >
-                            <History className="h-3.5 w-3.5 mr-1" />
-                            查看全部 ({templateApplications[template.id].length})
-                          </Button>
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {format(new Date(templateApplications[template.id][0].applied_at), 'yyyy/MM/dd HH:mm')} •{' '}
-                          {templateApplications[template.id][0].affected_dates_count} 天 •{' '}
-                          {templateApplications[template.id][0].room_type_ids.length} 個房型
-                        </div>
-                      </div>
-                    )}
-
-                      {/* 操作按鈕 */}
-                      <div className="flex gap-2 pt-2 border-t">
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => handleApply(template)}
-                          className="flex-1 gap-2 h-10 sm:h-9 touch-manipulation"
-                          disabled={!template.weekday_2_meals_price && !template.weekend_2_meals_price &&
-                                   !template.weekday_3_meals_price && !template.weekend_3_meals_price}
-                        >
-                          <CalendarCheck className="h-4 w-4" />
-                          套用
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEdit(template)}
-                          className="h-10 sm:h-9 touch-manipulation"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost-destructive"
-                          size="sm"
-                          onClick={() => handleDelete(template)}
-                          className="h-10 sm:h-9 touch-manipulation"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={templates.map(t => t.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="grid gap-3 sm:gap-4 md:grid-cols-2 animate-fade-in">
+                  {templates.map((template) => (
+                    <SortableTemplateCard
+                      key={template.id}
+                      template={template}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                      onApply={handleApply}
+                      templateApplications={templateApplications}
+                      onViewApplications={(template) => {
+                        setViewingApplicationsTemplate(template);
+                        setShowApplicationsDialog(true);
+                      }}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
           )}
         </CardContent>
       </Card>
