@@ -147,6 +147,7 @@ export const OccupancyChart = ({ data, roomTypes }: OccupancyChartProps) => {
                 animationEasing="ease-out"
                 onMouseEnter={() => setHoveredBar(roomType)}
                 onMouseLeave={() => setHoveredBar(null)}
+                style={{ touchAction: 'none' }}
               >
                 <LabelList 
                   dataKey={roomType} 

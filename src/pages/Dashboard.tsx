@@ -253,7 +253,7 @@ const Dashboard = () => {
                 variant="outline"
                 size="sm"
                 disabled={isGenerating}
-                className="gap-2"
+                className="gap-2 h-11 sm:h-9 touch-manipulation"
               >
                 <Zap className={`h-4 w-4 ${isGenerating ? 'animate-pulse' : ''}`} />
                 {isGenerating ? '生成中...' : '生成測試數據'}
@@ -277,6 +277,7 @@ const Dashboard = () => {
                     value={testDataCount}
                     onChange={(e) => setTestDataCount(Number(e.target.value))}
                     placeholder="輸入數量"
+                    className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
                   />
                 </div>
                 <div className="flex items-center space-x-2">
@@ -294,7 +295,7 @@ const Dashboard = () => {
                 <Button
                   onClick={handleGenerateTestData}
                   disabled={isGenerating}
-                  className="w-full gap-2"
+                  className="w-full gap-2 h-11 sm:h-10 touch-manipulation"
                 >
                   <Zap className="h-4 w-4" />
                   {isGenerating ? '生成中...' : `生成 ${testDataCount} 筆資料`}
@@ -304,7 +305,7 @@ const Dashboard = () => {
             </Popover>
             <Badge
               variant={isLiveUpdating ? "default" : "secondary"} 
-              className={`transition-all ${isLiveUpdating ? 'animate-pulse' : ''}`}
+              className={`transition-all touch-manipulation select-none h-8 px-3 ${isLiveUpdating ? 'animate-pulse' : ''}`}
             >
               <Radio className={`w-3 h-3 mr-1 ${isLiveUpdating ? 'animate-spin' : ''}`} />
               {isLiveUpdating ? '更新中...' : '即時監控'}
