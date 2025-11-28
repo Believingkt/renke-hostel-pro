@@ -57,6 +57,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -365,6 +374,7 @@ const SortableFeatureItem = ({ feature, index, onEdit, onDelete }: SortableFeatu
 };
 
 const WebsiteContent = () => {
+  const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("basic-info");
   const [selectedFacilities, setSelectedFacilities] = useState<Record<string, boolean>>({});
@@ -2584,7 +2594,7 @@ const WebsiteContent = () => {
                 onClick={() => document.getElementById('photo-upload')?.click()}
                 disabled={uploadingPhoto}
                 size="default"
-                className="gap-2"
+                className="gap-2 h-11 sm:h-10 touch-manipulation"
               >
                 <Upload className="h-4 w-4" />
                 {uploadingPhoto ? '上傳中...' : '上傳照片'}
@@ -2772,7 +2782,7 @@ const WebsiteContent = () => {
               <HelpCircle className="h-6 w-6 md:h-7 md:w-7 text-primary" />
               常見問題
             </h2>
-            <Button onClick={() => setIsDialogOpen(true)} className="w-full sm:w-auto">
+            <Button onClick={() => setIsDialogOpen(true)} className="w-full sm:w-auto h-11 sm:h-10 touch-manipulation">
               <Plus className="mr-2 h-4 w-4" />
               新增問題
             </Button>
@@ -2818,6 +2828,7 @@ const WebsiteContent = () => {
                               variant="ghost"
                               size="icon"
                               onClick={() => handleEditFaq(faq)}
+                              className="h-10 w-10 sm:h-9 sm:w-9 touch-manipulation"
                             >
                               <Edit2 className="h-4 w-4" />
                             </Button>
@@ -2825,6 +2836,7 @@ const WebsiteContent = () => {
                               variant="ghost-destructive"
                               size="icon"
                               onClick={() => handleDeleteFaqClick(faq.id)}
+                              className="h-10 w-10 sm:h-9 sm:w-9 touch-manipulation"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -2852,20 +2864,22 @@ const WebsiteContent = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="map-address">Google Map 地址</Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowMapPreview(!showMapPreview)}
-                  >
-                    {showMapPreview ? "隱藏" : "顯示"}地圖預覽
-                  </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowMapPreview(!showMapPreview)}
+                  className="h-10 sm:h-9 touch-manipulation"
+                >
+                  {showMapPreview ? "隱藏" : "顯示"}地圖預覽
+                </Button>
                 </div>
                 <Input
                   id="map-address"
                   value={basicInfo.address}
                   onChange={(e) => setBasicInfo({ ...basicInfo, address: e.target.value })}
                   placeholder="請輸入完整地址，用於前台 Google Map 顯示"
+                  className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
                 />
                 <p className="text-xs text-muted-foreground">
                   此地址將用於前台頁面的 Google Map 嵌入顯示
@@ -3016,62 +3030,123 @@ const WebsiteContent = () => {
       </Tabs>
 
       {/* FAQ Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              {editingFaq ? "編輯常見問題" : "新增常見問題"}
-            </DialogTitle>
-          </DialogHeader>
+      {isMobile ? (
+        <Drawer open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DrawerContent className="max-h-[90vh]">
+            <DrawerHeader>
+              <DrawerTitle>
+                {editingFaq ? "編輯常見問題" : "新增常見問題"}
+              </DrawerTitle>
+            </DrawerHeader>
 
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="question">問題</Label>
-              <Input
-                id="question"
-                placeholder="請輸入問題"
-                value={faqFormData.question}
-                onChange={(e) =>
-                  setFaqFormData({ ...faqFormData, question: e.target.value })
-                }
-              />
+            <div className="space-y-4 px-4 overflow-y-auto pb-4">
+              <div className="space-y-2">
+                <Label htmlFor="question">問題</Label>
+                <Input
+                  id="question"
+                  placeholder="請輸入問題"
+                  value={faqFormData.question}
+                  onChange={(e) =>
+                    setFaqFormData({ ...faqFormData, question: e.target.value })
+                  }
+                  className="h-12 text-base touch-manipulation"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="answer">答案</Label>
+                <Textarea
+                  id="answer"
+                  placeholder="請輸入答案"
+                  value={faqFormData.answer}
+                  onChange={(e) =>
+                    setFaqFormData({ ...faqFormData, answer: e.target.value })
+                  }
+                  rows={6}
+                  className="min-h-[120px] text-base touch-manipulation"
+                />
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="is_published"
+                  checked={faqFormData.is_published}
+                  onCheckedChange={(checked) =>
+                    setFaqFormData({ ...faqFormData, is_published: checked })
+                  }
+                />
+                <Label htmlFor="is_published">立即發布</Label>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="answer">答案</Label>
-              <Textarea
-                id="answer"
-                placeholder="請輸入答案"
-                value={faqFormData.answer}
-                onChange={(e) =>
-                  setFaqFormData({ ...faqFormData, answer: e.target.value })
-                }
-                rows={6}
-              />
+            <DrawerFooter className="pt-2">
+              <Button onClick={handleSaveFaq} className="w-full h-12">
+                {editingFaq ? "更新" : "新增"}
+              </Button>
+              <Button variant="outline" onClick={handleCloseFaqDialog} className="w-full h-12">
+                取消
+              </Button>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                {editingFaq ? "編輯常見問題" : "新增常見問題"}
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="question">問題</Label>
+                <Input
+                  id="question"
+                  placeholder="請輸入問題"
+                  value={faqFormData.question}
+                  onChange={(e) =>
+                    setFaqFormData({ ...faqFormData, question: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="answer">答案</Label>
+                <Textarea
+                  id="answer"
+                  placeholder="請輸入答案"
+                  value={faqFormData.answer}
+                  onChange={(e) =>
+                    setFaqFormData({ ...faqFormData, answer: e.target.value })
+                  }
+                  rows={6}
+                />
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="is_published"
+                  checked={faqFormData.is_published}
+                  onCheckedChange={(checked) =>
+                    setFaqFormData({ ...faqFormData, is_published: checked })
+                  }
+                />
+                <Label htmlFor="is_published">立即發布</Label>
+              </div>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="is_published"
-                checked={faqFormData.is_published}
-                onCheckedChange={(checked) =>
-                  setFaqFormData({ ...faqFormData, is_published: checked })
-                }
-              />
-              <Label htmlFor="is_published">立即發布</Label>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={handleCloseFaqDialog}>
-              取消
-            </Button>
-            <Button onClick={handleSaveFaq}>
-              {editingFaq ? "更新" : "新增"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCloseFaqDialog}>
+                取消
+              </Button>
+              <Button onClick={handleSaveFaq}>
+                {editingFaq ? "更新" : "新增"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Logo 裁剪對話框 */}
       <LogoCropDialog

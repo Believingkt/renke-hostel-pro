@@ -209,7 +209,7 @@ export const HeaderFooterSection = ({
               variant="outline"
               onClick={() => document.getElementById('header-logo-upload')?.click()}
               disabled={uploadingHeaderLogo}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 h-11 sm:h-10 touch-manipulation"
             >
               <Upload className="h-4 w-4" />
               {uploadingHeaderLogo ? "上傳中..." : "上傳頁首 Logo"}
@@ -235,6 +235,7 @@ export const HeaderFooterSection = ({
                   variant="ghost-destructive"
                   size="icon"
                   onClick={() => onDeleteLogo('header')}
+                  className="h-11 w-11 sm:h-10 sm:w-10 touch-manipulation"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -255,7 +256,7 @@ export const HeaderFooterSection = ({
               variant="outline"
               onClick={() => document.getElementById('footer-logo-upload')?.click()}
               disabled={uploadingFooterLogo}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 h-11 sm:h-10 touch-manipulation"
             >
               <Upload className="h-4 w-4" />
               {uploadingFooterLogo ? "上傳中..." : "上傳頁尾 Logo"}
@@ -281,6 +282,7 @@ export const HeaderFooterSection = ({
                   variant="ghost-destructive"
                   size="icon"
                   onClick={() => onDeleteLogo('footer')}
+                  className="h-11 w-11 sm:h-10 sm:w-10 touch-manipulation"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>

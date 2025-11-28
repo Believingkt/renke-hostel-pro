@@ -231,7 +231,7 @@ export function AboutFeatureForm({ open, onOpenChange, feature, onSave }: AboutF
                     key={icon.name}
                     type="button"
                     onClick={() => setFormData({ ...formData, icon_name: icon.name })}
-                    className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
+                    className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all touch-manipulation ${
                       formData.icon_name === icon.name
                         ? 'border-primary bg-primary/10'
                         : 'border-border hover:border-primary/50'
@@ -255,6 +255,7 @@ export function AboutFeatureForm({ open, onOpenChange, feature, onSave }: AboutF
                 variant="outline"
                 onClick={() => document.getElementById('icon-upload')?.click()}
                 disabled={uploadingIcon}
+                className="h-11 sm:h-10 touch-manipulation"
               >
                 <Upload className="h-4 w-4 mr-2" />
                 {uploadingIcon ? '上傳中...' : '選擇圖示'}
@@ -272,9 +273,9 @@ export function AboutFeatureForm({ open, onOpenChange, feature, onSave }: AboutF
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, icon_url: '' })}
-                    className="absolute top-0 right-0 p-1 bg-destructive text-destructive-foreground rounded-bl"
+                    className="absolute top-0 right-0 p-2 bg-destructive text-destructive-foreground rounded-bl touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center sm:p-1 sm:min-h-0 sm:min-w-0"
                   >
-                    <Trash2 className="h-3 w-3" />
+                    <Trash2 className="h-4 w-4 sm:h-3 sm:w-3" />
                   </button>
                 </div>
               )}

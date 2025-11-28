@@ -96,6 +96,7 @@ const SortableFeatureItem = ({ feature, onEdit, onDelete }: any) => {
               size="sm"
               variant="ghost"
               onClick={() => onEdit(feature)}
+              className="h-10 w-10 sm:h-8 sm:w-8 touch-manipulation"
             >
               <Edit2 className="h-4 w-4" />
             </Button>
@@ -103,6 +104,7 @@ const SortableFeatureItem = ({ feature, onEdit, onDelete }: any) => {
               size="sm"
               variant="ghost-destructive"
               onClick={() => onDelete(feature.id)}
+              className="h-10 w-10 sm:h-8 sm:w-8 touch-manipulation"
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -332,6 +334,7 @@ export const AboutFeaturesSection = ({
                 size="sm"
                 onClick={onAddFeature}
                 disabled={localFeatures.length >= 4}
+                className="h-10 sm:h-9 touch-manipulation"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 新增特色
