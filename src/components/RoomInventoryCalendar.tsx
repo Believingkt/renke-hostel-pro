@@ -830,7 +830,10 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                         <span className={cn(
                           "font-bold text-[12px] sm:text-xs whitespace-nowrap",
                           isHoliday ? "text-orange-700" : "text-primary"
-                        )}>{dayInventory.availableRooms} 間</span>
+                        )}>
+                          <span className="md:hidden">{dayInventory.availableRooms}</span>
+                          <span className="hidden md:inline">{dayInventory.availableRooms} 間</span>
+                        </span>
                       </div>
                     </div>
                   ) : (
