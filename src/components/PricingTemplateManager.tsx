@@ -82,6 +82,8 @@ interface TemplateApplication {
   affected_dates_count: number;
   applied_by: string | null;
   available_rooms: number;
+  holiday_affected_count: number;
+  work_on_weekend_count: number;
 }
 
 interface RoomType {
@@ -224,6 +226,8 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
           affected_dates_count: app.affected_dates_count,
           applied_by: app.applied_by,
           available_rooms: app.available_rooms,
+          holiday_affected_count: app.holiday_affected_count || 0,
+          work_on_weekend_count: app.work_on_weekend_count || 0,
         });
       });
       
@@ -482,6 +486,8 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       // 準備 upsert 記錄
       const upsertRecords = [];
       let processedCount = 0;
+      let holidayAffectedCount = 0;
+      let workOnWeekendCount = 0;
       
       for (let i = 0; i < selectedRoomTypes.length; i++) {
         const roomTypeId = selectedRoomTypes[i];
@@ -504,13 +510,15 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
           
           let isHolidayPricing = isWeekendDay;
           
-          // 根據國定假日類型調整價格判斷
+          // 根據國定假日類型調整價格判斷並統計
           if (holidayType === 'work_on_weekend') {
             // 補班日：即使是週末也使用平日價格
             isHolidayPricing = false;
+            if (i === 0) workOnWeekendCount++; // 只計算一次，不重複計算每個房型
           } else if (holidayType === 'holiday' || holidayType === 'compensatory_day_off') {
             // 國定假日或補休日：使用假日價格
             isHolidayPricing = true;
+            if (!isWeekendDay && i === 0) holidayAffectedCount++; // 只計算原本是平日但因國定假日改為假日價格的天數
           }
           
           // 根據選擇的價格類型和平日/假日決定價格
@@ -600,6 +608,8 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
           price_type: selectedPriceType,
           available_rooms: availableRooms,
           affected_dates_count: upsertRecords.length,
+          holiday_affected_count: holidayAffectedCount,
+          work_on_weekend_count: workOnWeekendCount,
         });
 
       if (applicationError) {
@@ -1860,6 +1870,22 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                           <span className="text-muted-foreground">房型數量</span>
                           <div className="font-medium">{app.room_type_ids.length} 個</div>
                         </div>
+                        {(app.holiday_affected_count > 0 || app.work_on_weekend_count > 0) && (
+                          <>
+                            {app.holiday_affected_count > 0 && (
+                              <div>
+                                <span className="text-muted-foreground">國定假日</span>
+                                <div className="font-medium text-orange-600">{app.holiday_affected_count} 天</div>
+                              </div>
+                            )}
+                            {app.work_on_weekend_count > 0 && (
+                              <div>
+                                <span className="text-muted-foreground">補班日</span>
+                                <div className="font-medium text-blue-600">{app.work_on_weekend_count} 天</div>
+                              </div>
+                            )}
+                          </>
+                        )}
                       </div>
                       
                       <div className="pt-2 border-t">
@@ -1997,6 +2023,22 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                           <span className="text-muted-foreground">房型數量</span>
                           <div className="font-medium">{app.room_type_ids.length} 個</div>
                         </div>
+                        {(app.holiday_affected_count > 0 || app.work_on_weekend_count > 0) && (
+                          <>
+                            {app.holiday_affected_count > 0 && (
+                              <div>
+                                <span className="text-muted-foreground">國定假日</span>
+                                <div className="font-medium text-orange-600">{app.holiday_affected_count} 天</div>
+                              </div>
+                            )}
+                            {app.work_on_weekend_count > 0 && (
+                              <div>
+                                <span className="text-muted-foreground">補班日</span>
+                                <div className="font-medium text-blue-600">{app.work_on_weekend_count} 天</div>
+                              </div>
+                            )}
+                          </>
+                        )}
                       </div>
                       
                       <div className="pt-2 border-t">

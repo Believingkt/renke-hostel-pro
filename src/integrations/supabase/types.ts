@@ -1034,11 +1034,13 @@ export type Database = {
           created_at: string
           date_from: string
           date_to: string
+          holiday_affected_count: number | null
           id: string
           price_type: string
           room_type_ids: Json
           selected_days: Json
           template_id: string
+          work_on_weekend_count: number | null
         }
         Insert: {
           accommodation_id: string
@@ -1049,11 +1051,13 @@ export type Database = {
           created_at?: string
           date_from: string
           date_to: string
+          holiday_affected_count?: number | null
           id?: string
           price_type: string
           room_type_ids?: Json
           selected_days?: Json
           template_id: string
+          work_on_weekend_count?: number | null
         }
         Update: {
           accommodation_id?: string
@@ -1064,11 +1068,13 @@ export type Database = {
           created_at?: string
           date_from?: string
           date_to?: string
+          holiday_affected_count?: number | null
           id?: string
           price_type?: string
           room_type_ids?: Json
           selected_days?: Json
           template_id?: string
+          work_on_weekend_count?: number | null
         }
         Relationships: [
           {
