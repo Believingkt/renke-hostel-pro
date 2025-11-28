@@ -507,14 +507,13 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
   return (
     <Card>
       <CardHeader>
-        <div className="flex flex-col gap-4">
-          {/* 頂部控制區 - 優化佈局 */}
-          <div className="flex items-center justify-between gap-3">
-            {/* 左側：房型名稱 */}
-            <CardTitle className="text-base sm:text-lg font-bold">{roomTypeName}</CardTitle>
-            
-            {/* 右側：視圖切換和月份導航 */}
-            <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex flex-col gap-3 sm:gap-4">
+          {/* 頂部控制區 - 手機版兩行佈局 */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            {/* 第一行/左側：房型名稱和視圖切換 */}
+            <div className="flex items-center justify-between sm:justify-start gap-3">
+              <CardTitle className="text-base sm:text-lg font-bold">{roomTypeName}</CardTitle>
+              
               {/* 視圖切換按鈕組 - 優化設計 */}
               <div className="flex sm:hidden border rounded-lg overflow-hidden">
                 <Button
@@ -541,8 +540,10 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                   <List className="h-4 w-4" />
                 </Button>
               </div>
-              
-              {/* 月份導航 - 手機版優化 */}
+            </div>
+            
+            {/* 第二行/右側：月份導航 */}
+            <div className="flex items-center justify-center sm:justify-end">
               <div className="flex items-center gap-0.5 sm:gap-2 border rounded-lg p-0.5 sm:p-1 bg-muted/30">
                 <Button
                   variant="ghost"
