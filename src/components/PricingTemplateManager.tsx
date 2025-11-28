@@ -119,6 +119,9 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
   const [showApplicationsDialog, setShowApplicationsDialog] = useState(false);
   const [viewingApplicationsTemplate, setViewingApplicationsTemplate] = useState<PricingTemplate | null>(null);
   const [applyProgress, setApplyProgress] = useState({ current: 0, total: 0, currentRoom: '' });
+  const [selectedApplicationIds, setSelectedApplicationIds] = useState<string[]>([]);
+  const [batchDeleteDialogOpen, setBatchDeleteDialogOpen] = useState(false);
+  const [deletingApplications, setDeletingApplications] = useState(false);
   
   const [formData, setFormData] = useState({
     template_name: "",
@@ -560,6 +563,63 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
     } finally {
       setApplying(false);
       setApplyProgress({ current: 0, total: 0, currentRoom: '' });
+    }
+  };
+
+  const toggleApplicationSelection = (appId: string) => {
+    setSelectedApplicationIds(prev => 
+      prev.includes(appId) 
+        ? prev.filter(id => id !== appId)
+        : [...prev, appId]
+    );
+  };
+
+  const toggleAllApplications = () => {
+    if (!viewingApplicationsTemplate) return;
+    
+    const currentApps = templateApplications[viewingApplicationsTemplate.id] || [];
+    const allIds = currentApps.map(app => app.id);
+    
+    if (selectedApplicationIds.length === allIds.length) {
+      setSelectedApplicationIds([]);
+    } else {
+      setSelectedApplicationIds(allIds);
+    }
+  };
+
+  const handleBatchDelete = () => {
+    if (selectedApplicationIds.length === 0) {
+      toast.error("請先選擇要刪除的記錄");
+      return;
+    }
+    setBatchDeleteDialogOpen(true);
+  };
+
+  const confirmBatchDelete = async () => {
+    setDeletingApplications(true);
+    
+    try {
+      const { error } = await supabase
+        .from('pricing_template_applications')
+        .delete()
+        .in('id', selectedApplicationIds);
+
+      if (error) throw error;
+
+      toast.success(`成功刪除 ${selectedApplicationIds.length} 筆記錄`);
+      
+      // 重新載入套用記錄
+      await loadTemplateApplications();
+      
+      setSelectedApplicationIds([]);
+      setBatchDeleteDialogOpen(false);
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error deleting applications:', error);
+      }
+      toast.error("刪除記錄失敗，請重試");
+    } finally {
+      setDeletingApplications(false);
     }
   };
 
@@ -1519,7 +1579,10 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
 
       {/* 套用記錄對話框 */}
       {isMobile ? (
-        <Drawer open={showApplicationsDialog} onOpenChange={setShowApplicationsDialog}>
+        <Drawer open={showApplicationsDialog} onOpenChange={(open) => {
+          setShowApplicationsDialog(open);
+          if (!open) setSelectedApplicationIds([]);
+        }}>
           <DrawerContent className="max-h-[90vh]">
             <DrawerHeader>
               <DrawerTitle>套用記錄</DrawerTitle>
@@ -1528,18 +1591,77 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
               </DrawerDescription>
             </DrawerHeader>
             
+            {/* 批次操作工具列 */}
+            {viewingApplicationsTemplate && templateApplications[viewingApplicationsTemplate.id]?.length > 0 && (
+              <div className="px-4 pb-3 border-b space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={toggleAllApplications}
+                    className="h-9 gap-2"
+                  >
+                    {selectedApplicationIds.length === templateApplications[viewingApplicationsTemplate.id].length ? (
+                      <>
+                        <CheckSquare className="h-4 w-4" />
+                        取消全選
+                      </>
+                    ) : (
+                      <>
+                        <Square className="h-4 w-4" />
+                        全選
+                      </>
+                    )}
+                  </Button>
+                  
+                  {selectedApplicationIds.length > 0 && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleBatchDelete}
+                      className="h-9 gap-2"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      刪除 ({selectedApplicationIds.length})
+                    </Button>
+                  )}
+                </div>
+                
+                {selectedApplicationIds.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    已選擇 {selectedApplicationIds.length} 筆記錄
+                  </p>
+                )}
+              </div>
+            )}
+            
             <div className="px-4 space-y-3 overflow-y-auto">
               {viewingApplicationsTemplate && templateApplications[viewingApplicationsTemplate.id]?.map((app) => {
                 const dayLabels = ['日', '一', '二', '三', '四', '五', '六'];
                 const selectedDayLabels = app.selected_days.map(d => dayLabels[d]).join('、');
                 
                 return (
-                  <Card key={app.id} className="p-4">
+                  <Card 
+                    key={app.id} 
+                    className={`p-4 cursor-pointer transition-all ${
+                      selectedApplicationIds.includes(app.id) ? 'ring-2 ring-primary bg-accent' : ''
+                    }`}
+                    onClick={() => toggleApplicationSelection(app.id)}
+                  >
                     <div className="space-y-2">
                       <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2 text-sm font-medium">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                          {format(new Date(app.applied_at), 'yyyy/MM/dd HH:mm')}
+                        <div className="flex items-center gap-3">
+                          <div onClick={(e) => e.stopPropagation()}>
+                            {selectedApplicationIds.includes(app.id) ? (
+                              <CheckSquare className="h-5 w-5 text-primary" />
+                            ) : (
+                              <Square className="h-5 w-5 text-muted-foreground" />
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 text-sm font-medium">
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                            {format(new Date(app.applied_at), 'yyyy/MM/dd HH:mm')}
+                          </div>
                         </div>
                         <div className={`px-2 py-1 rounded text-xs font-medium ${
                           app.price_type === '2meals' ? 'bg-primary/10 text-primary' : 'bg-secondary/10 text-secondary'
@@ -1594,7 +1716,10 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
           </DrawerContent>
         </Drawer>
       ) : (
-        <Dialog open={showApplicationsDialog} onOpenChange={setShowApplicationsDialog}>
+        <Dialog open={showApplicationsDialog} onOpenChange={(open) => {
+          setShowApplicationsDialog(open);
+          if (!open) setSelectedApplicationIds([]);
+        }}>
           <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>套用記錄</DialogTitle>
@@ -1603,18 +1728,77 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
               </DialogDescription>
             </DialogHeader>
             
+            {/* 批次操作工具列 */}
+            {viewingApplicationsTemplate && templateApplications[viewingApplicationsTemplate.id]?.length > 0 && (
+              <div className="pb-3 border-b space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={toggleAllApplications}
+                    className="h-9 gap-2"
+                  >
+                    {selectedApplicationIds.length === templateApplications[viewingApplicationsTemplate.id].length ? (
+                      <>
+                        <CheckSquare className="h-4 w-4" />
+                        取消全選
+                      </>
+                    ) : (
+                      <>
+                        <Square className="h-4 w-4" />
+                        全選
+                      </>
+                    )}
+                  </Button>
+                  
+                  {selectedApplicationIds.length > 0 && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleBatchDelete}
+                      className="h-9 gap-2"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      刪除 ({selectedApplicationIds.length})
+                    </Button>
+                  )}
+                </div>
+                
+                {selectedApplicationIds.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    已選擇 {selectedApplicationIds.length} 筆記錄
+                  </p>
+                )}
+              </div>
+            )}
+            
             <div className="space-y-3">
               {viewingApplicationsTemplate && templateApplications[viewingApplicationsTemplate.id]?.map((app) => {
                 const dayLabels = ['日', '一', '二', '三', '四', '五', '六'];
                 const selectedDayLabels = app.selected_days.map(d => dayLabels[d]).join('、');
                 
                 return (
-                  <Card key={app.id} className="p-4">
+                  <Card 
+                    key={app.id} 
+                    className={`p-4 cursor-pointer transition-all ${
+                      selectedApplicationIds.includes(app.id) ? 'ring-2 ring-primary bg-accent' : ''
+                    }`}
+                    onClick={() => toggleApplicationSelection(app.id)}
+                  >
                     <div className="space-y-2">
                       <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2 text-sm font-medium">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                          {format(new Date(app.applied_at), 'yyyy/MM/dd HH:mm')}
+                        <div className="flex items-center gap-3">
+                          <div onClick={(e) => e.stopPropagation()}>
+                            {selectedApplicationIds.includes(app.id) ? (
+                              <CheckSquare className="h-5 w-5 text-primary" />
+                            ) : (
+                              <Square className="h-5 w-5 text-muted-foreground" />
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 text-sm font-medium">
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                            {format(new Date(app.applied_at), 'yyyy/MM/dd HH:mm')}
+                          </div>
                         </div>
                         <div className={`px-2 py-1 rounded text-xs font-medium ${
                           app.price_type === '2meals' ? 'bg-primary/10 text-primary' : 'bg-secondary/10 text-secondary'
@@ -1668,6 +1852,28 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
           </DialogContent>
         </Dialog>
       )}
+
+      {/* 批次刪除確認對話框 */}
+      <AlertDialog open={batchDeleteDialogOpen} onOpenChange={setBatchDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認批次刪除</AlertDialogTitle>
+            <AlertDialogDescription>
+              確定要刪除選中的 {selectedApplicationIds.length} 筆套用記錄嗎？此操作無法復原。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingApplications}>取消</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmBatchDelete}
+              disabled={deletingApplications}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingApplications ? "刪除中..." : "確認刪除"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </>
   );
