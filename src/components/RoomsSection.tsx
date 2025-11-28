@@ -93,28 +93,55 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
   const loadInventoryPricing = async () => {
     try {
       const today = new Date();
+      const thirtyDaysLater = new Date(today);
+      thirtyDaysLater.setDate(today.getDate() + 30);
+
+      // 獲取最近30天的價格數據
       const { data, error } = await supabase
         .from('room_inventory_pricing')
-        .select('price, date')
+        .select('price, price_2_meals, price_3_meals, date')
         .eq('room_type_id', room.id)
         .gte('date', today.toISOString().split('T')[0])
-        .order('date', { ascending: true })
-        .limit(30);
+        .lte('date', thirtyDaysLater.toISOString().split('T')[0])
+        .eq('is_available', true)
+        .order('date', { ascending: true });
 
       if (error) throw error;
 
       if (data && data.length > 0) {
-        // 從最近30天的數據中找出不同方案的價格
-        // 這裡簡化處理，實際應該根據餐食方案分類
-        const prices = data.map(d => d.price);
-        const sortedPrices = [...new Set(prices)].sort((a, b) => a - b);
-        
-        // 假設價格從低到高分別為：平日一泊二食、平日一泊三食、假日一泊二食、假日一泊三食
+        // 獲取公眾假期
+        const { data: holidays } = await supabase
+          .from('public_holidays')
+          .select('holiday_date')
+          .gte('holiday_date', today.toISOString().split('T')[0])
+          .lte('holiday_date', thirtyDaysLater.toISOString().split('T')[0]);
+
+        const holidayDates = new Set(holidays?.map(h => h.holiday_date) || []);
+
+        // 分類平日和假日的價格
+        const weekdayPrices = { meals2: [] as number[], meals3: [] as number[] };
+        const weekendPrices = { meals2: [] as number[], meals3: [] as number[] };
+
+        data.forEach(item => {
+          const date = new Date(item.date);
+          const dayOfWeek = date.getDay();
+          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6 || holidayDates.has(item.date);
+
+          if (isWeekend) {
+            if (item.price_2_meals) weekendPrices.meals2.push(item.price_2_meals);
+            if (item.price_3_meals) weekendPrices.meals3.push(item.price_3_meals);
+          } else {
+            if (item.price_2_meals) weekdayPrices.meals2.push(item.price_2_meals);
+            if (item.price_3_meals) weekdayPrices.meals3.push(item.price_3_meals);
+          }
+        });
+
+        // 取最低價格顯示
         setInventoryPricing({
-          weekday_2_meals: sortedPrices[0],
-          weekday_3_meals: sortedPrices[1],
-          weekend_2_meals: sortedPrices[2],
-          weekend_3_meals: sortedPrices[3],
+          weekday_2_meals: weekdayPrices.meals2.length > 0 ? Math.min(...weekdayPrices.meals2) : undefined,
+          weekday_3_meals: weekdayPrices.meals3.length > 0 ? Math.min(...weekdayPrices.meals3) : undefined,
+          weekend_2_meals: weekendPrices.meals2.length > 0 ? Math.min(...weekendPrices.meals2) : undefined,
+          weekend_3_meals: weekendPrices.meals3.length > 0 ? Math.min(...weekendPrices.meals3) : undefined,
         });
       }
     } catch (error) {
