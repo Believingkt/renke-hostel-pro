@@ -1058,18 +1058,18 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                      }
                    }}
                    className={cn(
-                      "border rounded-lg p-3 transition-all touch-manipulation active:scale-[0.98]",
-                      isTodayDate && "border-primary border-2 ring-2 ring-primary/20",
-                      isSelectionMode && "cursor-pointer",
-                      !isSelectionMode && "cursor-pointer hover:shadow-md",
-                      isSelected && "bg-blue-100 border-blue-600 shadow-md",
-                      // 被封鎖的樣式 - 使用紅色調
-                      !isSelected && hasData && dayInventory.isBlocked && selectedBlockedDates.has(dateStr) && "ring-2 ring-destructive",
-                      !isSelected && hasData && dayInventory.isBlocked && "bg-red-50/60 border-red-300/60 hover:bg-red-100/60",
-                      !isSelected && hasData && !dayInventory.isBlocked && dayInventory.isAvailable && isHoliday && "bg-orange-50/80 hover:bg-orange-100",
-                      !isSelected && hasData && !dayInventory.isBlocked && dayInventory.isAvailable && !isHoliday && "bg-blue-50/80 hover:bg-blue-100",
-                      !isSelected && hasData && !dayInventory.isBlocked && !dayInventory.isAvailable && "bg-gray-100",
-                      !isSelected && !hasData && "hover:bg-muted"
+                     "border rounded-lg p-3 transition-all touch-manipulation active:scale-[0.98]",
+                     isTodayDate && "border-primary border-2 ring-2 ring-primary/20",
+                     isSelectionMode && "cursor-pointer",
+                     !isSelectionMode && "cursor-pointer hover:shadow-md",
+                     isSelected && "bg-blue-100 border-blue-600 shadow-md",
+                     // 被鎖定的樣式 - 使用灰色調
+                     !isSelected && hasData && dayInventory.isBlocked && selectedBlockedDates.has(dateStr) && "ring-2 ring-gray-400",
+                     !isSelected && hasData && dayInventory.isBlocked && "bg-gray-50/60 border-gray-300/60 hover:bg-gray-100/60",
+                     !isSelected && hasData && !dayInventory.isBlocked && dayInventory.isAvailable && isHoliday && "bg-orange-50/80 hover:bg-orange-100",
+                     !isSelected && hasData && !dayInventory.isBlocked && dayInventory.isAvailable && !isHoliday && "bg-blue-50/80 hover:bg-blue-100",
+                     !isSelected && hasData && !dayInventory.isBlocked && !dayInventory.isAvailable && "bg-gray-100",
+                     !isSelected && !hasData && "hover:bg-muted"
                     )}
                   >
                   <div className="flex items-center justify-between mb-2">
@@ -1103,9 +1103,9 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                   
                    {hasData ? (
                      <div className="space-y-2">
-                       {/* 被封鎖狀態標記 */}
+                       {/* 被鎖定狀態標記 */}
                        {dayInventory.isBlocked && dayInventory.blockedByRoomName && (
-                          <Badge variant="destructive" className="w-full justify-center gap-1.5 py-1.5">
+                          <Badge variant="secondary" className="w-full justify-center gap-1.5 py-1.5 bg-gray-100 text-gray-800 border-gray-300">
                             <Lock className="h-3.5 w-3.5" />
                             <span className="text-xs font-semibold">已被 {dayInventory.blockedByRoomName} 鎖定</span>
                           </Badge>
@@ -1261,11 +1261,11 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                   </div>
                   {hasData ? (
                     <div className="flex flex-col gap-1 min-h-[40px]">
-                      {/* 被封鎖狀態圖標 */}
+                      {/* 被鎖定狀態圖標 */}
                       {dayInventory.isBlocked && dayInventory.blockedByRoomName && (
-                        <div className="flex items-center justify-center gap-1 bg-red-100 border border-red-300 rounded px-1.5 py-0.5">
-                          <Lock className="h-2.5 w-2.5 text-red-600 flex-shrink-0" />
-                          <span className="text-[8px] sm:text-[9px] text-red-700 font-bold leading-none">已鎖定</span>
+                        <div className="flex items-center justify-center gap-1 bg-gray-100 border border-gray-300 rounded px-1.5 py-0.5">
+                          <Lock className="h-2.5 w-2.5 text-gray-600 flex-shrink-0" />
+                          <span className="text-[8px] sm:text-[9px] text-gray-700 font-bold leading-none">已鎖定</span>
                         </div>
                       )}
                       
@@ -1410,7 +1410,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                 </span>
                 <span className="sm:hidden">平日藍色、假日橙色。假=國定假日、休=補休、班=補班</span>
               </div>
-              <div className="text-xs sm:text-sm text-red-700 bg-red-50 rounded-lg px-4 py-3 sm:py-2.5 border border-red-200">
+              <div className="text-xs sm:text-sm text-gray-700 bg-gray-50 rounded-lg px-4 py-3 sm:py-2.5 border border-gray-200">
                 <div className="flex items-start gap-2">
                   <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
                   <div>
