@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { getOrderStatusConfig, getPaymentStatusConfig } from "@/utils/orderHelpers";
 
 interface RoomInventoryCalendarProps {
   roomTypeId: string;
@@ -82,6 +83,9 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [unlockDialogOpen, setUnlockDialogOpen] = useState(false);
   const [ordersToCancel, setOrdersToCancel] = useState<any[]>([]);
+  const [bookingDetailsDialogOpen, setBookingDetailsDialogOpen] = useState(false);
+  const [selectedDateOrders, setSelectedDateOrders] = useState<any[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
 
   useEffect(() => {
     loadInventory();
@@ -484,6 +488,51 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
       toast.error('套用複製設定失敗');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleBookingClick = async (dateStr: string) => {
+    const dayData = inventory[dateStr];
+    if (!dayData?.bookedCount || dayData.bookedCount === 0) return;
+    
+    try {
+      setLoadingOrders(true);
+      setBookingDetailsDialogOpen(true);
+      
+      // 查詢該日期的所有訂單
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          id,
+          order_number,
+          guest_name,
+          guest_phone,
+          guest_email,
+          check_in_date,
+          check_out_date,
+          guest_count,
+          order_status,
+          payment_status,
+          total_price,
+          discount_amount,
+          final_price,
+          room_types (
+            name
+          )
+        `)
+        .eq('room_type_id', roomTypeId)
+        .neq('order_status', 'cancelled')
+        .lte('check_in_date', dateStr)
+        .gt('check_out_date', dateStr)
+        .order('check_in_date', { ascending: true });
+
+      if (error) throw error;
+      setSelectedDateOrders(data || []);
+    } catch (error) {
+      console.error('查詢訂單失敗:', error);
+      toast.error('查詢訂單失敗');
+    } finally {
+      setLoadingOrders(false);
     }
   };
 
@@ -1064,7 +1113,14 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                         
                         {/* 已預訂標記 */}
                         {!dayInventory.isBlocked && dayInventory.bookedCount && dayInventory.bookedCount > 0 && (
-                          <Badge variant="secondary" className="w-full justify-center gap-1.5 py-1.5 bg-green-100 text-green-800 border-green-300">
+                          <Badge 
+                            variant="secondary" 
+                            className="w-full justify-center gap-1.5 py-1.5 bg-green-100 text-green-800 border-green-300 cursor-pointer hover:bg-green-200 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleBookingClick(dateStr);
+                            }}
+                          >
                             <Check className="h-3.5 w-3.5" />
                             <span className="text-xs font-semibold">已預訂 {dayInventory.bookedCount} 間</span>
                           </Badge>
@@ -1214,7 +1270,13 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                       
                       {/* 已預訂標記 */}
                       {!dayInventory.isBlocked && dayInventory.bookedCount && dayInventory.bookedCount > 0 && (
-                        <div className="flex items-center justify-center gap-1 bg-green-100 border border-green-300 rounded px-1.5 py-0.5">
+                        <div 
+                          className="flex items-center justify-center gap-1 bg-green-100 border border-green-300 rounded px-1.5 py-0.5 cursor-pointer hover:bg-green-200 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleBookingClick(dateStr);
+                          }}
+                        >
                           <Check className="h-2.5 w-2.5 text-green-600 flex-shrink-0" />
                           <span className="text-[8px] sm:text-[9px] text-green-700 font-bold leading-none">訂 {dayInventory.bookedCount}</span>
                         </div>
@@ -1856,7 +1918,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                   ))}
                 </div>
                 <p className="text-destructive font-medium">
-                  此操作無法復原，請確認後繼續。
+                  此操作無法復原,請確認後繼續。
                 </p>
               </div>
             </AlertDialogDescription>
@@ -1873,6 +1935,122 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* 訂單詳情對話框 */}
+      <Dialog open={bookingDetailsDialogOpen} onOpenChange={setBookingDetailsDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>預訂詳情</DialogTitle>
+            <DialogDescription>
+              查看該日期的所有訂單
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {loadingOrders ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : selectedDateOrders.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                沒有找到訂單
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {selectedDateOrders.map((order) => {
+                  const orderStatusConfig = getOrderStatusConfig(order.order_status);
+                  const paymentStatusConfig = getPaymentStatusConfig(order.payment_status);
+                  
+                  return (
+                    <div key={order.id} className="border rounded-lg p-4 space-y-3 bg-card hover:shadow-md transition-shadow">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="font-semibold text-lg">{order.order_number}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {(order.room_types as any)?.name}
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Badge className={orderStatusConfig.className}>
+                            {orderStatusConfig.label}
+                          </Badge>
+                          <Badge className={paymentStatusConfig.className}>
+                            {paymentStatusConfig.label}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">客人姓名：</span>
+                          <span className="font-medium">{order.guest_name}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">聯絡電話：</span>
+                          <span className="font-medium">{order.guest_phone}</span>
+                        </div>
+                        {order.guest_email && (
+                          <div className="col-span-2">
+                            <span className="text-muted-foreground">電子郵件：</span>
+                            <span className="font-medium">{order.guest_email}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-4 text-sm pt-2 border-t">
+                        <div>
+                          <span className="text-muted-foreground">入住：</span>
+                          <span className="font-medium ml-1">
+                            {format(new Date(order.check_in_date), "yyyy-MM-dd")}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">退房：</span>
+                          <span className="font-medium ml-1">
+                            {format(new Date(order.check_out_date), "yyyy-MM-dd")}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">人數：</span>
+                          <span className="font-medium ml-1">{order.guest_count} 人</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t">
+                        <div className="space-y-1">
+                          <div className="text-sm">
+                            <span className="text-muted-foreground">訂單金額：</span>
+                            <span className="font-medium ml-1">NT$ {order.total_price.toLocaleString()}</span>
+                          </div>
+                          {order.discount_amount > 0 && (
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">折扣金額：</span>
+                              <span className="font-medium ml-1 text-green-600">-NT$ {order.discount_amount.toLocaleString()}</span>
+                            </div>
+                          )}
+                          <div className="text-base font-bold">
+                            <span className="text-muted-foreground">實付金額：</span>
+                            <span className="text-primary ml-1">NT$ {order.final_price.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setBookingDetailsDialogOpen(false)}
+            >
+              關閉
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
