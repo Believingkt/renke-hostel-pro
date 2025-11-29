@@ -1411,7 +1411,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                   <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
                   <div>
                     <span className="font-bold">包區互斥規則：</span>
-                    <p className="mt-1">12人、14人、16人、18人包區互斥。當其中一個房型被預訂時，其他包區房型當日庫存將自動鎖定（顯示為 <Lock className="inline h-3 w-3 mx-0.5" /> 已鎖定），無法再被預訂。</p>
+                    <p className="mt-1">12人、14人、16人、18人包區互斥。當其中一個包區被預訂時，其他包區當日庫存將自動鎖定（顯示為 <Lock className="inline h-3 w-3 mx-0.5" /> 已鎖定），無法再被預訂。</p>
                   </div>
                 </div>
               </div>
