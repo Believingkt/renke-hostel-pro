@@ -554,7 +554,70 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
 
       if (error) throw error;
 
-      toast.success(`已取消 ${ordersToCancel.length} 筆訂單，封鎖已解除`);
+      // 獲取住宿資訊以便發送郵件
+      const { data: accommodationInfo } = await supabase
+        .from("accommodation_info")
+        .select("name, phone, email")
+        .eq("id", accommodationId)
+        .single();
+
+      // 發送取消通知郵件給每位客人
+      const emailPromises = ordersToCancel.map(async (order) => {
+        if (!order.guest_email) {
+          console.log(`訂單 ${order.order_number} 沒有客人 email，跳過發送`);
+          return { success: false, reason: "no_email" };
+        }
+
+        try {
+          const { error: emailError } = await supabase.functions.invoke(
+            "send-cancellation-email",
+            {
+              body: {
+                orderNumber: order.order_number,
+                guestName: order.guest_name,
+                guestEmail: order.guest_email,
+                roomTypeName: (order.room_types as any)?.name || "未知房型",
+                checkInDate: order.check_in_date,
+                checkOutDate: order.check_out_date,
+                accommodationName: accommodationInfo?.name || "住宿單位",
+                accommodationPhone: accommodationInfo?.phone,
+                accommodationEmail: accommodationInfo?.email,
+              },
+            }
+          );
+
+          if (emailError) {
+            console.error(`發送郵件給 ${order.guest_email} 失敗:`, emailError);
+            return { success: false, error: emailError };
+          }
+
+          return { success: true };
+        } catch (err) {
+          console.error(`發送郵件異常:`, err);
+          return { success: false, error: err };
+        }
+      });
+
+      // 等待所有郵件發送完成（不阻塞主流程）
+      Promise.all(emailPromises).then((results) => {
+        const successCount = results.filter(r => r.success).length;
+        const failCount = results.length - successCount;
+        
+        if (successCount > 0) {
+          console.log(`成功發送 ${successCount} 封取消通知郵件`);
+        }
+        if (failCount > 0) {
+          console.log(`${failCount} 封郵件發送失敗`);
+        }
+      });
+
+      toast.success(
+        `已取消 ${ordersToCancel.length} 筆訂單，封鎖已解除。${
+          ordersToCancel.filter(o => o.guest_email).length > 0
+            ? "取消通知郵件正在發送中"
+            : ""
+        }`
+      );
 
       setUnlockDialogOpen(false);
       setSelectedBlockedDates(new Set());
