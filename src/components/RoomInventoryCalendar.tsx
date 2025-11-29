@@ -1142,26 +1142,9 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                            isHoliday ? "bg-orange-100/60" : "bg-blue-100/60"
                          )}>
                            <span className="text-sm font-medium text-muted-foreground">一泊三食</span>
-                           <span className="text-base font-bold">${formatPrice(dayInventory.price_3_meals)}</span>
+                       <span className="text-base font-bold">${formatPrice(dayInventory.price_3_meals)}</span>
                          </div>
                        )}
-                       <div className={cn(
-                         "flex items-center justify-between rounded px-3 py-2",
-                         dayInventory.isBlocked ? "bg-gray-200/50" : isHoliday ? "bg-orange-200/50" : "bg-primary/10"
-                       )}>
-                         <span className="text-sm font-medium">可用房數</span>
-                         <div className="flex items-center gap-2">
-                           {dayInventory.isBlocked && (
-                             <Lock className="h-4 w-4 text-destructive" />
-                           )}
-                           <span className={cn(
-                             "text-base font-bold",
-                             dayInventory.isBlocked ? "text-gray-500 line-through" : isHoliday ? "text-orange-700" : "text-primary"
-                           )}>
-                             {dayInventory.availableRooms} 間
-                           </span>
-                         </div>
-                       </div>
                      </div>
                    ) : (
                      <div className="text-sm text-muted-foreground text-center py-4">未設定</div>
@@ -1305,28 +1288,10 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                               <DollarSign className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                               <span className="font-bold text-foreground text-[11px] truncate">{formatPrice(dayInventory.price_3_meals)}</span>
                             </div>
-                          )}
-                        </div>
                       )}
-                      <div className={cn(
-                        "flex flex-col items-center gap-0.5 text-xs sm:text-xs rounded px-1.5 py-0.5 mt-1",
-                        dayInventory.isBlocked ? "bg-gray-200/50" : isHoliday ? "bg-orange-200/50" : "bg-primary/10"
-                      )}>
-                        <div className="flex items-center gap-1.5">
-                          <Package className={cn(
-                            "h-3.5 w-3.5 flex-shrink-0 hidden md:inline-block",
-                            dayInventory.isBlocked ? "text-gray-500" : isHoliday ? "text-orange-700" : "text-primary"
-                          )} />
-                          <span className={cn(
-                            "font-bold text-[10px] sm:text-xs whitespace-nowrap leading-tight tracking-wide",
-                            dayInventory.isBlocked ? "text-gray-500 line-through" : isHoliday ? "text-orange-700" : "text-primary"
-                          )}>
-                            <span className="md:hidden">{dayInventory.availableRooms}</span>
-                            <span className="hidden md:inline">{dayInventory.availableRooms} 間</span>
-                          </span>
-                        </div>
-                      </div>
                     </div>
+                  )}
+                </div>
                   ) : (
                     <div className="flex-1 flex items-center justify-center min-h-[40px] mt-1">
                       <div className="text-xs sm:text-xs text-muted-foreground font-medium leading-tight">未設定</div>
