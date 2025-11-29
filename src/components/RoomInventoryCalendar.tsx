@@ -1406,33 +1406,12 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                 </span>
                 <span className="sm:hidden">平日藍色、假日橙色。假=國定假日、休=補休、班=補班</span>
               </div>
-              <div className="relative overflow-hidden bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 rounded-lg border-2 border-amber-300 dark:border-amber-700 shadow-md">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-400 animate-pulse"></div>
-                <div className="px-4 py-3 sm:py-3.5">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 mt-0.5">
-                      <div className="relative">
-                        <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 animate-pulse" />
-                        <div className="absolute inset-0 bg-amber-400 dark:bg-amber-600 rounded-full blur-sm opacity-30 animate-ping"></div>
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-sm sm:text-base font-bold text-amber-900 dark:text-amber-100">包區互斥規則</span>
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-100 animate-fade-in">
-                          重要
-                        </span>
-                      </div>
-                      <p className="text-xs sm:text-sm text-amber-900 dark:text-amber-100 leading-relaxed">
-                        <span className="font-semibold">12人、14人、16人、18人包區互斥。</span>
-                        當其中一個包區被預訂時，其他包區當日庫存將自動鎖定
-                        <span className="inline-flex items-center mx-1 px-1.5 py-0.5 rounded bg-gray-700 dark:bg-gray-600 text-white text-xs">
-                          <Lock className="inline h-3 w-3 mr-0.5" />
-                          已鎖定
-                        </span>
-                        ，無法再被預訂。
-                      </p>
-                    </div>
+              <div className="text-xs sm:text-sm text-gray-700 bg-gray-50 rounded-lg px-4 py-3 sm:py-2.5 border border-gray-200">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold">包區互斥規則：</span>
+                    <p className="mt-1">12人、14人、16人、18人包區互斥。當其中一個包區被預訂時，其他包區當日庫存將自動鎖定（顯示為 <Lock className="inline h-3 w-3 mx-0.5" /> 已鎖定），無法再被預訂。</p>
                   </div>
                 </div>
               </div>
