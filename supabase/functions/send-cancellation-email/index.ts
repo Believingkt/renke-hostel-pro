@@ -1,7 +1,4 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@4.0.0";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,7 +17,7 @@ interface CancellationEmailRequest {
   accommodationEmail?: string;
 }
 
-const handler = async (req: Request): Promise<Response> => {
+Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -39,6 +36,10 @@ const handler = async (req: Request): Promise<Response> => {
     }: CancellationEmailRequest = await req.json();
 
     console.log("Sending cancellation email to:", guestEmail, "for order:", orderNumber);
+
+    if (!RESEND_API_KEY) {
+      throw new Error("RESEND_API_KEY is not configured");
+    }
 
     // 格式化日期
     const formatDate = (dateStr: string) => {
@@ -169,19 +170,32 @@ const handler = async (req: Request): Promise<Response> => {
       </html>
     `;
 
-    const emailResponse = await resend.emails.send({
-      from: `${accommodationName} <onboarding@resend.dev>`,
-      to: [guestEmail],
-      subject: `訂單取消通知 - ${orderNumber}`,
-      html: emailHtml,
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+      },
+      body: JSON.stringify({
+        from: `${accommodationName} <onboarding@resend.dev>`,
+        to: [guestEmail],
+        subject: `訂單取消通知 - ${orderNumber}`,
+        html: emailHtml,
+      }),
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || "Failed to send email");
+    }
+
+    console.log("Email sent successfully:", data);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        messageId: emailResponse.id 
+        messageId: data.id 
       }),
       {
         status: 200,
@@ -207,6 +221,4 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
   }
-};
-
-serve(handler);
+});
