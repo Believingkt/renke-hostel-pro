@@ -1126,19 +1126,20 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                           </Badge>
                         )}
                        
-                       {dayInventory.price_2_meals && (
+                       {/* 只在未鎖定且有可用房間時顯示價格 */}
+                       {!dayInventory.isBlocked && dayInventory.availableRooms > 0 && dayInventory.price_2_meals && (
                          <div className={cn(
                            "flex items-center justify-between rounded px-3 py-2",
-                           dayInventory.isBlocked ? "bg-gray-100 opacity-60" : isHoliday ? "bg-orange-100/60" : "bg-blue-100/60"
+                           isHoliday ? "bg-orange-100/60" : "bg-blue-100/60"
                          )}>
                            <span className="text-sm font-medium text-muted-foreground">一泊二食</span>
                            <span className="text-base font-bold">${formatPrice(dayInventory.price_2_meals)}</span>
                          </div>
                        )}
-                       {dayInventory.price_3_meals && (
+                       {!dayInventory.isBlocked && dayInventory.availableRooms > 0 && dayInventory.price_3_meals && (
                          <div className={cn(
                            "flex items-center justify-between rounded px-3 py-2",
-                           dayInventory.isBlocked ? "bg-gray-100 opacity-60" : isHoliday ? "bg-orange-100/60" : "bg-blue-100/60"
+                           isHoliday ? "bg-orange-100/60" : "bg-blue-100/60"
                          )}>
                            <span className="text-sm font-medium text-muted-foreground">一泊三食</span>
                            <span className="text-base font-bold">${formatPrice(dayInventory.price_3_meals)}</span>
