@@ -38,6 +38,7 @@ interface DayInventory {
   isAvailable: boolean;
   isBlocked?: boolean;
   blockedByRoomName?: string;
+  bookedCount?: number;
 }
 
 // 價格千分位格式化函數
@@ -138,6 +139,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
       const monthStart = startOfMonth(currentMonth);
       const monthEnd = endOfMonth(currentMonth);
 
+      // 查詢庫存定價
       const { data, error } = await supabase
         .from('room_inventory_pricing')
         .select('*')
@@ -146,6 +148,36 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
         .lte('date', format(monthEnd, 'yyyy-MM-dd'));
 
       if (error) throw error;
+
+      // 查詢該房型在當月的所有預訂
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('orders')
+        .select('check_in_date, check_out_date, room_type_id')
+        .eq('room_type_id', roomTypeId)
+        .neq('order_status', 'cancelled')
+        .gte('check_out_date', format(monthStart, 'yyyy-MM-dd'))
+        .lte('check_in_date', format(monthEnd, 'yyyy-MM-dd'));
+
+      if (ordersError) {
+        console.error('查詢訂單失敗:', ordersError);
+      }
+
+      // 計算每個日期的預訂數量
+      const bookingCountMap: Record<string, number> = {};
+      if (ordersData) {
+        ordersData.forEach(order => {
+          const checkIn = new Date(order.check_in_date);
+          const checkOut = new Date(order.check_out_date);
+          
+          // 遍歷訂單的每一天
+          let currentDate = new Date(checkIn);
+          while (currentDate < checkOut) {
+            const dateStr = format(currentDate, 'yyyy-MM-dd');
+            bookingCountMap[dateStr] = (bookingCountMap[dateStr] || 0) + 1;
+            currentDate = addDays(currentDate, 1);
+          }
+        });
+      }
 
       // 獲取調整後的庫存（考慮互斥邏輯）
       const inventoryMap: Record<string, DayInventory> = {};
@@ -170,6 +202,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
               price_3_meals: item.price_3_meals,
               availableRooms: item.available_rooms,
               isAvailable: item.is_available,
+              bookedCount: bookingCountMap[item.date] || 0,
             };
           } else if (adjustedData && adjustedData.length > 0) {
             const adjusted = adjustedData[0];
@@ -182,6 +215,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
               isAvailable: item.is_available && adjusted.available_rooms > 0,
               isBlocked: adjusted.is_blocked,
               blockedByRoomName: adjusted.blocked_by_room_name,
+              bookedCount: bookingCountMap[item.date] || 0,
             };
           }
         }
@@ -1022,11 +1056,19 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                      <div className="space-y-2">
                        {/* 被封鎖狀態標記 */}
                        {dayInventory.isBlocked && dayInventory.blockedByRoomName && (
-                         <Badge variant="destructive" className="w-full justify-center gap-1.5 py-1.5">
-                           <Lock className="h-3.5 w-3.5" />
-                           <span className="text-xs font-semibold">已被 {dayInventory.blockedByRoomName} 預訂</span>
-                         </Badge>
-                       )}
+                          <Badge variant="destructive" className="w-full justify-center gap-1.5 py-1.5">
+                            <Lock className="h-3.5 w-3.5" />
+                            <span className="text-xs font-semibold">已被 {dayInventory.blockedByRoomName} 預訂</span>
+                          </Badge>
+                        )}
+                        
+                        {/* 已預訂標記 */}
+                        {!dayInventory.isBlocked && dayInventory.bookedCount && dayInventory.bookedCount > 0 && (
+                          <Badge variant="secondary" className="w-full justify-center gap-1.5 py-1.5 bg-green-100 text-green-800 border-green-300">
+                            <Check className="h-3.5 w-3.5" />
+                            <span className="text-xs font-semibold">已預訂 {dayInventory.bookedCount} 間</span>
+                          </Badge>
+                        )}
                        
                        {dayInventory.price_2_meals && (
                          <div className={cn(
@@ -1170,6 +1212,14 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                         </div>
                       )}
                       
+                      {/* 已預訂標記 */}
+                      {!dayInventory.isBlocked && dayInventory.bookedCount && dayInventory.bookedCount > 0 && (
+                        <div className="flex items-center justify-center gap-1 bg-green-100 border border-green-300 rounded px-1.5 py-0.5">
+                          <Check className="h-2.5 w-2.5 text-green-600 flex-shrink-0" />
+                          <span className="text-[8px] sm:text-[9px] text-green-700 font-bold leading-none">訂 {dayInventory.bookedCount}</span>
+                        </div>
+                      )}
+                      
                       {dayInventory.price_2_meals && (
                         <div className={cn(
                           "flex items-center justify-center gap-1 text-xs sm:text-xs rounded px-1.5 py-0.5",
@@ -1240,6 +1290,12 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                 <Lock className="h-2.5 w-2.5 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-red-600" />
               </div>
               <span className="font-medium">已封鎖</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 sm:w-4 sm:h-4 bg-green-100 border border-green-300 rounded flex-shrink-0 relative">
+                <Check className="h-2.5 w-2.5 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-green-600" />
+              </div>
+              <span className="font-medium">已預訂</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 sm:w-4 sm:h-4 bg-gray-100 border rounded flex-shrink-0"></div>
