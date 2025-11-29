@@ -1449,7 +1449,27 @@ export type Database = {
         Args: { _accommodation_id: string }
         Returns: boolean
       }
+      check_exclusive_room_booking: {
+        Args: { p_accommodation_id: string; p_date: string }
+        Returns: {
+          booked_room_type_id: string
+          booked_room_type_name: string
+          has_booking: boolean
+        }[]
+      }
       generate_order_number: { Args: never; Returns: string }
+      get_adjusted_room_inventory: {
+        Args: {
+          p_accommodation_id: string
+          p_date: string
+          p_room_type_id: string
+        }
+        Returns: {
+          available_rooms: number
+          blocked_by_room_name: string
+          is_blocked: boolean
+        }[]
+      }
       get_user_accommodations: {
         Args: { _user_id: string }
         Returns: {

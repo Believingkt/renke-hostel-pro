@@ -34,6 +34,8 @@ interface DayInventory {
   price_3_meals: number | null;
   availableRooms: number | null;
   isAvailable: boolean;
+  isBlocked?: boolean;
+  blockedByRoomName?: string;
 }
 
 // 價格千分位格式化函數
@@ -138,17 +140,45 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
 
       if (error) throw error;
 
+      // 獲取調整後的庫存（考慮互斥邏輯）
       const inventoryMap: Record<string, DayInventory> = {};
-      data?.forEach((item) => {
-        inventoryMap[item.date] = {
-          date: item.date,
-          price: item.price,
-          price_2_meals: item.price_2_meals,
-          price_3_meals: item.price_3_meals,
-          availableRooms: item.available_rooms,
-          isAvailable: item.is_available,
-        };
-      });
+      
+      if (data && data.length > 0) {
+        // 批量查詢所有日期的調整後庫存
+        for (const item of data) {
+          const { data: adjustedData, error: adjustedError } = await supabase
+            .rpc('get_adjusted_room_inventory', {
+              p_room_type_id: roomTypeId,
+              p_date: item.date,
+              p_accommodation_id: accommodationId
+            });
+
+          if (adjustedError) {
+            console.error('獲取調整後庫存失敗:', adjustedError);
+            // 如果調整失敗，使用原始數據
+            inventoryMap[item.date] = {
+              date: item.date,
+              price: item.price,
+              price_2_meals: item.price_2_meals,
+              price_3_meals: item.price_3_meals,
+              availableRooms: item.available_rooms,
+              isAvailable: item.is_available,
+            };
+          } else if (adjustedData && adjustedData.length > 0) {
+            const adjusted = adjustedData[0];
+            inventoryMap[item.date] = {
+              date: item.date,
+              price: item.price,
+              price_2_meals: item.price_2_meals,
+              price_3_meals: item.price_3_meals,
+              availableRooms: adjusted.available_rooms,
+              isAvailable: item.is_available && adjusted.available_rooms > 0,
+              isBlocked: adjusted.is_blocked,
+              blockedByRoomName: adjusted.blocked_by_room_name,
+            };
+          }
+        }
+      }
 
       setInventory(inventoryMap);
     } catch (error) {
@@ -835,12 +865,19 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                         isHoliday ? "bg-orange-200/50" : "bg-primary/10"
                       )}>
                         <span className="text-sm font-medium">可用房數</span>
-                        <span className={cn(
-                          "text-base font-bold",
-                          isHoliday ? "text-orange-700" : "text-primary"
-                        )}>
-                          {dayInventory.availableRooms} 間
-                        </span>
+                        <div className="flex flex-col items-end">
+                          <span className={cn(
+                            "text-base font-bold",
+                            isHoliday ? "text-orange-700" : "text-primary"
+                          )}>
+                            {dayInventory.availableRooms} 間
+                          </span>
+                          {dayInventory.isBlocked && dayInventory.blockedByRoomName && (
+                            <span className="text-xs text-destructive font-medium mt-0.5">
+                              已被 {dayInventory.blockedByRoomName} 預訂
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ) : (
@@ -966,20 +1003,27 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                         </div>
                       )}
                       <div className={cn(
-                        "flex items-center justify-center gap-1.5 text-xs sm:text-xs rounded px-1.5 py-0.5 mt-1",
+                        "flex flex-col items-center gap-0.5 text-xs sm:text-xs rounded px-1.5 py-0.5 mt-1",
                         isHoliday ? "bg-orange-200/50" : "bg-primary/10"
                       )}>
-                        <Package className={cn(
-                          "h-3.5 w-3.5 flex-shrink-0 hidden md:inline-block",
-                          isHoliday ? "text-orange-700" : "text-primary"
-                        )} />
-                        <span className={cn(
-                          "font-bold text-[10px] sm:text-xs whitespace-nowrap leading-tight tracking-wide",
-                          isHoliday ? "text-orange-700" : "text-primary"
-                        )}>
-                          <span className="md:hidden">{dayInventory.availableRooms}</span>
-                          <span className="hidden md:inline">{dayInventory.availableRooms} 間</span>
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <Package className={cn(
+                            "h-3.5 w-3.5 flex-shrink-0 hidden md:inline-block",
+                            isHoliday ? "text-orange-700" : "text-primary"
+                          )} />
+                          <span className={cn(
+                            "font-bold text-[10px] sm:text-xs whitespace-nowrap leading-tight tracking-wide",
+                            isHoliday ? "text-orange-700" : "text-primary"
+                          )}>
+                            <span className="md:hidden">{dayInventory.availableRooms}</span>
+                            <span className="hidden md:inline">{dayInventory.availableRooms} 間</span>
+                          </span>
+                        </div>
+                        {dayInventory.isBlocked && dayInventory.blockedByRoomName && (
+                          <span className="text-[8px] sm:text-[9px] text-destructive font-medium leading-none">
+                            已被預訂
+                          </span>
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -1030,27 +1074,33 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
             )}
           </div>
           {!isSelectionMode && (
-            <div className="text-xs sm:text-sm text-muted-foreground bg-gradient-to-r from-muted/80 to-muted/40 rounded-lg px-4 py-3 sm:py-2.5 border border-muted">
-              💡 <span className="font-medium">提示：</span>
-              <span className="hidden sm:inline">
-                平日使用藍色調，假日（週末及國定假日）使用橙色調。
-                <span className="mx-1">•</span>
-                <span className="inline-flex items-center gap-1">
-                  <span className="px-1 py-0.5 bg-orange-600 text-white rounded text-[10px]">假</span>
-                  國定假日
+            <div className="space-y-2">
+              <div className="text-xs sm:text-sm text-muted-foreground bg-gradient-to-r from-muted/80 to-muted/40 rounded-lg px-4 py-3 sm:py-2.5 border border-muted">
+                💡 <span className="font-medium">提示：</span>
+                <span className="hidden sm:inline">
+                  平日使用藍色調，假日（週末及國定假日）使用橙色調。
+                  <span className="mx-1">•</span>
+                  <span className="inline-flex items-center gap-1">
+                    <span className="px-1 py-0.5 bg-orange-600 text-white rounded text-[10px]">假</span>
+                    國定假日
+                  </span>
+                  <span className="mx-1">•</span>
+                  <span className="inline-flex items-center gap-1">
+                    <span className="px-1 py-0.5 bg-green-600 text-white rounded text-[10px]">休</span>
+                    補休
+                  </span>
+                  <span className="mx-1">•</span>
+                  <span className="inline-flex items-center gap-1">
+                    <span className="px-1 py-0.5 bg-blue-600 text-white rounded text-[10px]">班</span>
+                    補班
+                  </span>
                 </span>
-                <span className="mx-1">•</span>
-                <span className="inline-flex items-center gap-1">
-                  <span className="px-1 py-0.5 bg-green-600 text-white rounded text-[10px]">休</span>
-                  補休
-                </span>
-                <span className="mx-1">•</span>
-                <span className="inline-flex items-center gap-1">
-                  <span className="px-1 py-0.5 bg-blue-600 text-white rounded text-[10px]">班</span>
-                  補班
-                </span>
-              </span>
-              <span className="sm:hidden">平日藍色、假日橙色。假=國定假日、休=補休、班=補班</span>
+                <span className="sm:hidden">平日藍色、假日橙色。假=國定假日、休=補休、班=補班</span>
+              </div>
+              <div className="text-xs sm:text-sm text-orange-600 bg-orange-50 rounded-lg px-4 py-3 sm:py-2.5 border border-orange-200">
+                ⚠️ <span className="font-medium">包區互斥：</span>
+                12人、14人、16人、18人包區互斥，當其中一個房型被預訂時，其他包區房型當日庫存將顯示為0。
+              </div>
             </div>
           )}
         </div>
