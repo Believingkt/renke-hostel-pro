@@ -174,6 +174,12 @@ const BookingFlow = () => {
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [successOrderData, setSuccessOrderData] = useState<any>(null);
   
+  // 房型可用性狀態
+  const [roomAvailability, setRoomAvailability] = useState<Record<string, {
+    isBlocked: boolean;
+    blockedByRoomName?: string;
+  }>>({});
+  
   // 加購方案
   const [petCount, setPetCount] = useState(0);
   const [isPetPolicyDialogOpen, setIsPetPolicyDialogOpen] = useState(false);
@@ -341,11 +347,10 @@ const BookingFlow = () => {
     }
   }, [searchParams, roomTypes, selectedRoom]);
 
-  // 當日期或餐食方案改變時，檢查已選擇的房型是否仍然適用
-  // 當日期或房型變化時，預先獲取價格
+  // 當日期或房型變化時，預先獲取價格和檢查可用性
   useEffect(() => {
-    const fetchRoomPricing = async () => {
-      if (!selectedRoom || !checkInDate || !checkOutDate) {
+    const fetchRoomPricingAndAvailability = async () => {
+      if (!selectedRoom || !checkInDate || !checkOutDate || !accommodationId) {
         setRoomPricing({});
         return;
       }
@@ -355,6 +360,8 @@ const BookingFlow = () => {
 
       const start = new Date(checkInDateStr);
       const pricing: Record<string, number> = {};
+      let hasBlocked = false;
+      let blockedByName = '';
 
       for (let i = 0; i < nights; i++) {
         const currentDate = new Date(start);
@@ -362,29 +369,51 @@ const BookingFlow = () => {
         const dateStr = currentDate.toISOString().split('T')[0];
 
         try {
-          const { data, error } = await supabase
+          // 獲取價格
+          const { data: priceData, error: priceError } = await supabase
             .from('room_inventory_pricing')
             .select('price')
             .eq('room_type_id', selectedRoom.id)
             .eq('date', dateStr)
             .maybeSingle();
 
-          if (error) throw error;
+          if (priceError) throw priceError;
+          pricing[dateStr] = priceData?.price || selectedRoom.base_price;
 
-          pricing[dateStr] = data?.price || selectedRoom.base_price;
+          // 檢查互斥邏輯
+          const { data: availabilityData, error: availabilityError } = await supabase
+            .rpc('get_adjusted_room_inventory', {
+              p_room_type_id: selectedRoom.id,
+              p_date: dateStr,
+              p_accommodation_id: accommodationId
+            });
+
+          if (!availabilityError && availabilityData && availabilityData[0]?.is_blocked) {
+            hasBlocked = true;
+            blockedByName = availabilityData[0].blocked_by_room_name;
+          }
         } catch (error) {
           if (import.meta.env.DEV) {
-            console.error('Error fetching price for date:', dateStr, error);
+            console.error('Error fetching price/availability for date:', dateStr, error);
           }
           pricing[dateStr] = selectedRoom.base_price;
         }
       }
 
       setRoomPricing(pricing);
+      
+      // 更新房型可用性狀態
+      setRoomAvailability(prev => ({
+        ...prev,
+        [selectedRoom.id]: {
+          isBlocked: hasBlocked,
+          blockedByRoomName: blockedByName
+        }
+      }));
     };
 
-    fetchRoomPricing();
-  }, [selectedRoom, checkInDate, checkOutDate]);
+    fetchRoomPricingAndAvailability();
+  }, [selectedRoom, checkInDate, checkOutDate, accommodationId]);
 
   // 當在選擇房型步驟時，自動預選第一個可用房型
   useEffect(() => {
@@ -915,6 +944,35 @@ const BookingFlow = () => {
         // 繼續創建訂單，即使客戶資料處理失敗
       }
 
+      // 檢查包區互斥邏輯
+      const isExclusiveRoom = ['12人包區', '14人包區', '16人包區', '18人包區'].includes(selectedRoom.name);
+      if (isExclusiveRoom) {
+        const nights = calculateNights();
+        const start = new Date(checkInDateStr);
+        
+        for (let i = 0; i < nights; i++) {
+          const currentDate = new Date(start);
+          currentDate.setDate(start.getDate() + i);
+          const dateStr = currentDate.toISOString().split('T')[0];
+
+          const { data: bookingCheck } = await supabase
+            .rpc('check_exclusive_room_booking', {
+              p_accommodation_id: accommodationId,
+              p_date: dateStr
+            });
+
+          if (bookingCheck && bookingCheck[0]?.has_booking) {
+            toast({
+              title: "預訂失敗",
+              description: `${dateStr} 已被 ${bookingCheck[0].booked_room_type_name} 預訂，包區互斥無法重複預訂`,
+              variant: "destructive",
+            });
+            setIsSubmitting(false);
+            return;
+          }
+        }
+      }
+
       // 建立訂單
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
@@ -1277,16 +1335,27 @@ const BookingFlow = () => {
                         </p>
                       </div>
                     )}
-                    {(checkInDate && checkOutDate ? getAvailableRooms() : roomTypes).map((room) => (
+                    {(checkInDate && checkOutDate ? getAvailableRooms() : roomTypes).map((room) => {
+                      const availability = roomAvailability[room.id];
+                      const isBlocked = availability?.isBlocked || false;
+                      
+                      return (
                       <Card
                         key={room.id}
-                        className={`cursor-pointer transition-all hover:shadow-md overflow-hidden ${
-                          selectedRoom?.id === room.id
-                            ? "border-2 border-primary shadow-md"
-                            : "border"
-                        }`}
-                        onClick={() => setSelectedRoom(room)}
+                        className={cn(
+                          "transition-all overflow-hidden relative",
+                          !isBlocked && "cursor-pointer hover:shadow-md",
+                          isBlocked && "opacity-60 cursor-not-allowed",
+                          selectedRoom?.id === room.id && !isBlocked && "border-2 border-primary shadow-md",
+                          !selectedRoom?.id || selectedRoom?.id !== room.id && "border"
+                        )}
+                        onClick={() => !isBlocked && setSelectedRoom(room)}
                       >
+                        {isBlocked && (
+                          <div className="absolute top-4 right-4 z-10 bg-destructive text-destructive-foreground px-3 py-1 rounded-md text-sm font-medium shadow-lg">
+                            已被 {availability.blockedByRoomName} 預訂
+                          </div>
+                        )}
                         <div className="grid md:grid-cols-[3fr_2fr] gap-0 h-full">
                           {/* 左側圖片 - 占60% */}
                           <div className="relative bg-muted min-h-[400px] md:min-h-full overflow-hidden">
@@ -1411,7 +1480,8 @@ const BookingFlow = () => {
                           </CardContent>
                         </div>
                       </Card>
-                    ))}
+                    );
+                    })}
                   </div>
                 )}
 
