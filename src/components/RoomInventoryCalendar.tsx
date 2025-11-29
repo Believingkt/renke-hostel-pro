@@ -1278,7 +1278,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                           }}
                         >
                           <Check className="h-2.5 w-2.5 text-green-600 flex-shrink-0" />
-                          <span className="text-[8px] sm:text-[9px] text-green-700 font-bold leading-none">訂 {dayInventory.bookedCount}</span>
+                          <span className="text-[8px] sm:text-[9px] text-green-700 font-bold leading-none">已預訂</span>
                         </div>
                       )}
                       
