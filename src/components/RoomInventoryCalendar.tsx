@@ -1270,7 +1270,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                       )}
                       
                       {/* 已預訂標記 */}
-                      {!dayInventory.isBlocked && dayInventory.bookedCount && dayInventory.bookedCount > 0 && (
+                      {!dayInventory.isBlocked && dayInventory.bookedCount > 0 && (
                         <div 
                           className="flex items-center justify-center gap-1 bg-green-100 border border-green-300 rounded px-1.5 py-0.5 cursor-pointer hover:bg-green-200 transition-colors"
                           onClick={(e) => {
