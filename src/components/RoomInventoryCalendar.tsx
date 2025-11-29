@@ -1283,22 +1283,28 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                       )}
                       
                       {/* 只在未鎖定且有可用房間時顯示價格 */}
-                      {!dayInventory.isBlocked && dayInventory.availableRooms > 0 && dayInventory.price_2_meals && (
-                        <div className={cn(
-                          "flex items-center justify-center gap-1 text-xs sm:text-xs rounded px-1.5 py-0.5",
-                          isHoliday ? "bg-orange-100/80" : "bg-blue-100/80"
-                        )}>
-                          <DollarSign className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                          <span className="font-bold text-foreground text-[12px] truncate">{formatPrice(dayInventory.price_2_meals)}</span>
-                        </div>
-                      )}
-                      {!dayInventory.isBlocked && dayInventory.availableRooms > 0 && dayInventory.price_3_meals && !dayInventory.price_2_meals && (
-                        <div className={cn(
-                          "flex items-center justify-center gap-1 text-xs sm:text-xs rounded px-1.5 py-0.5",
-                          isHoliday ? "bg-orange-100/80" : "bg-blue-100/80"
-                        )}>
-                          <DollarSign className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                          <span className="font-bold text-foreground text-[12px] truncate">{formatPrice(dayInventory.price_3_meals)}</span>
+                      {!dayInventory.isBlocked && dayInventory.availableRooms > 0 && (
+                        <div className="flex flex-col gap-0.5 w-full">
+                          {dayInventory.price_2_meals && (
+                            <div className={cn(
+                              "flex items-center justify-center gap-1 text-xs sm:text-xs rounded px-1.5 py-0.5",
+                              isHoliday ? "bg-orange-100/80" : "bg-blue-100/80"
+                            )}>
+                              <span className="text-[9px] text-muted-foreground">2餐</span>
+                              <DollarSign className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                              <span className="font-bold text-foreground text-[11px] truncate">{formatPrice(dayInventory.price_2_meals)}</span>
+                            </div>
+                          )}
+                          {dayInventory.price_3_meals && (
+                            <div className={cn(
+                              "flex items-center justify-center gap-1 text-xs sm:text-xs rounded px-1.5 py-0.5",
+                              isHoliday ? "bg-orange-100/80" : "bg-blue-100/80"
+                            )}>
+                              <span className="text-[9px] text-muted-foreground">3餐</span>
+                              <DollarSign className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                              <span className="font-bold text-foreground text-[11px] truncate">{formatPrice(dayInventory.price_3_meals)}</span>
+                            </div>
+                          )}
                         </div>
                       )}
                       <div className={cn(
