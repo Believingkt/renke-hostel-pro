@@ -1111,8 +1111,8 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                           </Badge>
                         )}
                         
-                        {/* 已預訂標記 */}
-                        {!dayInventory.isBlocked && dayInventory.bookedCount && dayInventory.bookedCount > 0 && (
+                        {/* 已預訂標記 - 優先顯示 */}
+                        {!dayInventory.isBlocked && dayInventory.bookedCount && dayInventory.bookedCount > 0 ? (
                           <Badge 
                             variant="secondary" 
                             className="w-full justify-center gap-1.5 py-1.5 bg-green-100 text-green-800 border-green-300 cursor-pointer hover:bg-green-200 transition-colors"
@@ -1122,8 +1122,19 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                             }}
                           >
                             <Check className="h-3.5 w-3.5" />
-                            <span className="text-xs font-semibold">已預訂 {dayInventory.bookedCount} 間</span>
+                            <span className="text-xs font-semibold">已預訂</span>
                           </Badge>
+                        ) : (
+                          /* 可預訂標記 - 僅在無預訂時顯示 */
+                          !dayInventory.isBlocked && dayInventory.availableRooms > 0 && dayInventory.isAvailable && (
+                            <Badge 
+                              variant="secondary" 
+                              className="w-full justify-center gap-1.5 py-1.5 bg-blue-100 text-blue-800 border-blue-300"
+                            >
+                              <Check className="h-3.5 w-3.5" />
+                              <span className="text-xs font-semibold">可預訂</span>
+                            </Badge>
+                          )
                         )}
                        
                        {/* 只在未鎖定且有可用房間時顯示價格 */}
@@ -1252,16 +1263,8 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                         </div>
                       )}
                       
-                      {/* 可預訂標籤 */}
-                      {!dayInventory.isBlocked && dayInventory.availableRooms > 0 && dayInventory.isAvailable && (
-                        <div className="flex items-center justify-center gap-1 bg-blue-100 border border-blue-300 rounded px-1.5 py-0.5">
-                          <Check className="h-2.5 w-2.5 text-blue-600 flex-shrink-0" />
-                          <span className="text-[8px] sm:text-[9px] text-blue-700 font-bold leading-none">可預訂</span>
-                        </div>
-                      )}
-                      
-                      {/* 已預訂標記 */}
-                      {!dayInventory.isBlocked && dayInventory.bookedCount > 0 && (
+                      {/* 已預訂標記 - 優先顯示 */}
+                      {!dayInventory.isBlocked && dayInventory.bookedCount > 0 ? (
                         <div 
                           className="flex items-center justify-center gap-1 bg-green-100 border border-green-300 rounded px-1.5 py-0.5 cursor-pointer hover:bg-green-200 transition-colors"
                           onClick={(e) => {
@@ -1272,6 +1275,14 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                           <Check className="h-2.5 w-2.5 text-green-600 flex-shrink-0" />
                           <span className="text-[8px] sm:text-[9px] text-green-700 font-bold leading-none">已預訂</span>
                         </div>
+                      ) : (
+                        /* 可預訂標籤 - 僅在無預訂時顯示 */
+                        !dayInventory.isBlocked && dayInventory.availableRooms > 0 && dayInventory.isAvailable && (
+                          <div className="flex items-center justify-center gap-1 bg-blue-100 border border-blue-300 rounded px-1.5 py-0.5">
+                            <Check className="h-2.5 w-2.5 text-blue-600 flex-shrink-0" />
+                            <span className="text-[8px] sm:text-[9px] text-blue-700 font-bold leading-none">可預訂</span>
+                          </div>
+                        )
                       )}
                       
                       {/* 只在未鎖定且有可用房間時顯示價格 */}
