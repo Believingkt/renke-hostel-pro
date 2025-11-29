@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ChevronLeft, ChevronRight, DollarSign, Package, Edit, X, Check, Calendar, CalendarDays, CalendarRange, Briefcase, Copy, List, Grid3x3, Lock, AlertCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, DollarSign, Package, Edit, X, Check, Calendar, CalendarDays, CalendarRange, Briefcase, Copy, List, Grid3x3, Lock, AlertCircle, Unlock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -76,10 +77,15 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
     availableRooms: "",
     isAvailable: true,
   });
+  const [selectedBlockedDates, setSelectedBlockedDates] = useState<Set<string>>(new Set());
+  const [isUnlocking, setIsUnlocking] = useState(false);
+  const [unlockDialogOpen, setUnlockDialogOpen] = useState(false);
+  const [ordersToCancel, setOrdersToCancel] = useState<any[]>([]);
 
   useEffect(() => {
     loadInventory();
     loadPublicHolidays();
+    setSelectedBlockedDates(new Set()); // 清除選擇
   }, [roomTypeId, currentMonth, accommodationId]);
 
   // 批量編輯對話框鍵盤快捷鍵
@@ -475,6 +481,93 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
     }
   };
 
+  const toggleBlockedDate = (dateStr: string) => {
+    const inventoryDay = inventory[dateStr];
+    if (!inventoryDay || !inventoryDay.isBlocked) return;
+    
+    const newSelected = new Set(selectedBlockedDates);
+    if (newSelected.has(dateStr)) {
+      newSelected.delete(dateStr);
+    } else {
+      newSelected.add(dateStr);
+    }
+    setSelectedBlockedDates(newSelected);
+  };
+
+  const handleUnlockClick = async () => {
+    if (selectedBlockedDates.size === 0) return;
+    
+    setLoading(true);
+    try {
+      // 查詢這些日期的封鎖訂單
+      const selectedDatesArray = Array.from(selectedBlockedDates);
+      const { data: orders, error } = await supabase
+        .from("orders")
+        .select("*, room_types(name)")
+        .eq("accommodation_id", accommodationId)
+        .neq("order_status", "cancelled");
+
+      if (error) throw error;
+
+      // 篩選出在選中日期範圍內的訂單
+      const relevantOrders = orders?.filter(order => {
+        const checkIn = new Date(order.check_in_date);
+        const checkOut = new Date(order.check_out_date);
+        
+        // 檢查訂單是否與任何選中的日期重疊
+        return selectedDatesArray.some(dateStr => {
+          const date = new Date(dateStr);
+          return date >= checkIn && date < checkOut;
+        });
+      }) || [];
+
+      // 只顯示互斥房型的訂單
+      const exclusiveOrders = relevantOrders.filter(order => 
+        ["12人包區", "14人包區", "16人包區", "18人包區"].includes(
+          (order.room_types as any)?.name
+        )
+      );
+
+      setOrdersToCancel(exclusiveOrders);
+      setUnlockDialogOpen(true);
+    } catch (error: any) {
+      console.error("Error fetching orders:", error);
+      toast.error('載入訂單失敗');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirmUnlock = async () => {
+    if (ordersToCancel.length === 0) return;
+
+    setIsUnlocking(true);
+    try {
+      // 取消這些訂單
+      const { error } = await supabase
+        .from("orders")
+        .update({ 
+          order_status: "cancelled",
+          cancelled_at: new Date().toISOString()
+        })
+        .in("id", ordersToCancel.map(o => o.id));
+
+      if (error) throw error;
+
+      toast.success(`已取消 ${ordersToCancel.length} 筆訂單，封鎖已解除`);
+
+      setUnlockDialogOpen(false);
+      setSelectedBlockedDates(new Set());
+      setOrdersToCancel([]);
+      loadInventory(); // 重新載入庫存
+    } catch (error: any) {
+      console.error("Error unlocking dates:", error);
+      toast.error('解除封鎖失敗');
+    } finally {
+      setIsUnlocking(false);
+    }
+  };
+
   const handleSingleDateUpdate = async () => {
     if (!editingDate || !singleEditData.availableRooms) {
       toast.error('請填寫可用房數');
@@ -606,7 +699,19 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
 
           {/* 批量編輯工具列 - 優化佈局 */}
           {!isSelectionMode ? (
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              {selectedBlockedDates.size > 0 && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleUnlockClick}
+                  disabled={loading}
+                  className="gap-1.5 h-9 sm:h-8 px-3 sm:px-4 touch-manipulation text-xs sm:text-sm"
+                >
+                  <Unlock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  解除封鎖 ({selectedBlockedDates.size})
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -799,21 +904,28 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
               return (
                 <div
                   key={dateStr}
-                   onClick={() => handleSingleClick(dateStr)}
+                   onClick={() => {
+                     if (hasData && dayInventory.isBlocked && !isSelectionMode) {
+                       toggleBlockedDate(dateStr);
+                     } else {
+                       handleSingleClick(dateStr);
+                     }
+                   }}
                    className={cn(
-                     "border rounded-lg p-3 transition-all touch-manipulation active:scale-[0.98]",
-                     isTodayDate && "border-primary border-2 ring-2 ring-primary/20",
-                     isSelectionMode && "cursor-pointer",
-                     !isSelectionMode && "cursor-pointer hover:shadow-md",
-                     isSelected && "bg-blue-100 border-blue-600 shadow-md",
-                     // 被封鎖的樣式 - 使用紅色調
-                     !isSelected && hasData && dayInventory.isBlocked && "bg-red-50/60 border-red-300/60 hover:bg-red-100/60",
-                     !isSelected && hasData && !dayInventory.isBlocked && dayInventory.isAvailable && isHoliday && "bg-orange-50/80 hover:bg-orange-100",
-                     !isSelected && hasData && !dayInventory.isBlocked && dayInventory.isAvailable && !isHoliday && "bg-blue-50/80 hover:bg-blue-100",
-                     !isSelected && hasData && !dayInventory.isBlocked && !dayInventory.isAvailable && "bg-gray-100",
-                     !isSelected && !hasData && "hover:bg-muted"
-                   )}
-                 >
+                      "border rounded-lg p-3 transition-all touch-manipulation active:scale-[0.98]",
+                      isTodayDate && "border-primary border-2 ring-2 ring-primary/20",
+                      isSelectionMode && "cursor-pointer",
+                      !isSelectionMode && "cursor-pointer hover:shadow-md",
+                      isSelected && "bg-blue-100 border-blue-600 shadow-md",
+                      // 被封鎖的樣式 - 使用紅色調
+                      !isSelected && hasData && dayInventory.isBlocked && selectedBlockedDates.has(dateStr) && "ring-2 ring-destructive",
+                      !isSelected && hasData && dayInventory.isBlocked && "bg-red-50/60 border-red-300/60 hover:bg-red-100/60",
+                      !isSelected && hasData && !dayInventory.isBlocked && dayInventory.isAvailable && isHoliday && "bg-orange-50/80 hover:bg-orange-100",
+                      !isSelected && hasData && !dayInventory.isBlocked && dayInventory.isAvailable && !isHoliday && "bg-blue-50/80 hover:bg-blue-100",
+                      !isSelected && hasData && !dayInventory.isBlocked && !dayInventory.isAvailable && "bg-gray-100",
+                      !isSelected && !hasData && "hover:bg-muted"
+                    )}
+                  >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <span className={cn(
@@ -936,26 +1048,33 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
               return (
                 <div
                   key={dateStr}
-                  onClick={() => handleSingleClick(dateStr)}
+                  onClick={() => {
+                    if (hasData && dayInventory.isBlocked && !isSelectionMode) {
+                      toggleBlockedDate(dateStr);
+                    } else {
+                      handleSingleClick(dateStr);
+                    }
+                  }}
                    className={cn(
-                     "relative min-h-[80px] sm:min-h-[90px] md:min-h-[100px] border rounded-lg p-2 sm:p-2 flex flex-col items-center justify-start transition-all touch-manipulation active:scale-95",
-                     isTodayDate && "border-primary border-2 ring-2 ring-primary/20",
-                     !isCurrentMonth && "opacity-50",
-                     isSelectionMode && "cursor-pointer",
-                     !isSelectionMode && "cursor-pointer hover:shadow-md",
-                     isCopyMode && hasData && "ring-2 ring-blue-400 animate-pulse",
-                     isCopyMode && !hasData && "opacity-30 cursor-not-allowed",
-                     isSelected && "bg-blue-100 border-blue-600 shadow-md",
-                     // 被封鎖狀態：使用紅色調
-                     !isSelected && hasData && dayInventory.isBlocked && "bg-red-50/50 hover:bg-red-100/50 border-red-300/50 opacity-75",
-                     // 假日（週末或國定假日）有資料：使用暖色調
-                     !isSelected && hasData && !dayInventory.isBlocked && dayInventory.isAvailable && isHoliday && "bg-orange-50/80 hover:bg-orange-100 border-orange-200/50",
-                     // 平日有資料：使用藍色調
-                     !isSelected && hasData && !dayInventory.isBlocked && dayInventory.isAvailable && !isHoliday && "bg-blue-50/80 hover:bg-blue-100 border-blue-200/50",
-                     !isSelected && hasData && !dayInventory.isBlocked && !dayInventory.isAvailable && "bg-gray-100",
-                     !isSelected && !hasData && "hover:bg-muted"
-                   )}
-                 >
+                      "relative min-h-[80px] sm:min-h-[90px] md:min-h-[100px] border rounded-lg p-2 sm:p-2 flex flex-col items-center justify-start transition-all touch-manipulation active:scale-95",
+                      isTodayDate && "border-primary border-2 ring-2 ring-primary/20",
+                      !isCurrentMonth && "opacity-50",
+                      isSelectionMode && "cursor-pointer",
+                      !isSelectionMode && "cursor-pointer hover:shadow-md",
+                      isCopyMode && hasData && "ring-2 ring-blue-400 animate-pulse",
+                      isCopyMode && !hasData && "opacity-30 cursor-not-allowed",
+                      isSelected && "bg-blue-100 border-blue-600 shadow-md",
+                      // 被封鎖狀態：使用紅色調，被選中時加上 ring
+                      !isSelected && hasData && dayInventory.isBlocked && selectedBlockedDates.has(dateStr) && "ring-2 ring-destructive",
+                      !isSelected && hasData && dayInventory.isBlocked && "bg-red-50/50 hover:bg-red-100/50 border-red-300/50 opacity-75",
+                      // 假日（週末或國定假日）有資料：使用暖色調
+                      !isSelected && hasData && !dayInventory.isBlocked && dayInventory.isAvailable && isHoliday && "bg-orange-50/80 hover:bg-orange-100 border-orange-200/50",
+                      // 平日有資料：使用藍色調
+                      !isSelected && hasData && !dayInventory.isBlocked && dayInventory.isAvailable && !isHoliday && "bg-blue-50/80 hover:bg-blue-100 border-blue-200/50",
+                      !isSelected && hasData && !dayInventory.isBlocked && !dayInventory.isAvailable && "bg-gray-100",
+                      !isSelected && !hasData && "hover:bg-muted"
+                    )}
+                  >
                   <div className={cn(
                     "font-bold mb-1.5 text-sm sm:text-base w-full text-center pb-1 border-b leading-tight",
                     isTodayDate && "text-primary border-primary/30",
@@ -1594,6 +1713,47 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
           </DialogContent>
         </Dialog>
       )}
+
+      {/* 解除封鎖確認對話框 */}
+      <AlertDialog open={unlockDialogOpen} onOpenChange={setUnlockDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認解除封鎖</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>您即將取消以下 {ordersToCancel.length} 筆訂單，以解除這些日期的封鎖：</p>
+                <div className="max-h-60 overflow-y-auto space-y-2">
+                  {ordersToCancel.map((order) => (
+                    <div key={order.id} className="p-3 bg-muted rounded-md text-sm">
+                      <div className="font-medium">{order.order_number}</div>
+                      <div className="text-muted-foreground">
+                        {(order.room_types as any)?.name} - {order.guest_name}
+                      </div>
+                      <div className="text-muted-foreground">
+                        {format(new Date(order.check_in_date), "yyyy-MM-dd")} 至{" "}
+                        {format(new Date(order.check_out_date), "yyyy-MM-dd")}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-destructive font-medium">
+                  此操作無法復原，請確認後繼續。
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isUnlocking}>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmUnlock}
+              disabled={isUnlocking}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isUnlocking ? "處理中..." : "確認取消訂單"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
