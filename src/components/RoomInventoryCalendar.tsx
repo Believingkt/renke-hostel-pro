@@ -1282,19 +1282,20 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                         </div>
                       )}
                       
-                      {dayInventory.price_2_meals && (
+                      {/* 只在未鎖定且有可用房間時顯示價格 */}
+                      {!dayInventory.isBlocked && dayInventory.availableRooms > 0 && dayInventory.price_2_meals && (
                         <div className={cn(
                           "flex items-center justify-center gap-1 text-xs sm:text-xs rounded px-1.5 py-0.5",
-                          dayInventory.isBlocked ? "bg-gray-100 opacity-50" : isHoliday ? "bg-orange-100/80" : "bg-blue-100/80"
+                          isHoliday ? "bg-orange-100/80" : "bg-blue-100/80"
                         )}>
                           <DollarSign className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                           <span className="font-bold text-foreground text-[12px] truncate">{formatPrice(dayInventory.price_2_meals)}</span>
                         </div>
                       )}
-                      {dayInventory.price_3_meals && !dayInventory.price_2_meals && (
+                      {!dayInventory.isBlocked && dayInventory.availableRooms > 0 && dayInventory.price_3_meals && !dayInventory.price_2_meals && (
                         <div className={cn(
                           "flex items-center justify-center gap-1 text-xs sm:text-xs rounded px-1.5 py-0.5",
-                          dayInventory.isBlocked ? "bg-gray-100 opacity-50" : isHoliday ? "bg-orange-100/80" : "bg-blue-100/80"
+                          isHoliday ? "bg-orange-100/80" : "bg-blue-100/80"
                         )}>
                           <DollarSign className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                           <span className="font-bold text-foreground text-[12px] truncate">{formatPrice(dayInventory.price_3_meals)}</span>
