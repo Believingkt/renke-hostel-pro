@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ChevronLeft, ChevronRight, DollarSign, Package, Edit, X, Check, Calendar, CalendarDays, CalendarRange, Briefcase, Copy, List, Grid3x3 } from "lucide-react";
+import { ChevronLeft, ChevronRight, DollarSign, Package, Edit, X, Check, Calendar, CalendarDays, CalendarRange, Briefcase, Copy, List, Grid3x3, Lock, AlertCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { supabase } from "@/integrations/supabase/client";
@@ -798,19 +799,21 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
               return (
                 <div
                   key={dateStr}
-                  onClick={() => handleSingleClick(dateStr)}
-                  className={cn(
-                    "border rounded-lg p-3 transition-all touch-manipulation active:scale-[0.98]",
-                    isTodayDate && "border-primary border-2 ring-2 ring-primary/20",
-                    isSelectionMode && "cursor-pointer",
-                    !isSelectionMode && "cursor-pointer hover:shadow-md",
-                    isSelected && "bg-blue-100 border-blue-600 shadow-md",
-                    !isSelected && hasData && dayInventory.isAvailable && isHoliday && "bg-orange-50/80 hover:bg-orange-100",
-                    !isSelected && hasData && dayInventory.isAvailable && !isHoliday && "bg-blue-50/80 hover:bg-blue-100",
-                    !isSelected && hasData && !dayInventory.isAvailable && "bg-gray-100",
-                    !isSelected && !hasData && "hover:bg-muted"
-                  )}
-                >
+                   onClick={() => handleSingleClick(dateStr)}
+                   className={cn(
+                     "border rounded-lg p-3 transition-all touch-manipulation active:scale-[0.98]",
+                     isTodayDate && "border-primary border-2 ring-2 ring-primary/20",
+                     isSelectionMode && "cursor-pointer",
+                     !isSelectionMode && "cursor-pointer hover:shadow-md",
+                     isSelected && "bg-blue-100 border-blue-600 shadow-md",
+                     // 被封鎖的樣式 - 使用紅色調
+                     !isSelected && hasData && dayInventory.isBlocked && "bg-red-50/60 border-red-300/60 hover:bg-red-100/60",
+                     !isSelected && hasData && !dayInventory.isBlocked && dayInventory.isAvailable && isHoliday && "bg-orange-50/80 hover:bg-orange-100",
+                     !isSelected && hasData && !dayInventory.isBlocked && dayInventory.isAvailable && !isHoliday && "bg-blue-50/80 hover:bg-blue-100",
+                     !isSelected && hasData && !dayInventory.isBlocked && !dayInventory.isAvailable && "bg-gray-100",
+                     !isSelected && !hasData && "hover:bg-muted"
+                   )}
+                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <span className={cn(
@@ -840,49 +843,55 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                     )}
                   </div>
                   
-                  {hasData ? (
-                    <div className="space-y-2">
-                      {dayInventory.price_2_meals && (
-                        <div className={cn(
-                          "flex items-center justify-between rounded px-3 py-2",
-                          isHoliday ? "bg-orange-100/60" : "bg-blue-100/60"
-                        )}>
-                          <span className="text-sm font-medium text-muted-foreground">一泊二食</span>
-                          <span className="text-base font-bold">${formatPrice(dayInventory.price_2_meals)}</span>
-                        </div>
-                      )}
-                      {dayInventory.price_3_meals && (
-                        <div className={cn(
-                          "flex items-center justify-between rounded px-3 py-2",
-                          isHoliday ? "bg-orange-100/60" : "bg-blue-100/60"
-                        )}>
-                          <span className="text-sm font-medium text-muted-foreground">一泊三食</span>
-                          <span className="text-base font-bold">${formatPrice(dayInventory.price_3_meals)}</span>
-                        </div>
-                      )}
-                      <div className={cn(
-                        "flex items-center justify-between rounded px-3 py-2",
-                        isHoliday ? "bg-orange-200/50" : "bg-primary/10"
-                      )}>
-                        <span className="text-sm font-medium">可用房數</span>
-                        <div className="flex flex-col items-end">
-                          <span className={cn(
-                            "text-base font-bold",
-                            isHoliday ? "text-orange-700" : "text-primary"
-                          )}>
-                            {dayInventory.availableRooms} 間
-                          </span>
-                          {dayInventory.isBlocked && dayInventory.blockedByRoomName && (
-                            <span className="text-xs text-destructive font-medium mt-0.5">
-                              已被 {dayInventory.blockedByRoomName} 預訂
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-sm text-muted-foreground text-center py-4">未設定</div>
-                  )}
+                   {hasData ? (
+                     <div className="space-y-2">
+                       {/* 被封鎖狀態標記 */}
+                       {dayInventory.isBlocked && dayInventory.blockedByRoomName && (
+                         <Badge variant="destructive" className="w-full justify-center gap-1.5 py-1.5">
+                           <Lock className="h-3.5 w-3.5" />
+                           <span className="text-xs font-semibold">已被 {dayInventory.blockedByRoomName} 預訂</span>
+                         </Badge>
+                       )}
+                       
+                       {dayInventory.price_2_meals && (
+                         <div className={cn(
+                           "flex items-center justify-between rounded px-3 py-2",
+                           dayInventory.isBlocked ? "bg-gray-100 opacity-60" : isHoliday ? "bg-orange-100/60" : "bg-blue-100/60"
+                         )}>
+                           <span className="text-sm font-medium text-muted-foreground">一泊二食</span>
+                           <span className="text-base font-bold">${formatPrice(dayInventory.price_2_meals)}</span>
+                         </div>
+                       )}
+                       {dayInventory.price_3_meals && (
+                         <div className={cn(
+                           "flex items-center justify-between rounded px-3 py-2",
+                           dayInventory.isBlocked ? "bg-gray-100 opacity-60" : isHoliday ? "bg-orange-100/60" : "bg-blue-100/60"
+                         )}>
+                           <span className="text-sm font-medium text-muted-foreground">一泊三食</span>
+                           <span className="text-base font-bold">${formatPrice(dayInventory.price_3_meals)}</span>
+                         </div>
+                       )}
+                       <div className={cn(
+                         "flex items-center justify-between rounded px-3 py-2",
+                         dayInventory.isBlocked ? "bg-gray-200/50" : isHoliday ? "bg-orange-200/50" : "bg-primary/10"
+                       )}>
+                         <span className="text-sm font-medium">可用房數</span>
+                         <div className="flex items-center gap-2">
+                           {dayInventory.isBlocked && (
+                             <Lock className="h-4 w-4 text-destructive" />
+                           )}
+                           <span className={cn(
+                             "text-base font-bold",
+                             dayInventory.isBlocked ? "text-gray-500 line-through" : isHoliday ? "text-orange-700" : "text-primary"
+                           )}>
+                             {dayInventory.availableRooms} 間
+                           </span>
+                         </div>
+                       </div>
+                     </div>
+                   ) : (
+                     <div className="text-sm text-muted-foreground text-center py-4">未設定</div>
+                   )}
                 </div>
               );
             })}
@@ -928,23 +937,25 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                 <div
                   key={dateStr}
                   onClick={() => handleSingleClick(dateStr)}
-                  className={cn(
-                    "relative min-h-[80px] sm:min-h-[90px] md:min-h-[100px] border rounded-lg p-2 sm:p-2 flex flex-col items-center justify-start transition-all touch-manipulation active:scale-95",
-                    isTodayDate && "border-primary border-2 ring-2 ring-primary/20",
-                    !isCurrentMonth && "opacity-50",
-                    isSelectionMode && "cursor-pointer",
-                    !isSelectionMode && "cursor-pointer hover:shadow-md",
-                    isCopyMode && hasData && "ring-2 ring-blue-400 animate-pulse",
-                    isCopyMode && !hasData && "opacity-30 cursor-not-allowed",
-                    isSelected && "bg-blue-100 border-blue-600 shadow-md",
-                    // 假日（週末或國定假日）有資料：使用暖色調
-                    !isSelected && hasData && dayInventory.isAvailable && isHoliday && "bg-orange-50/80 hover:bg-orange-100 border-orange-200/50",
-                    // 平日有資料：使用藍色調
-                    !isSelected && hasData && dayInventory.isAvailable && !isHoliday && "bg-blue-50/80 hover:bg-blue-100 border-blue-200/50",
-                    !isSelected && hasData && !dayInventory.isAvailable && "bg-gray-100",
-                    !isSelected && !hasData && "hover:bg-muted"
-                  )}
-                >
+                   className={cn(
+                     "relative min-h-[80px] sm:min-h-[90px] md:min-h-[100px] border rounded-lg p-2 sm:p-2 flex flex-col items-center justify-start transition-all touch-manipulation active:scale-95",
+                     isTodayDate && "border-primary border-2 ring-2 ring-primary/20",
+                     !isCurrentMonth && "opacity-50",
+                     isSelectionMode && "cursor-pointer",
+                     !isSelectionMode && "cursor-pointer hover:shadow-md",
+                     isCopyMode && hasData && "ring-2 ring-blue-400 animate-pulse",
+                     isCopyMode && !hasData && "opacity-30 cursor-not-allowed",
+                     isSelected && "bg-blue-100 border-blue-600 shadow-md",
+                     // 被封鎖狀態：使用紅色調
+                     !isSelected && hasData && dayInventory.isBlocked && "bg-red-50/50 hover:bg-red-100/50 border-red-300/50 opacity-75",
+                     // 假日（週末或國定假日）有資料：使用暖色調
+                     !isSelected && hasData && !dayInventory.isBlocked && dayInventory.isAvailable && isHoliday && "bg-orange-50/80 hover:bg-orange-100 border-orange-200/50",
+                     // 平日有資料：使用藍色調
+                     !isSelected && hasData && !dayInventory.isBlocked && dayInventory.isAvailable && !isHoliday && "bg-blue-50/80 hover:bg-blue-100 border-blue-200/50",
+                     !isSelected && hasData && !dayInventory.isBlocked && !dayInventory.isAvailable && "bg-gray-100",
+                     !isSelected && !hasData && "hover:bg-muted"
+                   )}
+                 >
                   <div className={cn(
                     "font-bold mb-1.5 text-sm sm:text-base w-full text-center pb-1 border-b leading-tight",
                     isTodayDate && "text-primary border-primary/30",
@@ -968,62 +979,50 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                     )}
                   </div>
                   {hasData ? (
-                    <div className="w-full space-y-1 px-0">
+                    <div className="flex flex-col gap-1 min-h-[40px]">
+                      {/* 被封鎖狀態圖標 */}
+                      {dayInventory.isBlocked && dayInventory.blockedByRoomName && (
+                        <div className="flex items-center justify-center gap-1 bg-red-100 border border-red-300 rounded px-1.5 py-0.5">
+                          <Lock className="h-2.5 w-2.5 text-red-600 flex-shrink-0" />
+                          <span className="text-[8px] sm:text-[9px] text-red-700 font-bold leading-none">已封鎖</span>
+                        </div>
+                      )}
+                      
                       {dayInventory.price_2_meals && (
                         <div className={cn(
-                          "flex items-center justify-between gap-1 text-xs sm:text-xs rounded px-1.5 py-0.5",
-                          isHoliday ? "bg-orange-100/60" : "bg-blue-100/60"
-                        )}>
-                          <span className="text-muted-foreground font-semibold text-[9px] sm:text-xs whitespace-nowrap leading-tight tracking-tight">
-                            <span className="md:hidden">二</span>
-                            <span className="hidden md:inline">一泊二食</span>
-                          </span>
-                          <span className="font-bold text-foreground text-[10px] sm:text-xs truncate leading-tight tracking-wide">${formatPrice(dayInventory.price_2_meals)}</span>
-                        </div>
-                      )}
-                      {dayInventory.price_3_meals && (
-                        <div className={cn(
-                          "flex items-center justify-between gap-1 text-xs sm:text-xs rounded px-1.5 py-0.5",
-                          isHoliday ? "bg-orange-100/60" : "bg-blue-100/60"
-                        )}>
-                          <span className="text-muted-foreground font-semibold text-[9px] sm:text-xs whitespace-nowrap leading-tight tracking-tight">
-                            <span className="md:hidden">三</span>
-                            <span className="hidden md:inline">一泊三食</span>
-                          </span>
-                          <span className="font-bold text-foreground text-[10px] sm:text-xs truncate leading-tight tracking-wide">${formatPrice(dayInventory.price_3_meals)}</span>
-                        </div>
-                      )}
-                      {!dayInventory.price_2_meals && !dayInventory.price_3_meals && dayInventory.price && (
-                        <div className={cn(
-                          "flex items-center justify-center gap-1 text-xs sm:text-xs rounded px-1.5 py-1",
-                          isHoliday ? "bg-orange-100/60" : "bg-blue-100/60"
+                          "flex items-center justify-center gap-1 text-xs sm:text-xs rounded px-1.5 py-0.5",
+                          dayInventory.isBlocked ? "bg-gray-100 opacity-50" : isHoliday ? "bg-orange-100/80" : "bg-blue-100/80"
                         )}>
                           <DollarSign className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                          <span className="font-bold text-foreground text-[12px] truncate">{formatPrice(dayInventory.price)}</span>
+                          <span className="font-bold text-foreground text-[12px] truncate">{formatPrice(dayInventory.price_2_meals)}</span>
+                        </div>
+                      )}
+                      {dayInventory.price_3_meals && !dayInventory.price_2_meals && (
+                        <div className={cn(
+                          "flex items-center justify-center gap-1 text-xs sm:text-xs rounded px-1.5 py-0.5",
+                          dayInventory.isBlocked ? "bg-gray-100 opacity-50" : isHoliday ? "bg-orange-100/80" : "bg-blue-100/80"
+                        )}>
+                          <DollarSign className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                          <span className="font-bold text-foreground text-[12px] truncate">{formatPrice(dayInventory.price_3_meals)}</span>
                         </div>
                       )}
                       <div className={cn(
                         "flex flex-col items-center gap-0.5 text-xs sm:text-xs rounded px-1.5 py-0.5 mt-1",
-                        isHoliday ? "bg-orange-200/50" : "bg-primary/10"
+                        dayInventory.isBlocked ? "bg-gray-200/50" : isHoliday ? "bg-orange-200/50" : "bg-primary/10"
                       )}>
                         <div className="flex items-center gap-1.5">
                           <Package className={cn(
                             "h-3.5 w-3.5 flex-shrink-0 hidden md:inline-block",
-                            isHoliday ? "text-orange-700" : "text-primary"
+                            dayInventory.isBlocked ? "text-gray-500" : isHoliday ? "text-orange-700" : "text-primary"
                           )} />
                           <span className={cn(
                             "font-bold text-[10px] sm:text-xs whitespace-nowrap leading-tight tracking-wide",
-                            isHoliday ? "text-orange-700" : "text-primary"
+                            dayInventory.isBlocked ? "text-gray-500 line-through" : isHoliday ? "text-orange-700" : "text-primary"
                           )}>
                             <span className="md:hidden">{dayInventory.availableRooms}</span>
                             <span className="hidden md:inline">{dayInventory.availableRooms} 間</span>
                           </span>
                         </div>
-                        {dayInventory.isBlocked && dayInventory.blockedByRoomName && (
-                          <span className="text-[8px] sm:text-[9px] text-destructive font-medium leading-none">
-                            已被預訂
-                          </span>
-                        )}
                       </div>
                     </div>
                   ) : (
@@ -1053,6 +1052,12 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 sm:w-4 sm:h-4 bg-orange-50/80 border border-orange-200/50 rounded flex-shrink-0"></div>
               <span className="font-medium">假日有庫存</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 sm:w-4 sm:h-4 bg-red-50/50 border border-red-300/50 rounded flex-shrink-0 relative">
+                <Lock className="h-2.5 w-2.5 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-red-600" />
+              </div>
+              <span className="font-medium">已封鎖</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 sm:w-4 sm:h-4 bg-gray-100 border rounded flex-shrink-0"></div>
@@ -1097,9 +1102,14 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                 </span>
                 <span className="sm:hidden">平日藍色、假日橙色。假=國定假日、休=補休、班=補班</span>
               </div>
-              <div className="text-xs sm:text-sm text-orange-600 bg-orange-50 rounded-lg px-4 py-3 sm:py-2.5 border border-orange-200">
-                ⚠️ <span className="font-medium">包區互斥：</span>
-                12人、14人、16人、18人包區互斥，當其中一個房型被預訂時，其他包區房型當日庫存將顯示為0。
+              <div className="text-xs sm:text-sm text-red-700 bg-red-50 rounded-lg px-4 py-3 sm:py-2.5 border border-red-200">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold">包區互斥規則：</span>
+                    <p className="mt-1">12人、14人、16人、18人包區互斥。當其中一個房型被預訂時，其他包區房型當日庫存將自動封鎖（顯示為 <Lock className="inline h-3 w-3 mx-0.5" /> 已封鎖），無法再被預訂。</p>
+                  </div>
+                </div>
               </div>
             </div>
           )}
