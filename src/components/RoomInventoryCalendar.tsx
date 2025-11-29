@@ -1291,7 +1291,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                               "flex items-center justify-center gap-1 text-xs sm:text-xs rounded px-1.5 py-0.5",
                               isHoliday ? "bg-orange-100/80" : "bg-blue-100/80"
                             )}>
-                              <span className="text-[9px] text-muted-foreground">2餐</span>
+                              <span className="text-[8px] text-muted-foreground">一泊二食</span>
                               <DollarSign className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                               <span className="font-bold text-foreground text-[11px] truncate">{formatPrice(dayInventory.price_2_meals)}</span>
                             </div>
@@ -1301,7 +1301,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                               "flex items-center justify-center gap-1 text-xs sm:text-xs rounded px-1.5 py-0.5",
                               isHoliday ? "bg-orange-100/80" : "bg-blue-100/80"
                             )}>
-                              <span className="text-[9px] text-muted-foreground">3餐</span>
+                              <span className="text-[8px] text-muted-foreground">一泊三食</span>
                               <DollarSign className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                               <span className="font-bold text-foreground text-[11px] truncate">{formatPrice(dayInventory.price_3_meals)}</span>
                             </div>
