@@ -1252,6 +1252,14 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                         </div>
                       )}
                       
+                      {/* 可預訂標籤 */}
+                      {!dayInventory.isBlocked && dayInventory.availableRooms > 0 && dayInventory.isAvailable && (
+                        <div className="flex items-center justify-center gap-1 bg-blue-100 border border-blue-300 rounded px-1.5 py-0.5">
+                          <Check className="h-2.5 w-2.5 text-blue-600 flex-shrink-0" />
+                          <span className="text-[8px] sm:text-[9px] text-blue-700 font-bold leading-none">可預訂</span>
+                        </div>
+                      )}
+                      
                       {/* 已預訂標記 */}
                       {!dayInventory.isBlocked && dayInventory.bookedCount > 0 && (
                         <div 
@@ -1335,6 +1343,12 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 sm:w-4 sm:h-4 bg-gray-100 border rounded flex-shrink-0"></div>
               <span className="font-medium">無庫存</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 sm:w-4 sm:h-4 bg-blue-100 border border-blue-300 rounded flex-shrink-0 relative">
+                <Check className="h-2.5 w-2.5 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-blue-600" />
+              </div>
+              <span className="font-medium">可預訂</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 sm:w-4 sm:h-4 border rounded flex-shrink-0"></div>
