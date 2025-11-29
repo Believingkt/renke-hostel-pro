@@ -1107,7 +1107,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                        {dayInventory.isBlocked && dayInventory.blockedByRoomName && (
                           <Badge variant="destructive" className="w-full justify-center gap-1.5 py-1.5">
                             <Lock className="h-3.5 w-3.5" />
-                            <span className="text-xs font-semibold">已被 {dayInventory.blockedByRoomName} 預訂</span>
+                            <span className="text-xs font-semibold">已被 {dayInventory.blockedByRoomName} 鎖定</span>
                           </Badge>
                         )}
                         
@@ -1264,7 +1264,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                       {dayInventory.isBlocked && dayInventory.blockedByRoomName && (
                         <div className="flex items-center justify-center gap-1 bg-red-100 border border-red-300 rounded px-1.5 py-0.5">
                           <Lock className="h-2.5 w-2.5 text-red-600 flex-shrink-0" />
-                          <span className="text-[8px] sm:text-[9px] text-red-700 font-bold leading-none">已封鎖</span>
+                          <span className="text-[8px] sm:text-[9px] text-red-700 font-bold leading-none">已鎖定</span>
                         </div>
                       )}
                       
@@ -1351,7 +1351,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
               <div className="w-5 h-5 sm:w-4 sm:h-4 bg-red-50/50 border border-red-300/50 rounded flex-shrink-0 relative">
                 <Lock className="h-2.5 w-2.5 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-red-600" />
               </div>
-              <span className="font-medium">已封鎖</span>
+              <span className="font-medium">已鎖定</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 sm:w-4 sm:h-4 bg-green-100 border border-green-300 rounded flex-shrink-0 relative">
@@ -1407,7 +1407,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                   <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
                   <div>
                     <span className="font-bold">包區互斥規則：</span>
-                    <p className="mt-1">12人、14人、16人、18人包區互斥。當其中一個房型被預訂時，其他包區房型當日庫存將自動封鎖（顯示為 <Lock className="inline h-3 w-3 mx-0.5" /> 已封鎖），無法再被預訂。</p>
+                    <p className="mt-1">12人、14人、16人、18人包區互斥。當其中一個房型被預訂時，其他包區房型當日庫存將自動鎖定（顯示為 <Lock className="inline h-3 w-3 mx-0.5" /> 已鎖定），無法再被預訂。</p>
                   </div>
                 </div>
               </div>
