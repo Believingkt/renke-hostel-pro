@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -1112,20 +1112,18 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                      <div className="space-y-2">
                        {/* 被鎖定狀態標記 */}
                        {dayInventory.isBlocked && dayInventory.blockedByRoomName && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Badge variant="secondary" className="w-full justify-center gap-1.5 py-1.5 bg-gray-100 text-gray-800 border-gray-300 cursor-help">
-                                  <Lock className="h-3.5 w-3.5" />
-                                  <span className="text-xs font-semibold">已鎖定</span>
-                                </Badge>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>已被 {dayInventory.blockedByRoomName} 預訂</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Badge variant="secondary" className="w-full justify-center gap-1.5 py-1.5 bg-gray-100 text-gray-800 border-gray-300 cursor-pointer">
+                                <Lock className="h-3.5 w-3.5" />
+                                <span className="text-xs font-semibold">已鎖定</span>
+                              </Badge>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-2">
+                              <p className="text-sm">已被 {dayInventory.blockedByRoomName} 預訂</p>
+                            </PopoverContent>
+                          </Popover>
+                       )}
                         
                         {/* 已預訂標記 - 優先顯示 */}
                         {!dayInventory.isBlocked && dayInventory.bookedCount && dayInventory.bookedCount > 0 ? (
@@ -1273,19 +1271,17 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                     <div className="flex flex-col gap-1 min-h-[40px]">
                       {/* 被鎖定狀態圖標 */}
                       {dayInventory.isBlocked && dayInventory.blockedByRoomName && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="flex items-center justify-center gap-1 bg-gray-100 border border-gray-300 rounded px-1.5 py-0.5 cursor-help">
-                                <Lock className="h-2.5 w-2.5 text-gray-600 flex-shrink-0" />
-                                <span className="text-[8px] sm:text-[9px] text-gray-700 font-bold leading-none">已鎖定</span>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>已被 {dayInventory.blockedByRoomName} 預訂</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <div className="flex items-center justify-center gap-1 bg-gray-100 border border-gray-300 rounded px-1.5 py-0.5 cursor-pointer">
+                              <Lock className="h-2.5 w-2.5 text-gray-600 flex-shrink-0" />
+                              <span className="text-[8px] sm:text-[9px] text-gray-700 font-bold leading-none">已鎖定</span>
+                            </div>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-2">
+                            <p className="text-sm">已被 {dayInventory.blockedByRoomName} 預訂</p>
+                          </PopoverContent>
+                        </Popover>
                       )}
                       
                       {/* 已預訂標記 - 優先顯示 */}
