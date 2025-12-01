@@ -34,7 +34,7 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
     },
     lastYearOccupancyRate: {
       label: "去年",
-      color: "hsl(210, 70%, 60%)",
+      color: "hsl(0, 0%, 60%)",
     },
   };
 
@@ -94,19 +94,19 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
             <Line
               type="monotone"
               dataKey="lastYearOccupancyRate"
-              stroke="hsl(210, 70%, 60%)"
+              stroke="hsl(0, 0%, 60%)"
               strokeWidth={2}
               dot={{ 
                 r: 7, 
                 fill: "hsl(var(--background))",
-                stroke: "hsl(210, 70%, 60%)",
+                stroke: "hsl(0, 0%, 60%)",
                 strokeWidth: 2,
                 className: "hover:scale-125 transition-transform duration-200"
               }}
               activeDot={{
                 r: 10,
                 fill: "hsl(var(--background))",
-                stroke: "hsl(210, 70%, 60%)",
+                stroke: "hsl(0, 0%, 60%)",
                 strokeWidth: 3,
                 className: "animate-scale-in"
               }}
