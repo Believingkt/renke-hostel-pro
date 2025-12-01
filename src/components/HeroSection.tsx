@@ -31,6 +31,7 @@ interface HeroSectionProps {
   heroDescription?: string;
   heroOverlayOpacity?: number;
   heroAutoplayDelay?: number;
+  heroPhotos?: HeroPhoto[];
   onFirstImageLoad?: () => void;
 }
 
@@ -63,6 +64,7 @@ const HeroSection = ({
   heroDescription = "",
   heroOverlayOpacity = 40,
   heroAutoplayDelay = 8,
+  heroPhotos: providedHeroPhotos = [],
   onFirstImageLoad
 }: HeroSectionProps) => {
   const { checkInDate, setCheckInDate, checkOutDate, setCheckOutDate, guests, setGuests, currentAccommodationId } = useAccommodation();
@@ -100,10 +102,23 @@ const HeroSection = ({
         autoplay_delay: null
       }));
 
-  // 載入首頁輪播圖 - 優化載入策略
+  // 使用傳入的 photos 或載入數據庫圖片
   useEffect(() => {
+    // 如果已經有傳入的 photos，直接使用
+    if (providedHeroPhotos && providedHeroPhotos.length > 0) {
+      const photosWithDefaults = providedHeroPhotos.map(photo => ({
+        ...photo,
+        title_size: photo.title_size || 'medium',
+        subtitle_size: photo.subtitle_size || 'medium',
+        secondary_subtitle_size: photo.secondary_subtitle_size || 'medium'
+      }));
+      setHeroPhotos(photosWithDefaults);
+      setIsLoadingPhotos(false);
+      return;
+    }
+
+    // 否則從數據庫獲取
     const fetchHeroPhotos = async () => {
-      // 獲取第一個 accommodation ID（公開前台）
       const { data: accommodations } = await supabase
         .from('accommodation_info')
         .select('id')
@@ -142,7 +157,7 @@ const HeroSection = ({
           .eq('accommodation_id', accommodationId)
           .eq('photo_type', 'hero')
           .order('display_order')
-          .limit(5); // 限制只載入前5張圖片
+          .limit(5);
 
         if (error) throw error;
 
@@ -150,7 +165,9 @@ const HeroSection = ({
           // 確保所有圖片都有默認的 title_size
           const photosWithDefaults = data.map(photo => ({
             ...photo,
-            title_size: photo.title_size || 'medium'
+            title_size: photo.title_size || 'medium',
+            subtitle_size: photo.subtitle_size || 'medium',
+            secondary_subtitle_size: photo.secondary_subtitle_size || 'medium'
           }));
           setHeroPhotos(photosWithDefaults);
           
@@ -180,7 +197,7 @@ const HeroSection = ({
     };
 
     fetchHeroPhotos();
-  }, [currentAccommodationId]);
+  }, [currentAccommodationId, providedHeroPhotos]);
 
   // 載入國定假日
   useEffect(() => {

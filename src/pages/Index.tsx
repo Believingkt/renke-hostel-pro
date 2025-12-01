@@ -230,6 +230,7 @@ const Index = () => {
           heroDescription={data.info.hero_description}
           heroOverlayOpacity={data.info.hero_overlay_opacity}
           heroAutoplayDelay={data.info.hero_autoplay_delay}
+          heroPhotos={data.photos.filter(p => p.photo_type === 'hero')}
         />
         <AboutSection description={data.info.description} accommodationId={data.info.id} />
         <RoomsSection roomTypes={data.roomTypes || []} />
