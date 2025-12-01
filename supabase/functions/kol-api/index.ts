@@ -117,9 +117,10 @@ Deno.serve(async (req) => {
         order.order_status !== 'cancelled' ? sum + (order.discount_amount || 0) : sum, 0
       ) || 0;
 
-      // Calculate commission (example: 10% of discount amount)
-      const commissionRate = 0.1;
-      const estimatedCommission = Math.round(totalDiscount * commissionRate);
+      // Calculate commission based on actual payment amount (final_price)
+      // Commission rate is retrieved from the discount code settings
+      const commissionRate = discountData.commission_rate || 0;
+      const estimatedCommission = Math.round(totalRevenue * (commissionRate / 100));
 
       return new Response(
         JSON.stringify({
