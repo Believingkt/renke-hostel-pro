@@ -56,9 +56,8 @@ export const MonthlyAveragePriceChart = ({ data }: MonthlyAveragePriceChartProps
             </defs>
             <CartesianGrid 
               strokeDasharray="3 3" 
-              className="stroke-muted/65" 
+              className="stroke-muted/30" 
               vertical={false}
-              strokeWidth={0.5}
             />
             <XAxis 
               dataKey="month"
