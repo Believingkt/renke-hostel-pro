@@ -30,11 +30,11 @@ export const MonthlyAveragePriceChart = ({ data }: MonthlyAveragePriceChartProps
   const chartConfig = {
     averagePrice: {
       label: "今年",
-      color: "hsl(271, 81%, 56%)",
+      color: "hsl(271, 85%, 48%)",
     },
     lastYearAveragePrice: {
       label: "去年",
-      color: "hsl(24, 90%, 56%)",
+      color: "hsl(24, 85%, 62%)",
     },
   };
 
@@ -50,8 +50,8 @@ export const MonthlyAveragePriceChart = ({ data }: MonthlyAveragePriceChartProps
           >
             <defs>
               <linearGradient id="priceGradient" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="hsl(271, 81%, 56%)" stopOpacity={0.8} />
-                <stop offset="100%" stopColor="hsl(271, 81%, 56%)" stopOpacity={1} />
+                <stop offset="0%" stopColor="hsl(271, 85%, 48%)" stopOpacity={0.8} />
+                <stop offset="100%" stopColor="hsl(271, 85%, 48%)" stopOpacity={1} />
               </linearGradient>
             </defs>
             <CartesianGrid 
@@ -95,19 +95,19 @@ export const MonthlyAveragePriceChart = ({ data }: MonthlyAveragePriceChartProps
             <Line
               type="monotone"
               dataKey="lastYearAveragePrice"
-              stroke="hsl(24, 90%, 56%)"
+              stroke="hsl(24, 85%, 62%)"
               strokeWidth={2}
               dot={{ 
                 r: 7, 
                 fill: "hsl(var(--background))",
-                stroke: "hsl(24, 90%, 56%)",
+                stroke: "hsl(24, 85%, 62%)",
                 strokeWidth: 2,
                 className: "hover:scale-125 transition-transform duration-200"
               }}
               activeDot={{ 
                 r: 10,
                 fill: "hsl(var(--background))",
-                stroke: "hsl(24, 90%, 56%)",
+                stroke: "hsl(24, 85%, 62%)",
                 strokeWidth: 3,
                 className: "animate-scale-in"
               }}
@@ -126,14 +126,14 @@ export const MonthlyAveragePriceChart = ({ data }: MonthlyAveragePriceChartProps
               dot={{ 
                 r: 7, 
                 fill: "hsl(var(--background))",
-                stroke: "hsl(271, 81%, 56%)",
+                stroke: "hsl(271, 85%, 48%)",
                 strokeWidth: 2,
                 className: "hover:scale-125 transition-transform duration-200"
               }}
               activeDot={{ 
                 r: 10,
                 fill: "hsl(var(--background))",
-                stroke: "hsl(271, 81%, 56%)",
+                stroke: "hsl(271, 85%, 48%)",
                 strokeWidth: 3,
                 className: "animate-scale-in"
               }}
