@@ -85,13 +85,13 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
       color: "hsl(210, 80%, 55%)", // 藍色
     },
   } : {
-    本月: {
-      label: "本月",
-      color: "hsl(210, 80%, 55%)", // 藍色
-    },
     上月: {
       label: "上月",
       color: "hsl(0, 0%, 60%)", // 灰色
+    },
+    本月: {
+      label: "本月",
+      color: "hsl(210, 80%, 55%)", // 藍色
     },
   };
 

@@ -28,13 +28,13 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
   }
 
   const chartConfig = {
-    occupancyRate: {
-      label: "今年",
-      color: "hsl(142, 80%, 40%)",
-    },
     lastYearOccupancyRate: {
       label: "去年",
       color: "hsl(0, 0%, 60%)",
+    },
+    occupancyRate: {
+      label: "今年",
+      color: "hsl(142, 80%, 40%)",
     },
   };
 
