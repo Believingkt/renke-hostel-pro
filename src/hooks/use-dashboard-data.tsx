@@ -37,6 +37,7 @@ interface OccupancyData {
 interface MonthlyMetrics {
   month: string;
   occupancyRate: number;
+  lastYearOccupancyRate?: number;
   averagePrice: number;
   isFuture?: boolean;
 }
@@ -381,6 +382,11 @@ const fetchDashboardData = async (
     const daysInMonth = monthEnd.getDate();
     const isFutureMonth = monthDate > now;
     
+    // 去年同期日期
+    const lastYearMonthDate = new Date(currentYear - 1, month, 1);
+    const lastYearMonthStart = startOfMonth(lastYearMonthDate);
+    const lastYearMonthEnd = endOfMonth(lastYearMonthDate);
+    
     const monthDataPoint: OccupancyData = {
       month: monthLabel,
     };
@@ -397,6 +403,19 @@ const fetchDashboardData = async (
     // 計算整體住房率
     let totalNightsAllRooms = 0;
     let totalAvailableNights = 0;
+    
+    // 去年同期住房率
+    let lastYearTotalNights = 0;
+    let lastYearTotalAvailable = 0;
+    
+    // 獲取去年同期的訂單
+    const lastYearMonthOrders = ordersData.filter(o => {
+      if (!o.check_in_date || !o.check_out_date) return false;
+      const checkIn = new Date(o.check_in_date);
+      const checkOut = new Date(o.check_out_date);
+      // 訂單與去年該月有重疊
+      return checkOut > lastYearMonthStart && checkIn <= lastYearMonthEnd;
+    });
     
     // 為每個房型計算入住率
     roomTypesData.forEach(roomType => {
@@ -420,6 +439,23 @@ const fetchDashboardData = async (
         }
       });
       
+      // 計算去年同期該房型的總住宿天數
+      const lastYearRoomOrders = lastYearMonthOrders.filter(o => o.room_type_id === roomType.id);
+      let lastYearNights = 0;
+      
+      lastYearRoomOrders.forEach(order => {
+        const checkIn = new Date(order.check_in_date);
+        const checkOut = new Date(order.check_out_date);
+        
+        const overlapStart = checkIn < lastYearMonthStart ? lastYearMonthStart : checkIn;
+        const overlapEnd = checkOut > lastYearMonthEnd ? lastYearMonthEnd : checkOut;
+        const nights = Math.ceil((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (nights > 0 && Number.isFinite(nights)) {
+          lastYearNights += nights;
+        }
+      });
+      
       // 計算入住率：總住宿天數 / (房間數 × 該月天數)
       const maxPossibleNights = roomCount * daysInMonth;
       const occupancyRate = maxPossibleNights > 0 
@@ -429,6 +465,8 @@ const fetchDashboardData = async (
       // 累加整體數據
       totalNightsAllRooms += totalNights;
       totalAvailableNights += maxPossibleNights;
+      lastYearTotalNights += lastYearNights;
+      lastYearTotalAvailable += maxPossibleNights;
       
       // 未來月份設為 null 或 0
       monthDataPoint[roomType.name] = isFutureMonth ? 0 : Math.min(100, occupancyRate);
@@ -439,9 +477,15 @@ const fetchDashboardData = async (
       ? Math.round((totalNightsAllRooms / totalAvailableNights) * 100)
       : 0;
     
+    // 計算去年同期整體住房率
+    const lastYearOverallOccupancyRate = lastYearTotalAvailable > 0
+      ? Math.round((lastYearTotalNights / lastYearTotalAvailable) * 100)
+      : 0;
+    
     monthlyOccupancyRate.push({
       month: monthLabel,
       occupancyRate: isFutureMonth ? 0 : Math.min(100, overallOccupancyRate),
+      lastYearOccupancyRate: Math.min(100, lastYearOverallOccupancyRate),
       averagePrice: 0,
       isFuture: isFutureMonth,
     });
