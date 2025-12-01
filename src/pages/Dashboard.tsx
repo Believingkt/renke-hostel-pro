@@ -373,73 +373,68 @@ const Dashboard = () => {
         )}
       </div>
 
-      <div className="grid gap-6 px-2 md:px-0">
-        {isLoading ? (
-          <ChartSkeleton />
-        ) : (
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between gap-2">
-                <div className="space-y-1">
-                  <CardTitle className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-                    訂單趨勢
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground font-medium">年度對比</p>
-                </div>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10">
-                  <Calendar className="h-4 w-4 text-blue-600" />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <BookingTrendsChart 
-                key="booking-lastYear-standard"
-                data={finalBookingData}
-                comparisonMode="lastYear"
-                isCustomRange={false}
-              />
-            </CardContent>
-          </Card>
-        )}
-      </div>
-
-      {isLoading ? (
-        <ChartSkeleton />
-      ) : (
-        <Card className="px-2 md:px-0">
-          <CardHeader className="pb-3">
-            <div className="flex items-start justify-between gap-2">
-              <div className="space-y-1">
-                <CardTitle className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-                  營收統計
-                </CardTitle>
-                <p className="text-sm text-muted-foreground font-medium">年度對比</p>
-              </div>
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-500/10">
-                <DollarSign className="h-4 w-4 text-green-600" />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <RevenueChart 
-              key="revenue-lastYear-standard"
-              data={finalRevenueData}
-              comparisonMode="lastYear"
-              isCustomRange={false}
-            />
-          </CardContent>
-        </Card>
-      )}
-
-      {/* 新增圖表：住房率和平均房價 */}
+      {/* 圖表區域 - 2x2 排列 */}
       <div className="grid gap-6 lg:grid-cols-2 px-2 md:px-0">
         {isLoading ? (
           <>
             <ChartSkeleton />
             <ChartSkeleton />
+            <ChartSkeleton />
+            <ChartSkeleton />
           </>
         ) : (
           <>
+            {/* 訂單趨勢 */}
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-1">
+                    <CardTitle className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                      訂單趨勢
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground font-medium">年度對比</p>
+                  </div>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10">
+                    <Calendar className="h-4 w-4 text-blue-600" />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <BookingTrendsChart 
+                  key="booking-lastYear-standard"
+                  data={finalBookingData}
+                  comparisonMode="lastYear"
+                  isCustomRange={false}
+                />
+              </CardContent>
+            </Card>
+
+            {/* 營收統計 */}
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-1">
+                    <CardTitle className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                      營收統計
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground font-medium">年度對比</p>
+                  </div>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-500/10">
+                    <DollarSign className="h-4 w-4 text-green-600" />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <RevenueChart 
+                  key="revenue-lastYear-standard"
+                  data={finalRevenueData}
+                  comparisonMode="lastYear"
+                  isCustomRange={false}
+                />
+              </CardContent>
+            </Card>
+
+            {/* 住房率 */}
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-2">
@@ -459,6 +454,7 @@ const Dashboard = () => {
               </CardContent>
             </Card>
 
+            {/* 平均房價 */}
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-2">
