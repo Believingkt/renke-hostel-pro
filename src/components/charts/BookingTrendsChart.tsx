@@ -101,8 +101,9 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
               </defs>
               <CartesianGrid 
                 strokeDasharray="3 3" 
-                className="stroke-muted/50" 
+                className="stroke-muted/20" 
                 vertical={false}
+                strokeWidth={0.5}
               />
               <XAxis 
                 dataKey="month" 
