@@ -39,6 +39,7 @@ interface MonthlyMetrics {
   occupancyRate: number;
   lastYearOccupancyRate?: number;
   averagePrice: number;
+  lastYearAveragePrice?: number;
   isFuture?: boolean;
 }
 
@@ -500,10 +501,21 @@ const fetchDashboardData = async (
     const orderCount = monthOrdersForPrice.length;
     const averagePrice = orderCount > 0 ? Math.round(totalRevenue / orderCount) : 0;
     
+    // 計算去年同期平均房價
+    const lastYearMonthKey = format(lastYearMonthDate, 'yyyy-MM');
+    const lastYearMonthOrdersForPrice = ordersByMonth.get(lastYearMonthKey) || [];
+    const lastYearTotalRevenue = lastYearMonthOrdersForPrice.reduce((sum, o) => {
+      const price = Number(o.final_price);
+      return sum + (Number.isFinite(price) ? price : 0);
+    }, 0);
+    const lastYearOrderCount = lastYearMonthOrdersForPrice.length;
+    const lastYearAveragePrice = lastYearOrderCount > 0 ? Math.round(lastYearTotalRevenue / lastYearOrderCount) : 0;
+    
     monthlyAveragePrice.push({
       month: monthLabel,
       occupancyRate: 0,
       averagePrice: isFutureMonth ? 0 : averagePrice,
+      lastYearAveragePrice: lastYearAveragePrice,
       isFuture: isFutureMonth,
     });
     
