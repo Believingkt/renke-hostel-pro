@@ -1,4 +1,4 @@
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Cell } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Line, ComposedChart } from "recharts";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { CustomChartTooltip } from "./CustomChartTooltip";
 
@@ -6,6 +6,7 @@ interface MonthlyOccupancyRateChartProps {
   data: Array<{
     month: string;
     occupancyRate: number;
+    lastYearOccupancyRate?: number;
     isFuture?: boolean;
   }>;
 }
@@ -28,8 +29,12 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
 
   const chartConfig = {
     occupancyRate: {
-      label: "住房率",
+      label: "今年住房率",
       color: "hsl(142, 76%, 36%)",
+    },
+    lastYearOccupancyRate: {
+      label: "去年住房率",
+      color: "hsl(210, 76%, 56%)",
     },
   };
 
@@ -37,14 +42,14 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
     <div className="animate-fade-in">
       <ChartContainer config={chartConfig} className="h-[300px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart 
+          <ComposedChart 
             data={data}
             margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
           >
             <defs>
               <linearGradient id="occupancyGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="hsl(142, 76%, 36%)" stopOpacity={0.8} />
-                <stop offset="100%" stopColor="hsl(142, 76%, 36%)" stopOpacity={0.1} />
+                <stop offset="0%" stopColor="hsl(142, 76%, 36%)" stopOpacity={0.3} />
+                <stop offset="100%" stopColor="hsl(142, 76%, 36%)" stopOpacity={0.05} />
               </linearGradient>
             </defs>
             <CartesianGrid 
@@ -72,26 +77,35 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
               content={
                 <CustomChartTooltip 
                   valueFormatter={(value: number) => `${value}%`}
+                  comparisonMode="lastYear"
                 />
               }
             />
+            
+            {/* 去年同期 - 虛線 */}
+            <Line
+              type="monotone"
+              dataKey="lastYearOccupancyRate"
+              stroke="hsl(210, 76%, 56%)"
+              strokeWidth={2}
+              strokeDasharray="5 5"
+              dot={{ r: 3, fill: "hsl(210, 76%, 56%)" }}
+              animationDuration={1000}
+              isAnimationActive={true}
+            />
+            
+            {/* 今年 - 實線 + 漸層填充 */}
             <Area
               type="monotone"
               dataKey="occupancyRate"
               stroke="hsl(142, 76%, 36%)"
-              strokeWidth={2}
+              strokeWidth={2.5}
               fill="url(#occupancyGradient)"
+              dot={{ r: 4, fill: "hsl(142, 76%, 36%)", strokeWidth: 0 }}
               animationDuration={1000}
               isAnimationActive={true}
-            >
-              {data.map((entry, index) => (
-                <Cell 
-                  key={`cell-${index}`}
-                  opacity={entry.isFuture ? 0.3 : 1}
-                />
-              ))}
-            </Area>
-          </AreaChart>
+            />
+          </ComposedChart>
         </ResponsiveContainer>
       </ChartContainer>
     </div>
