@@ -97,14 +97,14 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
               stroke="hsl(0, 0%, 60%)"
               strokeWidth={2}
               dot={{ 
-                r: 7, 
+                r: 6, 
                 fill: "hsl(var(--background))",
                 stroke: "hsl(0, 0%, 60%)",
                 strokeWidth: 2,
                 className: "hover:scale-125 transition-transform duration-200"
               }}
               activeDot={{
-                r: 10,
+                r: 9,
                 fill: "hsl(var(--background))",
                 stroke: "hsl(0, 0%, 60%)",
                 strokeWidth: 3,
@@ -124,14 +124,14 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
               strokeWidth={3}
               fill="url(#occupancyGradient)"
               dot={{ 
-                r: 7, 
+                r: 6, 
                 fill: "hsl(0, 0%, 100%)",
                 stroke: "hsl(142, 80%, 40%)",
                 strokeWidth: 2,
                 className: "hover:scale-125 transition-transform duration-200"
               }}
               activeDot={{
-                r: 10,
+                r: 9,
                 fill: "hsl(0, 0%, 100%)",
                 stroke: "hsl(142, 80%, 40%)",
                 strokeWidth: 3,

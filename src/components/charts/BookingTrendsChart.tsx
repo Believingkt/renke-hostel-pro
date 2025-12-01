@@ -151,7 +151,7 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                     <circle
                       cx={cx}
                       cy={cy}
-                      r={7}
+                      r={6}
                       fill="hsl(var(--background))"
                       stroke={index === 0 ? "hsl(0, 0%, 60%)" : "hsl(25, 90%, 60%)"}
                       strokeWidth={2}
@@ -169,7 +169,7 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                         <circle
                           cx={cx}
                           cy={cy}
-                          r={14}
+                          r={13}
                           fill={index === 0 ? "hsl(var(--chart-booking-secondary))" : "hsl(var(--chart-booking-primary))"}
                           opacity={0.1}
                           className="animate-scale-in"
@@ -177,7 +177,7 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                         <circle
                           cx={cx}
                           cy={cy}
-                          r={10}
+                          r={9}
                           fill="hsl(var(--background))"
                           stroke={index === 0 ? "hsl(0, 0%, 60%)" : "hsl(25, 90%, 60%)"}
                           strokeWidth={3}
