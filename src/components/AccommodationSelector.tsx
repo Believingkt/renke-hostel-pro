@@ -76,36 +76,28 @@ export function AccommodationSelector() {
   // If only one accommodation, show it as label instead of selector
   if (accommodations.length === 1) {
     return (
-      <div className="flex items-center gap-1.5">
-        <span className="font-medium text-sm text-foreground leading-none flex items-center h-9">
-          {accommodations[0].name}
-        </span>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="icon"
-                className="h-9 w-9"
-                onClick={() => window.open('/', '_blank')}
-              >
-                <ExternalLink className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>開啟前台首頁</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => window.open('/', '_blank')}
+            >
+              <ExternalLink className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>開啟前台首頁</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     );
   }
 
   return (
     <div className="flex items-center gap-1.5">
-      <span className="font-medium text-sm text-foreground leading-none flex items-center h-9">
-        {accommodations.find(a => a.id === currentAccommodationId)?.name || "旅館"}
-      </span>
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
