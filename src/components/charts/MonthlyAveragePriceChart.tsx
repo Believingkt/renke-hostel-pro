@@ -1,0 +1,110 @@
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Cell } from "recharts";
+import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
+import { CustomChartTooltip } from "./CustomChartTooltip";
+
+interface MonthlyAveragePriceChartProps {
+  data: Array<{
+    month: string;
+    averagePrice: number;
+    isFuture?: boolean;
+  }>;
+}
+
+export const MonthlyAveragePriceChart = ({ data }: MonthlyAveragePriceChartProps) => {
+  // 檢查是否有實際數據
+  const hasRealData = data.some(d => d.averagePrice > 0);
+
+  // 如果沒有實際數據，顯示空狀態
+  if (!hasRealData) {
+    return (
+      <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+        <div className="text-center">
+          <p className="text-sm">暫無平均房價數據</p>
+          <p className="text-xs mt-1">請新增訂單後查看統計</p>
+        </div>
+      </div>
+    );
+  }
+
+  const chartConfig = {
+    averagePrice: {
+      label: "平均房價",
+      color: "hsl(271, 81%, 56%)",
+    },
+  };
+
+  const valueFormatter = (value: number) => `NT$ ${value.toLocaleString()}`;
+
+  return (
+    <div className="animate-fade-in">
+      <ChartContainer config={chartConfig} className="h-[300px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart 
+            data={data}
+            margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+          >
+            <defs>
+              <linearGradient id="priceGradient" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="hsl(271, 81%, 56%)" stopOpacity={0.8} />
+                <stop offset="100%" stopColor="hsl(271, 81%, 56%)" stopOpacity={1} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid 
+              strokeDasharray="3 3" 
+              className="stroke-muted/30" 
+              vertical={false}
+            />
+            <XAxis 
+              dataKey="month"
+              className="text-xs"
+              tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              width={60}
+              tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+              className="text-xs"
+              tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <ChartTooltip 
+              content={
+                <CustomChartTooltip 
+                  valueFormatter={valueFormatter}
+                />
+              }
+            />
+            <Line
+              type="monotone"
+              dataKey="averagePrice"
+              stroke="url(#priceGradient)"
+              strokeWidth={3}
+              dot={{ 
+                fill: "hsl(271, 81%, 56%)", 
+                strokeWidth: 2, 
+                r: 4,
+                stroke: "hsl(var(--background))"
+              }}
+              activeDot={{ 
+                r: 6, 
+                strokeWidth: 2,
+                stroke: "hsl(var(--background))"
+              }}
+              animationDuration={1000}
+              isAnimationActive={true}
+            >
+              {data.map((entry, index) => (
+                <Cell 
+                  key={`cell-${index}`}
+                  opacity={entry.isFuture ? 0.3 : 1}
+                />
+              ))}
+            </Line>
+          </LineChart>
+        </ResponsiveContainer>
+      </ChartContainer>
+    </div>
+  );
+};
