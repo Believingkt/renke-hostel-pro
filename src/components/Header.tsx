@@ -115,7 +115,7 @@ export function Header() {
           <SidebarTrigger className="h-10 w-10" />
         </div>
         
-        <div className="flex items-center gap-1 md:gap-3">
+        <div className="flex items-center gap-3 md:gap-4">
           <div className="hidden sm:block">
             <AccommodationSelector />
           </div>
@@ -123,7 +123,7 @@ export function Header() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-11 w-11 relative touch-manipulation"
+            className="h-10 w-10 relative touch-manipulation"
             onClick={() => navigate('/admin/notifications')}
           >
             <Bell className="h-5 w-5" />
@@ -139,7 +139,7 @@ export function Header() {
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-11 px-2 md:px-3 gap-2 touch-manipulation">
+              <Button variant="ghost" className="h-10 px-3 md:px-4 gap-2 touch-manipulation">
                 <UserCircle className="h-5 w-5 flex-shrink-0" />
                 {userName && (
                   <span className="hidden md:inline-block text-sm font-medium max-w-[120px] truncate">
