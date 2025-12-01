@@ -29,11 +29,11 @@ export const MonthlyAveragePriceChart = ({ data }: MonthlyAveragePriceChartProps
 
   const chartConfig = {
     averagePrice: {
-      label: "今年平均房價",
+      label: "今年",
       color: "hsl(271, 81%, 56%)",
     },
     lastYearAveragePrice: {
-      label: "去年平均房價",
+      label: "去年",
       color: "hsl(24, 90%, 56%)",
     },
   };
