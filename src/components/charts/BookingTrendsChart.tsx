@@ -57,7 +57,7 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
     },
     今年: {
       label: "今年",
-      color: "hsl(var(--chart-booking-primary))",
+      color: "hsl(25, 90%, 60%)",
     },
   } : {
     本月: {
@@ -90,7 +90,7 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
             >
               <defs>
                 {categories.map((category, index) => {
-                  const color = index === 0 ? "hsl(0, 0%, 60%)" : "hsl(var(--chart-booking-primary))";
+                  const color = index === 0 ? "hsl(0, 0%, 60%)" : "hsl(25, 90%, 60%)";
                   return (
                     <linearGradient key={`gradient-${category}`} id={`gradient-${category}`} x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor={color} stopOpacity={0.1}/>
@@ -142,7 +142,7 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                   key={category}
                   type="monotone"
                   dataKey={category}
-                  stroke={index === 0 ? "hsl(0, 0%, 60%)" : "hsl(var(--chart-booking-primary))"}
+                  stroke={index === 0 ? "hsl(0, 0%, 60%)" : "hsl(25, 90%, 60%)"}
                   strokeWidth={3}
                   fill={`url(#gradient-${category})`}
                   dot={(props: any) => {
@@ -153,7 +153,7 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                       cy={cy}
                       r={7}
                       fill="hsl(var(--background))"
-                      stroke={index === 0 ? "hsl(0, 0%, 60%)" : "hsl(var(--chart-booking-primary))"}
+                      stroke={index === 0 ? "hsl(0, 0%, 60%)" : "hsl(25, 90%, 60%)"}
                       strokeWidth={2}
                       opacity={payload.isFuture ? 0.3 : 1}
                       style={{ cursor: 'pointer', touchAction: 'none' }}
@@ -179,7 +179,7 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                           cy={cy}
                           r={10}
                           fill="hsl(var(--background))"
-                          stroke={index === 0 ? "hsl(0, 0%, 60%)" : "hsl(var(--chart-booking-primary))"}
+                          stroke={index === 0 ? "hsl(0, 0%, 60%)" : "hsl(25, 90%, 60%)"}
                           strokeWidth={3}
                           opacity={payload.isFuture ? 0.3 : 1}
                           style={{ cursor: 'pointer', touchAction: 'none' }}
