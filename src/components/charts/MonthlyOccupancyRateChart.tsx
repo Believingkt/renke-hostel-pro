@@ -30,11 +30,11 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
   const chartConfig = {
     occupancyRate: {
       label: "今年",
-      color: "hsl(142, 76%, 36%)",
+      color: "hsl(142, 80%, 40%)",
     },
     lastYearOccupancyRate: {
       label: "去年",
-      color: "hsl(210, 76%, 56%)",
+      color: "hsl(210, 70%, 60%)",
     },
   };
 
@@ -48,8 +48,8 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
           >
             <defs>
               <linearGradient id="occupancyGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="hsl(142, 76%, 36%)" stopOpacity={0.3} />
-                <stop offset="100%" stopColor="hsl(142, 76%, 36%)" stopOpacity={0.05} />
+                <stop offset="0%" stopColor="hsl(142, 80%, 40%)" stopOpacity={0.3} />
+                <stop offset="100%" stopColor="hsl(142, 80%, 40%)" stopOpacity={0.05} />
               </linearGradient>
             </defs>
             <CartesianGrid 
@@ -94,19 +94,19 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
             <Line
               type="monotone"
               dataKey="lastYearOccupancyRate"
-              stroke="hsl(210, 76%, 56%)"
+              stroke="hsl(210, 70%, 60%)"
               strokeWidth={2}
               dot={{ 
                 r: 7, 
                 fill: "hsl(var(--background))",
-                stroke: "hsl(210, 76%, 56%)",
+                stroke: "hsl(210, 70%, 60%)",
                 strokeWidth: 2,
                 className: "hover:scale-125 transition-transform duration-200"
               }}
               activeDot={{
                 r: 10,
                 fill: "hsl(var(--background))",
-                stroke: "hsl(210, 76%, 56%)",
+                stroke: "hsl(210, 70%, 60%)",
                 strokeWidth: 3,
                 className: "animate-scale-in"
               }}
@@ -120,20 +120,20 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
             <Area
               type="monotone"
               dataKey="occupancyRate"
-              stroke="hsl(142, 76%, 36%)"
+              stroke="hsl(142, 80%, 40%)"
               strokeWidth={3}
               fill="url(#occupancyGradient)"
               dot={{ 
                 r: 7, 
                 fill: "hsl(var(--background))",
-                stroke: "hsl(142, 76%, 36%)",
+                stroke: "hsl(142, 80%, 40%)",
                 strokeWidth: 2,
                 className: "hover:scale-125 transition-transform duration-200"
               }}
               activeDot={{
                 r: 10,
                 fill: "hsl(var(--background))",
-                stroke: "hsl(142, 76%, 36%)",
+                stroke: "hsl(142, 80%, 40%)",
                 strokeWidth: 3,
                 className: "animate-scale-in"
               }}
