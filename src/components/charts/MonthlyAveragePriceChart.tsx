@@ -1,4 +1,4 @@
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Cell } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, ComposedChart } from "recharts";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { CustomChartTooltip } from "./CustomChartTooltip";
 
@@ -6,6 +6,7 @@ interface MonthlyAveragePriceChartProps {
   data: Array<{
     month: string;
     averagePrice: number;
+    lastYearAveragePrice?: number;
     isFuture?: boolean;
   }>;
 }
@@ -28,8 +29,12 @@ export const MonthlyAveragePriceChart = ({ data }: MonthlyAveragePriceChartProps
 
   const chartConfig = {
     averagePrice: {
-      label: "平均房價",
+      label: "今年平均房價",
       color: "hsl(271, 81%, 56%)",
+    },
+    lastYearAveragePrice: {
+      label: "去年平均房價",
+      color: "hsl(24, 90%, 56%)",
     },
   };
 
@@ -39,7 +44,7 @@ export const MonthlyAveragePriceChart = ({ data }: MonthlyAveragePriceChartProps
     <div className="animate-fade-in">
       <ChartContainer config={chartConfig} className="h-[300px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart 
+          <ComposedChart 
             data={data}
             margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
           >
@@ -73,9 +78,33 @@ export const MonthlyAveragePriceChart = ({ data }: MonthlyAveragePriceChartProps
               content={
                 <CustomChartTooltip 
                   valueFormatter={valueFormatter}
+                  comparisonMode="lastYear"
                 />
               }
             />
+            
+            {/* 去年同期 - 虛線 */}
+            <Line
+              type="monotone"
+              dataKey="lastYearAveragePrice"
+              stroke="hsl(24, 90%, 56%)"
+              strokeWidth={2}
+              strokeDasharray="5 5"
+              dot={{ 
+                r: 3, 
+                fill: "hsl(24, 90%, 56%)",
+                strokeWidth: 0
+              }}
+              activeDot={{ 
+                r: 5, 
+                strokeWidth: 2,
+                stroke: "hsl(var(--background))"
+              }}
+              animationDuration={1000}
+              isAnimationActive={true}
+            />
+            
+            {/* 今年 - 實線 */}
             <Line
               type="monotone"
               dataKey="averagePrice"
@@ -94,15 +123,8 @@ export const MonthlyAveragePriceChart = ({ data }: MonthlyAveragePriceChartProps
               }}
               animationDuration={1000}
               isAnimationActive={true}
-            >
-              {data.map((entry, index) => (
-                <Cell 
-                  key={`cell-${index}`}
-                  opacity={entry.isFuture ? 0.3 : 1}
-                />
-              ))}
-            </Line>
-          </LineChart>
+            />
+          </ComposedChart>
         </ResponsiveContainer>
       </ChartContainer>
     </div>
