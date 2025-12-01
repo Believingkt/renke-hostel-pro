@@ -136,6 +136,8 @@ export function useFormDraft<T extends Record<string, any>>({
     localStorage.removeItem(key);
     setHasDraft(false);
     setIsDraftRestored(false);
+    // 更新 initialDataRef 為當前的 formData，避免誤判為有變更
+    initialDataRef.current = formData;
   };
 
   // 放棄草稿
