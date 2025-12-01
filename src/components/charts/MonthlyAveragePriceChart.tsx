@@ -1,5 +1,5 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, ComposedChart } from "recharts";
-import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
+import { ChartContainer, ChartTooltip, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { CustomChartTooltip } from "./CustomChartTooltip";
 
 interface MonthlyAveragePriceChartProps {
@@ -89,6 +89,7 @@ export const MonthlyAveragePriceChart = ({ data }: MonthlyAveragePriceChartProps
               animationDuration={200}
               animationEasing="ease-out"
             />
+            <ChartLegend content={<ChartLegendContent />} />
             
             {/* 去年同期 - 虛線 */}
             <Line
