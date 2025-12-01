@@ -6,6 +6,7 @@ interface UseFormDraftOptions<T> {
   initialData: T;
   onRestore?: (data: T) => void;
   autoSaveDelay?: number;
+  minChangeThreshold?: number; // 最小變更字元數閾值
 }
 
 /**
@@ -14,13 +15,15 @@ interface UseFormDraftOptions<T> {
  * @param key - localStorage 的唯一鍵值
  * @param initialData - 表單的初始數據
  * @param onRestore - 恢復草稿時的回調函數
- * @param autoSaveDelay - 自動儲存延遲（毫秒），默認 1000ms
+ * @param autoSaveDelay - 自動儲存延遲（毫秒），默認 2500ms
+ * @param minChangeThreshold - 最小變更字元數閾值，默認 3
  */
 export function useFormDraft<T extends Record<string, any>>({
   key,
   initialData,
   onRestore,
-  autoSaveDelay = 1000,
+  autoSaveDelay = 2500,
+  minChangeThreshold = 3,
 }: UseFormDraftOptions<T>) {
   const [formData, setFormData] = useState<T>(initialData);
   const [hasDraft, setHasDraft] = useState(false);
@@ -28,6 +31,8 @@ export function useFormDraft<T extends Record<string, any>>({
   const autoSaveTimerRef = useRef<NodeJS.Timeout>();
   const isInitialMount = useRef(true);
   const initialDataRef = useRef<T>(initialData);
+  const initializationCompleteRef = useRef(false);
+  const mountTimeRef = useRef(Date.now());
 
   // 更新 initialDataRef 當 initialData 改變時
   useEffect(() => {
@@ -50,10 +55,22 @@ export function useFormDraft<T extends Record<string, any>>({
     isInitialMount.current = false;
   }, [key]);
 
-  // 自動儲存草稿
+  // 自動儲存草稿（優化版）
   useEffect(() => {
     // 跳過初始掛載
     if (isInitialMount.current) {
+      return;
+    }
+
+    // 初始化緩衝期（掛載後 1 秒內不觸發自動儲存）
+    const timeSinceMount = Date.now() - mountTimeRef.current;
+    if (timeSinceMount < 1000) {
+      return;
+    }
+
+    // 標記初始化完成
+    if (!initializationCompleteRef.current) {
+      initializationCompleteRef.current = true;
       return;
     }
 
@@ -65,14 +82,27 @@ export function useFormDraft<T extends Record<string, any>>({
     // 設置新的定時器
     autoSaveTimerRef.current = setTimeout(() => {
       try {
-        // 比較當前數據和初始數據，檢查是否有變更
+        // 計算實質變更量
+        let totalChangeLength = 0;
+        let hasSignificantChange = false;
+
+        // 比較當前數據和初始數據
         const hasChanges = Object.keys(formData).some(key => {
           const currentValue = formData[key];
           const initialValue = initialDataRef.current[key];
           
           // 處理不同類型的比較
           if (typeof currentValue === 'string' && typeof initialValue === 'string') {
-            return currentValue.trim() !== initialValue.trim();
+            const currentTrimmed = currentValue.trim();
+            const initialTrimmed = initialValue.trim();
+            
+            if (currentTrimmed !== initialTrimmed) {
+              // 計算變更長度
+              const changeLength = Math.abs(currentTrimmed.length - initialTrimmed.length);
+              totalChangeLength += changeLength;
+              return true;
+            }
+            return false;
           }
           if (Array.isArray(currentValue) && Array.isArray(initialValue)) {
             return JSON.stringify(currentValue) !== JSON.stringify(initialValue);
@@ -80,8 +110,11 @@ export function useFormDraft<T extends Record<string, any>>({
           return currentValue !== initialValue;
         });
 
-        if (hasChanges) {
-          // 有變更時才儲存草稿
+        // 檢查是否達到最小變更閾值
+        hasSignificantChange = totalChangeLength >= minChangeThreshold;
+
+        if (hasChanges && hasSignificantChange) {
+          // 有實質變更時才儲存草稿
           const hasContent = Object.values(formData).some(value => {
             if (typeof value === 'string') return value.trim().length > 0;
             if (typeof value === 'number') return value !== 0;
@@ -93,7 +126,7 @@ export function useFormDraft<T extends Record<string, any>>({
             localStorage.setItem(key, JSON.stringify(formData));
             setHasDraft(true);
           }
-        } else {
+        } else if (!hasChanges) {
           // 沒有變更時清除草稿
           const existingDraft = localStorage.getItem(key);
           if (existingDraft && !isDraftRestored) {
@@ -111,7 +144,7 @@ export function useFormDraft<T extends Record<string, any>>({
         clearTimeout(autoSaveTimerRef.current);
       }
     };
-  }, [formData, key, autoSaveDelay, isDraftRestored]);
+  }, [formData, key, autoSaveDelay, isDraftRestored, minChangeThreshold]);
 
   // 恢復草稿
   const restoreDraft = () => {
