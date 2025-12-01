@@ -90,13 +90,12 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
             />
             <ChartLegend content={<ChartLegendContent />} />
             
-            {/* 去年同期 - 虛線 */}
+            {/* 去年同期 - 實線 */}
             <Line
               type="monotone"
               dataKey="lastYearOccupancyRate"
               stroke="hsl(210, 76%, 56%)"
               strokeWidth={2}
-              strokeDasharray="5 5"
               dot={{ 
                 r: 7, 
                 fill: "hsl(var(--background))",

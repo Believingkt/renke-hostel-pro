@@ -91,13 +91,12 @@ export const MonthlyAveragePriceChart = ({ data }: MonthlyAveragePriceChartProps
             />
             <ChartLegend content={<ChartLegendContent />} />
             
-            {/* 去年同期 - 虛線 */}
+            {/* 去年同期 - 實線 */}
             <Line
               type="monotone"
               dataKey="lastYearAveragePrice"
               stroke="hsl(24, 90%, 56%)"
               strokeWidth={2}
-              strokeDasharray="5 5"
               dot={{ 
                 r: 7, 
                 fill: "hsl(var(--background))",
