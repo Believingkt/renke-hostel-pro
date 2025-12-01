@@ -392,7 +392,7 @@ const Dashboard = () => {
                     <CardTitle className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
                       訂單趨勢
                     </CardTitle>
-                    <p className="text-sm text-muted-foreground font-medium">今年與去年同期訂單數量比較</p>
+                    <p className="text-sm text-muted-foreground font-medium">每月總訂單數</p>
                   </div>
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10">
                     <Calendar className="h-4 w-4 text-blue-600" />
