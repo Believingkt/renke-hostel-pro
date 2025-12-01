@@ -67,6 +67,9 @@ const Index = () => {
   useEffect(() => {
     if (subdomainLoading || !accommodationId) return;
 
+    // 清除舊資料，避免顯示過時內容
+    setData(null);
+
     const loadData = async () => {
       try {
         const { data: infoData, error: infoError } = await supabase
