@@ -1061,7 +1061,7 @@ const KolDiscount = () => {
                         className="h-9 sm:h-10 touch-manipulation"
                       />
               <p className="text-xs text-muted-foreground">
-                        佣金將根據折扣金額計算，例如折扣 1000 元且佣金率 10%，則佣金為 100 元
+                        佣金將根據實際付款金額計算，例如訂房 30,000 元折扣後實付 27,000 元且佣金率 5%，則佣金為 1,350 元
                       </p>
                     </div>
                   </div>
@@ -1345,7 +1345,7 @@ const KolDiscount = () => {
                         className="touch-manipulation"
                       />
                       <p className="text-xs text-muted-foreground">
-                        佣金將根據折扣金額計算，例如折扣 1000 元且佣金率 10%，則佣金為 100 元
+                        佣金將根據實際付款金額計算，例如訂房 30,000 元折扣後實付 27,000 元且佣金率 5%，則佣金為 1,350 元
                       </p>
                     </div>
                   </div>
@@ -1633,7 +1633,7 @@ const KolDiscount = () => {
                     className="h-12 text-base touch-manipulation"
                   />
             <p className="text-xs text-muted-foreground">
-                  佣金將根據折扣金額計算，例如折扣 1000 元且佣金率 10%，則佣金為 100 元
+                  佣金將根據實際付款金額計算，例如訂房 30,000 元折扣後實付 27,000 元且佣金率 5%，則佣金為 1,350 元
                 </p>
               </div>
             </div>
@@ -2036,7 +2036,7 @@ const KolDiscount = () => {
                   placeholder="例如：10（表示 10%）"
                 />
                 <p className="text-xs text-muted-foreground">
-                  佣金將根據折扣金額計算，例如折扣 1000 元且佣金率 10%，則佣金為 100 元
+                  佣金將根據實際付款金額計算，例如訂房 30,000 元折扣後實付 27,000 元且佣金率 5%，則佣金為 1,350 元
                 </p>
               </div>
             </div>
