@@ -54,8 +54,9 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
             </defs>
             <CartesianGrid 
               strokeDasharray="3 3" 
-              className="stroke-muted/30" 
+              className="stroke-muted/20" 
               vertical={false}
+              strokeWidth={0.5}
             />
             <XAxis 
               dataKey="month"
