@@ -34,7 +34,7 @@ export const MonthlyAveragePriceChart = ({ data }: MonthlyAveragePriceChartProps
     },
     lastYearAveragePrice: {
       label: "去年",
-      color: "hsl(24, 85%, 62%)",
+      color: "hsl(0, 0%, 60%)",
     },
   };
 
@@ -95,19 +95,19 @@ export const MonthlyAveragePriceChart = ({ data }: MonthlyAveragePriceChartProps
             <Line
               type="monotone"
               dataKey="lastYearAveragePrice"
-              stroke="hsl(24, 85%, 62%)"
+              stroke="hsl(0, 0%, 60%)"
               strokeWidth={2}
               dot={{ 
                 r: 7, 
                 fill: "hsl(var(--background))",
-                stroke: "hsl(24, 85%, 62%)",
+                stroke: "hsl(0, 0%, 60%)",
                 strokeWidth: 2,
                 className: "hover:scale-125 transition-transform duration-200"
               }}
               activeDot={{ 
                 r: 10,
                 fill: "hsl(var(--background))",
-                stroke: "hsl(24, 85%, 62%)",
+                stroke: "hsl(0, 0%, 60%)",
                 strokeWidth: 3,
                 className: "animate-scale-in"
               }}
