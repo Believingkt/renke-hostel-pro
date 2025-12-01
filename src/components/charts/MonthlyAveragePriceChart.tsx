@@ -28,13 +28,13 @@ export const MonthlyAveragePriceChart = ({ data }: MonthlyAveragePriceChartProps
   }
 
   const chartConfig = {
-    averagePrice: {
-      label: "今年",
-      color: "hsl(271, 85%, 48%)",
-    },
     lastYearAveragePrice: {
       label: "去年",
       color: "hsl(0, 0%, 60%)",
+    },
+    averagePrice: {
+      label: "今年",
+      color: "hsl(271, 85%, 48%)",
     },
   };
 
