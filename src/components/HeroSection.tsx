@@ -425,6 +425,7 @@ const HeroSection = ({
             }}
           >
             <div className="w-full space-y-3 md:space-y-4">
+              {/* 主標題：優先使用圖片標題，否則使用全局標題或住宿名稱 */}
               <h1 
                 className="hero-title font-bold drop-shadow-lg leading-tight"
                 style={{
@@ -433,9 +434,11 @@ const HeroSection = ({
                   fontWeight: 700
                 }}
               >
-                {slides[current].title || accommodationName}
+                {slides[current].title || heroMainTitle || accommodationName}
               </h1>
-              {slides[current].subtitle && (
+              
+              {/* 副標題：優先使用圖片副標題，否則使用全局副標題 */}
+              {(slides[current].subtitle || heroSubtitle) && (
                 <p 
                   className={`
                     drop-shadow-lg mt-3 md:mt-4 leading-relaxed transition-opacity duration-500
@@ -444,10 +447,12 @@ const HeroSection = ({
                       'text-lg md:text-3xl'}
                   `}
                 >
-                  {slides[current].subtitle}
+                  {slides[current].subtitle || heroSubtitle}
                 </p>
               )}
-              {slides[current].secondary_subtitle && (
+              
+              {/* 次標題：優先使用圖片次標題，否則使用全局次標題 */}
+              {(slides[current].secondary_subtitle || heroDescription) && (
                 <p 
                   className={`
                     drop-shadow-lg opacity-90 mt-2 md:mt-3 leading-relaxed transition-opacity duration-500
@@ -456,49 +461,8 @@ const HeroSection = ({
                       'text-base md:text-2xl'}
                   `}
                 >
-                  {slides[current].secondary_subtitle}
+                  {slides[current].secondary_subtitle || heroDescription}
                 </p>
-              )}
-              {!slides[current].subtitle && heroMainTitle && (
-                <>
-                  <p 
-                    className={`
-                      animate-fade-in drop-shadow-lg mt-3 md:mt-4
-                      ${slides[current].text_size === 'small' ? 'text-base md:text-2xl' : 
-                        slides[current].text_size === 'large' ? 'text-xl md:text-4xl' : 
-                        'text-lg md:text-3xl'}
-                    `}
-                    style={{ animationDelay: "0.2s" }}
-                  >
-                    {heroMainTitle}
-                  </p>
-                  {heroSubtitle && (
-                    <p 
-                      className={`
-                        animate-fade-in drop-shadow-lg mt-2 md:mt-3
-                        ${slides[current].text_size === 'small' ? 'text-sm md:text-lg' : 
-                          slides[current].text_size === 'large' ? 'text-lg md:text-2xl' : 
-                          'text-base md:text-xl'}
-                      `}
-                      style={{ animationDelay: "0.4s" }}
-                    >
-                      {heroSubtitle}
-                    </p>
-                  )}
-                  {heroDescription && (
-                    <p 
-                      className={`
-                        animate-fade-in drop-shadow-lg mt-2 md:mt-3
-                        ${slides[current].text_size === 'small' ? 'text-xs md:text-sm' : 
-                          slides[current].text_size === 'large' ? 'text-base md:text-lg' : 
-                          'text-sm md:text-base'}
-                      `}
-                      style={{ animationDelay: "0.6s" }}
-                    >
-                      {heroDescription}
-                    </p>
-                  )}
-                </>
               )}
             </div>
           </div>
