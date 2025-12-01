@@ -22,6 +22,8 @@ import { Badge } from "@/components/ui/badge";
 import PullToRefresh from "react-simple-pull-to-refresh";
 import { RevenueChart } from "@/components/charts/RevenueChart";
 import { BookingTrendsChart } from "@/components/charts/BookingTrendsChart";
+import { MonthlyOccupancyRateChart } from "@/components/charts/MonthlyOccupancyRateChart";
+import { MonthlyAveragePriceChart } from "@/components/charts/MonthlyAveragePriceChart";
 import { PageHeader } from "@/components/PageHeader";
 import {
   Breadcrumb,
@@ -143,7 +145,14 @@ const Dashboard = () => {
     return <DashboardSkeleton />;
   }
 
-  const { stats, revenueData = [], bookingData = [], occupancyData = [] } = dashboardData;
+  const { 
+    stats, 
+    revenueData = [], 
+    bookingData = [], 
+    occupancyData = [],
+    monthlyOccupancyRate = [],
+    monthlyAveragePrice = []
+  } = dashboardData;
 
   // 檢查是否完全沒有數據（真正的空狀態）
   const isEmptyState = stats.totalRooms === 0 && 
@@ -421,6 +430,56 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* 新增圖表：住房率和平均房價 */}
+      <div className="grid gap-6 lg:grid-cols-2 px-2 md:px-0">
+        {isLoading ? (
+          <>
+            <ChartSkeleton />
+            <ChartSkeleton />
+          </>
+        ) : (
+          <>
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-1">
+                    <CardTitle className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                      住房率
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground font-medium">每月入住率統計</p>
+                  </div>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
+                    <Hotel className="h-4 w-4 text-emerald-600" />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <MonthlyOccupancyRateChart data={monthlyOccupancyRate} />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-1">
+                    <CardTitle className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                      平均房價
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground font-medium">訂單總金額 / 總訂單數</p>
+                  </div>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500/10">
+                    <DollarSign className="h-4 w-4 text-purple-600" />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <MonthlyAveragePriceChart data={monthlyAveragePrice} />
+              </CardContent>
+            </Card>
+          </>
+        )}
+      </div>
 
     </div>
   );

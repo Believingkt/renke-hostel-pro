@@ -34,11 +34,20 @@ interface OccupancyData {
   [roomTypeName: string]: number | string; // 动态的房型名称作为key
 }
 
+interface MonthlyMetrics {
+  month: string;
+  occupancyRate: number;
+  averagePrice: number;
+  isFuture?: boolean;
+}
+
 interface DashboardData {
   stats: DashboardStats;
   revenueData: ChartData[];
   bookingData: ChartData[];
   occupancyData: OccupancyData[];
+  monthlyOccupancyRate: MonthlyMetrics[];
+  monthlyAveragePrice: MonthlyMetrics[];
 }
 
 const fetchDashboardData = async (
@@ -359,6 +368,10 @@ const fetchDashboardData = async (
   // 計算房型入住率（今年每個月）
   const occupancyData: OccupancyData[] = [];
   
+  // 計算整體住房率和平均房價
+  const monthlyOccupancyRate: MonthlyMetrics[] = [];
+  const monthlyAveragePrice: MonthlyMetrics[] = [];
+  
   // 只計算今年的數據（1-12月）
   for (let month = 0; month < 12; month++) {
     const monthDate = new Date(currentYear, month, 1);
@@ -380,6 +393,10 @@ const fetchDashboardData = async (
       // 訂單與該月有重疊
       return checkOut > monthStart && checkIn <= monthEnd;
     });
+    
+    // 計算整體住房率
+    let totalNightsAllRooms = 0;
+    let totalAvailableNights = 0;
     
     // 為每個房型計算入住率
     roomTypesData.forEach(roomType => {
@@ -409,8 +426,41 @@ const fetchDashboardData = async (
         ? Math.round((totalNights / maxPossibleNights) * 100)
         : 0;
       
+      // 累加整體數據
+      totalNightsAllRooms += totalNights;
+      totalAvailableNights += maxPossibleNights;
+      
       // 未來月份設為 null 或 0
       monthDataPoint[roomType.name] = isFutureMonth ? 0 : Math.min(100, occupancyRate);
+    });
+    
+    // 計算整體住房率
+    const overallOccupancyRate = totalAvailableNights > 0
+      ? Math.round((totalNightsAllRooms / totalAvailableNights) * 100)
+      : 0;
+    
+    monthlyOccupancyRate.push({
+      month: monthLabel,
+      occupancyRate: isFutureMonth ? 0 : Math.min(100, overallOccupancyRate),
+      averagePrice: 0,
+      isFuture: isFutureMonth,
+    });
+    
+    // 計算平均房價（訂單總金額 / 總訂單數）
+    const monthKey = format(monthDate, 'yyyy-MM');
+    const monthOrdersForPrice = ordersByMonth.get(monthKey) || [];
+    const totalRevenue = monthOrdersForPrice.reduce((sum, o) => {
+      const price = Number(o.final_price);
+      return sum + (Number.isFinite(price) ? price : 0);
+    }, 0);
+    const orderCount = monthOrdersForPrice.length;
+    const averagePrice = orderCount > 0 ? Math.round(totalRevenue / orderCount) : 0;
+    
+    monthlyAveragePrice.push({
+      month: monthLabel,
+      occupancyRate: 0,
+      averagePrice: isFutureMonth ? 0 : averagePrice,
+      isFuture: isFutureMonth,
     });
     
     occupancyData.push(monthDataPoint);
@@ -431,6 +481,8 @@ const fetchDashboardData = async (
     revenueData,
     bookingData,
     occupancyData,
+    monthlyOccupancyRate,
+    monthlyAveragePrice,
   };
 };
 
