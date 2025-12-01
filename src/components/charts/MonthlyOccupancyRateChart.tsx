@@ -90,19 +90,35 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
               dataKey="lastYearOccupancyRate"
               stroke="hsl(0, 0%, 60%)"
               strokeWidth={2}
-              dot={{ 
-                r: 6, 
-                fill: "hsl(var(--background))",
-                stroke: "hsl(0, 0%, 60%)",
-                strokeWidth: 2,
-                className: "hover:scale-125 transition-transform duration-200"
+              dot={(props: any) => {
+                const { cx, cy } = props;
+                return (
+                  <circle
+                    cx={cx}
+                    cy={cy}
+                    r={6}
+                    fill="hsl(0, 0%, 100%)"
+                    fillOpacity={1}
+                    stroke="hsl(0, 0%, 60%)"
+                    strokeWidth={2}
+                    className="hover:scale-125 transition-transform duration-200"
+                  />
+                );
               }}
-              activeDot={{
-                r: 9,
-                fill: "hsl(var(--background))",
-                stroke: "hsl(0, 0%, 60%)",
-                strokeWidth: 3,
-                className: "animate-scale-in"
+              activeDot={(props: any) => {
+                const { cx, cy } = props;
+                return (
+                  <circle
+                    cx={cx}
+                    cy={cy}
+                    r={9}
+                    fill="hsl(0, 0%, 100%)"
+                    fillOpacity={1}
+                    stroke="hsl(0, 0%, 60%)"
+                    strokeWidth={3}
+                    className="animate-scale-in"
+                  />
+                );
               }}
               animationDuration={2000}
               animationBegin={0}
