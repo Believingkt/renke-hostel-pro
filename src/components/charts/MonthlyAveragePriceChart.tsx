@@ -121,7 +121,7 @@ export const MonthlyAveragePriceChart = ({ data }: MonthlyAveragePriceChartProps
             <Line
               type="monotone"
               dataKey="averagePrice"
-              stroke="url(#priceGradient)"
+              stroke="hsl(271, 85%, 48%)"
               strokeWidth={3}
               dot={{ 
                 r: 7, 
