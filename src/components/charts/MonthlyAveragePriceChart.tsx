@@ -1,4 +1,4 @@
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, ComposedChart } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 import { ChartContainer, ChartTooltip, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { CustomChartTooltip } from "./CustomChartTooltip";
 
@@ -44,16 +44,10 @@ export const MonthlyAveragePriceChart = ({ data }: MonthlyAveragePriceChartProps
     <div className="animate-fade-in">
       <ChartContainer config={chartConfig} className="h-[180px] sm:h-[220px] md:h-[260px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart 
+          <LineChart 
             data={data}
             margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
           >
-            <defs>
-              <linearGradient id="priceGradient" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="hsl(271, 85%, 48%)" stopOpacity={0.8} />
-                <stop offset="100%" stopColor="hsl(271, 85%, 48%)" stopOpacity={1} />
-              </linearGradient>
-            </defs>
             <CartesianGrid 
               strokeDasharray="3 3" 
               className="stroke-muted/30" 
@@ -142,7 +136,7 @@ export const MonthlyAveragePriceChart = ({ data }: MonthlyAveragePriceChartProps
               isAnimationActive={true}
               animationEasing="ease-in-out"
             />
-          </ComposedChart>
+          </LineChart>
         </ResponsiveContainer>
       </ChartContainer>
     </div>
