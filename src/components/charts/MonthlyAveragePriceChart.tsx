@@ -98,14 +98,14 @@ export const MonthlyAveragePriceChart = ({ data }: MonthlyAveragePriceChartProps
               stroke="hsl(0, 0%, 60%)"
               strokeWidth={2}
               dot={{ 
-                r: 7, 
+                r: 6, 
                 fill: "hsl(var(--background))",
                 stroke: "hsl(0, 0%, 60%)",
                 strokeWidth: 2,
                 className: "hover:scale-125 transition-transform duration-200"
               }}
               activeDot={{ 
-                r: 10,
+                r: 9,
                 fill: "hsl(var(--background))",
                 stroke: "hsl(0, 0%, 60%)",
                 strokeWidth: 3,
@@ -124,14 +124,14 @@ export const MonthlyAveragePriceChart = ({ data }: MonthlyAveragePriceChartProps
               stroke="hsl(271, 85%, 48%)"
               strokeWidth={3}
               dot={{ 
-                r: 7, 
+                r: 6, 
                 fill: "hsl(var(--background))",
                 stroke: "hsl(271, 85%, 48%)",
                 strokeWidth: 2,
                 className: "hover:scale-125 transition-transform duration-200"
               }}
               activeDot={{ 
-                r: 10,
+                r: 9,
                 fill: "hsl(var(--background))",
                 stroke: "hsl(271, 85%, 48%)",
                 strokeWidth: 3,
