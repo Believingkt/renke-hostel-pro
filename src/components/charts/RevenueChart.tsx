@@ -73,25 +73,25 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
   const chartConfig = isCustomRange ? {
     本期: {
       label: "本期",
-      color: "hsl(0 80% 60%)", // 紅色
+      color: "hsl(210, 80%, 55%)", // 藍色
     },
   } : comparisonMode === 'lastYear' ? {
     去年: {
       label: "去年",
-      color: "hsl(25 90% 60%)", // 橘色
+      color: "hsl(0, 0%, 60%)", // 灰色
     },
     今年: {
       label: "今年",
-      color: "hsl(0 80% 60%)", // 紅色
+      color: "hsl(210, 80%, 55%)", // 藍色
     },
   } : {
     本月: {
       label: "本月",
-      color: "hsl(0 80% 60%)", // 紅色
+      color: "hsl(210, 80%, 55%)", // 藍色
     },
     上月: {
       label: "上月",
-      color: "hsl(25 90% 60%)", // 橘色
+      color: "hsl(0, 0%, 60%)", // 灰色
     },
   };
 
