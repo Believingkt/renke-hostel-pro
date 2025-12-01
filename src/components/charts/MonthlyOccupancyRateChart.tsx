@@ -18,7 +18,7 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
   // 如果沒有實際數據，顯示空狀態
   if (!hasRealData) {
     return (
-      <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+      <div className="flex items-center justify-center h-[180px] sm:h-[220px] md:h-[260px] text-muted-foreground">
         <div className="text-center">
           <p className="text-sm">暫無住房率數據</p>
           <p className="text-xs mt-1">請新增訂單後查看統計</p>
@@ -40,7 +40,7 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
 
   return (
     <div className="animate-fade-in">
-      <ChartContainer config={chartConfig} className="h-[300px] w-full">
+      <ChartContainer config={chartConfig} className="h-[180px] sm:h-[220px] md:h-[260px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart 
             data={data}
