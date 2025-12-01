@@ -417,7 +417,7 @@ const Dashboard = () => {
                     <CardTitle className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
                       營收統計
                     </CardTitle>
-                    <p className="text-sm text-muted-foreground font-medium">今年與去年同期營收金額比較</p>
+                    <p className="text-sm text-muted-foreground font-medium">每月總營收金額</p>
                   </div>
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-500/10">
                     <DollarSign className="h-4 w-4 text-green-600" />
