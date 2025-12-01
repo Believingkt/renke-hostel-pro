@@ -81,6 +81,13 @@ export const MonthlyAveragePriceChart = ({ data }: MonthlyAveragePriceChartProps
                   comparisonMode="lastYear"
                 />
               }
+              cursor={{ 
+                stroke: 'hsl(var(--muted))', 
+                strokeWidth: 1,
+                strokeDasharray: '3 3'
+              }}
+              animationDuration={200}
+              animationEasing="ease-out"
             />
             
             {/* 去年同期 - 虛線 */}
@@ -91,17 +98,23 @@ export const MonthlyAveragePriceChart = ({ data }: MonthlyAveragePriceChartProps
               strokeWidth={2}
               strokeDasharray="5 5"
               dot={{ 
-                r: 3, 
-                fill: "hsl(24, 90%, 56%)",
-                strokeWidth: 0
+                r: 7, 
+                fill: "hsl(var(--background))",
+                stroke: "hsl(24, 90%, 56%)",
+                strokeWidth: 2,
+                className: "hover:scale-125 transition-transform duration-200"
               }}
               activeDot={{ 
-                r: 5, 
-                strokeWidth: 2,
-                stroke: "hsl(var(--background))"
+                r: 10,
+                fill: "hsl(var(--background))",
+                stroke: "hsl(24, 90%, 56%)",
+                strokeWidth: 3,
+                className: "animate-scale-in"
               }}
-              animationDuration={1000}
+              animationDuration={2000}
+              animationBegin={0}
               isAnimationActive={true}
+              animationEasing="ease-in-out"
             />
             
             {/* 今年 - 實線 */}
@@ -111,18 +124,23 @@ export const MonthlyAveragePriceChart = ({ data }: MonthlyAveragePriceChartProps
               stroke="url(#priceGradient)"
               strokeWidth={3}
               dot={{ 
-                fill: "hsl(271, 81%, 56%)", 
-                strokeWidth: 2, 
-                r: 4,
-                stroke: "hsl(var(--background))"
+                r: 7, 
+                fill: "hsl(var(--background))",
+                stroke: "hsl(271, 81%, 56%)",
+                strokeWidth: 2,
+                className: "hover:scale-125 transition-transform duration-200"
               }}
               activeDot={{ 
-                r: 6, 
-                strokeWidth: 2,
-                stroke: "hsl(var(--background))"
+                r: 10,
+                fill: "hsl(var(--background))",
+                stroke: "hsl(271, 81%, 56%)",
+                strokeWidth: 3,
+                className: "animate-scale-in"
               }}
-              animationDuration={1000}
+              animationDuration={2000}
+              animationBegin={0}
               isAnimationActive={true}
+              animationEasing="ease-in-out"
             />
           </ComposedChart>
         </ResponsiveContainer>
