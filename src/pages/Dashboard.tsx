@@ -373,8 +373,8 @@ const Dashboard = () => {
         )}
       </div>
 
-      {/* 圖表區域 - 2x2 排列 */}
-      <div className="grid gap-6 lg:grid-cols-2 px-2 md:px-0">
+      {/* 圖表區域 - 手機垂直堆疊，平板以上 2x2 排列 */}
+      <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 px-2 md:px-0">
         {isLoading ? (
           <>
             <ChartSkeleton />
