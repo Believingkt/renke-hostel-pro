@@ -101,7 +101,7 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
               </defs>
               <CartesianGrid 
                 strokeDasharray="3 3" 
-                className="stroke-muted/35" 
+                className="stroke-muted/50" 
                 vertical={false}
                 strokeWidth={0.5}
               />
