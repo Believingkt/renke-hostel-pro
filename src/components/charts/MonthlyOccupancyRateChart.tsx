@@ -125,14 +125,14 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
               fill="url(#occupancyGradient)"
               dot={{ 
                 r: 7, 
-                fill: "hsl(var(--background))",
+                fill: "hsl(0, 0%, 100%)",
                 stroke: "hsl(142, 80%, 40%)",
                 strokeWidth: 2,
                 className: "hover:scale-125 transition-transform duration-200"
               }}
               activeDot={{
                 r: 10,
-                fill: "hsl(var(--background))",
+                fill: "hsl(0, 0%, 100%)",
                 stroke: "hsl(142, 80%, 40%)",
                 strokeWidth: 3,
                 className: "animate-scale-in"
