@@ -60,13 +60,13 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
       color: "hsl(25, 90%, 60%)",
     },
   } : {
-    本月: {
-      label: "本月",
-      color: "hsl(var(--chart-booking-primary))",
-    },
     上月: {
       label: "上月",
       color: "hsl(var(--chart-booking-secondary))",
+    },
+    本月: {
+      label: "本月",
+      color: "hsl(var(--chart-booking-primary))",
     },
   };
 
