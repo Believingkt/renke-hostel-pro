@@ -1,4 +1,4 @@
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Line, ComposedChart } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 import { ChartContainer, ChartTooltip, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { CustomChartTooltip } from "./CustomChartTooltip";
 
@@ -42,16 +42,10 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
     <div className="animate-fade-in">
       <ChartContainer config={chartConfig} className="h-[180px] sm:h-[220px] md:h-[260px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart 
+          <LineChart 
             data={data}
             margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
           >
-            <defs>
-              <linearGradient id="occupancyGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="hsl(142, 80%, 40%)" stopOpacity={0.3} />
-                <stop offset="100%" stopColor="hsl(142, 80%, 40%)" stopOpacity={0.05} />
-              </linearGradient>
-            </defs>
             <CartesianGrid 
               strokeDasharray="3 3" 
               className="stroke-muted/30" 
@@ -116,13 +110,12 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
               animationEasing="ease-in-out"
             />
             
-            {/* 今年 - 實線 + 漸層填充 */}
-            <Area
+            {/* 今年 - 實線 */}
+            <Line
               type="monotone"
               dataKey="occupancyRate"
               stroke="hsl(142, 80%, 40%)"
               strokeWidth={3}
-              fill="url(#occupancyGradient)"
               dot={(props: any) => {
                 const { cx, cy } = props;
                 return (
@@ -158,7 +151,7 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
               isAnimationActive={true}
               animationEasing="ease-in-out"
             />
-          </ComposedChart>
+          </LineChart>
         </ResponsiveContainer>
       </ChartContainer>
     </div>
