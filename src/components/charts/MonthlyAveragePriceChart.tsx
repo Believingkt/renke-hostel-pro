@@ -73,6 +73,7 @@ export const MonthlyAveragePriceChart = ({ data }: MonthlyAveragePriceChartProps
                 <CustomChartTooltip 
                   valueFormatter={valueFormatter}
                   comparisonMode="lastYear"
+                  chartConfig={chartConfig}
                 />
               }
               cursor={{ 
