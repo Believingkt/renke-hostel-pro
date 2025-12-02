@@ -143,7 +143,7 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                   type="monotone"
                   dataKey={category}
                   stroke={index === 0 ? "hsl(0, 0%, 60%)" : "hsl(25, 90%, 60%)"}
-                  strokeWidth={3}
+                  strokeWidth={2}
                   fill={`url(#gradient-${category})`}
                   dot={(props: any) => {
                     const { cx, cy, payload } = props;
@@ -180,7 +180,7 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                           r={9}
                           fill="hsl(var(--background))"
                           stroke={index === 0 ? "hsl(0, 0%, 60%)" : "hsl(25, 90%, 60%)"}
-                          strokeWidth={3}
+                          strokeWidth={2}
                           opacity={payload.isFuture ? 0.3 : 1}
                           style={{ cursor: 'pointer', touchAction: 'none' }}
                           onClick={() => handleDotClick(payload)}
