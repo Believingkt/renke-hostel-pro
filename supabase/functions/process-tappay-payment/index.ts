@@ -36,13 +36,13 @@ serve(async (req) => {
         merchant_id: appId,
         amount: amount,
         currency: 'TWD',
-        order_number: orderId,
         details: details || '訂房付款',
         cardholder: {
           phone_number: cardholder.phoneNumber,
           name: cardholder.name,
           email: cardholder.email,
         },
+        remember: false,
       }),
     });
 
