@@ -1528,6 +1528,15 @@ const WebsiteContent = () => {
         .from('logos')
         .getPublicUrl(fileName);
 
+      // 立即保存到資料庫
+      const updateField = cropLogoType === 'header' ? 'header_logo_url' : 'footer_logo_url';
+      const { error: dbError } = await supabase
+        .from('accommodation_info')
+        .update({ [updateField]: publicUrl })
+        .eq('id', accommodationId);
+
+      if (dbError) throw dbError;
+
       // 更新狀態
       if (cropLogoType === 'header') {
         setBasicInfo(prev => ({ ...prev, header_logo_url: publicUrl }));
