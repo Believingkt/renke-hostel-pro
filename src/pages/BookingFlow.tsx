@@ -522,7 +522,7 @@ const BookingFlow = () => {
     };
 
     // 只在付款步驟載入 TapPay SDK
-    if (currentStep === 'payment' && paymentMethod === 'credit_card') {
+    if (currentStep === 'payment' && paymentMethod === '信用卡') {
       loadTapPaySDK();
     }
   }, [currentStep, paymentMethod]);
@@ -850,7 +850,7 @@ const BookingFlow = () => {
     }
 
     // 如果選擇信用卡，驗證 TapPay 卡片狀態
-    if (currentStep === "payment" && paymentMethod === 'credit_card') {
+    if (currentStep === "payment" && paymentMethod === '信用卡') {
       if (!isTapPayReady) {
         toast({
           title: "付款模組載入中",
@@ -1163,10 +1163,10 @@ const BookingFlow = () => {
         }
       }
 
-      // 處理在線支付（信用卡或 Line Pay）
+      // 處理在線支付（信用卡或 LINE Pay）
       let paymentTransactionId = null;
       
-      if (paymentMethod === 'credit_card') {
+      if (paymentMethod === '信用卡') {
         setIsProcessingPayment(true);
         
         try {
@@ -1247,7 +1247,7 @@ const BookingFlow = () => {
         } finally {
           setIsProcessingPayment(false);
         }
-      } else if (paymentMethod === 'Line Pay') {
+      } else if (paymentMethod === 'LINE Pay') {
         setIsProcessingPayment(true);
         
         try {
@@ -2664,7 +2664,7 @@ const BookingFlow = () => {
                         )}
 
                         {/* TapPay 信用卡表單 */}
-                        {paymentMethod === 'credit_card' && isTapPayReady && (
+                        {paymentMethod === '信用卡' && isTapPayReady && (
                           <div className="mt-6 space-y-4 p-4 bg-muted/30 rounded-lg border-2 border-primary/20">
                             <p className="text-sm font-semibold mb-4">請輸入信用卡資訊</p>
                             
