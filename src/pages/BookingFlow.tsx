@@ -472,19 +472,27 @@ const BookingFlow = () => {
     const loadTapPaySDK = () => {
       if (window.TPDirect) {
         // SDK 已載入，設定基本配置
+        console.log('TapPay SDK already loaded, setting up...');
         window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8l3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'sandbox');
+        console.log('TapPay SDK setup completed');
         setIsTapPayReady(true);
         return;
       }
 
+      console.log('Loading TapPay SDK script...');
       const script = document.createElement('script');
       script.src = 'https://js.tappaysdk.com/sdk/tpdirect/v5.18.0';
       script.async = true;
       script.onload = () => {
         if (window.TPDirect) {
+          console.log('TapPay SDK loaded, setting up...');
           window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8l3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'sandbox');
+          console.log('TapPay SDK setup completed');
           setIsTapPayReady(true);
         }
+      };
+      script.onerror = () => {
+        console.error('Failed to load TapPay SDK script');
       };
       document.body.appendChild(script);
     };
@@ -503,9 +511,30 @@ const BookingFlow = () => {
 
     // 延遲執行以確保 DOM 元素已渲染
     const timer = setTimeout(() => {
-      if (!window.TPDirect) return;
+      if (!window.TPDirect) {
+        console.error('TapPay SDK not available when trying to setup card form');
+        return;
+      }
 
       try {
+        console.log('Setting up TapPay card form...');
+        
+        // 檢查 DOM 元素是否存在
+        const cardNumberElement = document.getElementById('card-number');
+        const cardExpiryElement = document.getElementById('card-expiration-date');
+        const cardCcvElement = document.getElementById('card-ccv');
+        
+        if (!cardNumberElement || !cardExpiryElement || !cardCcvElement) {
+          console.error('TapPay card form elements not found:', {
+            cardNumber: !!cardNumberElement,
+            cardExpiry: !!cardExpiryElement,
+            cardCcv: !!cardCcvElement
+          });
+          return;
+        }
+        
+        console.log('TapPay card form elements found, proceeding with setup');
+        
         // 設定信用卡表單
         window.TPDirect.card.setup({
           fields: {
@@ -539,8 +568,17 @@ const BookingFlow = () => {
           }
         });
 
+        console.log('TapPay card form setup completed');
+
         // 監聽卡片狀態
         window.TPDirect.card.onUpdate((update: any) => {
+          console.log('TapPay card update:', {
+            canGetPrime: update.canGetPrime,
+            cardNumberStatus: update.status.number,
+            expiryStatus: update.status.expiry,
+            ccvStatus: update.status.ccv,
+            hasError: update.hasError
+          });
           setCardValid(update.canGetPrime);
         });
       } catch (error) {
@@ -1195,17 +1233,72 @@ const BookingFlow = () => {
         setIsProcessingPayment(true);
         
         try {
+          console.log('Processing TapPay payment...');
+          
+          // 檢查 TapPay SDK 是否已載入
+          if (!window.TPDirect) {
+            throw new Error('TapPay SDK 尚未載入，請重新整理頁面後再試');
+          }
+          
+          // 檢查卡片欄位是否已正確設定
+          console.log('Checking card validity before getPrime, cardValid:', cardValid);
+          if (!cardValid) {
+            throw new Error('請完整填寫信用卡資訊（卡號、有效期限、安全碼）');
+          }
+
           // 獲取 Prime token
           const getPrime = (): Promise<any> => {
             return new Promise((resolve, reject) => {
               if (!window.TPDirect) {
-                reject(new Error('TapPay SDK not loaded'));
+                reject(new Error('TapPay SDK 尚未載入'));
                 return;
               }
               
+              console.log('Requesting TPDirect.card.getPrime...');
+              
               window.TPDirect.card.getPrime((result: any) => {
+                console.log('TPDirect.card.getPrime result:', {
+                  status: result.status,
+                  msg: result.msg,
+                  cardType: result.card?.type,
+                  hasCardInfo: !!result.card
+                });
+                
                 if (result.status !== 0) {
-                  reject(new Error('無法取得付款資訊，請檢查卡片資訊'));
+                  // 根據 TapPay 錯誤碼提供詳細錯誤訊息
+                  let errorMessage = '無法取得付款資訊';
+                  let suggestion = '請檢查卡片資訊';
+                  
+                  switch (result.status) {
+                    case 1:
+                      errorMessage = '欄位驗證失敗';
+                      suggestion = '請確認卡號、有效期限和安全碼格式正確';
+                      break;
+                    case 2:
+                      errorMessage = '卡號格式錯誤';
+                      suggestion = '請檢查卡號是否正確輸入';
+                      break;
+                    case 3:
+                      errorMessage = '有效期限格式錯誤';
+                      suggestion = '請檢查有效期限格式 (MM/YY)';
+                      break;
+                    case 4:
+                      errorMessage = '安全碼格式錯誤';
+                      suggestion = '請檢查 CVV 安全碼';
+                      break;
+                    default:
+                      if (result.msg) {
+                        errorMessage = result.msg;
+                      }
+                  }
+                  
+                  console.error('TPDirect.card.getPrime failed:', {
+                    status: result.status,
+                    message: errorMessage,
+                    originalMsg: result.msg
+                  });
+                  
+                  reject(new Error(`${errorMessage}。${suggestion}`));
                   return;
                 }
                 resolve(result);
