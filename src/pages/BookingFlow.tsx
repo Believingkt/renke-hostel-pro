@@ -1315,19 +1315,57 @@ const BookingFlow = () => {
         } catch (error) {
           console.error('LINE Pay error:', error);
           
-          const errorInfo = classifyPaymentError(error);
-          setLastPaymentError(errorInfo);
+          // 處理 LINE Pay 特定錯誤
+          let errorMessage = '付款過程發生錯誤';
+          let errorSuggestion = '請重試或選擇其他付款方式';
+          let errorType: 'network' | 'card' | 'system' | 'validation' | 'unknown' = 'unknown';
           
-          // 根據錯誤類型決定是否顯示重試對話框
-          if (errorInfo.type === 'network' && paymentRetryCount < MAX_RETRY_ATTEMPTS) {
-            setShowRetryDialog(true);
-          } else {
-            toast({
-              title: "LINE Pay 付款失敗",
-              description: `${errorInfo.message}。${errorInfo.suggestion}`,
-              variant: "destructive",
-            });
+          if (error && typeof error === 'object' && 'message' in error) {
+            const err = error as any;
+            
+            // 檢查是否為後端返回的結構化錯誤
+            if (err.errorCategory) {
+              switch (err.errorCategory) {
+                case 'config':
+                  errorMessage = 'LINE Pay 服務設定錯誤';
+                  errorSuggestion = '請聯繫客服處理，或選擇信用卡付款';
+                  errorType = 'system';
+                  break;
+                case 'validation':
+                  errorMessage = err.message || '訂單資訊有誤';
+                  errorSuggestion = err.suggestion || '請檢查訂單資訊';
+                  errorType = 'validation';
+                  break;
+                case 'network':
+                  errorMessage = 'LINE Pay 服務暫時無法連線';
+                  errorSuggestion = '請檢查網路連線後重試';
+                  errorType = 'network';
+                  break;
+                case 'auth':
+                  errorMessage = 'LINE Pay 授權失敗';
+                  errorSuggestion = '請重新登入 LINE 或使用其他付款方式';
+                  errorType = 'system';
+                  break;
+                default:
+                  errorMessage = err.message || errorMessage;
+                  errorSuggestion = err.suggestion || errorSuggestion;
+              }
+            } else if (err.message) {
+              errorMessage = err.message;
+            }
           }
+          
+          const errorInfo = {
+            type: errorType,
+            message: errorMessage,
+            suggestion: errorSuggestion,
+          };
+          
+          setLastPaymentError(errorInfo);
+          setPaymentFailed(true);
+          
+          // 顯示錯誤對話框
+          setShowRetryDialog(true);
           
           setIsSubmitting(false);
           setIsProcessingPayment(false);
