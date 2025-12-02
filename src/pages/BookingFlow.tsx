@@ -466,12 +466,14 @@ const BookingFlow = () => {
     }
   }, [currentStep, checkInDate, checkOutDate, selectedMealPlan, selectedRoom]);
 
-  // 初始化 TapPay SDK
+  // 初始化 TapPay SDK - 分兩步驟：先載入 SDK，再設定表單
   useEffect(() => {
-    // 載入 TapPay SDK 腳本
+    // 第一步：載入 TapPay SDK
     const loadTapPaySDK = () => {
       if (window.TPDirect) {
-        initializeTapPay();
+        // SDK 已載入，設定基本配置
+        window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8l3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'sandbox');
+        setIsTapPayReady(true);
         return;
       }
 
@@ -479,63 +481,75 @@ const BookingFlow = () => {
       script.src = 'https://js.tappaysdk.com/sdk/tpdirect/v5.18.0';
       script.async = true;
       script.onload = () => {
-        initializeTapPay();
+        if (window.TPDirect) {
+          window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8l3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'sandbox');
+          setIsTapPayReady(true);
+        }
       };
       document.body.appendChild(script);
     };
 
-    const initializeTapPay = () => {
-      if (!window.TPDirect) return;
-
-      // 使用 Sandbox 環境
-      window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8l3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'sandbox');
-      
-      // 設定信用卡表單
-      window.TPDirect.card.setup({
-        fields: {
-          number: {
-            element: '#card-number',
-            placeholder: '**** **** **** ****'
-          },
-          expirationDate: {
-            element: '#card-expiration-date',
-            placeholder: 'MM / YY'
-          },
-          ccv: {
-            element: '#card-ccv',
-            placeholder: 'CVV'
-          }
-        },
-        styles: {
-          input: {
-            'font-size': '16px',
-            'color': 'rgb(0, 0, 0)'
-          },
-          ':focus': {
-            'color': 'rgb(0, 0, 0)'
-          },
-          '.valid': {
-            'color': 'rgb(34, 197, 94)'
-          },
-          '.invalid': {
-            'color': 'rgb(239, 68, 68)'
-          }
-        }
-      });
-
-      // 監聽卡片狀態
-      window.TPDirect.card.onUpdate((update: any) => {
-        setCardValid(update.canGetPrime);
-      });
-
-      setIsTapPayReady(true);
-    };
-
-    // 只在付款步驟載入 TapPay SDK
+    // 只在付款步驟且選擇信用卡時載入 SDK
     if (currentStep === 'payment' && paymentMethod === '信用卡') {
       loadTapPaySDK();
     }
   }, [currentStep, paymentMethod]);
+
+  // 第二步：當 DOM 元素準備好後設定 TapPay 表單
+  useEffect(() => {
+    if (!isTapPayReady || currentStep !== 'payment' || paymentMethod !== '信用卡') {
+      return;
+    }
+
+    // 延遲執行以確保 DOM 元素已渲染
+    const timer = setTimeout(() => {
+      if (!window.TPDirect) return;
+
+      try {
+        // 設定信用卡表單
+        window.TPDirect.card.setup({
+          fields: {
+            number: {
+              element: '#card-number',
+              placeholder: '**** **** **** ****'
+            },
+            expirationDate: {
+              element: '#card-expiration-date',
+              placeholder: 'MM / YY'
+            },
+            ccv: {
+              element: '#card-ccv',
+              placeholder: 'CVV'
+            }
+          },
+          styles: {
+            input: {
+              'font-size': '16px',
+              'color': 'rgb(0, 0, 0)'
+            },
+            ':focus': {
+              'color': 'rgb(0, 0, 0)'
+            },
+            '.valid': {
+              'color': 'rgb(34, 197, 94)'
+            },
+            '.invalid': {
+              'color': 'rgb(239, 68, 68)'
+            }
+          }
+        });
+
+        // 監聽卡片狀態
+        window.TPDirect.card.onUpdate((update: any) => {
+          setCardValid(update.canGetPrime);
+        });
+      } catch (error) {
+        console.error('TapPay card setup error:', error);
+      }
+    }, 100); // 延遲 100ms 確保 DOM 準備完成
+
+    return () => clearTimeout(timer);
+  }, [isTapPayReady, currentStep, paymentMethod]);
 
   const calculateNights = () => {
     if (!checkInDateStr || !checkOutDateStr) return 0;
