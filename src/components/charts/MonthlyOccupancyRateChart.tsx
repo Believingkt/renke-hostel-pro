@@ -72,6 +72,7 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
                 <CustomChartTooltip 
                   valueFormatter={(value: number) => `${value}%`}
                   comparisonMode="lastYear"
+                  chartConfig={chartConfig}
                 />
               }
               cursor={{ 

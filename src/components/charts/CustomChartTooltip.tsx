@@ -11,6 +11,7 @@ interface CustomChartTooltipProps {
   valueFormatter?: (value: number) => string;
   comparisonMode?: 'lastYear' | 'lastMonth';
   isCustomRange?: boolean;
+  chartConfig?: Record<string, { label: string; color?: string }>;
 }
 
 export const CustomChartTooltip = ({ 
@@ -19,7 +20,8 @@ export const CustomChartTooltip = ({
   label,
   valueFormatter = (value) => value.toString(),
   comparisonMode,
-  isCustomRange
+  isCustomRange,
+  chartConfig
 }: CustomChartTooltipProps) => {
   if (!active || !payload || payload.length === 0) return null;
 
@@ -51,20 +53,23 @@ export const CustomChartTooltip = ({
       </div>
       
       <div className="space-y-2">
-        {payload.map((entry, index) => (
-          <div key={index} className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div 
-                className="w-3 h-3 rounded-sm" 
-                style={{ backgroundColor: entry.color }}
-              />
-              <span className="text-sm text-muted-foreground">{entry.name}</span>
+        {payload.map((entry, index) => {
+          const displayName = chartConfig?.[entry.dataKey]?.label || entry.name;
+          return (
+            <div key={index} className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <div 
+                  className="w-3 h-3 rounded-sm" 
+                  style={{ backgroundColor: entry.color }}
+                />
+                <span className="text-sm text-muted-foreground">{displayName}</span>
+              </div>
+              <span className="text-sm font-semibold text-foreground">
+                {valueFormatter(entry.value)}
+              </span>
             </div>
-            <span className="text-sm font-semibold text-foreground">
-              {valueFormatter(entry.value)}
-            </span>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {growth !== null && !isFuture && (
