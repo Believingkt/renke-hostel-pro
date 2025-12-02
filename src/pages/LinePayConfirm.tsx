@@ -124,7 +124,7 @@ export default function LinePayConfirm() {
           discount_code: orderData.appliedDiscount?.code || null,
           final_price: orderData.finalPrice,
           deposit_amount: orderData.depositAmount,
-          payment_method: 'Line Pay',
+          payment_method: 'LINE Pay',
           payment_status: 'paid',
           paid_amount: orderData.finalPrice,
           order_status: 'confirmed',
