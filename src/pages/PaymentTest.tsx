@@ -2,11 +2,14 @@ import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, CheckCircle2, XCircle, Copy, AlertCircle, Zap, ShieldCheck, ShieldX } from "lucide-react";
+import { CreditCard, CheckCircle2, XCircle, Copy, AlertCircle, Zap, ShieldCheck, ShieldX, PlayCircle, FileText, Download, Clock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Progress } from "@/components/ui/progress";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 
 interface TestCard {
   name: string;
@@ -23,6 +26,24 @@ interface CardValidation {
   cardNumber: { valid: boolean; message: string };
   expiry: { valid: boolean; message: string };
   cvv: { valid: boolean; message: string };
+}
+
+interface BatchTestResult {
+  card: TestCard;
+  validation: CardValidation;
+  primeResult?: {
+    success: boolean;
+    prime?: string;
+    error?: string;
+  };
+  paymentResult?: {
+    success: boolean;
+    transactionId?: string;
+    errorCode?: number;
+    message?: string;
+  };
+  testTime: string;
+  duration: number;
 }
 
 // Luhn 演算法驗證卡號
@@ -226,6 +247,13 @@ export default function PaymentTest() {
     errorCode?: number;
     technicalMessage?: string;
   } | null>(null);
+
+  // 批次測試狀態
+  const [isBatchTesting, setIsBatchTesting] = useState(false);
+  const [batchProgress, setBatchProgress] = useState(0);
+  const [currentTestIndex, setCurrentTestIndex] = useState(0);
+  const [batchResults, setBatchResults] = useState<BatchTestResult[]>([]);
+  const [batchTestCompleted, setBatchTestCompleted] = useState(false);
 
   // 載入 TapPay SDK
   useEffect(() => {
@@ -498,6 +526,111 @@ export default function PaymentTest() {
     }
   };
 
+  // 批次測試所有卡號 (驗證模式)
+  const runBatchTest = async () => {
+    setIsBatchTesting(true);
+    setBatchResults([]);
+    setBatchProgress(0);
+    setCurrentTestIndex(0);
+    setBatchTestCompleted(false);
+
+    const results: BatchTestResult[] = [];
+    const totalCards = testCards.length;
+
+    for (let i = 0; i < totalCards; i++) {
+      const card = testCards[i];
+      setCurrentTestIndex(i);
+      
+      const startTime = Date.now();
+      const validation = validateTestCard(card);
+      
+      // 模擬測試延遲以顯示進度
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      
+      const result: BatchTestResult = {
+        card,
+        validation,
+        testTime: new Date().toLocaleTimeString('zh-TW'),
+        duration,
+      };
+
+      results.push(result);
+      setBatchResults([...results]);
+      setBatchProgress(((i + 1) / totalCards) * 100);
+    }
+
+    setIsBatchTesting(false);
+    setBatchTestCompleted(true);
+    
+    const validCount = results.filter(r => r.validation.isValid).length;
+    toast.success('批次測試完成', {
+      description: `${validCount}/${totalCards} 張卡片驗證通過`
+    });
+  };
+
+  // 匯出測試報告
+  const exportTestReport = () => {
+    if (batchResults.length === 0) {
+      toast.error('沒有測試結果可匯出');
+      return;
+    }
+
+    const reportDate = new Date().toLocaleString('zh-TW');
+    const validCount = batchResults.filter(r => r.validation.isValid).length;
+    const totalCount = batchResults.length;
+
+    let report = `===========================================\n`;
+    report += `TapPay 測試卡號批次驗證報告\n`;
+    report += `===========================================\n`;
+    report += `報告產生時間: ${reportDate}\n`;
+    report += `測試卡片數量: ${totalCount}\n`;
+    report += `驗證通過數量: ${validCount}\n`;
+    report += `驗證通過率: ${((validCount / totalCount) * 100).toFixed(1)}%\n`;
+    report += `===========================================\n\n`;
+
+    batchResults.forEach((result, index) => {
+      report += `--- 測試卡 ${index + 1}: ${result.card.name} ---\n`;
+      report += `卡號: ${result.card.number}\n`;
+      report += `有效期限: ${result.card.expiry}\n`;
+      report += `CVV: ${result.card.cvv}\n`;
+      report += `預期結果: ${result.card.expectedResult === 'success' ? '成功' : '失敗'}\n`;
+      report += `驗證狀態: ${result.validation.isValid ? '✓ 通過' : '✗ 失敗'}\n`;
+      report += `  - 卡號驗證: ${result.validation.cardNumber.message}\n`;
+      report += `  - 有效期限: ${result.validation.expiry.message}\n`;
+      report += `  - CVV 驗證: ${result.validation.cvv.message}\n`;
+      report += `測試時間: ${result.testTime}\n`;
+      report += `耗時: ${result.duration}ms\n\n`;
+    });
+
+    report += `===========================================\n`;
+    report += `報告結束\n`;
+    report += `===========================================\n`;
+
+    // 下載報告
+    const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `tappay-test-report-${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast.success('測試報告已下載');
+  };
+
+  // 重置批次測試
+  const resetBatchTest = () => {
+    setBatchResults([]);
+    setBatchProgress(0);
+    setCurrentTestIndex(0);
+    setBatchTestCompleted(false);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 py-12 px-4">
       <div className="container max-w-6xl mx-auto space-y-8">
@@ -713,16 +846,20 @@ export default function PaymentTest() {
               </div>
             </div>
 
-            {/* 測試按鈕 - 使用 Tabs 區分兩種測試模式 */}
+            {/* 測試按鈕 - 使用 Tabs 區分測試模式 */}
             <Tabs defaultValue="prime" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="prime">
                   <CreditCard className="w-4 h-4 mr-2" />
-                  Prime Token 測試
+                  Prime Token
                 </TabsTrigger>
                 <TabsTrigger value="full">
                   <Zap className="w-4 h-4 mr-2" />
-                  完整支付流程
+                  完整流程
+                </TabsTrigger>
+                <TabsTrigger value="batch">
+                  <PlayCircle className="w-4 h-4 mr-2" />
+                  批次測試
                 </TabsTrigger>
               </TabsList>
               
@@ -779,6 +916,158 @@ export default function PaymentTest() {
                     <li>呼叫後端 process-tappay-payment</li>
                     <li>使用測試金額 NT$ 1,000</li>
                     <li>驗證完整支付流程</li>
+                  </ul>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="batch" className="space-y-4 mt-4">
+                {/* 批次測試控制區 */}
+                <div className="flex gap-2">
+                  <Button
+                    onClick={runBatchTest}
+                    disabled={isBatchTesting}
+                    className="flex-1 h-12 text-lg"
+                    size="lg"
+                  >
+                    {isBatchTesting ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        測試中 ({currentTestIndex + 1}/{testCards.length})
+                      </>
+                    ) : (
+                      <>
+                        <PlayCircle className="w-5 h-5 mr-2" />
+                        一鍵測試所有卡號
+                      </>
+                    )}
+                  </Button>
+                  {batchTestCompleted && (
+                    <>
+                      <Button
+                        onClick={exportTestReport}
+                        variant="outline"
+                        className="h-12"
+                      >
+                        <Download className="w-5 h-5 mr-2" />
+                        匯出報告
+                      </Button>
+                      <Button
+                        onClick={resetBatchTest}
+                        variant="ghost"
+                        className="h-12"
+                      >
+                        重置
+                      </Button>
+                    </>
+                  )}
+                </div>
+
+                {/* 進度條 */}
+                {(isBatchTesting || batchTestCompleted) && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                      <span>測試進度</span>
+                      <span>{Math.round(batchProgress)}%</span>
+                    </div>
+                    <Progress value={batchProgress} className="h-2" />
+                  </div>
+                )}
+
+                {/* 測試結果摘要 */}
+                {batchTestCompleted && batchResults.length > 0 && (
+                  <Card className="border-primary/20 bg-primary/5">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        測試報告摘要
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                          <p className="text-2xl font-bold text-primary">{batchResults.length}</p>
+                          <p className="text-xs text-muted-foreground">測試總數</p>
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-green-500">
+                            {batchResults.filter(r => r.validation.isValid).length}
+                          </p>
+                          <p className="text-xs text-muted-foreground">驗證通過</p>
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-red-500">
+                            {batchResults.filter(r => !r.validation.isValid).length}
+                          </p>
+                          <p className="text-xs text-muted-foreground">驗證失敗</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* 詳細測試結果 */}
+                {batchResults.length > 0 && (
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">詳細測試結果</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ScrollArea className="h-[300px] pr-4">
+                        <div className="space-y-3">
+                          {batchResults.map((result, index) => (
+                            <div 
+                              key={index}
+                              className={`p-3 rounded-lg border ${
+                                result.validation.isValid 
+                                  ? 'bg-green-500/5 border-green-500/20' 
+                                  : 'bg-red-500/5 border-red-500/20'
+                              }`}
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-center gap-2">
+                                  {result.validation.isValid ? (
+                                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                  ) : (
+                                    <XCircle className="w-4 h-4 text-red-500" />
+                                  )}
+                                  <span className="font-medium">{result.card.name}</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <Clock className="w-3 h-3" />
+                                  {result.duration}ms
+                                </div>
+                              </div>
+                              <div className="mt-2 text-sm text-muted-foreground">
+                                <code className="text-xs">{result.card.number}</code>
+                              </div>
+                              <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                                <div className={result.validation.cardNumber.valid ? 'text-green-600' : 'text-red-600'}>
+                                  卡號: {result.validation.cardNumber.valid ? '✓' : '✗'}
+                                </div>
+                                <div className={result.validation.expiry.valid ? 'text-green-600' : 'text-red-600'}>
+                                  效期: {result.validation.expiry.valid ? '✓' : '✗'}
+                                </div>
+                                <div className={result.validation.cvv.valid ? 'text-green-600' : 'text-red-600'}>
+                                  CVV: {result.validation.cvv.valid ? '✓' : '✗'}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* 說明 */}
+                <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                  <p className="text-sm text-amber-700 dark:text-amber-400">
+                    <strong>批次測試說明：</strong>
+                  </p>
+                  <ul className="text-sm text-amber-600 dark:text-amber-300 mt-1 space-y-1 list-disc list-inside">
+                    <li>自動驗證所有測試卡號格式 (Luhn 演算法)</li>
+                    <li>檢查有效期限和 CVV 格式</li>
+                    <li>產生詳細測試報告可下載</li>
                   </ul>
                 </div>
               </TabsContent>
@@ -908,6 +1197,7 @@ export default function PaymentTest() {
                   <ul className="list-disc list-inside ml-4 mt-1">
                     <li><strong>Prime Token 測試：</strong>僅測試 TapPay SDK 的 getPrime 功能</li>
                     <li><strong>完整支付流程：</strong>測試完整的支付流程，包含後端 API 呼叫</li>
+                    <li><strong>批次測試：</strong>一鍵測試所有測試卡號並產生報告</li>
                   </ul>
                 </li>
                 <li>點擊測試按鈕並查看結果</li>
@@ -916,23 +1206,32 @@ export default function PaymentTest() {
 
             <div className="space-y-2">
               <h3 className="font-semibold">測試模式說明</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="p-3 bg-muted/50 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <CreditCard className="w-4 h-4 text-primary" />
-                    <strong className="text-sm">Prime Token 測試</strong>
+                    <strong className="text-sm">Prime Token</strong>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    僅測試前端卡片驗證和 Prime Token 取得功能，不會呼叫後端 API。適合快速驗證卡片資訊格式。
+                    僅測試前端卡片驗證和 Prime Token 取得功能，不會呼叫後端 API。
                   </p>
                 </div>
                 <div className="p-3 bg-muted/50 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <Zap className="w-4 h-4 text-primary" />
-                    <strong className="text-sm">完整支付流程</strong>
+                    <strong className="text-sm">完整流程</strong>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    測試完整的支付流程，包含取得 Prime Token、呼叫後端 API、與 TapPay 伺服器交互。使用測試金額 NT$ 1,000。
+                    測試完整支付流程，包含後端 API 與 TapPay 伺服器交互。
+                  </p>
+                </div>
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <PlayCircle className="w-4 h-4 text-primary" />
+                    <strong className="text-sm">批次測試</strong>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    自動驗證所有測試卡號格式，產生詳細測試報告可下載。
                   </p>
                 </div>
               </div>
