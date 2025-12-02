@@ -188,6 +188,16 @@ const BookingFlow = () => {
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [successOrderData, setSuccessOrderData] = useState<any>(null);
   
+  // 付款重試機制狀態
+  const [paymentRetryCount, setPaymentRetryCount] = useState(0);
+  const [lastPaymentError, setLastPaymentError] = useState<{
+    type: 'network' | 'card' | 'system' | 'validation' | 'unknown';
+    message: string;
+    suggestion: string;
+  } | null>(null);
+  const [showRetryDialog, setShowRetryDialog] = useState(false);
+  const MAX_RETRY_ATTEMPTS = 3;
+  
   // 房型可用性狀態
   const [roomAvailability, setRoomAvailability] = useState<Record<string, {
     isBlocked: boolean;
@@ -876,6 +886,75 @@ const BookingFlow = () => {
     }
   };
 
+  // 錯誤分類函數
+  const classifyPaymentError = (error: any): {
+    type: 'network' | 'card' | 'system' | 'validation' | 'unknown';
+    message: string;
+    suggestion: string;
+  } => {
+    const errorMessage = error?.message || String(error);
+    
+    // 網路錯誤
+    if (errorMessage.includes('network') || errorMessage.includes('timeout') || errorMessage.includes('連線')) {
+      return {
+        type: 'network',
+        message: '網路連線不穩定',
+        suggestion: '請檢查您的網路連線，然後重試'
+      };
+    }
+    
+    // 卡片相關錯誤
+    if (errorMessage.includes('card') || errorMessage.includes('卡') || errorMessage.includes('餘額') || errorMessage.includes('額度')) {
+      return {
+        type: 'card',
+        message: '信用卡驗證失敗',
+        suggestion: '請確認卡號、有效期限和安全碼正確，或嘗試其他付款方式'
+      };
+    }
+    
+    // 驗證錯誤
+    if (errorMessage.includes('invalid') || errorMessage.includes('無效') || errorMessage.includes('格式')) {
+      return {
+        type: 'validation',
+        message: '付款資訊格式錯誤',
+        suggestion: '請重新檢查並輸入正確的付款資訊'
+      };
+    }
+    
+    // 系統錯誤
+    if (errorMessage.includes('system') || errorMessage.includes('系統') || errorMessage.includes('服務')) {
+      return {
+        type: 'system',
+        message: '付款系統暫時無法使用',
+        suggestion: '請稍後再試，或聯絡客服協助'
+      };
+    }
+    
+    // 未知錯誤
+    return {
+      type: 'unknown',
+      message: '付款過程發生錯誤',
+      suggestion: '請重試或選擇其他付款方式'
+    };
+  };
+
+  // 付款重試處理
+  const handlePaymentRetry = () => {
+    if (paymentRetryCount >= MAX_RETRY_ATTEMPTS) {
+      toast({
+        title: "已達最大重試次數",
+        description: "請稍後再試或選擇其他付款方式",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setPaymentRetryCount(prev => prev + 1);
+    setShowRetryDialog(false);
+    setLastPaymentError(null);
+    handleConfirmBooking();
+  };
+
   const handleConfirmBooking = async () => {
     if (!selectedRoom || !accommodationId) {
       console.error("缺少必要資訊");
@@ -886,6 +965,9 @@ const BookingFlow = () => {
       });
       return;
     }
+
+    // 重置付款錯誤狀態
+    setLastPaymentError(null);
 
     // 最終日期驗證 - 防止無效日期提交到數據庫
     if (!checkInDate || !checkOutDate) {
@@ -1144,11 +1226,21 @@ const BookingFlow = () => {
           });
         } catch (error) {
           console.error('Payment error:', error);
-          toast({
-            title: "付款失敗",
-            description: error instanceof Error ? error.message : "付款過程發生錯誤，請稍後再試",
-            variant: "destructive",
-          });
+          
+          const errorInfo = classifyPaymentError(error);
+          setLastPaymentError(errorInfo);
+          
+          // 根據錯誤類型決定是否顯示重試對話框
+          if (errorInfo.type === 'network' && paymentRetryCount < MAX_RETRY_ATTEMPTS) {
+            setShowRetryDialog(true);
+          } else {
+            toast({
+              title: "付款失敗",
+              description: `${errorInfo.message}。${errorInfo.suggestion}`,
+              variant: "destructive",
+            });
+          }
+          
           setIsProcessingPayment(false);
           setIsSubmitting(false);
           return;
@@ -1221,11 +1313,21 @@ const BookingFlow = () => {
           return; // 不繼續執行後續代碼
         } catch (error) {
           console.error('LINE Pay error:', error);
-          toast({
-            title: "LINE Pay 付款失敗",
-            description: error instanceof Error ? error.message : "付款過程發生錯誤，請稍後再試",
-            variant: "destructive",
-          });
+          
+          const errorInfo = classifyPaymentError(error);
+          setLastPaymentError(errorInfo);
+          
+          // 根據錯誤類型決定是否顯示重試對話框
+          if (errorInfo.type === 'network' && paymentRetryCount < MAX_RETRY_ATTEMPTS) {
+            setShowRetryDialog(true);
+          } else {
+            toast({
+              title: "LINE Pay 付款失敗",
+              description: `${errorInfo.message}。${errorInfo.suggestion}`,
+              variant: "destructive",
+            });
+          }
+          
           setIsSubmitting(false);
           setIsProcessingPayment(false);
           return;
@@ -2597,33 +2699,37 @@ const BookingFlow = () => {
                                 請輸入完整且正確的信用卡資訊
                               </p>
                             )}
+                            
+                            {/* 付款安全提示 */}
+                            <Alert className="mt-4">
+                              <AlertTitle className="text-sm font-semibold flex items-center gap-2">
+                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                </svg>
+                                安全付款保障
+                              </AlertTitle>
+                              <AlertDescription className="text-xs">
+                                我們使用 SSL 加密技術保護您的付款資訊，所有交易均經過安全認證
+                              </AlertDescription>
+                            </Alert>
                           </div>
                         )}
-
-                        {paymentMethod === 'credit_card' && !isTapPayReady && (
-                          <div className="mt-4 p-4 bg-muted/30 rounded-lg border-2 border-primary/20 text-center">
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
-                            <p className="text-xs text-muted-foreground">正在載入付款模組...</p>
-                          </div>
-                        )}
-
-                        {/* LINE Pay 說明 */}
-                        {paymentMethod === 'Line Pay' && (
-                          <div className="mt-6 p-4 bg-primary/5 rounded-lg border-2 border-primary/20">
-                            <div className="flex items-start gap-3">
-                              <div className="bg-primary/10 rounded-full p-2 mt-0.5">
-                                <CreditCard className="h-5 w-5 text-primary" />
-                              </div>
-                              <div className="space-y-2">
-                                <p className="text-sm font-semibold">LINE Pay 付款流程</p>
-                                <ul className="text-xs text-muted-foreground space-y-1">
-                                  <li>• 點擊「確認訂房」後，系統將導向 LINE Pay 付款頁面</li>
-                                  <li>• 請在 LINE 應用程式中完成付款認證</li>
-                                  <li>• 付款完成後，系統將自動建立訂單並發送確認信</li>
-                                </ul>
-                              </div>
-                            </div>
-                          </div>
+                        
+                        {/* 付款錯誤提示 */}
+                        {lastPaymentError && paymentMethod && (
+                          <Alert variant="destructive" className="mt-4">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertTitle>付款失敗</AlertTitle>
+                            <AlertDescription>
+                              <p className="mb-2">{lastPaymentError.message}</p>
+                              <p className="text-sm">{lastPaymentError.suggestion}</p>
+                              {paymentRetryCount > 0 && (
+                                <p className="text-xs mt-2 opacity-80">
+                                  已重試 {paymentRetryCount}/{MAX_RETRY_ATTEMPTS} 次
+                                </p>
+                              )}
+                            </AlertDescription>
+                          </Alert>
                         )}
                       </CardContent>
                     </Card>
@@ -3179,6 +3285,59 @@ const BookingFlow = () => {
           <div className="p-4 md:p-6 border-t bg-muted/30">
             <Button onClick={() => setIsBbqDetailsDialogOpen(false)} className="w-full h-11 md:h-10 text-base">
               我了解了
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 付款重試對話框 */}
+      <Dialog open={showRetryDialog} onOpenChange={setShowRetryDialog}>
+        <DialogContent className="max-w-md">
+          <DialogTitle className="text-xl font-bold">付款失敗</DialogTitle>
+          <DialogDescription className="space-y-4">
+            {lastPaymentError && (
+              <>
+                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+                  <p className="text-sm font-semibold mb-2">{lastPaymentError.message}</p>
+                  <p className="text-xs text-muted-foreground">{lastPaymentError.suggestion}</p>
+                </div>
+                
+                <div className="text-sm text-muted-foreground">
+                  <p className="mb-2">您可以：</p>
+                  <ul className="space-y-1 list-disc list-inside">
+                    <li>重新嘗試付款</li>
+                    <li>檢查網路連線是否穩定</li>
+                    <li>確認信用卡資訊正確</li>
+                    <li>選擇其他付款方式</li>
+                  </ul>
+                </div>
+
+                {paymentRetryCount > 0 && (
+                  <div className="text-xs text-muted-foreground text-center">
+                    已重試 {paymentRetryCount}/{MAX_RETRY_ATTEMPTS} 次
+                  </div>
+                )}
+              </>
+            )}
+          </DialogDescription>
+          
+          <div className="flex gap-3 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowRetryDialog(false);
+                setCurrentStep('payment');
+              }}
+              className="flex-1"
+            >
+              返回修改
+            </Button>
+            <Button
+              onClick={handlePaymentRetry}
+              disabled={paymentRetryCount >= MAX_RETRY_ATTEMPTS}
+              className="flex-1"
+            >
+              {paymentRetryCount >= MAX_RETRY_ATTEMPTS ? '已達上限' : '重試付款'}
             </Button>
           </div>
         </DialogContent>
