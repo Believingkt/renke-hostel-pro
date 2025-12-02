@@ -26,6 +26,7 @@ import {
   X,
   ZoomIn,
   ShoppingBag,
+  Smartphone,
 } from "lucide-react";
 import { z } from "zod";
 import { format } from "date-fns";
@@ -2622,41 +2623,46 @@ const BookingFlow = () => {
                       </CardHeader>
                       <CardContent className="space-y-3">
                         {Array.isArray(bookingSettings?.payment_methods) && bookingSettings.payment_methods.length > 0 ? (
-                          bookingSettings.payment_methods.map((method: string) => (
-                            <div
-                              key={method}
-                              className={`cursor-pointer transition-all rounded-lg border-2 p-4 hover:border-primary/50 ${
-                                paymentMethod === method
-                                  ? "border-primary bg-primary/5 shadow-sm"
-                                  : "border-border bg-card"
-                              }`}
-                              onClick={() => setPaymentMethod(method)}
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className={`rounded-full p-2 ${
+                          bookingSettings.payment_methods.map((method: string) => {
+                            // 根據付款方式選擇對應的圖標
+                            const PaymentIcon = method === '信用卡' ? CreditCard : Smartphone;
+                            
+                            return (
+                              <div
+                                key={method}
+                                className={`cursor-pointer transition-all rounded-lg border-2 p-4 hover:border-primary/50 ${
                                   paymentMethod === method
-                                    ? "bg-primary/20"
-                                    : "bg-muted"
-                                }`}>
-                                  <CreditCard className={`h-5 w-5 ${
+                                    ? "border-primary bg-primary/5 shadow-sm"
+                                    : "border-border bg-card"
+                                }`}
+                                onClick={() => setPaymentMethod(method)}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className={`rounded-full p-2 ${
                                     paymentMethod === method
-                                      ? "text-primary"
-                                      : "text-muted-foreground"
-                                  }`} />
+                                      ? "bg-primary/20"
+                                      : "bg-muted"
+                                  }`}>
+                                    <PaymentIcon className={`h-5 w-5 ${
+                                      paymentMethod === method
+                                        ? "text-primary"
+                                        : "text-muted-foreground"
+                                    }`} />
+                                  </div>
+                                  <span className={`font-medium text-base ${
+                                    paymentMethod === method
+                                      ? "text-foreground"
+                                      : "text-foreground/80"
+                                  }`}>
+                                    {method}
+                                  </span>
+                                  {paymentMethod === method && (
+                                    <CheckCircle className="h-5 w-5 text-primary ml-auto" />
+                                  )}
                                 </div>
-                                <span className={`font-medium text-base ${
-                                  paymentMethod === method
-                                    ? "text-foreground"
-                                    : "text-foreground/80"
-                                }`}>
-                                  {method}
-                                </span>
-                                {paymentMethod === method && (
-                                  <CheckCircle className="h-5 w-5 text-primary ml-auto" />
-                                )}
                               </div>
-                            </div>
-                          ))
+                            );
+                          })
                         ) : (
                           <div className="text-center py-6 text-muted-foreground">
                             <p className="text-sm">目前沒有可用的付款方式</p>
