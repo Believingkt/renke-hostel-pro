@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, CheckCircle2, XCircle, Copy, AlertCircle } from "lucide-react";
+import { CreditCard, CheckCircle2, XCircle, Copy, AlertCircle, Zap } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface TestCard {
   name: string;
@@ -71,6 +73,14 @@ export default function PaymentTest() {
     success: boolean;
     message: string;
     time: string;
+  } | null>(null);
+  const [paymentTestResult, setPaymentTestResult] = useState<{
+    success: boolean;
+    message: string;
+    time: string;
+    transactionId?: string;
+    errorCode?: number;
+    technicalMessage?: string;
   } | null>(null);
 
   // 載入 TapPay SDK
@@ -179,7 +189,114 @@ export default function PaymentTest() {
     });
   };
 
-  // 測試付款
+  // 測試完整支付流程
+  const testFullPayment = async () => {
+    if (!window.TPDirect) {
+      toast.error('TapPay SDK 尚未載入');
+      return;
+    }
+
+    if (!cardValid) {
+      toast.error('請先完整填寫信用卡資訊');
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      console.log('Starting full payment flow test...');
+      
+      // 步驟 1: 取得 Prime Token
+      const primeResult = await new Promise<any>((resolve, reject) => {
+        window.TPDirect.card.getPrime((result: any) => {
+          console.log('getPrime result:', result);
+          if (result.status !== 0) {
+            reject(new Error(result.msg || '無法取得付款資訊'));
+            return;
+          }
+          resolve(result);
+        });
+      });
+
+      console.log('Prime token obtained:', primeResult.card.prime);
+      toast.success('Prime Token 已取得', {
+        description: '正在呼叫後端處理支付...'
+      });
+
+      // 步驟 2: 呼叫後端處理支付
+      const testAmount = 1000; // 測試金額 NT$ 1,000
+      const testOrderId = `TEST-${Date.now()}`;
+
+      console.log('Calling process-tappay-payment edge function...');
+      
+      const { data: paymentResult, error: paymentError } = await supabase.functions.invoke(
+        'process-tappay-payment',
+        {
+          body: {
+            prime: primeResult.card.prime,
+            amount: testAmount,
+            orderId: testOrderId,
+            cardholder: {
+              phoneNumber: '0912345678',
+              name: '測試用戶',
+              email: 'test@example.com',
+            },
+            details: '付款測試 - 完整流程',
+          },
+        }
+      );
+
+      if (paymentError) {
+        throw paymentError;
+      }
+
+      console.log('Payment result:', paymentResult);
+
+      const timestamp = new Date().toLocaleTimeString('zh-TW');
+      
+      if (paymentResult.success) {
+        setPaymentTestResult({
+          success: true,
+          message: '付款成功！',
+          time: timestamp,
+          transactionId: paymentResult.transactionId,
+        });
+        
+        toast.success('完整支付流程測試成功', {
+          description: `交易 ID: ${paymentResult.transactionId}`
+        });
+      } else {
+        setPaymentTestResult({
+          success: false,
+          message: paymentResult.message || '付款失敗',
+          time: timestamp,
+          errorCode: paymentResult.errorCode,
+          technicalMessage: paymentResult.technicalMessage,
+        });
+        
+        toast.error('支付流程測試失敗', {
+          description: paymentResult.message
+        });
+      }
+    } catch (error: any) {
+      console.error('Full payment test error:', error);
+      
+      const timestamp = new Date().toLocaleTimeString('zh-TW');
+      setPaymentTestResult({
+        success: false,
+        message: error.message || '測試失敗',
+        time: timestamp,
+      });
+      
+      toast.error('完整支付流程測試失敗', {
+        description: error.message
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // 測試付款 (僅 Prime Token)
   const testPayment = async () => {
     if (!window.TPDirect) {
       toast.error('TapPay SDK 尚未載入');
@@ -381,47 +498,99 @@ export default function PaymentTest() {
               </div>
             </div>
 
-            {/* 測試按鈕 */}
-            <div className="space-y-3">
-              <Button
-                onClick={testPayment}
-                disabled={!cardValid || isProcessing || !isTapPayReady}
-                className="w-full h-12 text-lg"
-                size="lg"
-              >
-                {isProcessing ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                    測試中...
-                  </>
-                ) : (
-                  <>
-                    <CreditCard className="w-5 h-5 mr-2" />
-                    測試付款取得 Prime Token
-                  </>
-                )}
-              </Button>
+            {/* 測試按鈕 - 使用 Tabs 區分兩種測試模式 */}
+            <Tabs defaultValue="prime" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="prime">
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Prime Token 測試
+                </TabsTrigger>
+                <TabsTrigger value="full">
+                  <Zap className="w-4 h-4 mr-2" />
+                  完整支付流程
+                </TabsTrigger>
+              </TabsList>
               
-              {!isTapPayReady && (
+              <TabsContent value="prime" className="space-y-3 mt-4">
+                <Button
+                  onClick={testPayment}
+                  disabled={!cardValid || isProcessing || !isTapPayReady}
+                  className="w-full h-12 text-lg"
+                  size="lg"
+                >
+                  {isProcessing ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                      測試中...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="w-5 h-5 mr-2" />
+                      取得 Prime Token
+                    </>
+                  )}
+                </Button>
                 <p className="text-sm text-muted-foreground text-center">
-                  載入 TapPay SDK 中...
+                  僅測試 TapPay SDK 的 getPrime 功能，不會實際呼叫後端
                 </p>
-              )}
-              {isTapPayReady && !cardValid && (
-                <p className="text-sm text-muted-foreground text-center">
-                  請填寫完整的信用卡資訊
-                </p>
-              )}
-            </div>
+              </TabsContent>
+              
+              <TabsContent value="full" className="space-y-3 mt-4">
+                <Button
+                  onClick={testFullPayment}
+                  disabled={!cardValid || isProcessing || !isTapPayReady}
+                  className="w-full h-12 text-lg"
+                  size="lg"
+                  variant="default"
+                >
+                  {isProcessing ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                      處理中...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-5 h-5 mr-2" />
+                      執行完整支付流程
+                    </>
+                  )}
+                </Button>
+                <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                  <p className="text-sm text-blue-700 dark:text-blue-400">
+                    <strong>測試內容：</strong>
+                  </p>
+                  <ul className="text-sm text-blue-600 dark:text-blue-300 mt-1 space-y-1 list-disc list-inside">
+                    <li>取得 Prime Token</li>
+                    <li>呼叫後端 process-tappay-payment</li>
+                    <li>使用測試金額 NT$ 1,000</li>
+                    <li>驗證完整支付流程</li>
+                  </ul>
+                </div>
+              </TabsContent>
+            </Tabs>
+            
+            {!isTapPayReady && (
+              <p className="text-sm text-muted-foreground text-center mt-3">
+                載入 TapPay SDK 中...
+              </p>
+            )}
+            {isTapPayReady && !cardValid && (
+              <p className="text-sm text-muted-foreground text-center mt-3">
+                請填寫完整的信用卡資訊
+              </p>
+            )}
 
-            {/* 測試結果 */}
+            {/* Prime Token 測試結果 */}
             {lastResult && (
               <Card className={
                 lastResult.success 
                   ? "border-green-500 bg-green-500/5" 
                   : "border-red-500 bg-red-500/5"
               }>
-                <CardContent className="pt-6">
+                <CardHeader>
+                  <CardTitle className="text-base">Prime Token 測試結果</CardTitle>
+                </CardHeader>
+                <CardContent>
                   <div className="flex items-start gap-3">
                     {lastResult.success ? (
                       <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
@@ -445,6 +614,66 @@ export default function PaymentTest() {
                 </CardContent>
               </Card>
             )}
+
+            {/* 完整支付流程測試結果 */}
+            {paymentTestResult && (
+              <Card className={
+                paymentTestResult.success 
+                  ? "border-green-500 bg-green-500/5" 
+                  : "border-red-500 bg-red-500/5"
+              }>
+                <CardHeader>
+                  <CardTitle className="text-base">完整支付流程測試結果</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-start gap-3">
+                    {paymentTestResult.success ? (
+                      <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
+                    ) : (
+                      <XCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                    )}
+                    <div className="flex-1 space-y-2">
+                      <p className={`font-medium ${
+                        paymentTestResult.success ? "text-green-700 dark:text-green-400" : "text-red-700 dark:text-red-400"
+                      }`}>
+                        {paymentTestResult.success ? "支付成功" : "支付失敗"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {paymentTestResult.message}
+                      </p>
+                      
+                      {paymentTestResult.success && paymentTestResult.transactionId && (
+                        <div className="mt-2 p-2 bg-muted/50 rounded">
+                          <p className="text-xs text-muted-foreground mb-1">交易 ID</p>
+                          <code className="text-sm">{paymentTestResult.transactionId}</code>
+                        </div>
+                      )}
+                      
+                      {!paymentTestResult.success && (
+                        <div className="space-y-2 mt-2">
+                          {paymentTestResult.errorCode && (
+                            <div className="p-2 bg-muted/50 rounded">
+                              <p className="text-xs text-muted-foreground mb-1">錯誤代碼</p>
+                              <code className="text-sm">{paymentTestResult.errorCode}</code>
+                            </div>
+                          )}
+                          {paymentTestResult.technicalMessage && (
+                            <div className="p-2 bg-muted/50 rounded">
+                              <p className="text-xs text-muted-foreground mb-1">技術訊息</p>
+                              <code className="text-sm text-wrap break-all">{paymentTestResult.technicalMessage}</code>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      <p className="text-xs text-muted-foreground mt-2">
+                        時間：{paymentTestResult.time}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </CardContent>
         </Card>
 
@@ -453,17 +682,50 @@ export default function PaymentTest() {
           <CardHeader>
             <CardTitle>使用說明</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
-              <li>點擊上方的測試卡號卡片來查看詳細資訊</li>
-              <li>使用複製按鈕快速複製卡號、有效期限和 CVV</li>
-              <li>在下方表單中手動輸入信用卡資訊</li>
-              <li>點擊「測試付款」按鈕來驗證卡片並取得 Prime Token</li>
-              <li>查看測試結果，確認是否符合預期</li>
-            </ol>
-            <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+          <CardContent className="space-y-4">
+            <div>
+              <h3 className="font-semibold mb-2">基本流程</h3>
+              <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
+                <li>點擊上方的測試卡號卡片來查看詳細資訊</li>
+                <li>使用複製按鈕快速複製卡號、有效期限和 CVV</li>
+                <li>在表單中手動輸入信用卡資訊</li>
+                <li>選擇測試模式：
+                  <ul className="list-disc list-inside ml-4 mt-1">
+                    <li><strong>Prime Token 測試：</strong>僅測試 TapPay SDK 的 getPrime 功能</li>
+                    <li><strong>完整支付流程：</strong>測試完整的支付流程，包含後端 API 呼叫</li>
+                  </ul>
+                </li>
+                <li>點擊測試按鈕並查看結果</li>
+              </ol>
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="font-semibold">測試模式說明</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CreditCard className="w-4 h-4 text-primary" />
+                    <strong className="text-sm">Prime Token 測試</strong>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    僅測試前端卡片驗證和 Prime Token 取得功能，不會呼叫後端 API。適合快速驗證卡片資訊格式。
+                  </p>
+                </div>
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Zap className="w-4 h-4 text-primary" />
+                    <strong className="text-sm">完整支付流程</strong>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    測試完整的支付流程，包含取得 Prime Token、呼叫後端 API、與 TapPay 伺服器交互。使用測試金額 NT$ 1,000。
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
               <p className="text-sm text-blue-700 dark:text-blue-400">
-                <strong>注意：</strong>此頁面僅用於開發測試，不會進行實際扣款。所有測試卡號均為 TapPay Sandbox 環境的模擬卡號。
+                <strong>注意：</strong>此頁面僅用於開發測試環境（Sandbox），不會進行實際扣款。所有測試卡號均為 TapPay 提供的模擬卡號。
               </p>
             </div>
           </CardContent>
