@@ -58,6 +58,20 @@ import roomSuite from "@/assets/room-suite.jpg";
 import roomStandard from "@/assets/room-standard.jpg";
 import sensanLogo from "@/assets/sensan-logo-new.png";
 
+// TapPay SDK 類型定義
+declare global {
+  interface Window {
+    TPDirect?: {
+      setupSDK: (appId: string, appKey: string, env: string) => void;
+      card: {
+        setup: (config: any) => void;
+        onUpdate: (callback: (update: any) => void) => void;
+        getPrime: (callback: (result: any) => void) => void;
+      };
+    };
+  }
+}
+
 // 表單驗證 Schema
 const guestInfoSchema = z.object({
   name: z.string().trim().min(2, { message: "姓名至少需要2個字元" }).max(50, { message: "姓名不能超過50個字元" }),
@@ -188,6 +202,11 @@ const BookingFlow = () => {
   const [isBbqMealsExpanded, setIsBbqMealsExpanded] = useState(false);
   const [isBbqDetailsDialogOpen, setIsBbqDetailsDialogOpen] = useState(false);
   const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
+  
+  // TapPay 狀態
+  const [isTapPayReady, setIsTapPayReady] = useState(false);
+  const [cardValid, setCardValid] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   
   // 加購方案設定
   const [petPlanSettings, setPetPlanSettings] = useState({
@@ -426,6 +445,77 @@ const BookingFlow = () => {
       }
     }
   }, [currentStep, checkInDate, checkOutDate, selectedMealPlan, selectedRoom]);
+
+  // 初始化 TapPay SDK
+  useEffect(() => {
+    // 載入 TapPay SDK 腳本
+    const loadTapPaySDK = () => {
+      if (window.TPDirect) {
+        initializeTapPay();
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://js.tappaysdk.com/sdk/tpdirect/v5.18.0';
+      script.async = true;
+      script.onload = () => {
+        initializeTapPay();
+      };
+      document.body.appendChild(script);
+    };
+
+    const initializeTapPay = () => {
+      if (!window.TPDirect) return;
+
+      // 使用 Sandbox 環境
+      window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8l3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'sandbox');
+      
+      // 設定信用卡表單
+      window.TPDirect.card.setup({
+        fields: {
+          number: {
+            element: '#card-number',
+            placeholder: '**** **** **** ****'
+          },
+          expirationDate: {
+            element: '#card-expiration-date',
+            placeholder: 'MM / YY'
+          },
+          ccv: {
+            element: '#card-ccv',
+            placeholder: 'CVV'
+          }
+        },
+        styles: {
+          input: {
+            'font-size': '16px',
+            'color': 'rgb(0, 0, 0)'
+          },
+          ':focus': {
+            'color': 'rgb(0, 0, 0)'
+          },
+          '.valid': {
+            'color': 'rgb(34, 197, 94)'
+          },
+          '.invalid': {
+            'color': 'rgb(239, 68, 68)'
+          }
+        }
+      });
+
+      // 監聽卡片狀態
+      window.TPDirect.card.onUpdate((update: any) => {
+        setCardValid(update.canGetPrime);
+      });
+
+      setIsTapPayReady(true);
+    };
+
+    // 只在付款步驟載入 TapPay SDK
+    if (currentStep === 'payment' && paymentMethod === 'credit_card') {
+      loadTapPaySDK();
+    }
+  }, [currentStep, paymentMethod]);
 
   const calculateNights = () => {
     if (!checkInDateStr || !checkOutDateStr) return 0;
@@ -749,6 +839,27 @@ const BookingFlow = () => {
       return;
     }
 
+    // 如果選擇信用卡，驗證 TapPay 卡片狀態
+    if (currentStep === "payment" && paymentMethod === 'credit_card') {
+      if (!isTapPayReady) {
+        toast({
+          title: "付款模組載入中",
+          description: "請稍候付款模組載入完成",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (!cardValid) {
+        toast({
+          title: "請輸入完整的信用卡資訊",
+          description: "請確認卡號、有效期限和安全碼都已正確填寫",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     // 切換到下一步
     const steps: BookingStep[] = ["dates", "room", "addons", "guest", "payment", "confirm"];
     const currentIndex = steps.indexOf(currentStep);
@@ -870,9 +981,6 @@ const BookingFlow = () => {
       const finalPrice = calculateFinalTotal();
       const depositAmount = calculateDeposit();
 
-      // 準備訂單備註（不包含加購資訊）
-      let orderNotes = guestInfo.notes || "";
-
       // 準備加購方案資訊
       const nights = calculateNights();
       const petPlanPrice = petCount > 0 ? petCount * petPlanSettings.pricePerUnit * nights : 0;
@@ -973,7 +1081,86 @@ const BookingFlow = () => {
         }
       }
 
-      // 建立訂單
+      // 處理 TapPay 支付（如果選擇信用卡）
+      let paymentTransactionId = null;
+      if (paymentMethod === 'credit_card') {
+        setIsProcessingPayment(true);
+        
+        try {
+          // 獲取 Prime token
+          const getPrime = (): Promise<any> => {
+            return new Promise((resolve, reject) => {
+              if (!window.TPDirect) {
+                reject(new Error('TapPay SDK not loaded'));
+                return;
+              }
+              
+              window.TPDirect.card.getPrime((result: any) => {
+                if (result.status !== 0) {
+                  reject(new Error('無法取得付款資訊，請檢查卡片資訊'));
+                  return;
+                }
+                resolve(result);
+              });
+            });
+          };
+
+          const primeResult = await getPrime();
+          console.log('Got prime token');
+
+          // 呼叫後端處理支付
+          const { data: paymentResult, error: paymentError } = await supabase.functions.invoke(
+            'process-tappay-payment',
+            {
+              body: {
+                prime: primeResult.card.prime,
+                amount: finalPrice,
+                orderId: `TEMP-${Date.now()}`, // 臨時訂單 ID
+                cardholder: {
+                  phoneNumber: guestInfo.phone,
+                  name: guestInfo.name,
+                  email: guestInfo.email || '',
+                },
+                details: `${selectedRoom.name} - ${checkInDateStr} 至 ${checkOutDateStr}`,
+              },
+            }
+          );
+
+          if (paymentError) {
+            throw paymentError;
+          }
+
+          if (!paymentResult.success) {
+            throw new Error(paymentResult.message || '付款失敗');
+          }
+
+          paymentTransactionId = paymentResult.transactionId;
+          console.log('Payment successful:', paymentTransactionId);
+          
+          toast({
+            title: "付款成功",
+            description: "正在建立訂單...",
+          });
+        } catch (error) {
+          console.error('Payment error:', error);
+          toast({
+            title: "付款失敗",
+            description: error instanceof Error ? error.message : "付款過程發生錯誤，請稍後再試",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          setIsProcessingPayment(false);
+          return;
+        } finally {
+          setIsProcessingPayment(false);
+        }
+      }
+
+      // 準備訂單備註（如果有交易 ID，加入備註）
+      let orderNotes = guestInfo.notes || "";
+      if (paymentTransactionId) {
+        orderNotes = `[TapPay 交易 ID: ${paymentTransactionId}]${orderNotes ? ` ${orderNotes}` : ''}`;
+      }
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .insert([{
@@ -2295,6 +2482,52 @@ const BookingFlow = () => {
                             <p className="text-sm">目前沒有可用的付款方式</p>
                           </div>
                         )}
+
+                        {/* TapPay 信用卡表單 */}
+                        {paymentMethod === 'credit_card' && isTapPayReady && (
+                          <div className="mt-6 space-y-4 p-4 bg-muted/30 rounded-lg border-2 border-primary/20">
+                            <p className="text-sm font-semibold mb-4">請輸入信用卡資訊</p>
+                            
+                            <div className="space-y-2">
+                              <Label className="text-sm">卡號</Label>
+                              <div 
+                                id="card-number" 
+                                className="h-12 px-3 py-2 border rounded-md bg-background"
+                              />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label className="text-sm">有效期限</Label>
+                                <div 
+                                  id="card-expiration-date" 
+                                  className="h-12 px-3 py-2 border rounded-md bg-background"
+                                />
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <Label className="text-sm">安全碼 (CVV)</Label>
+                                <div 
+                                  id="card-ccv" 
+                                  className="h-12 px-3 py-2 border rounded-md bg-background"
+                                />
+                              </div>
+                            </div>
+
+                            {!cardValid && (
+                              <p className="text-xs text-muted-foreground">
+                                請輸入完整且正確的信用卡資訊
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        {paymentMethod === 'credit_card' && !isTapPayReady && (
+                          <div className="mt-4 p-4 bg-muted/30 rounded-lg border-2 border-primary/20 text-center">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
+                            <p className="text-xs text-muted-foreground">正在載入付款模組...</p>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
 
@@ -2543,14 +2776,19 @@ const BookingFlow = () => {
               ) : (
                 <Button
                   onClick={handleConfirmBooking}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isProcessingPayment}
                   className="flex-1 bg-primary"
                   size="lg"
                 >
-                  {isSubmitting ? (
+                  {isProcessingPayment ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      處理中...
+                      處理付款中...
+                    </>
+                  ) : isSubmitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      建立訂單中...
                     </>
                   ) : (
                     <>
