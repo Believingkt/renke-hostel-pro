@@ -783,7 +783,7 @@ const Accounts = () => {
                       </TableCell>
                       <TableCell className="text-sm">{user.lastLogin}</TableCell>
                       <TableCell className="text-sm">
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-0">
                           {user.status === 'pending' && (
                             <Button
                               variant="ghost"
