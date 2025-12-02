@@ -133,7 +133,7 @@ export const MonthlyAveragePriceChart = ({ data }: MonthlyAveragePriceChartProps
               type="monotone"
               dataKey="averagePrice"
               stroke="hsl(271, 85%, 48%)"
-              strokeWidth={3}
+              strokeWidth={2}
               dot={{ 
                 r: 6, 
                 fill: "hsl(var(--background))",
@@ -145,7 +145,7 @@ export const MonthlyAveragePriceChart = ({ data }: MonthlyAveragePriceChartProps
                 r: 9,
                 fill: "hsl(var(--background))",
                 stroke: "hsl(271, 85%, 48%)",
-                strokeWidth: 3,
+                strokeWidth: 2,
                 className: "animate-scale-in"
               }}
               animationDuration={2000}
