@@ -116,7 +116,7 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
                     fill="hsl(0, 0%, 100%)"
                     fillOpacity={1}
                     stroke="hsl(0, 0%, 60%)"
-                    strokeWidth={3}
+                    strokeWidth={2}
                     className="animate-scale-in"
                   />
                 );
@@ -132,7 +132,7 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
               type="monotone"
               dataKey="occupancyRate"
               stroke="hsl(142, 80%, 40%)"
-              strokeWidth={3}
+              strokeWidth={2}
               dot={(props: any) => {
                 const { cx, cy } = props;
                 return (
@@ -158,7 +158,7 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
                     fill="hsl(0, 0%, 100%)"
                     fillOpacity={1}
                     stroke="hsl(142, 80%, 40%)"
-                    strokeWidth={3}
+                    strokeWidth={2}
                     className="animate-scale-in"
                   />
                 );
