@@ -110,12 +110,59 @@ serve(async (req) => {
           }
         );
       } else {
-        // Payment request failed
+        // Payment request failed - categorize error
+        let errorCategory = 'system';
+        let userMessage = result.returnMessage || '付款請求失敗';
+        let suggestion = '請稍後再試或選擇其他付款方式';
+        
+        // Categorize common LINE Pay error codes
+        switch (result.returnCode) {
+          case '1104':
+          case '1105':
+          case '1106':
+            errorCategory = 'config';
+            userMessage = 'LINE Pay 服務設定錯誤';
+            suggestion = '請聯繫客服處理，或選擇其他付款方式';
+            break;
+          case '1150':
+          case '1152':
+            errorCategory = 'validation';
+            userMessage = '訂單資訊有誤';
+            suggestion = '請檢查訂單金額和商品資訊';
+            break;
+          case '1170':
+          case '1172':
+            errorCategory = 'transaction';
+            userMessage = 'LINE Pay 交易處理失敗';
+            suggestion = '請稍後重試或使用其他付款方式';
+            break;
+          case '2101':
+          case '2102':
+            errorCategory = 'auth';
+            userMessage = 'LINE Pay 授權失敗';
+            suggestion = '請重新登入 LINE Pay 或使用其他付款方式';
+            break;
+          case '9000':
+            errorCategory = 'network';
+            userMessage = 'LINE Pay 服務暫時無法連線';
+            suggestion = '請檢查網路連線後重試';
+            break;
+          default:
+            if (result.returnCode?.startsWith('1')) {
+              errorCategory = 'validation';
+            } else if (result.returnCode?.startsWith('2')) {
+              errorCategory = 'auth';
+            }
+        }
+        
         return new Response(
           JSON.stringify({
             success: false,
-            message: result.returnMessage || '付款請求失敗',
+            message: userMessage,
+            suggestion: suggestion,
             errorCode: result.returnCode,
+            errorCategory: errorCategory,
+            originalMessage: result.returnMessage,
           }),
           {
             status: 400,
@@ -165,12 +212,48 @@ serve(async (req) => {
           }
         );
       } else {
-        // Payment confirmation failed
+        // Payment confirmation failed - categorize error
+        let errorCategory = 'system';
+        let userMessage = result.returnMessage || '付款確認失敗';
+        let suggestion = '請稍後再試或聯繫客服';
+        
+        // Categorize confirmation errors
+        switch (result.returnCode) {
+          case '1198':
+            errorCategory = 'duplicate';
+            userMessage = '此訂單已經完成付款';
+            suggestion = '請勿重複確認付款';
+            break;
+          case '1190':
+          case '1193':
+            errorCategory = 'expired';
+            userMessage = 'LINE Pay 付款已逾時';
+            suggestion = '請重新發起付款';
+            break;
+          case '1145':
+            errorCategory = 'cancelled';
+            userMessage = 'LINE Pay 付款已取消';
+            suggestion = '請重新發起付款';
+            break;
+          case '2125':
+            errorCategory = 'insufficient';
+            userMessage = 'LINE Pay 餘額不足';
+            suggestion = '請儲值後再試或使用其他付款方式';
+            break;
+          default:
+            if (result.returnCode?.startsWith('11')) {
+              errorCategory = 'transaction';
+            }
+        }
+        
         return new Response(
           JSON.stringify({
             success: false,
-            message: result.returnMessage || '付款確認失敗',
+            message: userMessage,
+            suggestion: suggestion,
             errorCode: result.returnCode,
+            errorCategory: errorCategory,
+            originalMessage: result.returnMessage,
           }),
           {
             status: 400,
