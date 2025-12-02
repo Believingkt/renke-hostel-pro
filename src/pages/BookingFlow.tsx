@@ -27,6 +27,8 @@ import {
   ZoomIn,
   ShoppingBag,
   Smartphone,
+  Info,
+  ChevronDown,
 } from "lucide-react";
 import { z } from "zod";
 import { format } from "date-fns";
@@ -51,6 +53,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { zhTW } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -219,6 +226,7 @@ const BookingFlow = () => {
   const [isTapPayReady, setIsTapPayReady] = useState(false);
   const [cardValid, setCardValid] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [showTestCards, setShowTestCards] = useState(false);
   
   // 加購方案設定
   const [petPlanSettings, setPetPlanSettings] = useState({
@@ -2771,6 +2779,73 @@ const BookingFlow = () => {
                                 我們使用 SSL 加密技術保護您的付款資訊，所有交易均經過安全認證
                               </AlertDescription>
                             </Alert>
+
+                            {/* 測試卡號資訊 - 僅在開發環境顯示 */}
+                            {window.location.hostname === 'localhost' || window.location.hostname.includes('lovableproject.com') ? (
+                              <Collapsible open={showTestCards} onOpenChange={setShowTestCards} className="mt-4">
+                                <CollapsibleTrigger asChild>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="w-full justify-between text-muted-foreground hover:text-foreground"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <Info className="h-4 w-4" />
+                                      <span className="text-sm">測試卡號資訊</span>
+                                    </div>
+                                    <ChevronDown className={cn(
+                                      "h-4 w-4 transition-transform",
+                                      showTestCards && "rotate-180"
+                                    )} />
+                                  </Button>
+                                </CollapsibleTrigger>
+                                <CollapsibleContent className="mt-3">
+                                  <Alert>
+                                    <AlertTitle className="text-sm font-semibold mb-3 flex items-center gap-2">
+                                      <CreditCard className="h-4 w-4" />
+                                      TapPay 測試卡號
+                                    </AlertTitle>
+                                    <AlertDescription className="space-y-3">
+                                      <div className="space-y-2 text-xs">
+                                        <div className="bg-muted/50 p-3 rounded-md">
+                                          <p className="font-semibold mb-1.5 text-foreground">✅ 付款成功測試卡</p>
+                                          <div className="space-y-1 font-mono">
+                                            <p>卡號: 4242 4242 4242 4242</p>
+                                            <p>有效期限: 任何未來日期 (如 12/28)</p>
+                                            <p>CVV: 任何 3 碼數字 (如 123)</p>
+                                          </div>
+                                        </div>
+
+                                        <div className="bg-destructive/10 p-3 rounded-md">
+                                          <p className="font-semibold mb-1.5 text-foreground">❌ 付款失敗測試卡</p>
+                                          <div className="space-y-2">
+                                            <div className="space-y-1">
+                                              <p className="font-medium text-foreground">卡號錯誤:</p>
+                                              <p className="font-mono">4000 0000 0000 0002</p>
+                                            </div>
+                                            <div className="space-y-1">
+                                              <p className="font-medium text-foreground">餘額不足:</p>
+                                              <p className="font-mono">4000 0000 0000 9995</p>
+                                            </div>
+                                            <div className="space-y-1">
+                                              <p className="font-medium text-foreground">卡片過期:</p>
+                                              <p className="font-mono">4000 0000 0000 0069</p>
+                                            </div>
+                                          </div>
+                                          <p className="mt-2 text-muted-foreground">
+                                            有效期限與 CVV 可使用任意有效值
+                                          </p>
+                                        </div>
+
+                                        <p className="text-muted-foreground mt-2">
+                                          💡 使用這些測試卡號可以模擬不同的付款情況，幫助您測試系統的錯誤處理機制
+                                        </p>
+                                      </div>
+                                    </AlertDescription>
+                                  </Alert>
+                                </CollapsibleContent>
+                              </Collapsible>
+                            ) : null}
                           </div>
                         )}
                         
