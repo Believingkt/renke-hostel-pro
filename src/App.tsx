@@ -16,6 +16,7 @@ const { lazy, Suspense } = React;
 // 路由懶加載 - 前台頁面
 const Index = lazy(() => import("./pages/Index"));
 const BookingFlow = lazy(() => import("./pages/BookingFlow"));
+const LinePayConfirm = lazy(() => import("./pages/LinePayConfirm"));
 const AIBooking = lazy(() => import("./pages/AIBooking"));
 const OrderSearch = lazy(() => import("./pages/OrderSearch"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -63,6 +64,11 @@ function App() {
                 <Route path="/booking" element={
                   <Suspense fallback={<FrontendSkeleton />}>
                     <BookingFlow />
+                  </Suspense>
+                } />
+                <Route path="/booking/linepay-confirm" element={
+                  <Suspense fallback={<FrontendSkeleton />}>
+                    <LinePayConfirm />
                   </Suspense>
                 } />
                 <Route path="/ai-booking" element={
