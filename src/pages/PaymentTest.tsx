@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, CheckCircle2, XCircle, Copy, AlertCircle, Zap } from "lucide-react";
+import { CreditCard, CheckCircle2, XCircle, Copy, AlertCircle, Zap, ShieldCheck, ShieldX } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface TestCard {
   name: string;
@@ -16,6 +17,149 @@ interface TestCard {
   description: string;
   errorType?: string;
 }
+
+interface CardValidation {
+  isValid: boolean;
+  cardNumber: { valid: boolean; message: string };
+  expiry: { valid: boolean; message: string };
+  cvv: { valid: boolean; message: string };
+}
+
+// Luhn 演算法驗證卡號
+const validateCardNumber = (cardNumber: string): { valid: boolean; message: string } => {
+  const cleanNumber = cardNumber.replace(/\s|-/g, '');
+  
+  // 檢查是否只包含數字
+  if (!/^\d+$/.test(cleanNumber)) {
+    return { valid: false, message: '卡號只能包含數字' };
+  }
+  
+  // 檢查長度 (通常為 13-19 位)
+  if (cleanNumber.length < 13 || cleanNumber.length > 19) {
+    return { valid: false, message: `卡號長度應為 13-19 位 (目前 ${cleanNumber.length} 位)` };
+  }
+  
+  // Luhn 演算法
+  let sum = 0;
+  let isEven = false;
+  
+  for (let i = cleanNumber.length - 1; i >= 0; i--) {
+    let digit = parseInt(cleanNumber[i], 10);
+    
+    if (isEven) {
+      digit *= 2;
+      if (digit > 9) {
+        digit -= 9;
+      }
+    }
+    
+    sum += digit;
+    isEven = !isEven;
+  }
+  
+  if (sum % 10 !== 0) {
+    return { valid: false, message: 'Luhn 驗證失敗' };
+  }
+  
+  // 識別卡片類型
+  const cardType = getCardType(cleanNumber);
+  return { valid: true, message: `格式正確 (${cardType})` };
+};
+
+// 識別卡片類型
+const getCardType = (cardNumber: string): string => {
+  const patterns: { [key: string]: RegExp } = {
+    'Visa': /^4/,
+    'MasterCard': /^5[1-5]|^2[2-7]/,
+    'JCB': /^35/,
+    'American Express': /^3[47]/,
+    'UnionPay': /^62/,
+  };
+  
+  for (const [type, pattern] of Object.entries(patterns)) {
+    if (pattern.test(cardNumber)) {
+      return type;
+    }
+  }
+  return '未知卡別';
+};
+
+// 驗證有效期限
+const validateExpiry = (expiry: string): { valid: boolean; message: string } => {
+  // 支援格式：MM/YY 或 MM/YYYY
+  const match = expiry.match(/^(\d{2})\/(\d{2,4})$/);
+  
+  if (!match) {
+    return { valid: false, message: '格式應為 MM/YY 或 MM/YYYY' };
+  }
+  
+  const month = parseInt(match[1], 10);
+  let year = parseInt(match[2], 10);
+  
+  // 如果是兩位數年份，轉換為四位數
+  if (year < 100) {
+    year += 2000;
+  }
+  
+  // 檢查月份範圍
+  if (month < 1 || month > 12) {
+    return { valid: false, message: '月份應為 01-12' };
+  }
+  
+  // 檢查是否過期
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  
+  if (year < currentYear || (year === currentYear && month < currentMonth)) {
+    return { valid: false, message: '卡片已過期' };
+  }
+  
+  // 檢查是否太遠 (通常不超過 20 年)
+  if (year > currentYear + 20) {
+    return { valid: false, message: '有效期限超出合理範圍' };
+  }
+  
+  return { valid: true, message: `有效至 ${month.toString().padStart(2, '0')}/${year}` };
+};
+
+// 驗證 CVV
+const validateCVV = (cvv: string, cardNumber?: string): { valid: boolean; message: string } => {
+  // 檢查是否只包含數字
+  if (!/^\d+$/.test(cvv)) {
+    return { valid: false, message: 'CVV 只能包含數字' };
+  }
+  
+  // 根據卡片類型檢查長度
+  // American Express 使用 4 位 CVV，其他使用 3 位
+  const isAmex = cardNumber && /^3[47]/.test(cardNumber.replace(/\s|-/g, ''));
+  const expectedLength = isAmex ? 4 : 3;
+  
+  if (cvv.length !== expectedLength) {
+    return { 
+      valid: false, 
+      message: isAmex 
+        ? `AMEX CVV 應為 4 位 (目前 ${cvv.length} 位)` 
+        : `CVV 應為 3 位 (目前 ${cvv.length} 位)` 
+    };
+  }
+  
+  return { valid: true, message: '格式正確' };
+};
+
+// 完整驗證測試卡
+const validateTestCard = (card: TestCard): CardValidation => {
+  const cardNumber = validateCardNumber(card.number);
+  const expiry = validateExpiry(card.expiry);
+  const cvv = validateCVV(card.cvv, card.number);
+  
+  return {
+    isValid: cardNumber.valid && expiry.valid && cvv.valid,
+    cardNumber,
+    expiry,
+    cvv,
+  };
+};
 
 const testCards: TestCard[] = [
   {
@@ -373,85 +517,156 @@ export default function PaymentTest() {
 
         {/* 測試卡號列表 */}
         <div>
-          <h2 className="text-2xl font-semibold mb-4">測試卡號</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-semibold">測試卡號</h2>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline" className="gap-1">
+                    <ShieldCheck className="w-3 h-3" />
+                    自動驗證已啟用
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>自動驗證卡號 (Luhn)、有效期限和 CVV 格式</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {testCards.map((card, index) => (
-              <Card 
-                key={index}
-                className={`cursor-pointer transition-all hover:shadow-lg ${
-                  selectedCard?.number === card.number 
-                    ? 'ring-2 ring-primary' 
-                    : ''
-                }`}
-                onClick={() => fillTestCard(card)}
-              >
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <CardTitle className="text-lg">{card.name}</CardTitle>
-                    <Badge 
-                      variant={card.expectedResult === 'success' ? 'default' : 'destructive'}
-                      className="shrink-0"
-                    >
-                      {card.expectedResult === 'success' ? (
-                        <CheckCircle2 className="w-3 h-3 mr-1" />
-                      ) : (
-                        <XCircle className="w-3 h-3 mr-1" />
-                      )}
-                      {card.expectedResult === 'success' ? '成功' : '失敗'}
-                    </Badge>
-                  </div>
-                  <CardDescription>{card.description}</CardDescription>
-                  {card.errorType && (
-                    <Badge variant="outline" className="w-fit mt-2">
-                      {card.errorType}
-                    </Badge>
-                  )}
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="flex items-center justify-between bg-muted/50 p-2 rounded">
-                    <code className="text-sm">{card.number}</code>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        copyToClipboard(card.number, '卡號');
-                      }}
-                    >
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
+            {testCards.map((card, index) => {
+              const validation = validateTestCard(card);
+              
+              return (
+                <Card 
+                  key={index}
+                  className={`cursor-pointer transition-all hover:shadow-lg ${
+                    selectedCard?.number === card.number 
+                      ? 'ring-2 ring-primary' 
+                      : ''
+                  }`}
+                  onClick={() => fillTestCard(card)}
+                >
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <CardTitle className="text-lg">{card.name}</CardTitle>
+                      <div className="flex items-center gap-1">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge 
+                                variant={validation.isValid ? 'outline' : 'destructive'}
+                                className="shrink-0"
+                              >
+                                {validation.isValid ? (
+                                  <ShieldCheck className="w-3 h-3" />
+                                ) : (
+                                  <ShieldX className="w-3 h-3" />
+                                )}
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <div className="space-y-1 text-xs">
+                                <div className={validation.cardNumber.valid ? 'text-green-500' : 'text-red-500'}>
+                                  卡號: {validation.cardNumber.message}
+                                </div>
+                                <div className={validation.expiry.valid ? 'text-green-500' : 'text-red-500'}>
+                                  有效期限: {validation.expiry.message}
+                                </div>
+                                <div className={validation.cvv.valid ? 'text-green-500' : 'text-red-500'}>
+                                  CVV: {validation.cvv.message}
+                                </div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <Badge 
+                          variant={card.expectedResult === 'success' ? 'default' : 'destructive'}
+                          className="shrink-0"
+                        >
+                          {card.expectedResult === 'success' ? (
+                            <CheckCircle2 className="w-3 h-3 mr-1" />
+                          ) : (
+                            <XCircle className="w-3 h-3 mr-1" />
+                          )}
+                          {card.expectedResult === 'success' ? '成功' : '失敗'}
+                        </Badge>
+                      </div>
+                    </div>
+                    <CardDescription>{card.description}</CardDescription>
+                    {card.errorType && (
+                      <Badge variant="outline" className="w-fit mt-2">
+                        {card.errorType}
+                      </Badge>
+                    )}
+                  </CardHeader>
+                  <CardContent className="space-y-2">
                     <div className="flex items-center justify-between bg-muted/50 p-2 rounded">
-                      <code className="text-sm">{card.expiry}</code>
+                      <div className="flex items-center gap-2">
+                        <code className="text-sm">{card.number}</code>
+                        {validation.cardNumber.valid ? (
+                          <CheckCircle2 className="w-3 h-3 text-green-500" />
+                        ) : (
+                          <XCircle className="w-3 h-3 text-red-500" />
+                        )}
+                      </div>
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={(e) => {
                           e.stopPropagation();
-                          copyToClipboard(card.expiry, '有效期限');
+                          copyToClipboard(card.number, '卡號');
                         }}
                       >
                         <Copy className="w-4 h-4" />
                       </Button>
                     </div>
-                    <div className="flex items-center justify-between bg-muted/50 p-2 rounded">
-                      <code className="text-sm">{card.cvv}</code>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          copyToClipboard(card.cvv, 'CVV');
-                        }}
-                      >
-                        <Copy className="w-4 h-4" />
-                      </Button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="flex items-center justify-between bg-muted/50 p-2 rounded">
+                        <div className="flex items-center gap-2">
+                          <code className="text-sm">{card.expiry}</code>
+                          {validation.expiry.valid ? (
+                            <CheckCircle2 className="w-3 h-3 text-green-500" />
+                          ) : (
+                            <XCircle className="w-3 h-3 text-red-500" />
+                          )}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            copyToClipboard(card.expiry, '有效期限');
+                          }}
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <div className="flex items-center justify-between bg-muted/50 p-2 rounded">
+                        <div className="flex items-center gap-2">
+                          <code className="text-sm">{card.cvv}</code>
+                          {validation.cvv.valid ? (
+                            <CheckCircle2 className="w-3 h-3 text-green-500" />
+                          ) : (
+                            <XCircle className="w-3 h-3 text-red-500" />
+                          )}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            copyToClipboard(card.cvv, 'CVV');
+                          }}
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
 
