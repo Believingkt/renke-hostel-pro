@@ -1081,8 +1081,9 @@ const BookingFlow = () => {
         }
       }
 
-      // 處理 TapPay 支付（如果選擇信用卡）
+      // 處理在線支付（信用卡或 Line Pay）
       let paymentTransactionId = null;
+      
       if (paymentMethod === 'credit_card') {
         setIsProcessingPayment(true);
         
@@ -1145,6 +1146,83 @@ const BookingFlow = () => {
           console.error('Payment error:', error);
           toast({
             title: "付款失敗",
+            description: error instanceof Error ? error.message : "付款過程發生錯誤，請稍後再試",
+            variant: "destructive",
+          });
+          setIsProcessingPayment(false);
+          setIsSubmitting(false);
+          return;
+        } finally {
+          setIsProcessingPayment(false);
+        }
+      } else if (paymentMethod === 'Line Pay') {
+        setIsProcessingPayment(true);
+        
+        try {
+          const orderId = `LP-${Date.now()}`;
+          const currentUrl = window.location.origin;
+          
+          // 呼叫後端創建 LINE Pay 付款請求
+          const { data: paymentResult, error: paymentError } = await supabase.functions.invoke(
+            'process-linepay-payment',
+            {
+              body: {
+                action: 'request',
+                amount: finalPrice,
+                orderId: orderId,
+                orderData: {
+                  roomTypeId: selectedRoom.id,
+                  roomTypeName: selectedRoom.name,
+                  confirmUrl: `${currentUrl}/booking/linepay-confirm`,
+                  cancelUrl: `${currentUrl}/booking?step=payment`,
+                },
+              },
+            }
+          );
+
+          if (paymentError) {
+            throw paymentError;
+          }
+
+          if (!paymentResult.success) {
+            throw new Error(paymentResult.message || 'LINE Pay 付款請求失敗');
+          }
+
+          console.log('LINE Pay request successful:', paymentResult);
+          
+          // 儲存訂單資料到 sessionStorage，以便付款確認後使用
+          const orderSessionData = {
+            accommodationId,
+            selectedRoom,
+            checkInDateStr,
+            checkOutDateStr,
+            guestInfo,
+            totalPrice,
+            discountAmount,
+            finalPrice,
+            depositAmount,
+            petCount,
+            petPlanPrice,
+            mealPlanDetailsData,
+            mealPlanTotalPrice,
+            selectedMealPlan,
+            totalGuests,
+            nights,
+            appliedDiscount,
+            customerId,
+            linePayTransactionId: paymentResult.transactionId,
+            linePayOrderId: orderId,
+          };
+          
+          sessionStorage.setItem('pendingLinePayOrder', JSON.stringify(orderSessionData));
+          
+          // 導向 LINE Pay 付款頁面
+          window.location.href = paymentResult.paymentUrl;
+          return; // 不繼續執行後續代碼
+        } catch (error) {
+          console.error('LINE Pay error:', error);
+          toast({
+            title: "LINE Pay 付款失敗",
             description: error instanceof Error ? error.message : "付款過程發生錯誤，請稍後再試",
             variant: "destructive",
           });
@@ -2526,6 +2604,25 @@ const BookingFlow = () => {
                           <div className="mt-4 p-4 bg-muted/30 rounded-lg border-2 border-primary/20 text-center">
                             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
                             <p className="text-xs text-muted-foreground">正在載入付款模組...</p>
+                          </div>
+                        )}
+
+                        {/* LINE Pay 說明 */}
+                        {paymentMethod === 'Line Pay' && (
+                          <div className="mt-6 p-4 bg-primary/5 rounded-lg border-2 border-primary/20">
+                            <div className="flex items-start gap-3">
+                              <div className="bg-primary/10 rounded-full p-2 mt-0.5">
+                                <CreditCard className="h-5 w-5 text-primary" />
+                              </div>
+                              <div className="space-y-2">
+                                <p className="text-sm font-semibold">LINE Pay 付款流程</p>
+                                <ul className="text-xs text-muted-foreground space-y-1">
+                                  <li>• 點擊「確認訂房」後，系統將導向 LINE Pay 付款頁面</li>
+                                  <li>• 請在 LINE 應用程式中完成付款認證</li>
+                                  <li>• 付款完成後，系統將自動建立訂單並發送確認信</li>
+                                </ul>
+                              </div>
+                            </div>
                           </div>
                         )}
                       </CardContent>
