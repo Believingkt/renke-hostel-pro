@@ -19,6 +19,7 @@ const BookingFlow = lazy(() => import("./pages/BookingFlow"));
 const LinePayConfirm = lazy(() => import("./pages/LinePayConfirm"));
 const AIBooking = lazy(() => import("./pages/AIBooking"));
 const OrderSearch = lazy(() => import("./pages/OrderSearch"));
+const PaymentTest = lazy(() => import("./pages/PaymentTest"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const OgImagePreview = lazy(() => import("./pages/OgImagePreview"));
 
@@ -79,6 +80,11 @@ function App() {
                 <Route path="/order-search" element={
                   <Suspense fallback={<FrontendSkeleton />}>
                     <OrderSearch />
+                  </Suspense>
+                } />
+                <Route path="/payment-test" element={
+                  <Suspense fallback={<FrontendSkeleton />}>
+                    <PaymentTest />
                   </Suspense>
                 } />
                 
