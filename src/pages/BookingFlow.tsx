@@ -1217,7 +1217,22 @@ const BookingFlow = () => {
           }
 
           if (!paymentResult.success) {
-            throw new Error(paymentResult.message || '付款失敗');
+            // 使用後端提供的詳細錯誤訊息
+            const errorInfo = {
+              type: 'card' as const,
+              message: paymentResult.message || '付款失敗',
+              suggestion: paymentResult.suggestion || '請檢查卡片資訊或聯繫發卡銀行',
+              errorCode: paymentResult.errorCode,
+              technicalMessage: paymentResult.technicalMessage
+            };
+            
+            console.error('TapPay payment failed:', errorInfo);
+            setLastPaymentError(errorInfo);
+            setPaymentFailed(true);
+            setShowRetryDialog(true);
+            setIsProcessingPayment(false);
+            setIsSubmitting(false);
+            return;
           }
 
           paymentTransactionId = paymentResult.transactionId;
