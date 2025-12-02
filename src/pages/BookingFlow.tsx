@@ -188,6 +188,7 @@ const BookingFlow = () => {
   const [isCheckOutDateOpen, setIsCheckOutDateOpen] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [successOrderData, setSuccessOrderData] = useState<any>(null);
+  const [paymentFailed, setPaymentFailed] = useState(false);
   
   // 付款重試機制狀態
   const [paymentRetryCount, setPaymentRetryCount] = useState(0);
@@ -943,8 +944,8 @@ const BookingFlow = () => {
   const handlePaymentRetry = () => {
     if (paymentRetryCount >= MAX_RETRY_ATTEMPTS) {
       toast({
-        title: "已達最大重試次數",
-        description: "請稍後再試或選擇其他付款方式",
+        title: "已達重試上限",
+        description: "請檢查付款資訊後重新預訂",
         variant: "destructive",
       });
       return;
@@ -952,6 +953,7 @@ const BookingFlow = () => {
     
     setPaymentRetryCount(prev => prev + 1);
     setShowRetryDialog(false);
+    setPaymentFailed(false);
     setLastPaymentError(null);
     handleConfirmBooking();
   };
@@ -1230,16 +1232,14 @@ const BookingFlow = () => {
           
           const errorInfo = classifyPaymentError(error);
           setLastPaymentError(errorInfo);
+          setPaymentFailed(true);
           
           // 根據錯誤類型決定是否顯示重試對話框
           if (errorInfo.type === 'network' && paymentRetryCount < MAX_RETRY_ATTEMPTS) {
             setShowRetryDialog(true);
           } else {
-            toast({
-              title: "付款失敗",
-              description: `${errorInfo.message}。${errorInfo.suggestion}`,
-              variant: "destructive",
-            });
+            // 顯示錯誤對話框而不是 toast
+            setShowRetryDialog(true);
           }
           
           setIsProcessingPayment(false);
@@ -2985,8 +2985,8 @@ const BookingFlow = () => {
               ) : (
                 <Button
                   onClick={handleConfirmBooking}
-                  disabled={isSubmitting || isProcessingPayment}
-                  className="flex-1 bg-primary"
+                  disabled={isSubmitting || isProcessingPayment || paymentFailed}
+                  className={`flex-1 ${paymentFailed ? 'bg-destructive hover:bg-destructive/90' : 'bg-primary'}`}
                   size="lg"
                 >
                   {isProcessingPayment ? (
@@ -2998,6 +2998,11 @@ const BookingFlow = () => {
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                       建立訂單中...
+                    </>
+                  ) : paymentFailed ? (
+                    <>
+                      <X className="h-4 w-4 mr-2" />
+                      付款失敗
                     </>
                   ) : (
                     <>
@@ -3297,30 +3302,50 @@ const BookingFlow = () => {
       </Dialog>
 
       {/* 付款重試對話框 */}
-      <Dialog open={showRetryDialog} onOpenChange={setShowRetryDialog}>
+      <Dialog open={showRetryDialog} onOpenChange={(open) => {
+        setShowRetryDialog(open);
+        if (!open) {
+          setPaymentFailed(false);
+        }
+      }}>
         <DialogContent className="max-w-md">
-          <DialogTitle className="text-xl font-bold">付款失敗</DialogTitle>
+          <DialogTitle className="text-xl font-bold flex items-center gap-2">
+            <X className="h-6 w-6 text-destructive" />
+            付款失敗
+          </DialogTitle>
           <DialogDescription className="space-y-4">
             {lastPaymentError && (
               <>
                 <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
-                  <p className="text-sm font-semibold mb-2">{lastPaymentError.message}</p>
+                  <p className="text-sm font-semibold mb-2 text-destructive">{lastPaymentError.message}</p>
                   <p className="text-xs text-muted-foreground">{lastPaymentError.suggestion}</p>
                 </div>
                 
-                <div className="text-sm text-muted-foreground">
-                  <p className="mb-2">您可以：</p>
-                  <ul className="space-y-1 list-disc list-inside">
-                    <li>重新嘗試付款</li>
-                    <li>檢查網路連線是否穩定</li>
-                    <li>確認信用卡資訊正確</li>
-                    <li>選擇其他付款方式</li>
+                <div className="bg-muted/50 rounded-lg p-4">
+                  <p className="text-sm font-semibold mb-2">建議處理方式：</p>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary mt-1">•</span>
+                      <span>檢查信用卡資訊是否正確（卡號、有效期限、安全碼）</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary mt-1">•</span>
+                      <span>確認網路連線是否穩定</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary mt-1">•</span>
+                      <span>確認信用卡額度是否足夠</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary mt-1">•</span>
+                      <span>嘗試使用其他付款方式</span>
+                    </li>
                   </ul>
                 </div>
 
                 {paymentRetryCount > 0 && (
-                  <div className="text-xs text-muted-foreground text-center">
-                    已重試 {paymentRetryCount}/{MAX_RETRY_ATTEMPTS} 次
+                  <div className="text-xs text-center bg-muted/30 py-2 rounded-lg">
+                    已重試 <span className="font-semibold text-primary">{paymentRetryCount}</span> / {MAX_RETRY_ATTEMPTS} 次
                   </div>
                 )}
               </>
@@ -3332,6 +3357,7 @@ const BookingFlow = () => {
               variant="outline"
               onClick={() => {
                 setShowRetryDialog(false);
+                setPaymentFailed(false);
                 setCurrentStep('payment');
               }}
               className="flex-1"
