@@ -1010,32 +1010,34 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
             )}
           </div>
 
-          {/* 專案設定區塊 */}
-          <div className="border rounded-lg p-4 bg-muted/30 space-y-4">
+          {/* 餐食方案設定區塊 */}
+          <div className="border rounded-lg p-4 bg-primary/5 space-y-4">
             <h4 className="font-medium flex items-center gap-2">
-              <span className="text-primary">📋</span>
-              專案設定
+              <span>🍽️</span>
+              餐食方案設定
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="project_name">專案名稱</Label>
+                <Label htmlFor="project_name">方案名稱</Label>
                 <Input
                   id="project_name"
                   value={formData.project_name}
                   onChange={(e) => setFormData({ ...formData, project_name: e.target.value })}
-                  placeholder="選填，例如：春季促銷專案"
+                  placeholder="例如：一泊二食、一泊三食"
                   className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
                 />
+                <p className="text-xs text-muted-foreground">顯示於價格設定的餐食方案名稱</p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="project_description">專案說明</Label>
+                <Label htmlFor="project_description">方案說明</Label>
                 <Input
                   id="project_description"
                   value={formData.project_description}
                   onChange={(e) => setFormData({ ...formData, project_description: e.target.value })}
-                  placeholder="選填，例如：2024春季優惠活動"
+                  placeholder="例如：含早餐、下午茶、晚餐"
                   className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
                 />
+                <p className="text-xs text-muted-foreground">顯示於訂房流程餐食方案按鈕下方</p>
               </div>
             </div>
           </div>
