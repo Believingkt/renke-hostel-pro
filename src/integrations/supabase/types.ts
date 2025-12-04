@@ -1101,6 +1101,8 @@ export type Database = {
           display_order: number | null
           id: string
           is_default: boolean | null
+          project_description: string | null
+          project_name: string | null
           template_name: string
           updated_at: string
           weekday_2_meals_price: number | null
@@ -1117,6 +1119,8 @@ export type Database = {
           display_order?: number | null
           id?: string
           is_default?: boolean | null
+          project_description?: string | null
+          project_name?: string | null
           template_name: string
           updated_at?: string
           weekday_2_meals_price?: number | null
@@ -1133,6 +1137,8 @@ export type Database = {
           display_order?: number | null
           id?: string
           is_default?: boolean | null
+          project_description?: string | null
+          project_name?: string | null
           template_name?: string
           updated_at?: string
           weekday_2_meals_price?: number | null

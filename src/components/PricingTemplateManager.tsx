@@ -61,6 +61,8 @@ interface PricingTemplate {
   id: string;
   template_name: string;
   description: string | null;
+  project_name: string | null;
+  project_description: string | null;
   weekday_price: number;
   weekend_price: number;
   weekday_2_meals_price: number | null;
@@ -148,6 +150,8 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
   const [formData, setFormData] = useState({
     template_name: "",
     description: "",
+    project_name: "",
+    project_description: "",
     weekday_2_meals_price: null as number | null,
     weekday_3_meals_price: null as number | null,
     weekend_2_meals_price: null as number | null,
@@ -243,6 +247,8 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
     setFormData({
       template_name: "",
       description: "",
+      project_name: "",
+      project_description: "",
       weekday_2_meals_price: null,
       weekday_3_meals_price: null,
       weekend_2_meals_price: null,
@@ -257,6 +263,8 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
     setFormData({
       template_name: template.template_name,
       description: template.description || "",
+      project_name: template.project_name || "",
+      project_description: template.project_description || "",
       weekday_2_meals_price: template.weekday_2_meals_price,
       weekday_3_meals_price: template.weekday_3_meals_price,
       weekend_2_meals_price: template.weekend_2_meals_price,
@@ -292,15 +300,24 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
     }
 
     try {
+      const dataToSave = {
+        template_name: formData.template_name,
+        description: formData.description || null,
+        project_name: formData.project_name || null,
+        project_description: formData.project_description || null,
+        weekday_2_meals_price: formData.weekday_2_meals_price,
+        weekday_3_meals_price: formData.weekday_3_meals_price,
+        weekend_2_meals_price: formData.weekend_2_meals_price,
+        weekend_3_meals_price: formData.weekend_3_meals_price,
+        weekday_price: null,
+        weekend_price: null,
+        accommodation_id: accommodationId,
+      };
+
       if (editingTemplate) {
         const { error } = await supabase
           .from('pricing_templates')
-          .update({
-            ...formData,
-            weekday_price: null,
-            weekend_price: null,
-            accommodation_id: accommodationId,
-          })
+          .update(dataToSave)
           .eq('id', editingTemplate.id);
 
         if (error) throw error;
@@ -308,12 +325,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       } else {
         const { error } = await supabase
           .from('pricing_templates')
-          .insert({
-            ...formData,
-            weekday_price: null,
-            weekend_price: null,
-            accommodation_id: accommodationId,
-          });
+          .insert(dataToSave);
 
         if (error) throw error;
         toast.success('房價庫存模板已創建');
@@ -996,6 +1008,36 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
             {errors.description && (
               <p className="text-sm text-destructive">{errors.description}</p>
             )}
+          </div>
+
+          {/* 專案設定區塊 */}
+          <div className="border rounded-lg p-4 bg-muted/30 space-y-4">
+            <h4 className="font-medium flex items-center gap-2">
+              <span className="text-primary">📋</span>
+              專案設定
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="project_name">專案名稱</Label>
+                <Input
+                  id="project_name"
+                  value={formData.project_name}
+                  onChange={(e) => setFormData({ ...formData, project_name: e.target.value })}
+                  placeholder="選填，例如：春季促銷專案"
+                  className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="project_description">專案說明</Label>
+                <Input
+                  id="project_description"
+                  value={formData.project_description}
+                  onChange={(e) => setFormData({ ...formData, project_description: e.target.value })}
+                  placeholder="選填，例如：2024春季優惠活動"
+                  className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
+                />
+              </div>
+            </div>
           </div>
 
           <div className="space-y-4">
