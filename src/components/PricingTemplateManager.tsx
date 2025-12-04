@@ -57,12 +57,19 @@ import { DateRange } from "react-day-picker";
 import { eachDayOfInterval, format } from "date-fns";
 import { z } from "zod";
 
+interface MealPlan {
+  id: string;
+  name: string;
+  description: string;
+}
+
 interface PricingTemplate {
   id: string;
   template_name: string;
   description: string | null;
   project_name: string | null;
   project_description: string | null;
+  meal_plans: MealPlan[];
   weekday_price: number;
   weekend_price: number;
   weekday_2_meals_price: number | null;
@@ -152,11 +159,37 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
     description: "",
     project_name: "",
     project_description: "",
+    meal_plans: [] as MealPlan[],
     weekday_2_meals_price: null as number | null,
     weekday_3_meals_price: null as number | null,
     weekend_2_meals_price: null as number | null,
     weekend_3_meals_price: null as number | null,
   });
+
+  const generateId = () => Math.random().toString(36).substring(2, 9);
+
+  const addMealPlan = () => {
+    setFormData(prev => ({
+      ...prev,
+      meal_plans: [...prev.meal_plans, { id: generateId(), name: "", description: "" }]
+    }));
+  };
+
+  const removeMealPlan = (id: string) => {
+    setFormData(prev => ({
+      ...prev,
+      meal_plans: prev.meal_plans.filter(mp => mp.id !== id)
+    }));
+  };
+
+  const updateMealPlan = (id: string, field: 'name' | 'description', value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      meal_plans: prev.meal_plans.map(mp => 
+        mp.id === id ? { ...mp, [field]: value } : mp
+      )
+    }));
+  };
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -179,7 +212,14 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setTemplates(data || []);
+      
+      // Cast meal_plans from JSON to MealPlan[]
+      const templatesWithMealPlans = (data || []).map(t => ({
+        ...t,
+        meal_plans: Array.isArray(t.meal_plans) ? (t.meal_plans as unknown as MealPlan[]) : []
+      }));
+      
+      setTemplates(templatesWithMealPlans);
     } catch (error) {
       console.error('載入房價庫存模板失敗:', error);
       toast.error('載入房價庫存模板失敗');
@@ -249,6 +289,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       description: "",
       project_name: "",
       project_description: "",
+      meal_plans: [],
       weekday_2_meals_price: null,
       weekday_3_meals_price: null,
       weekend_2_meals_price: null,
@@ -265,6 +306,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       description: template.description || "",
       project_name: template.project_name || "",
       project_description: template.project_description || "",
+      meal_plans: template.meal_plans || [],
       weekday_2_meals_price: template.weekday_2_meals_price,
       weekday_3_meals_price: template.weekday_3_meals_price,
       weekend_2_meals_price: template.weekend_2_meals_price,
@@ -305,6 +347,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
         description: formData.description || null,
         project_name: formData.project_name || null,
         project_description: formData.project_description || null,
+        meal_plans: JSON.parse(JSON.stringify(formData.meal_plans)),
         weekday_2_meals_price: formData.weekday_2_meals_price,
         weekday_3_meals_price: formData.weekday_3_meals_price,
         weekend_2_meals_price: formData.weekend_2_meals_price,
@@ -1012,34 +1055,72 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
 
           {/* 餐食方案設定區塊 */}
           <div className="border rounded-lg p-4 bg-primary/5 space-y-4">
-            <h4 className="font-medium flex items-center gap-2">
-              <span>🍽️</span>
-              餐食方案設定
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="project_name">方案名稱</Label>
-                <Input
-                  id="project_name"
-                  value={formData.project_name}
-                  onChange={(e) => setFormData({ ...formData, project_name: e.target.value })}
-                  placeholder="例如：一泊二食、一泊三食"
-                  className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
-                />
-                <p className="text-xs text-muted-foreground">顯示於價格設定的餐食方案名稱</p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="project_description">方案說明</Label>
-                <Input
-                  id="project_description"
-                  value={formData.project_description}
-                  onChange={(e) => setFormData({ ...formData, project_description: e.target.value })}
-                  placeholder="例如：含早餐、下午茶、晚餐"
-                  className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
-                />
-                <p className="text-xs text-muted-foreground">顯示於訂房流程餐食方案按鈕下方</p>
-              </div>
+            <div className="flex items-center justify-between">
+              <h4 className="font-medium flex items-center gap-2">
+                <span>🍽️</span>
+                餐食方案設定
+              </h4>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addMealPlan}
+                className="h-9 touch-manipulation"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                新增方案
+              </Button>
             </div>
+            
+            {formData.meal_plans.length === 0 ? (
+              <div className="text-center py-6 text-muted-foreground border border-dashed rounded-lg">
+                <p className="text-sm">尚未新增餐食方案</p>
+                <p className="text-xs mt-1">點擊「新增方案」按鈕開始設定</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {formData.meal_plans.map((plan, index) => (
+                  <div key={plan.id} className="border rounded-lg p-3 bg-background space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-muted-foreground">方案 {index + 1}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeMealPlan(plan.id)}
+                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">方案名稱</Label>
+                        <Input
+                          value={plan.name}
+                          onChange={(e) => updateMealPlan(plan.id, 'name', e.target.value)}
+                          placeholder="例如：一泊二食"
+                          className="h-10 text-sm touch-manipulation"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">方案說明</Label>
+                        <Input
+                          value={plan.description}
+                          onChange={(e) => updateMealPlan(plan.id, 'description', e.target.value)}
+                          placeholder="例如：含早餐、晚餐"
+                          className="h-10 text-sm touch-manipulation"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <p className="text-xs text-muted-foreground">
+              方案名稱顯示於價格設定；方案說明顯示於訂房流程餐食選項下方
+            </p>
           </div>
 
           <div className="space-y-4">
