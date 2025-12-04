@@ -8,7 +8,7 @@ import { useSubdomain } from "@/hooks/use-subdomain";
 import { format, addDays } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useOrderNotifications } from "@/hooks/use-order-notifications";
-import { Order, QuickFilterType } from "@/types/order";
+import { Order, QuickFilterType, CustomMealPlan } from "@/types/order";
 import { QuickFilters } from "@/components/orders/QuickFilters";
 import { OrderFilters } from "@/components/orders/OrderFilters";
 import { OrdersTable } from "@/components/orders/OrdersTable";
@@ -57,6 +57,7 @@ const Orders = () => {
   const [error, setError] = useState<string | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
+  const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
   
   // 編輯對話框狀態
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -98,23 +99,37 @@ const Orders = () => {
     try {
       setLoading(true);
       setError(null);
-      const { data, error } = await supabase
-        .from("orders")
-        .select(`
-          *,
-          room_types (
-            id,
-            name
-          )
-        `)
-        .eq("accommodation_id", accommodationId)
-        .order("order_date", { ascending: false });
-
-      if (error) throw error;
       
-      if (data) {
-        setOrders(data);
-        setFilteredOrders(data);
+      // 同時獲取訂單和自訂餐食方案
+      const [ordersResult, templatesResult] = await Promise.all([
+        supabase
+          .from("orders")
+          .select(`
+            *,
+            room_types (
+              id,
+              name
+            )
+          `)
+          .eq("accommodation_id", accommodationId)
+          .order("order_date", { ascending: false }),
+        supabase
+          .from("pricing_templates")
+          .select("meal_plans")
+          .eq("accommodation_id", accommodationId)
+          .eq("is_default", true)
+          .maybeSingle()
+      ]);
+
+      if (ordersResult.error) throw ordersResult.error;
+      
+      if (ordersResult.data) {
+        setOrders(ordersResult.data);
+        setFilteredOrders(ordersResult.data);
+      }
+
+      if (templatesResult.data?.meal_plans && Array.isArray(templatesResult.data.meal_plans)) {
+        setCustomMealPlans(templatesResult.data.meal_plans as unknown as CustomMealPlan[]);
       }
     } catch (error) {
       console.error("Error fetching orders:", error);
@@ -563,6 +578,7 @@ const Orders = () => {
                     sortField={sortField}
                     sortDirection={sortDirection}
                     onSort={handleSort}
+                    customMealPlans={customMealPlans}
                   />
 
                   {/* 分頁資訊和控制 */}
