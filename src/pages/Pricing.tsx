@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { RoomTypeForm } from "@/components/RoomTypeForm";
 import { RoomFacilitiesForm } from "@/components/RoomFacilitiesForm";
 import { PricingTemplateManager } from "@/components/PricingTemplateManager";
+import { ProjectSettingsSection } from "@/components/ProjectSettingsSection";
 import { TabsSkeleton } from "@/components/skeletons/TabsSkeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
@@ -501,6 +502,7 @@ const Pricing = () => {
             title="批次設定"
             icon={DollarSign}
           />
+          <ProjectSettingsSection accommodationId={currentAccommodationId || ""} />
           <PricingTemplateManager accommodationId={currentAccommodationId || ""} />
         </TabsContent>
 
