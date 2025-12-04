@@ -63,6 +63,81 @@ interface MealPlan {
   description: string;
 }
 
+interface SortableMealPlanItemProps {
+  plan: MealPlan;
+  index: number;
+  onUpdate: (id: string, field: 'name' | 'description', value: string) => void;
+  onRemove: (id: string) => void;
+}
+
+const SortableMealPlanItem = ({ plan, index, onUpdate, onRemove }: SortableMealPlanItemProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: plan.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div 
+      ref={setNodeRef} 
+      style={style}
+      className="border rounded-lg p-3 bg-background space-y-3"
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+          <span className="text-sm font-medium text-muted-foreground">方案 {index + 1}</span>
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={() => onRemove(plan.id)}
+          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label className="text-xs">方案名稱</Label>
+          <Input
+            value={plan.name}
+            onChange={(e) => onUpdate(plan.id, 'name', e.target.value)}
+            placeholder="例如：一泊二食"
+            className="h-10 text-sm touch-manipulation"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">方案說明</Label>
+          <Input
+            value={plan.description}
+            onChange={(e) => onUpdate(plan.id, 'description', e.target.value)}
+            placeholder="例如：含早餐、晚餐"
+            className="h-10 text-sm touch-manipulation"
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
 interface PricingTemplate {
   id: string;
   template_name: string;
@@ -189,6 +264,20 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
         mp.id === id ? { ...mp, [field]: value } : mp
       )
     }));
+  };
+
+  const handleMealPlanDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setFormData(prev => {
+        const oldIndex = prev.meal_plans.findIndex(mp => mp.id === active.id);
+        const newIndex = prev.meal_plans.findIndex(mp => mp.id === over.id);
+        return {
+          ...prev,
+          meal_plans: arrayMove(prev.meal_plans, oldIndex, newIndex)
+        };
+      });
+    }
   };
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -1078,48 +1167,32 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                 <p className="text-xs mt-1">點擊「新增方案」按鈕開始設定</p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {formData.meal_plans.map((plan, index) => (
-                  <div key={plan.id} className="border rounded-lg p-3 bg-background space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-muted-foreground">方案 {index + 1}</span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeMealPlan(plan.id)}
-                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <Label className="text-xs">方案名稱</Label>
-                        <Input
-                          value={plan.name}
-                          onChange={(e) => updateMealPlan(plan.id, 'name', e.target.value)}
-                          placeholder="例如：一泊二食"
-                          className="h-10 text-sm touch-manipulation"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">方案說明</Label>
-                        <Input
-                          value={plan.description}
-                          onChange={(e) => updateMealPlan(plan.id, 'description', e.target.value)}
-                          placeholder="例如：含早餐、晚餐"
-                          className="h-10 text-sm touch-manipulation"
-                        />
-                      </div>
-                    </div>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleMealPlanDragEnd}
+              >
+                <SortableContext
+                  items={formData.meal_plans.map(mp => mp.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-3">
+                    {formData.meal_plans.map((plan, index) => (
+                      <SortableMealPlanItem
+                        key={plan.id}
+                        plan={plan}
+                        index={index}
+                        onUpdate={updateMealPlan}
+                        onRemove={removeMealPlan}
+                      />
+                    ))}
                   </div>
-                ))}
-              </div>
+                </SortableContext>
+              </DndContext>
             )}
             
             <p className="text-xs text-muted-foreground">
-              方案名稱顯示於價格設定；方案說明顯示於訂房流程餐食選項下方
+              方案名稱顯示於價格設定；方案說明顯示於訂房流程餐食選項下方。可拖曳調整順序。
             </p>
           </div>
 
