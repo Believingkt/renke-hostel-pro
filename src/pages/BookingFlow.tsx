@@ -169,7 +169,7 @@ const BookingFlow = () => {
   
   // 訂房資料
   const [selectedRoom, setSelectedRoom] = useState<RoomType | null>(null);
-  const [selectedMealPlan, setSelectedMealPlan] = useState<"2_meals" | "3_meals">("2_meals");
+  const [selectedMealPlan, setSelectedMealPlan] = useState<string>("2_meals");
   const [guestInfo, setGuestInfo] = useState({
     name: "",
     phone: "",
@@ -243,6 +243,14 @@ const BookingFlow = () => {
     maxQuantity: 30,
     detailedDescription: ""
   });
+  
+  // 自訂餐食方案
+  interface CustomMealPlan {
+    id: string;
+    name: string;
+    description: string;
+  }
+  const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
   
   // 將 context 日期轉換為字串格式，並提供預設值
   const checkInDateStr = checkInDate ? format(checkInDate, "yyyy-MM-dd") : "";
@@ -350,6 +358,23 @@ const BookingFlow = () => {
 
         if (holidaysData) {
           setPublicHolidays(holidaysData.map(h => h.holiday_date));
+        }
+
+        // 獲取自訂餐食方案（從價格模板）
+        const { data: templatesData } = await supabase
+          .from("pricing_templates")
+          .select("meal_plans")
+          .eq("accommodation_id", accommodationId)
+          .eq("is_default", true)
+          .maybeSingle();
+
+        if (templatesData?.meal_plans && Array.isArray(templatesData.meal_plans)) {
+          const mealPlans = templatesData.meal_plans as { id: string; name: string; description: string }[];
+          if (mealPlans.length > 0) {
+            setCustomMealPlans(mealPlans);
+            // 預設選擇第一個方案
+            setSelectedMealPlan(mealPlans[0].id);
+          }
         }
       } catch (error) {
         if (import.meta.env.DEV) {
@@ -632,6 +657,16 @@ const BookingFlow = () => {
   // 檢查是否為假日（星期六或國定假日）
   const isWeekend = (date: Date) => {
     return isSaturday(date) || isPublicHoliday(date);
+  };
+
+  // 獲取餐食方案顯示名稱
+  const getMealPlanDisplayName = (planId: string) => {
+    const customPlan = customMealPlans.find(p => p.id === planId);
+    if (customPlan) {
+      return customPlan.name;
+    }
+    // 預設名稱
+    return planId === "2_meals" ? "一泊二食" : planId === "3_meals" ? "一泊三食" : planId;
   };
 
   // 檢查日期範圍內是否包含平日或週末
@@ -2227,33 +2262,58 @@ const BookingFlow = () => {
                       <Label className="flex items-center gap-2">
                         餐食方案 <span className="text-destructive">*</span>
                       </Label>
-                      <div className="grid grid-cols-2 gap-3">
-                        <Card 
-                          className={`cursor-pointer transition-all ${
-                            selectedMealPlan === "2_meals"
-                              ? "border-2 border-primary shadow-md bg-primary/5"
-                              : "border hover:border-primary/50"
-                          }`}
-                          onClick={() => setSelectedMealPlan("2_meals")}
-                        >
-                          <CardContent className="p-4 text-center">
-                            <p className="font-semibold mb-1">一泊二食</p>
-                            <p className="text-xs text-muted-foreground">含早餐、下午茶</p>
-                          </CardContent>
-                        </Card>
-                        <Card 
-                          className={`cursor-pointer transition-all ${
-                            selectedMealPlan === "3_meals"
-                              ? "border-2 border-primary shadow-md bg-primary/5"
-                              : "border hover:border-primary/50"
-                          }`}
-                          onClick={() => setSelectedMealPlan("3_meals")}
-                        >
-                          <CardContent className="p-4 text-center">
-                            <p className="font-semibold mb-1">一泊三食</p>
-                            <p className="text-xs text-muted-foreground">含早餐、下午茶、晚餐</p>
-                          </CardContent>
-                        </Card>
+                      <div className={`grid gap-3 ${customMealPlans.length > 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2'}`}>
+                        {customMealPlans.length > 0 ? (
+                          // 顯示自訂餐食方案
+                          customMealPlans.map((plan) => (
+                            <Card 
+                              key={plan.id}
+                              className={`cursor-pointer transition-all ${
+                                selectedMealPlan === plan.id
+                                  ? "border-2 border-primary shadow-md bg-primary/5"
+                                  : "border hover:border-primary/50"
+                              }`}
+                              onClick={() => setSelectedMealPlan(plan.id)}
+                            >
+                              <CardContent className="p-4 text-center">
+                                <p className="font-semibold mb-1">{plan.name}</p>
+                                {plan.description && (
+                                  <p className="text-xs text-muted-foreground">{plan.description}</p>
+                                )}
+                              </CardContent>
+                            </Card>
+                          ))
+                        ) : (
+                          // 預設餐食方案
+                          <>
+                            <Card 
+                              className={`cursor-pointer transition-all ${
+                                selectedMealPlan === "2_meals"
+                                  ? "border-2 border-primary shadow-md bg-primary/5"
+                                  : "border hover:border-primary/50"
+                              }`}
+                              onClick={() => setSelectedMealPlan("2_meals")}
+                            >
+                              <CardContent className="p-4 text-center">
+                                <p className="font-semibold mb-1">一泊二食</p>
+                                <p className="text-xs text-muted-foreground">含早餐、下午茶</p>
+                              </CardContent>
+                            </Card>
+                            <Card 
+                              className={`cursor-pointer transition-all ${
+                                selectedMealPlan === "3_meals"
+                                  ? "border-2 border-primary shadow-md bg-primary/5"
+                                  : "border hover:border-primary/50"
+                              }`}
+                              onClick={() => setSelectedMealPlan("3_meals")}
+                            >
+                              <CardContent className="p-4 text-center">
+                                <p className="font-semibold mb-1">一泊三食</p>
+                                <p className="text-xs text-muted-foreground">含早餐、下午茶、晚餐</p>
+                              </CardContent>
+                            </Card>
+                          </>
+                        )}
                       </div>
                     </div>
                     {checkInDate && checkOutDate && (
@@ -3052,7 +3112,7 @@ const BookingFlow = () => {
                           </div>
                           <div className="p-4 bg-muted/50 rounded-lg">
                             <p className="text-xs text-muted-foreground mb-1">餐食方案</p>
-                            <p className="font-medium text-sm">{selectedMealPlan === "2_meals" ? "一泊二食" : "一泊三食"}</p>
+                            <p className="font-medium text-sm">{getMealPlanDisplayName(selectedMealPlan)}</p>
                           </div>
                         </div>
 
@@ -3307,7 +3367,7 @@ const BookingFlow = () => {
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">
-                              {selectedMealPlan === "2_meals" ? "一泊二食" : "一泊三食"} × {calculateNights()} 晚
+                              {getMealPlanDisplayName(selectedMealPlan)} × {calculateNights()} 晚
                             </span>
                             <span className="font-medium">
                               NT$ {calculateTotal().toLocaleString()}
