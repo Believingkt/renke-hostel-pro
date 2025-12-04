@@ -61,12 +61,14 @@ interface MealPlan {
   id: string;
   name: string;
   description: string;
+  weekday_price: number | null;
+  weekend_price: number | null;
 }
 
 interface SortableMealPlanItemProps {
   plan: MealPlan;
   index: number;
-  onUpdate: (id: string, field: 'name' | 'description', value: string) => void;
+  onUpdate: (id: string, field: 'name' | 'description' | 'weekday_price' | 'weekend_price', value: string | number | null) => void;
   onRemove: (id: string) => void;
 }
 
@@ -183,24 +185,20 @@ interface PricingTemplateManagerProps {
 const templateSchema = z.object({
   template_name: z.string().trim().min(1, "模板名稱不能為空").max(50, "模板名稱最多50字"),
   description: z.string().trim().max(200, "描述最多200字").optional(),
-  weekday_2_meals_price: z.number().int().min(0).optional().nullable(),
-  weekday_3_meals_price: z.number().int().min(0).optional().nullable(),
-  weekend_2_meals_price: z.number().int().min(0).optional().nullable(),
-  weekend_3_meals_price: z.number().int().min(0).optional().nullable(),
+  meal_plans: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    description: z.string(),
+    weekday_price: z.number().int().min(0).optional().nullable(),
+    weekend_price: z.number().int().min(0).optional().nullable(),
+  })),
 }).refine((data) => {
-  // 至少要填寫一個完整的區塊（平日或假日的兩種價格都填）
-  const hasCompleteWeekday = 
-    data.weekday_2_meals_price != null && 
-    data.weekday_3_meals_price != null;
-  
-  const hasCompleteWeekend = 
-    data.weekend_2_meals_price != null && 
-    data.weekend_3_meals_price != null;
-  
-  return hasCompleteWeekday || hasCompleteWeekend;
+  // 至少要有一個餐食方案且至少有一個價格
+  if (data.meal_plans.length === 0) return false;
+  return data.meal_plans.some(mp => mp.weekday_price != null || mp.weekend_price != null);
 }, {
-  message: "至少要填寫一個完整的價格區塊（平日或假日的兩種價格都需填寫）",
-  path: ["weekday_2_meals_price"],
+  message: "至少要有一個餐食方案，且設定至少一個價格",
+  path: ["meal_plans"],
 });
 
 export function PricingTemplateManager({ accommodationId }: PricingTemplateManagerProps) {
@@ -235,10 +233,6 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
     project_name: "",
     project_description: "",
     meal_plans: [] as MealPlan[],
-    weekday_2_meals_price: null as number | null,
-    weekday_3_meals_price: null as number | null,
-    weekend_2_meals_price: null as number | null,
-    weekend_3_meals_price: null as number | null,
   });
 
   const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -246,7 +240,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
   const addMealPlan = () => {
     setFormData(prev => ({
       ...prev,
-      meal_plans: [...prev.meal_plans, { id: generateId(), name: "", description: "" }]
+      meal_plans: [...prev.meal_plans, { id: generateId(), name: "", description: "", weekday_price: null, weekend_price: null }]
     }));
   };
 
@@ -257,7 +251,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
     }));
   };
 
-  const updateMealPlan = (id: string, field: 'name' | 'description', value: string) => {
+  const updateMealPlan = (id: string, field: 'name' | 'description' | 'weekday_price' | 'weekend_price', value: string | number | null) => {
     setFormData(prev => ({
       ...prev,
       meal_plans: prev.meal_plans.map(mp => 
@@ -379,10 +373,6 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       project_name: "",
       project_description: "",
       meal_plans: [],
-      weekday_2_meals_price: null,
-      weekday_3_meals_price: null,
-      weekend_2_meals_price: null,
-      weekend_3_meals_price: null,
     });
     setErrors({});
     setShowForm(true);
@@ -396,10 +386,6 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       project_name: template.project_name || "",
       project_description: template.project_description || "",
       meal_plans: template.meal_plans || [],
-      weekday_2_meals_price: template.weekday_2_meals_price,
-      weekday_3_meals_price: template.weekday_3_meals_price,
-      weekend_2_meals_price: template.weekend_2_meals_price,
-      weekend_3_meals_price: template.weekend_3_meals_price,
     });
     setErrors({});
     setShowForm(true);
@@ -437,10 +423,11 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
         project_name: formData.project_name || null,
         project_description: formData.project_description || null,
         meal_plans: JSON.parse(JSON.stringify(formData.meal_plans)),
-        weekday_2_meals_price: formData.weekday_2_meals_price,
-        weekday_3_meals_price: formData.weekday_3_meals_price,
-        weekend_2_meals_price: formData.weekend_2_meals_price,
-        weekend_3_meals_price: formData.weekend_3_meals_price,
+        // Legacy fields - set to null, prices now stored in meal_plans
+        weekday_2_meals_price: null,
+        weekday_3_meals_price: null,
+        weekend_2_meals_price: null,
+        weekend_3_meals_price: null,
         weekday_price: null,
         weekend_price: null,
         accommodation_id: accommodationId,
@@ -1196,98 +1183,77 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
             </p>
           </div>
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h4 className="font-medium">價格設定</h4>
-              <p className="text-sm text-muted-foreground">至少填寫一個完整區塊</p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* 平日價格區塊 */}
-              <div className="border rounded-lg p-4 bg-muted/50">
-                <h5 className="font-medium mb-3 text-center">平日價格</h5>
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="weekday_2_meals_price">一泊二食</Label>
-                    <Input
-                      id="weekday_2_meals_price"
-                      type="number"
-                      min="0"
-                      value={formData.weekday_2_meals_price ?? ""}
-                      onChange={(e) => setFormData({ 
-                        ...formData, 
-                        weekday_2_meals_price: e.target.value ? parseInt(e.target.value) : null 
-                      })}
-                      placeholder="選填"
-                      className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
-                      inputMode="numeric"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="weekday_3_meals_price">一泊三食</Label>
-                    <Input
-                      id="weekday_3_meals_price"
-                      type="number"
-                      min="0"
-                      value={formData.weekday_3_meals_price ?? ""}
-                      onChange={(e) => setFormData({ 
-                        ...formData, 
-                        weekday_3_meals_price: e.target.value ? parseInt(e.target.value) : null 
-                      })}
-                      placeholder="選填"
-                      className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
-                      inputMode="numeric"
-                    />
-                  </div>
-                </div>
+          {/* 價格設定 - 根據餐食方案動態顯示 */}
+          {formData.meal_plans.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium">價格設定</h4>
+                <p className="text-sm text-muted-foreground">根據餐食方案設定價格</p>
               </div>
-
-              {/* 假日價格區塊 */}
-              <div className="border rounded-lg p-4 bg-muted/50">
-                <h5 className="font-medium mb-3 text-center">假日價格</h5>
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="weekend_2_meals_price">一泊二食</Label>
-                    <Input
-                      id="weekend_2_meals_price"
-                      type="number"
-                      min="0"
-                      value={formData.weekend_2_meals_price ?? ""}
-                      onChange={(e) => setFormData({ 
-                        ...formData, 
-                        weekend_2_meals_price: e.target.value ? parseInt(e.target.value) : null
-                      })}
-                      placeholder="選填"
-                      className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
-                      inputMode="numeric"
-                    />
+              
+              <div className="space-y-4">
+                {formData.meal_plans.map((plan, index) => (
+                  <div key={plan.id} className="border rounded-lg p-4 bg-muted/50">
+                    <h5 className="font-medium mb-3 text-center">
+                      {plan.name || `方案 ${index + 1}`}
+                      {plan.description && (
+                        <span className="text-xs text-muted-foreground ml-2 font-normal">
+                          ({plan.description})
+                        </span>
+                      )}
+                    </h5>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor={`weekday_price_${plan.id}`}>平日價格</Label>
+                        <Input
+                          id={`weekday_price_${plan.id}`}
+                          type="number"
+                          min="0"
+                          value={plan.weekday_price ?? ""}
+                          onChange={(e) => updateMealPlan(
+                            plan.id, 
+                            'weekday_price', 
+                            e.target.value ? parseInt(e.target.value) : null
+                          )}
+                          placeholder="選填"
+                          className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
+                          inputMode="numeric"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor={`weekend_price_${plan.id}`}>假日價格</Label>
+                        <Input
+                          id={`weekend_price_${plan.id}`}
+                          type="number"
+                          min="0"
+                          value={plan.weekend_price ?? ""}
+                          onChange={(e) => updateMealPlan(
+                            plan.id, 
+                            'weekend_price', 
+                            e.target.value ? parseInt(e.target.value) : null
+                          )}
+                          placeholder="選填"
+                          className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
+                          inputMode="numeric"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="weekend_3_meals_price">一泊三食</Label>
-                    <Input
-                      id="weekend_3_meals_price"
-                      type="number"
-                      min="0"
-                      value={formData.weekend_3_meals_price ?? ""}
-                      onChange={(e) => setFormData({ 
-                        ...formData, 
-                        weekend_3_meals_price: e.target.value ? parseInt(e.target.value) : null 
-                      })}
-                      placeholder="選填"
-                      className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
-                      inputMode="numeric"
-                    />
-                  </div>
-                </div>
+                ))}
               </div>
+              
+              {errors.meal_plans && (
+                <p className="text-sm text-destructive">{errors.meal_plans}</p>
+              )}
             </div>
-            
-            {errors.weekday_2_meals_price && (
-              <p className="text-sm text-destructive">{errors.weekday_2_meals_price}</p>
-            )}
-          </div>
+          )}
+          
+          {formData.meal_plans.length === 0 && (
+            <div className="text-center py-6 text-muted-foreground border border-dashed rounded-lg">
+              <p className="text-sm">請先新增餐食方案</p>
+              <p className="text-xs mt-1">新增方案後即可設定對應的價格</p>
+            </div>
+          )}
 
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
             <Button onClick={handleSubmit} className="flex items-center justify-center gap-2 w-full sm:w-auto h-11 sm:h-10 touch-manipulation">
