@@ -15,10 +15,17 @@ export interface Order {
   notes: string | null;
   order_date: string;
   guest_count: number;
+  meal_plan: string | null;
   room_types: {
     id: string;
     name: string;
   } | null;
+}
+
+export interface CustomMealPlan {
+  id: string;
+  name: string;
+  description: string;
 }
 
 export type QuickFilterType = "today_checkin" | "today_checkout" | "pending" | "unpaid" | "upcoming" | "";

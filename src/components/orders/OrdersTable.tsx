@@ -3,9 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
-import { Order } from "@/types/order";
+import { Order, CustomMealPlan } from "@/types/order";
 import { getPaymentStatusConfig, getOrderStatusConfig } from "@/utils/orderHelpers";
-import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCart, Edit, Eye } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCart, Edit, Eye, Utensils } from "lucide-react";
 import { OrderQuickPreview } from "./OrderQuickPreview";
 import { EmptyState } from "@/components/EmptyState";
 
@@ -15,9 +15,10 @@ interface OrdersTableProps {
   sortField: keyof Order | "";
   sortDirection: "asc" | "desc";
   onSort: (field: keyof Order) => void;
+  customMealPlans?: CustomMealPlan[];
 }
 
-export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onSort }: OrdersTableProps) {
+export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onSort, customMealPlans = [] }: OrdersTableProps) {
   const getSortIcon = (field: keyof Order) => {
     if (sortField !== field) {
       return <ArrowUpDown className="w-4 h-4 ml-1 opacity-50" />;
@@ -25,6 +26,17 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
     return sortDirection === "asc" 
       ? <ArrowUp className="w-4 h-4 ml-1" />
       : <ArrowDown className="w-4 h-4 ml-1" />;
+  };
+
+  // 獲取餐食方案顯示名稱
+  const getMealPlanDisplayName = (planId: string | null) => {
+    if (!planId) return "-";
+    const customPlan = customMealPlans.find(p => p.id === planId);
+    if (customPlan) {
+      return customPlan.name;
+    }
+    // 預設名稱
+    return planId === "2_meals" ? "一泊二食" : planId === "3_meals" ? "一泊三食" : planId;
   };
 
   const SortableHeader = ({ field, children }: { field: keyof Order; children: React.ReactNode }) => (
@@ -52,6 +64,9 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
               <SortableHeader field="check_in_date">入住日期</SortableHeader>
               <SortableHeader field="check_out_date">退房日期</SortableHeader>
               <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
+                餐食方案
+              </th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
                 訂單狀態
               </th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
@@ -65,7 +80,7 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
           <tbody>
             {orders.length === 0 ? (
               <tr>
-                <td colSpan={8} className="p-0">
+                <td colSpan={9} className="p-0">
                   <div className="py-8">
                     <EmptyState
                       icon={ShoppingCart}
@@ -97,6 +112,7 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                     <td className="px-4 py-3 text-sm">{order.guest_name}</td>
                     <td className="px-4 py-3 text-sm">{order.check_in_date}</td>
                     <td className="px-4 py-3 text-sm">{order.check_out_date}</td>
+                    <td className="px-4 py-3 text-sm">{getMealPlanDisplayName(order.meal_plan)}</td>
                     <td className="px-4 py-3 text-sm">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${orderStatusConfig.className}`}>
                         {orderStatusConfig.label}
@@ -202,6 +218,13 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                       <span className="text-muted-foreground mr-2">訂購時間:</span>
                       <span>{format(new Date(order.order_date), "yyyy-MM-dd HH:mm")}</span>
                     </div>
+                    {order.meal_plan && (
+                      <div className="flex items-center text-sm">
+                        <Utensils className="w-4 h-4 mr-2 text-muted-foreground" />
+                        <span className="text-muted-foreground mr-2">餐食方案:</span>
+                        <span className="font-medium">{getMealPlanDisplayName(order.meal_plan)}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* 入住和退房日期 */}
