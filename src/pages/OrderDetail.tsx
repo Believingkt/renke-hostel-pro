@@ -26,6 +26,7 @@ interface MealPlanDetail {
 
 interface OrderDetail {
   id: string;
+  accommodation_id: string;
   order_number: string;
   guest_name: string;
   guest_phone: string;
@@ -57,6 +58,12 @@ interface OrderDetail {
   } | null;
 }
 
+interface CustomMealPlan {
+  id: string;
+  name: string;
+  description: string;
+}
+
 const OrderDetail = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
@@ -64,6 +71,7 @@ const OrderDetail = () => {
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
 
   useEffect(() => {
     if (!orderId) return;
@@ -87,13 +95,28 @@ const OrderDetail = () => {
         
         if (data) {
           const orderData = data as any;
-          setOrder({
+          const orderObj = {
             ...orderData,
             pet_count: orderData.pet_count || 0,
             pet_plan_price: orderData.pet_plan_price || 0,
             meal_plan_details: orderData.meal_plan_details || [],
             meal_plan_total: orderData.meal_plan_total || 0,
-          } as OrderDetail);
+          } as OrderDetail;
+          setOrder(orderObj);
+
+          // 獲取自訂餐食方案
+          if (orderData.accommodation_id) {
+            const { data: templatesData } = await supabase
+              .from("pricing_templates")
+              .select("meal_plans")
+              .eq("accommodation_id", orderData.accommodation_id)
+              .eq("is_default", true)
+              .maybeSingle();
+
+            if (templatesData?.meal_plans && Array.isArray(templatesData.meal_plans)) {
+              setCustomMealPlans(templatesData.meal_plans as unknown as CustomMealPlan[]);
+            }
+          }
         }
       } catch (error) {
         console.error("Error fetching order:", error);
@@ -139,6 +162,17 @@ const OrderDetail = () => {
         {config.label}
       </span>
     );
+  };
+
+  // 獲取餐食方案顯示名稱
+  const getMealPlanDisplayName = (planId: string | null) => {
+    if (!planId) return "-";
+    const customPlan = customMealPlans.find(p => p.id === planId);
+    if (customPlan) {
+      return customPlan.name;
+    }
+    // 預設名稱
+    return planId === "2_meals" ? "一泊二食" : planId === "3_meals" ? "一泊三食" : planId;
   };
 
   const handleResendConfirmation = async () => {
@@ -390,7 +424,7 @@ const OrderDetail = () => {
                 <Separator />
                 <div className="flex justify-between items-center gap-2">
                   <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">餐食方案</span>
-                  <span className="font-medium text-sm md:text-base text-right">{order.meal_plan}</span>
+                  <span className="font-medium text-sm md:text-base text-right">{getMealPlanDisplayName(order.meal_plan)}</span>
                 </div>
               </>
             )}
