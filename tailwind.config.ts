@@ -63,6 +63,10 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        auth: {
+          primary: "hsl(var(--auth-primary))",
+          "primary-hover": "hsl(var(--auth-primary-hover))",
+        },
         stat: {
           coral: "hsl(var(--stat-coral))",
           "coral-light": "hsl(var(--stat-coral-light))",

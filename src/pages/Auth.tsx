@@ -233,21 +233,21 @@ export default function Auth() {
             </div>
           ) : isInviteMode ? (
             <div className="flex items-center justify-center gap-2 pt-2">
-              <KeyRound className="h-5 w-5 text-[#4A7DA7]" />
+              <KeyRound className="h-5 w-5 text-auth-primary" />
               <CardDescription className="text-center">
                 歡迎！請設定您的登入密碼
               </CardDescription>
             </div>
           ) : isForgotPasswordMode ? (
             <div className="flex items-center justify-center gap-2 pt-2">
-              <Mail className="h-5 w-5 text-[#4A7DA7]" />
+              <Mail className="h-5 w-5 text-auth-primary" />
               <CardDescription className="text-center">
                 重設您的密碼
               </CardDescription>
             </div>
           ) : (
             <div className="flex items-center justify-center gap-2 pt-2">
-              <LogIn className="h-5 w-5 text-[#4A7DA7]" />
+              <LogIn className="h-5 w-5 text-auth-primary" />
               <CardDescription className="text-center">
                 請登入您的帳號
               </CardDescription>
@@ -340,7 +340,7 @@ export default function Auth() {
                   </Button>
                 </div>
               </div>
-              <Button type="submit" className="w-full bg-[#4A7DA7] hover:bg-[#3D6B8F]" disabled={isLoading}>
+              <Button type="submit" className="w-full bg-auth-primary hover:bg-auth-primary-hover" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 完成設定
               </Button>
@@ -361,7 +361,7 @@ export default function Auth() {
               <p className="text-sm text-muted-foreground">
                 輸入您的電子郵件，我們將發送重設密碼連結給您。
               </p>
-              <Button type="submit" className="w-full bg-[#4A7DA7] hover:bg-[#3D6B8F]" disabled={isLoading}>
+              <Button type="submit" className="w-full bg-auth-primary hover:bg-auth-primary-hover" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 發送重設連結
               </Button>
@@ -396,7 +396,7 @@ export default function Auth() {
                   <Button
                     type="button"
                     variant="link"
-                    className="h-auto p-0 text-sm text-muted-foreground hover:text-[#4A7DA7]"
+                    className="h-auto p-0 text-sm text-muted-foreground hover:text-auth-primary"
                     onClick={() => setIsForgotPasswordMode(true)}
                   >
                     忘記密碼？
@@ -426,7 +426,7 @@ export default function Auth() {
                   </Button>
                 </div>
               </div>
-              <Button type="submit" className="w-full bg-[#4A7DA7] hover:bg-[#3D6B8F]" disabled={isLoading}>
+              <Button type="submit" className="w-full bg-auth-primary hover:bg-auth-primary-hover" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 登入
               </Button>
