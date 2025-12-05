@@ -45,9 +45,15 @@ interface Order {
   order_status: string;
   payment_status: string;
   room_type_id: string | null;
+  meal_plan: string | null;
   room_types?: {
     name: string;
   };
+}
+
+interface CustomMealPlan {
+  id: string;
+  name: string;
 }
 
 const CustomerOrders = () => {
@@ -56,14 +62,45 @@ const CustomerOrders = () => {
   const { currentAccommodationId } = useAccommodation();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (currentAccommodationId && customerId) {
       loadCustomerAndOrders();
+      loadCustomMealPlans();
     }
   }, [currentAccommodationId, customerId]);
+
+  const loadCustomMealPlans = async () => {
+    if (!currentAccommodationId) return;
+    
+    const { data } = await supabase
+      .from('pricing_templates')
+      .select('meal_plans')
+      .eq('accommodation_id', currentAccommodationId)
+      .eq('is_default', true)
+      .maybeSingle();
+    
+    if (data?.meal_plans && Array.isArray(data.meal_plans)) {
+      setCustomMealPlans(data.meal_plans as unknown as CustomMealPlan[]);
+    }
+  };
+
+  const getMealPlanDisplayName = (mealPlan: string | null): string => {
+    if (!mealPlan) return '-';
+    
+    const customPlan = customMealPlans.find(p => p.id === mealPlan);
+    if (customPlan) return customPlan.name;
+    
+    const defaultNames: Record<string, string> = {
+      'no_meal': '不含餐',
+      '2_meals': '一泊二食',
+      '3_meals': '一泊三食'
+    };
+    return defaultNames[mealPlan] || mealPlan;
+  };
 
   const loadCustomerAndOrders = async () => {
     if (!currentAccommodationId || !customerId) return;
@@ -296,6 +333,7 @@ const CustomerOrders = () => {
                       <TableHead className="text-foreground font-semibold text-sm">訂單日期</TableHead>
                       <TableHead className="text-foreground font-semibold text-sm">入住/退房日期</TableHead>
                       <TableHead className="text-foreground font-semibold text-sm">房型</TableHead>
+                      <TableHead className="text-foreground font-semibold text-sm">餐食方案</TableHead>
                       <TableHead className="text-center text-foreground font-semibold text-sm">人數</TableHead>
                       <TableHead className="text-right text-foreground font-semibold text-sm">金額</TableHead>
                       <TableHead className="text-foreground font-semibold text-sm">訂單狀態</TableHead>
@@ -317,6 +355,7 @@ const CustomerOrders = () => {
                           </div>
                         </TableCell>
                         <TableCell className="text-sm">{order.room_types?.name || "-"}</TableCell>
+                        <TableCell className="text-sm">{getMealPlanDisplayName(order.meal_plan)}</TableCell>
                         <TableCell className="text-center text-sm">{order.guest_count}</TableCell>
                         <TableCell className="text-right font-medium text-sm">
                           ${order.final_price.toLocaleString()}
@@ -369,6 +408,10 @@ const CustomerOrders = () => {
                         <div>
                           <span className="text-muted-foreground">房型：</span>
                           <span>{order.room_types?.name || "-"}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">餐食：</span>
+                          <span>{getMealPlanDisplayName(order.meal_plan)}</span>
                         </div>
                         <div>
                           <span className="text-muted-foreground">人數：</span>
