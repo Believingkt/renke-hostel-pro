@@ -1153,12 +1153,12 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
             )}
           </div>
 
-          {/* 餐食方案設定區塊 */}
+          {/* 專案設定區塊 */}
           <div className="border rounded-lg p-4 bg-primary/5 space-y-4">
             <div className="flex items-center justify-between">
               <h4 className="font-medium flex items-center gap-2">
                 <span>🍽️</span>
-                餐食方案設定
+                專案設定
               </h4>
               <Button
                 type="button"
@@ -1168,14 +1168,14 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                 className="h-9 touch-manipulation"
               >
                 <Plus className="h-4 w-4 mr-1" />
-                新增方案
+                新增專案
               </Button>
             </div>
             
             {formData.meal_plans.length === 0 ? (
               <div className="text-center py-6 text-muted-foreground border border-dashed rounded-lg">
-                <p className="text-sm">尚未新增餐食方案</p>
-                <p className="text-xs mt-1">點擊「新增方案」按鈕開始設定</p>
+                <p className="text-sm">尚未新增專案</p>
+                <p className="text-xs mt-1">點擊「新增專案」按鈕開始設定</p>
               </div>
             ) : (
               <DndContext
@@ -1274,8 +1274,8 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
           
           {formData.meal_plans.length === 0 && (
             <div className="text-center py-6 text-muted-foreground border border-dashed rounded-lg">
-              <p className="text-sm">請先新增餐食方案</p>
-              <p className="text-xs mt-1">新增方案後即可設定對應的價格</p>
+              <p className="text-sm">請先新增專案</p>
+              <p className="text-xs mt-1">新增專案後即可設定對應的價格</p>
             </div>
           )}
 
