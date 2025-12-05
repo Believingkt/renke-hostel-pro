@@ -67,6 +67,10 @@ All colors MUST be HSL.
     --sidebar-border: 142 20% 92%;
     --sidebar-ring: 142 76% 36%;
 
+    /* Auth branding colors */
+    --auth-primary: 210 38% 47%;
+    --auth-primary-hover: 210 40% 40%;
+
     --stat-coral: 0 84% 60%;
     --stat-coral-light: 0 84% 95%;
     --stat-cyan: 189 75% 48%;
