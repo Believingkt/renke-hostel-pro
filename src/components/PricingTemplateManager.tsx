@@ -118,7 +118,7 @@ const SortableMealPlanItem = ({ plan, index, onUpdate, onRemove }: SortableMealP
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="space-y-1">
-          <Label className="text-xs">方案名稱</Label>
+          <Label className="text-xs">專案名稱</Label>
           <Input
             value={plan.name}
             onChange={(e) => onUpdate(plan.id, 'name', e.target.value)}
@@ -1203,7 +1203,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
             )}
             
             <p className="text-xs text-muted-foreground">
-              方案名稱顯示於價格設定；方案說明顯示於訂房流程餐食選項下方。可拖曳調整順序。
+              專案名稱顯示於價格設定；專案說明顯示於訂房流程餐食選項下方。可拖曳調整順序。
             </p>
           </div>
 
