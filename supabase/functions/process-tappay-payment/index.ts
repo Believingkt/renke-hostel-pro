@@ -5,6 +5,46 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Input validation helper
+function validatePaymentInput(data: Record<string, unknown>): { valid: boolean; error?: string } {
+  const { prime, amount, orderId, cardholder } = data;
+
+  // Validate prime token
+  if (!prime || typeof prime !== 'string' || prime.length < 10) {
+    return { valid: false, error: 'Invalid payment token (prime)' };
+  }
+
+  // Validate amount: must be positive integer within reasonable range
+  if (typeof amount !== 'number' || !Number.isInteger(amount) || amount <= 0 || amount > 10000000) {
+    return { valid: false, error: 'Invalid amount: must be a positive integer between 1 and 10,000,000' };
+  }
+
+  // Validate orderId format (should be date-based: YYYYMMDDNNN)
+  if (!orderId || typeof orderId !== 'string' || !/^\d{11}$/.test(orderId)) {
+    return { valid: false, error: 'Invalid order ID format' };
+  }
+
+  // Validate cardholder info
+  if (!cardholder || typeof cardholder !== 'object') {
+    return { valid: false, error: 'Missing cardholder information' };
+  }
+
+  const holder = cardholder as Record<string, unknown>;
+  if (!holder.name || typeof holder.name !== 'string' || holder.name.length < 1 || holder.name.length > 100) {
+    return { valid: false, error: 'Invalid cardholder name' };
+  }
+
+  if (!holder.email || typeof holder.email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(holder.email)) {
+    return { valid: false, error: 'Invalid cardholder email' };
+  }
+
+  if (!holder.phoneNumber || typeof holder.phoneNumber !== 'string' || !/^[\d\-+()]{8,20}$/.test(holder.phoneNumber)) {
+    return { valid: false, error: 'Invalid cardholder phone number' };
+  }
+
+  return { valid: true };
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -12,7 +52,27 @@ serve(async (req) => {
   }
 
   try {
-    const { prime, amount, orderId, cardholder, details } = await req.json();
+    const requestData = await req.json();
+    
+    // Validate input
+    const validation = validatePaymentInput(requestData);
+    if (!validation.valid) {
+      console.warn('Payment input validation failed:', validation.error);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: '付款資料驗證失敗',
+          suggestion: '請檢查付款資訊是否正確',
+          technicalMessage: validation.error,
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    const { prime, amount, orderId, cardholder, details } = requestData;
 
     console.log('Processing TapPay payment:', { orderId, amount });
 
