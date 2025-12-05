@@ -3564,7 +3564,23 @@ const BookingFlow = () => {
             </div>
           </div>
 
-          {/* Right: Summary Sidebar */}
+          {/* Right: Summary Sidebar - 只在有可用房型時顯示 */}
+          {(() => {
+            // 檢查是否所有房型都無法預訂
+            const hasAvailableRooms = !checkInDate || !checkOutDate || !isCheckingAvailability && roomTypes.some(room => {
+              const availability = roomAvailability[room.id];
+              const isBlocked = availability?.isBlocked || false;
+              const hasMissingPricing = availability?.hasMissingPricing || false;
+              const hasNoAvailability = availability?.hasNoAvailability || false;
+              return !isBlocked && !hasMissingPricing && !hasNoAvailability;
+            });
+            
+            // 如果在房型選擇步驟且所有房型都無法預訂，隱藏訂單摘要
+            if (currentStep === "room" && checkInDate && checkOutDate && !isCheckingAvailability && !hasAvailableRooms) {
+              return null;
+            }
+            
+            return (
           <div className="md:col-span-1">
             <Card className="sticky top-24">
               <CardHeader>
@@ -3705,6 +3721,8 @@ const BookingFlow = () => {
               </CardContent>
             </Card>
           </div>
+            );
+          })()}
         </div>
       </div>
       </>
