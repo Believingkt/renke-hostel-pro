@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 import { Resend } from "https://esm.sh/resend@4.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
@@ -13,21 +14,58 @@ interface TestEmailRequest {
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+
+    // Verify authentication
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "未提供授權標頭" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: "身份驗證失敗" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check if user is admin
+    const { data: roles } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id);
+
+    const isAdmin = roles?.some(r => r.role === "super_admin" || r.role === "hotel_admin");
+    if (!isAdmin) {
+      return new Response(
+        JSON.stringify({ error: "只有管理員可以發送測試郵件" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`[Test Email] Admin ${user.email} sending test email`);
+
     const { email }: TestEmailRequest = await req.json();
 
     if (!email) {
       return new Response(
         JSON.stringify({ error: "請提供收件人郵箱地址" }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -64,44 +102,29 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (emailResponse.error) {
       console.error("發送失敗:", emailResponse.error);
-      
-      // 特別處理域名未驗證的錯誤
       const isVerificationError = emailResponse.error.message?.includes("not verified");
       
       return new Response(
         JSON.stringify({ 
           error: isVerificationError 
-            ? "域名 sensaninn.lakeze.com 尚未在 Resend 驗證。請前往 https://resend.com/domains 添加並驗證域名。"
+            ? "域名尚未在 Resend 驗證。請前往 https://resend.com/domains 添加並驗證域名。"
             : emailResponse.error.message,
           details: emailResponse.error,
           isVerificationError 
         }),
-        {
-          status: isVerificationError ? 403 : 500,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
+        { status: isVerificationError ? 403 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: "測試郵件已發送",
-        emailId: emailResponse.data?.id 
-      }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
+      JSON.stringify({ success: true, message: "測試郵件已發送", emailId: emailResponse.data?.id }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
     console.error("測試郵件發送錯誤:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 };

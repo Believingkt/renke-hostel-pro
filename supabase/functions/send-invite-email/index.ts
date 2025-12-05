@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 import { Resend } from "https://esm.sh/resend@4.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
@@ -21,6 +22,47 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+
+    // Verify authentication
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "未提供授權標頭" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: "身份驗證失敗" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check if user is admin
+    const { data: roles } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id);
+
+    const isAdmin = roles?.some(r => r.role === "super_admin" || r.role === "hotel_admin");
+    if (!isAdmin) {
+      return new Response(
+        JSON.stringify({ error: "只有管理員可以發送邀請郵件" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`[Send Invite] Admin ${user.email} sending invite`);
+
     const { email, inviteLink, senderName = "系統管理員", recipientName = "使用者" }: InviteEmailRequest = await req.json();
 
     const emailResponse = await resend.emails.send({
@@ -38,9 +80,7 @@ const handler = async (req: Request): Promise<Response> => {
             .header { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
             .content { background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; border-top: none; }
             .button { display: inline-block; padding: 12px 30px; background: #2563eb; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: 600; }
-            .button:hover { background: #1d4ed8; }
             .footer { text-align: center; color: #888; font-size: 12px; margin-top: 20px; }
-            .highlight { color: #2563eb; font-weight: 600; }
           </style>
         </head>
         <body>
@@ -65,9 +105,6 @@ const handler = async (req: Request): Promise<Response> => {
                 <p style="margin: 0; color: #92400e; font-weight: 600;">
                   ⏰ 重要提醒：此邀請鏈接將在 <span style="color: #b45309; font-size: 16px;">24小時內</span>有效
                 </p>
-                <p style="margin: 5px 0 0 0; color: #92400e; font-size: 13px;">
-                  請盡快完成密碼設定以啟用您的帳號
-                </p>
               </div>
               <p style="margin-top: 30px; color: #888; font-size: 13px;">
                 如果您沒有要求此邀請，請忽略此郵件。
@@ -87,19 +124,13 @@ const handler = async (req: Request): Promise<Response> => {
 
     return new Response(JSON.stringify(emailResponse), {
       status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders,
-      },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: any) {
     console.error("發送邀請郵件時發生錯誤:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 };

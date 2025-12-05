@@ -4,9 +4,30 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Simple in-memory rate limiter
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_MAX = 5; // Max 5 emails per window
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute window
+
+function checkRateLimit(identifier: string): boolean {
+  const now = Date.now();
+  const record = rateLimitMap.get(identifier);
+  
+  if (!record || now > record.resetTime) {
+    rateLimitMap.set(identifier, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    return true;
+  }
+  
+  if (record.count >= RATE_LIMIT_MAX) {
+    return false;
+  }
+  
+  record.count++;
+  return true;
+}
 
 interface BookingConfirmationRequest {
   guestName: string;
@@ -28,7 +49,6 @@ interface BookingConfirmationRequest {
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -53,12 +73,23 @@ const handler = async (req: Request): Promise<Response> => {
       mealPlanTotal,
     }: BookingConfirmationRequest = await req.json();
 
+    // Rate limit by email address
+    const rateLimitKey = `booking:${guestEmail}`;
+    if (!checkRateLimit(rateLimitKey)) {
+      console.warn(`[Rate Limit] Too many booking confirmations for: ${guestEmail}`);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "請求過於頻繁，請稍後再試" 
+        }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     console.log("Sending booking confirmation email to:", guestEmail);
 
-    // 使用自訂餐食方案名稱，若無則使用預設名稱
     const mealPlanText = mealPlanDisplayName || (mealPlan === "2_meals" ? "一泊二食" : "一泊三食");
 
-    // 使用 Resend API 發送郵件
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -79,9 +110,6 @@ const handler = async (req: Request): Promise<Response> => {
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
             .header { background: linear-gradient(135deg, #1fa958 0%, #33c566 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
             .content { background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; }
-            .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
-            .info-label { color: #666; font-weight: 500; }
-            .info-value { color: #333; font-weight: 600; }
             .price-highlight { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
             .total-price { font-size: 24px; color: #1fa958; font-weight: bold; }
             .footer { background: #f8f9fa; padding: 20px; text-align: center; color: #666; border-radius: 0 0 10px 10px; }
@@ -139,12 +167,8 @@ const handler = async (req: Request): Promise<Response> => {
                 <div style="border-bottom: 1px solid #e0e0e0; padding-bottom: 12px; margin-bottom: 12px;">
                   <table style="width: 100%; border-collapse: collapse;">
                     <tr>
-                      <td style="color: #333; padding: 8px 0;">
-                        <span style="font-size: 16px;">🐾 寵物方案</span>
-                      </td>
-                      <td style="text-align: right; color: #333; font-weight: 600; padding: 8px 0;">
-                        NT$ ${petPlanPrice?.toLocaleString()}
-                      </td>
+                      <td style="color: #333; padding: 8px 0;">🐾 寵物方案</td>
+                      <td style="text-align: right; color: #333; font-weight: 600; padding: 8px 0;">NT$ ${petPlanPrice?.toLocaleString()}</td>
                     </tr>
                   </table>
                 </div>
@@ -156,12 +180,8 @@ const handler = async (req: Request): Promise<Response> => {
                     <div style="padding-left: 20px; margin: 6px 0;">
                       <table style="width: 100%; border-collapse: collapse;">
                         <tr>
-                          <td style="color: #666; font-size: 14px; padding: 4px 0;">
-                            ${detail.date} - ${detail.count} 人
-                          </td>
-                          <td style="text-align: right; color: #666; font-size: 14px; padding: 4px 0;">
-                            NT$ ${detail.price.toLocaleString()}
-                          </td>
+                          <td style="color: #666; font-size: 14px; padding: 4px 0;">${detail.date} - ${detail.count} 人</td>
+                          <td style="text-align: right; color: #666; font-size: 14px; padding: 4px 0;">NT$ ${detail.price.toLocaleString()}</td>
                         </tr>
                       </table>
                     </div>
@@ -170,12 +190,8 @@ const handler = async (req: Request): Promise<Response> => {
                   <div style="border-top: 1px solid #e0e0e0; padding-top: 8px; margin-top: 8px;">
                     <table style="width: 100%; border-collapse: collapse;">
                       <tr>
-                        <td style="color: #333; font-weight: 600; padding: 4px 0;">
-                          餐食方案小計
-                        </td>
-                        <td style="text-align: right; color: #333; font-weight: 600; padding: 4px 0;">
-                          NT$ ${mealPlanTotal.toLocaleString()}
-                        </td>
+                        <td style="color: #333; font-weight: 600; padding: 4px 0;">餐食方案小計</td>
+                        <td style="text-align: right; color: #333; font-weight: 600; padding: 4px 0;">NT$ ${mealPlanTotal.toLocaleString()}</td>
                       </tr>
                     </table>
                   </div>
@@ -202,9 +218,7 @@ const handler = async (req: Request): Promise<Response> => {
                   </tr>
                   ` : ''}
                 </table>
-                ${depositAmount > 0 ? `
-                <p style="margin-top: 10px; color: #666; font-size: 14px;">剩餘款項請於入住時支付</p>
-                ` : ''}
+                ${depositAmount > 0 ? `<p style="margin-top: 10px; color: #666; font-size: 14px;">剩餘款項請於入住時支付</p>` : ''}
               </div>
 
               <div class="notice">
@@ -225,26 +239,14 @@ const handler = async (req: Request): Promise<Response> => {
                    style="display: inline-block; padding: 14px 40px; background: linear-gradient(135deg, #1fa958 0%, #33c566 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(31, 169, 88, 0.3);">
                   🔍 立即查詢訂單
                 </a>
-                <p style="margin: 15px 0 0 0; color: #999; font-size: 12px;">
-                  訂單編號：${orderNumber}
-                </p>
               </div>
 
               <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #1fa958;">
                 <p style="margin: 0 0 15px 0; font-weight: 600; color: #333;">如有任何疑問，歡迎透過下列方式與我們聯繫：</p>
                 <div style="color: #666; line-height: 1.8;">
-                  <p style="margin: 8px 0; display: flex; align-items: center;">
-                    <span style="display: inline-block; width: 24px; margin-right: 8px;">📞</span>
-                    <span>聯絡電話：<a href="tel:0903178518" style="color: #1fa958; text-decoration: none;">0903178518</a></span>
-                  </p>
-                  <p style="margin: 8px 0; display: flex; align-items: center;">
-                    <span style="display: inline-block; width: 24px; margin-right: 8px;">💬</span>
-                    <span>LINE 官方帳號：<a href="https://line.me/R/ti/p/@042deypa" style="color: #1fa958; text-decoration: none;">@042deypa</a></span>
-                  </p>
-                  <p style="margin: 8px 0; display: flex; align-items: center;">
-                    <span style="display: inline-block; width: 24px; margin-right: 8px;">📧</span>
-                    <span>電子郵件：<a href="mailto:sensan.inn@gmail.com" style="color: #1fa958; text-decoration: none;">sensan.inn@gmail.com</a></span>
-                  </p>
+                  <p style="margin: 8px 0;">📞 聯絡電話：<a href="tel:0903178518" style="color: #1fa958; text-decoration: none;">0903178518</a></p>
+                  <p style="margin: 8px 0;">💬 LINE 官方帳號：<a href="https://line.me/R/ti/p/@042deypa" style="color: #1fa958; text-decoration: none;">@042deypa</a></p>
+                  <p style="margin: 8px 0;">📧 電子郵件：<a href="mailto:sensan.inn@gmail.com" style="color: #1fa958; text-decoration: none;">sensan.inn@gmail.com</a></p>
                 </div>
               </div>
               <p style="margin-top: 20px; font-size: 16px; font-weight: 500; color: #1fa958;">期待您的光臨！</p>
@@ -265,21 +267,13 @@ const handler = async (req: Request): Promise<Response> => {
       const errorText = await emailResponse.text();
       console.error("Resend API error:", errorText);
       
-      // 在測試環境中，Resend有限制，但我們不希望這影響訂單流程
-      // 返回成功但帶有警告信息
       return new Response(
         JSON.stringify({ 
           success: true, 
           warning: "Email sending was skipped due to development environment restrictions",
           details: errorText 
         }),
-        {
-          status: 200,
-          headers: {
-            "Content-Type": "application/json",
-            ...corsHeaders,
-          },
-        }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -288,25 +282,18 @@ const handler = async (req: Request): Promise<Response> => {
 
     return new Response(JSON.stringify({ success: true, emailData }), {
       status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders,
-      },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: any) {
     console.error("Error in send-booking-confirmation function:", error);
     
-    // 即使發生錯誤，也返回200狀態碼，不要影響訂單流程
     return new Response(
       JSON.stringify({ 
         success: true, 
         warning: "Email could not be sent, but booking was successful",
         error: error.message 
       }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 };

@@ -11,6 +11,29 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Rate limiting: max 3 requests per email per 15 minutes
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_MAX = 3;
+const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
+
+function checkRateLimit(email: string): boolean {
+  const now = Date.now();
+  const key = `reset:${email.toLowerCase()}`;
+  const record = rateLimitMap.get(key);
+  
+  if (!record || now > record.resetTime) {
+    rateLimitMap.set(key, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    return true;
+  }
+  
+  if (record.count >= RATE_LIMIT_MAX) {
+    return false;
+  }
+  
+  record.count++;
+  return true;
+}
+
 interface PasswordResetRequest {
   email: string;
   redirectUrl: string;
@@ -23,6 +46,17 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const { email, redirectUrl }: PasswordResetRequest = await req.json();
+    
+    // Check rate limit
+    if (!checkRateLimit(email)) {
+      console.warn(`[Rate Limit] Too many password reset requests for: ${email}`);
+      // Still return success to not reveal if rate limited
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+    
     console.log("Processing password reset for:", email);
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
