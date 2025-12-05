@@ -45,19 +45,20 @@ const BUILT_IN_ICONS = [
   { name: 'Car', icon: Car, label: '汽車' },
 ];
 
+// 定義在組件外部以保持穩定引用
+const initialFormData = {
+  title: '',
+  description: '',
+  icon_type: 'lucide',
+  icon_name: 'Mountain',
+  icon_url: '',
+  display_order: 0,
+};
+
 export function AboutFeatureForm({ open, onOpenChange, feature, onSave }: AboutFeatureFormProps) {
   const isMobile = useIsMobile();
   const [uploadingIcon, setUploadingIcon] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const initialFormData = {
-    title: '',
-    description: '',
-    icon_type: 'lucide',
-    icon_name: 'Mountain',
-    icon_url: '',
-    display_order: 0,
-  };
 
   const {
     formData,
@@ -66,6 +67,7 @@ export function AboutFeatureForm({ open, onOpenChange, feature, onSave }: AboutF
     restoreDraft,
     discardDraft,
     clearDraft,
+    resetInitialDataRef,
   } = useFormDraft({
     key: `about-feature-form-${feature?.id || 'new'}`,
     initialData: initialFormData,
@@ -75,23 +77,27 @@ export function AboutFeatureForm({ open, onOpenChange, feature, onSave }: AboutF
   useEffect(() => {
     if (open) {
       if (feature) {
-        // 編輯模式：直接設置表單資料並清除草稿
-        setFormData({
+        // 編輯模式：直接設置表單資料
+        const editData = {
           title: feature.title,
           description: feature.description,
           icon_type: feature.icon_type,
           icon_name: feature.icon_name,
           icon_url: feature.icon_url || '',
           display_order: feature.display_order,
-        });
-        clearDraft(); // 清除舊草稿，避免提示
+        };
+        setFormData(editData);
+        // 重置初始數據參考，避免自動儲存誤判
+        resetInitialDataRef(editData);
+        clearDraft();
       } else {
         // 新增模式：使用初始資料
         setFormData(initialFormData);
+        resetInitialDataRef(initialFormData);
       }
       setErrors({});
     }
-  }, [feature, open, setFormData, clearDraft]);
+  }, [feature?.id, open]);
 
   const validateField = (field: string, value: string) => {
     try {

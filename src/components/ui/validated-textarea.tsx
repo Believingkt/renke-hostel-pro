@@ -58,9 +58,8 @@ const ValidatedTextarea = React.forwardRef<HTMLTextAreaElement, ValidatedTextare
     };
 
     React.useEffect(() => {
-      if (props.value) {
-        setCharCount(String(props.value).length);
-      }
+      const valueLength = props.value != null ? String(props.value).length : 0;
+      setCharCount(valueLength);
     }, [props.value]);
 
     const hasValue = props.value && String(props.value).length > 0;

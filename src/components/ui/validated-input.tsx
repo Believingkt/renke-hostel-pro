@@ -60,9 +60,8 @@ const ValidatedInput = React.forwardRef<HTMLInputElement, ValidatedInputProps>(
     };
 
     React.useEffect(() => {
-      if (props.value) {
-        setCharCount(String(props.value).length);
-      }
+      const valueLength = props.value != null ? String(props.value).length : 0;
+      setCharCount(valueLength);
     }, [props.value]);
 
     // Track error changes for animation

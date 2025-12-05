@@ -165,19 +165,24 @@ export function useFormDraft<T extends Record<string, any>>({
   };
 
   // 清除草稿
-  const clearDraft = () => {
+  const clearDraft = useCallback(() => {
     localStorage.removeItem(key);
     setHasDraft(false);
     setIsDraftRestored(false);
-    // 更新 initialDataRef 為當前的 formData，避免誤判為有變更
-    initialDataRef.current = formData;
-  };
+  }, [key]);
+
+  // 重置初始數據參考（用於編輯模式）
+  const resetInitialDataRef = useCallback((data: T) => {
+    initialDataRef.current = data;
+  }, []);
 
   // 放棄草稿
-  const discardDraft = () => {
-    clearDraft();
+  const discardDraft = useCallback(() => {
+    localStorage.removeItem(key);
+    setHasDraft(false);
+    setIsDraftRestored(false);
     toast.info('已放棄草稿');
-  };
+  }, [key]);
 
   // 更新表單數據（使用 useCallback 確保穩定引用）
   const updateFormData = useCallback((updates: Partial<T> | ((prev: T) => T)) => {
@@ -197,5 +202,6 @@ export function useFormDraft<T extends Record<string, any>>({
     restoreDraft,
     clearDraft,
     discardDraft,
+    resetInitialDataRef,
   };
 }
