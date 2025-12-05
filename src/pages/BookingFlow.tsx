@@ -2261,7 +2261,7 @@ const BookingFlow = () => {
                               </Button>
                               {accommodationLineId && (
                                 <Button 
-                                  variant="default" 
+                                  variant="outline" 
                                   asChild
                                   className="gap-2 w-full sm:w-auto"
                                 >
