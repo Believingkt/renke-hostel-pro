@@ -118,8 +118,13 @@ export default function Auth() {
       } else {
         toast.success("登入成功！");
       }
-    } catch (error) {
-      toast.error("登入失敗，請稍後再試");
+    } catch (error: any) {
+      console.error("Login error:", error);
+      if (error.message?.includes("Failed to fetch") || error.message?.includes("NetworkError")) {
+        toast.error("網路連線錯誤，請檢查您的網路連線後再試");
+      } else {
+        toast.error("登入失敗，請稍後再試");
+      }
     } finally {
       setIsLoading(false);
     }
