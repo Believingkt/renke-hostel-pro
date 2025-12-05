@@ -1991,45 +1991,31 @@ const BookingFlow = () => {
                         </p>
                       </div>
                     )}
-                    {(checkInDate && checkOutDate ? getAvailableRooms() : roomTypes).map((room) => {
-                      const availability = roomAvailability[room.id];
-                      const isBlocked = availability?.isBlocked || false;
-                      const hasMissingPricing = availability?.hasMissingPricing || false;
-                      const hasNoAvailability = availability?.hasNoAvailability || false;
-                      const hasIssue = isBlocked || hasMissingPricing || hasNoAvailability;
-                      
+                    {(checkInDate && checkOutDate ? getAvailableRooms() : roomTypes)
+                      .filter((room) => {
+                        // 如果沒有選擇日期，顯示所有房型
+                        if (!checkInDate || !checkOutDate) return true;
+                        
+                        // 檢查房型可用性，過濾掉有問題的房型
+                        const availability = roomAvailability[room.id];
+                        const isBlocked = availability?.isBlocked || false;
+                        const hasMissingPricing = availability?.hasMissingPricing || false;
+                        const hasNoAvailability = availability?.hasNoAvailability || false;
+                        
+                        // 只顯示沒有問題的房型
+                        return !isBlocked && !hasMissingPricing && !hasNoAvailability;
+                      })
+                      .map((room) => {
                       return (
                       <Card
                         key={room.id}
                         className={cn(
-                          "transition-all overflow-hidden relative",
-                          !hasIssue && "cursor-pointer hover:shadow-md",
-                          hasIssue && "opacity-60 cursor-not-allowed",
-                          selectedRoom?.id === room.id && !hasIssue && "border-2 border-primary shadow-md",
-                          !selectedRoom?.id || selectedRoom?.id !== room.id && "border"
+                          "transition-all overflow-hidden relative cursor-pointer hover:shadow-md",
+                          selectedRoom?.id === room.id && "border-2 border-primary shadow-md",
+                          (!selectedRoom?.id || selectedRoom?.id !== room.id) && "border"
                         )}
-                        onClick={() => !hasIssue && setSelectedRoom(room)}
+                        onClick={() => setSelectedRoom(room)}
                       >
-                        {/* 警告標籤區域 */}
-                        <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
-                          {isBlocked && (
-                            <div className="bg-destructive text-destructive-foreground px-3 py-1 rounded-md text-sm font-medium shadow-lg">
-                              已被 {availability?.blockedByRoomName} 預訂
-                            </div>
-                          )}
-                          {hasMissingPricing && !isBlocked && (
-                            <div className="bg-amber-500 text-white px-3 py-1 rounded-md text-sm font-medium shadow-lg flex items-center gap-1.5">
-                              <AlertTriangle className="h-4 w-4" />
-                              價格未設定
-                            </div>
-                          )}
-                          {hasNoAvailability && !isBlocked && !hasMissingPricing && (
-                            <div className="bg-destructive text-destructive-foreground px-3 py-1 rounded-md text-sm font-medium shadow-lg flex items-center gap-1.5">
-                              <AlertTriangle className="h-4 w-4" />
-                              已無空房
-                            </div>
-                          )}
-                        </div>
                         <div className="grid md:grid-cols-[3fr_2fr] gap-0 h-full">
                           {/* 左側圖片 - 占60% */}
                           <div className="relative bg-muted min-h-[400px] md:min-h-full overflow-hidden">
