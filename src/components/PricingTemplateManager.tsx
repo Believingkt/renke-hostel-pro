@@ -1031,8 +1031,13 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                   size="sm"
                   onClick={() => onApply(template)}
                   className="flex-1 gap-2 h-10 sm:h-9 touch-manipulation"
-                  disabled={!template.weekday_2_meals_price && !template.weekend_2_meals_price &&
-                           !template.weekday_3_meals_price && !template.weekend_3_meals_price}
+                  disabled={
+                    // 檢查 meal_plans 是否有任何價格
+                    !(template.meal_plans && template.meal_plans.some(mp => mp.weekday_price || mp.weekend_price)) &&
+                    // 或檢查舊版欄位
+                    !template.weekday_2_meals_price && !template.weekend_2_meals_price &&
+                    !template.weekday_3_meals_price && !template.weekend_3_meals_price
+                  }
                 >
                   <CalendarCheck className="h-4 w-4" />
                   套用
