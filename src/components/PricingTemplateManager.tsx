@@ -417,13 +417,6 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
         project_name: formData.project_name || null,
         project_description: formData.project_description || null,
         meal_plans: JSON.parse(JSON.stringify(formData.meal_plans)),
-        // Legacy fields - set to null, prices now stored in meal_plans
-        weekday_2_meals_price: null,
-        weekday_3_meals_price: null,
-        weekend_2_meals_price: null,
-        weekend_3_meals_price: null,
-        weekday_price: null,
-        weekend_price: null,
         accommodation_id: accommodationId,
       };
 
