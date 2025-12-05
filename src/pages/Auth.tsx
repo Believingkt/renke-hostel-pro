@@ -233,21 +233,21 @@ export default function Auth() {
             </div>
           ) : isInviteMode ? (
             <div className="flex items-center justify-center gap-2 pt-2">
-              <KeyRound className="h-5 w-5 text-primary" />
+              <KeyRound className="h-5 w-5 text-blue-600" />
               <CardDescription className="text-center">
                 歡迎！請設定您的登入密碼
               </CardDescription>
             </div>
           ) : isForgotPasswordMode ? (
             <div className="flex items-center justify-center gap-2 pt-2">
-              <Mail className="h-5 w-5 text-primary" />
+              <Mail className="h-5 w-5 text-blue-600" />
               <CardDescription className="text-center">
                 重設您的密碼
               </CardDescription>
             </div>
           ) : (
             <div className="flex items-center justify-center gap-2 pt-2">
-              <LogIn className="h-5 w-5 text-primary" />
+              <LogIn className="h-5 w-5 text-blue-600" />
               <CardDescription className="text-center">
                 請登入您的帳號
               </CardDescription>
