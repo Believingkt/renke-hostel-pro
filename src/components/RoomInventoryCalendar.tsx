@@ -89,7 +89,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [customMealPlans, setCustomMealPlans] = useState<{ id: string; name: string }[]>([]);
 
-  // 獲取餐食方案顯示名稱
+  // 獲取專案顯示名稱
   const getMealPlanDisplayName = (planId: string | null) => {
     if (!planId) return "";
     const customPlan = customMealPlans.find(p => p.id === planId);
@@ -106,7 +106,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
     setSelectedBlockedDates(new Set()); // 清除選擇
   }, [roomTypeId, currentMonth, accommodationId]);
 
-  // 載入自訂餐食方案
+  // 載入自訂專案
   useEffect(() => {
     const loadCustomMealPlans = async () => {
       try {
@@ -122,7 +122,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
           setCustomMealPlans(mealPlans);
         }
       } catch (err) {
-        console.error("載入自訂餐食方案失敗:", err);
+        console.error("載入自訂專案失敗:", err);
       }
     };
     
@@ -1487,9 +1487,9 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
             </DrawerHeader>
 
             <div className="px-4 space-y-4 overflow-y-auto">
-              {/* 餐飲方案選擇 */}
+              {/* 專案選擇 */}
               <div className="space-y-3">
-                <Label>餐飲方案 *</Label>
+                <Label>專案 *</Label>
                 <RadioGroup
                   value={batchEditData.mealPlan}
                   onValueChange={(value: "2meals" | "3meals") => 
@@ -1610,9 +1610,9 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
             </DialogHeader>
 
             <div className="space-y-4 py-4">
-              {/* 餐飲方案選擇 */}
+              {/* 專案選擇 */}
               <div className="space-y-3">
-                <Label>餐飲方案 *</Label>
+                <Label>專案 *</Label>
                 <RadioGroup
                   value={batchEditData.mealPlan}
                   onValueChange={(value: "2meals" | "3meals") => 
@@ -1736,9 +1736,9 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
             </DrawerHeader>
 
             <div className="px-4 space-y-4 overflow-y-auto">
-              {/* 餐飲方案選擇 */}
+              {/* 專案選擇 */}
               <div className="space-y-3">
-                <Label>餐飲方案 *</Label>
+                <Label>專案 *</Label>
                 <RadioGroup
                   value={singleEditData.mealPlan}
                   onValueChange={(value: "2meals" | "3meals") => 
@@ -1849,9 +1849,9 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
             </DialogHeader>
 
             <div className="space-y-4 py-4">
-              {/* 餐飲方案選擇 */}
+              {/* 專案選擇 */}
               <div className="space-y-3">
-                <Label>餐飲方案 *</Label>
+                <Label>專案 *</Label>
                 <RadioGroup
                   value={singleEditData.mealPlan}
                   onValueChange={(value: "2meals" | "3meals") => 
