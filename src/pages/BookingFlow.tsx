@@ -2862,20 +2862,20 @@ const BookingFlow = () => {
                                   return (
                                     <div
                                       key={dateStr}
-                                      className="flex items-center justify-between p-4 rounded-lg border-2 bg-card"
+                                      className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-lg border-2 bg-card gap-3 sm:gap-4"
                                     >
-                                      <div className="flex-1">
-                                        <div className="flex items-center gap-2">
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 flex-wrap">
                                           <Label className="text-sm font-semibold">
-                                            {format(date, "yyyy/MM/dd (E)", { locale: zhTW })}
+                                            {format(date, "MM/dd (E)", { locale: zhTW })}
                                           </Label>
                                           {isWeekendDate && <Badge variant="secondary" className="text-xs">假日</Badge>}
                                         </div>
-                                        <p className="text-sm text-muted-foreground mt-1">
+                                        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                                           {currentCount > 0 ? (
                                             `NT$ ${(currentCount * mealPlanSettings.pricePerUnit).toLocaleString()}`
                                           ) : (
-                                            `基本人數 ${minCount} 人`
+                                            `基本 ${minCount} 人`
                                           )}
                                         </p>
                                        </div>
@@ -3155,7 +3155,7 @@ const BookingFlow = () => {
                       </CardHeader>
                       <CardContent>
                         {!appliedDiscount ? (
-                          <div className="flex gap-2">
+                          <div className="flex flex-col sm:flex-row gap-2 sm:gap-2">
                             <Input
                               id="discountCode"
                               value={discountCode}
@@ -3168,7 +3168,7 @@ const BookingFlow = () => {
                             <Button
                               onClick={() => handleApplyDiscount()}
                               disabled={isValidatingCode || !discountCode.trim()}
-                              className="shrink-0 h-12 px-6"
+                              className="shrink-0 h-12 px-6 w-full sm:w-auto"
                               size="lg"
                             >
                               {isValidatingCode ? "驗證中..." : "套用"}
@@ -3354,30 +3354,30 @@ const BookingFlow = () => {
                         </p>
                       </CardHeader>
                       <CardContent className="space-y-5">
-                        <div className="p-4 bg-muted/50 rounded-lg">
+                        <div className="p-3 sm:p-4 bg-muted/50 rounded-lg">
                           <p className="text-xs text-muted-foreground mb-1">房型</p>
-                          <p className="font-semibold text-base">{selectedRoom?.name}</p>
+                          <p className="font-semibold text-sm sm:text-base">{selectedRoom?.name}</p>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="p-4 bg-muted/50 rounded-lg">
-                            <p className="text-xs text-muted-foreground mb-1">入住日期</p>
-                            <p className="font-medium text-sm">{format(new Date(checkInDateStr), "yyyy/MM/dd (E)", { locale: zhTW })}</p>
+                        <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                          <div className="p-3 sm:p-4 bg-muted/50 rounded-lg">
+                            <p className="text-xs text-muted-foreground mb-1">入住</p>
+                            <p className="font-medium text-xs sm:text-sm">{format(new Date(checkInDateStr), "MM/dd (E)", { locale: zhTW })}</p>
                           </div>
-                          <div className="p-4 bg-muted/50 rounded-lg">
-                            <p className="text-xs text-muted-foreground mb-1">退房日期</p>
-                            <p className="font-medium text-sm">{format(new Date(checkOutDateStr), "yyyy/MM/dd (E)", { locale: zhTW })}</p>
+                          <div className="p-3 sm:p-4 bg-muted/50 rounded-lg">
+                            <p className="text-xs text-muted-foreground mb-1">退房</p>
+                            <p className="font-medium text-xs sm:text-sm">{format(new Date(checkOutDateStr), "MM/dd (E)", { locale: zhTW })}</p>
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="p-4 bg-muted/50 rounded-lg">
-                            <p className="text-xs text-muted-foreground mb-1">入住人數</p>
-                            <p className="font-medium text-sm">{totalGuests} 人</p>
+                        <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                          <div className="p-3 sm:p-4 bg-muted/50 rounded-lg">
+                            <p className="text-xs text-muted-foreground mb-1">人數</p>
+                            <p className="font-medium text-xs sm:text-sm">{totalGuests} 人</p>
                           </div>
-                          <div className="p-4 bg-muted/50 rounded-lg">
-                            <p className="text-xs text-muted-foreground mb-1">餐食方案</p>
-                            <p className="font-medium text-sm">{getMealPlanDisplayName(selectedMealPlan)}</p>
+                          <div className="p-3 sm:p-4 bg-muted/50 rounded-lg">
+                            <p className="text-xs text-muted-foreground mb-1">方案</p>
+                            <p className="font-medium text-xs sm:text-sm">{getMealPlanDisplayName(selectedMealPlan)}</p>
                           </div>
                         </div>
 
@@ -3434,20 +3434,20 @@ const BookingFlow = () => {
                           確認聯絡資訊無誤
                         </p>
                       </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div className="grid grid-cols-1 gap-3">
-                          <div className="p-4 bg-muted/50 rounded-lg">
+                      <CardContent className="space-y-2 sm:space-y-3">
+                        <div className="grid grid-cols-1 gap-2 sm:gap-3">
+                          <div className="p-3 sm:p-4 bg-muted/50 rounded-lg">
                             <p className="text-xs text-muted-foreground mb-1">姓名</p>
                             <p className="font-medium text-sm">{guestInfo.name}</p>
                           </div>
-                          <div className="p-4 bg-muted/50 rounded-lg">
+                          <div className="p-3 sm:p-4 bg-muted/50 rounded-lg">
                             <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
                               <Phone className="h-3 w-3" />
                               手機號碼
                             </p>
                             <p className="font-medium text-sm">{guestInfo.phone}</p>
                           </div>
-                          <div className="p-4 bg-muted/50 rounded-lg">
+                          <div className="p-3 sm:p-4 bg-muted/50 rounded-lg">
                             <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
                               <Mail className="h-3 w-3" />
                               電子郵件
@@ -3455,13 +3455,13 @@ const BookingFlow = () => {
                             <p className="font-medium text-sm break-all">{guestInfo.email}</p>
                           </div>
                           {guestInfo.address && (
-                            <div className="p-4 bg-muted/50 rounded-lg">
+                            <div className="p-3 sm:p-4 bg-muted/50 rounded-lg">
                               <p className="text-xs text-muted-foreground mb-1">聯絡地址</p>
                               <p className="font-medium text-sm">{guestInfo.address}</p>
                             </div>
                           )}
                           {guestInfo.notes && (
-                            <div className="p-4 bg-muted/50 rounded-lg">
+                            <div className="p-3 sm:p-4 bg-muted/50 rounded-lg">
                               <p className="text-xs text-muted-foreground mb-1">備註</p>
                               <p className="font-medium text-sm leading-relaxed">{guestInfo.notes}</p>
                             </div>
