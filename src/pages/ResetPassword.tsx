@@ -34,20 +34,19 @@ export default function ResetPassword() {
     }
 
     try {
-      const { data, error } = await supabase
-        .from("password_reset_tokens")
-        .select("*")
-        .eq("token", token)
-        .is("used_at", null)
-        .gt("expires_at", new Date().toISOString())
-        .maybeSingle();
+      const { data, error } = await supabase.functions.invoke("validate-reset-token", {
+        body: { token },
+      });
 
-      if (error || !data) {
+      if (error) {
         console.error("Token validation error:", error);
         setIsValidToken(false);
-      } else {
+      } else if (data?.valid) {
         setIsValidToken(true);
         setTokenData({ user_id: data.user_id, email: data.email });
+      } else {
+        console.log("Token invalid:", data?.message);
+        setIsValidToken(false);
       }
     } catch (error) {
       console.error("Error validating token:", error);
