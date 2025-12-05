@@ -2079,12 +2079,12 @@ const BookingFlow = () => {
                                 {(room.room_count || room.quad_room_count || room.double_room_count) && (
                                   <div className="text-base text-foreground/80 font-medium leading-relaxed">
                                     {room.room_count && room.room_count > 0 && <span className="font-semibold">{room.room_count} 間房</span>}
-                                    {((room.quad_room_count && room.quad_room_count > 0) || (room.double_room_count && room.double_room_count > 0)) && (
+                                    {((room.quad_room_count !== null && room.quad_room_count > 0) || (room.double_room_count !== null && room.double_room_count > 0)) && (
                                       <span className="ml-2 text-muted-foreground">
                                         (
-                                        {room.quad_room_count && room.quad_room_count > 0 && <span>四人房 {room.quad_room_count} 間</span>}
-                                        {room.quad_room_count && room.quad_room_count > 0 && room.double_room_count && room.double_room_count > 0 && <span>、</span>}
-                                        {room.double_room_count && room.double_room_count > 0 && <span>雙人房 {room.double_room_count} 間</span>}
+                                        {room.quad_room_count !== null && room.quad_room_count > 0 && <span>四人房 {room.quad_room_count} 間</span>}
+                                        {room.quad_room_count !== null && room.quad_room_count > 0 && room.double_room_count !== null && room.double_room_count > 0 && <span>、</span>}
+                                        {room.double_room_count !== null && room.double_room_count > 0 && <span>雙人房 {room.double_room_count} 間</span>}
                                         )
                                       </span>
                                     )}
