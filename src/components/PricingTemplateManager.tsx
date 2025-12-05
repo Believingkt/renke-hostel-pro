@@ -988,7 +988,8 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                 )}
                 
                 {/* 未設定提示 */}
-                {(!template.meal_plans || template.meal_plans.length === 0) &&
+                {/* 檢查 meal_plans 是否有價格，或舊版欄位是否有價格 */}
+                {!(template.meal_plans && template.meal_plans.some(mp => mp.weekday_price || mp.weekend_price)) &&
                  !template.weekday_2_meals_price && !template.weekend_2_meals_price &&
                  !template.weekday_3_meals_price && !template.weekend_3_meals_price && (
                   <p className="text-xs text-muted-foreground text-center">
