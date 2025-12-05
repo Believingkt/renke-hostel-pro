@@ -108,7 +108,7 @@ export default function ResetPassword() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 p-4">
         <Card className="w-full max-w-md shadow-xl border-0">
           <CardContent className="flex items-center justify-center p-8">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
             <span className="ml-3">驗證中...</span>
           </CardContent>
         </Card>
@@ -152,7 +152,7 @@ export default function ResetPassword() {
             <img src={lokezeLogo} alt="Logo" className="h-12 object-contain" />
           </div>
           <div className="flex items-center justify-center gap-2 pt-2">
-            <KeyRound className="h-5 w-5 text-primary" />
+            <KeyRound className="h-5 w-5 text-blue-600" />
             <CardDescription className="text-center">
               設定您的新密碼
             </CardDescription>
