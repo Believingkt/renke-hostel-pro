@@ -23,6 +23,51 @@ serve(async (req) => {
       }
     );
 
+    // Verify the caller's authentication
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ success: false, error: "未提供授權標頭" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user: caller }, error: authError } = await supabaseAdmin.auth.getUser(token);
+
+    if (authError || !caller) {
+      console.error("[Cleanup] Auth error:", authError);
+      return new Response(
+        JSON.stringify({ success: false, error: "身份驗證失敗" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check if the caller is a super_admin
+    const { data: callerRoles, error: roleError } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", caller.id);
+
+    if (roleError) {
+      console.error("[Cleanup] Error checking roles:", roleError);
+      return new Response(
+        JSON.stringify({ success: false, error: "無法驗證權限" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const isSuperAdmin = callerRoles?.some(r => r.role === "super_admin");
+    if (!isSuperAdmin) {
+      console.log(`[Cleanup] Unauthorized attempt by user: ${caller.id}`);
+      return new Response(
+        JSON.stringify({ success: false, error: "只有超級管理員可以執行此操作" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`[Cleanup] Authorized super_admin: ${caller.email}`);
+
     const { email } = await req.json();
 
     if (!email) {
