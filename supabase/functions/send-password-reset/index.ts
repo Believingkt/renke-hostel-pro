@@ -103,7 +103,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email via Resend
     const emailResponse = await resend.emails.send({
-      from: "森山寫照 <noreply@lakeze.com>",
+      from: "森山寫照 <noreply@sensaninn.lakeze.com>",
       to: [email],
       subject: "重設您的密碼",
       html: `
