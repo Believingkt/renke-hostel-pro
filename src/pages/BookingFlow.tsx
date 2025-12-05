@@ -2262,7 +2262,7 @@ const BookingFlow = () => {
                     </div>
                     <div className="space-y-2">
                       <Label className="flex items-center gap-2">
-                        選擇方案 <span className="text-destructive">*</span>
+                        選擇專案 <span className="text-destructive">*</span>
                       </Label>
                       <div className={`grid gap-3 ${customMealPlans.length > 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2'}`}>
                         {customMealPlans.length > 0 ? (
