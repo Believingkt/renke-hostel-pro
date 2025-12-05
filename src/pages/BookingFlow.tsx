@@ -65,6 +65,7 @@ import roomDeluxe from "@/assets/room-deluxe.jpg";
 import roomSuite from "@/assets/room-suite.jpg";
 import roomStandard from "@/assets/room-standard.jpg";
 import sensanLogo from "@/assets/sensan-logo-new.png";
+import { createSanitizedHtml } from "@/utils/sanitizeHtml";
 
 // TapPay SDK 類型定義
 declare global {
@@ -3522,8 +3523,7 @@ const BookingFlow = () => {
           <div className="flex-1 overflow-y-auto p-4 md:p-6">
             <div 
               className="space-y-4 md:space-y-5 text-sm md:text-base prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ 
-                __html: petPlanSettings.detailedDescription || `
+              dangerouslySetInnerHTML={createSanitizedHtml(petPlanSettings.detailedDescription || `
                   <h3 class="text-lg md:text-xl font-semibold">寵物入住守則</h3>
                   <div class="space-y-4 text-sm md:text-base">
                     <p class="text-[15px] md:text-base">僅開放毛孩進入指定之 2 棟 Villa 及公共區域。請於訂房時選擇加購毛孩方案。</p>
@@ -3538,8 +3538,7 @@ const BookingFlow = () => {
                       </p>
                     </div>
                   </div>
-                `
-              }}
+                `)}
             />
           </div>
 
@@ -3565,8 +3564,7 @@ const BookingFlow = () => {
           <div className="flex-1 overflow-y-auto p-4 md:p-6">
             <div 
               className="space-y-4 md:space-y-5 text-sm md:text-base prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ 
-                __html: mealPlanSettings.detailedDescription || `
+              dangerouslySetInnerHTML={createSanitizedHtml(mealPlanSettings.detailedDescription || `
                   <div>
                     <p class="text-base md:text-lg text-muted-foreground font-semibold mb-1">森山寫照 X 燃甄 RAN RAN</p>
                     <p class="text-lg md:text-xl font-bold text-primary">炭火饗之夜 Evening Dining Set</p>
@@ -3584,8 +3582,7 @@ const BookingFlow = () => {
                       </li>
                     </ul>
                   </div>
-                `
-              }}
+                `)}
             />
           </div>
 
