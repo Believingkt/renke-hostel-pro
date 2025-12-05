@@ -12,6 +12,8 @@ interface CancellationEmailRequest {
   roomTypeName: string;
   checkInDate: string;
   checkOutDate: string;
+  mealPlan?: string;
+  mealPlanDisplayName?: string;
   accommodationName: string;
   accommodationPhone?: string;
   accommodationEmail?: string;
@@ -30,6 +32,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
       roomTypeName,
       checkInDate,
       checkOutDate,
+      mealPlan,
+      mealPlanDisplayName,
       accommodationName,
       accommodationPhone,
       accommodationEmail,
@@ -50,6 +54,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
         day: 'numeric',
         weekday: 'long'
       });
+    };
+
+    // 獲取餐食方案顯示名稱
+    const getMealPlanText = () => {
+      if (mealPlanDisplayName) return mealPlanDisplayName;
+      if (mealPlan === "2_meals") return "一泊二食";
+      if (mealPlan === "3_meals") return "一泊三食";
+      return mealPlan || "";
     };
 
     const emailHtml = `
@@ -144,6 +156,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
             <span class="label">房型：</span>
             <span class="value">${roomTypeName}</span>
           </div>
+          ${mealPlan ? `
+          <div class="info-row">
+            <span class="label">餐食方案：</span>
+            <span class="value">${getMealPlanText()}</span>
+          </div>
+          ` : ''}
           <div class="info-row">
             <span class="label">入住日期：</span>
             <span class="value">${formatDate(checkInDate)}</span>

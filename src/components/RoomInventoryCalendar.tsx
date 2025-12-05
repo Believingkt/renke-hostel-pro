@@ -87,12 +87,49 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
   const [bookingDetailsDialogOpen, setBookingDetailsDialogOpen] = useState(false);
   const [selectedDateOrders, setSelectedDateOrders] = useState<any[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
+  const [customMealPlans, setCustomMealPlans] = useState<{ id: string; name: string }[]>([]);
+
+  // 獲取餐食方案顯示名稱
+  const getMealPlanDisplayName = (planId: string | null) => {
+    if (!planId) return "";
+    const customPlan = customMealPlans.find(p => p.id === planId);
+    if (customPlan) {
+      return customPlan.name;
+    }
+    // 預設名稱
+    return planId === "2_meals" ? "一泊二食" : planId === "3_meals" ? "一泊三食" : planId;
+  };
 
   useEffect(() => {
     loadInventory();
     loadPublicHolidays();
     setSelectedBlockedDates(new Set()); // 清除選擇
   }, [roomTypeId, currentMonth, accommodationId]);
+
+  // 載入自訂餐食方案
+  useEffect(() => {
+    const loadCustomMealPlans = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("pricing_templates")
+          .select("meal_plans")
+          .eq("accommodation_id", accommodationId)
+          .eq("is_default", true)
+          .single();
+
+        if (!error && data?.meal_plans) {
+          const mealPlans = data.meal_plans as { id: string; name: string }[];
+          setCustomMealPlans(mealPlans);
+        }
+      } catch (err) {
+        console.error("載入自訂餐食方案失敗:", err);
+      }
+    };
+    
+    if (accommodationId) {
+      loadCustomMealPlans();
+    }
+  }, [accommodationId]);
 
   // 批量編輯對話框鍵盤快捷鍵
   useEffect(() => {
@@ -669,6 +706,8 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                 roomTypeName: (order.room_types as any)?.name || "未知房型",
                 checkInDate: order.check_in_date,
                 checkOutDate: order.check_out_date,
+                mealPlan: order.meal_plan,
+                mealPlanDisplayName: getMealPlanDisplayName(order.meal_plan),
                 accommodationName: accommodationInfo?.name || "住宿單位",
                 accommodationPhone: accommodationInfo?.phone,
                 accommodationEmail: accommodationInfo?.email,
