@@ -218,6 +218,7 @@ const BookingFlow = () => {
     hasNoAvailability?: boolean;
     unavailableDates?: string[];
   }>>({});
+  const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
   
   // 加購方案
   const [petCount, setPetCount] = useState(0);
@@ -518,6 +519,119 @@ const BookingFlow = () => {
 
     fetchRoomPricingAndAvailability();
   }, [selectedRoom, checkInDate, checkOutDate, accommodationId]);
+
+  // 當日期改變時，預先檢查所有房型的可用性
+  useEffect(() => {
+    if (!checkInDate || !checkOutDate || !accommodationId || roomTypes.length === 0) {
+      setRoomAvailability({});
+      setIsCheckingAvailability(false);
+      return;
+    }
+
+    const checkAllRoomsAvailability = async () => {
+      setIsCheckingAvailability(true);
+      const newAvailability: Record<string, {
+        isBlocked: boolean;
+        blockedByRoomName?: string;
+        hasMissingPricing?: boolean;
+        missingDates?: string[];
+        hasNoAvailability?: boolean;
+        unavailableDates?: string[];
+      }> = {};
+
+      const checkInDateStr = format(checkInDate, "yyyy-MM-dd");
+      const checkOutDateStr = format(checkOutDate, "yyyy-MM-dd");
+      const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (nights <= 0) {
+        setIsCheckingAvailability(false);
+        return;
+      }
+
+      // 並行檢查所有房型
+      await Promise.all(roomTypes.map(async (room) => {
+        const start = new Date(checkInDateStr);
+        let hasBlocked = false;
+        let blockedByName = '';
+        let hasMissingPricing = false;
+        let hasNoAvailability = false;
+        const missingDates: string[] = [];
+        const unavailableDates: string[] = [];
+
+        for (let i = 0; i < nights; i++) {
+          const currentDate = new Date(start);
+          currentDate.setDate(start.getDate() + i);
+          const dateStr = currentDate.toISOString().split('T')[0];
+
+          try {
+            // 獲取價格和可用房間數
+            const { data: priceData, error: priceError } = await supabase
+              .from('room_inventory_pricing')
+              .select('price, available_rooms')
+              .eq('room_type_id', room.id)
+              .eq('date', dateStr)
+              .maybeSingle();
+
+            if (priceError) throw priceError;
+            
+            // 檢查是否有設定價格
+            if (!priceData || priceData.price === null || priceData.price === undefined) {
+              hasMissingPricing = true;
+              missingDates.push(dateStr);
+            } else {
+              // 檢查可用房間數
+              if (priceData.available_rooms !== null && priceData.available_rooms <= 0) {
+                hasNoAvailability = true;
+                unavailableDates.push(dateStr);
+              }
+            }
+
+            // 檢查互斥邏輯
+            const { data: availabilityData, error: availabilityError } = await supabase
+              .rpc('get_adjusted_room_inventory', {
+                p_room_type_id: room.id,
+                p_date: dateStr,
+                p_accommodation_id: accommodationId
+              });
+
+            if (!availabilityError && availabilityData && availabilityData[0]?.is_blocked) {
+              hasBlocked = true;
+              blockedByName = availabilityData[0].blocked_by_room_name;
+            }
+            
+            // 即使沒有被互斥，也要檢查調整後的可用房間數
+            if (!availabilityError && availabilityData && availabilityData[0]) {
+              const adjustedAvailable = availabilityData[0].available_rooms;
+              if (adjustedAvailable !== null && adjustedAvailable <= 0 && !unavailableDates.includes(dateStr)) {
+                hasNoAvailability = true;
+                unavailableDates.push(dateStr);
+              }
+            }
+          } catch (error) {
+            if (import.meta.env.DEV) {
+              console.error('Error checking availability for room:', room.id, 'date:', dateStr, error);
+            }
+            hasMissingPricing = true;
+            missingDates.push(dateStr);
+          }
+        }
+
+        newAvailability[room.id] = {
+          isBlocked: hasBlocked,
+          blockedByRoomName: blockedByName,
+          hasMissingPricing,
+          missingDates,
+          hasNoAvailability,
+          unavailableDates
+        };
+      }));
+
+      setRoomAvailability(newAvailability);
+      setIsCheckingAvailability(false);
+    };
+
+    checkAllRoomsAvailability();
+  }, [checkInDate, checkOutDate, accommodationId, roomTypes]);
 
   // 當在選擇房型步驟時，自動預選第一個可用房型
   useEffect(() => {
@@ -1983,6 +2097,18 @@ const BookingFlow = () => {
                 {/* Step 1: Room Selection */}
                 {currentStep === "room" && (
                   <div className="space-y-4">
+                    {/* 顯示載入狀態 */}
+                    {checkInDate && checkOutDate && isCheckingAvailability && (
+                      <div className="bg-muted p-6 rounded-lg text-center">
+                        <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+                          <span>正在檢查房型可用性...</span>
+                        </div>
+                      </div>
+                    )}
+                    {/* 只有在檢查完成後才顯示內容 */}
+                    {(!checkInDate || !checkOutDate || !isCheckingAvailability) && (
+                      <>
                     {checkInDate && checkOutDate && getAvailableRooms().length === 0 && (
                       <div className="bg-muted p-6 rounded-lg text-center">
                         <p className="text-muted-foreground mb-2">
@@ -2193,6 +2319,8 @@ const BookingFlow = () => {
                     );
                     });
                     })()}
+                      </>
+                    )}
                   </div>
                 )}
 
