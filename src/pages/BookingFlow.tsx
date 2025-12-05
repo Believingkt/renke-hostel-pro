@@ -2020,9 +2020,17 @@ const BookingFlow = () => {
                             <p className="text-sm text-muted-foreground mb-3">
                               可能原因：房間已被預訂、該日期尚未開放訂房，或價格尚未設定。
                             </p>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-sm text-muted-foreground mb-4">
                               建議您嘗試其他日期，或直接聯繫我們協助安排。
                             </p>
+                            <Button 
+                              variant="outline" 
+                              onClick={() => setCurrentStep("dates")}
+                              className="gap-2"
+                            >
+                              <Calendar className="h-4 w-4" />
+                              選擇其他日期
+                            </Button>
                           </div>
                         );
                       }
