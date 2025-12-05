@@ -167,7 +167,7 @@ export default function ResetPassword() {
                 type="email"
                 value={tokenData?.email || ""}
                 disabled
-                className="bg-muted"
+                className="bg-auth-primary/10 border-auth-primary/20"
               />
             </div>
             <div className="space-y-2">
@@ -181,6 +181,7 @@ export default function ResetPassword() {
                   onChange={(e) => setNewPassword(e.target.value)}
                   required
                   minLength={6}
+                  className="focus-visible:ring-auth-primary"
                 />
                 <Button
                   type="button"
@@ -207,6 +208,7 @@ export default function ResetPassword() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
+                  className="focus-visible:ring-auth-primary"
                 />
                 <Button
                   type="button"
