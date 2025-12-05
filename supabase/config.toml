@@ -44,3 +44,30 @@ verify_jwt = false
 
 [functions.process-linepay-payment]
 verify_jwt = false
+
+[functions.send-cancellation-email]
+verify_jwt = false
+
+[functions.backup-data]
+verify_jwt = true
+
+[functions.restore-data]
+verify_jwt = true
+
+[functions.cleanup-old-backups]
+verify_jwt = true
+
+[functions.fix-orphaned-data]
+verify_jwt = true
+
+[functions.generate-test-orders]
+verify_jwt = true
+
+[functions.clean-order-notes]
+verify_jwt = true
+
+[functions.send-password-reset]
+verify_jwt = false
+
+[functions.update-password]
+verify_jwt = false

@@ -136,19 +136,27 @@ export default function Auth() {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
-        redirectTo: `${window.location.origin}/auth`,
+      const { data, error } = await supabase.functions.invoke("send-password-reset", {
+        body: { 
+          email: forgotPasswordEmail,
+          redirectUrl: `${window.location.origin}/reset-password`
+        },
       });
 
       if (error) {
-        toast.error(error.message);
-      } else {
-        toast.success("重設密碼郵件已發送，請檢查您的信箱");
-        setIsForgotPasswordMode(false);
-        setForgotPasswordEmail("");
+        throw error;
       }
-    } catch (error) {
-      toast.error("發送失敗，請稍後再試");
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      toast.success("重設密碼郵件已發送，請檢查您的信箱");
+      setIsForgotPasswordMode(false);
+      setForgotPasswordEmail("");
+    } catch (error: any) {
+      console.error("Forgot password error:", error);
+      toast.error(error.message || "發送失敗，請稍後再試");
     } finally {
       setIsLoading(false);
     }
