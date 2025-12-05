@@ -1,5 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, Car, Bus } from "lucide-react";
+import { createSanitizedHtml } from "@/utils/sanitizeHtml";
 
 interface LocationSectionProps {
   address: string;
@@ -72,7 +73,7 @@ const LocationSection = ({ address, locationInfo }: LocationSectionProps) => {
                 {locationInfo?.location_description && (
                   <div 
                     className="text-xs md:text-sm lg:text-sm text-muted-foreground ml-6 md:ml-6 lg:ml-7 mt-1 prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: locationInfo.location_description }}
+                    dangerouslySetInnerHTML={createSanitizedHtml(locationInfo.location_description)}
                   />
                 )}
               </CardContent>
@@ -91,7 +92,7 @@ const LocationSection = ({ address, locationInfo }: LocationSectionProps) => {
                     {locationInfo?.driving_info ? (
                       <div 
                         className="prose prose-sm max-w-none text-foreground/90"
-                        dangerouslySetInnerHTML={{ __html: locationInfo.driving_info }}
+                        dangerouslySetInnerHTML={createSanitizedHtml(locationInfo.driving_info)}
                       />
                     ) : (
                       <>
@@ -121,7 +122,7 @@ const LocationSection = ({ address, locationInfo }: LocationSectionProps) => {
                     {locationInfo?.public_transport_info ? (
                       <div 
                         className="prose prose-sm max-w-none text-foreground/90"
-                        dangerouslySetInnerHTML={{ __html: locationInfo.public_transport_info }}
+                        dangerouslySetInnerHTML={createSanitizedHtml(locationInfo.public_transport_info)}
                       />
                     ) : (
                       <>

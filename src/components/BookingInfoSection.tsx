@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Clock, CreditCard, FileText, Info, PawPrint, AlertTriangle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { createSanitizedHtml } from "@/utils/sanitizeHtml";
 
 interface BookingInfoSectionProps {
   bookingSettings: any;
@@ -89,7 +90,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                 <div className="space-y-0.5 text-sm md:text-sm text-muted-foreground">
                   <div 
                     className="py-1.5 leading-relaxed prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: bookingSettings?.cancellation_policy || '' }}
+                    dangerouslySetInnerHTML={createSanitizedHtml(bookingSettings?.cancellation_policy)}
                   />
                 </div>
               </CardContent>
@@ -107,7 +108,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                   <div className="space-y-0.5 text-sm md:text-sm text-muted-foreground overflow-hidden" style={{ maxHeight: "180px" }}>
                     <div 
                       className="prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: checkInNotice || '' }}
+                      dangerouslySetInnerHTML={createSanitizedHtml(checkInNotice)}
                     />
                   </div>
                   {checkInNotice && checkInNotice.length > 200 && (
@@ -137,7 +138,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                     <div className="space-y-0.5 text-sm md:text-sm text-muted-foreground overflow-hidden" style={{ maxHeight: "180px" }}>
                       <div 
                         className="prose prose-sm max-w-none"
-                        dangerouslySetInnerHTML={{ __html: bookingSettings.pet_policy || '' }}
+                        dangerouslySetInnerHTML={createSanitizedHtml(bookingSettings.pet_policy)}
                       />
                     </div>
                     {bookingSettings.pet_policy && bookingSettings.pet_policy.length > 200 && (
@@ -168,7 +169,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                     <div className="space-y-0.5 text-sm md:text-sm text-muted-foreground overflow-hidden" style={{ maxHeight: "180px" }}>
                       <div 
                         className="prose prose-sm max-w-none"
-                        dangerouslySetInnerHTML={{ __html: bookingSettings.other_notes || '' }}
+                        dangerouslySetInnerHTML={createSanitizedHtml(bookingSettings.other_notes)}
                       />
                     </div>
                     {bookingSettings.other_notes && bookingSettings.other_notes.length > 200 && (
@@ -197,7 +198,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
           <div className="space-y-0 mt-4 text-sm">
             <div 
               className="prose prose-sm max-w-none text-muted-foreground"
-              dangerouslySetInnerHTML={{ __html: dialogContent.content }}
+              dangerouslySetInnerHTML={createSanitizedHtml(dialogContent.content)}
             />
           </div>
         </DialogContent>

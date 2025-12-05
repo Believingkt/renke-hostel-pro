@@ -6,6 +6,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { supabase } from "@/integrations/supabase/client";
+import { createSanitizedHtml } from "@/utils/sanitizeHtml";
 
 interface FaqItem {
   id: string;
@@ -72,7 +73,7 @@ const FaqSection = () => {
                   {faq.question}
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground px-4 md:px-5 lg:px-6 pb-3.5 md:pb-4 lg:pb-5 pt-0 text-xs md:text-sm lg:text-sm leading-relaxed prose prose-sm max-w-none">
-                  <div dangerouslySetInnerHTML={{ __html: faq.answer }} />
+                  <div dangerouslySetInnerHTML={createSanitizedHtml(faq.answer)} />
                 </AccordionContent>
               </AccordionItem>
             ))}
