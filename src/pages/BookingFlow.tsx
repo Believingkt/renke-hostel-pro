@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubdomain } from "@/hooks/use-subdomain";
@@ -219,6 +219,28 @@ const BookingFlow = () => {
     unavailableDates?: string[];
   }>>({});
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
+  
+  // 可用性快取機制
+  const availabilityCacheRef = useRef<{
+    checkInDate: string | null;
+    checkOutDate: string | null;
+    accommodationId: string | null;
+    roomTypeIds: string[];
+    data: Record<string, {
+      isBlocked: boolean;
+      blockedByRoomName?: string;
+      hasMissingPricing?: boolean;
+      missingDates?: string[];
+      hasNoAvailability?: boolean;
+      unavailableDates?: string[];
+    }>;
+  }>({
+    checkInDate: null,
+    checkOutDate: null,
+    accommodationId: null,
+    roomTypeIds: [],
+    data: {}
+  });
   
   // 加購方案
   const [petCount, setPetCount] = useState(0);
@@ -520,10 +542,29 @@ const BookingFlow = () => {
     fetchRoomPricingAndAvailability();
   }, [selectedRoom, checkInDate, checkOutDate, accommodationId]);
 
-  // 當日期改變時，預先檢查所有房型的可用性（批次查詢優化版）
+  // 當日期改變時，預先檢查所有房型的可用性（批次查詢優化版 + 快取）
   useEffect(() => {
     if (!checkInDate || !checkOutDate || !accommodationId || roomTypes.length === 0) {
       setRoomAvailability({});
+      setIsCheckingAvailability(false);
+      return;
+    }
+
+    const checkInDateStr = format(checkInDate, "yyyy-MM-dd");
+    const checkOutDateStr = format(checkOutDate, "yyyy-MM-dd");
+    const currentRoomTypeIds = roomTypes.map(r => r.id).sort().join(',');
+    const cache = availabilityCacheRef.current;
+
+    // 檢查快取是否有效
+    if (
+      cache.checkInDate === checkInDateStr &&
+      cache.checkOutDate === checkOutDateStr &&
+      cache.accommodationId === accommodationId &&
+      cache.roomTypeIds.sort().join(',') === currentRoomTypeIds &&
+      Object.keys(cache.data).length > 0
+    ) {
+      // 使用快取資料
+      setRoomAvailability(cache.data);
       setIsCheckingAvailability(false);
       return;
     }
@@ -539,8 +580,6 @@ const BookingFlow = () => {
         unavailableDates?: string[];
       }> = {};
 
-      const checkInDateStr = format(checkInDate, "yyyy-MM-dd");
-      const checkOutDateStr = format(checkOutDate, "yyyy-MM-dd");
       const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
 
       if (nights <= 0) {
@@ -665,6 +704,15 @@ const BookingFlow = () => {
           };
         }
       }
+
+      // 更新快取
+      availabilityCacheRef.current = {
+        checkInDate: checkInDateStr,
+        checkOutDate: checkOutDateStr,
+        accommodationId,
+        roomTypeIds: roomTypes.map(r => r.id),
+        data: newAvailability
+      };
 
       setRoomAvailability(newAvailability);
       setIsCheckingAvailability(false);
