@@ -1991,8 +1991,9 @@ const BookingFlow = () => {
                         </p>
                       </div>
                     )}
-                    {(checkInDate && checkOutDate ? getAvailableRooms() : roomTypes)
-                      .filter((room) => {
+                    {(() => {
+                      const baseRooms = checkInDate && checkOutDate ? getAvailableRooms() : roomTypes;
+                      const filteredRooms = baseRooms.filter((room) => {
                         // 如果沒有選擇日期，顯示所有房型
                         if (!checkInDate || !checkOutDate) return true;
                         
@@ -2004,8 +2005,29 @@ const BookingFlow = () => {
                         
                         // 只顯示沒有問題的房型
                         return !isBlocked && !hasMissingPricing && !hasNoAvailability;
-                      })
-                      .map((room) => {
+                      });
+                      
+                      // 當有房型但全部都無法預訂時，顯示友善提示
+                      if (checkInDate && checkOutDate && baseRooms.length > 0 && filteredRooms.length === 0) {
+                        return (
+                          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-6 rounded-lg text-center">
+                            <div className="flex justify-center mb-3">
+                              <AlertTriangle className="h-8 w-8 text-amber-500" />
+                            </div>
+                            <p className="text-foreground font-medium mb-2">
+                              很抱歉，您選擇的日期目前沒有可預訂的房型
+                            </p>
+                            <p className="text-sm text-muted-foreground mb-3">
+                              可能原因：房間已被預訂、該日期尚未開放訂房，或價格尚未設定。
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              建議您嘗試其他日期，或直接聯繫我們協助安排。
+                            </p>
+                          </div>
+                        );
+                      }
+                      
+                      return filteredRooms.map((room) => {
                       return (
                       <Card
                         key={room.id}
@@ -2141,7 +2163,8 @@ const BookingFlow = () => {
                         </div>
                       </Card>
                     );
-                    })}
+                    });
+                    })()}
                   </div>
                 )}
 
