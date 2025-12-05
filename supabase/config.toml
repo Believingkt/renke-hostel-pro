@@ -22,13 +22,13 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.send-invite-email]
-verify_jwt = false
+verify_jwt = true
 
 [functions.kol-api]
 verify_jwt = false
 
 [functions.test-email]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ai-booking-chat]
 verify_jwt = false
@@ -46,7 +46,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.send-cancellation-email]
-verify_jwt = false
+verify_jwt = true
 
 [functions.backup-data]
 verify_jwt = true

@@ -1,3 +1,5 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
+
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
 const corsHeaders = {
@@ -25,6 +27,47 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
 
   try {
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+
+    // Verify authentication
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ success: false, error: "未提供授權標頭" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ success: false, error: "身份驗證失敗" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check if user has staff or admin role
+    const { data: roles } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id);
+
+    const hasRole = roles?.some(r => ["super_admin", "hotel_admin", "staff"].includes(r.role));
+    if (!hasRole) {
+      return new Response(
+        JSON.stringify({ success: false, error: "沒有權限發送取消郵件" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`[Cancellation Email] User ${user.email} sending cancellation email`);
+
     const {
       orderNumber,
       guestName,
@@ -45,7 +88,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
       throw new Error("RESEND_API_KEY is not configured");
     }
 
-    // 格式化日期
     const formatDate = (dateStr: string) => {
       const date = new Date(dateStr);
       return date.toLocaleDateString('zh-TW', { 
@@ -56,7 +98,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
       });
     };
 
-    // 獲取餐食方案顯示名稱
     const getMealPlanText = () => {
       if (mealPlanDisplayName) return mealPlanDisplayName;
       if (mealPlan === "2_meals") return "一泊二食";
@@ -91,10 +132,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
             border-radius: 8px 8px 0 0;
             margin: -30px -30px 30px -30px;
           }
-          .header h1 {
-            margin: 0;
-            font-size: 24px;
-          }
+          .header h1 { margin: 0; font-size: 24px; }
           .alert-box {
             background: #fee2e2;
             border-left: 4px solid #ef4444;
@@ -106,19 +144,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
             padding: 12px 0;
             border-bottom: 1px solid #e5e7eb;
           }
-          .info-row:last-child {
-            border-bottom: none;
-          }
-          .label {
-            color: #6b7280;
-            font-weight: 500;
-            display: inline-block;
-            width: 100px;
-          }
-          .value {
-            color: #111827;
-            font-weight: 600;
-          }
+          .info-row:last-child { border-bottom: none; }
+          .label { color: #6b7280; font-weight: 500; display: inline-block; width: 100px; }
+          .value { color: #111827; font-weight: 600; }
           .footer {
             margin-top: 30px;
             padding-top: 20px;
@@ -211,32 +239,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
     console.log("Email sent successfully:", data);
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        messageId: data.id 
-      }),
-      {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-          ...corsHeaders,
-        },
-      }
+      JSON.stringify({ success: true, messageId: data.id }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
     console.error("Error sending cancellation email:", error);
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message 
-      }),
-      {
-        status: 500,
-        headers: { 
-          "Content-Type": "application/json", 
-          ...corsHeaders 
-        },
-      }
+      JSON.stringify({ success: false, error: error.message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
