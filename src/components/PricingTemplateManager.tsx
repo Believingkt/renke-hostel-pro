@@ -127,7 +127,7 @@ const SortableMealPlanItem = ({ plan, index, onUpdate, onRemove }: SortableMealP
           />
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">方案說明</Label>
+          <Label className="text-xs">專案說明</Label>
           <Input
             value={plan.description}
             onChange={(e) => onUpdate(plan.id, 'description', e.target.value)}
