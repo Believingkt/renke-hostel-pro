@@ -396,7 +396,7 @@ export default function Auth() {
                   <Button
                     type="button"
                     variant="link"
-                    className="h-auto p-0 text-sm text-muted-foreground hover:text-primary"
+                    className="h-auto p-0 text-sm text-muted-foreground hover:text-blue-600"
                     onClick={() => setIsForgotPasswordMode(true)}
                   >
                     忘記密碼？
