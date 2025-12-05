@@ -212,6 +212,10 @@ const BookingFlow = () => {
   const [roomAvailability, setRoomAvailability] = useState<Record<string, {
     isBlocked: boolean;
     blockedByRoomName?: string;
+    hasMissingPricing?: boolean;
+    missingDates?: string[];
+    hasNoAvailability?: boolean;
+    unavailableDates?: string[];
   }>>({});
   
   // 加購方案
@@ -427,6 +431,10 @@ const BookingFlow = () => {
       const pricing: Record<string, number> = {};
       let hasBlocked = false;
       let blockedByName = '';
+      let hasMissingPricing = false;
+      let hasNoAvailability = false;
+      const missingDates: string[] = [];
+      const unavailableDates: string[] = [];
 
       for (let i = 0; i < nights; i++) {
         const currentDate = new Date(start);
@@ -434,16 +442,30 @@ const BookingFlow = () => {
         const dateStr = currentDate.toISOString().split('T')[0];
 
         try {
-          // 獲取價格
+          // 獲取價格和可用房間數
           const { data: priceData, error: priceError } = await supabase
             .from('room_inventory_pricing')
-            .select('price')
+            .select('price, available_rooms')
             .eq('room_type_id', selectedRoom.id)
             .eq('date', dateStr)
             .maybeSingle();
 
           if (priceError) throw priceError;
-          pricing[dateStr] = priceData?.price || selectedRoom.base_price;
+          
+          // 檢查是否有設定價格
+          if (!priceData || priceData.price === null || priceData.price === undefined) {
+            hasMissingPricing = true;
+            missingDates.push(dateStr);
+            pricing[dateStr] = 0; // 標記為無價格
+          } else {
+            pricing[dateStr] = priceData.price;
+            
+            // 檢查可用房間數
+            if (priceData.available_rooms !== null && priceData.available_rooms <= 0) {
+              hasNoAvailability = true;
+              unavailableDates.push(dateStr);
+            }
+          }
 
           // 檢查互斥邏輯
           const { data: availabilityData, error: availabilityError } = await supabase
@@ -457,11 +479,22 @@ const BookingFlow = () => {
             hasBlocked = true;
             blockedByName = availabilityData[0].blocked_by_room_name;
           }
+          
+          // 即使沒有被互斥，也要檢查調整後的可用房間數
+          if (!availabilityError && availabilityData && availabilityData[0]) {
+            const adjustedAvailable = availabilityData[0].available_rooms;
+            if (adjustedAvailable !== null && adjustedAvailable <= 0 && !unavailableDates.includes(dateStr)) {
+              hasNoAvailability = true;
+              unavailableDates.push(dateStr);
+            }
+          }
         } catch (error) {
           if (import.meta.env.DEV) {
             console.error('Error fetching price/availability for date:', dateStr, error);
           }
-          pricing[dateStr] = selectedRoom.base_price;
+          hasMissingPricing = true;
+          missingDates.push(dateStr);
+          pricing[dateStr] = 0;
         }
       }
 
@@ -472,7 +505,11 @@ const BookingFlow = () => {
         ...prev,
         [selectedRoom.id]: {
           isBlocked: hasBlocked,
-          blockedByRoomName: blockedByName
+          blockedByRoomName: blockedByName,
+          hasMissingPricing,
+          missingDates,
+          hasNoAvailability,
+          unavailableDates
         }
       }));
     };
@@ -892,13 +929,59 @@ const BookingFlow = () => {
       }
     }
     
-    if (currentStep === "room" && !selectedRoom) {
-      toast({
-        title: "請選擇房型",
-        description: "請先選擇一個房型以繼續",
-        variant: "destructive",
-      });
-      return;
+    if (currentStep === "room") {
+      if (!selectedRoom) {
+        toast({
+          title: "請選擇房型",
+          description: "請先選擇一個房型以繼續",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // 檢查房型可用性狀態
+      const availability = roomAvailability[selectedRoom.id];
+      
+      // 檢查是否有缺少價格的日期
+      if (availability?.hasMissingPricing) {
+        toast({
+          title: "無法預訂",
+          description: `所選日期 (${availability.missingDates?.join(', ')}) 尚未設定價格，請選擇其他日期`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // 檢查是否有無庫存的日期
+      if (availability?.hasNoAvailability) {
+        toast({
+          title: "房型已滿",
+          description: `所選日期 (${availability.unavailableDates?.join(', ')}) 已無空房，請選擇其他日期`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // 檢查是否被互斥房型阻擋
+      if (availability?.isBlocked) {
+        toast({
+          title: "無法預訂",
+          description: `此房型因「${availability.blockedByRoomName}」已被預訂而無法使用`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // 檢查總價是否為 0
+      const total = calculateTotal();
+      if (total <= 0) {
+        toast({
+          title: "價格異常",
+          description: "所選日期的價格為 0，請聯繫客服或選擇其他日期",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     if (currentStep === "addons") {
