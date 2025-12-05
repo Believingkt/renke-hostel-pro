@@ -1,7 +1,15 @@
+import { useState, useEffect } from "react";
 import { Order } from "@/types/order";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { Calendar, User, Phone, DollarSign, FileText, Bed } from "lucide-react";
+import { Calendar, User, Phone, FileText, Bed, Utensils } from "lucide-react";
 import { getPaymentStatusConfig, getOrderStatusConfig } from "@/utils/orderHelpers";
+import { useAccommodation } from "@/contexts/AccommodationContext";
+import { supabase } from "@/integrations/supabase/client";
+
+interface CustomMealPlan {
+  id: string;
+  name: string;
+}
 
 interface OrderQuickPreviewProps {
   order: Order;
@@ -9,8 +17,43 @@ interface OrderQuickPreviewProps {
 }
 
 export function OrderQuickPreview({ order, children }: OrderQuickPreviewProps) {
+  const { currentAccommodationId } = useAccommodation();
+  const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
   const orderStatusConfig = getOrderStatusConfig(order.order_status);
   const paymentStatusConfig = getPaymentStatusConfig(order.payment_status);
+
+  useEffect(() => {
+    const fetchCustomMealPlans = async () => {
+      if (!currentAccommodationId) return;
+      
+      const { data } = await supabase
+        .from('pricing_templates')
+        .select('meal_plans')
+        .eq('accommodation_id', currentAccommodationId)
+        .eq('is_default', true)
+        .maybeSingle();
+      
+      if (data?.meal_plans && Array.isArray(data.meal_plans)) {
+        setCustomMealPlans(data.meal_plans as unknown as CustomMealPlan[]);
+      }
+    };
+
+    fetchCustomMealPlans();
+  }, [currentAccommodationId]);
+
+  const getMealPlanDisplayName = (mealPlan: string | null): string => {
+    if (!mealPlan) return '無';
+    
+    const customPlan = customMealPlans.find(p => p.id === mealPlan);
+    if (customPlan) return customPlan.name;
+    
+    const defaultNames: Record<string, string> = {
+      'no_meal': '不含餐',
+      '2_meals': '一泊二食',
+      '3_meals': '一泊三食'
+    };
+    return defaultNames[mealPlan] || mealPlan;
+  };
   
   const balance = order.final_price - order.paid_amount;
 
@@ -48,6 +91,13 @@ export function OrderQuickPreview({ order, children }: OrderQuickPreviewProps) {
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Bed className="w-4 h-4" />
                 <span>{order.room_types.name}</span>
+              </div>
+            )}
+
+            {order.meal_plan && (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Utensils className="w-4 h-4" />
+                <span>{getMealPlanDisplayName(order.meal_plan)}</span>
               </div>
             )}
 
