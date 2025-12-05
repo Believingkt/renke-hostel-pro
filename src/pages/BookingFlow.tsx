@@ -1994,24 +1994,42 @@ const BookingFlow = () => {
                     {(checkInDate && checkOutDate ? getAvailableRooms() : roomTypes).map((room) => {
                       const availability = roomAvailability[room.id];
                       const isBlocked = availability?.isBlocked || false;
+                      const hasMissingPricing = availability?.hasMissingPricing || false;
+                      const hasNoAvailability = availability?.hasNoAvailability || false;
+                      const hasIssue = isBlocked || hasMissingPricing || hasNoAvailability;
                       
                       return (
                       <Card
                         key={room.id}
                         className={cn(
                           "transition-all overflow-hidden relative",
-                          !isBlocked && "cursor-pointer hover:shadow-md",
-                          isBlocked && "opacity-60 cursor-not-allowed",
-                          selectedRoom?.id === room.id && !isBlocked && "border-2 border-primary shadow-md",
+                          !hasIssue && "cursor-pointer hover:shadow-md",
+                          hasIssue && "opacity-60 cursor-not-allowed",
+                          selectedRoom?.id === room.id && !hasIssue && "border-2 border-primary shadow-md",
                           !selectedRoom?.id || selectedRoom?.id !== room.id && "border"
                         )}
-                        onClick={() => !isBlocked && setSelectedRoom(room)}
+                        onClick={() => !hasIssue && setSelectedRoom(room)}
                       >
-                        {isBlocked && (
-                          <div className="absolute top-4 right-4 z-10 bg-destructive text-destructive-foreground px-3 py-1 rounded-md text-sm font-medium shadow-lg">
-                            已被 {availability.blockedByRoomName} 預訂
-                          </div>
-                        )}
+                        {/* 警告標籤區域 */}
+                        <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+                          {isBlocked && (
+                            <div className="bg-destructive text-destructive-foreground px-3 py-1 rounded-md text-sm font-medium shadow-lg">
+                              已被 {availability?.blockedByRoomName} 預訂
+                            </div>
+                          )}
+                          {hasMissingPricing && !isBlocked && (
+                            <div className="bg-amber-500 text-white px-3 py-1 rounded-md text-sm font-medium shadow-lg flex items-center gap-1.5">
+                              <AlertTriangle className="h-4 w-4" />
+                              價格未設定
+                            </div>
+                          )}
+                          {hasNoAvailability && !isBlocked && !hasMissingPricing && (
+                            <div className="bg-destructive text-destructive-foreground px-3 py-1 rounded-md text-sm font-medium shadow-lg flex items-center gap-1.5">
+                              <AlertTriangle className="h-4 w-4" />
+                              已無空房
+                            </div>
+                          )}
+                        </div>
                         <div className="grid md:grid-cols-[3fr_2fr] gap-0 h-full">
                           {/* 左側圖片 - 占60% */}
                           <div className="relative bg-muted min-h-[400px] md:min-h-full overflow-hidden">
