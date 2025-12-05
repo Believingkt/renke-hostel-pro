@@ -17,6 +17,7 @@ interface BookingConfirmationRequest {
   checkOutDate: string;
   guestCount: number;
   mealPlan: string;
+  mealPlanDisplayName?: string;
   finalPrice: number;
   depositAmount: number;
   paymentMethod: string;
@@ -42,6 +43,7 @@ const handler = async (req: Request): Promise<Response> => {
       checkOutDate,
       guestCount,
       mealPlan,
+      mealPlanDisplayName,
       finalPrice,
       depositAmount,
       paymentMethod,
@@ -53,7 +55,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Sending booking confirmation email to:", guestEmail);
 
-    const mealPlanText = mealPlan === "2_meals" ? "一泊二食" : "一泊三食";
+    // 使用自訂餐食方案名稱，若無則使用預設名稱
+    const mealPlanText = mealPlanDisplayName || (mealPlan === "2_meals" ? "一泊二食" : "一泊三食");
 
     // 使用 Resend API 發送郵件
     const emailResponse = await fetch("https://api.resend.com/emails", {
