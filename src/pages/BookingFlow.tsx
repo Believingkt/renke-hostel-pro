@@ -1603,6 +1603,7 @@ const BookingFlow = () => {
                 checkOutDate: checkOutDateStr,
                 guestCount: totalGuests,
                 mealPlan: selectedMealPlan,
+                mealPlanDisplayName: getMealPlanDisplayName(selectedMealPlan),
                 finalPrice: finalPrice,
                 depositAmount: depositAmount,
                 paymentMethod: paymentMethod,
