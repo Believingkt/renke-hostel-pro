@@ -205,6 +205,7 @@ const OrderDetail = () => {
             checkOutDate: order.check_out_date,
             guestCount: order.guest_count,
             mealPlan: order.meal_plan || "2_meals",
+            mealPlanDisplayName: getMealPlanDisplayName(order.meal_plan),
             finalPrice: order.final_price,
             depositAmount: order.deposit_amount,
             paymentMethod: order.payment_method || "未指定",
