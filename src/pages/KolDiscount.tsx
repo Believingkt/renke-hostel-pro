@@ -47,7 +47,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, Copy, Pencil, Check, Pause, X, Eye, Calendar as CalendarIcon, GripVertical, Code, DollarSign, Ticket, Tag, Megaphone, BadgePercent, Sparkles, Home } from "lucide-react";
+import { Plus, Trash2, Copy, Pencil, Check, Pause, X, Eye, Calendar as CalendarIcon, GripVertical, Code, DollarSign, Ticket, Tag, Megaphone, BadgePercent, Sparkles, Home, Key, RefreshCw, Shield } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -110,6 +110,7 @@ interface DiscountCode {
   applicable_date_to: string | null;
   display_order: number;
   commission_rate: number;
+  api_key: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -143,8 +144,10 @@ const KolDiscount = () => {
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "expired" | "full">("all");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
+  const [copiedApiKey, setCopiedApiKey] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [regeneratingApiKeyId, setRegeneratingApiKeyId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -205,6 +208,52 @@ const KolDiscount = () => {
     return code;
   };
 
+  const generateApiKey = () => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let apiKey = "kol_";
+    for (let i = 0; i < 32; i++) {
+      apiKey += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return apiKey;
+  };
+
+  const handleRegenerateApiKey = async (discountCodeId: string) => {
+    setRegeneratingApiKeyId(discountCodeId);
+    try {
+      const newApiKey = generateApiKey();
+      const { error } = await supabase
+        .from("discount_codes")
+        .update({ api_key: newApiKey })
+        .eq("id", discountCodeId);
+
+      if (error) throw error;
+
+      toast({
+        title: "API 金鑰已重新產生",
+        description: "請複製新的 API 金鑰並更新您的應用程式",
+      });
+      fetchDiscountCodes();
+    } catch (error) {
+      console.error("Error regenerating API key:", error);
+      toast({
+        title: "重新產生失敗",
+        description: "無法重新產生 API 金鑰",
+        variant: "destructive",
+      });
+    } finally {
+      setRegeneratingApiKeyId(null);
+    }
+  };
+
+  const handleCopyApiKey = (apiKey: string, codeId: string) => {
+    navigator.clipboard.writeText(apiKey);
+    setCopiedApiKey(codeId);
+    setTimeout(() => setCopiedApiKey(null), 2000);
+    toast({
+      title: "已複製 API 金鑰",
+    });
+  };
+
   const handleSubmit = async () => {
     if (!accommodationId) {
       toast({
@@ -242,6 +291,7 @@ const KolDiscount = () => {
     }
 
     const code = generateCode();
+    const apiKey = generateApiKey();
 
     try {
       const { error } = await supabase.from("discount_codes").insert({
@@ -258,6 +308,7 @@ const KolDiscount = () => {
         applicable_date_from: applicableDateFrom?.toISOString().split('T')[0] || null,
         applicable_date_to: applicableDateTo?.toISOString().split('T')[0] || null,
         commission_rate: commissionRate ? parseFloat(commissionRate) : 0,
+        api_key: apiKey,
       });
 
       if (error) throw error;
@@ -2343,6 +2394,37 @@ const KolDiscount = () => {
 
             <Separator />
 
+            {/* Authentication */}
+            <div>
+              <h3 className="font-semibold mb-2 flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                API 金鑰驗證
+              </h3>
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded">
+                <p className="text-sm text-amber-800 dark:text-amber-200 mb-2">
+                  <strong>重要：</strong>所有 API 請求都需要提供 API 金鑰進行驗證
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  每個折扣碼都有唯一的 API 金鑰，可以在「查看詳情」中找到並複製
+                </p>
+              </div>
+              <div className="mt-3 space-y-2">
+                <Label className="text-xs text-muted-foreground">驗證方式（二選一）</Label>
+                <div className="space-y-2">
+                  <div className="p-2 bg-muted rounded">
+                    <p className="text-xs font-medium mb-1">方式一：HTTP Header</p>
+                    <code className="text-xs">x-api-key: YOUR_API_KEY</code>
+                  </div>
+                  <div className="p-2 bg-muted rounded">
+                    <p className="text-xs font-medium mb-1">方式二：URL 參數</p>
+                    <code className="text-xs">?api_key=YOUR_API_KEY</code>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
             {/* Endpoint 1: Query Orders */}
             <div>
               <h3 className="font-semibold mb-2">1. 查詢訂單列表</h3>
@@ -2350,13 +2432,17 @@ const KolDiscount = () => {
                 <div>
                   <Label className="text-xs text-muted-foreground">端點</Label>
                   <code className="block p-2 bg-muted rounded text-sm font-mono">
-                    GET /orders?code=YOUR_DISCOUNT_CODE
+                    GET /orders?code=YOUR_DISCOUNT_CODE&api_key=YOUR_API_KEY
                   </code>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">範例請求</Label>
                   <pre className="p-3 bg-muted rounded text-xs font-mono overflow-x-auto">
-{`fetch('https://sensaninn.lakeze.com/functions/v1/kol-api/orders?code=SPRING2024')
+{`fetch('https://sensaninn.lakeze.com/functions/v1/kol-api/orders?code=SPRING2024&api_key=kol_xxxxx', {
+  headers: {
+    'x-api-key': 'kol_xxxxx' // 或使用 URL 參數
+  }
+})
   .then(res => res.json())
   .then(data => console.log(data));`}
                   </pre>
@@ -2402,13 +2488,13 @@ const KolDiscount = () => {
                 <div>
                   <Label className="text-xs text-muted-foreground">端點</Label>
                   <code className="block p-2 bg-muted rounded text-sm font-mono">
-                    GET /stats?code=YOUR_DISCOUNT_CODE
+                    GET /stats?code=YOUR_DISCOUNT_CODE&api_key=YOUR_API_KEY
                   </code>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">範例請求</Label>
                   <pre className="p-3 bg-muted rounded text-xs font-mono overflow-x-auto">
-{`fetch('https://sensaninn.lakeze.com/functions/v1/kol-api/stats?code=SPRING2024')
+{`fetch('https://sensaninn.lakeze.com/functions/v1/kol-api/stats?code=SPRING2024&api_key=kol_xxxxx')
   .then(res => res.json())
   .then(data => console.log(data));`}
                   </pre>
@@ -2450,13 +2536,13 @@ const KolDiscount = () => {
                 <div>
                   <Label className="text-xs text-muted-foreground">端點</Label>
                   <code className="block p-2 bg-muted rounded text-sm font-mono">
-                    GET /commission?code=YOUR_DISCOUNT_CODE
+                    GET /commission?code=YOUR_DISCOUNT_CODE&api_key=YOUR_API_KEY
                   </code>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">範例請求</Label>
                   <pre className="p-3 bg-muted rounded text-xs font-mono overflow-x-auto">
-{`fetch('https://sensaninn.lakeze.com/functions/v1/kol-api/commission?code=SPRING2024')
+{`fetch('https://sensaninn.lakeze.com/functions/v1/kol-api/commission?code=SPRING2024&api_key=kol_xxxxx')
   .then(res => res.json())
   .then(data => console.log(data));`}
                   </pre>
@@ -2934,6 +3020,8 @@ const commissionData = await commissionResponse.json();`}
           discountCodeName={selectedCodeForCommission.name}
           discountCode={selectedCodeForCommission.code}
           accommodationId={accommodationId || ''}
+          apiKey={selectedCodeForCommission.api_key}
+          onApiKeyRegenerated={fetchDiscountCodes}
         />
       )}
 
