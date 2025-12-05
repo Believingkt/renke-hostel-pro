@@ -108,7 +108,7 @@ export default function ResetPassword() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 p-4">
         <Card className="w-full max-w-md shadow-xl border-0">
           <CardContent className="flex items-center justify-center p-8">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            <Loader2 className="h-8 w-8 animate-spin text-[#4A7DA7]" />
             <span className="ml-3">驗證中...</span>
           </CardContent>
         </Card>
@@ -135,7 +135,7 @@ export default function ResetPassword() {
             <p className="text-sm text-muted-foreground">
               此重設密碼連結已失效。請返回登入頁面重新申請。
             </p>
-            <Button onClick={() => navigate("/auth")} className="w-full bg-blue-600 hover:bg-blue-700">
+            <Button onClick={() => navigate("/auth")} className="w-full bg-[#4A7DA7] hover:bg-[#3D6B8F]">
               返回登入頁面
             </Button>
           </CardContent>
@@ -152,7 +152,7 @@ export default function ResetPassword() {
             <img src={lokezeLogo} alt="Logo" className="h-12 object-contain" />
           </div>
           <div className="flex items-center justify-center gap-2 pt-2">
-            <KeyRound className="h-5 w-5 text-blue-600" />
+            <KeyRound className="h-5 w-5 text-[#4A7DA7]" />
             <CardDescription className="text-center">
               設定您的新密碼
             </CardDescription>
@@ -223,7 +223,7 @@ export default function ResetPassword() {
                 </Button>
               </div>
             </div>
-            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
+            <Button type="submit" className="w-full bg-[#4A7DA7] hover:bg-[#3D6B8F]" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               重設密碼
             </Button>
