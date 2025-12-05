@@ -165,6 +165,7 @@ const BookingFlow = () => {
   const [currentStep, setCurrentStep] = useState<BookingStep>("dates");
   const [bookingSettings, setBookingSettings] = useState<BookingSettings | null>(null);
   const [accommodationName, setAccommodationName] = useState("森山寫照");
+  const [accommodationLineId, setAccommodationLineId] = useState<string | null>(null);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [roomPricing, setRoomPricing] = useState<Record<string, number>>({});
   
@@ -269,12 +270,13 @@ const BookingFlow = () => {
       try {
         const { data: infoData } = await supabase
           .from("accommodation_info")
-          .select("name")
+          .select("name, line_id")
           .eq("id", accommodationId)
           .single();
         
         if (infoData) {
           setAccommodationName(infoData.name);
+          setAccommodationLineId(infoData.line_id);
         }
 
         const { data: settingsData } = await supabase
@@ -2023,14 +2025,32 @@ const BookingFlow = () => {
                             <p className="text-sm text-muted-foreground mb-4">
                               建議您嘗試其他日期，或直接聯繫我們協助安排。
                             </p>
-                            <Button 
-                              variant="outline" 
-                              onClick={() => setCurrentStep("dates")}
-                              className="gap-2"
-                            >
-                              <Calendar className="h-4 w-4" />
-                              選擇其他日期
-                            </Button>
+                            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                              <Button 
+                                variant="outline" 
+                                onClick={() => setCurrentStep("dates")}
+                                className="gap-2"
+                              >
+                                <Calendar className="h-4 w-4" />
+                                選擇其他日期
+                              </Button>
+                              {accommodationLineId && (
+                                <Button 
+                                  variant="default" 
+                                  asChild
+                                  className="gap-2"
+                                >
+                                  <a 
+                                    href={`https://line.me/R/ti/p/${accommodationLineId}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    <Smartphone className="h-4 w-4" />
+                                    LINE 聯繫我們
+                                  </a>
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         );
                       }
