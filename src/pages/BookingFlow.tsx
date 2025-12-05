@@ -2226,8 +2226,7 @@ const BookingFlow = () => {
                       // 當有房型但全部都無法預訂時，顯示友善提示
                       if (checkInDate && checkOutDate && baseRooms.length > 0 && filteredRooms.length === 0) {
                         return (
-                          <div className="flex items-center justify-center min-h-[300px]">
-                          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-4 sm:p-6 rounded-xl sm:rounded-lg text-center max-w-md mx-auto">
+                          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-4 sm:p-6 rounded-xl sm:rounded-lg text-center">
                             {/* 手機版：圓形圖示背景；電腦版：簡單圖示 */}
                             <div className="flex justify-center mb-3">
                               <div className="w-14 h-14 sm:w-auto sm:h-auto rounded-full bg-amber-100 dark:bg-amber-900/50 sm:bg-transparent dark:sm:bg-transparent flex items-center justify-center">
@@ -2277,7 +2276,6 @@ const BookingFlow = () => {
                                 </Button>
                               )}
                             </div>
-                          </div>
                           </div>
                         );
                       }
