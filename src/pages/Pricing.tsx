@@ -97,7 +97,7 @@ const SortableRoomCard = ({ roomType, onEdit, onDelete }: SortableRoomCardProps)
               </p>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-sm">
               <div>
                 <span className="text-muted-foreground">坪數：</span>
                 <span className="font-medium">
@@ -107,10 +107,6 @@ const SortableRoomCard = ({ roomType, onEdit, onDelete }: SortableRoomCardProps)
               <div>
                 <span className="text-muted-foreground">容納人數：</span>
                 <span className="font-medium">{roomType.capacity} 人</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">房間數量：</span>
-                <span className="font-medium">{roomType.room_count || 1} 間</span>
               </div>
               <div>
                 <span className="text-muted-foreground">顯示順序：</span>
