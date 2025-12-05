@@ -636,6 +636,7 @@ export type Database = {
       discount_codes: {
         Row: {
           accommodation_id: string
+          api_key: string | null
           applicable_date_from: string | null
           applicable_date_to: string | null
           applicable_room_types: Json | null
@@ -657,6 +658,7 @@ export type Database = {
         }
         Insert: {
           accommodation_id: string
+          api_key?: string | null
           applicable_date_from?: string | null
           applicable_date_to?: string | null
           applicable_room_types?: Json | null
@@ -678,6 +680,7 @@ export type Database = {
         }
         Update: {
           accommodation_id?: string
+          api_key?: string | null
           applicable_date_from?: string | null
           applicable_date_to?: string | null
           applicable_room_types?: Json | null

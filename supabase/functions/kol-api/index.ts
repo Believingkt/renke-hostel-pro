@@ -16,10 +16,19 @@ Deno.serve(async (req) => {
     const discountCode = url.searchParams.get('code');
     const apiKey = req.headers.get('x-api-key') || url.searchParams.get('api_key');
 
+    // Validate required parameters
     if (!discountCode) {
       return new Response(
         JSON.stringify({ error: '缺少必要參數：code' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!apiKey) {
+      console.log('[KOL-API] Missing API key for code:', discountCode);
+      return new Response(
+        JSON.stringify({ error: '缺少必要參數：api_key。請在請求頭中添加 x-api-key 或在 URL 參數中添加 api_key' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -28,7 +37,7 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Verify discount code exists
+    // Verify discount code exists AND API key matches
     const { data: discountData, error: discountError } = await supabase
       .from('discount_codes')
       .select('*')
@@ -36,12 +45,31 @@ Deno.serve(async (req) => {
       .single();
 
     if (discountError || !discountData) {
-      console.error('Discount code not found:', discountError);
+      console.error('[KOL-API] Discount code not found:', discountCode, discountError);
       return new Response(
         JSON.stringify({ error: '折扣碼不存在' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Verify API key matches the discount code's API key
+    if (!discountData.api_key) {
+      console.log('[KOL-API] No API key configured for discount code:', discountCode);
+      return new Response(
+        JSON.stringify({ error: '此折扣碼尚未設定 API 金鑰，請聯繫管理員' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (discountData.api_key !== apiKey) {
+      console.log('[KOL-API] Invalid API key attempt for code:', discountCode);
+      return new Response(
+        JSON.stringify({ error: 'API 金鑰無效' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('[KOL-API] Authenticated successfully for code:', discountCode);
 
     const pathname = url.pathname;
 
@@ -71,7 +99,7 @@ Deno.serve(async (req) => {
         .order('order_date', { ascending: false });
 
       if (ordersError) {
-        console.error('Error fetching orders:', ordersError);
+        console.error('[KOL-API] Error fetching orders:', ordersError);
         return new Response(
           JSON.stringify({ error: '查詢訂單失敗' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -96,7 +124,7 @@ Deno.serve(async (req) => {
         .eq('discount_code', discountCode.toUpperCase());
 
       if (ordersError) {
-        console.error('Error fetching stats:', ordersError);
+        console.error('[KOL-API] Error fetching stats:', ordersError);
         return new Response(
           JSON.stringify({ error: '查詢統計失敗' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -175,7 +203,7 @@ Deno.serve(async (req) => {
         .order('created_at', { ascending: false });
 
       if (commissionError) {
-        console.error('Error fetching commission records:', commissionError);
+        console.error('[KOL-API] Error fetching commission records:', commissionError);
         return new Response(
           JSON.stringify({ error: '查詢佣金記錄失敗' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -240,18 +268,23 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: '網紅 API',
+        message: '網紅 API - 需要 API 金鑰驗證',
+        authentication: {
+          method: '請在請求頭中添加 x-api-key 或在 URL 參數中添加 api_key',
+          example_header: 'x-api-key: YOUR_API_KEY',
+          example_url: '/kol-api/orders?code=YOUR_CODE&api_key=YOUR_API_KEY'
+        },
         endpoints: {
-          orders: '/kol-api/orders?code=YOUR_CODE',
-          stats: '/kol-api/stats?code=YOUR_CODE',
-          commission: '/kol-api/commission?code=YOUR_CODE'
+          orders: '/kol-api/orders?code=YOUR_CODE&api_key=YOUR_API_KEY',
+          stats: '/kol-api/stats?code=YOUR_CODE&api_key=YOUR_API_KEY',
+          commission: '/kol-api/commission?code=YOUR_CODE&api_key=YOUR_API_KEY'
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('Error in kol-api function:', error);
+    console.error('[KOL-API] Error in function:', error);
     const errorMessage = error instanceof Error ? error.message : '未知錯誤';
     return new Response(
       JSON.stringify({ error: errorMessage }),
