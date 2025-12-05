@@ -2852,10 +2852,24 @@ const BookingFlow = () => {
                         </p>
                       </CardHeader>
                       <CardContent className="space-y-3">
-                        {Array.isArray(bookingSettings?.payment_methods) && bookingSettings.payment_methods.length > 0 ? (
-                          bookingSettings.payment_methods.map((method: string) => {
-                            // 根據付款方式選擇對應的圖標
-                            const PaymentIcon = method === '信用卡' ? CreditCard : Smartphone;
+                        {/* 暫時停用線上金流，僅提供現場付款選項供測試 */}
+                        {(() => {
+                          // 過濾掉信用卡和 LINE Pay，保留其他付款方式
+                          const availableMethods = Array.isArray(bookingSettings?.payment_methods) 
+                            ? bookingSettings.payment_methods.filter((method: string) => 
+                                method !== '信用卡' && method !== 'LINE Pay'
+                              )
+                            : [];
+                          
+                          // 如果沒有其他付款方式，添加「現場付款」選項
+                          const displayMethods = availableMethods.length > 0 
+                            ? availableMethods 
+                            : ['現場付款'];
+                          
+                          return displayMethods.map((method: string) => {
+                            const PaymentIcon = method === '信用卡' ? CreditCard : 
+                                               method === 'LINE Pay' ? Smartphone : 
+                                               Home;
                             
                             return (
                               <div
@@ -2892,131 +2906,15 @@ const BookingFlow = () => {
                                 </div>
                               </div>
                             );
-                          })
-                        ) : (
-                          <div className="text-center py-6 text-muted-foreground">
-                            <p className="text-sm">目前沒有可用的付款方式</p>
-                          </div>
-                        )}
+                          });
+                        })()}
 
-                        {/* TapPay 信用卡表單 */}
+                        {/* TapPay 信用卡表單 - 暫時停用 */}
+                        {/* 
                         {paymentMethod === '信用卡' && isTapPayReady && (
-                          <div className="mt-6 space-y-4 p-4 bg-muted/30 rounded-lg border-2 border-primary/20">
-                            <p className="text-sm font-semibold mb-4">請輸入信用卡資訊</p>
-                            
-                            <div className="space-y-2">
-                              <Label className="text-sm">卡號</Label>
-                              <div 
-                                id="card-number" 
-                                className="h-12 px-3 py-2 border rounded-md bg-background"
-                              />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                <Label className="text-sm">有效期限</Label>
-                                <div 
-                                  id="card-expiration-date" 
-                                  className="h-12 px-3 py-2 border rounded-md bg-background"
-                                />
-                              </div>
-                              
-                              <div className="space-y-2">
-                                <Label className="text-sm">安全碼 (CVV)</Label>
-                                <div 
-                                  id="card-ccv" 
-                                  className="h-12 px-3 py-2 border rounded-md bg-background"
-                                />
-                              </div>
-                            </div>
-
-                            {!cardValid && (
-                              <p className="text-xs text-muted-foreground">
-                                請輸入完整且正確的信用卡資訊
-                              </p>
-                            )}
-                            
-                            {/* 付款安全提示 */}
-                            <Alert className="mt-4">
-                              <AlertTitle className="text-sm font-semibold flex items-center gap-2">
-                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                                </svg>
-                                安全付款保障
-                              </AlertTitle>
-                              <AlertDescription className="text-xs">
-                                我們使用 SSL 加密技術保護您的付款資訊，所有交易均經過安全認證
-                              </AlertDescription>
-                            </Alert>
-
-                            {/* 測試卡號資訊 - 僅在開發環境顯示 */}
-                            {window.location.hostname === 'localhost' || window.location.hostname.includes('lovableproject.com') ? (
-                              <Collapsible open={showTestCards} onOpenChange={setShowTestCards} className="mt-4">
-                                <CollapsibleTrigger asChild>
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    className="w-full justify-between text-muted-foreground hover:text-foreground"
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      <Info className="h-4 w-4" />
-                                      <span className="text-sm">測試卡號資訊</span>
-                                    </div>
-                                    <ChevronDown className={cn(
-                                      "h-4 w-4 transition-transform",
-                                      showTestCards && "rotate-180"
-                                    )} />
-                                  </Button>
-                                </CollapsibleTrigger>
-                                <CollapsibleContent className="mt-3">
-                                  <Alert>
-                                    <AlertTitle className="text-sm font-semibold mb-3 flex items-center gap-2">
-                                      <CreditCard className="h-4 w-4" />
-                                      TapPay 測試卡號
-                                    </AlertTitle>
-                                    <AlertDescription className="space-y-3">
-                                      <div className="space-y-2 text-xs">
-                                        <div className="bg-muted/50 p-3 rounded-md">
-                                          <p className="font-semibold mb-1.5 text-foreground">✅ 付款成功測試卡</p>
-                                          <div className="space-y-1 font-mono">
-                                            <p>卡號: 4242 4242 4242 4242</p>
-                                            <p>有效期限: 任何未來日期 (如 12/28)</p>
-                                            <p>CVV: 任何 3 碼數字 (如 123)</p>
-                                          </div>
-                                        </div>
-
-                                        <div className="bg-destructive/10 p-3 rounded-md">
-                                          <p className="font-semibold mb-1.5 text-foreground">❌ 付款失敗測試卡</p>
-                                          <div className="space-y-2">
-                                            <div className="space-y-1">
-                                              <p className="font-medium text-foreground">卡號錯誤:</p>
-                                              <p className="font-mono">4000 0000 0000 0002</p>
-                                            </div>
-                                            <div className="space-y-1">
-                                              <p className="font-medium text-foreground">餘額不足:</p>
-                                              <p className="font-mono">4000 0000 0000 9995</p>
-                                            </div>
-                                            <div className="space-y-1">
-                                              <p className="font-medium text-foreground">卡片過期:</p>
-                                              <p className="font-mono">4000 0000 0000 0069</p>
-                                            </div>
-                                          </div>
-                                          <p className="mt-2 text-muted-foreground">
-                                            有效期限與 CVV 可使用任意有效值
-                                          </p>
-                                        </div>
-
-                                        <p className="text-muted-foreground mt-2">
-                                          💡 使用這些測試卡號可以模擬不同的付款情況，幫助您測試系統的錯誤處理機制
-                                        </p>
-                                      </div>
-                                    </AlertDescription>
-                                  </Alert>
-                                </CollapsibleContent>
-                              </Collapsible>
-                            ) : null}
-                          </div>
+                          ... TapPay form hidden for testing ...
                         )}
+                        */}
                         
                         {/* 付款錯誤提示 */}
                         {lastPaymentError && paymentMethod && (
