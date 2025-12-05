@@ -26,6 +26,53 @@ async function generateSignature(channelSecret: string, uri: string, body: strin
   return base64;
 }
 
+// Input validation helper for LINE Pay
+function validateLinePayInput(data: Record<string, unknown>): { valid: boolean; error?: string } {
+  const { action, amount, orderId, transactionId, orderData } = data;
+
+  // Validate action
+  if (!action || (action !== 'request' && action !== 'confirm')) {
+    return { valid: false, error: 'Invalid action: must be "request" or "confirm"' };
+  }
+
+  // Validate amount: must be positive integer within reasonable range
+  if (typeof amount !== 'number' || !Number.isInteger(amount) || amount <= 0 || amount > 10000000) {
+    return { valid: false, error: 'Invalid amount: must be a positive integer between 1 and 10,000,000' };
+  }
+
+  // Validate orderId format (should be date-based: YYYYMMDDNNN)
+  if (!orderId || typeof orderId !== 'string' || !/^\d{11}$/.test(orderId)) {
+    return { valid: false, error: 'Invalid order ID format' };
+  }
+
+  // For confirm action, validate transactionId
+  if (action === 'confirm') {
+    if (!transactionId || typeof transactionId !== 'string' || transactionId.length < 10) {
+      return { valid: false, error: 'Invalid transaction ID for confirmation' };
+    }
+  }
+
+  // For request action, validate orderData
+  if (action === 'request') {
+    if (!orderData || typeof orderData !== 'object') {
+      return { valid: false, error: 'Missing order data for payment request' };
+    }
+    const order = orderData as Record<string, unknown>;
+    if (!order.roomTypeId || !order.roomTypeName || !order.confirmUrl || !order.cancelUrl) {
+      return { valid: false, error: 'Invalid order data: missing required fields' };
+    }
+    // Validate URLs
+    if (typeof order.confirmUrl !== 'string' || !order.confirmUrl.startsWith('http')) {
+      return { valid: false, error: 'Invalid confirm URL' };
+    }
+    if (typeof order.cancelUrl !== 'string' || !order.cancelUrl.startsWith('http')) {
+      return { valid: false, error: 'Invalid cancel URL' };
+    }
+  }
+
+  return { valid: true };
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -33,7 +80,28 @@ serve(async (req) => {
   }
 
   try {
-    const { action, transactionId, amount, orderId, orderData } = await req.json();
+    const requestData = await req.json();
+    
+    // Validate input
+    const validation = validateLinePayInput(requestData);
+    if (!validation.valid) {
+      console.warn('LINE Pay input validation failed:', validation.error);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: '付款資料驗證失敗',
+          suggestion: '請檢查付款資訊是否正確',
+          errorCategory: 'validation',
+          originalMessage: validation.error,
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    const { action, transactionId, amount, orderId, orderData } = requestData;
 
     console.log('Processing LINE Pay:', { action, orderId, amount });
 
