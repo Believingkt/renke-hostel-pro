@@ -24,13 +24,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Calendar, ShoppingCart, DollarSign, Ticket } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Calendar, ShoppingCart, DollarSign, Ticket, Key, Copy, Check, RefreshCw, Eye, EyeOff } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface CommissionRecord {
   id: string;
@@ -78,6 +90,8 @@ interface IntegratedCodeDetailsDialogProps {
   discountCodeName: string;
   discountCode: string;
   accommodationId: string;
+  apiKey?: string | null;
+  onApiKeyRegenerated?: () => void;
 }
 
 export const IntegratedCodeDetailsDialog = ({
@@ -87,6 +101,8 @@ export const IntegratedCodeDetailsDialog = ({
   discountCodeName,
   discountCode,
   accommodationId,
+  apiKey,
+  onApiKeyRegenerated,
 }: IntegratedCodeDetailsDialogProps) => {
   const [commissionRecords, setCommissionRecords] = useState<CommissionRecord[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -96,7 +112,59 @@ export const IntegratedCodeDetailsDialog = ({
   const [selectedMonth, setSelectedMonth] = useState<string>("all");
   const [isSettling, setIsSettling] = useState(false);
   const [activeTab, setActiveTab] = useState("orders");
+  const [copiedApiKey, setCopiedApiKey] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [regenerateDialogOpen, setRegenerateDialogOpen] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
   const { toast } = useToast();
+
+  const generateApiKey = () => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let newApiKey = "kol_";
+    for (let i = 0; i < 32; i++) {
+      newApiKey += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return newApiKey;
+  };
+
+  const handleCopyApiKey = () => {
+    if (apiKey) {
+      navigator.clipboard.writeText(apiKey);
+      setCopiedApiKey(true);
+      setTimeout(() => setCopiedApiKey(false), 2000);
+      toast({
+        title: "已複製 API 金鑰",
+      });
+    }
+  };
+
+  const handleRegenerateApiKey = async () => {
+    setIsRegenerating(true);
+    try {
+      const newApiKey = generateApiKey();
+      const { error } = await supabase
+        .from("discount_codes")
+        .update({ api_key: newApiKey })
+        .eq("id", discountCodeId);
+
+      if (error) throw error;
+
+      toast({
+        title: "API 金鑰已重新產生",
+        description: "請複製新的 API 金鑰並更新您的應用程式",
+      });
+      onApiKeyRegenerated?.();
+    } catch (error) {
+      console.error("Error regenerating API key:", error);
+      toast({
+        title: "重新產生失敗",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRegenerating(false);
+      setRegenerateDialogOpen(false);
+    }
+  };
 
   useEffect(() => {
     if (open && discountCodeId) {
@@ -338,16 +406,108 @@ export const IntegratedCodeDetailsDialog = ({
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="orders" className="flex items-center gap-2">
               <ShoppingCart className="h-4 w-4" />
-              訂單列表
+              <span className="hidden sm:inline">訂單列表</span>
+              <span className="sm:hidden">訂單</span>
             </TabsTrigger>
             <TabsTrigger value="commission" className="flex items-center gap-2">
               <DollarSign className="h-4 w-4" />
-              佣金記錄
+              <span className="hidden sm:inline">佣金記錄</span>
+              <span className="sm:hidden">佣金</span>
+            </TabsTrigger>
+            <TabsTrigger value="api" className="flex items-center gap-2">
+              <Key className="h-4 w-4" />
+              <span className="hidden sm:inline">API 金鑰</span>
+              <span className="sm:hidden">API</span>
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="api" className="space-y-4 mt-4">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Key className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold">API 金鑰管理</h3>
+                  </div>
+                  
+                  <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                      <strong>重要：</strong>API 金鑰用於驗證 API 請求。請妥善保管，切勿公開分享。
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>您的 API 金鑰</Label>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Input
+                          type={showApiKey ? "text" : "password"}
+                          value={apiKey || "尚未產生 API 金鑰"}
+                          readOnly
+                          className="font-mono pr-10"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                          onClick={() => setShowApiKey(!showApiKey)}
+                        >
+                          {showApiKey ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={handleCopyApiKey}
+                        disabled={!apiKey}
+                        className={cn(
+                          "transition-all",
+                          copiedApiKey && "bg-green-50 border-green-500"
+                        )}
+                      >
+                        {copiedApiKey ? (
+                          <Check className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setRegenerateDialogOpen(true)}
+                        disabled={isRegenerating}
+                      >
+                        <RefreshCw className={cn("h-4 w-4 mr-2", isRegenerating && "animate-spin")} />
+                        重新產生
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t">
+                    <h4 className="font-medium mb-2">使用方式</h4>
+                    <div className="space-y-2 text-sm text-muted-foreground">
+                      <p>在 API 請求中加入您的 API 金鑰：</p>
+                      <div className="p-2 bg-muted rounded font-mono text-xs overflow-x-auto">
+                        <p className="mb-1">方式一：HTTP Header</p>
+                        <code>x-api-key: {apiKey ? apiKey.substring(0, 15) + "..." : "YOUR_API_KEY"}</code>
+                      </div>
+                      <div className="p-2 bg-muted rounded font-mono text-xs overflow-x-auto">
+                        <p className="mb-1">方式二：URL 參數</p>
+                        <code>?api_key={apiKey ? apiKey.substring(0, 15) + "..." : "YOUR_API_KEY"}</code>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="orders" className="space-y-4 mt-4">
             {/* Order Statistics */}
@@ -713,6 +873,28 @@ export const IntegratedCodeDetailsDialog = ({
           </TabsContent>
         </Tabs>
       </DialogContent>
+
+      {/* Regenerate API Key Confirmation Dialog */}
+      <AlertDialog open={regenerateDialogOpen} onOpenChange={setRegenerateDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確定要重新產生 API 金鑰？</AlertDialogTitle>
+            <AlertDialogDescription>
+              重新產生後，舊的 API 金鑰將立即失效。所有使用舊金鑰的應用程式都需要更新為新的金鑰才能繼續存取 API。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRegenerateApiKey}
+              disabled={isRegenerating}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isRegenerating ? "產生中..." : "確定重新產生"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 };
