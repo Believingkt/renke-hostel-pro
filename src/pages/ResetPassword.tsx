@@ -135,7 +135,7 @@ export default function ResetPassword() {
             <p className="text-sm text-muted-foreground">
               此重設密碼連結已失效。請返回登入頁面重新申請。
             </p>
-            <Button onClick={() => navigate("/auth")} className="w-full">
+            <Button onClick={() => navigate("/auth")} className="w-full bg-blue-600 hover:bg-blue-700">
               返回登入頁面
             </Button>
           </CardContent>
@@ -223,7 +223,7 @@ export default function ResetPassword() {
                 </Button>
               </div>
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               重設密碼
             </Button>
