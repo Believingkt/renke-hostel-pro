@@ -1,0 +1,236 @@
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardDescription } from "@/components/ui/card";
+import { toast } from "sonner";
+import { Loader2, KeyRound, Eye, EyeOff, AlertCircle } from "lucide-react";
+import lokezeLogo from "@/assets/lokeze-logo-auth.png";
+
+export default function ResetPassword() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get("token");
+  
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isValidating, setIsValidating] = useState(true);
+  const [isValidToken, setIsValidToken] = useState(false);
+  const [tokenData, setTokenData] = useState<{ user_id: string; email: string } | null>(null);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  useEffect(() => {
+    validateToken();
+  }, [token]);
+
+  const validateToken = async () => {
+    if (!token) {
+      setIsValidating(false);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("password_reset_tokens")
+        .select("*")
+        .eq("token", token)
+        .is("used_at", null)
+        .gt("expires_at", new Date().toISOString())
+        .maybeSingle();
+
+      if (error || !data) {
+        console.error("Token validation error:", error);
+        setIsValidToken(false);
+      } else {
+        setIsValidToken(true);
+        setTokenData({ user_id: data.user_id, email: data.email });
+      }
+    } catch (error) {
+      console.error("Error validating token:", error);
+      setIsValidToken(false);
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (newPassword.length < 6) {
+      toast.error("密碼長度至少需要 6 個字元");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error("兩次輸入的密碼不一致");
+      return;
+    }
+
+    if (!tokenData) {
+      toast.error("無效的重設連結");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Update user password using admin API through edge function
+      const { data, error } = await supabase.functions.invoke("update-password", {
+        body: { 
+          token,
+          newPassword 
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      toast.success("密碼已成功重設，請使用新密碼登入");
+      navigate("/auth");
+    } catch (error: any) {
+      console.error("Password reset error:", error);
+      toast.error(error.message || "重設密碼失敗，請稍後再試");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isValidating) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 p-4">
+        <Card className="w-full max-w-md shadow-xl border-0">
+          <CardContent className="flex items-center justify-center p-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-3">驗證中...</span>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!token || !isValidToken) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 p-4">
+        <Card className="w-full max-w-md shadow-xl border-0">
+          <CardHeader className="space-y-1 text-center pb-2">
+            <div className="flex justify-center mb-4">
+              <img src={lokezeLogo} alt="Logo" className="h-12 object-contain" />
+            </div>
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              <CardDescription className="text-center text-destructive">
+                連結無效或已過期
+              </CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4 text-center">
+            <p className="text-sm text-muted-foreground">
+              此重設密碼連結已失效。請返回登入頁面重新申請。
+            </p>
+            <Button onClick={() => navigate("/auth")} className="w-full">
+              返回登入頁面
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 p-4">
+      <Card className="w-full max-w-md shadow-xl border-0">
+        <CardHeader className="space-y-1 text-center pb-2">
+          <div className="flex justify-center mb-4">
+            <img src={lokezeLogo} alt="Logo" className="h-12 object-contain" />
+          </div>
+          <div className="flex items-center justify-center gap-2 pt-2">
+            <KeyRound className="h-5 w-5 text-primary" />
+            <CardDescription className="text-center">
+              設定您的新密碼
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleResetPassword} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">電子郵件</Label>
+              <Input
+                id="email"
+                type="email"
+                value={tokenData?.email || ""}
+                disabled
+                className="bg-muted"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-password">新密碼</Label>
+              <div className="relative">
+                <Input
+                  id="new-password"
+                  type={showNewPassword ? "text" : "password"}
+                  placeholder="至少 6 個字元"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                >
+                  {showNewPassword ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password">確認新密碼</Label>
+              <div className="relative">
+                <Input
+                  id="confirm-password"
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="再次輸入新密碼"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
+            </div>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              重設密碼
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
