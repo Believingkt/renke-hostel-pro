@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, KeyRound, LogIn, Eye, EyeOff } from "lucide-react";
+import { Loader2, KeyRound, LogIn, Eye, EyeOff, Mail } from "lucide-react";
 import lokezeLogo from "@/assets/lokeze-logo-auth.png";
 
 export default function Auth() {
@@ -23,6 +23,8 @@ export default function Auth() {
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isForgotPasswordMode, setIsForgotPasswordMode] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
 
   useEffect(() => {
     // Check for expired/invalid invite link from URL params
@@ -123,6 +125,35 @@ export default function Auth() {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!forgotPasswordEmail) {
+      toast.error("請輸入電子郵件");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success("重設密碼郵件已發送，請檢查您的信箱");
+        setIsForgotPasswordMode(false);
+        setForgotPasswordEmail("");
+      }
+    } catch (error) {
+      toast.error("發送失敗，請稍後再試");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -197,6 +228,13 @@ export default function Auth() {
               <KeyRound className="h-5 w-5 text-primary" />
               <CardDescription className="text-center">
                 歡迎！請設定您的登入密碼
+              </CardDescription>
+            </div>
+          ) : isForgotPasswordMode ? (
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <Mail className="h-5 w-5 text-primary" />
+              <CardDescription className="text-center">
+                重設您的密碼
               </CardDescription>
             </div>
           ) : (
@@ -299,6 +337,38 @@ export default function Auth() {
                 完成設定
               </Button>
             </form>
+          ) : isForgotPasswordMode ? (
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="forgot-email">電子郵件</Label>
+                <Input
+                  id="forgot-email"
+                  type="email"
+                  placeholder="your@email.com"
+                  value={forgotPasswordEmail}
+                  onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                輸入您的電子郵件，我們將發送重設密碼連結給您。
+              </p>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                發送重設連結
+              </Button>
+              <Button 
+                type="button"
+                variant="ghost" 
+                className="w-full"
+                onClick={() => {
+                  setIsForgotPasswordMode(false);
+                  setForgotPasswordEmail("");
+                }}
+              >
+                返回登入
+              </Button>
+            </form>
           ) : (
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
@@ -313,7 +383,17 @@ export default function Auth() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="login-password">密碼</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="login-password">密碼</Label>
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="h-auto p-0 text-sm text-muted-foreground hover:text-primary"
+                    onClick={() => setIsForgotPasswordMode(true)}
+                  >
+                    忘記密碼？
+                  </Button>
+                </div>
                 <div className="relative">
                   <Input
                     id="login-password"
