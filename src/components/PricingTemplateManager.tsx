@@ -216,7 +216,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [availableRooms, setAvailableRooms] = useState<number>(1);
   const [applying, setApplying] = useState(false);
-  const [selectedPriceType, setSelectedPriceType] = useState<'2meals' | '3meals'>('2meals');
+  const [selectedMealPlanId, setSelectedMealPlanId] = useState<string>('');
   const [selectedDays, setSelectedDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]); // 0=日, 1=一, ..., 6=六
   const [includePublicHolidays, setIncludePublicHolidays] = useState(true); // 是否包含國定假日和補休日
   const [templateApplications, setTemplateApplications] = useState<Record<string, TemplateApplication[]>>({});
@@ -492,12 +492,9 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
     setAvailableRooms(1);
     setSelectedDays([0, 1, 2, 3, 4, 5, 6]); // 預設全選
     setIncludePublicHolidays(true); // 預設包含國定假日
-    // 預設選擇有值的價格類型
-    if (template.weekday_2_meals_price || template.weekend_2_meals_price) {
-      setSelectedPriceType('2meals');
-    } else {
-      setSelectedPriceType('3meals');
-    }
+    // 預設選擇第一個有價格的方案
+    const firstValidPlan = template.meal_plans?.find(mp => mp.weekday_price || mp.weekend_price);
+    setSelectedMealPlanId(firstValidPlan?.id || '');
     setApplyDialogOpen(true);
   };
 
@@ -559,8 +556,10 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       return;
     }
 
-    if (!selectedPriceType) {
-      toast.error('請選擇價格類型');
+    // 找到選中的方案
+    const selectedMealPlan = applyingTemplate.meal_plans?.find(mp => mp.id === selectedMealPlanId);
+    if (!selectedMealPlan) {
+      toast.error('請選擇價格方案');
       return;
     }
 
@@ -682,51 +681,39 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
             if (!isWeekendDay && i === 0) holidayAffectedCount++; // 只計算原本是平日但因國定假日改為假日價格的天數
           }
           
-          // 根據選擇的價格類型和平日/假日決定價格
-          let price_2_meals = null;
-          let price_3_meals = null;
+          // 從選中的方案中取得價格
+          const mealPlanPrice = isHolidayPricing 
+            ? selectedMealPlan.weekend_price 
+            : selectedMealPlan.weekday_price;
           
-          if (selectedPriceType === '2meals') {
-            price_2_meals = isHolidayPricing 
-              ? applyingTemplate.weekend_2_meals_price 
-              : applyingTemplate.weekday_2_meals_price;
-            
-            if (!price_2_meals) {
-              console.warn(`模板缺少${isHolidayPricing ? '假日' : '平日'}一泊二食價格`);
-              continue;
-            }
-          } else if (selectedPriceType === '3meals') {
-            price_3_meals = isHolidayPricing 
-              ? applyingTemplate.weekend_3_meals_price 
-              : applyingTemplate.weekday_3_meals_price;
-            
-            if (!price_3_meals) {
-              console.warn(`模板缺少${isHolidayPricing ? '假日' : '平日'}一泊三食價格`);
-              continue;
-            }
+          if (!mealPlanPrice) {
+            console.warn(`方案「${selectedMealPlan.name}」缺少${isHolidayPricing ? '假日' : '平日'}價格`);
+            continue;
           }
           
-          // 決定基礎價格
-          const basePrice = isHolidayPricing 
-            ? (applyingTemplate.weekend_price || price_2_meals || price_3_meals || existing?.price || 0)
-            : (applyingTemplate.weekday_price || price_2_meals || price_3_meals || existing?.price || 0);
+          // 決定基礎價格（使用方案價格）
+          const basePrice = mealPlanPrice;
           
           // 準備 upsert 數據
           const upsertData: any = {
             room_type_id: roomTypeId,
             date: dateStr,
             price: basePrice,
-            available_rooms: existing?.available_rooms || availableRooms,
+            available_rooms: existing?.available_rooms ?? availableRooms,
             is_available: true,
+            // 根據方案索引決定存入哪個欄位
+            price_2_meals: null,
+            price_3_meals: null,
           };
           
-          // 保留現有的另一個價格欄位
-          if (selectedPriceType === '2meals') {
-            upsertData.price_2_meals = price_2_meals;
+          // 根據方案在 meal_plans 中的索引來決定欄位
+          const mealPlanIndex = applyingTemplate.meal_plans?.findIndex(mp => mp.id === selectedMealPlanId) ?? 0;
+          if (mealPlanIndex === 0) {
+            upsertData.price_2_meals = mealPlanPrice;
             upsertData.price_3_meals = existing?.price_3_meals || null;
           } else {
             upsertData.price_2_meals = existing?.price_2_meals || null;
-            upsertData.price_3_meals = price_3_meals;
+            upsertData.price_3_meals = mealPlanPrice;
           }
           
           upsertRecords.push(upsertData);
@@ -766,7 +753,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
           date_to: format(dateRange.to, 'yyyy-MM-dd'),
           selected_days: selectedDays,
           room_type_ids: selectedRoomTypes,
-          price_type: selectedPriceType,
+          price_type: selectedMealPlan.name,
           available_rooms: availableRooms,
           affected_dates_count: upsertRecords.length,
           holiday_affected_count: holidayAffectedCount,
@@ -777,8 +764,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
         console.error('記錄套用歷史失敗:', applicationError);
       }
       
-      const priceTypeName = selectedPriceType === '2meals' ? '一泊二食' : '一泊三食';
-      toast.success(`已成功套用${priceTypeName}價格到 ${selectedRoomTypes.length} 個房型的 ${upsertRecords.length} 天`);
+      toast.success(`已成功套用「${selectedMealPlan.name}」價格到 ${selectedRoomTypes.length} 個房型的 ${upsertRecords.length} 天`);
       setApplyDialogOpen(false);
       setApplyingTemplate(null);
       loadTemplateApplications();
@@ -1514,90 +1500,63 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
               </div>
             </div>
 
-            {/* 價格類型選擇 */}
+            {/* 價格方案選擇 */}
             <div className="space-y-2">
-              <Label>選擇價格類型 *</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setSelectedPriceType('2meals')}
-                  disabled={!applyingTemplate?.weekday_2_meals_price && !applyingTemplate?.weekend_2_meals_price}
-                  className={`
-                    p-4 rounded-lg border-2 transition-all text-left group touch-manipulation
-                    ${selectedPriceType === '2meals' 
-                      ? 'border-primary bg-primary text-primary-foreground' 
-                      : 'border-border hover:border-primary hover:bg-primary hover:text-primary-foreground'
-                    }
-                    ${(!applyingTemplate?.weekday_2_meals_price && !applyingTemplate?.weekend_2_meals_price)
-                      ? 'opacity-50 cursor-not-allowed'
-                      : 'cursor-pointer'
-                    }
-                  `}
-                >
-                  <div className="font-medium mb-1 group-hover:text-primary-foreground">一泊二食</div>
-                  {applyingTemplate && (
-                    <div className="text-sm space-y-1">
-                      {applyingTemplate.weekday_2_meals_price && (
-                        <div className={selectedPriceType === '2meals' ? 'text-primary-foreground/80' : 'text-muted-foreground group-hover:text-primary-foreground/80'}>
-                          平日：<span className={`font-medium ${selectedPriceType === '2meals' ? 'text-primary-foreground' : 'text-foreground group-hover:text-primary-foreground'}`}>
-                            NT$ {applyingTemplate.weekday_2_meals_price.toLocaleString()}
-                          </span>
+              <Label>選擇價格方案 *</Label>
+              {applyingTemplate?.meal_plans && applyingTemplate.meal_plans.length > 0 ? (
+                <div className="grid grid-cols-1 gap-3">
+                  {applyingTemplate.meal_plans.map((plan) => {
+                    const hasPrice = plan.weekday_price || plan.weekend_price;
+                    const isSelected = selectedMealPlanId === plan.id;
+                    return (
+                      <button
+                        key={plan.id}
+                        type="button"
+                        onClick={() => setSelectedMealPlanId(plan.id)}
+                        disabled={!hasPrice}
+                        className={`
+                          p-4 rounded-lg border-2 transition-all text-left group touch-manipulation
+                          ${isSelected 
+                            ? 'border-primary bg-primary text-primary-foreground' 
+                            : 'border-border hover:border-primary hover:bg-primary hover:text-primary-foreground'
+                          }
+                          ${!hasPrice ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                        `}
+                      >
+                        <div className="font-medium mb-1 group-hover:text-primary-foreground">{plan.name}</div>
+                        {plan.description && (
+                          <div className={`text-xs mb-2 ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground group-hover:text-primary-foreground/70'}`}>
+                            {plan.description}
+                          </div>
+                        )}
+                        <div className="text-sm space-y-1">
+                          {plan.weekday_price && (
+                            <div className={isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground group-hover:text-primary-foreground/80'}>
+                              平日：<span className={`font-medium ${isSelected ? 'text-primary-foreground' : 'text-foreground group-hover:text-primary-foreground'}`}>
+                                NT$ {plan.weekday_price.toLocaleString()}
+                              </span>
+                            </div>
+                          )}
+                          {plan.weekend_price && (
+                            <div className={isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground group-hover:text-primary-foreground/80'}>
+                              假日：<span className={`font-medium ${isSelected ? 'text-primary-foreground' : 'text-foreground group-hover:text-primary-foreground'}`}>
+                                NT$ {plan.weekend_price.toLocaleString()}
+                              </span>
+                            </div>
+                          )}
+                          {!hasPrice && (
+                            <div className="text-xs text-muted-foreground">未設定價格</div>
+                          )}
                         </div>
-                      )}
-                      {applyingTemplate.weekend_2_meals_price && (
-                        <div className={selectedPriceType === '2meals' ? 'text-primary-foreground/80' : 'text-muted-foreground group-hover:text-primary-foreground/80'}>
-                          假日：<span className={`font-medium ${selectedPriceType === '2meals' ? 'text-primary-foreground' : 'text-foreground group-hover:text-primary-foreground'}`}>
-                            NT$ {applyingTemplate.weekend_2_meals_price.toLocaleString()}
-                          </span>
-                        </div>
-                      )}
-                      {!applyingTemplate.weekday_2_meals_price && !applyingTemplate.weekend_2_meals_price && (
-                        <div className="text-xs text-muted-foreground">未設定</div>
-                      )}
-                    </div>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedPriceType('3meals')}
-                  disabled={!applyingTemplate?.weekday_3_meals_price && !applyingTemplate?.weekend_3_meals_price}
-                  className={`
-                    p-4 rounded-lg border-2 transition-all text-left group touch-manipulation
-                    ${selectedPriceType === '3meals' 
-                      ? 'border-primary bg-primary text-primary-foreground' 
-                      : 'border-border hover:border-primary hover:bg-primary hover:text-primary-foreground'
-                    }
-                    ${(!applyingTemplate?.weekday_3_meals_price && !applyingTemplate?.weekend_3_meals_price)
-                      ? 'opacity-50 cursor-not-allowed'
-                      : 'cursor-pointer'
-                    }
-                  `}
-                >
-                  <div className="font-medium mb-1 group-hover:text-primary-foreground">一泊三食</div>
-                  {applyingTemplate && (
-                    <div className="text-sm space-y-1">
-                      {applyingTemplate.weekday_3_meals_price && (
-                        <div className={selectedPriceType === '3meals' ? 'text-primary-foreground/80' : 'text-muted-foreground group-hover:text-primary-foreground/80'}>
-                          平日：<span className={`font-medium ${selectedPriceType === '3meals' ? 'text-primary-foreground' : 'text-foreground group-hover:text-primary-foreground'}`}>
-                            NT$ {applyingTemplate.weekday_3_meals_price.toLocaleString()}
-                          </span>
-                        </div>
-                      )}
-                      {applyingTemplate.weekend_3_meals_price && (
-                        <div className={selectedPriceType === '3meals' ? 'text-primary-foreground/80' : 'text-muted-foreground group-hover:text-primary-foreground/80'}>
-                          假日：<span className={`font-medium ${selectedPriceType === '3meals' ? 'text-primary-foreground' : 'text-foreground group-hover:text-primary-foreground'}`}>
-                            NT$ {applyingTemplate.weekend_3_meals_price.toLocaleString()}
-                          </span>
-                        </div>
-                      )}
-                      {!applyingTemplate.weekday_3_meals_price && !applyingTemplate.weekend_3_meals_price && (
-                        <div className="text-xs text-muted-foreground">未設定</div>
-                      )}
-                    </div>
-                  )}
-                </button>
-              </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="p-4 border rounded-lg text-center text-muted-foreground">
+                  此模板尚未設定價格方案
+                </div>
+              )}
             </div>
 
             {/* 房型選擇 */}
@@ -1808,90 +1767,63 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                 </div>
               </div>
 
-              {/* 價格類型選擇 */}
+              {/* 價格方案選擇 */}
               <div className="space-y-2">
-                <Label>選擇價格類型 *</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedPriceType('2meals')}
-                    disabled={!applyingTemplate?.weekday_2_meals_price && !applyingTemplate?.weekend_2_meals_price}
-                    className={`
-                      p-4 rounded-lg border-2 transition-all text-left group touch-manipulation
-                      ${selectedPriceType === '2meals' 
-                        ? 'border-primary bg-primary text-primary-foreground' 
-                        : 'border-border hover:border-primary hover:bg-primary hover:text-primary-foreground'
-                      }
-                      ${(!applyingTemplate?.weekday_2_meals_price && !applyingTemplate?.weekend_2_meals_price)
-                        ? 'opacity-50 cursor-not-allowed'
-                        : 'cursor-pointer'
-                      }
-                    `}
-                  >
-                    <div className="font-medium mb-1 group-hover:text-primary-foreground">一泊二食</div>
-                    {applyingTemplate && (
-                      <div className="text-sm space-y-1">
-                        {applyingTemplate.weekday_2_meals_price && (
-                          <div className={selectedPriceType === '2meals' ? 'text-primary-foreground/80' : 'text-muted-foreground group-hover:text-primary-foreground/80'}>
-                            平日：<span className={`font-medium ${selectedPriceType === '2meals' ? 'text-primary-foreground' : 'text-foreground group-hover:text-primary-foreground'}`}>
-                              NT$ {applyingTemplate.weekday_2_meals_price.toLocaleString()}
-                            </span>
+                <Label>選擇價格方案 *</Label>
+                {applyingTemplate?.meal_plans && applyingTemplate.meal_plans.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    {applyingTemplate.meal_plans.map((plan) => {
+                      const hasPrice = plan.weekday_price || plan.weekend_price;
+                      const isSelected = selectedMealPlanId === plan.id;
+                      return (
+                        <button
+                          key={plan.id}
+                          type="button"
+                          onClick={() => setSelectedMealPlanId(plan.id)}
+                          disabled={!hasPrice}
+                          className={`
+                            p-4 rounded-lg border-2 transition-all text-left group touch-manipulation
+                            ${isSelected 
+                              ? 'border-primary bg-primary text-primary-foreground' 
+                              : 'border-border hover:border-primary hover:bg-primary hover:text-primary-foreground'
+                            }
+                            ${!hasPrice ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                          `}
+                        >
+                          <div className="font-medium mb-1 group-hover:text-primary-foreground">{plan.name}</div>
+                          {plan.description && (
+                            <div className={`text-xs mb-2 ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground group-hover:text-primary-foreground/70'}`}>
+                              {plan.description}
+                            </div>
+                          )}
+                          <div className="text-sm space-y-1">
+                            {plan.weekday_price && (
+                              <div className={isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground group-hover:text-primary-foreground/80'}>
+                                平日：<span className={`font-medium ${isSelected ? 'text-primary-foreground' : 'text-foreground group-hover:text-primary-foreground'}`}>
+                                  NT$ {plan.weekday_price.toLocaleString()}
+                                </span>
+                              </div>
+                            )}
+                            {plan.weekend_price && (
+                              <div className={isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground group-hover:text-primary-foreground/80'}>
+                                假日：<span className={`font-medium ${isSelected ? 'text-primary-foreground' : 'text-foreground group-hover:text-primary-foreground'}`}>
+                                  NT$ {plan.weekend_price.toLocaleString()}
+                                </span>
+                              </div>
+                            )}
+                            {!hasPrice && (
+                              <div className="text-xs text-muted-foreground">未設定價格</div>
+                            )}
                           </div>
-                        )}
-                        {applyingTemplate.weekend_2_meals_price && (
-                          <div className={selectedPriceType === '2meals' ? 'text-primary-foreground/80' : 'text-muted-foreground group-hover:text-primary-foreground/80'}>
-                            假日：<span className={`font-medium ${selectedPriceType === '2meals' ? 'text-primary-foreground' : 'text-foreground group-hover:text-primary-foreground'}`}>
-                              NT$ {applyingTemplate.weekend_2_meals_price.toLocaleString()}
-                            </span>
-                          </div>
-                        )}
-                        {!applyingTemplate.weekday_2_meals_price && !applyingTemplate.weekend_2_meals_price && (
-                          <div className="text-xs text-muted-foreground">未設定</div>
-                        )}
-                      </div>
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setSelectedPriceType('3meals')}
-                    disabled={!applyingTemplate?.weekday_3_meals_price && !applyingTemplate?.weekend_3_meals_price}
-                    className={`
-                      p-4 rounded-lg border-2 transition-all text-left group touch-manipulation
-                      ${selectedPriceType === '3meals' 
-                        ? 'border-primary bg-primary text-primary-foreground' 
-                        : 'border-border hover:border-primary hover:bg-primary hover:text-primary-foreground'
-                      }
-                      ${(!applyingTemplate?.weekday_3_meals_price && !applyingTemplate?.weekend_3_meals_price)
-                        ? 'opacity-50 cursor-not-allowed'
-                        : 'cursor-pointer'
-                      }
-                    `}
-                  >
-                    <div className="font-medium mb-1 group-hover:text-primary-foreground">一泊三食</div>
-                    {applyingTemplate && (
-                      <div className="text-sm space-y-1">
-                        {applyingTemplate.weekday_3_meals_price && (
-                          <div className={selectedPriceType === '3meals' ? 'text-primary-foreground/80' : 'text-muted-foreground group-hover:text-primary-foreground/80'}>
-                            平日：<span className={`font-medium ${selectedPriceType === '3meals' ? 'text-primary-foreground' : 'text-foreground group-hover:text-primary-foreground'}`}>
-                              NT$ {applyingTemplate.weekday_3_meals_price.toLocaleString()}
-                            </span>
-                          </div>
-                        )}
-                        {applyingTemplate.weekend_3_meals_price && (
-                          <div className={selectedPriceType === '3meals' ? 'text-primary-foreground/80' : 'text-muted-foreground group-hover:text-primary-foreground/80'}>
-                            假日：<span className={`font-medium ${selectedPriceType === '3meals' ? 'text-primary-foreground' : 'text-foreground group-hover:text-primary-foreground'}`}>
-                              NT$ {applyingTemplate.weekend_3_meals_price.toLocaleString()}
-                            </span>
-                          </div>
-                        )}
-                        {!applyingTemplate.weekday_3_meals_price && !applyingTemplate.weekend_3_meals_price && (
-                          <div className="text-xs text-muted-foreground">未設定</div>
-                        )}
-                      </div>
-                    )}
-                  </button>
-                </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="p-4 border rounded-lg text-center text-muted-foreground">
+                    此模板尚未設定價格方案
+                  </div>
+                )}
               </div>
 
               {/* 房型選擇 */}
