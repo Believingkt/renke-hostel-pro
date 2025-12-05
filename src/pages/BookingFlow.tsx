@@ -2226,43 +2226,44 @@ const BookingFlow = () => {
                       // 當有房型但全部都無法預訂時，顯示友善提示
                       if (checkInDate && checkOutDate && baseRooms.length > 0 && filteredRooms.length === 0) {
                         return (
-                          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-4 sm:p-8 rounded-xl text-center max-w-lg mx-auto">
-                            <div className="flex justify-center mb-4">
-                              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
-                                <AlertTriangle className="h-8 w-8 sm:h-10 sm:w-10 text-amber-500" />
+                          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-4 sm:p-6 rounded-xl sm:rounded-lg text-center">
+                            {/* 手機版：圓形圖示背景；電腦版：簡單圖示 */}
+                            <div className="flex justify-center mb-3">
+                              <div className="w-14 h-14 sm:w-auto sm:h-auto rounded-full bg-amber-100 dark:bg-amber-900/50 sm:bg-transparent dark:sm:bg-transparent flex items-center justify-center">
+                                <AlertTriangle className="h-7 w-7 sm:h-8 sm:w-8 text-amber-500" />
                               </div>
                             </div>
-                            <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-3">
-                              目前沒有可預訂的房型
-                            </h3>
-                            <div className="space-y-2 mb-6">
-                              <p className="text-sm sm:text-base text-muted-foreground">
-                                您選擇的日期：
-                              </p>
+                            <p className="text-foreground font-medium mb-2">
+                              很抱歉，您選擇的日期目前沒有可預訂的房型
+                            </p>
+                            {/* 手機版：顯示選擇的日期 */}
+                            <div className="sm:hidden mb-3">
                               <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-background/80 rounded-full text-sm font-medium">
                                 <Calendar className="h-4 w-4 text-primary" />
                                 <span>{format(checkInDate, "MM/dd")} - {format(checkOutDate, "MM/dd")}</span>
                               </div>
-                              <p className="text-xs sm:text-sm text-muted-foreground mt-3">
-                                可能原因：房間已被預訂、該日期尚未開放訂房，或價格尚未設定
-                              </p>
                             </div>
-                            <div className="flex flex-col gap-3">
+                            <p className="text-sm text-muted-foreground mb-3">
+                              可能原因：房間已被預訂、該日期尚未開放訂房，或價格尚未設定。
+                            </p>
+                            <p className="text-sm text-muted-foreground mb-4 hidden sm:block">
+                              建議您嘗試其他日期，或直接聯繫我們協助安排。
+                            </p>
+                            {/* 手機版：垂直排列按鈕；電腦版：水平排列 */}
+                            <div className="flex flex-col sm:flex-row gap-3 justify-center">
                               <Button 
-                                variant="default" 
+                                variant="outline" 
                                 onClick={() => setCurrentStep("dates")}
-                                className="w-full gap-2"
-                                size="lg"
+                                className="gap-2 w-full sm:w-auto"
                               >
                                 <Calendar className="h-4 w-4" />
                                 選擇其他日期
                               </Button>
                               {accommodationLineId && (
                                 <Button 
-                                  variant="outline" 
+                                  variant="default" 
                                   asChild
-                                  className="w-full gap-2"
-                                  size="lg"
+                                  className="gap-2 w-full sm:w-auto"
                                 >
                                   <a 
                                     href={`https://line.me/R/ti/p/${accommodationLineId}`}
