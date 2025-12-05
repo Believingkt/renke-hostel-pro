@@ -147,12 +147,6 @@ interface PricingTemplate {
   project_name: string | null;
   project_description: string | null;
   meal_plans: MealPlan[];
-  weekday_price: number;
-  weekend_price: number;
-  weekday_2_meals_price: number | null;
-  weekday_3_meals_price: number | null;
-  weekend_2_meals_price: number | null;
-  weekend_3_meals_price: number | null;
   is_default: boolean;
   display_order: number;
 }
@@ -925,75 +919,8 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                     ))}
                   </div>
                 ) : (
-                  /* 舊版欄位顯示（向下兼容） */
-                  <div className="border rounded-lg overflow-hidden">
-                    <div className="grid grid-cols-3 bg-muted/30">
-                      <div className="px-3 py-2 text-xs font-medium text-muted-foreground border-r">專案</div>
-                      <div className="px-3 py-2 text-xs font-medium text-muted-foreground text-center border-r">平日</div>
-                      <div className="px-3 py-2 text-xs font-medium text-muted-foreground text-center">假日</div>
-                    </div>
-                    
-                    {/* 一泊二食 */}
-                    <div className="grid grid-cols-3 border-t">
-                      <div className="px-3 py-2.5 text-sm font-medium border-r bg-background flex items-center gap-2">
-                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary"></span>
-                        一泊二食
-                      </div>
-                      <div className="px-3 py-2.5 text-sm text-center border-r bg-background">
-                        {template.weekday_2_meals_price ? (
-                          <span className="font-semibold text-foreground">
-                            NT$ {template.weekday_2_meals_price.toLocaleString()}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </div>
-                      <div className="px-3 py-2.5 text-sm text-center bg-background">
-                        {template.weekend_2_meals_price ? (
-                          <span className="font-semibold text-foreground">
-                            NT$ {template.weekend_2_meals_price.toLocaleString()}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {/* 一泊三食 */}
-                    <div className="grid grid-cols-3 border-t">
-                      <div className="px-3 py-2.5 text-sm font-medium border-r bg-background flex items-center gap-2">
-                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary"></span>
-                        一泊三食
-                      </div>
-                      <div className="px-3 py-2.5 text-sm text-center border-r bg-background">
-                        {template.weekday_3_meals_price ? (
-                          <span className="font-semibold text-foreground">
-                            NT$ {template.weekday_3_meals_price.toLocaleString()}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </div>
-                      <div className="px-3 py-2.5 text-sm text-center bg-background">
-                        {template.weekend_3_meals_price ? (
-                          <span className="font-semibold text-foreground">
-                            NT$ {template.weekend_3_meals_price.toLocaleString()}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                {/* 未設定提示 */}
-                {/* 檢查 meal_plans 是否有價格，或舊版欄位是否有價格 */}
-                {!(template.meal_plans && template.meal_plans.some(mp => mp.weekday_price || mp.weekend_price)) &&
-                 !template.weekday_2_meals_price && !template.weekend_2_meals_price &&
-                 !template.weekday_3_meals_price && !template.weekend_3_meals_price && (
-                  <p className="text-xs text-muted-foreground text-center">
-                    尚未設定任何價格
+                  <p className="text-xs text-muted-foreground text-center py-4">
+                    尚未設定任何價格專案
                   </p>
                 )}
               </div>
@@ -1032,13 +959,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                   size="sm"
                   onClick={() => onApply(template)}
                   className="flex-1 gap-2 h-10 sm:h-9 touch-manipulation"
-                  disabled={
-                    // 檢查 meal_plans 是否有任何價格
-                    !(template.meal_plans && template.meal_plans.some(mp => mp.weekday_price || mp.weekend_price)) &&
-                    // 或檢查舊版欄位
-                    !template.weekday_2_meals_price && !template.weekend_2_meals_price &&
-                    !template.weekday_3_meals_price && !template.weekend_3_meals_price
-                  }
+                  disabled={!template.meal_plans?.some(mp => mp.weekday_price || mp.weekend_price)}
                 >
                   <CalendarCheck className="h-4 w-4" />
                   套用
