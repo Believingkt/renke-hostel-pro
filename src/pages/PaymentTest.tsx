@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, CheckCircle2, XCircle, Copy, AlertCircle, Zap, ShieldCheck, ShieldX, PlayCircle, FileText, Download, Clock, Loader2 } from "lucide-react";
+import { CreditCard, CheckCircle2, XCircle, Copy, AlertCircle, Zap, ShieldCheck, ShieldX, PlayCircle, FileText, Download, Clock, Loader2, Smartphone, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -254,6 +254,19 @@ export default function PaymentTest() {
   const [currentTestIndex, setCurrentTestIndex] = useState(0);
   const [batchResults, setBatchResults] = useState<BatchTestResult[]>([]);
   const [batchTestCompleted, setBatchTestCompleted] = useState(false);
+
+  // LINE Pay 測試狀態
+  const [isLinePayProcessing, setIsLinePayProcessing] = useState(false);
+  const [linePayResult, setLinePayResult] = useState<{
+    success: boolean;
+    message: string;
+    time: string;
+    paymentUrl?: string;
+    transactionId?: string;
+    errorCode?: string;
+    errorCategory?: string;
+    suggestion?: string;
+  } | null>(null);
 
   // 載入 TapPay SDK
   useEffect(() => {
@@ -631,6 +644,89 @@ export default function PaymentTest() {
     setBatchTestCompleted(false);
   };
 
+  // LINE Pay 測試
+  const testLinePay = async () => {
+    setIsLinePayProcessing(true);
+    setLinePayResult(null);
+
+    try {
+      console.log('Starting LINE Pay test...');
+      
+      // 產生測試訂單編號 (符合 YYYYMMDDNNN 格式)
+      const today = new Date();
+      const datePrefix = today.toISOString().slice(0, 10).replace(/-/g, '');
+      const testOrderId = `${datePrefix}999`; // 使用 999 作為測試序號
+      const testAmount = 1000; // 測試金額 NT$ 1,000
+
+      const { data: linePayData, error: linePayError } = await supabase.functions.invoke(
+        'process-linepay-payment',
+        {
+          body: {
+            action: 'request',
+            amount: testAmount,
+            orderId: testOrderId,
+            orderData: {
+              roomTypeId: 'test-room-type-id',
+              roomTypeName: 'LINE Pay 測試房型',
+              confirmUrl: `${window.location.origin}/linepay-confirm`,
+              cancelUrl: `${window.location.origin}/payment-test`,
+            },
+          },
+        }
+      );
+
+      if (linePayError) {
+        throw linePayError;
+      }
+
+      console.log('LINE Pay response:', linePayData);
+
+      const timestamp = new Date().toLocaleTimeString('zh-TW');
+
+      if (linePayData.success) {
+        setLinePayResult({
+          success: true,
+          message: 'LINE Pay 付款請求成功！',
+          time: timestamp,
+          paymentUrl: linePayData.paymentUrl,
+          transactionId: linePayData.transactionId,
+        });
+        
+        toast.success('LINE Pay 測試成功', {
+          description: '已取得付款連結',
+        });
+      } else {
+        setLinePayResult({
+          success: false,
+          message: linePayData.message || 'LINE Pay 請求失敗',
+          time: timestamp,
+          errorCode: linePayData.errorCode,
+          errorCategory: linePayData.errorCategory,
+          suggestion: linePayData.suggestion,
+        });
+        
+        toast.error('LINE Pay 測試失敗', {
+          description: linePayData.message,
+        });
+      }
+    } catch (error: any) {
+      console.error('LINE Pay test error:', error);
+      
+      const timestamp = new Date().toLocaleTimeString('zh-TW');
+      setLinePayResult({
+        success: false,
+        message: error.message || 'LINE Pay 測試失敗',
+        time: timestamp,
+      });
+      
+      toast.error('LINE Pay 測試失敗', {
+        description: error.message,
+      });
+    } finally {
+      setIsLinePayProcessing(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 py-12 px-4">
       <div className="container max-w-6xl mx-auto space-y-8">
@@ -848,7 +944,7 @@ export default function PaymentTest() {
 
             {/* 測試按鈕 - 使用 Tabs 區分測試模式 */}
             <Tabs defaultValue="prime" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="prime">
                   <CreditCard className="w-4 h-4 mr-2" />
                   Prime Token
@@ -856,6 +952,10 @@ export default function PaymentTest() {
                 <TabsTrigger value="full">
                   <Zap className="w-4 h-4 mr-2" />
                   完整流程
+                </TabsTrigger>
+                <TabsTrigger value="linepay">
+                  <Smartphone className="w-4 h-4 mr-2" />
+                  LINE Pay
                 </TabsTrigger>
                 <TabsTrigger value="batch">
                   <PlayCircle className="w-4 h-4 mr-2" />
@@ -918,6 +1018,124 @@ export default function PaymentTest() {
                     <li>驗證完整支付流程</li>
                   </ul>
                 </div>
+              </TabsContent>
+
+              <TabsContent value="linepay" className="space-y-4 mt-4">
+                <Button
+                  onClick={testLinePay}
+                  disabled={isLinePayProcessing}
+                  className="w-full h-12 text-lg bg-[#00C300] hover:bg-[#00B300]"
+                  size="lg"
+                >
+                  {isLinePayProcessing ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      處理中...
+                    </>
+                  ) : (
+                    <>
+                      <Smartphone className="w-5 h-5 mr-2" />
+                      測試 LINE Pay 付款
+                    </>
+                  )}
+                </Button>
+                
+                <div className="p-3 bg-[#00C300]/10 border border-[#00C300]/20 rounded-lg">
+                  <p className="text-sm font-medium text-[#00C300]">
+                    <strong>LINE Pay 測試說明：</strong>
+                  </p>
+                  <ul className="text-sm text-[#00A300] mt-1 space-y-1 list-disc list-inside">
+                    <li>呼叫後端 process-linepay-payment</li>
+                    <li>使用測試金額 NT$ 1,000</li>
+                    <li>取得 LINE Pay 付款連結</li>
+                    <li>驗證 LINE Pay API 整合</li>
+                  </ul>
+                </div>
+
+                {/* LINE Pay 測試結果 */}
+                {linePayResult && (
+                  <Card className={
+                    linePayResult.success 
+                      ? "border-[#00C300] bg-[#00C300]/5" 
+                      : "border-red-500 bg-red-500/5"
+                  }>
+                    <CardHeader>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Smartphone className="w-4 h-4" />
+                        LINE Pay 測試結果
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-start gap-3">
+                        {linePayResult.success ? (
+                          <CheckCircle2 className="w-5 h-5 text-[#00C300] shrink-0 mt-0.5" />
+                        ) : (
+                          <XCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                        )}
+                        <div className="flex-1 space-y-2">
+                          <p className={`font-medium ${
+                            linePayResult.success ? "text-[#00C300]" : "text-red-700 dark:text-red-400"
+                          }`}>
+                            {linePayResult.success ? "請求成功" : "請求失敗"}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {linePayResult.message}
+                          </p>
+                          
+                          {linePayResult.success && linePayResult.transactionId && (
+                            <div className="p-2 bg-muted/50 rounded">
+                              <p className="text-xs text-muted-foreground mb-1">交易 ID</p>
+                              <code className="text-sm">{linePayResult.transactionId}</code>
+                            </div>
+                          )}
+                          
+                          {linePayResult.success && linePayResult.paymentUrl && (
+                            <Button
+                              asChild
+                              className="w-full bg-[#00C300] hover:bg-[#00B300]"
+                            >
+                              <a 
+                                href={linePayResult.paymentUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                              >
+                                <ExternalLink className="w-4 h-4 mr-2" />
+                                前往 LINE Pay 付款頁面
+                              </a>
+                            </Button>
+                          )}
+                          
+                          {!linePayResult.success && (
+                            <div className="space-y-2 mt-2">
+                              {linePayResult.errorCode && (
+                                <div className="p-2 bg-muted/50 rounded">
+                                  <p className="text-xs text-muted-foreground mb-1">錯誤代碼</p>
+                                  <code className="text-sm">{linePayResult.errorCode}</code>
+                                </div>
+                              )}
+                              {linePayResult.errorCategory && (
+                                <div className="p-2 bg-muted/50 rounded">
+                                  <p className="text-xs text-muted-foreground mb-1">錯誤類型</p>
+                                  <code className="text-sm">{linePayResult.errorCategory}</code>
+                                </div>
+                              )}
+                              {linePayResult.suggestion && (
+                                <div className="p-2 bg-amber-500/10 border border-amber-500/20 rounded">
+                                  <p className="text-xs text-amber-700 dark:text-amber-400 mb-1">建議</p>
+                                  <p className="text-sm text-amber-600 dark:text-amber-300">{linePayResult.suggestion}</p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          
+                          <p className="text-xs text-muted-foreground mt-2">
+                            時間：{linePayResult.time}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
 
               <TabsContent value="batch" className="space-y-4 mt-4">
