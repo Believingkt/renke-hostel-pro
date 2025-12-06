@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { getOrderStatusConfig, getPaymentStatusConfig } from "@/utils/orderHelpers";
+import { RoomInventoryCalendarSkeleton, RoomInventoryListSkeleton } from "@/components/skeletons/RoomInventoryCalendarSkeleton";
 
 interface RoomInventoryCalendarProps {
   roomTypeId: string;
@@ -841,6 +842,11 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
   // 計算月曆起始日（週一）
   const startDay = monthStart.getDay();
   const paddingDays = startDay === 0 ? 6 : startDay - 1;
+
+  // 載入中顯示骨架屏
+  if (loading) {
+    return viewMode === 'list' ? <RoomInventoryListSkeleton /> : <RoomInventoryCalendarSkeleton />;
+  }
 
   return (
     <Card>
