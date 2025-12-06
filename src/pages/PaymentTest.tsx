@@ -410,7 +410,10 @@ export default function PaymentTest() {
 
       // 步驟 2: 呼叫後端處理支付
       const testAmount = 1000; // 測試金額 NT$ 1,000
-      const testOrderId = `TEST-${Date.now()}`;
+      // 生成符合格式的測試訂單編號 (YYYYMMDDNNN - 11位數字)
+      const now = new Date();
+      const datePrefix = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+      const testOrderId = `${datePrefix}999`; // e.g., 20251206999
 
       console.log('Calling process-tappay-payment edge function...');
       
