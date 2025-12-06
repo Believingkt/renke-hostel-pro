@@ -181,27 +181,30 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
       const monthStart = startOfMonth(currentMonth);
       const monthEnd = endOfMonth(currentMonth);
 
-      // 查詢庫存定價
-      const { data, error } = await supabase
-        .from('room_inventory_pricing')
-        .select('*')
-        .eq('room_type_id', roomTypeId)
-        .gte('date', format(monthStart, 'yyyy-MM-dd'))
-        .lte('date', format(monthEnd, 'yyyy-MM-dd'));
+      // 並行查詢庫存定價和訂單
+      const [inventoryResult, ordersResult] = await Promise.all([
+        supabase
+          .from('room_inventory_pricing')
+          .select('*')
+          .eq('room_type_id', roomTypeId)
+          .gte('date', format(monthStart, 'yyyy-MM-dd'))
+          .lte('date', format(monthEnd, 'yyyy-MM-dd')),
+        supabase
+          .from('orders')
+          .select('check_in_date, check_out_date, room_type_id')
+          .eq('room_type_id', roomTypeId)
+          .neq('order_status', 'cancelled')
+          .gte('check_out_date', format(monthStart, 'yyyy-MM-dd'))
+          .lte('check_in_date', format(monthEnd, 'yyyy-MM-dd'))
+      ]);
 
-      if (error) throw error;
+      if (inventoryResult.error) throw inventoryResult.error;
 
-      // 查詢該房型在當月的所有預訂
-      const { data: ordersData, error: ordersError } = await supabase
-        .from('orders')
-        .select('check_in_date, check_out_date, room_type_id')
-        .eq('room_type_id', roomTypeId)
-        .neq('order_status', 'cancelled')
-        .gte('check_out_date', format(monthStart, 'yyyy-MM-dd'))
-        .lte('check_in_date', format(monthEnd, 'yyyy-MM-dd'));
+      const data = inventoryResult.data;
+      const ordersData = ordersResult.data;
 
-      if (ordersError) {
-        console.error('查詢訂單失敗:', ordersError);
+      if (ordersResult.error) {
+        console.error('查詢訂單失敗:', ordersResult.error);
       }
 
       // 計算每個日期的預訂數量
@@ -221,33 +224,38 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
         });
       }
 
-      // 獲取調整後的庫存（考慮互斥邏輯）
+      // 獲取調整後的庫存（考慮互斥邏輯）- 使用批量 RPC 一次查詢所有日期
       const inventoryMap: Record<string, DayInventory> = {};
       
       if (data && data.length > 0) {
-        // 批量查詢所有日期的調整後庫存
-        for (const item of data) {
-          const { data: adjustedData, error: adjustedError } = await supabase
-            .rpc('get_adjusted_room_inventory', {
-              p_room_type_id: roomTypeId,
-              p_date: item.date,
-              p_accommodation_id: accommodationId
-            });
+        // 收集所有日期
+        const allDates = data.map(item => item.date);
+        
+        // 使用批量 RPC 一次查詢所有日期的調整後庫存
+        const { data: adjustedDataBatch, error: adjustedError } = await supabase
+          .rpc('get_adjusted_room_inventory_batch', {
+            p_room_type_id: roomTypeId,
+            p_dates: allDates,
+            p_accommodation_id: accommodationId
+          });
 
-          if (adjustedError) {
-            console.error('獲取調整後庫存失敗:', adjustedError);
-            // 如果調整失敗，使用原始數據
-            inventoryMap[item.date] = {
-              date: item.date,
-              price: item.price,
-              price_2_meals: item.price_2_meals,
-              price_3_meals: item.price_3_meals,
-              availableRooms: item.available_rooms,
-              isAvailable: item.is_available,
-              bookedCount: bookingCountMap[item.date] || 0,
+        // 建立調整後庫存的查找表
+        const adjustedMap: Record<string, { available_rooms: number; is_blocked: boolean; blocked_by_room_name: string | null }> = {};
+        if (!adjustedError && adjustedDataBatch) {
+          adjustedDataBatch.forEach((item: { date_value: string; available_rooms: number; is_blocked: boolean; blocked_by_room_name: string | null }) => {
+            adjustedMap[item.date_value] = {
+              available_rooms: item.available_rooms,
+              is_blocked: item.is_blocked,
+              blocked_by_room_name: item.blocked_by_room_name
             };
-          } else if (adjustedData && adjustedData.length > 0) {
-            const adjusted = adjustedData[0];
+          });
+        }
+
+        // 建立庫存映射
+        for (const item of data) {
+          const adjusted = adjustedMap[item.date];
+          
+          if (adjusted) {
             inventoryMap[item.date] = {
               date: item.date,
               price: item.price,
@@ -257,6 +265,17 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
               isAvailable: item.is_available && adjusted.available_rooms > 0,
               isBlocked: adjusted.is_blocked,
               blockedByRoomName: adjusted.blocked_by_room_name,
+              bookedCount: bookingCountMap[item.date] || 0,
+            };
+          } else {
+            // 如果批量查詢沒有返回該日期，使用原始數據
+            inventoryMap[item.date] = {
+              date: item.date,
+              price: item.price,
+              price_2_meals: item.price_2_meals,
+              price_3_meals: item.price_3_meals,
+              availableRooms: item.available_rooms,
+              isAvailable: item.is_available,
               bookedCount: bookingCountMap[item.date] || 0,
             };
           }

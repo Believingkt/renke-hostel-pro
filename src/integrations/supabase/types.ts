@@ -1494,6 +1494,19 @@ export type Database = {
           is_blocked: boolean
         }[]
       }
+      get_adjusted_room_inventory_batch: {
+        Args: {
+          p_accommodation_id: string
+          p_dates: string[]
+          p_room_type_id: string
+        }
+        Returns: {
+          available_rooms: number
+          blocked_by_room_name: string
+          date_value: string
+          is_blocked: boolean
+        }[]
+      }
       get_public_discount_code_info: {
         Args: { p_accommodation_id: string; p_code: string }
         Returns: {
