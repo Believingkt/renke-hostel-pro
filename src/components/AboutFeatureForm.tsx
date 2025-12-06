@@ -167,7 +167,7 @@ export function AboutFeatureForm({ open, onOpenChange, feature, onSave }: AboutF
   const selectedIcon = BUILT_IN_ICONS.find(icon => icon.name === formData.icon_name);
   const IconComponent = selectedIcon?.icon;
 
-  const FormContent = () => (
+  const formContent = (
     <>
       {hasDraft && !feature && (
         <DraftRestoreBanner
@@ -325,7 +325,7 @@ export function AboutFeatureForm({ open, onOpenChange, feature, onSave }: AboutF
         </DrawerHeader>
         
         <div className="overflow-y-auto px-4 pb-4">
-          <FormContent />
+          {formContent}
         </div>
 
         <DrawerFooter className="pt-2">
@@ -353,7 +353,7 @@ export function AboutFeatureForm({ open, onOpenChange, feature, onSave }: AboutF
           <DialogTitle>{feature ? '編輯特色區塊' : '新增特色區塊'}</DialogTitle>
         </DialogHeader>
 
-        <FormContent />
+        {formContent}
 
         <SaveButtonContainer onSave={handleSubmit}>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
