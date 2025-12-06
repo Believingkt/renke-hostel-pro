@@ -578,6 +578,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "commission_records_discount_code_id_fkey"
+            columns: ["discount_code_id"]
+            isOneToOne: false
+            referencedRelation: "discount_codes_safe"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "commission_records_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
@@ -1466,7 +1473,80 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      discount_codes_safe: {
+        Row: {
+          accommodation_id: string | null
+          applicable_date_from: string | null
+          applicable_date_to: string | null
+          applicable_room_types: Json | null
+          code: string | null
+          commission_rate: number | null
+          created_at: string | null
+          discount_type: string | null
+          discount_value: number | null
+          display_order: number | null
+          id: string | null
+          is_active: boolean | null
+          min_order_amount: number | null
+          name: string | null
+          updated_at: string | null
+          usage_limit: number | null
+          used_count: number | null
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          accommodation_id?: string | null
+          applicable_date_from?: string | null
+          applicable_date_to?: string | null
+          applicable_room_types?: Json | null
+          code?: string | null
+          commission_rate?: number | null
+          created_at?: string | null
+          discount_type?: string | null
+          discount_value?: number | null
+          display_order?: number | null
+          id?: string | null
+          is_active?: boolean | null
+          min_order_amount?: number | null
+          name?: string | null
+          updated_at?: string | null
+          usage_limit?: number | null
+          used_count?: number | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          accommodation_id?: string | null
+          applicable_date_from?: string | null
+          applicable_date_to?: string | null
+          applicable_room_types?: Json | null
+          code?: string | null
+          commission_rate?: number | null
+          created_at?: string | null
+          discount_type?: string | null
+          discount_value?: number | null
+          display_order?: number | null
+          id?: string | null
+          is_active?: boolean | null
+          min_order_amount?: number | null
+          name?: string | null
+          updated_at?: string | null
+          usage_limit?: number | null
+          used_count?: number | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discount_codes_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       can_view_user_roles: {
@@ -1479,6 +1559,13 @@ export type Database = {
           booked_room_type_id: string
           booked_room_type_name: string
           has_booking: boolean
+        }[]
+      }
+      check_rls_enabled: {
+        Args: never
+        Returns: {
+          rls_enabled: boolean
+          table_name: string
         }[]
       }
       generate_order_number: { Args: never; Returns: string }
