@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
@@ -7,21 +8,26 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Simple in-memory rate limiter
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT_MAX = 5; // Max 5 emails per window
-const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute window
+// Simple in-memory rate limiter by email
+const emailRateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const EMAIL_RATE_LIMIT_MAX = 5; // Max 5 emails per window per email
+const EMAIL_RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute window
 
-function checkRateLimit(identifier: string): boolean {
+// IP-based rate limiter
+const ipRateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const IP_RATE_LIMIT_MAX = 10; // Max 10 requests per window per IP
+const IP_RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute window
+
+function checkRateLimit(map: Map<string, { count: number; resetTime: number }>, identifier: string, max: number, window: number): boolean {
   const now = Date.now();
-  const record = rateLimitMap.get(identifier);
+  const record = map.get(identifier);
   
   if (!record || now > record.resetTime) {
-    rateLimitMap.set(identifier, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    map.set(identifier, { count: 1, resetTime: now + window });
     return true;
   }
   
-  if (record.count >= RATE_LIMIT_MAX) {
+  if (record.count >= max) {
     return false;
   }
   
@@ -54,6 +60,22 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // IP-based rate limiting
+    const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                     req.headers.get('cf-connecting-ip') || 
+                     'unknown';
+    
+    if (!checkRateLimit(ipRateLimitMap, `ip:${clientIP}`, IP_RATE_LIMIT_MAX, IP_RATE_LIMIT_WINDOW)) {
+      console.warn(`[Rate Limit] IP rate limit exceeded: ${clientIP}`);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "請求過於頻繁，請稍後再試" 
+        }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const {
       guestName,
       guestEmail,
@@ -73,9 +95,24 @@ const handler = async (req: Request): Promise<Response> => {
       mealPlanTotal,
     }: BookingConfirmationRequest = await req.json();
 
+    // Basic input validation
+    if (!guestEmail || typeof guestEmail !== 'string' || !guestEmail.includes('@')) {
+      return new Response(
+        JSON.stringify({ success: false, error: "無效的 Email 格式" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    if (!orderNumber || typeof orderNumber !== 'string' || orderNumber.length < 5) {
+      return new Response(
+        JSON.stringify({ success: false, error: "無效的訂單編號" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Rate limit by email address
-    const rateLimitKey = `booking:${guestEmail}`;
-    if (!checkRateLimit(rateLimitKey)) {
+    const emailRateLimitKey = `booking:${guestEmail.toLowerCase()}`;
+    if (!checkRateLimit(emailRateLimitMap, emailRateLimitKey, EMAIL_RATE_LIMIT_MAX, EMAIL_RATE_LIMIT_WINDOW)) {
       console.warn(`[Rate Limit] Too many booking confirmations for: ${guestEmail}`);
       return new Response(
         JSON.stringify({ 
@@ -83,6 +120,34 @@ const handler = async (req: Request): Promise<Response> => {
           error: "請求過於頻繁，請稍後再試" 
         }),
         { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Verify order exists in database
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .select('id, guest_email, order_number')
+      .eq('order_number', orderNumber)
+      .single();
+    
+    if (orderError || !order) {
+      console.warn(`[Validation] Order not found: ${orderNumber}`);
+      return new Response(
+        JSON.stringify({ success: false, error: "找不到指定的訂單" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    // Verify email matches order (case-insensitive)
+    if (order.guest_email?.toLowerCase() !== guestEmail.toLowerCase()) {
+      console.warn(`[Validation] Email mismatch for order ${orderNumber}: expected ${order.guest_email}, got ${guestEmail}`);
+      return new Response(
+        JSON.stringify({ success: false, error: "Email 與訂單不符" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
