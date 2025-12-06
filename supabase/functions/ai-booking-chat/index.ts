@@ -6,13 +6,121 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// IP-based rate limiting
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_MAX = 20; // Max 20 requests per window
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute window
+
+function checkRateLimit(identifier: string): boolean {
+  const now = Date.now();
+  const record = rateLimitMap.get(identifier);
+  
+  if (!record || now > record.resetTime) {
+    rateLimitMap.set(identifier, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    return true;
+  }
+  
+  if (record.count >= RATE_LIMIT_MAX) {
+    return false;
+  }
+  
+  record.count++;
+  return true;
+}
+
+// UUID validation regex
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Input validation constants
+const MAX_MESSAGES = 30;
+const MAX_MESSAGE_LENGTH = 3000;
+const ALLOWED_ROLES = ['user', 'assistant', 'system'];
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { messages, accommodationId } = await req.json();
+    // Rate limiting by IP
+    const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                     req.headers.get('cf-connecting-ip') || 
+                     'unknown';
+    
+    if (!checkRateLimit(`ai-chat:${clientIP}`)) {
+      console.warn(`[Rate Limit] AI chat rate limit exceeded for IP: ${clientIP}`);
+      return new Response(
+        JSON.stringify({ error: "請求過於頻繁，請稍後再試" }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const body = await req.json();
+    const { messages, accommodationId } = body;
+    
+    // Validate accommodationId
+    if (!accommodationId || typeof accommodationId !== 'string') {
+      return new Response(
+        JSON.stringify({ error: "缺少必要的住宿 ID" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    if (!UUID_REGEX.test(accommodationId)) {
+      console.warn(`[Validation] Invalid accommodationId format: ${accommodationId}`);
+      return new Response(
+        JSON.stringify({ error: "無效的住宿 ID 格式" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    // Validate messages array
+    if (!Array.isArray(messages)) {
+      return new Response(
+        JSON.stringify({ error: "訊息格式錯誤" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    if (messages.length > MAX_MESSAGES) {
+      return new Response(
+        JSON.stringify({ error: `訊息數量超過限制（最多 ${MAX_MESSAGES} 則）` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    // Validate each message
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i];
+      
+      if (!msg || typeof msg !== 'object') {
+        return new Response(
+          JSON.stringify({ error: `訊息 ${i + 1} 格式錯誤` }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      if (!ALLOWED_ROLES.includes(msg.role)) {
+        return new Response(
+          JSON.stringify({ error: `訊息 ${i + 1} 的 role 欄位無效` }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      if (typeof msg.content !== 'string') {
+        return new Response(
+          JSON.stringify({ error: `訊息 ${i + 1} 的內容格式錯誤` }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      if (msg.content.length > MAX_MESSAGE_LENGTH) {
+        return new Response(
+          JSON.stringify({ error: `訊息 ${i + 1} 超過長度限制（最多 ${MAX_MESSAGE_LENGTH} 字）` }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -23,6 +131,21 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Verify accommodationId exists in database
+    const { data: accommodation, error: accError } = await supabase
+      .from('accommodation_info')
+      .select('id')
+      .eq('id', accommodationId)
+      .single();
+    
+    if (accError || !accommodation) {
+      console.warn(`[Validation] Accommodation not found: ${accommodationId}`);
+      return new Response(
+        JSON.stringify({ error: "找不到指定的住宿資訊" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // 定義工具（使用 Gemini 格式）
     const tools = [
