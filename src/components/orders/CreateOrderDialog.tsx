@@ -567,13 +567,13 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
   };
 
   const formContent = (
-    <div className="space-y-4 py-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div className="space-y-4 py-4 overflow-visible">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-visible">
         {/* Name input with autocomplete */}
-        <div className="space-y-2 relative" ref={nameInputRef}>
+        <div className="space-y-2 relative overflow-visible" ref={nameInputRef}>
           <Label>訂購人姓名 <span className="text-destructive">*</span></Label>
           <div className="relative">
-            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
             <Input
               value={form.guest_name}
               onChange={(e) => handleNameChange(e.target.value)}
@@ -581,7 +581,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
                 if (nameSuggestions.length > 0) setShowNameSuggestions(true);
               }}
               placeholder="輸入姓名搜尋客戶"
-              className="h-12 text-base sm:h-10 sm:text-sm pl-10"
+              className="h-12 text-base sm:h-10 sm:text-sm pl-10 placeholder:pl-0"
             />
           </div>
           {showNameSuggestions && nameSuggestions.length > 0 && (
@@ -607,10 +607,10 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
         </div>
 
         {/* Phone input with autocomplete */}
-        <div className="space-y-2 relative" ref={phoneInputRef}>
+        <div className="space-y-2 relative overflow-visible" ref={phoneInputRef}>
           <Label>聯絡電話 <span className="text-destructive">*</span></Label>
           <div className="relative">
-            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
             <Input
               value={form.guest_phone}
               onChange={(e) => handlePhoneChange(e.target.value)}
@@ -618,7 +618,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
                 if (phoneSuggestions.length > 0) setShowPhoneSuggestions(true);
               }}
               placeholder="輸入電話搜尋客戶"
-              className="h-12 text-base sm:h-10 sm:text-sm pl-10"
+              className="h-12 text-base sm:h-10 sm:text-sm pl-10 placeholder:pl-0"
               type="tel"
             />
           </div>
