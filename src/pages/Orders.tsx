@@ -402,6 +402,62 @@ const Orders = () => {
 
       if (error) throw error;
 
+      // Update or create customer record
+      const guestName = editingOrder.guest_name.trim();
+      const guestPhone = editingOrder.guest_phone.trim();
+      const guestEmail = editingOrder.guest_email?.trim() || null;
+
+      if (accommodationId && guestPhone) {
+        // Check if customer already exists by phone number
+        const { data: existingCustomer } = await supabase
+          .from("customers")
+          .select("id, visit_count")
+          .eq("accommodation_id", accommodationId)
+          .eq("phone", guestPhone)
+          .maybeSingle();
+
+        if (existingCustomer) {
+          // Update existing customer and link to order if not already linked
+          if (!editingOrder.customer_id) {
+            await supabase
+              .from("orders")
+              .update({ customer_id: existingCustomer.id })
+              .eq("id", editingOrder.id);
+          }
+          // Update customer info
+          await supabase
+            .from("customers")
+            .update({
+              name: guestName,
+              email: guestEmail,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", existingCustomer.id);
+        } else if (!editingOrder.customer_id) {
+          // Create new customer if order doesn't have one
+          const { data: newCustomer } = await supabase
+            .from("customers")
+            .insert({
+              accommodation_id: accommodationId,
+              name: guestName,
+              phone: guestPhone,
+              email: guestEmail,
+              visit_count: 1,
+              first_order_date: form.check_in_date,
+            })
+            .select("id")
+            .single();
+
+          // Link customer to order
+          if (newCustomer?.id) {
+            await supabase
+              .from("orders")
+              .update({ customer_id: newCustomer.id })
+              .eq("id", editingOrder.id);
+          }
+        }
+      }
+
       // 重新載入訂單
       await fetchOrders();
 
