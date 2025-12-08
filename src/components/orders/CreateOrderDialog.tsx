@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Tag, X, Loader2, User, Phone } from "lucide-react";
+import { CalendarIcon, Tag, X, Loader2, User, Phone, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { format, parseISO, isAfter, isBefore, addDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,6 +46,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
   const [calculatedPrice, setCalculatedPrice] = useState({ total: 0, discount: 0, final: 0 });
+  const [inventoryWarnings, setInventoryWarnings] = useState<{ date: string; available: number; blocked?: boolean; blockedBy?: string }[]>([]);
+  const [isCheckingInventory, setIsCheckingInventory] = useState(false);
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; type: "percentage" | "amount"; value: number } | null>(null);
   const [isValidatingCode, setIsValidatingCode] = useState(false);
@@ -247,13 +250,94 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
     return { total, discount, final };
   };
 
+  // Check inventory and calculate price
   useEffect(() => {
-    const fetchPrice = async () => {
-      const newPrice = await calculatePrice();
-      setCalculatedPrice(newPrice);
+    const checkInventoryAndPrice = async () => {
+      if (!form.room_type_id || !form.check_in_date || !form.check_out_date || !currentAccommodationId) {
+        setCalculatedPrice({ total: 0, discount: 0, final: 0 });
+        setInventoryWarnings([]);
+        return;
+      }
+
+      setIsCheckingInventory(true);
+      
+      try {
+        const nights = calculateNights();
+        if (nights === 0) {
+          setCalculatedPrice({ total: 0, discount: 0, final: 0 });
+          setInventoryWarnings([]);
+          return;
+        }
+
+        // Generate date array for batch query
+        const dates: string[] = [];
+        const start = new Date(form.check_in_date);
+        for (let i = 0; i < nights; i++) {
+          const currentDate = new Date(start);
+          currentDate.setDate(start.getDate() + i);
+          dates.push(format(currentDate, "yyyy-MM-dd"));
+        }
+
+        // Check inventory using batch function
+        const { data: inventoryData, error: inventoryError } = await supabase.rpc(
+          'get_adjusted_room_inventory_batch',
+          {
+            p_room_type_id: form.room_type_id,
+            p_dates: dates,
+            p_accommodation_id: currentAccommodationId
+          }
+        );
+
+        if (inventoryError) {
+          console.error("Error checking inventory:", inventoryError);
+        }
+
+        // Check for insufficient inventory
+        const warnings: { date: string; available: number; blocked?: boolean; blockedBy?: string }[] = [];
+        if (inventoryData) {
+          for (const item of inventoryData) {
+            if (item.is_blocked) {
+              warnings.push({
+                date: item.date_value,
+                available: 0,
+                blocked: true,
+                blockedBy: item.blocked_by_room_name
+              });
+            } else if (item.available_rooms < 1) {
+              warnings.push({
+                date: item.date_value,
+                available: item.available_rooms
+              });
+            }
+          }
+        }
+        setInventoryWarnings(warnings);
+
+        // Calculate price
+        let total = 0;
+        for (const dateStr of dates) {
+          const { data: priceData } = await supabase
+            .from("room_inventory_pricing")
+            .select("price")
+            .eq("room_type_id", form.room_type_id)
+            .eq("date", dateStr)
+            .maybeSingle();
+          
+          if (priceData?.price) {
+            total += priceData.price;
+          }
+        }
+
+        const discount = calculateDiscount(total);
+        const final = Math.max(0, total - discount);
+        setCalculatedPrice({ total, discount, final });
+      } finally {
+        setIsCheckingInventory(false);
+      }
     };
-    fetchPrice();
-  }, [form.check_in_date, form.check_out_date, form.room_type_id, appliedDiscount]);
+
+    checkInventoryAndPrice();
+  }, [form.check_in_date, form.check_out_date, form.room_type_id, appliedDiscount, currentAccommodationId]);
 
   const handleApplyDiscount = async () => {
     if (!discountCode.trim() || !currentAccommodationId) {
@@ -719,11 +803,42 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
         )}
       </div>
 
+      {/* Inventory Warnings */}
+      {inventoryWarnings.length > 0 && (
+        <Alert variant="destructive" className="border-amber-500 bg-amber-50 dark:bg-amber-950/20">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-800 dark:text-amber-200">
+            <div className="font-medium mb-1">庫存不足警告</div>
+            <ul className="text-sm space-y-1">
+              {inventoryWarnings.map((warning, index) => (
+                <li key={index}>
+                  {warning.blocked ? (
+                    <span>
+                      {format(parseISO(warning.date), "MM/dd")}：已被 <strong>{warning.blockedBy}</strong> 預訂封鎖
+                    </span>
+                  ) : (
+                    <span>
+                      {format(parseISO(warning.date), "MM/dd")}：剩餘 <strong>{warning.available}</strong> 間
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <div className="text-xs mt-2 text-amber-700 dark:text-amber-300">
+              仍可建立訂單，但請確認實際房況
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Price Summary */}
       <div className="space-y-2 pt-4 border-t">
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">住宿天數</span>
-          <span>{calculateNights()} 晚</span>
+          <span className="flex items-center gap-2">
+            {isCheckingInventory && <Loader2 className="h-3 w-3 animate-spin" />}
+            {calculateNights()} 晚
+          </span>
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">原價</span>
