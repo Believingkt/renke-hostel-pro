@@ -33,28 +33,16 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
     categories.some(cat => (d[cat as keyof typeof d] as number || 0) > 0)
   );
 
-  // 數值格式化函數 - 優化顯示
+  // 數值格式化函數 - 顯示精確金額
   const valueFormatter = (value: number) => {
     if (!Number.isFinite(value) || value === 0) return 'NT$ 0';
-    // 簡化大數字顯示，提高可讀性
-    if (value >= 1000000) {
-      return `NT$ ${(value / 1000000).toFixed(1)}M`;
-    }
-    if (value >= 100000) {
-      return `NT$ ${(value / 10000).toFixed(1)}萬`;
-    }
-    if (value >= 10000) {
-      return `NT$ ${Math.round(value / 10000)}萬`;
-    }
-    return `NT$ ${value.toLocaleString('zh-TW')}`;
+    return `NT$ ${Math.round(value).toLocaleString('zh-TW')}`;
   };
 
-  // Y軸格式化 - 更簡潔
+  // Y軸格式化 - 顯示精確金額
   const yAxisFormatter = (value: number) => {
-    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
-    if (value >= 100000) return `${(value / 10000).toFixed(0)}萬`;
-    if (value >= 10000) return `${Math.round(value / 10000)}萬`;
-    return value.toLocaleString('zh-TW');
+    if (!Number.isFinite(value)) return '0';
+    return Math.round(value).toLocaleString('zh-TW');
   };
 
   // 如果沒有實際數據，顯示空狀態

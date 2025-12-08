@@ -38,7 +38,7 @@ export const MonthlyAveragePriceChart = ({ data }: MonthlyAveragePriceChartProps
     },
   };
 
-  const valueFormatter = (value: number) => `NT$ ${value.toLocaleString()}`;
+  const valueFormatter = (value: number) => `NT$ ${Math.round(value).toLocaleString('zh-TW')}`;
 
   return (
     <div className="animate-fade-in">
@@ -61,8 +61,8 @@ export const MonthlyAveragePriceChart = ({ data }: MonthlyAveragePriceChartProps
               tickLine={false}
             />
             <YAxis
-              width={60}
-              tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+              width={70}
+              tickFormatter={(value) => Math.round(value).toLocaleString('zh-TW')}
               className="text-xs"
               tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
               axisLine={false}
