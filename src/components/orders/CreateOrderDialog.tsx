@@ -572,19 +572,15 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
         {/* Name input with autocomplete */}
         <div className="space-y-2 relative overflow-visible" ref={nameInputRef}>
           <Label>訂購人姓名 <span className="text-destructive">*</span></Label>
-          <div className="relative">
-            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
-            <Input
-              value={form.guest_name}
-              onChange={(e) => handleNameChange(e.target.value)}
-              onFocus={() => {
-                if (nameSuggestions.length > 0) setShowNameSuggestions(true);
-              }}
-              placeholder="輸入姓名搜尋客戶"
-              className="h-12 text-base sm:h-10 sm:text-sm pl-10"
-              style={{ textIndent: 0 }}
-            />
-          </div>
+          <Input
+            value={form.guest_name}
+            onChange={(e) => handleNameChange(e.target.value)}
+            onFocus={() => {
+              if (nameSuggestions.length > 0) setShowNameSuggestions(true);
+            }}
+            placeholder="輸入姓名搜尋客戶"
+            className="h-12 text-base sm:h-10 sm:text-sm"
+          />
           {showNameSuggestions && nameSuggestions.length > 0 && (
             <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg overflow-hidden">
               {nameSuggestions.map((customer) => (
@@ -610,20 +606,16 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
         {/* Phone input with autocomplete */}
         <div className="space-y-2 relative overflow-visible" ref={phoneInputRef}>
           <Label>聯絡電話 <span className="text-destructive">*</span></Label>
-          <div className="relative">
-            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
-            <Input
-              value={form.guest_phone}
-              onChange={(e) => handlePhoneChange(e.target.value)}
-              onFocus={() => {
-                if (phoneSuggestions.length > 0) setShowPhoneSuggestions(true);
-              }}
-              placeholder="輸入電話搜尋客戶"
-              className="h-12 text-base sm:h-10 sm:text-sm pl-10"
-              style={{ textIndent: 0 }}
-              type="tel"
-            />
-          </div>
+          <Input
+            value={form.guest_phone}
+            onChange={(e) => handlePhoneChange(e.target.value)}
+            onFocus={() => {
+              if (phoneSuggestions.length > 0) setShowPhoneSuggestions(true);
+            }}
+            placeholder="輸入電話搜尋客戶"
+            className="h-12 text-base sm:h-10 sm:text-sm"
+            type="tel"
+          />
           {showPhoneSuggestions && phoneSuggestions.length > 0 && (
             <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg overflow-hidden">
               {phoneSuggestions.map((customer) => (
