@@ -958,7 +958,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
         <DialogHeader>
           <DialogTitle>新增訂單</DialogTitle>
         </DialogHeader>
-        <div className="flex-1 overflow-y-auto pr-2 -mr-2 py-1">
+        <div className="flex-1 overflow-y-auto px-1 -mx-1 py-1">
           {formContent}
         </div>
         <DialogFooter className="border-t pt-4">
