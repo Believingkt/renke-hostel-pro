@@ -954,15 +954,13 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col overflow-visible">
         <DialogHeader>
           <DialogTitle>新增訂單</DialogTitle>
         </DialogHeader>
-        <ScrollArea className="flex-1 pr-4 -mr-4">
-          <div className="pr-4">
-            {formContent}
-          </div>
-        </ScrollArea>
+        <div className="flex-1 overflow-y-auto pr-2 -mr-2 py-1">
+          {formContent}
+        </div>
         <DialogFooter className="border-t pt-4">
           {footerButtons}
         </DialogFooter>
