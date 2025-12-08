@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
     // 獲取現有房型
     const { data: roomTypes, error: roomTypesError } = await supabaseClient
       .from('room_types')
-      .select('id, name, base_price, weekday_price, weekend_price')
+      .select('id, name, base_price')
       .eq('accommodation_id', accommodationId);
 
     if (roomTypesError) throw roomTypesError;
@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
       const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
       
       // 計算價格
-      const basePrice = roomType.weekday_price || roomType.base_price;
+      const basePrice = roomType.base_price;
       const totalPrice = basePrice * nights;
       const discountAmount = Math.random() > 0.7 ? Math.floor(totalPrice * 0.1) : 0;
       const finalPrice = totalPrice - discountAmount;
