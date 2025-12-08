@@ -51,6 +51,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; type: "percentage" | "amount"; value: number } | null>(null);
   const [isValidatingCode, setIsValidatingCode] = useState(false);
+  const [checkInOpen, setCheckInOpen] = useState(false);
+  const [checkOutOpen, setCheckOutOpen] = useState(false);
   
   // Customer autocomplete states
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -651,7 +653,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>入住日期 <span className="text-destructive">*</span></Label>
-          <Popover>
+          <Popover open={checkInOpen} onOpenChange={setCheckInOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
@@ -671,11 +673,14 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
                 onSelect={(date) => {
                   if (date && !isNaN(date.getTime())) {
                     const newCheckIn = format(date, "yyyy-MM-dd");
-                    setForm({...form, check_in_date: newCheckIn});
-                    
                     if (form.check_out_date && !isAfter(parseISO(form.check_out_date), date)) {
                       setForm({...form, check_in_date: newCheckIn, check_out_date: ""});
+                    } else {
+                      setForm({...form, check_in_date: newCheckIn});
                     }
+                    setCheckInOpen(false);
+                    // Auto open checkout date picker after a short delay
+                    setTimeout(() => setCheckOutOpen(true), 150);
                   }
                 }}
                 disabled={(date) => isBefore(date, new Date(new Date().setHours(0, 0, 0, 0)))}
@@ -686,7 +691,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
 
         <div className="space-y-2">
           <Label>退房日期 <span className="text-destructive">*</span></Label>
-          <Popover>
+          <Popover open={checkOutOpen} onOpenChange={setCheckOutOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
@@ -707,6 +712,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
                   if (date && !isNaN(date.getTime())) {
                     if (form.check_in_date && isAfter(date, parseISO(form.check_in_date))) {
                       setForm({...form, check_out_date: format(date, "yyyy-MM-dd")});
+                      setCheckOutOpen(false);
                     } else {
                       toast({
                         title: "日期錯誤",
