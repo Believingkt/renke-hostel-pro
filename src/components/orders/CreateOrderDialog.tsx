@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Tag, X, Loader2 } from "lucide-react";
+import { CalendarIcon, Tag, X, Loader2, User, Phone } from "lucide-react";
 import { format, parseISO, isAfter, isBefore, addDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +22,13 @@ interface RoomType {
   id: string;
   name: string;
   capacity: number;
+}
+
+interface Customer {
+  id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
 }
 
 interface CreateOrderDialogProps {
@@ -41,6 +48,15 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; type: "percentage" | "amount"; value: number } | null>(null);
   const [isValidatingCode, setIsValidatingCode] = useState(false);
+  
+  // Customer autocomplete states
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [nameSuggestions, setNameSuggestions] = useState<Customer[]>([]);
+  const [phoneSuggestions, setPhoneSuggestions] = useState<Customer[]>([]);
+  const [showNameSuggestions, setShowNameSuggestions] = useState(false);
+  const [showPhoneSuggestions, setShowPhoneSuggestions] = useState(false);
+  const nameInputRef = useRef<HTMLDivElement>(null);
+  const phoneInputRef = useRef<HTMLDivElement>(null);
   
   const [form, setForm] = useState({
     guest_name: "",
@@ -73,36 +89,113 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
       setDiscountCode("");
       setAppliedDiscount(null);
       setCalculatedPrice({ total: 0, discount: 0, final: 0 });
+      setNameSuggestions([]);
+      setPhoneSuggestions([]);
+      setShowNameSuggestions(false);
+      setShowPhoneSuggestions(false);
     }
   }, [open]);
 
-  // Fetch room types and public holidays
+  // Fetch room types, public holidays, and customers
   useEffect(() => {
     const fetchData = async () => {
       if (!currentAccommodationId) return;
       
-      const { data, error } = await supabase
-        .from("room_types")
-        .select("id, name, capacity")
-        .eq("accommodation_id", currentAccommodationId)
-        .order("display_order");
+      const [roomTypesResult, holidaysResult, customersResult] = await Promise.all([
+        supabase
+          .from("room_types")
+          .select("id, name, capacity")
+          .eq("accommodation_id", currentAccommodationId)
+          .order("display_order"),
+        supabase
+          .from("public_holidays")
+          .select("holiday_date")
+          .eq("accommodation_id", currentAccommodationId),
+        supabase
+          .from("customers")
+          .select("id, name, phone, email")
+          .eq("accommodation_id", currentAccommodationId)
+          .order("name")
+      ]);
 
-      if (!error && data) {
-        setRoomTypes(data);
+      if (!roomTypesResult.error && roomTypesResult.data) {
+        setRoomTypes(roomTypesResult.data);
       }
 
-      const { data: holidaysData } = await supabase
-        .from("public_holidays")
-        .select("holiday_date")
-        .eq("accommodation_id", currentAccommodationId);
+      if (holidaysResult.data) {
+        setPublicHolidays(holidaysResult.data.map(h => h.holiday_date));
+      }
 
-      if (holidaysData) {
-        setPublicHolidays(holidaysData.map(h => h.holiday_date));
+      if (!customersResult.error && customersResult.data) {
+        setCustomers(customersResult.data);
       }
     };
 
     fetchData();
   }, [currentAccommodationId]);
+
+  // Handle customer name search
+  const handleNameChange = useCallback((value: string) => {
+    setForm(prev => ({ ...prev, guest_name: value }));
+    
+    if (value.trim().length > 0) {
+      const filtered = customers.filter(c => 
+        c.name.toLowerCase().includes(value.toLowerCase())
+      ).slice(0, 5);
+      setNameSuggestions(filtered);
+      setShowNameSuggestions(filtered.length > 0);
+    } else {
+      setNameSuggestions([]);
+      setShowNameSuggestions(false);
+    }
+  }, [customers]);
+
+  // Handle customer phone search
+  const handlePhoneChange = useCallback((value: string) => {
+    setForm(prev => ({ ...prev, guest_phone: value }));
+    
+    if (value.trim().length > 2) {
+      const filtered = customers.filter(c => 
+        c.phone && c.phone.includes(value)
+      ).slice(0, 5);
+      setPhoneSuggestions(filtered);
+      setShowPhoneSuggestions(filtered.length > 0);
+    } else {
+      setPhoneSuggestions([]);
+      setShowPhoneSuggestions(false);
+    }
+  }, [customers]);
+
+  // Select customer from suggestions
+  const selectCustomer = useCallback((customer: Customer) => {
+    setForm(prev => ({
+      ...prev,
+      guest_name: customer.name,
+      guest_phone: customer.phone || "",
+      guest_email: customer.email || "",
+    }));
+    setShowNameSuggestions(false);
+    setShowPhoneSuggestions(false);
+    toast({
+      title: "已帶入客戶資料",
+      description: `${customer.name}`,
+    });
+  }, [toast]);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (nameInputRef.current && !nameInputRef.current.contains(event.target as Node)) {
+        setShowNameSuggestions(false);
+      }
+      if (phoneInputRef.current && !phoneInputRef.current.contains(event.target as Node)) {
+        setShowPhoneSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const calculateNights = () => {
     if (!form.check_in_date || !form.check_out_date) return 0;
@@ -336,24 +429,77 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
   const formContent = (
     <div className="space-y-4 py-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
+        {/* Name input with autocomplete */}
+        <div className="space-y-2 relative" ref={nameInputRef}>
           <Label>訂購人姓名 <span className="text-destructive">*</span></Label>
-          <Input
-            value={form.guest_name}
-            onChange={(e) => setForm({...form, guest_name: e.target.value})}
-            placeholder="輸入姓名"
-            className="h-12 text-base sm:h-10 sm:text-sm"
-          />
+          <div className="relative">
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={form.guest_name}
+              onChange={(e) => handleNameChange(e.target.value)}
+              onFocus={() => {
+                if (nameSuggestions.length > 0) setShowNameSuggestions(true);
+              }}
+              placeholder="輸入姓名搜尋客戶"
+              className="h-12 text-base sm:h-10 sm:text-sm pl-10"
+            />
+          </div>
+          {showNameSuggestions && nameSuggestions.length > 0 && (
+            <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg overflow-hidden">
+              {nameSuggestions.map((customer) => (
+                <button
+                  key={customer.id}
+                  type="button"
+                  onClick={() => selectCustomer(customer)}
+                  className="w-full px-3 py-2.5 text-left hover:bg-accent transition-colors flex items-center gap-3"
+                >
+                  <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium truncate">{customer.name}</div>
+                    {customer.phone && (
+                      <div className="text-xs text-muted-foreground truncate">{customer.phone}</div>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-        <div className="space-y-2">
+
+        {/* Phone input with autocomplete */}
+        <div className="space-y-2 relative" ref={phoneInputRef}>
           <Label>聯絡電話 <span className="text-destructive">*</span></Label>
-          <Input
-            value={form.guest_phone}
-            onChange={(e) => setForm({...form, guest_phone: e.target.value})}
-            placeholder="輸入電話"
-            className="h-12 text-base sm:h-10 sm:text-sm"
-            type="tel"
-          />
+          <div className="relative">
+            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={form.guest_phone}
+              onChange={(e) => handlePhoneChange(e.target.value)}
+              onFocus={() => {
+                if (phoneSuggestions.length > 0) setShowPhoneSuggestions(true);
+              }}
+              placeholder="輸入電話搜尋客戶"
+              className="h-12 text-base sm:h-10 sm:text-sm pl-10"
+              type="tel"
+            />
+          </div>
+          {showPhoneSuggestions && phoneSuggestions.length > 0 && (
+            <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg overflow-hidden">
+              {phoneSuggestions.map((customer) => (
+                <button
+                  key={customer.id}
+                  type="button"
+                  onClick={() => selectCustomer(customer)}
+                  className="w-full px-3 py-2.5 text-left hover:bg-accent transition-colors flex items-center gap-3"
+                >
+                  <Phone className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium truncate">{customer.phone}</div>
+                    <div className="text-xs text-muted-foreground truncate">{customer.name}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
