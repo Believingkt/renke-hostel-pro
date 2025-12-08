@@ -13,8 +13,9 @@ import { QuickFilters } from "@/components/orders/QuickFilters";
 import { OrderFilters } from "@/components/orders/OrderFilters";
 import { OrdersTable } from "@/components/orders/OrdersTable";
 import { EditOrderDialog } from "@/components/orders/EditOrderDialog";
+import { CreateOrderDialog } from "@/components/orders/CreateOrderDialog";
 import { Button } from "@/components/ui/button";
-import { Filter, ShoppingCart, CalendarDays, CreditCard, Package, ShoppingBag, Home } from "lucide-react";
+import { Filter, ShoppingCart, CalendarDays, CreditCard, Package, ShoppingBag, Home, Plus } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -62,6 +63,9 @@ const Orders = () => {
   // 編輯對話框狀態
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  
+  // 新增對話框狀態
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   
   // 快速篩選
   const [quickFilter, setQuickFilter] = useState<QuickFilterType>("");
@@ -452,6 +456,12 @@ const Orders = () => {
       <PageHeader
         title="訂單資訊"
         icon={ShoppingBag}
+        action={
+          <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">新增訂單</span>
+          </Button>
+        }
       />
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -673,6 +683,13 @@ const Orders = () => {
         order={editingOrder}
         onOpenChange={setEditDialogOpen}
         onSave={handleSaveEdit}
+      />
+
+      {/* 新增訂單對話框 */}
+      <CreateOrderDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onSuccess={fetchOrders}
       />
     </div>
   );
