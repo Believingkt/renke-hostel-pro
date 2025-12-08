@@ -469,7 +469,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
       
       if (orderNumberError) throw orderNumberError;
 
-      const { error } = await supabase.from("orders").insert({
+      const { data: orderData, error } = await supabase.from("orders").insert({
         accommodation_id: currentAccommodationId,
         order_number: orderNumber,
         guest_name: form.guest_name.trim(),
@@ -487,9 +487,65 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
         final_price: calculatedPrice.final,
         discount_code: appliedDiscount?.code || null,
         confirmed_at: form.order_status === "confirmed" ? new Date().toISOString() : null,
-      });
+      }).select('id').single();
 
       if (error) throw error;
+
+      // Update or create customer record
+      const guestName = form.guest_name.trim();
+      const guestPhone = form.guest_phone.trim();
+      const guestEmail = form.guest_email.trim() || null;
+
+      // Check if customer already exists by phone number
+      const { data: existingCustomer } = await supabase
+        .from("customers")
+        .select("id, visit_count")
+        .eq("accommodation_id", currentAccommodationId)
+        .eq("phone", guestPhone)
+        .maybeSingle();
+
+      if (existingCustomer) {
+        // Update existing customer
+        await supabase
+          .from("customers")
+          .update({
+            name: guestName,
+            email: guestEmail,
+            visit_count: existingCustomer.visit_count + 1,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existingCustomer.id);
+
+        // Link customer to order
+        if (orderData?.id) {
+          await supabase
+            .from("orders")
+            .update({ customer_id: existingCustomer.id })
+            .eq("id", orderData.id);
+        }
+      } else {
+        // Create new customer
+        const { data: newCustomer } = await supabase
+          .from("customers")
+          .insert({
+            accommodation_id: currentAccommodationId,
+            name: guestName,
+            phone: guestPhone,
+            email: guestEmail,
+            visit_count: 1,
+            first_order_date: form.check_in_date,
+          })
+          .select("id")
+          .single();
+
+        // Link customer to order
+        if (newCustomer?.id && orderData?.id) {
+          await supabase
+            .from("orders")
+            .update({ customer_id: newCustomer.id })
+            .eq("id", orderData.id);
+        }
+      }
 
       toast({
         title: "新增成功",
