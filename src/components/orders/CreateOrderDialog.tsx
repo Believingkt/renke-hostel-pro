@@ -581,7 +581,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
                 if (nameSuggestions.length > 0) setShowNameSuggestions(true);
               }}
               placeholder="輸入姓名搜尋客戶"
-              className="h-12 text-base sm:h-10 sm:text-sm pl-10 placeholder:pl-0"
+              className="h-12 text-base sm:h-10 sm:text-sm pl-10"
+              style={{ textIndent: 0 }}
             />
           </div>
           {showNameSuggestions && nameSuggestions.length > 0 && (
@@ -618,7 +619,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
                 if (phoneSuggestions.length > 0) setShowPhoneSuggestions(true);
               }}
               placeholder="輸入電話搜尋客戶"
-              className="h-12 text-base sm:h-10 sm:text-sm pl-10 placeholder:pl-0"
+              className="h-12 text-base sm:h-10 sm:text-sm pl-10"
+              style={{ textIndent: 0 }}
               type="tel"
             />
           </div>
@@ -952,12 +954,14 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>新增訂單</DialogTitle>
         </DialogHeader>
-        <ScrollArea className="flex-1 pr-4">
-          {formContent}
+        <ScrollArea className="flex-1 pr-4 -mr-4">
+          <div className="pr-4">
+            {formContent}
+          </div>
         </ScrollArea>
         <DialogFooter className="border-t pt-4">
           {footerButtons}
