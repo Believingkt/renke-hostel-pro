@@ -58,6 +58,8 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; type: "percentage" | "amount"; value: number } | null>(null);
   const [isValidatingCode, setIsValidatingCode] = useState(false);
+  const [checkInOpen, setCheckInOpen] = useState(false);
+  const [checkOutOpen, setCheckOutOpen] = useState(false);
   const [editForm, setEditForm] = useState({
     order_status: "",
     payment_status: "",
@@ -408,7 +410,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>入住日期</Label>
-              <Popover>
+              <Popover open={checkInOpen} onOpenChange={setCheckInOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -428,12 +430,13 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
                     onSelect={(date) => {
                       if (date && !isNaN(date.getTime())) {
                         const newCheckIn = format(date, "yyyy-MM-dd");
-                        setEditForm({...editForm, check_in_date: newCheckIn});
-                        
-                        // Clear checkout if it's before new check-in
                         if (editForm.check_out_date && !isAfter(parseISO(editForm.check_out_date), date)) {
                           setEditForm({...editForm, check_in_date: newCheckIn, check_out_date: ""});
+                        } else {
+                          setEditForm({...editForm, check_in_date: newCheckIn});
                         }
+                        setCheckInOpen(false);
+                        setTimeout(() => setCheckOutOpen(true), 150);
                       }
                     }}
                     disabled={(date) => isBefore(date, new Date(new Date().setHours(0, 0, 0, 0)))}
@@ -444,7 +447,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
 
             <div className="space-y-2">
               <Label>退房日期</Label>
-              <Popover>
+              <Popover open={checkOutOpen} onOpenChange={setCheckOutOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -465,6 +468,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
                       if (date && !isNaN(date.getTime())) {
                         if (editForm.check_in_date && isAfter(date, parseISO(editForm.check_in_date))) {
                           setEditForm({...editForm, check_out_date: format(date, "yyyy-MM-dd")});
+                          setCheckOutOpen(false);
                         } else {
                           toast({
                             title: "日期錯誤",
