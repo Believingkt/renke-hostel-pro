@@ -453,7 +453,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>入住日期</Label>
+              <Label>入住日期 <span className="text-destructive">*</span></Label>
               <Popover open={checkInOpen} onOpenChange={setCheckInOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -492,7 +492,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
             </div>
 
             <div className="space-y-2">
-              <Label>退房日期</Label>
+              <Label>退房日期 <span className="text-destructive">*</span></Label>
               <Popover open={checkOutOpen} onOpenChange={setCheckOutOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -538,7 +538,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>房型</Label>
+              <Label>房型 <span className="text-destructive">*</span></Label>
               <Select value={editForm.room_type_id} onValueChange={(value) => setEditForm({...editForm, room_type_id: value})}>
                 <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
                   <SelectValue placeholder="選擇房型" />
