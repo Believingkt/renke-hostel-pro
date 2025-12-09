@@ -576,12 +576,15 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
           {/* 專案選擇 */}
           <div className="space-y-2">
             <Label>專案</Label>
-            <Select value={editForm.meal_plan} onValueChange={(value) => setEditForm({...editForm, meal_plan: value})}>
+            <Select 
+              value={editForm.meal_plan || undefined} 
+              onValueChange={(value) => setEditForm({...editForm, meal_plan: value === "none" ? "" : value})}
+            >
               <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
                 <SelectValue placeholder="選擇專案（選填）" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">不選擇</SelectItem>
+                <SelectItem value="none">不選擇</SelectItem>
                 {pricingTemplates.map((template) => (
                   <SelectItem key={template.id} value={template.id}>
                     {template.template_name}
