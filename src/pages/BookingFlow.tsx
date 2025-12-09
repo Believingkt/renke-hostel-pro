@@ -2477,6 +2477,7 @@ const BookingFlow = () => {
                               }}
                               initialFocus
                               className={cn("p-3 pointer-events-auto")}
+                              variant="frontend"
                             />
                           </PopoverContent>
                         </Popover>
@@ -2542,6 +2543,7 @@ const BookingFlow = () => {
                               }}
                               initialFocus
                               className={cn("p-3 pointer-events-auto")}
+                              variant="frontend"
                             />
                           </PopoverContent>
                         </Popover>

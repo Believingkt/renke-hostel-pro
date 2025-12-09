@@ -529,6 +529,7 @@ const HeroSection = ({
                         }}
                         initialFocus
                         className="pointer-events-auto"
+                        variant="frontend"
                       />
                       <div className="flex items-center gap-4 mt-3 pt-3 border-t text-xs">
                         <div className="flex items-center gap-2">
@@ -583,6 +584,7 @@ const HeroSection = ({
                         }}
                         initialFocus
                         className="pointer-events-auto"
+                        variant="frontend"
                       />
                       <div className="flex items-center gap-4 mt-3 pt-3 border-t text-xs">
                         <div className="flex items-center gap-2">
