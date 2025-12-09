@@ -25,11 +25,6 @@ interface RoomType {
   capacity: number;
 }
 
-interface PricingTemplate {
-  id: string;
-  template_name: string;
-  description: string | null;
-}
 
 interface AddonSetting {
   id: string;
@@ -68,7 +63,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
   const { currentAccommodationId } = useAccommodation();
   const [isSaving, setIsSaving] = useState(false);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
-  const [pricingTemplates, setPricingTemplates] = useState<PricingTemplate[]>([]);
+  
   const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
   const [isValidating, setIsValidating] = useState(false);
   const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
@@ -97,7 +92,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
     const fetchData = async () => {
       if (!currentAccommodationId) return;
       
-      const [roomTypesResult, holidaysResult, templatesResult, addonsResult] = await Promise.all([
+      const [roomTypesResult, holidaysResult, addonsResult] = await Promise.all([
         supabase
           .from("room_types")
           .select("id, name, capacity")
@@ -107,11 +102,6 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
           .from("public_holidays")
           .select("holiday_date")
           .eq("accommodation_id", currentAccommodationId),
-        supabase
-          .from("pricing_templates")
-          .select("id, template_name, description")
-          .eq("accommodation_id", currentAccommodationId)
-          .order("display_order"),
         supabase
           .from("addon_settings")
           .select("id, addon_type, description, price_per_unit, unit_label, enabled, max_quantity")
@@ -125,10 +115,6 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
 
       if (holidaysResult.data) {
         setPublicHolidays(holidaysResult.data.map(h => h.holiday_date));
-      }
-
-      if (!templatesResult.error && templatesResult.data) {
-        setPricingTemplates(templatesResult.data);
       }
 
       if (!addonsResult.error && addonsResult.data) {

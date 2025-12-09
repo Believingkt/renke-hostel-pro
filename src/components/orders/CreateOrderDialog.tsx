@@ -32,11 +32,6 @@ interface Customer {
   email: string | null;
 }
 
-interface PricingTemplate {
-  id: string;
-  template_name: string;
-  description: string | null;
-}
 
 interface AddonSetting {
   id: string;
@@ -60,7 +55,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
   const { currentAccommodationId } = useAccommodation();
   const [isSaving, setIsSaving] = useState(false);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
-  const [pricingTemplates, setPricingTemplates] = useState<PricingTemplate[]>([]);
+  
   const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
   const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
   const [calculatedPrice, setCalculatedPrice] = useState({ total: 0, discount: 0, final: 0 });
@@ -128,7 +123,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
     const fetchData = async () => {
       if (!currentAccommodationId) return;
       
-      const [roomTypesResult, holidaysResult, customersResult, templatesResult, addonsResult] = await Promise.all([
+      const [roomTypesResult, holidaysResult, customersResult, addonsResult] = await Promise.all([
         supabase
           .from("room_types")
           .select("id, name, capacity")
@@ -143,11 +138,6 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
           .select("id, name, phone, email")
           .eq("accommodation_id", currentAccommodationId)
           .order("name"),
-        supabase
-          .from("pricing_templates")
-          .select("id, template_name, description")
-          .eq("accommodation_id", currentAccommodationId)
-          .order("display_order"),
         supabase
           .from("addon_settings")
           .select("id, addon_type, description, price_per_unit, unit_label, enabled, max_quantity")
@@ -165,10 +155,6 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
 
       if (!customersResult.error && customersResult.data) {
         setCustomers(customersResult.data);
-      }
-
-      if (!templatesResult.error && templatesResult.data) {
-        setPricingTemplates(templatesResult.data);
       }
 
       if (!addonsResult.error && addonsResult.data) {
