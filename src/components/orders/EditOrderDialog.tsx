@@ -25,6 +25,22 @@ interface RoomType {
   capacity: number;
 }
 
+interface PricingTemplate {
+  id: string;
+  template_name: string;
+  description: string | null;
+}
+
+interface AddonSetting {
+  id: string;
+  addon_type: string;
+  description: string | null;
+  price_per_unit: number;
+  unit_label: string;
+  enabled: boolean;
+  max_quantity: number;
+}
+
 interface EditOrderDialogProps {
   open: boolean;
   order: Order | null;
@@ -41,6 +57,8 @@ interface EditOrderDialogProps {
     discount_amount: number;
     final_price: number;
     discount_code: string | null;
+    meal_plan: string | null;
+    meal_plan_details: { addon_id: string; quantity: number }[] | null;
   }) => Promise<void>;
 }
 
@@ -50,6 +68,8 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
   const { currentAccommodationId } = useAccommodation();
   const [isSaving, setIsSaving] = useState(false);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
+  const [pricingTemplates, setPricingTemplates] = useState<PricingTemplate[]>([]);
+  const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
   const [isValidating, setIsValidating] = useState(false);
   const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
   const [calculatedPrice, setCalculatedPrice] = useState({ total: 0, discount: 0, final: 0 });
@@ -68,31 +88,51 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
     check_out_date: "",
     room_type_id: "",
     guest_count: 2,
+    meal_plan: "",
+    selected_addons: [] as { addon_id: string; quantity: number }[],
   });
 
-  // Fetch room types and public holidays
+  // Fetch room types, public holidays, templates, and addons
   useEffect(() => {
     const fetchData = async () => {
       if (!currentAccommodationId) return;
       
-      const { data, error } = await supabase
-        .from("room_types")
-        .select("id, name, capacity")
-        .eq("accommodation_id", currentAccommodationId)
-        .order("display_order");
+      const [roomTypesResult, holidaysResult, templatesResult, addonsResult] = await Promise.all([
+        supabase
+          .from("room_types")
+          .select("id, name, capacity")
+          .eq("accommodation_id", currentAccommodationId)
+          .order("display_order"),
+        supabase
+          .from("public_holidays")
+          .select("holiday_date")
+          .eq("accommodation_id", currentAccommodationId),
+        supabase
+          .from("pricing_templates")
+          .select("id, template_name, description")
+          .eq("accommodation_id", currentAccommodationId)
+          .order("display_order"),
+        supabase
+          .from("addon_settings")
+          .select("id, addon_type, description, price_per_unit, unit_label, enabled, max_quantity")
+          .eq("accommodation_id", currentAccommodationId)
+          .eq("enabled", true)
+      ]);
 
-      if (!error && data) {
-        setRoomTypes(data);
+      if (!roomTypesResult.error && roomTypesResult.data) {
+        setRoomTypes(roomTypesResult.data);
       }
 
-      // Fetch public holidays
-      const { data: holidaysData } = await supabase
-        .from("public_holidays")
-        .select("holiday_date")
-        .eq("accommodation_id", currentAccommodationId);
+      if (holidaysResult.data) {
+        setPublicHolidays(holidaysResult.data.map(h => h.holiday_date));
+      }
 
-      if (holidaysData) {
-        setPublicHolidays(holidaysData.map(h => h.holiday_date));
+      if (!templatesResult.error && templatesResult.data) {
+        setPricingTemplates(templatesResult.data);
+      }
+
+      if (!addonsResult.error && addonsResult.data) {
+        setAddonSettings(addonsResult.data);
       }
     };
 
@@ -102,6 +142,12 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
   // 當 order 變化時更新表單
   useEffect(() => {
     if (order) {
+      // Parse meal_plan_details from order
+      let selectedAddons: { addon_id: string; quantity: number }[] = [];
+      if (order.meal_plan_details && Array.isArray(order.meal_plan_details)) {
+        selectedAddons = order.meal_plan_details as { addon_id: string; quantity: number }[];
+      }
+      
       setEditForm({
         order_status: order.order_status,
         payment_status: order.payment_status,
@@ -110,6 +156,8 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
         check_out_date: order.check_out_date,
         room_type_id: order.room_types?.id || "",
         guest_count: order.guest_count,
+        meal_plan: order.meal_plan || "",
+        selected_addons: selectedAddons,
       });
       
       // 載入現有的折扣碼
@@ -387,6 +435,8 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
         discount_amount: calculatedPrice.discount,
         final_price: calculatedPrice.final,
         discount_code: appliedDiscount?.code || null,
+        meal_plan: editForm.meal_plan || null,
+        meal_plan_details: editForm.selected_addons.length > 0 ? editForm.selected_addons : null,
       });
       onOpenChange(false);
     } finally {
@@ -523,6 +573,94 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
             </div>
           </div>
 
+          {/* 專案選擇 */}
+          <div className="space-y-2">
+            <Label>專案</Label>
+            <Select value={editForm.meal_plan} onValueChange={(value) => setEditForm({...editForm, meal_plan: value})}>
+              <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+                <SelectValue placeholder="選擇專案（選填）" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">不選擇</SelectItem>
+                {pricingTemplates.map((template) => (
+                  <SelectItem key={template.id} value={template.id}>
+                    {template.template_name}
+                    {template.description && ` - ${template.description}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* 加購方案選擇 */}
+          {addonSettings.length > 0 && (
+            <div className="space-y-3">
+              <Label>加購方案</Label>
+              <div className="space-y-2">
+                {addonSettings.map((addon) => {
+                  const selectedAddon = editForm.selected_addons.find(a => a.addon_id === addon.id);
+                  const quantity = selectedAddon?.quantity || 0;
+                  
+                  return (
+                    <div key={addon.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm">{addon.addon_type}</div>
+                        {addon.description && (
+                          <div className="text-xs text-muted-foreground truncate">{addon.description}</div>
+                        )}
+                        <div className="text-xs text-primary">
+                          NT$ {addon.price_per_unit.toLocaleString()} / {addon.unit_label}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 ml-3">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => {
+                            if (quantity > 0) {
+                              const newAddons = quantity === 1
+                                ? editForm.selected_addons.filter(a => a.addon_id !== addon.id)
+                                : editForm.selected_addons.map(a => 
+                                    a.addon_id === addon.id ? { ...a, quantity: a.quantity - 1 } : a
+                                  );
+                              setEditForm({ ...editForm, selected_addons: newAddons });
+                            }
+                          }}
+                          disabled={quantity === 0}
+                        >
+                          -
+                        </Button>
+                        <span className="w-8 text-center text-sm font-medium">{quantity}</span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => {
+                            if (quantity < addon.max_quantity) {
+                              const existingIndex = editForm.selected_addons.findIndex(a => a.addon_id === addon.id);
+                              const newAddons = existingIndex >= 0
+                                ? editForm.selected_addons.map(a => 
+                                    a.addon_id === addon.id ? { ...a, quantity: a.quantity + 1 } : a
+                                  )
+                                : [...editForm.selected_addons, { addon_id: addon.id, quantity: 1 }];
+                              setEditForm({ ...editForm, selected_addons: newAddons });
+                            }
+                          }}
+                          disabled={quantity >= addon.max_quantity}
+                        >
+                          +
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label>訂單狀態</Label>
             <Select value={editForm.order_status} onValueChange={(value) => setEditForm({...editForm, order_status: value})}>
@@ -651,9 +789,18 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">小計</span>
+                <span className="text-sm text-muted-foreground">房價小計</span>
                 <span className="font-medium">NT$ {calculatedPrice.total.toLocaleString()}</span>
               </div>
+              {editForm.selected_addons.length > 0 && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">加購小計</span>
+                  <span className="font-medium">NT$ {editForm.selected_addons.reduce((sum, selectedAddon) => {
+                    const addon = addonSettings.find(a => a.id === selectedAddon.addon_id);
+                    return sum + (addon ? addon.price_per_unit * selectedAddon.quantity : 0);
+                  }, 0).toLocaleString()}</span>
+                </div>
+              )}
               {calculatedPrice.discount > 0 && (
                 <div className="flex justify-between items-center text-green-600">
                   <span className="text-sm">折扣</span>
@@ -663,7 +810,10 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
               <div className="flex justify-between items-center py-3 bg-primary/5 px-4 rounded-lg">
                 <span className="font-semibold">總金額</span>
                 <span className="font-bold text-lg text-primary">
-                  NT$ {calculatedPrice.final.toLocaleString()}
+                  NT$ {(calculatedPrice.final + editForm.selected_addons.reduce((sum, selectedAddon) => {
+                    const addon = addonSettings.find(a => a.id === selectedAddon.addon_id);
+                    return sum + (addon ? addon.price_per_unit * selectedAddon.quantity : 0);
+                  }, 0)).toLocaleString()}
                 </span>
               </div>
             </div>

@@ -354,6 +354,8 @@ const Orders = () => {
     discount_amount: number;
     final_price: number;
     discount_code: string | null;
+    meal_plan: string | null;
+    meal_plan_details: { addon_id: string; quantity: number }[] | null;
   }) => {
     if (!editingOrder) return;
 
@@ -371,6 +373,8 @@ const Orders = () => {
         discount_amount: form.discount_amount,
         discount_code: form.discount_code,
         final_price: form.final_price,
+        meal_plan: form.meal_plan,
+        meal_plan_details: form.meal_plan_details,
         updated_at: new Date().toISOString(),
       };
 
