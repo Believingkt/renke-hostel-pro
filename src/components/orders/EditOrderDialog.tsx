@@ -415,8 +415,10 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !editForm.check_in_date && "text-muted-foreground"
+                      "w-full justify-start text-left font-normal h-12 sm:h-10",
+                      editForm.check_in_date 
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90" 
+                        : "bg-background text-foreground hover:bg-primary hover:text-primary-foreground"
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
@@ -452,8 +454,10 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !editForm.check_out_date && "text-muted-foreground"
+                      "w-full justify-start text-left font-normal h-12 sm:h-10",
+                      editForm.check_out_date 
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90" 
+                        : "bg-background text-foreground hover:bg-primary hover:text-primary-foreground"
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
