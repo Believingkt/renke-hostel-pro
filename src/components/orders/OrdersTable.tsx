@@ -64,7 +64,7 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
               <SortableHeader field="check_in_date">入住日期</SortableHeader>
               <SortableHeader field="check_out_date">退房日期</SortableHeader>
               <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
-                餐食方案
+                專案
               </th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
                 訂單狀態
@@ -221,7 +221,7 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                     {order.meal_plan && (
                       <div className="flex items-center text-sm">
                         <Utensils className="w-4 h-4 mr-2 text-muted-foreground" />
-                        <span className="text-muted-foreground mr-2">餐食方案:</span>
+                        <span className="text-muted-foreground mr-2">專案:</span>
                         <span className="font-medium">{getMealPlanDisplayName(order.meal_plan)}</span>
                       </div>
                     )}
