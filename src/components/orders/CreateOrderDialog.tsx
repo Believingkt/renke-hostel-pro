@@ -833,12 +833,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="none">不選擇</SelectItem>
-            {pricingTemplates.map((template) => (
-              <SelectItem key={template.id} value={template.id}>
-                {template.template_name}
-                {template.description && ` - ${template.description}`}
-              </SelectItem>
-            ))}
+            <SelectItem value="2_meals">一泊二食</SelectItem>
+            <SelectItem value="3_meals">一泊三食</SelectItem>
           </SelectContent>
         </Select>
       </div>
