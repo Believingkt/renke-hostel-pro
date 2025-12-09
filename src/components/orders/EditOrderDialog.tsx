@@ -596,7 +596,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
                   return (
                     <div key={addon.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm">{addon.addon_type}</div>
+                        <div className="font-medium text-sm">{addon.addon_type === 'pet' ? '寵物方案' : addon.addon_type === 'meal' ? '餐食方案' : addon.addon_type}</div>
                         {addon.description && (
                           <div className="text-xs text-muted-foreground truncate">{addon.description}</div>
                         )}
