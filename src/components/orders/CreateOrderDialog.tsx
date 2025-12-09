@@ -32,6 +32,22 @@ interface Customer {
   email: string | null;
 }
 
+interface PricingTemplate {
+  id: string;
+  template_name: string;
+  description: string | null;
+}
+
+interface AddonSetting {
+  id: string;
+  addon_type: string;
+  description: string | null;
+  price_per_unit: number;
+  unit_label: string;
+  enabled: boolean;
+  max_quantity: number;
+}
+
 interface CreateOrderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -44,6 +60,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
   const { currentAccommodationId } = useAccommodation();
   const [isSaving, setIsSaving] = useState(false);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
+  const [pricingTemplates, setPricingTemplates] = useState<PricingTemplate[]>([]);
+  const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
   const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
   const [calculatedPrice, setCalculatedPrice] = useState({ total: 0, discount: 0, final: 0 });
   const [inventoryWarnings, setInventoryWarnings] = useState<{ date: string; available: number; blocked?: boolean; blockedBy?: string }[]>([]);
@@ -74,6 +92,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
     order_status: "confirmed",
     payment_status: "unpaid",
     notes: "",
+    meal_plan: "",
+    selected_addons: [] as { addon_id: string; quantity: number }[],
   });
 
   // Reset form when dialog opens
@@ -90,6 +110,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
         order_status: "confirmed",
         payment_status: "unpaid",
         notes: "",
+        meal_plan: "",
+        selected_addons: [],
       });
       setDiscountCode("");
       setAppliedDiscount(null);
@@ -106,7 +128,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
     const fetchData = async () => {
       if (!currentAccommodationId) return;
       
-      const [roomTypesResult, holidaysResult, customersResult] = await Promise.all([
+      const [roomTypesResult, holidaysResult, customersResult, templatesResult, addonsResult] = await Promise.all([
         supabase
           .from("room_types")
           .select("id, name, capacity")
@@ -120,7 +142,17 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
           .from("customers")
           .select("id, name, phone, email")
           .eq("accommodation_id", currentAccommodationId)
-          .order("name")
+          .order("name"),
+        supabase
+          .from("pricing_templates")
+          .select("id, template_name, description")
+          .eq("accommodation_id", currentAccommodationId)
+          .order("display_order"),
+        supabase
+          .from("addon_settings")
+          .select("id, addon_type, description, price_per_unit, unit_label, enabled, max_quantity")
+          .eq("accommodation_id", currentAccommodationId)
+          .eq("enabled", true)
       ]);
 
       if (!roomTypesResult.error && roomTypesResult.data) {
@@ -129,6 +161,18 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
 
       if (holidaysResult.data) {
         setPublicHolidays(holidaysResult.data.map(h => h.holiday_date));
+      }
+
+      if (!customersResult.error && customersResult.data) {
+        setCustomers(customersResult.data);
+      }
+
+      if (!templatesResult.error && templatesResult.data) {
+        setPricingTemplates(templatesResult.data);
+      }
+
+      if (!addonsResult.error && addonsResult.data) {
+        setAddonSettings(addonsResult.data);
       }
 
       if (!customersResult.error && customersResult.data) {
@@ -471,6 +515,14 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
       
       if (orderNumberError) throw orderNumberError;
 
+      // Calculate addon total
+      const addonTotal = form.selected_addons.reduce((sum, selectedAddon) => {
+        const addon = addonSettings.find(a => a.id === selectedAddon.addon_id);
+        return sum + (addon ? addon.price_per_unit * selectedAddon.quantity : 0);
+      }, 0);
+
+      const finalPriceWithAddons = calculatedPrice.final + addonTotal;
+
       const { data: orderData, error } = await supabase.from("orders").insert({
         accommodation_id: currentAccommodationId,
         order_number: orderNumber,
@@ -484,10 +536,12 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
         order_status: form.order_status,
         payment_status: form.payment_status,
         notes: form.notes.trim() || null,
-        total_price: calculatedPrice.total,
+        total_price: calculatedPrice.total + addonTotal,
         discount_amount: calculatedPrice.discount,
-        final_price: calculatedPrice.final,
+        final_price: finalPriceWithAddons,
         discount_code: appliedDiscount?.code || null,
+        meal_plan: form.meal_plan || null,
+        meal_plan_details: form.selected_addons.length > 0 ? form.selected_addons : null,
         confirmed_at: form.order_status === "confirmed" ? new Date().toISOString() : null,
       }).select('id').single();
 
@@ -767,6 +821,94 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
         </div>
       </div>
 
+      {/* 專案選擇 */}
+      <div className="space-y-2">
+        <Label>專案</Label>
+        <Select value={form.meal_plan} onValueChange={(value) => setForm({...form, meal_plan: value})}>
+          <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+            <SelectValue placeholder="選擇專案（選填）" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">不選擇</SelectItem>
+            {pricingTemplates.map((template) => (
+              <SelectItem key={template.id} value={template.id}>
+                {template.template_name}
+                {template.description && ` - ${template.description}`}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* 加購方案選擇 */}
+      {addonSettings.length > 0 && (
+        <div className="space-y-3">
+          <Label>加購方案</Label>
+          <div className="space-y-2">
+            {addonSettings.map((addon) => {
+              const selectedAddon = form.selected_addons.find(a => a.addon_id === addon.id);
+              const quantity = selectedAddon?.quantity || 0;
+              
+              return (
+                <div key={addon.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm">{addon.addon_type}</div>
+                    {addon.description && (
+                      <div className="text-xs text-muted-foreground truncate">{addon.description}</div>
+                    )}
+                    <div className="text-xs text-primary">
+                      NT$ {addon.price_per_unit.toLocaleString()} / {addon.unit_label}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 ml-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => {
+                        if (quantity > 0) {
+                          const newAddons = quantity === 1
+                            ? form.selected_addons.filter(a => a.addon_id !== addon.id)
+                            : form.selected_addons.map(a => 
+                                a.addon_id === addon.id ? { ...a, quantity: a.quantity - 1 } : a
+                              );
+                          setForm({ ...form, selected_addons: newAddons });
+                        }
+                      }}
+                      disabled={quantity === 0}
+                    >
+                      -
+                    </Button>
+                    <span className="w-8 text-center text-sm font-medium">{quantity}</span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => {
+                        if (quantity < addon.max_quantity) {
+                          const existingIndex = form.selected_addons.findIndex(a => a.addon_id === addon.id);
+                          const newAddons = existingIndex >= 0
+                            ? form.selected_addons.map(a => 
+                                a.addon_id === addon.id ? { ...a, quantity: a.quantity + 1 } : a
+                              )
+                            : [...form.selected_addons, { addon_id: addon.id, quantity: 1 }];
+                          setForm({ ...form, selected_addons: newAddons });
+                        }
+                      }}
+                      disabled={quantity >= addon.max_quantity}
+                    >
+                      +
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>訂單狀態</Label>
@@ -901,9 +1043,18 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
           </span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">原價</span>
+          <span className="text-muted-foreground">房價小計</span>
           <span>NT$ {calculatedPrice.total.toLocaleString()}</span>
         </div>
+        {form.selected_addons.length > 0 && (
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">加購小計</span>
+            <span>NT$ {form.selected_addons.reduce((sum, selectedAddon) => {
+              const addon = addonSettings.find(a => a.id === selectedAddon.addon_id);
+              return sum + (addon ? addon.price_per_unit * selectedAddon.quantity : 0);
+            }, 0).toLocaleString()}</span>
+          </div>
+        )}
         {calculatedPrice.discount > 0 && (
           <div className="flex justify-between text-sm text-green-600">
             <span>折扣</span>
@@ -912,7 +1063,10 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
         )}
         <div className="flex justify-between font-semibold text-lg pt-2 border-t">
           <span>應付金額</span>
-          <span className="text-primary">NT$ {calculatedPrice.final.toLocaleString()}</span>
+          <span className="text-primary">NT$ {(calculatedPrice.final + form.selected_addons.reduce((sum, selectedAddon) => {
+            const addon = addonSettings.find(a => a.id === selectedAddon.addon_id);
+            return sum + (addon ? addon.price_per_unit * selectedAddon.quantity : 0);
+          }, 0)).toLocaleString()}</span>
         </div>
       </div>
     </div>
