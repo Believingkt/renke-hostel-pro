@@ -83,7 +83,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
     check_out_date: "",
     room_type_id: "",
     guest_count: 2,
-    meal_plan: "",
+    meal_plan: "2_meals",
     selected_addons: [] as { addon_id: string; quantity: number }[],
   });
 
@@ -142,7 +142,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
         check_out_date: order.check_out_date,
         room_type_id: order.room_types?.id || "",
         guest_count: order.guest_count,
-        meal_plan: order.meal_plan || "",
+        meal_plan: order.meal_plan || "2_meals",
         selected_addons: selectedAddons,
       });
       
@@ -412,6 +412,14 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
       return;
     }
 
+    if (!editForm.meal_plan) {
+      toast({
+        title: "專案錯誤",
+        description: "請選擇專案",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsSaving(true);
     try {
@@ -563,14 +571,13 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
           <div className="space-y-2">
             <Label>專案</Label>
             <Select 
-              value={editForm.meal_plan || undefined} 
-              onValueChange={(value) => setEditForm({...editForm, meal_plan: value === "none" ? "" : value})}
+              value={editForm.meal_plan} 
+              onValueChange={(value) => setEditForm({...editForm, meal_plan: value})}
             >
               <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
-                <SelectValue placeholder="選擇專案（選填）" />
+                <SelectValue placeholder="選擇專案" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">不選擇</SelectItem>
                 <SelectItem value="2_meals">一泊二食</SelectItem>
                 <SelectItem value="3_meals">一泊三食</SelectItem>
               </SelectContent>
