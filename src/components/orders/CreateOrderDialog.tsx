@@ -87,7 +87,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
     order_status: "confirmed",
     payment_status: "unpaid",
     notes: "",
-    meal_plan: "",
+    meal_plan: "2_meals",
     selected_addons: [] as { addon_id: string; quantity: number }[],
   });
 
@@ -105,7 +105,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
         order_status: "confirmed",
         payment_status: "unpaid",
         notes: "",
-        meal_plan: "",
+        meal_plan: "2_meals",
         selected_addons: [],
       });
       setDiscountCode("");
@@ -485,6 +485,15 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
       return;
     }
 
+    if (!form.meal_plan) {
+      toast({
+        title: "專案錯誤",
+        description: "請選擇專案",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!currentAccommodationId) {
       toast({
         title: "系統錯誤",
@@ -811,14 +820,13 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
       <div className="space-y-2">
         <Label>專案</Label>
         <Select 
-          value={form.meal_plan || undefined} 
-          onValueChange={(value) => setForm({...form, meal_plan: value === "none" ? "" : value})}
+          value={form.meal_plan} 
+          onValueChange={(value) => setForm({...form, meal_plan: value})}
         >
           <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
-            <SelectValue placeholder="選擇專案（選填）" />
+            <SelectValue placeholder="選擇專案" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="none">不選擇</SelectItem>
             <SelectItem value="2_meals">一泊二食</SelectItem>
             <SelectItem value="3_meals">一泊三食</SelectItem>
           </SelectContent>
