@@ -554,7 +554,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
             </div>
 
             <div className="space-y-2">
-              <Label>入住人數</Label>
+              <Label>入住人數 <span className="text-destructive">*</span></Label>
               <Input
                 type="number"
                 min="1"
