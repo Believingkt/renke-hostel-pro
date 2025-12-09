@@ -569,7 +569,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
 
           {/* 專案選擇 */}
           <div className="space-y-2">
-            <Label>專案</Label>
+            <Label>專案 <span className="text-destructive">*</span></Label>
             <Select 
               value={editForm.meal_plan} 
               onValueChange={(value) => setEditForm({...editForm, meal_plan: value})}
