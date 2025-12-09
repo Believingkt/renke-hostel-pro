@@ -818,7 +818,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
 
       {/* 專案選擇 */}
       <div className="space-y-2">
-        <Label>專案</Label>
+        <Label>專案 <span className="text-destructive">*</span></Label>
         <Select 
           value={form.meal_plan} 
           onValueChange={(value) => setForm({...form, meal_plan: value})}
