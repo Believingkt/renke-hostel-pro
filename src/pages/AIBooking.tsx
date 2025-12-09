@@ -893,6 +893,7 @@ export default function AIBooking() {
                           numberOfMonths={2}
                           locale={zhTW}
                           className="pointer-events-auto"
+                          variant="frontend"
                         />
                         <Button
                           onClick={() => {

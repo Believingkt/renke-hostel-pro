@@ -5,9 +5,28 @@ import { DayPicker } from "react-day-picker";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 
-export type CalendarProps = React.ComponentProps<typeof DayPicker>;
+export type CalendarVariant = "frontend" | "backend";
 
-function Calendar({ className, classNames, showOutsideDays = true, ...props }: CalendarProps) {
+export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
+  variant?: CalendarVariant;
+};
+
+const colorSchemes = {
+  frontend: {
+    selected: "bg-[hsl(142,71%,45%)] text-white hover:bg-[hsl(142,71%,45%)] hover:text-white focus:bg-[hsl(142,71%,45%)] focus:text-white",
+    today: "border border-[hsl(142,71%,45%)] font-semibold aria-selected:border-0 aria-selected:bg-[hsl(142,71%,45%)] aria-selected:text-white",
+    hover: "hover:bg-[hsl(142,71%,45%)] hover:text-white",
+  },
+  backend: {
+    selected: "bg-[hsl(203,78%,43%)] text-white hover:bg-[hsl(203,78%,43%)] hover:text-white focus:bg-[hsl(203,78%,43%)] focus:text-white",
+    today: "border border-[hsl(203,78%,43%)] font-semibold aria-selected:border-0 aria-selected:bg-[hsl(203,78%,43%)] aria-selected:text-white",
+    hover: "hover:bg-[hsl(203,78%,43%)] hover:text-white",
+  },
+};
+
+function Calendar({ className, classNames, showOutsideDays = true, variant = "backend", ...props }: CalendarProps) {
+  const colors = colorSchemes[variant];
+  
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
@@ -29,11 +48,10 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
         row: "flex w-full mt-2",
         cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-        day: cn(buttonVariants({ variant: "ghost" }), "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-[hsl(203,78%,43%)] hover:text-white"),
+        day: cn(buttonVariants({ variant: "ghost" }), "h-9 w-9 p-0 font-normal aria-selected:opacity-100", colors.hover),
         day_range_end: "day-range-end",
-        day_selected:
-          "bg-[hsl(203,78%,43%)] text-white hover:bg-[hsl(203,78%,43%)] hover:text-white focus:bg-[hsl(203,78%,43%)] focus:text-white",
-        day_today: "border border-[hsl(203,78%,43%)] font-semibold aria-selected:border-0 aria-selected:bg-[hsl(203,78%,43%)] aria-selected:text-white",
+        day_selected: colors.selected,
+        day_today: colors.today,
         day_outside:
           "day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
         day_disabled: "text-muted-foreground opacity-50",
