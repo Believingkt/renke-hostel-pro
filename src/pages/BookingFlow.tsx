@@ -378,6 +378,11 @@ const BookingFlow = () => {
           }));
           
           setRoomTypes(roomTypesWithPhotos);
+          
+          // 如果只有一個房型，自動預選該房型
+          if (roomTypesWithPhotos.length === 1 && !searchParams.get("roomId")) {
+            setSelectedRoom(roomTypesWithPhotos[0]);
+          }
         }
 
         // 獲取國定假日資料
