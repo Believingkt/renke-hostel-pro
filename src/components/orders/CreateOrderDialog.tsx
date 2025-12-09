@@ -658,9 +658,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
               <Button
                 variant="outline"
                 className={cn(
-                  "w-full justify-start text-left font-normal h-12 sm:h-10",
-                  !form.check_in_date && "text-muted-foreground",
-                  form.check_in_date && "bg-primary text-primary-foreground hover:bg-primary/90"
+                  "w-full justify-start text-left font-normal h-12 sm:h-10 bg-primary text-primary-foreground hover:bg-primary/90",
+                  !form.check_in_date && "text-primary-foreground/70"
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
@@ -697,9 +696,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
               <Button
                 variant="outline"
                 className={cn(
-                  "w-full justify-start text-left font-normal h-12 sm:h-10",
-                  !form.check_out_date && "text-muted-foreground",
-                  form.check_out_date && "bg-primary text-primary-foreground hover:bg-primary/90"
+                  "w-full justify-start text-left font-normal h-12 sm:h-10 bg-primary text-primary-foreground hover:bg-primary/90",
+                  !form.check_out_date && "text-primary-foreground/70"
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
