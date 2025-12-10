@@ -283,6 +283,25 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
                 </div>
               </div>
             )}
+            {room.name === '18人包區' && (inventoryPricing.weekend_2_meals || inventoryPricing.weekend_3_meals) && (
+              <div>
+                <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">假日價格</p>
+                <div className="space-y-1">
+                  {inventoryPricing.weekend_2_meals && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs md:text-sm text-muted-foreground">一泊二食</span>
+                      <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekend_2_meals.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {inventoryPricing.weekend_3_meals && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs md:text-sm text-muted-foreground">一泊三食</span>
+                      <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekend_3_meals.toLocaleString()}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
           <Link to={`/booking?roomId=${room.id}&step=dates`}>
             <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg h-9 md:h-10 font-medium mt-3 md:mt-4 text-sm md:text-base">
