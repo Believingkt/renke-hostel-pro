@@ -365,7 +365,7 @@ const HeroSection = ({
           <CarouselContent className="-ml-0">
             {slides.map((slide, index) => (
               <CarouselItem key={slide.id} className="pl-0">
-                <div className="relative h-[500px] md:h-[700px] w-full bg-gradient-to-br from-muted to-muted/50">
+                <div className="relative h-[580px] md:h-[700px] w-full bg-gradient-to-br from-muted to-muted/50">
                   {index === 0 ? (
                     // 首張圖片：無過渡效果，直接顯示
                     <img
