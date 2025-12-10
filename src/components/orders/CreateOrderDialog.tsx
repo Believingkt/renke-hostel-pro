@@ -86,6 +86,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
     guest_count: 2,
     order_status: "confirmed",
     payment_status: "unpaid",
+    payment_method: "",
+    deposit_amount: 0,
     notes: "",
     meal_plan: "2_meals",
     selected_addons: [] as { addon_id: string; quantity: number }[],
@@ -104,6 +106,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
         guest_count: 2,
         order_status: "confirmed",
         payment_status: "unpaid",
+        payment_method: "",
+        deposit_amount: 0,
         notes: "",
         meal_plan: "2_meals",
         selected_addons: [],
@@ -530,6 +534,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
         guest_count: form.guest_count,
         order_status: form.order_status,
         payment_status: form.payment_status,
+        payment_method: form.payment_method || null,
+        deposit_amount: form.deposit_amount || 0,
+        paid_amount: form.payment_status === "deposit_paid" ? form.deposit_amount : (form.payment_status === "paid" ? finalPriceWithAddons : 0),
         notes: form.notes.trim() || null,
         total_price: calculatedPrice.total + addonTotal,
         discount_amount: calculatedPrice.discount,
@@ -932,6 +939,37 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
               <SelectItem value="overdue">已逾期</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>付款方式</Label>
+          <Select value={form.payment_method} onValueChange={(value) => setForm({...form, payment_method: value})}>
+            <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+              <SelectValue placeholder="選擇付款方式" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="credit_card">信用卡</SelectItem>
+              <SelectItem value="line_pay">LINE Pay</SelectItem>
+              <SelectItem value="bank_transfer">轉帳匯款</SelectItem>
+              <SelectItem value="cash">現金</SelectItem>
+              <SelectItem value="monthly">月結</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>訂金金額</Label>
+          <Input
+            type="number"
+            min="0"
+            value={form.deposit_amount || ""}
+            onChange={(e) => setForm({...form, deposit_amount: parseInt(e.target.value) || 0})}
+            placeholder="輸入訂金金額"
+            className="h-12 text-base sm:h-10 sm:text-sm"
+            inputMode="numeric"
+          />
         </div>
       </div>
 
