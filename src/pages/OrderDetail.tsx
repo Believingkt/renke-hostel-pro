@@ -44,6 +44,8 @@ interface OrderDetail {
   deposit_amount: number;
   paid_amount: number;
   payment_method: string | null;
+  deposit_payment_method: string | null;
+  balance_payment_method: string | null;
   meal_plan: string | null;
   notes: string | null;
   order_date: string;
@@ -162,6 +164,19 @@ const OrderDetail = () => {
         {config.label}
       </span>
     );
+  };
+
+  // 獲取付款方式顯示名稱
+  const getPaymentMethodDisplayName = (method: string | null) => {
+    if (!method) return "-";
+    const methodMap: Record<string, string> = {
+      credit_card: "信用卡",
+      line_pay: "LINE Pay",
+      bank_transfer: "轉帳匯款",
+      cash: "現金",
+      monthly: "月結",
+    };
+    return methodMap[method] || method;
   };
 
   // 獲取餐食方案顯示名稱
@@ -342,12 +357,21 @@ const OrderDetail = () => {
               <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">付款狀態</span>
               {getPaymentStatusBadge(order.payment_status)}
             </div>
-            {order.payment_method && (
+            {order.deposit_payment_method && (
               <>
                 <Separator />
                 <div className="flex justify-between items-center gap-2">
-                  <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">付款方式</span>
-                  <span className="font-medium text-sm md:text-base">{order.payment_method}</span>
+                  <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">訂金付款方式</span>
+                  <span className="font-medium text-sm md:text-base">{getPaymentMethodDisplayName(order.deposit_payment_method)}</span>
+                </div>
+              </>
+            )}
+            {order.balance_payment_method && (
+              <>
+                <Separator />
+                <div className="flex justify-between items-center gap-2">
+                  <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">尾款付款方式</span>
+                  <span className="font-medium text-sm md:text-base">{getPaymentMethodDisplayName(order.balance_payment_method)}</span>
                 </div>
               </>
             )}
