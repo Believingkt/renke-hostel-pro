@@ -263,10 +263,10 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
         </div>
         
         <div className="pt-3 border-t mt-3">
-          <div className="space-y-2 md:space-y-3 md:min-h-[180px] lg:min-h-[200px]">
+          <div className="space-y-2 md:space-y-3 md:min-h-[80px] lg:min-h-[100px]">
             {(inventoryPricing.weekday_2_meals || inventoryPricing.weekday_3_meals) && (
               <div>
-                <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">平日</p>
+                <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">平日價格</p>
                 <div className="space-y-1">
                   {inventoryPricing.weekday_2_meals && (
                     <div className="flex justify-between items-center">
@@ -278,25 +278,6 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
                     <div className="flex justify-between items-center">
                       <span className="text-xs md:text-sm text-muted-foreground">一泊三食</span>
                       <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekday_3_meals.toLocaleString()}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-            {(inventoryPricing.weekend_2_meals || inventoryPricing.weekend_3_meals) && (
-              <div>
-                <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">假日</p>
-                <div className="space-y-1">
-                  {inventoryPricing.weekend_2_meals && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs md:text-sm text-muted-foreground">一泊二食</span>
-                      <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekend_2_meals.toLocaleString()}</span>
-                    </div>
-                  )}
-                  {inventoryPricing.weekend_3_meals && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs md:text-sm text-muted-foreground">一泊三食</span>
-                      <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekend_3_meals.toLocaleString()}</span>
                     </div>
                   )}
                 </div>
