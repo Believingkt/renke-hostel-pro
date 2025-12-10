@@ -845,6 +845,7 @@ export type Database = {
       orders: {
         Row: {
           accommodation_id: string
+          balance_payment_method: string | null
           cancelled_at: string | null
           check_in_date: string
           check_out_date: string
@@ -854,6 +855,7 @@ export type Database = {
           created_at: string | null
           customer_id: string | null
           deposit_amount: number | null
+          deposit_payment_method: string | null
           discount_amount: number | null
           discount_code: string | null
           final_price: number
@@ -882,6 +884,7 @@ export type Database = {
         }
         Insert: {
           accommodation_id: string
+          balance_payment_method?: string | null
           cancelled_at?: string | null
           check_in_date: string
           check_out_date: string
@@ -891,6 +894,7 @@ export type Database = {
           created_at?: string | null
           customer_id?: string | null
           deposit_amount?: number | null
+          deposit_payment_method?: string | null
           discount_amount?: number | null
           discount_code?: string | null
           final_price: number
@@ -919,6 +923,7 @@ export type Database = {
         }
         Update: {
           accommodation_id?: string
+          balance_payment_method?: string | null
           cancelled_at?: string | null
           check_in_date?: string
           check_out_date?: string
@@ -928,6 +933,7 @@ export type Database = {
           created_at?: string | null
           customer_id?: string | null
           deposit_amount?: number | null
+          deposit_payment_method?: string | null
           discount_amount?: number | null
           discount_code?: string | null
           final_price?: number
