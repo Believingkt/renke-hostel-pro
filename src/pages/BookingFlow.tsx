@@ -1858,7 +1858,8 @@ const BookingFlow = () => {
           discount_amount: discountAmount,
           final_price: finalPrice,
           deposit_amount: depositAmount,
-          payment_method: paymentMethod,
+          deposit_payment_method: (paymentMethod === '信用卡' || paymentMethod === 'LINE Pay') ? (paymentMethod === '信用卡' ? 'credit_card' : 'line_pay') : null,
+          balance_payment_method: null,
           payment_status: bookingSettings?.use_deposit ? "unpaid" : "unpaid",
           order_status: "pending",
           notes: orderNotes || null,
@@ -3224,16 +3225,13 @@ const BookingFlow = () => {
                         </p>
                       </CardHeader>
                       <CardContent className="space-y-3">
-                        {/* 暫時停用線上金流，僅提供現場付款選項供測試 */}
+                        {/* 顯示所有可用的付款方式（包括信用卡和 LINE Pay） */}
                         {(() => {
-                          // 過濾掉信用卡和 LINE Pay，保留其他付款方式
                           const availableMethods = Array.isArray(bookingSettings?.payment_methods) 
-                            ? bookingSettings.payment_methods.filter((method: string) => 
-                                method !== '信用卡' && method !== 'LINE Pay'
-                              )
-                            : [];
+                            ? bookingSettings.payment_methods
+                            : ['現場付款'];
                           
-                          // 如果沒有其他付款方式，添加「現場付款」選項
+                          // 如果沒有設定付款方式，預設提供「現場付款」
                           const displayMethods = availableMethods.length > 0 
                             ? availableMethods 
                             : ['現場付款'];
@@ -3265,13 +3263,20 @@ const BookingFlow = () => {
                                         : "text-muted-foreground"
                                     }`} />
                                   </div>
-                                  <span className={`font-medium text-base ${
-                                    paymentMethod === method
-                                      ? "text-foreground"
-                                      : "text-foreground/80"
-                                  }`}>
-                                    {method}
-                                  </span>
+                                  <div className="flex-1">
+                                    <span className={`font-medium text-base ${
+                                      paymentMethod === method
+                                        ? "text-foreground"
+                                        : "text-foreground/80"
+                                    }`}>
+                                      {method}
+                                    </span>
+                                    {(method === '信用卡' || method === 'LINE Pay') && bookingSettings?.use_deposit && (
+                                      <p className="text-xs text-muted-foreground mt-0.5">
+                                        線上付款訂金 NT$ {Math.round(calculateFinalTotal() * (bookingSettings.deposit_percentage / 100)).toLocaleString()}
+                                      </p>
+                                    )}
+                                  </div>
                                   {paymentMethod === method && (
                                     <CheckCircle className="h-5 w-5 text-primary ml-auto" />
                                   )}
@@ -3281,12 +3286,46 @@ const BookingFlow = () => {
                           });
                         })()}
 
-                        {/* TapPay 信用卡表單 - 暫時停用 */}
-                        {/* 
-                        {paymentMethod === '信用卡' && isTapPayReady && (
-                          ... TapPay form hidden for testing ...
+                        {/* TapPay 信用卡表單 */}
+                        {paymentMethod === '信用卡' && (
+                          <div className="mt-4 p-4 border rounded-lg bg-card">
+                            <div className="mb-3">
+                              <p className="text-sm font-medium text-foreground mb-1">請輸入信用卡資訊</p>
+                              <p className="text-xs text-muted-foreground">您的卡片資訊由 TapPay 安全加密處理</p>
+                            </div>
+                            {!isTapPayReady ? (
+                              <div className="flex items-center justify-center py-8">
+                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                                <span className="ml-2 text-sm text-muted-foreground">載入付款表單...</span>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="space-y-3">
+                                  <div>
+                                    <Label className="text-xs text-muted-foreground">卡號</Label>
+                                    <div id="card-number" className="tpfield h-10 border rounded-md px-3 bg-background"></div>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                      <Label className="text-xs text-muted-foreground">有效期限</Label>
+                                      <div id="card-expiration-date" className="tpfield h-10 border rounded-md px-3 bg-background"></div>
+                                    </div>
+                                    <div>
+                                      <Label className="text-xs text-muted-foreground">安全碼</Label>
+                                      <div id="card-ccv" className="tpfield h-10 border rounded-md px-3 bg-background"></div>
+                                    </div>
+                                  </div>
+                                </div>
+                                {cardValid && (
+                                  <div className="mt-3 flex items-center gap-2 text-sm text-success">
+                                    <CheckCircle className="h-4 w-4" />
+                                    <span>卡片資訊已驗證</span>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
                         )}
-                        */}
                         
                         {/* 付款錯誤提示 */}
                         {lastPaymentError && paymentMethod && (
