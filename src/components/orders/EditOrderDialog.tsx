@@ -42,7 +42,10 @@ interface EditOrderDialogProps {
   onOpenChange: (open: boolean) => void;
   onSave: (form: { 
     order_status: string; 
-    payment_status: string; 
+    payment_status: string;
+    deposit_payment_method: string;
+    balance_payment_method: string;
+    deposit_amount: number;
     notes: string;
     check_in_date: string;
     check_out_date: string;
@@ -78,6 +81,9 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
   const [editForm, setEditForm] = useState({
     order_status: "",
     payment_status: "",
+    deposit_payment_method: "",
+    balance_payment_method: "",
+    deposit_amount: 0,
     notes: "",
     check_in_date: "",
     check_out_date: "",
@@ -137,6 +143,9 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
       setEditForm({
         order_status: order.order_status,
         payment_status: order.payment_status,
+        deposit_payment_method: (order as any).deposit_payment_method || "",
+        balance_payment_method: (order as any).balance_payment_method || "",
+        deposit_amount: (order as any).deposit_amount || 0,
         notes: order.notes || "",
         check_in_date: order.check_in_date,
         check_out_date: order.check_out_date,
@@ -682,6 +691,53 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
                 <SelectItem value="overdue">已逾期</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>訂金金額</Label>
+              <Input
+                type="number"
+                min="0"
+                value={editForm.deposit_amount || ""}
+                onChange={(e) => setEditForm({...editForm, deposit_amount: parseInt(e.target.value) || 0})}
+                placeholder="輸入訂金金額"
+                className="h-12 text-base sm:h-10 sm:text-sm"
+                inputMode="numeric"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>訂金付款方式</Label>
+              <Select value={editForm.deposit_payment_method} onValueChange={(value) => setEditForm({...editForm, deposit_payment_method: value})}>
+                <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+                  <SelectValue placeholder="選擇付款方式" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="credit_card">信用卡</SelectItem>
+                  <SelectItem value="line_pay">LINE Pay</SelectItem>
+                  <SelectItem value="bank_transfer">轉帳匯款</SelectItem>
+                  <SelectItem value="cash">現金</SelectItem>
+                  <SelectItem value="monthly">月結</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>尾款付款方式</Label>
+              <Select value={editForm.balance_payment_method} onValueChange={(value) => setEditForm({...editForm, balance_payment_method: value})}>
+                <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+                  <SelectValue placeholder="選擇付款方式" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="credit_card">信用卡</SelectItem>
+                  <SelectItem value="line_pay">LINE Pay</SelectItem>
+                  <SelectItem value="bank_transfer">轉帳匯款</SelectItem>
+                  <SelectItem value="cash">現金</SelectItem>
+                  <SelectItem value="monthly">月結</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="space-y-2">

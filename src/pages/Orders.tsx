@@ -344,7 +344,10 @@ const Orders = () => {
 
   const handleSaveEdit = async (form: { 
     order_status: string; 
-    payment_status: string; 
+    payment_status: string;
+    deposit_payment_method: string;
+    balance_payment_method: string;
+    deposit_amount: number;
     notes: string;
     check_in_date: string;
     check_out_date: string;
@@ -364,6 +367,10 @@ const Orders = () => {
       const updateData: any = {
         order_status: form.order_status,
         payment_status: form.payment_status,
+        deposit_payment_method: form.deposit_payment_method || null,
+        balance_payment_method: form.balance_payment_method || null,
+        deposit_amount: form.deposit_amount || 0,
+        paid_amount: form.payment_status === "deposit_paid" ? form.deposit_amount : (form.payment_status === "paid" ? form.final_price : 0),
         notes: form.notes || null,
         check_in_date: form.check_in_date,
         check_out_date: form.check_out_date,
