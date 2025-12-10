@@ -263,10 +263,10 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
         </div>
         
         <div className="pt-3 border-t mt-3">
-          <div className="space-y-2 md:space-y-3 md:min-h-[80px] lg:min-h-[100px]">
+          <div className="space-y-2 md:space-y-3 md:min-h-[180px] lg:min-h-[200px]">
             {(inventoryPricing.weekday_2_meals || inventoryPricing.weekday_3_meals) && (
               <div>
-                <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">平日價格</p>
+                <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">平日</p>
                 <div className="space-y-1">
                   {inventoryPricing.weekday_2_meals && (
                     <div className="flex justify-between items-center">
@@ -283,9 +283,9 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
                 </div>
               </div>
             )}
-            {room.name === '18人包區' && (inventoryPricing.weekend_2_meals || inventoryPricing.weekend_3_meals) && (
+            {(inventoryPricing.weekend_2_meals || inventoryPricing.weekend_3_meals) && (
               <div>
-                <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">假日價格</p>
+                <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">假日</p>
                 <div className="space-y-1">
                   {inventoryPricing.weekend_2_meals && (
                     <div className="flex justify-between items-center">
