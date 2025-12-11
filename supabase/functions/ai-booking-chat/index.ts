@@ -254,28 +254,238 @@ serve(async (req) => {
       }
 
       if (toolName === "create_booking") {
-        // 生成訂單號
+        // === Input Validation ===
+        
+        // Validate guest_name
+        if (!args.guest_name || typeof args.guest_name !== 'string' || args.guest_name.trim().length < 2) {
+          return { success: false, message: "請提供有效的姓名（至少2個字）" };
+        }
+        const sanitizedGuestName = args.guest_name.trim().substring(0, 100);
+        
+        // Validate guest_phone format (Taiwan phone: 09xxxxxxxx or +886xxxxxxxxx)
+        const phoneRegex = /^(09\d{8}|\+886\d{9})$/;
+        if (!args.guest_phone || !phoneRegex.test(args.guest_phone.replace(/[\s-]/g, ''))) {
+          return { success: false, message: "請提供有效的手機號碼（格式：09xxxxxxxx）" };
+        }
+        const sanitizedPhone = args.guest_phone.replace(/[\s-]/g, '').substring(0, 15);
+        
+        // Validate guest_email format (optional but if provided must be valid)
+        let sanitizedEmail: string | null = null;
+        if (args.guest_email) {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(args.guest_email)) {
+            return { success: false, message: "請提供有效的 Email 地址" };
+          }
+          sanitizedEmail = args.guest_email.trim().toLowerCase().substring(0, 255);
+        }
+        
+        // Validate dates
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!args.check_in_date || !dateRegex.test(args.check_in_date)) {
+          return { success: false, message: "請提供有效的入住日期（格式：YYYY-MM-DD）" };
+        }
+        if (!args.check_out_date || !dateRegex.test(args.check_out_date)) {
+          return { success: false, message: "請提供有效的退房日期（格式：YYYY-MM-DD）" };
+        }
+        
+        const checkInDate = new Date(args.check_in_date);
+        const checkOutDate = new Date(args.check_out_date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        if (checkInDate < today) {
+          return { success: false, message: "入住日期不能是過去的日期" };
+        }
+        if (checkOutDate <= checkInDate) {
+          return { success: false, message: "退房日期必須在入住日期之後" };
+        }
+        
+        // Calculate number of nights
+        const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
+        if (nights > 30) {
+          return { success: false, message: "訂房最多30天" };
+        }
+        
+        // Validate room_type_id
+        if (!args.room_type_id || !UUID_REGEX.test(args.room_type_id)) {
+          return { success: false, message: "請選擇有效的房型" };
+        }
+        
+        // Validate guest_count
+        const guestCount = parseInt(args.guest_count, 10);
+        if (isNaN(guestCount) || guestCount < 1 || guestCount > 50) {
+          return { success: false, message: "請提供有效的入住人數（1-50人）" };
+        }
+        
+        // === Verify Room Type Exists and Check Capacity ===
+        const { data: roomType, error: roomTypeError } = await supabase
+          .from('room_types')
+          .select('id, name, capacity, accommodation_id')
+          .eq('id', args.room_type_id)
+          .eq('accommodation_id', accommodationId)
+          .single();
+        
+        if (roomTypeError || !roomType) {
+          console.warn('Room type not found:', args.room_type_id);
+          return { success: false, message: "找不到指定的房型" };
+        }
+        
+        // Check capacity
+        if (guestCount > roomType.capacity) {
+          return { success: false, message: `此房型最多容納 ${roomType.capacity} 人，您選擇了 ${guestCount} 人。請選擇其他房型或減少人數。` };
+        }
+        
+        // === Check Room Availability ===
+        // Generate array of dates to check
+        const datesToCheck: string[] = [];
+        const currentDate = new Date(checkInDate);
+        while (currentDate < checkOutDate) {
+          datesToCheck.push(currentDate.toISOString().split('T')[0]);
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+        
+        // Use get_adjusted_room_inventory_batch to check availability
+        const { data: inventoryData, error: inventoryError } = await supabase.rpc(
+          'get_adjusted_room_inventory_batch',
+          {
+            p_room_type_id: args.room_type_id,
+            p_dates: datesToCheck,
+            p_accommodation_id: accommodationId
+          }
+        );
+        
+        if (inventoryError) {
+          console.error('Error checking inventory:', inventoryError);
+          return { success: false, message: "無法確認房間空房狀況，請稍後再試" };
+        }
+        
+        // Check if any date has no availability
+        const unavailableDates = inventoryData?.filter((inv: any) => inv.available_rooms < 1) || [];
+        if (unavailableDates.length > 0) {
+          const blockedDate = unavailableDates.find((d: any) => d.is_blocked);
+          if (blockedDate) {
+            return { success: false, message: `${blockedDate.date_value} 已被「${blockedDate.blocked_by_room_name}」包場，無法預訂此房型` };
+          }
+          return { success: false, message: `以下日期已無空房：${unavailableDates.map((d: any) => d.date_value).join(', ')}` };
+        }
+        
+        // === Calculate Actual Price from room_inventory_pricing ===
+        const { data: pricingData, error: pricingError } = await supabase
+          .from('room_inventory_pricing')
+          .select('date, price, price_2_meals, price_3_meals')
+          .eq('room_type_id', args.room_type_id)
+          .gte('date', args.check_in_date)
+          .lt('date', args.check_out_date)
+          .order('date');
+        
+        if (pricingError) {
+          console.error('Error fetching pricing:', pricingError);
+          return { success: false, message: "無法取得價格資訊，請稍後再試" };
+        }
+        
+        // Calculate total price based on meal plan
+        let totalPrice = 0;
+        const mealPlan = args.meal_plan || 'breakfast_only';
+        
+        for (const date of datesToCheck) {
+          const dayPricing = pricingData?.find((p: any) => p.date === date);
+          if (!dayPricing) {
+            return { success: false, message: `${date} 尚未設定價格，請聯繫客服` };
+          }
+          
+          // Select price based on meal plan
+          let dayPrice = dayPricing.price;
+          if (mealPlan === 'bbq' && dayPricing.price_3_meals) {
+            dayPrice = dayPricing.price_3_meals;
+          } else if (dayPricing.price_2_meals) {
+            dayPrice = dayPricing.price_2_meals;
+          }
+          
+          if (!dayPrice || dayPrice <= 0) {
+            return { success: false, message: `${date} 的價格設定有誤，請聯繫客服` };
+          }
+          
+          totalPrice += dayPrice;
+        }
+        
+        // === Calculate Pet Plan Price ===
+        let petPlanPrice = 0;
+        const petCount = parseInt(args.pet_count || 0, 10);
+        if (petCount > 0) {
+          if (petCount > 2) {
+            return { success: false, message: "毛孩最多只能攜帶 2 隻" };
+          }
+          // Get pet addon settings
+          const { data: petAddon } = await supabase
+            .from('addon_settings')
+            .select('price_per_unit, enabled')
+            .eq('accommodation_id', accommodationId)
+            .eq('addon_type', 'pet')
+            .single();
+          
+          if (petAddon?.enabled && petAddon?.price_per_unit) {
+            petPlanPrice = petCount * petAddon.price_per_unit * nights;
+          } else {
+            // Default pet price if not configured
+            petPlanPrice = petCount * 600 * nights;
+          }
+        }
+        
+        // === Apply Discount Code ===
+        let discountAmount = 0;
+        if (args.discount_code) {
+          const { data: discountResult } = await supabase.rpc('validate_discount_code', {
+            p_accommodation_id: accommodationId,
+            p_code: args.discount_code,
+            p_order_amount: totalPrice,
+            p_room_type_id: args.room_type_id,
+            p_check_in_date: args.check_in_date
+          });
+          
+          if (discountResult?.[0]?.is_valid) {
+            const discountInfo = discountResult[0];
+            if (discountInfo.discount_type === 'percentage') {
+              discountAmount = Math.round(totalPrice * discountInfo.discount_value / 100);
+            } else {
+              discountAmount = discountInfo.discount_value;
+            }
+          }
+        }
+        
+        // Calculate final price
+        const finalPrice = totalPrice + petPlanPrice - discountAmount;
+        
+        if (finalPrice <= 0) {
+          return { success: false, message: "計算出的價格異常，請聯繫客服" };
+        }
+        
+        // === Sanitize notes ===
+        const sanitizedNotes = args.notes ? args.notes.substring(0, 1000).trim() : null;
+        
+        // === Generate Order Number ===
         const { data: orderNumber } = await supabase.rpc('generate_order_number');
         
-        // 創建訂單
+        // === Create Order with Validated Data ===
         const { data: order, error } = await supabase
           .from('orders')
           .insert({
             accommodation_id: accommodationId,
             order_number: orderNumber,
-            guest_name: args.guest_name,
-            guest_phone: args.guest_phone,
-            guest_email: args.guest_email,
+            guest_name: sanitizedGuestName,
+            guest_phone: sanitizedPhone,
+            guest_email: sanitizedEmail,
             check_in_date: args.check_in_date,
             check_out_date: args.check_out_date,
             room_type_id: args.room_type_id,
-            guest_count: args.guest_count,
-            pet_count: args.pet_count || 0,
-            meal_plan: args.meal_plan,
-            discount_code: args.discount_code,
-            notes: args.notes,
-            total_price: 0, // 需要計算
-            final_price: 0,
+            guest_count: guestCount,
+            pet_count: petCount,
+            pet_plan_price: petPlanPrice,
+            meal_plan: mealPlan,
+            discount_code: args.discount_code || null,
+            discount_amount: discountAmount,
+            notes: sanitizedNotes,
+            total_price: totalPrice,
+            final_price: finalPrice,
             order_status: 'pending',
             payment_status: 'unpaid'
           })
@@ -284,10 +494,21 @@ serve(async (req) => {
 
         if (error) {
           console.error('創建訂單失敗:', error);
-          return { success: false, message: "訂單創建失敗" };
+          return { success: false, message: "訂單創建失敗，請稍後再試" };
         }
 
-        return { success: true, order_number: orderNumber, order_id: order.id };
+        console.log(`訂單創建成功: ${orderNumber}, 總價: ${totalPrice}, 最終價: ${finalPrice}`);
+        
+        return { 
+          success: true, 
+          order_number: orderNumber, 
+          order_id: order.id,
+          total_price: totalPrice,
+          pet_plan_price: petPlanPrice,
+          discount_amount: discountAmount,
+          final_price: finalPrice,
+          nights: nights
+        };
       }
 
       return { error: "未知的工具" };
