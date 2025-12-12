@@ -9,6 +9,49 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Rate limiting: 5 attempts per token per 15 minutes
+const tokenAttemptMap = new Map<string, { count: number; resetAt: number }>();
+const TOKEN_RATE_LIMIT_MAX = 5;
+const TOKEN_RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
+
+function checkTokenRateLimit(token: string): { allowed: boolean; remaining: number } {
+  const now = Date.now();
+  const existing = tokenAttemptMap.get(token);
+  
+  if (!existing || now > existing.resetAt) {
+    tokenAttemptMap.set(token, { count: 1, resetAt: now + TOKEN_RATE_LIMIT_WINDOW });
+    return { allowed: true, remaining: TOKEN_RATE_LIMIT_MAX - 1 };
+  }
+  
+  if (existing.count >= TOKEN_RATE_LIMIT_MAX) {
+    return { allowed: false, remaining: 0 };
+  }
+  
+  existing.count++;
+  return { allowed: true, remaining: TOKEN_RATE_LIMIT_MAX - existing.count };
+}
+
+// Password strength validation
+function validatePasswordStrength(password: string): { valid: boolean; message: string } {
+  if (password.length < 8) {
+    return { valid: false, message: "密碼長度至少需要 8 個字元" };
+  }
+  
+  if (!/[A-Z]/.test(password)) {
+    return { valid: false, message: "密碼需包含至少一個大寫字母" };
+  }
+  
+  if (!/[a-z]/.test(password)) {
+    return { valid: false, message: "密碼需包含至少一個小寫字母" };
+  }
+  
+  if (!/[0-9]/.test(password)) {
+    return { valid: false, message: "密碼需包含至少一個數字" };
+  }
+  
+  return { valid: true, message: "" };
+}
+
 interface UpdatePasswordRequest {
   token: string;
   newPassword: string;
@@ -27,16 +70,37 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("缺少必要參數");
     }
 
-    if (newPassword.length < 6) {
-      throw new Error("密碼長度至少需要 6 個字元");
+    // Check rate limit for this token
+    const rateLimit = checkTokenRateLimit(token);
+    if (!rateLimit.allowed) {
+      console.log("Rate limit exceeded for token");
+      return new Response(
+        JSON.stringify({ error: "嘗試次數過多，請 15 分鐘後再試" }),
+        {
+          status: 429,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    // Validate password strength
+    const passwordValidation = validatePasswordStrength(newPassword);
+    if (!passwordValidation.valid) {
+      return new Response(
+        JSON.stringify({ error: passwordValidation.message }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Verify token
+    // Verify token with explicit column selection
     const { data: tokenData, error: tokenError } = await supabase
       .from("password_reset_tokens")
-      .select("*")
+      .select("id, user_id, email, token, expires_at, used_at")
       .eq("token", token)
       .is("used_at", null)
       .gt("expires_at", new Date().toISOString())
@@ -76,6 +140,9 @@ const handler = async (req: Request): Promise<Response> => {
       .from("profiles")
       .update({ force_password_change: false })
       .eq("id", tokenData.user_id);
+
+    // Clear rate limit for this token on success
+    tokenAttemptMap.delete(token);
 
     console.log("Password updated successfully");
 
