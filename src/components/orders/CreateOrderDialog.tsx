@@ -928,6 +928,145 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
         </div>
       )}
 
+      {/* Discount Code Section - moved after addons */}
+      <div className="space-y-2 pt-4 border-t">
+        <Label className="flex items-center gap-2">
+          <Tag className="h-4 w-4" />
+          折扣碼
+        </Label>
+        
+        {appliedDiscount ? (
+          <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+            <Badge variant="secondary" className="text-sm">
+              {appliedDiscount.code}
+            </Badge>
+            <span className="text-sm text-muted-foreground">
+              {appliedDiscount.type === "percentage"
+                ? `${appliedDiscount.value}% 折扣`
+                : `NT$ ${appliedDiscount.value.toLocaleString()} 折扣`}
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleRemoveDiscount}
+              className="ml-auto h-8 w-8 p-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <Input
+              value={discountCode}
+              onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+              placeholder="輸入折扣碼"
+              className="flex-1 h-12 text-base sm:h-10 sm:text-sm"
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleApplyDiscount}
+              disabled={isValidatingCode || !discountCode.trim()}
+              className="h-12 sm:h-10 px-4"
+            >
+              {isValidatingCode ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "套用"
+              )}
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Price Summary - moved after discount code */}
+      {(() => {
+        const addonTotal = form.selected_addons.reduce((sum, selectedAddon) => {
+          const addon = addonSettings.find(a => a.id === selectedAddon.addon_id);
+          return sum + (addon ? addon.price_per_unit * selectedAddon.quantity : 0);
+        }, 0);
+        const finalTotal = calculatedPrice.final + addonTotal;
+        const depositAmount = Math.round(finalTotal * 0.3);
+        const balanceAmount = finalTotal - depositAmount;
+        
+        return (
+          <div className="space-y-2 pt-4 border-t">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">住宿天數</span>
+              <span className="flex items-center gap-2">
+                {isCheckingInventory && <Loader2 className="h-3 w-3 animate-spin" />}
+                {calculateNights()} 晚
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">房價小計</span>
+              <span>NT$ {calculatedPrice.total.toLocaleString()}</span>
+            </div>
+            {addonTotal > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">加購小計</span>
+                <span>NT$ {addonTotal.toLocaleString()}</span>
+              </div>
+            )}
+            {calculatedPrice.discount > 0 && (
+              <div className="flex justify-between text-sm text-green-600">
+                <span>折扣</span>
+                <span>- NT$ {calculatedPrice.discount.toLocaleString()}</span>
+              </div>
+            )}
+            <div className="flex justify-between font-semibold text-lg pt-2 border-t">
+              <span>總金額</span>
+              <span className="text-primary">NT$ {finalTotal.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className={cn("text-muted-foreground", form.deposit_paid && "line-through")}>
+                訂金 (30%)
+              </span>
+              <span className={cn(form.deposit_paid && "line-through text-muted-foreground")}>
+                NT$ {depositAmount.toLocaleString()}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className={cn("text-muted-foreground", form.balance_paid && "line-through")}>
+                尾款 (70%)
+              </span>
+              <span className={cn(form.balance_paid && "line-through text-muted-foreground")}>
+                NT$ {balanceAmount.toLocaleString()}
+              </span>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Inventory Warnings */}
+      {inventoryWarnings.length > 0 && (
+        <Alert variant="destructive" className="border-amber-500 bg-amber-50 dark:bg-amber-950/20">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-800 dark:text-amber-200">
+            <div className="font-medium mb-1">庫存不足警告</div>
+            <ul className="text-sm space-y-1">
+              {inventoryWarnings.map((warning, index) => (
+                <li key={index}>
+                  {warning.blocked ? (
+                    <span>
+                      {format(parseISO(warning.date), "MM/dd")}：已被 <strong>{warning.blockedBy}</strong> 預訂封鎖
+                    </span>
+                  ) : (
+                    <span>
+                      {format(parseISO(warning.date), "MM/dd")}：剩餘 <strong>{warning.available}</strong> 間
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <div className="text-xs mt-2 text-amber-700 dark:text-amber-300">
+              仍可建立訂單，但請確認實際房況
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="space-y-2">
         <Label>訂單狀態</Label>
         <Select value={form.order_status} onValueChange={(value) => setForm({...form, order_status: value})}>
@@ -1022,145 +1161,6 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
           className="text-base sm:text-sm min-h-[80px]"
         />
       </div>
-
-      {/* Discount Code Section */}
-      <div className="space-y-2 pt-4 border-t">
-        <Label className="flex items-center gap-2">
-          <Tag className="h-4 w-4" />
-          折扣碼
-        </Label>
-        
-        {appliedDiscount ? (
-          <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-            <Badge variant="secondary" className="text-sm">
-              {appliedDiscount.code}
-            </Badge>
-            <span className="text-sm text-muted-foreground">
-              {appliedDiscount.type === "percentage"
-                ? `${appliedDiscount.value}% 折扣`
-                : `NT$ ${appliedDiscount.value.toLocaleString()} 折扣`}
-            </span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={handleRemoveDiscount}
-              className="ml-auto h-8 w-8 p-0"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        ) : (
-          <div className="flex gap-2">
-            <Input
-              value={discountCode}
-              onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
-              placeholder="輸入折扣碼"
-              className="flex-1 h-12 text-base sm:h-10 sm:text-sm"
-            />
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={handleApplyDiscount}
-              disabled={isValidatingCode || !discountCode.trim()}
-              className="h-12 sm:h-10 px-4"
-            >
-              {isValidatingCode ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "套用"
-              )}
-            </Button>
-          </div>
-        )}
-      </div>
-
-      {/* Inventory Warnings */}
-      {inventoryWarnings.length > 0 && (
-        <Alert variant="destructive" className="border-amber-500 bg-amber-50 dark:bg-amber-950/20">
-          <AlertTriangle className="h-4 w-4 text-amber-600" />
-          <AlertDescription className="text-amber-800 dark:text-amber-200">
-            <div className="font-medium mb-1">庫存不足警告</div>
-            <ul className="text-sm space-y-1">
-              {inventoryWarnings.map((warning, index) => (
-                <li key={index}>
-                  {warning.blocked ? (
-                    <span>
-                      {format(parseISO(warning.date), "MM/dd")}：已被 <strong>{warning.blockedBy}</strong> 預訂封鎖
-                    </span>
-                  ) : (
-                    <span>
-                      {format(parseISO(warning.date), "MM/dd")}：剩餘 <strong>{warning.available}</strong> 間
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
-            <div className="text-xs mt-2 text-amber-700 dark:text-amber-300">
-              仍可建立訂單，但請確認實際房況
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Price Summary */}
-      {(() => {
-        const addonTotal = form.selected_addons.reduce((sum, selectedAddon) => {
-          const addon = addonSettings.find(a => a.id === selectedAddon.addon_id);
-          return sum + (addon ? addon.price_per_unit * selectedAddon.quantity : 0);
-        }, 0);
-        const finalTotal = calculatedPrice.final + addonTotal;
-        const depositAmount = Math.round(finalTotal * 0.3);
-        const balanceAmount = finalTotal - depositAmount;
-        
-        return (
-          <div className="space-y-2 pt-4 border-t">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">住宿天數</span>
-              <span className="flex items-center gap-2">
-                {isCheckingInventory && <Loader2 className="h-3 w-3 animate-spin" />}
-                {calculateNights()} 晚
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">房價小計</span>
-              <span>NT$ {calculatedPrice.total.toLocaleString()}</span>
-            </div>
-            {addonTotal > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">加購小計</span>
-                <span>NT$ {addonTotal.toLocaleString()}</span>
-              </div>
-            )}
-            {calculatedPrice.discount > 0 && (
-              <div className="flex justify-between text-sm text-green-600">
-                <span>折扣</span>
-                <span>- NT$ {calculatedPrice.discount.toLocaleString()}</span>
-              </div>
-            )}
-            <div className="flex justify-between font-semibold text-lg pt-2 border-t">
-              <span>總金額</span>
-              <span className="text-primary">NT$ {finalTotal.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className={cn("text-muted-foreground", form.deposit_paid && "line-through")}>
-                訂金 (30%)
-              </span>
-              <span className={cn(form.deposit_paid && "line-through text-muted-foreground")}>
-                NT$ {depositAmount.toLocaleString()}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className={cn("text-muted-foreground", form.balance_paid && "line-through")}>
-                尾款 (70%)
-              </span>
-              <span className={cn(form.balance_paid && "line-through text-muted-foreground")}>
-                NT$ {balanceAmount.toLocaleString()}
-              </span>
-            </div>
-          </div>
-        );
-      })()}
     </div>
   );
 
