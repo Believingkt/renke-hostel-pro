@@ -1633,6 +1633,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      user_has_storage_access: { Args: { file_path: string }; Returns: boolean }
       validate_discount_code:
         | {
             Args: { p_accommodation_id: string; p_code: string }
