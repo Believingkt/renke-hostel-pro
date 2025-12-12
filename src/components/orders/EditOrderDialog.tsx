@@ -80,10 +80,8 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
   const [checkOutOpen, setCheckOutOpen] = useState(false);
   const [editForm, setEditForm] = useState({
     order_status: "",
-    payment_status: "",
     deposit_payment_method: "",
     balance_payment_method: "",
-    deposit_amount: 0,
     notes: "",
     check_in_date: "",
     check_out_date: "",
@@ -91,6 +89,8 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
     guest_count: 2,
     meal_plan: "2_meals",
     selected_addons: [] as { addon_id: string; quantity: number }[],
+    deposit_paid: false,
+    balance_paid: false,
   });
 
   // Fetch room types, public holidays, templates, and addons
@@ -140,12 +140,20 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
         selectedAddons = order.meal_plan_details as { addon_id: string; quantity: number }[];
       }
       
+      // Determine deposit_paid and balance_paid from existing payment_status and paid_amount
+      const depositAmount = Math.round((order.final_price || 0) * 0.3);
+      const balanceAmount = (order.final_price || 0) - depositAmount;
+      const paidAmount = (order as any).paid_amount || 0;
+      
+      // Determine if deposit is paid based on payment status or paid amount
+      const depositPaid = order.payment_status === 'deposit_paid' || order.payment_status === 'paid' || paidAmount >= depositAmount;
+      // Determine if balance is paid based on payment status being fully paid
+      const balancePaid = order.payment_status === 'paid' || paidAmount >= (order.final_price || 0);
+      
       setEditForm({
         order_status: order.order_status,
-        payment_status: order.payment_status,
         deposit_payment_method: (order as any).deposit_payment_method || "",
         balance_payment_method: (order as any).balance_payment_method || "",
-        deposit_amount: (order as any).deposit_amount || 0,
         notes: order.notes || "",
         check_in_date: order.check_in_date,
         check_out_date: order.check_out_date,
@@ -153,6 +161,8 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
         guest_count: order.guest_count,
         meal_plan: order.meal_plan || "2_meals",
         selected_addons: selectedAddons,
+        deposit_paid: depositPaid,
+        balance_paid: balancePaid,
       });
       
       // 載入現有的折扣碼
@@ -432,8 +442,33 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
 
     setIsSaving(true);
     try {
+      // Calculate deposit and balance amounts
+      const addonTotal = editForm.selected_addons.reduce((sum, selectedAddon) => {
+        const addon = addonSettings.find(a => a.id === selectedAddon.addon_id);
+        return sum + (addon ? addon.price_per_unit * selectedAddon.quantity : 0);
+      }, 0);
+      const totalFinal = calculatedPrice.final + addonTotal;
+      const depositAmount = Math.round(totalFinal * 0.3);
+      
+      // Determine payment_status based on deposit_paid and balance_paid
+      let payment_status = "unpaid";
+      if (editForm.deposit_paid && editForm.balance_paid) {
+        payment_status = "paid";
+      } else if (editForm.deposit_paid) {
+        payment_status = "deposit_paid";
+      }
+      
       await onSave({
-        ...editForm,
+        order_status: editForm.order_status,
+        payment_status,
+        deposit_payment_method: editForm.deposit_payment_method,
+        balance_payment_method: editForm.balance_payment_method,
+        deposit_amount: depositAmount,
+        notes: editForm.notes,
+        check_in_date: editForm.check_in_date,
+        check_out_date: editForm.check_out_date,
+        room_type_id: editForm.room_type_id,
+        guest_count: editForm.guest_count,
         total_price: calculatedPrice.total,
         discount_amount: calculatedPrice.discount,
         final_price: calculatedPrice.final,
@@ -678,35 +713,57 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label>付款狀態</Label>
-            <Select value={editForm.payment_status} onValueChange={(value) => setEditForm({...editForm, payment_status: value})}>
-              <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="unpaid">未付款</SelectItem>
-                <SelectItem value="deposit_paid">已付訂金</SelectItem>
-                <SelectItem value="paid">已付清</SelectItem>
-                <SelectItem value="overdue">已逾期</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>訂金金額</Label>
-              <Input
-                type="number"
-                min="0"
-                value={editForm.deposit_amount || ""}
-                onChange={(e) => setEditForm({...editForm, deposit_amount: parseInt(e.target.value) || 0})}
-                placeholder="輸入訂金金額"
-                className="h-12 text-base sm:h-10 sm:text-sm"
-                inputMode="numeric"
-              />
+              <Label>訂金支付狀態</Label>
+              <Select 
+                value={editForm.deposit_paid ? "paid" : "unpaid"} 
+                onValueChange={(value) => {
+                  const isPaid = value === "paid";
+                  setEditForm({
+                    ...editForm, 
+                    deposit_paid: isPaid,
+                    // If deposit is not paid, balance cannot be paid
+                    balance_paid: isPaid ? editForm.balance_paid : false
+                  });
+                }}
+              >
+                <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unpaid">未付款</SelectItem>
+                  <SelectItem value="paid">已付款</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
+            <div className="space-y-2">
+              <Label>尾款支付狀態</Label>
+              <Select 
+                value={editForm.balance_paid ? "paid" : "unpaid"} 
+                onValueChange={(value) => {
+                  const isPaid = value === "paid";
+                  setEditForm({
+                    ...editForm, 
+                    balance_paid: isPaid,
+                    // If balance is paid, deposit must also be paid
+                    deposit_paid: isPaid ? true : editForm.deposit_paid
+                  });
+                }}
+              >
+                <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unpaid">未付款</SelectItem>
+                  <SelectItem value="paid">已付款</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>訂金付款方式</Label>
               <Select value={editForm.deposit_payment_method} onValueChange={(value) => setEditForm({...editForm, deposit_payment_method: value})}>
@@ -827,7 +884,16 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
           )}
 
           {/* Price Display */}
-          {calculatedPrice.total > 0 && (
+          {calculatedPrice.total > 0 && (() => {
+            const addonTotal = editForm.selected_addons.reduce((sum, selectedAddon) => {
+              const addon = addonSettings.find(a => a.id === selectedAddon.addon_id);
+              return sum + (addon ? addon.price_per_unit * selectedAddon.quantity : 0);
+            }, 0);
+            const totalFinal = calculatedPrice.final + addonTotal;
+            const depositAmount = Math.round(totalFinal * 0.3);
+            const balanceAmount = totalFinal - depositAmount;
+            
+            return (
             <div className="space-y-2 pt-4 border-t">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">住宿天數</span>
@@ -843,10 +909,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
               {editForm.selected_addons.length > 0 && (
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">加購小計</span>
-                  <span className="font-medium">NT$ {editForm.selected_addons.reduce((sum, selectedAddon) => {
-                    const addon = addonSettings.find(a => a.id === selectedAddon.addon_id);
-                    return sum + (addon ? addon.price_per_unit * selectedAddon.quantity : 0);
-                  }, 0).toLocaleString()}</span>
+                  <span className="font-medium">NT$ {addonTotal.toLocaleString()}</span>
                 </div>
               )}
               {calculatedPrice.discount > 0 && (
@@ -858,14 +921,36 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
               <div className="flex justify-between items-center py-3 bg-primary/5 px-4 rounded-lg">
                 <span className="font-semibold">總金額</span>
                 <span className="font-bold text-lg text-primary">
-                  NT$ {(calculatedPrice.final + editForm.selected_addons.reduce((sum, selectedAddon) => {
-                    const addon = addonSettings.find(a => a.id === selectedAddon.addon_id);
-                    return sum + (addon ? addon.price_per_unit * selectedAddon.quantity : 0);
-                  }, 0)).toLocaleString()}
+                  NT$ {totalFinal.toLocaleString()}
                 </span>
               </div>
+              
+              {/* Deposit and Balance Display */}
+              <div className="space-y-2 pt-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">訂金 (30%)</span>
+                  <span className={cn(
+                    "font-medium",
+                    editForm.deposit_paid && "line-through text-muted-foreground"
+                  )}>
+                    NT$ {depositAmount.toLocaleString()}
+                    {editForm.deposit_paid && <span className="ml-2 text-green-600 no-underline">已付</span>}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">尾款 (70%)</span>
+                  <span className={cn(
+                    "font-medium",
+                    editForm.balance_paid && "line-through text-muted-foreground"
+                  )}>
+                    NT$ {balanceAmount.toLocaleString()}
+                    {editForm.balance_paid && <span className="ml-2 text-green-600 no-underline">已付</span>}
+                  </span>
+                </div>
+              </div>
             </div>
-          )}
+            );
+          })()}
         </div>
       );
 
