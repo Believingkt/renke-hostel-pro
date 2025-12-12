@@ -85,10 +85,10 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
     room_type_id: "",
     guest_count: 2,
     order_status: "confirmed",
-    payment_status: "unpaid",
     deposit_payment_method: "",
     balance_payment_method: "",
-    deposit_amount: 0,
+    deposit_paid: false,
+    balance_paid: false,
     notes: "",
     meal_plan: "2_meals",
     selected_addons: [] as { addon_id: string; quantity: number }[],
@@ -106,10 +106,10 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
         room_type_id: "",
         guest_count: 2,
         order_status: "confirmed",
-        payment_status: "unpaid",
         deposit_payment_method: "",
         balance_payment_method: "",
-        deposit_amount: 0,
+        deposit_paid: false,
+        balance_paid: false,
         notes: "",
         meal_plan: "2_meals",
         selected_addons: [],
@@ -523,6 +523,22 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
       }, 0);
 
       const finalPriceWithAddons = calculatedPrice.final + addonTotal;
+      
+      // Calculate deposit (30% of final price)
+      const depositAmount = Math.round(finalPriceWithAddons * 0.3);
+      const balanceAmount = finalPriceWithAddons - depositAmount;
+      
+      // Calculate payment status and paid amount based on deposit/balance paid status
+      let paymentStatus = "unpaid";
+      let paidAmount = 0;
+      
+      if (form.deposit_paid && form.balance_paid) {
+        paymentStatus = "paid";
+        paidAmount = finalPriceWithAddons;
+      } else if (form.deposit_paid) {
+        paymentStatus = "deposit_paid";
+        paidAmount = depositAmount;
+      }
 
       const { data: orderData, error } = await supabase.from("orders").insert({
         accommodation_id: currentAccommodationId,
@@ -535,11 +551,11 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
         room_type_id: form.room_type_id,
         guest_count: form.guest_count,
         order_status: form.order_status,
-        payment_status: form.payment_status,
+        payment_status: paymentStatus,
         deposit_payment_method: form.deposit_payment_method || null,
         balance_payment_method: form.balance_payment_method || null,
-        deposit_amount: form.deposit_amount || 0,
-        paid_amount: form.payment_status === "deposit_paid" ? form.deposit_amount : (form.payment_status === "paid" ? finalPriceWithAddons : 0),
+        deposit_amount: depositAmount,
+        paid_amount: paidAmount,
         notes: form.notes.trim() || null,
         total_price: calculatedPrice.total + addonTotal,
         discount_amount: calculatedPrice.discount,
@@ -912,53 +928,57 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
         </div>
       )}
 
+      <div className="space-y-2">
+        <Label>訂單狀態</Label>
+        <Select value={form.order_status} onValueChange={(value) => setForm({...form, order_status: value})}>
+          <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="pending">待確認</SelectItem>
+            <SelectItem value="confirmed">已確認</SelectItem>
+            <SelectItem value="checked_in">已入住</SelectItem>
+            <SelectItem value="checked_out">已退房</SelectItem>
+            <SelectItem value="cancelled">已取消</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>訂單狀態</Label>
-          <Select value={form.order_status} onValueChange={(value) => setForm({...form, order_status: value})}>
-            <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="pending">待確認</SelectItem>
-              <SelectItem value="confirmed">已確認</SelectItem>
-              <SelectItem value="checked_in">已入住</SelectItem>
-              <SelectItem value="checked_out">已退房</SelectItem>
-              <SelectItem value="cancelled">已取消</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label>付款狀態</Label>
-          <Select value={form.payment_status} onValueChange={(value) => setForm({...form, payment_status: value})}>
+          <Label>訂金支付狀態</Label>
+          <Select 
+            value={form.deposit_paid ? "paid" : "unpaid"} 
+            onValueChange={(value) => setForm({...form, deposit_paid: value === "paid"})}
+          >
             <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="unpaid">未付款</SelectItem>
-              <SelectItem value="deposit_paid">已付訂金</SelectItem>
-              <SelectItem value="paid">已付清</SelectItem>
-              <SelectItem value="overdue">已逾期</SelectItem>
+              <SelectItem value="paid">已付款</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>尾款支付狀態</Label>
+          <Select 
+            value={form.balance_paid ? "paid" : "unpaid"} 
+            onValueChange={(value) => setForm({...form, balance_paid: value === "paid"})}
+          >
+            <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="unpaid">未付款</SelectItem>
+              <SelectItem value="paid">已付款</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="space-y-2">
-          <Label>訂金金額</Label>
-          <Input
-            type="number"
-            min="0"
-            value={form.deposit_amount || ""}
-            onChange={(e) => setForm({...form, deposit_amount: parseInt(e.target.value) || 0})}
-            placeholder="輸入訂金金額"
-            className="h-12 text-base sm:h-10 sm:text-sm"
-            inputMode="numeric"
-          />
-        </div>
-
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>訂金付款方式</Label>
           <Select value={form.deposit_payment_method} onValueChange={(value) => setForm({...form, deposit_payment_method: value})}>
@@ -1084,41 +1104,63 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
       )}
 
       {/* Price Summary */}
-      <div className="space-y-2 pt-4 border-t">
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">住宿天數</span>
-          <span className="flex items-center gap-2">
-            {isCheckingInventory && <Loader2 className="h-3 w-3 animate-spin" />}
-            {calculateNights()} 晚
-          </span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">房價小計</span>
-          <span>NT$ {calculatedPrice.total.toLocaleString()}</span>
-        </div>
-        {form.selected_addons.length > 0 && (
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">加購小計</span>
-            <span>NT$ {form.selected_addons.reduce((sum, selectedAddon) => {
-              const addon = addonSettings.find(a => a.id === selectedAddon.addon_id);
-              return sum + (addon ? addon.price_per_unit * selectedAddon.quantity : 0);
-            }, 0).toLocaleString()}</span>
+      {(() => {
+        const addonTotal = form.selected_addons.reduce((sum, selectedAddon) => {
+          const addon = addonSettings.find(a => a.id === selectedAddon.addon_id);
+          return sum + (addon ? addon.price_per_unit * selectedAddon.quantity : 0);
+        }, 0);
+        const finalTotal = calculatedPrice.final + addonTotal;
+        const depositAmount = Math.round(finalTotal * 0.3);
+        const balanceAmount = finalTotal - depositAmount;
+        
+        return (
+          <div className="space-y-2 pt-4 border-t">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">住宿天數</span>
+              <span className="flex items-center gap-2">
+                {isCheckingInventory && <Loader2 className="h-3 w-3 animate-spin" />}
+                {calculateNights()} 晚
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">房價小計</span>
+              <span>NT$ {calculatedPrice.total.toLocaleString()}</span>
+            </div>
+            {addonTotal > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">加購小計</span>
+                <span>NT$ {addonTotal.toLocaleString()}</span>
+              </div>
+            )}
+            {calculatedPrice.discount > 0 && (
+              <div className="flex justify-between text-sm text-green-600">
+                <span>折扣</span>
+                <span>- NT$ {calculatedPrice.discount.toLocaleString()}</span>
+              </div>
+            )}
+            <div className="flex justify-between font-semibold text-lg pt-2 border-t">
+              <span>總金額</span>
+              <span className="text-primary">NT$ {finalTotal.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className={cn("text-muted-foreground", form.deposit_paid && "line-through")}>
+                訂金 (30%)
+              </span>
+              <span className={cn(form.deposit_paid && "line-through text-muted-foreground")}>
+                NT$ {depositAmount.toLocaleString()}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className={cn("text-muted-foreground", form.balance_paid && "line-through")}>
+                尾款 (70%)
+              </span>
+              <span className={cn(form.balance_paid && "line-through text-muted-foreground")}>
+                NT$ {balanceAmount.toLocaleString()}
+              </span>
+            </div>
           </div>
-        )}
-        {calculatedPrice.discount > 0 && (
-          <div className="flex justify-between text-sm text-green-600">
-            <span>折扣</span>
-            <span>- NT$ {calculatedPrice.discount.toLocaleString()}</span>
-          </div>
-        )}
-        <div className="flex justify-between font-semibold text-lg pt-2 border-t">
-          <span>應付金額</span>
-          <span className="text-primary">NT$ {(calculatedPrice.final + form.selected_addons.reduce((sum, selectedAddon) => {
-            const addon = addonSettings.find(a => a.id === selectedAddon.addon_id);
-            return sum + (addon ? addon.price_per_unit * selectedAddon.quantity : 0);
-          }, 0)).toLocaleString()}</span>
-        </div>
-      </div>
+        );
+      })()}
     </div>
   );
 
