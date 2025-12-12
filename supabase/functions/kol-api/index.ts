@@ -5,6 +5,28 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
 
+// Rate limiting: 100 requests per hour per API key
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_MAX = 100;
+const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour in ms
+
+function checkRateLimit(apiKey: string): { allowed: boolean; remaining: number; resetAt: number } {
+  const now = Date.now();
+  const existing = rateLimitMap.get(apiKey);
+  
+  if (!existing || now > existing.resetAt) {
+    rateLimitMap.set(apiKey, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
+    return { allowed: true, remaining: RATE_LIMIT_MAX - 1, resetAt: now + RATE_LIMIT_WINDOW };
+  }
+  
+  if (existing.count >= RATE_LIMIT_MAX) {
+    return { allowed: false, remaining: 0, resetAt: existing.resetAt };
+  }
+  
+  existing.count++;
+  return { allowed: true, remaining: RATE_LIMIT_MAX - existing.count, resetAt: existing.resetAt };
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -32,15 +54,43 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Check rate limit before any database operations
+    const rateLimit = checkRateLimit(apiKey);
+    const rateLimitHeaders = {
+      'X-RateLimit-Limit': RATE_LIMIT_MAX.toString(),
+      'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+      'X-RateLimit-Reset': new Date(rateLimit.resetAt).toISOString(),
+    };
+
+    if (!rateLimit.allowed) {
+      console.log('[KOL-API] Rate limit exceeded for API key');
+      return new Response(
+        JSON.stringify({ 
+          error: '請求過於頻繁，請稍後再試',
+          retry_after: Math.ceil((rateLimit.resetAt - Date.now()) / 1000)
+        }),
+        { 
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            ...rateLimitHeaders,
+            'Content-Type': 'application/json',
+            'Retry-After': Math.ceil((rateLimit.resetAt - Date.now()) / 1000).toString()
+          } 
+        }
+      );
+    }
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
     // Verify discount code exists AND API key matches
+    // Use explicit column selection to avoid exposing sensitive data
     const { data: discountData, error: discountError } = await supabase
       .from('discount_codes')
-      .select('*')
+      .select('id, code, name, discount_type, discount_value, used_count, usage_limit, is_active, commission_rate, api_key')
       .eq('code', discountCode.toUpperCase())
       .single();
 
@@ -48,7 +98,7 @@ Deno.serve(async (req) => {
       console.error('[KOL-API] Discount code not found:', discountCode, discountError);
       return new Response(
         JSON.stringify({ error: '折扣碼不存在' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 404, headers: { ...corsHeaders, ...rateLimitHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -57,7 +107,7 @@ Deno.serve(async (req) => {
       console.log('[KOL-API] No API key configured for discount code:', discountCode);
       return new Response(
         JSON.stringify({ error: '此折扣碼尚未設定 API 金鑰，請聯繫管理員' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 403, headers: { ...corsHeaders, ...rateLimitHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -65,7 +115,7 @@ Deno.serve(async (req) => {
       console.log('[KOL-API] Invalid API key attempt for code:', discountCode);
       return new Response(
         JSON.stringify({ error: 'API 金鑰無效' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 401, headers: { ...corsHeaders, ...rateLimitHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -102,7 +152,7 @@ Deno.serve(async (req) => {
         console.error('[KOL-API] Error fetching orders:', ordersError);
         return new Response(
           JSON.stringify({ error: '查詢訂單失敗' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 500, headers: { ...corsHeaders, ...rateLimitHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -112,7 +162,7 @@ Deno.serve(async (req) => {
           discount_code: discountCode,
           orders: orders || []
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, ...rateLimitHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -127,7 +177,7 @@ Deno.serve(async (req) => {
         console.error('[KOL-API] Error fetching stats:', ordersError);
         return new Response(
           JSON.stringify({ error: '查詢統計失敗' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 500, headers: { ...corsHeaders, ...rateLimitHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -171,7 +221,7 @@ Deno.serve(async (req) => {
             commission_rate: commissionRate
           }
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, ...rateLimitHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -206,7 +256,7 @@ Deno.serve(async (req) => {
         console.error('[KOL-API] Error fetching commission records:', commissionError);
         return new Response(
           JSON.stringify({ error: '查詢佣金記錄失敗' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 500, headers: { ...corsHeaders, ...rateLimitHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -260,7 +310,7 @@ Deno.serve(async (req) => {
             };
           })
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, ...rateLimitHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -278,9 +328,13 @@ Deno.serve(async (req) => {
           orders: '/kol-api/orders?code=YOUR_CODE&api_key=YOUR_API_KEY',
           stats: '/kol-api/stats?code=YOUR_CODE&api_key=YOUR_API_KEY',
           commission: '/kol-api/commission?code=YOUR_CODE&api_key=YOUR_API_KEY'
+        },
+        rate_limit: {
+          limit: RATE_LIMIT_MAX,
+          window: '1 hour'
         }
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, ...rateLimitHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
