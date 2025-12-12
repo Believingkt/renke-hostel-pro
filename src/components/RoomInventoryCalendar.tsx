@@ -605,8 +605,15 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
       // 在批量編輯模式下執行選擇邏輯
       toggleDateSelection(dateStr);
     } else {
-      // 在一般模式下開啟單日編輯對話框
       const dayData = inventory[dateStr];
+      
+      // 如果有預訂，直接顯示預訂詳情
+      if (dayData?.bookedCount && dayData.bookedCount > 0) {
+        handleBookingClick(dateStr);
+        return;
+      }
+      
+      // 在一般模式下開啟單日編輯對話框
       setEditingDate(dateStr);
       
       // 判斷預設選擇哪個方案 - 優先選擇一泊二食
