@@ -5,10 +5,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { format } from "date-fns";
 import { Order, CustomMealPlan } from "@/types/order";
 import { getPaymentStatusConfig, getOrderStatusConfig } from "@/utils/orderHelpers";
-import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCart, Edit, Eye, Utensils, CircleDollarSign, Check, X } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCart, Edit, Eye, Utensils } from "lucide-react";
 import { OrderQuickPreview } from "./OrderQuickPreview";
 import { EmptyState } from "@/components/EmptyState";
-import { cn } from "@/lib/utils";
 
 interface OrdersTableProps {
   orders: Order[];
@@ -40,17 +39,6 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
     return planId === "2_meals" ? "一泊二食" : planId === "3_meals" ? "一泊三食" : planId;
   };
 
-  // 判斷訂金和尾款支付狀態
-  const getDepositBalanceStatus = (order: Order) => {
-    const depositAmount = Math.round((order.final_price || 0) * 0.3);
-    const paidAmount = (order as any).paid_amount || 0;
-    
-    // 根據 payment_status 判斷
-    const depositPaid = order.payment_status === 'deposit_paid' || order.payment_status === 'paid' || paidAmount >= depositAmount;
-    const balancePaid = order.payment_status === 'paid' || paidAmount >= (order.final_price || 0);
-    
-    return { depositPaid, balancePaid };
-  };
 
   const SortableHeader = ({ field, children }: { field: keyof Order; children: React.ReactNode }) => (
     <th 
@@ -85,9 +73,6 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
               <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
                 付款狀態
               </th>
-              <th className="px-4 py-3 text-center text-sm font-semibold text-foreground">
-                訂金/尾款
-              </th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-foreground w-[120px]">
                 操作
               </th>
@@ -111,7 +96,6 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
               orders.map((order) => {
                 const orderStatusConfig = getOrderStatusConfig(order.order_status);
                 const paymentStatusConfig = getPaymentStatusConfig(order.payment_status);
-                const { depositPaid, balancePaid } = getDepositBalanceStatus(order);
                 
                 return (
                   <tr key={order.id} className="border-b hover:bg-muted/50">
@@ -139,46 +123,6 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${paymentStatusConfig.className}`}>
                         {paymentStatusConfig.label}
                       </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      <div className="flex items-center justify-center gap-2">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className={cn(
-                                "flex items-center gap-1 px-2 py-1 rounded text-xs font-medium",
-                                depositPaid 
-                                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" 
-                                  : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
-                              )}>
-                                {depositPaid ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                                <span>訂</span>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>訂金 {depositPaid ? "已付" : "未付"}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className={cn(
-                                "flex items-center gap-1 px-2 py-1 rounded text-xs font-medium",
-                                balancePaid 
-                                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" 
-                                  : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
-                              )}>
-                                {balancePaid ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                                <span>尾</span>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>尾款 {balancePaid ? "已付" : "未付"}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
                     </td>
                     <td className="px-4 py-3 text-sm w-[120px]">
                       <div className="flex justify-start gap-1 -ml-5">
@@ -241,7 +185,6 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
           orders.map((order) => {
             const orderStatusConfig = getOrderStatusConfig(order.order_status);
             const paymentStatusConfig = getPaymentStatusConfig(order.payment_status);
-            const { depositPaid, balancePaid } = getDepositBalanceStatus(order);
             
             return (
               <Card key={order.id} className="overflow-hidden">
@@ -254,31 +197,9 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                     >
                       {order.order_number}
                     </Link>
-                    <div className="flex flex-col gap-1.5 items-end">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border whitespace-nowrap ${orderStatusConfig.className}`}>
-                        {orderStatusConfig.label}
-                      </span>
-                      <div className="flex items-center gap-1">
-                        <span className={cn(
-                          "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium",
-                          depositPaid 
-                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" 
-                            : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
-                        )}>
-                          {depositPaid ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                          訂
-                        </span>
-                        <span className={cn(
-                          "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium",
-                          balancePaid 
-                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" 
-                            : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
-                        )}>
-                          {balancePaid ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                          尾
-                        </span>
-                      </div>
-                    </div>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border whitespace-nowrap ${orderStatusConfig.className}`}>
+                      {orderStatusConfig.label}
+                    </span>
                   </div>
 
                   {/* 訂購人和訂購時間 */}
