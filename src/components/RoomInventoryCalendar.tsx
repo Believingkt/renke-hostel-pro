@@ -2026,66 +2026,60 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* 訂單詳情對話框 - 增強版 */}
-      <Dialog open={bookingDetailsDialogOpen} onOpenChange={setBookingDetailsDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>預訂詳情</DialogTitle>
-            <DialogDescription>
-              {selectedDateOrders.length > 0 && (
-                <div className="flex items-center gap-4 mt-2">
-                  <span>共 {selectedDateOrders.length} 筆訂單</span>
-                  <span className="text-muted-foreground">•</span>
-                  <span>總金額：NT$ {selectedDateOrders.reduce((sum, order) => sum + order.final_price, 0).toLocaleString()}</span>
-                </div>
-              )}
-            </DialogDescription>
-          </DialogHeader>
+      {/* 訂單詳情 - 響應式版本 */}
+      {isMobile ? (
+        <Drawer open={bookingDetailsDialogOpen} onOpenChange={setBookingDetailsDialogOpen}>
+          <DrawerContent className="max-h-[92vh]">
+            <DrawerHeader className="pb-2">
+              <DrawerTitle>預訂詳情</DrawerTitle>
+              <DrawerDescription>
+                {selectedDateOrders.length > 0 && (
+                  <div className="flex flex-col gap-1 mt-1">
+                    <span>共 {selectedDateOrders.length} 筆訂單</span>
+                    <span className="text-primary font-medium">總金額：NT$ {selectedDateOrders.reduce((sum, order) => sum + order.final_price, 0).toLocaleString()}</span>
+                  </div>
+                )}
+              </DrawerDescription>
+            </DrawerHeader>
 
-          <div className="space-y-4 py-4">
-            {loadingOrders ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              </div>
-            ) : selectedDateOrders.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                沒有找到訂單
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {selectedDateOrders.map((order) => {
-                  const orderStatusConfig = getOrderStatusConfig(order.order_status);
-                  const paymentStatusConfig = getPaymentStatusConfig(order.payment_status);
-                  const remainingAmount = (order as any).final_price - ((order as any).paid_amount || 0);
-                  
-                  return (
-                    <div key={order.id} className="border rounded-lg p-5 space-y-4 bg-card hover:shadow-lg transition-all duration-200">
-                      {/* 標題區 */}
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <div className="font-semibold text-lg">{order.order_number}</div>
+            <div className="px-4 pb-4 overflow-y-auto flex-1">
+              {loadingOrders ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : selectedDateOrders.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  沒有找到訂單
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {selectedDateOrders.map((order) => {
+                    const orderStatusConfig = getOrderStatusConfig(order.order_status);
+                    const paymentStatusConfig = getPaymentStatusConfig(order.payment_status);
+                    const remainingAmount = (order as any).final_price - ((order as any).paid_amount || 0);
+                    
+                    return (
+                      <div key={order.id} className="border rounded-lg p-4 space-y-3 bg-card">
+                        {/* 標題區 - 手機版優化 */}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="font-semibold text-base">{order.order_number}</div>
                             <Button
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
-                              className="h-7 px-2 text-xs"
+                              className="h-8 px-3 text-xs touch-manipulation"
                               onClick={() => window.open(`/admin/orders/${order.id}`, '_blank')}
                             >
                               查看詳情 →
                             </Button>
                           </div>
-                          <div className="text-sm text-muted-foreground flex items-center gap-2">
-                            <span>{(order.room_types as any)?.name}</span>
+                          <div className="text-sm text-muted-foreground">
+                            {(order.room_types as any)?.name}
                             {(order as any).order_date && (
-                              <>
-                                <span>•</span>
-                                <span>訂單日期：{format(new Date((order as any).order_date), "yyyy-MM-dd")}</span>
-                              </>
+                              <span className="ml-2">• 訂單日期：{format(new Date((order as any).order_date), "yyyy-MM-dd")}</span>
                             )}
                           </div>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <div className="flex gap-2">
+                          <div className="flex flex-wrap gap-2">
                             <Badge className={orderStatusConfig.className}>
                               {orderStatusConfig.label}
                             </Badge>
@@ -2094,139 +2088,339 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                             </Badge>
                           </div>
                         </div>
-                      </div>
 
-                      {/* 客人信息 */}
-                      <div className="grid grid-cols-2 gap-3 text-sm p-3 bg-muted/30 rounded-md">
-                        <div>
-                          <span className="text-muted-foreground">客人姓名：</span>
-                          <span className="font-medium ml-1">{order.guest_name}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">聯絡電話：</span>
-                          <span className="font-medium ml-1">{order.guest_phone}</span>
-                        </div>
-                        {order.guest_email && (
-                          <div className="col-span-2">
-                            <span className="text-muted-foreground">電子郵件：</span>
-                            <span className="font-medium ml-1">{order.guest_email}</span>
+                        {/* 客人信息 - 手機版單列 */}
+                        <div className="space-y-2 text-sm p-3 bg-muted/30 rounded-md">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">客人姓名</span>
+                            <span className="font-medium">{order.guest_name}</span>
                           </div>
-                        )}
-                      </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">聯絡電話</span>
+                            <a href={`tel:${order.guest_phone}`} className="font-medium text-primary">
+                              {order.guest_phone}
+                            </a>
+                          </div>
+                          {order.guest_email && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">電子郵件</span>
+                              <span className="font-medium text-xs truncate max-w-[180px]">{order.guest_email}</span>
+                            </div>
+                          )}
+                        </div>
 
-                      {/* 入住信息 */}
-                      <div className="flex items-center gap-4 text-sm p-3 bg-muted/30 rounded-md">
-                        <div>
-                          <span className="text-muted-foreground">入住：</span>
-                          <span className="font-medium ml-1">
-                            {format(new Date(order.check_in_date), "yyyy-MM-dd")}
-                          </span>
+                        {/* 入住信息 - 手機版兩列 */}
+                        <div className="grid grid-cols-2 gap-2 text-sm p-3 bg-muted/30 rounded-md">
+                          <div>
+                            <span className="text-muted-foreground block text-xs">入住日期</span>
+                            <span className="font-medium">{format(new Date(order.check_in_date), "MM/dd")}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground block text-xs">退房日期</span>
+                            <span className="font-medium">{format(new Date(order.check_out_date), "MM/dd")}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground block text-xs">入住人數</span>
+                            <span className="font-medium">{order.guest_count} 人</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground block text-xs">入住天數</span>
+                            <span className="font-medium">
+                              {Math.ceil((new Date(order.check_out_date).getTime() - new Date(order.check_in_date).getTime()) / (1000 * 60 * 60 * 24))} 晚
+                            </span>
+                          </div>
                         </div>
-                        <div>
-                          <span className="text-muted-foreground">退房：</span>
-                          <span className="font-medium ml-1">
-                            {format(new Date(order.check_out_date), "yyyy-MM-dd")}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">人數：</span>
-                          <span className="font-medium ml-1">{order.guest_count} 人</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">天數：</span>
-                          <span className="font-medium ml-1">
-                            {Math.ceil((new Date(order.check_out_date).getTime() - new Date(order.check_in_date).getTime()) / (1000 * 60 * 60 * 24))} 晚
-                          </span>
-                        </div>
-                      </div>
 
-                      {/* 金額信息 */}
-                      <div className="space-y-2 p-3 bg-muted/30 rounded-md">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">訂單金額</span>
-                          <span className="font-medium">NT$ {order.total_price.toLocaleString()}</span>
-                        </div>
-                        
-                        {order.discount_amount > 0 && (
-                          <>
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-muted-foreground">
-                                折扣金額
-                                {(order as any).discount_code && (
-                                  <span className="ml-1 text-xs">({(order as any).discount_code})</span>
+                        {/* 金額信息 */}
+                        <div className="space-y-2 p-3 bg-muted/30 rounded-md text-sm">
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">訂單金額</span>
+                            <span className="font-medium">NT$ {order.total_price.toLocaleString()}</span>
+                          </div>
+                          
+                          {order.discount_amount > 0 && (
+                            <>
+                              <div className="flex items-center justify-between">
+                                <span className="text-muted-foreground">
+                                  折扣金額
+                                  {(order as any).discount_code && (
+                                    <span className="ml-1 text-xs">({(order as any).discount_code})</span>
+                                  )}
+                                </span>
+                                <span className="font-medium text-green-600">-NT$ {order.discount_amount.toLocaleString()}</span>
+                              </div>
+                              <div className="h-px bg-border" />
+                            </>
+                          )}
+                          
+                          <div className="flex items-center justify-between font-bold">
+                            <span className="text-muted-foreground">實付金額</span>
+                            <span className="text-primary text-base">NT$ {order.final_price.toLocaleString()}</span>
+                          </div>
+
+                          {((order as any).paid_amount > 0 || (order as any).deposit_amount > 0) && (
+                            <>
+                              <div className="h-px bg-border" />
+                              <div className="space-y-1">
+                                {(order as any).deposit_amount > 0 && (
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">訂金金額</span>
+                                    <span className="font-medium">NT$ {((order as any).deposit_amount).toLocaleString()}</span>
+                                  </div>
                                 )}
-                              </span>
-                              <span className="font-medium text-green-600">-NT$ {order.discount_amount.toLocaleString()}</span>
+                                {(order as any).paid_amount > 0 && (
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">已付金額</span>
+                                    <span className="font-medium text-green-600">NT$ {((order as any).paid_amount).toLocaleString()}</span>
+                                  </div>
+                                )}
+                                {remainingAmount > 0 && (
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">待付金額</span>
+                                    <span className="font-medium text-orange-600">NT$ {remainingAmount.toLocaleString()}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </>
+                          )}
+
+                          {(order as any).payment_method && (
+                            <div className="flex items-center justify-between pt-2 border-t">
+                              <span className="text-muted-foreground">付款方式</span>
+                              <span className="font-medium">{(order as any).payment_method}</span>
                             </div>
-                            <div className="h-px bg-border" />
-                          </>
-                        )}
-                        
-                        <div className="flex items-center justify-between text-base font-bold">
-                          <span className="text-muted-foreground">實付金額</span>
-                          <span className="text-primary">NT$ {order.final_price.toLocaleString()}</span>
+                          )}
                         </div>
 
-                        {((order as any).paid_amount > 0 || (order as any).deposit_amount > 0) && (
-                          <>
-                            <div className="h-px bg-border" />
-                            <div className="space-y-1">
-                              {(order as any).deposit_amount > 0 && (
-                                <div className="flex items-center justify-between text-sm">
-                                  <span className="text-muted-foreground">訂金金額</span>
-                                  <span className="font-medium">NT$ {((order as any).deposit_amount).toLocaleString()}</span>
-                                </div>
-                              )}
-                              {(order as any).paid_amount > 0 && (
-                                <div className="flex items-center justify-between text-sm">
-                                  <span className="text-muted-foreground">已付金額</span>
-                                  <span className="font-medium text-green-600">NT$ {((order as any).paid_amount).toLocaleString()}</span>
-                                </div>
-                              )}
-                              {remainingAmount > 0 && (
-                                <div className="flex items-center justify-between text-sm">
-                                  <span className="text-muted-foreground">待付金額</span>
-                                  <span className="font-medium text-orange-600">NT$ {remainingAmount.toLocaleString()}</span>
-                                </div>
-                              )}
+                        {/* 備註 */}
+                        {(order as any).notes && (
+                          <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-md">
+                            <div className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-1">備註</div>
+                            <div className="text-sm text-amber-800 dark:text-amber-200 whitespace-pre-wrap">
+                              {(order as any).notes}
                             </div>
-                          </>
-                        )}
-
-                        {(order as any).payment_method && (
-                          <div className="flex items-center justify-between text-sm pt-2 border-t">
-                            <span className="text-muted-foreground">付款方式</span>
-                            <span className="font-medium">{(order as any).payment_method}</span>
                           </div>
                         )}
                       </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
-                      {/* 備註 */}
-                      {(order as any).notes && (
-                        <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-md">
-                          <div className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-1">備註</div>
-                          <div className="text-sm text-amber-800 dark:text-amber-200 whitespace-pre-wrap">
-                            {(order as any).notes}
+            <DrawerFooter className="pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setBookingDetailsDialogOpen(false)}
+                className="w-full h-12 text-base touch-manipulation"
+              >
+                關閉
+              </Button>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={bookingDetailsDialogOpen} onOpenChange={setBookingDetailsDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>預訂詳情</DialogTitle>
+              <DialogDescription>
+                {selectedDateOrders.length > 0 && (
+                  <div className="flex items-center gap-4 mt-2">
+                    <span>共 {selectedDateOrders.length} 筆訂單</span>
+                    <span className="text-muted-foreground">•</span>
+                    <span>總金額：NT$ {selectedDateOrders.reduce((sum, order) => sum + order.final_price, 0).toLocaleString()}</span>
+                  </div>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              {loadingOrders ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : selectedDateOrders.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  沒有找到訂單
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {selectedDateOrders.map((order) => {
+                    const orderStatusConfig = getOrderStatusConfig(order.order_status);
+                    const paymentStatusConfig = getPaymentStatusConfig(order.payment_status);
+                    const remainingAmount = (order as any).final_price - ((order as any).paid_amount || 0);
+                    
+                    return (
+                      <div key={order.id} className="border rounded-lg p-5 space-y-4 bg-card hover:shadow-lg transition-all duration-200">
+                        {/* 標題區 */}
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <div className="font-semibold text-lg">{order.order_number}</div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-xs"
+                                onClick={() => window.open(`/admin/orders/${order.id}`, '_blank')}
+                              >
+                                查看詳情 →
+                              </Button>
+                            </div>
+                            <div className="text-sm text-muted-foreground flex items-center gap-2">
+                              <span>{(order.room_types as any)?.name}</span>
+                              {(order as any).order_date && (
+                                <>
+                                  <span>•</span>
+                                  <span>訂單日期：{format(new Date((order as any).order_date), "yyyy-MM-dd")}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <div className="flex gap-2">
+                              <Badge className={orderStatusConfig.className}>
+                                {orderStatusConfig.label}
+                              </Badge>
+                              <Badge className={paymentStatusConfig.className}>
+                                {paymentStatusConfig.label}
+                              </Badge>
+                            </div>
                           </div>
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
 
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setBookingDetailsDialogOpen(false)}
-            >
-              關閉
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                        {/* 客人信息 */}
+                        <div className="grid grid-cols-2 gap-3 text-sm p-3 bg-muted/30 rounded-md">
+                          <div>
+                            <span className="text-muted-foreground">客人姓名：</span>
+                            <span className="font-medium ml-1">{order.guest_name}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">聯絡電話：</span>
+                            <span className="font-medium ml-1">{order.guest_phone}</span>
+                          </div>
+                          {order.guest_email && (
+                            <div className="col-span-2">
+                              <span className="text-muted-foreground">電子郵件：</span>
+                              <span className="font-medium ml-1">{order.guest_email}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 入住信息 */}
+                        <div className="flex items-center gap-4 text-sm p-3 bg-muted/30 rounded-md">
+                          <div>
+                            <span className="text-muted-foreground">入住：</span>
+                            <span className="font-medium ml-1">
+                              {format(new Date(order.check_in_date), "yyyy-MM-dd")}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">退房：</span>
+                            <span className="font-medium ml-1">
+                              {format(new Date(order.check_out_date), "yyyy-MM-dd")}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">人數：</span>
+                            <span className="font-medium ml-1">{order.guest_count} 人</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">天數：</span>
+                            <span className="font-medium ml-1">
+                              {Math.ceil((new Date(order.check_out_date).getTime() - new Date(order.check_in_date).getTime()) / (1000 * 60 * 60 * 24))} 晚
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* 金額信息 */}
+                        <div className="space-y-2 p-3 bg-muted/30 rounded-md">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">訂單金額</span>
+                            <span className="font-medium">NT$ {order.total_price.toLocaleString()}</span>
+                          </div>
+                          
+                          {order.discount_amount > 0 && (
+                            <>
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground">
+                                  折扣金額
+                                  {(order as any).discount_code && (
+                                    <span className="ml-1 text-xs">({(order as any).discount_code})</span>
+                                  )}
+                                </span>
+                                <span className="font-medium text-green-600">-NT$ {order.discount_amount.toLocaleString()}</span>
+                              </div>
+                              <div className="h-px bg-border" />
+                            </>
+                          )}
+                          
+                          <div className="flex items-center justify-between text-base font-bold">
+                            <span className="text-muted-foreground">實付金額</span>
+                            <span className="text-primary">NT$ {order.final_price.toLocaleString()}</span>
+                          </div>
+
+                          {((order as any).paid_amount > 0 || (order as any).deposit_amount > 0) && (
+                            <>
+                              <div className="h-px bg-border" />
+                              <div className="space-y-1">
+                                {(order as any).deposit_amount > 0 && (
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span className="text-muted-foreground">訂金金額</span>
+                                    <span className="font-medium">NT$ {((order as any).deposit_amount).toLocaleString()}</span>
+                                  </div>
+                                )}
+                                {(order as any).paid_amount > 0 && (
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span className="text-muted-foreground">已付金額</span>
+                                    <span className="font-medium text-green-600">NT$ {((order as any).paid_amount).toLocaleString()}</span>
+                                  </div>
+                                )}
+                                {remainingAmount > 0 && (
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span className="text-muted-foreground">待付金額</span>
+                                    <span className="font-medium text-orange-600">NT$ {remainingAmount.toLocaleString()}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </>
+                          )}
+
+                          {(order as any).payment_method && (
+                            <div className="flex items-center justify-between text-sm pt-2 border-t">
+                              <span className="text-muted-foreground">付款方式</span>
+                              <span className="font-medium">{(order as any).payment_method}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 備註 */}
+                        {(order as any).notes && (
+                          <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-md">
+                            <div className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-1">備註</div>
+                            <div className="text-sm text-amber-800 dark:text-amber-200 whitespace-pre-wrap">
+                              {(order as any).notes}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setBookingDetailsDialogOpen(false)}
+              >
+                關閉
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </Card>
   );
 }
