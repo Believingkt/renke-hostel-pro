@@ -44,6 +44,7 @@ interface Order {
   final_price: number;
   order_status: string;
   payment_status: string;
+  order_source: string;
   room_type_id: string | null;
   meal_plan: string | null;
   room_types?: {
@@ -157,11 +158,21 @@ const CustomerOrders = () => {
 
   const getPaymentStatusBadge = (status: string) => {
     const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-      unpaid: { label: "未付款", variant: "secondary" },
-      partial: { label: "部分付款", variant: "outline" },
-      paid: { label: "已付款", variant: "default" },
+      unpaid: { label: "未付款", variant: "destructive" },
+      deposit_paid: { label: "已付訂金", variant: "outline" },
+      paid: { label: "已付清", variant: "default" },
+      overdue: { label: "已逾期", variant: "destructive" },
     };
     const config = statusConfig[status] || { label: status, variant: "default" };
+    return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
+
+  const getOrderSourceBadge = (source: string) => {
+    const sourceConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+      website: { label: "官網下單", variant: "default" },
+      manual: { label: "手動新增", variant: "secondary" },
+    };
+    const config = sourceConfig[source] || { label: source || "官網下單", variant: "default" };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
@@ -338,6 +349,7 @@ const CustomerOrders = () => {
                       <TableHead className="text-right text-foreground font-semibold text-sm">金額</TableHead>
                       <TableHead className="text-foreground font-semibold text-sm">訂單狀態</TableHead>
                       <TableHead className="text-foreground font-semibold text-sm">付款狀態</TableHead>
+                      <TableHead className="text-foreground font-semibold text-sm">訂單來源</TableHead>
                       <TableHead className="text-right text-foreground font-semibold text-sm">操作</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -362,6 +374,7 @@ const CustomerOrders = () => {
                         </TableCell>
                         <TableCell className="text-sm">{getStatusBadge(order.order_status)}</TableCell>
                         <TableCell className="text-sm">{getPaymentStatusBadge(order.payment_status)}</TableCell>
+                        <TableCell className="text-sm">{getOrderSourceBadge(order.order_source)}</TableCell>
                         <TableCell className="text-right text-sm">
                           <Button
                             variant="ghost"
@@ -416,6 +429,10 @@ const CustomerOrders = () => {
                         <div>
                           <span className="text-muted-foreground">人數：</span>
                           <span>{order.guest_count} 人</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">來源：</span>
+                          {getOrderSourceBadge(order.order_source)}
                         </div>
                       </div>
 
