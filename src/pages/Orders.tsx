@@ -97,6 +97,18 @@ const Orders = () => {
     }
   }, [searchParams]);
 
+  // 處理 URL 中的 edit 參數，自動開啟編輯對話框
+  useEffect(() => {
+    const editOrderId = searchParams.get("edit");
+    if (editOrderId && orders.length > 0 && !loading) {
+      const orderToEdit = orders.find(order => order.id === editOrderId);
+      if (orderToEdit) {
+        setEditingOrder(orderToEdit);
+        setEditDialogOpen(true);
+      }
+    }
+  }, [searchParams, orders, loading]);
+
   // 載入訂單資料
   const fetchOrders = async () => {
     if (!accommodationId) return;
