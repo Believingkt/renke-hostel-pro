@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Mail, Home, ShoppingBag } from "lucide-react";
+import { ArrowLeft, Mail, Home, ShoppingBag, Globe, UserPlus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -54,6 +54,7 @@ interface OrderDetail {
   pet_plan_price: number;
   meal_plan_details: MealPlanDetail[];
   meal_plan_total: number;
+  order_source: string;
   room_types: {
     name: string;
     name_en: string | null;
@@ -161,6 +162,21 @@ const OrderDetail = () => {
     const config = statusMap[status] || { label: status, className: "bg-muted text-muted-foreground border-border" };
     return (
       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${config.className}`}>
+        {config.label}
+      </span>
+    );
+  };
+
+  const getOrderSourceBadge = (source: string) => {
+    const sourceMap: Record<string, { label: string; className: string; icon: typeof Globe }> = {
+      website: { label: "官網下單", className: "bg-blue-100 text-blue-700 border-blue-200", icon: Globe },
+      manual: { label: "手動新增", className: "bg-purple-100 text-purple-700 border-purple-200", icon: UserPlus },
+    };
+    const config = sourceMap[source] || { label: source || "官網下單", className: "bg-muted text-muted-foreground border-border", icon: Globe };
+    const Icon = config.icon;
+    return (
+      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${config.className}`}>
+        <Icon className="w-3 h-3" />
         {config.label}
       </span>
     );
@@ -346,6 +362,11 @@ const OrderDetail = () => {
             <div className="flex justify-between items-center gap-2">
               <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">訂購日期</span>
               <span className="font-medium text-sm md:text-base text-right">{format(new Date(order.order_date), "yyyy-MM-dd HH:mm")}</span>
+            </div>
+            <Separator />
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">訂單來源</span>
+              {getOrderSourceBadge(order.order_source)}
             </div>
             <Separator />
             <div className="flex justify-between items-center gap-2">
