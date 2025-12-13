@@ -10,6 +10,12 @@ const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_MAX = 100;
 const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour in ms
 
+// Per-code rate limiting to prevent discount code enumeration
+const codeRateLimitMap = new Map<string, { count: number; resetAt: number; failedAttempts: number }>();
+const CODE_RATE_LIMIT_MAX = 10; // Max 10 requests per code per hour
+const CODE_RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour in ms
+const MAX_FAILED_ATTEMPTS = 5; // Max 5 failed attempts before lockout
+
 function checkRateLimit(apiKey: string): { allowed: boolean; remaining: number; resetAt: number } {
   const now = Date.now();
   const existing = rateLimitMap.get(apiKey);
@@ -25,6 +31,48 @@ function checkRateLimit(apiKey: string): { allowed: boolean; remaining: number; 
   
   existing.count++;
   return { allowed: true, remaining: RATE_LIMIT_MAX - existing.count, resetAt: existing.resetAt };
+}
+
+// Check per-code rate limit to prevent enumeration attacks
+function checkCodeRateLimit(code: string): { allowed: boolean; remaining: number; resetAt: number; isLocked: boolean } {
+  const now = Date.now();
+  const normalizedCode = code.toUpperCase();
+  const existing = codeRateLimitMap.get(normalizedCode);
+  
+  if (!existing || now > existing.resetAt) {
+    codeRateLimitMap.set(normalizedCode, { count: 1, resetAt: now + CODE_RATE_LIMIT_WINDOW, failedAttempts: 0 });
+    return { allowed: true, remaining: CODE_RATE_LIMIT_MAX - 1, resetAt: now + CODE_RATE_LIMIT_WINDOW, isLocked: false };
+  }
+  
+  // Check if locked due to too many failed attempts
+  if (existing.failedAttempts >= MAX_FAILED_ATTEMPTS) {
+    return { allowed: false, remaining: 0, resetAt: existing.resetAt, isLocked: true };
+  }
+  
+  if (existing.count >= CODE_RATE_LIMIT_MAX) {
+    return { allowed: false, remaining: 0, resetAt: existing.resetAt, isLocked: false };
+  }
+  
+  existing.count++;
+  return { allowed: true, remaining: CODE_RATE_LIMIT_MAX - existing.count, resetAt: existing.resetAt, isLocked: false };
+}
+
+// Record failed authentication attempt for a code
+function recordFailedAttempt(code: string): void {
+  const normalizedCode = code.toUpperCase();
+  const existing = codeRateLimitMap.get(normalizedCode);
+  
+  if (existing) {
+    existing.failedAttempts++;
+    console.log(`[KOL-API] Failed attempt recorded for code: ${normalizedCode}, total: ${existing.failedAttempts}`);
+  } else {
+    const now = Date.now();
+    codeRateLimitMap.set(normalizedCode, { 
+      count: 1, 
+      resetAt: now + CODE_RATE_LIMIT_WINDOW, 
+      failedAttempts: 1 
+    });
+  }
 }
 
 Deno.serve(async (req) => {
@@ -81,6 +129,30 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Check per-code rate limit to prevent enumeration attacks
+    const codeRateLimit = checkCodeRateLimit(discountCode);
+    
+    if (!codeRateLimit.allowed) {
+      console.log('[KOL-API] Per-code rate limit exceeded or locked:', discountCode, codeRateLimit.isLocked ? '(LOCKED)' : '');
+      return new Response(
+        JSON.stringify({ 
+          error: codeRateLimit.isLocked 
+            ? '此折扣碼因多次驗證失敗已被暫時鎖定，請稍後再試'
+            : '此折扣碼請求過於頻繁，請稍後再試',
+          retry_after: Math.ceil((codeRateLimit.resetAt - Date.now()) / 1000)
+        }),
+        { 
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            ...rateLimitHeaders,
+            'Content-Type': 'application/json',
+            'Retry-After': Math.ceil((codeRateLimit.resetAt - Date.now()) / 1000).toString()
+          } 
+        }
+      );
+    }
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -96,25 +168,31 @@ Deno.serve(async (req) => {
 
     if (discountError || !discountData) {
       console.error('[KOL-API] Discount code not found:', discountCode, discountError);
+      // Record failed attempt for enumeration protection
+      recordFailedAttempt(discountCode);
       return new Response(
-        JSON.stringify({ error: '折扣碼不存在' }),
-        { status: 404, headers: { ...corsHeaders, ...rateLimitHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: '驗證失敗' }), // Generic error to prevent enumeration
+        { status: 401, headers: { ...corsHeaders, ...rateLimitHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // Verify API key matches the discount code's API key
     if (!discountData.api_key) {
       console.log('[KOL-API] No API key configured for discount code:', discountCode);
+      // Record failed attempt for enumeration protection
+      recordFailedAttempt(discountCode);
       return new Response(
-        JSON.stringify({ error: '此折扣碼尚未設定 API 金鑰，請聯繫管理員' }),
-        { status: 403, headers: { ...corsHeaders, ...rateLimitHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: '驗證失敗' }), // Generic error to prevent enumeration
+        { status: 401, headers: { ...corsHeaders, ...rateLimitHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     if (discountData.api_key !== apiKey) {
       console.log('[KOL-API] Invalid API key attempt for code:', discountCode);
+      // Record failed attempt for enumeration protection
+      recordFailedAttempt(discountCode);
       return new Response(
-        JSON.stringify({ error: 'API 金鑰無效' }),
+        JSON.stringify({ error: '驗證失敗' }), // Generic error to prevent enumeration
         { status: 401, headers: { ...corsHeaders, ...rateLimitHeaders, 'Content-Type': 'application/json' } }
       );
     }

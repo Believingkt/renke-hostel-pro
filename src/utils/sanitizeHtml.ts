@@ -54,3 +54,24 @@ export function sanitizeHtml(dirty: string | null | undefined, options?: Sanitiz
 export function createSanitizedHtml(dirty: string | null | undefined): { __html: string } {
   return { __html: sanitizeHtml(dirty) };
 }
+
+/**
+ * Sanitize AI-generated text content to prevent XSS attacks
+ * This is more restrictive than sanitizeHtml - only allows plain text
+ * Removes all HTML tags and returns escaped text content
+ * @param dirty - The AI-generated text content
+ * @returns Sanitized plain text safe for display
+ */
+export function sanitizeAIContent(dirty: string | null | undefined): string {
+  if (!dirty) return '';
+  
+  // Remove all HTML tags - AI responses should be plain text only
+  const sanitized = DOMPurify.sanitize(dirty, {
+    ALLOWED_TAGS: [], // No HTML tags allowed
+    ALLOWED_ATTR: [], // No attributes allowed
+    KEEP_CONTENT: true, // Keep the text content
+    RETURN_TRUSTED_TYPE: false,
+  }) as string;
+  
+  return sanitized;
+}
