@@ -52,7 +52,15 @@ import lokezeLogo from "@/assets/lokeze-logo.png";
 
 const menuItems = [
   { title: "營運分析", url: "/admin", icon: BarChart3 },
-  { title: "訂單資訊", url: "/admin/orders?tab=list", icon: ShoppingBag },
+  { 
+    title: "訂單資訊", 
+    url: "/admin/orders", 
+    icon: ShoppingBag,
+    subItems: [
+      { title: "訂單列表", url: "/admin/orders?tab=list", icon: ClipboardList },
+      { title: "房價庫存", url: "/admin/room-inventory", icon: Package },
+    ]
+  },
   { 
     title: "官網內容", 
     url: "/admin/website-content", 
@@ -73,7 +81,6 @@ const menuItems = [
     icon: Hotel,
     subItems: [
       { title: "房型管理", url: "/admin/pricing?tab=rooms", icon: Bed },
-      { title: "房價庫存", url: "/admin/room-inventory", icon: Package },
       { title: "批次設定", url: "/admin/pricing?tab=basic", icon: DollarSign },
       { title: "客房設施", url: "/admin/pricing?tab=facilities", icon: Wrench },
       { title: "國定假日", url: "/admin/pricing?tab=holidays", icon: Calendar },
