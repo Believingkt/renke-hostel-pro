@@ -2069,7 +2069,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                               variant="ghost"
                               size="sm"
                               className="h-7 px-2 text-xs"
-                              onClick={() => window.open(`/admin/order/${order.id}`, '_blank')}
+                              onClick={() => window.open(`/admin/orders/${order.id}`, '_blank')}
                             >
                               查看詳情 →
                             </Button>
