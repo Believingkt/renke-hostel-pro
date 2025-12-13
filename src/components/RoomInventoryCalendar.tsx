@@ -2064,14 +2064,25 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
                             <div className="font-semibold text-base">{order.order_number}</div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8 px-3 text-xs touch-manipulation"
-                              onClick={() => window.open(`/admin/orders/${order.id}`, '_blank')}
-                            >
-                              查看詳情 →
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 px-3 text-xs touch-manipulation gap-1"
+                                onClick={() => window.open(`/admin/orders?tab=list&edit=${order.id}`, '_blank')}
+                              >
+                                <Edit className="h-3.5 w-3.5" />
+                                編輯
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 px-3 text-xs touch-manipulation"
+                                onClick={() => window.open(`/admin/orders/${order.id}`, '_blank')}
+                              >
+                                查看詳情 →
+                              </Button>
+                            </div>
                           </div>
                           <div className="text-sm text-muted-foreground">
                             {(order.room_types as any)?.name}
@@ -2258,6 +2269,15 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
                               <div className="font-semibold text-lg">{order.order_number}</div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-xs gap-1"
+                                onClick={() => window.open(`/admin/orders?tab=list&edit=${order.id}`, '_blank')}
+                              >
+                                <Edit className="h-3.5 w-3.5" />
+                                編輯
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
