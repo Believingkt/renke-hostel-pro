@@ -474,13 +474,6 @@ const OrderDetail = () => {
                 </div>
               </>
             )}
-            <Separator />
-            <div className="flex justify-between items-center gap-2">
-              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">房間分配</span>
-              <Badge variant={order.room_assigned ? "default" : "secondary"} className="text-xs">
-                {order.room_assigned ? "已分配" : "未分配"}
-              </Badge>
-            </div>
           </CardContent>
         </Card>
 
