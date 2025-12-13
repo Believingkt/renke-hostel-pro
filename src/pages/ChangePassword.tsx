@@ -107,6 +107,21 @@ export default function ChangePassword() {
       return;
     }
 
+    if (!/[A-Z]/.test(newPassword)) {
+      toast.error("密碼需包含至少一個大寫字母");
+      return;
+    }
+
+    if (!/[a-z]/.test(newPassword)) {
+      toast.error("密碼需包含至少一個小寫字母");
+      return;
+    }
+
+    if (!/[0-9]/.test(newPassword)) {
+      toast.error("密碼需包含至少一個數字");
+      return;
+    }
+
     setIsLoading(true);
 
     try {

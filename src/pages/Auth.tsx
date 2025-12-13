@@ -167,6 +167,23 @@ export default function Auth() {
     }
   };
 
+  // Password validation helper
+  const validatePassword = (password: string): { valid: boolean; message: string } => {
+    if (password.length < 8) {
+      return { valid: false, message: "密碼長度至少需要 8 個字元" };
+    }
+    if (!/[A-Z]/.test(password)) {
+      return { valid: false, message: "密碼需包含至少一個大寫字母" };
+    }
+    if (!/[a-z]/.test(password)) {
+      return { valid: false, message: "密碼需包含至少一個小寫字母" };
+    }
+    if (!/[0-9]/.test(password)) {
+      return { valid: false, message: "密碼需包含至少一個數字" };
+    }
+    return { valid: true, message: "" };
+  };
+
   const handleSetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -175,8 +192,9 @@ export default function Auth() {
       return;
     }
 
-    if (newPassword.length < 6) {
-      toast.error("密碼長度至少需要 6 個字元");
+    const validation = validatePassword(newPassword);
+    if (!validation.valid) {
+      toast.error(validation.message);
       return;
     }
 
@@ -291,15 +309,18 @@ export default function Auth() {
               )}
               <div className="space-y-2">
                 <Label htmlFor="new-password">設定密碼</Label>
+                <p className="text-xs text-muted-foreground">
+                  至少 8 個字元，需包含大寫字母、小寫字母及數字
+                </p>
                 <div className="relative">
                   <Input
                     id="new-password"
                     type={showNewPassword ? "text" : "password"}
-                    placeholder="至少 6 個字元"
+                    placeholder="至少 8 個字元"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     required
-                    minLength={6}
+                    minLength={8}
                     className="pr-10"
                   />
                   <Button
@@ -327,7 +348,7 @@ export default function Auth() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
-                    minLength={6}
+                    minLength={8}
                     className="pr-10"
                   />
                   <Button
