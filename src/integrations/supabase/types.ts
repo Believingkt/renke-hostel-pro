@@ -871,6 +871,7 @@ export type Database = {
           notes: string | null
           order_date: string | null
           order_number: string
+          order_source: string
           order_status: string
           paid_amount: number | null
           payment_method: string | null
@@ -910,6 +911,7 @@ export type Database = {
           notes?: string | null
           order_date?: string | null
           order_number: string
+          order_source?: string
           order_status?: string
           paid_amount?: number | null
           payment_method?: string | null
@@ -949,6 +951,7 @@ export type Database = {
           notes?: string | null
           order_date?: string | null
           order_number?: string
+          order_source?: string
           order_status?: string
           paid_amount?: number | null
           payment_method?: string | null
