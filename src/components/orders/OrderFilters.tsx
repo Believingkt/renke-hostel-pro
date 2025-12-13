@@ -9,12 +9,14 @@ interface OrderFiltersProps {
   endDate: string;
   paymentStatus: string;
   orderStatus: string;
+  orderSource: string;
   searchKeyword: string;
   onDateTypeChange: (value: string) => void;
   onStartDateChange: (value: string) => void;
   onEndDateChange: (value: string) => void;
   onPaymentStatusChange: (value: string) => void;
   onOrderStatusChange: (value: string) => void;
+  onOrderSourceChange: (value: string) => void;
   onSearchKeywordChange: (value: string) => void;
   onClear: () => void;
 }
@@ -25,12 +27,14 @@ export function OrderFilters({
   endDate,
   paymentStatus,
   orderStatus,
+  orderSource,
   searchKeyword,
   onDateTypeChange,
   onStartDateChange,
   onEndDateChange,
   onPaymentStatusChange,
   onOrderStatusChange,
+  onOrderSourceChange,
   onSearchKeywordChange,
   onClear,
 }: OrderFiltersProps) {
@@ -69,7 +73,7 @@ export function OrderFilters({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* 付款狀態 */}
         <div>
           <Label className="text-sm mb-2 block">付款狀態</Label>
@@ -100,6 +104,20 @@ export function OrderFilters({
             <option value="checked_in">已入住</option>
             <option value="checked_out">已退房</option>
             <option value="cancelled">已取消</option>
+          </select>
+        </div>
+
+        {/* 訂單來源 */}
+        <div>
+          <Label className="text-sm mb-2 block">訂單來源</Label>
+          <select 
+            className="w-full h-12 md:h-10 rounded-md border border-input bg-background px-3 py-2 text-base md:text-sm touch-manipulation"
+            value={orderSource}
+            onChange={(e) => onOrderSourceChange(e.target.value)}
+          >
+            <option value="">(全部)</option>
+            <option value="website">官網下單</option>
+            <option value="manual">手動新增</option>
           </select>
         </div>
 
