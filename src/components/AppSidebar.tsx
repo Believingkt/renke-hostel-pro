@@ -57,8 +57,8 @@ const menuItems = [
     url: "/admin/orders", 
     icon: ShoppingBag,
     subItems: [
-      { title: "訂單列表", url: "/admin/orders?tab=list", icon: ClipboardList },
       { title: "房價庫存", url: "/admin/room-inventory", icon: Package },
+      { title: "訂單列表", url: "/admin/orders?tab=list", icon: ClipboardList },
     ]
   },
   { 
