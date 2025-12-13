@@ -135,15 +135,17 @@ export const MonthlyAveragePriceChart = ({ data }: MonthlyAveragePriceChartProps
               stroke="hsl(271, 85%, 48%)"
               strokeWidth={2}
               dot={{ 
-                r: 4, 
-                fill: "hsl(271, 85%, 48%)",
-                stroke: "none",
+                r: 6, 
+                fill: "hsl(var(--background))",
+                stroke: "hsl(271, 85%, 48%)",
+                strokeWidth: 2,
                 className: "hover:scale-125 transition-transform duration-200"
               }}
               activeDot={{ 
-                r: 6,
-                fill: "hsl(271, 85%, 48%)",
-                stroke: "none",
+                r: 9,
+                fill: "hsl(var(--background))",
+                stroke: "hsl(271, 85%, 48%)",
+                strokeWidth: 2,
                 className: "animate-scale-in"
               }}
               animationDuration={2000}
