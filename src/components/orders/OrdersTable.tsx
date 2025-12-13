@@ -4,8 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { Order, CustomMealPlan } from "@/types/order";
-import { getPaymentStatusConfig, getOrderStatusConfig } from "@/utils/orderHelpers";
-import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCart, Edit, Eye, Utensils } from "lucide-react";
+import { getPaymentStatusConfig, getOrderStatusConfig, getOrderSourceConfig } from "@/utils/orderHelpers";
+import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCart, Edit, Eye, Utensils, Globe, UserPlus } from "lucide-react";
 import { OrderQuickPreview } from "./OrderQuickPreview";
 import { EmptyState } from "@/components/EmptyState";
 
@@ -68,6 +68,9 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                 專案
               </th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
+                來源
+              </th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
                 訂單狀態
               </th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
@@ -81,7 +84,7 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
           <tbody>
             {orders.length === 0 ? (
               <tr>
-                <td colSpan={10} className="p-0">
+                <td colSpan={11} className="p-0">
                   <div className="py-8">
                     <EmptyState
                       icon={ShoppingCart}
@@ -96,6 +99,7 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
               orders.map((order) => {
                 const orderStatusConfig = getOrderStatusConfig(order.order_status);
                 const paymentStatusConfig = getPaymentStatusConfig(order.payment_status);
+                const orderSourceConfig = getOrderSourceConfig(order.order_source);
                 
                 return (
                   <tr key={order.id} className="border-b hover:bg-muted/50">
@@ -114,6 +118,12 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                     <td className="px-4 py-3 text-sm">{order.check_in_date}</td>
                     <td className="px-4 py-3 text-sm">{order.check_out_date}</td>
                     <td className="px-4 py-3 text-sm">{getMealPlanDisplayName(order.meal_plan)}</td>
+                    <td className="px-4 py-3 text-sm">
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${orderSourceConfig.className}`}>
+                        {order.order_source === 'website' ? <Globe className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
+                        {orderSourceConfig.label}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 text-sm">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${orderStatusConfig.className}`}>
                         {orderStatusConfig.label}
@@ -185,18 +195,25 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
           orders.map((order) => {
             const orderStatusConfig = getOrderStatusConfig(order.order_status);
             const paymentStatusConfig = getPaymentStatusConfig(order.payment_status);
+            const orderSourceConfig = getOrderSourceConfig(order.order_source);
             
             return (
               <Card key={order.id} className="overflow-hidden">
                 <CardContent className="p-4">
                   {/* 訂單編號和狀態 */}
                   <div className="flex items-start justify-between mb-3">
-                    <Link 
-                      to={`/admin/orders/${order.id}`}
-                      className="text-primary hover:underline font-semibold text-base"
-                    >
-                      {order.order_number}
-                    </Link>
+                    <div className="flex flex-col gap-1">
+                      <Link 
+                        to={`/admin/orders/${order.id}`}
+                        className="text-primary hover:underline font-semibold text-base"
+                      >
+                        {order.order_number}
+                      </Link>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border w-fit ${orderSourceConfig.className}`}>
+                        {order.order_source === 'website' ? <Globe className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
+                        {orderSourceConfig.label}
+                      </span>
+                    </div>
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border whitespace-nowrap ${orderStatusConfig.className}`}>
                       {orderStatusConfig.label}
                     </span>

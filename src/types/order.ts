@@ -19,6 +19,7 @@ export interface Order {
   guest_count: number;
   meal_plan: string | null;
   meal_plan_details: unknown;
+  order_source: string;
   room_types: {
     id: string;
     name: string;

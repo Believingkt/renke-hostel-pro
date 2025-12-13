@@ -19,6 +19,14 @@ export const getOrderStatusConfig = (status: string) => {
   return statusMap[status] || { label: status, className: "bg-muted text-muted-foreground border-border" };
 };
 
+export const getOrderSourceConfig = (source: string) => {
+  const sourceMap: Record<string, { label: string; className: string }> = {
+    website: { label: "官網下單", className: "bg-blue-100 text-blue-700 border-blue-200" },
+    manual: { label: "手動新增", className: "bg-purple-100 text-purple-700 border-purple-200" },
+  };
+  return sourceMap[source] || { label: source || "官網下單", className: "bg-muted text-muted-foreground border-border" };
+};
+
 export const getOrderStatusLabel = (status: string) => {
   const statusMap: Record<string, string> = {
     pending: "待確認",
