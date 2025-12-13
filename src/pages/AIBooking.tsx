@@ -14,6 +14,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import assistantAvatar from "@/assets/assistant-avatar-xiaoan.png";
+import { sanitizeAIContent } from "@/utils/sanitizeHtml";
 
 interface Message {
   role: "user" | "assistant";
@@ -683,7 +684,10 @@ export default function AIBooking() {
                             : "bg-gradient-to-br from-muted to-muted/80 shadow-md border border-border/50"
                         }`}
                       >
-                        {message.content}
+                        {/* Sanitize AI-generated content to prevent XSS attacks */}
+                        {message.role === "assistant" 
+                          ? sanitizeAIContent(message.content) 
+                          : message.content}
                       </div>
                       
                       {/* 時間戳記 */}
