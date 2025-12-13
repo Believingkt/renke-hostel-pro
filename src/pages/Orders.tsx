@@ -522,6 +522,10 @@ const Orders = () => {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
+            <BreadcrumbLink className="text-muted-foreground">訂單資訊</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
             <BreadcrumbPage>訂單列表</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
