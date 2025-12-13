@@ -69,6 +69,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
     isAvailable: true,
   });
   const [saving, setSaving] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isCopyMode, setIsCopyMode] = useState(false);
   const [copiedData, setCopiedData] = useState<DayInventory | null>(null);
   const [singleEditDialogOpen, setSingleEditDialogOpen] = useState(false);
@@ -111,8 +112,12 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'room-inventory-refresh') {
-        loadInventory();
-        toast.success("訂單已更新，資料已重新載入");
+        setIsRefreshing(true);
+        loadInventory().then(() => {
+          toast.success("訂單已更新，資料已重新載入");
+          // 動畫結束後重置狀態
+          setTimeout(() => setIsRefreshing(false), 1000);
+        });
       }
     };
 
@@ -869,7 +874,21 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
   }
 
   return (
-    <Card>
+    <Card className={cn(
+      "relative transition-all duration-300",
+      isRefreshing && "ring-2 ring-primary/50"
+    )}>
+      {/* 刷新成功動畫覆蓋層 */}
+      {isRefreshing && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm animate-fade-in rounded-lg">
+          <div className="flex flex-col items-center gap-3 animate-scale-in">
+            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+              <Check className="h-6 w-6 text-primary animate-scale-in" />
+            </div>
+            <span className="text-sm font-medium text-primary">資料已更新</span>
+          </div>
+        </div>
+      )}
       <CardHeader>
         <div className="flex flex-col gap-3 sm:gap-4">
           {/* 頂部控制區 - 手機版兩行佈局 */}
