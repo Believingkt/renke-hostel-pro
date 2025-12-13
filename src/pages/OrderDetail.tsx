@@ -316,7 +316,7 @@ const OrderDetail = () => {
           <BreadcrumbSeparator />
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link to="/admin/orders">訂單資訊</Link>
+              <Link to="/admin/orders">訂單列表</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
