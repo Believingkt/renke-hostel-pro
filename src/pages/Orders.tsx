@@ -636,7 +636,7 @@ const Orders = () => {
                       {
                         icon: CalendarDays,
                         title: "管理預訂",
-                        description: "輕鬆記錄入住和退房日期，追蹤房間分配狀況。"
+                        description: "輕鬆記錄入住和退房日期，追蹤訂單狀況。"
                       },
                       {
                         icon: CreditCard,
