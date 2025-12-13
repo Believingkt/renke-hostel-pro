@@ -315,13 +315,17 @@ const OrderDetail = () => {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
+            <BreadcrumbLink className="text-muted-foreground">訂單資訊</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
             <BreadcrumbLink asChild>
               <Link to="/admin/orders">訂單列表</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>訂單詳情 #{order.order_number}</BreadcrumbPage>
+            <BreadcrumbPage>訂單詳情</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
