@@ -97,6 +97,9 @@ const Orders = () => {
     }
   }, [searchParams]);
 
+  // 檢查是否從預訂管理頁面開啟
+  const isFromRoomInventory = searchParams.get("edit") !== null;
+
   // 處理 URL 中的 edit 參數，自動開啟編輯對話框
   useEffect(() => {
     const editOrderId = searchParams.get("edit");
@@ -108,6 +111,17 @@ const Orders = () => {
       }
     }
   }, [searchParams, orders, loading]);
+
+  // 處理編輯對話框關閉（從預訂管理頁面開啟時）
+  const handleEditDialogClose = (open: boolean) => {
+    setEditDialogOpen(open);
+    if (!open && isFromRoomInventory) {
+      // 通知預訂管理頁面重新載入
+      localStorage.setItem('room-inventory-refresh', Date.now().toString());
+      // 關閉視窗
+      window.close();
+    }
+  };
 
   // 載入訂單資料
   const fetchOrders = async () => {
@@ -496,7 +510,8 @@ const Orders = () => {
         description: "訂單資訊已更新",
       });
 
-      setEditDialogOpen(false);
+      // 使用新的關閉處理函數
+      handleEditDialogClose(false);
     } catch (error) {
       console.error("Error updating order:", error);
       toast({
@@ -775,7 +790,7 @@ const Orders = () => {
       <EditOrderDialog
         open={editDialogOpen}
         order={editingOrder}
-        onOpenChange={setEditDialogOpen}
+        onOpenChange={handleEditDialogClose}
         onSave={handleSaveEdit}
       />
 
