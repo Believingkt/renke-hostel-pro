@@ -76,6 +76,7 @@ const Orders = () => {
   const [endDate, setEndDate] = useState("");
   const [paymentStatus, setPaymentStatus] = useState("");
   const [orderStatus, setOrderStatus] = useState("");
+  const [orderSource, setOrderSource] = useState("");
   const [searchKeyword, setSearchKeyword] = useState("");
   
   // 排序狀態
@@ -229,6 +230,11 @@ const Orders = () => {
       filtered = filtered.filter(order => order.order_status === orderStatus);
     }
 
+    // 訂單來源篩選
+    if (orderSource) {
+      filtered = filtered.filter(order => order.order_source === orderSource);
+    }
+
     // 關鍵字搜尋
     if (searchKeyword) {
       const keyword = searchKeyword.toLowerCase();
@@ -266,7 +272,7 @@ const Orders = () => {
   useEffect(() => {
     applyFilters();
     setCurrentPage(1); // 重置到第一頁
-  }, [orders, startDate, endDate, paymentStatus, orderStatus, searchKeyword, quickFilter, sortField, sortDirection]);
+  }, [orders, startDate, endDate, paymentStatus, orderStatus, orderSource, searchKeyword, quickFilter, sortField, sortDirection]);
 
   // 快速篩選處理
   const handleQuickFilter = (filter: QuickFilterType) => {
@@ -288,6 +294,7 @@ const Orders = () => {
     setEndDate("");
     setPaymentStatus("");
     setOrderStatus("");
+    setOrderSource("");
     setSearchKeyword("");
     setSortField("");
     setSortDirection("desc");
@@ -550,12 +557,14 @@ const Orders = () => {
                   endDate={endDate}
                   paymentStatus={paymentStatus}
                   orderStatus={orderStatus}
+                  orderSource={orderSource}
                   searchKeyword={searchKeyword}
                   onDateTypeChange={setDateType}
                   onStartDateChange={setStartDate}
                   onEndDateChange={setEndDate}
                   onPaymentStatusChange={setPaymentStatus}
                   onOrderStatusChange={setOrderStatus}
+                  onOrderSourceChange={setOrderSource}
                   onSearchKeywordChange={setSearchKeyword}
                   onClear={clearAllFilters}
                 />
@@ -568,7 +577,7 @@ const Orders = () => {
                     <Button variant="outline" className="w-full h-12 touch-manipulation">
                       <Filter className="w-5 h-5 mr-2" />
                       <span className="text-base">進階篩選</span>
-                      {(startDate || endDate || paymentStatus || orderStatus || searchKeyword) && (
+                      {(startDate || endDate || paymentStatus || orderStatus || orderSource || searchKeyword) && (
                         <span className="ml-2 bg-primary text-primary-foreground rounded-full px-2.5 py-1 text-xs font-medium">
                           已套用
                         </span>
@@ -589,12 +598,14 @@ const Orders = () => {
                         endDate={endDate}
                         paymentStatus={paymentStatus}
                         orderStatus={orderStatus}
+                        orderSource={orderSource}
                         searchKeyword={searchKeyword}
                         onDateTypeChange={setDateType}
                         onStartDateChange={setStartDate}
                         onEndDateChange={setEndDate}
                         onPaymentStatusChange={setPaymentStatus}
                         onOrderStatusChange={setOrderStatus}
+                        onOrderSourceChange={setOrderSource}
                         onSearchKeywordChange={setSearchKeyword}
                         onClear={clearAllFilters}
                       />
