@@ -70,12 +70,16 @@ export default function RoomInventory() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>房價庫存</BreadcrumbPage>
+            <BreadcrumbLink className="text-muted-foreground">訂單資訊</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>預訂管理</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
 
-      <PageHeader title="房價庫存" icon={Package} />
+      <PageHeader title="預訂管理" icon={Package} />
 
       <Card>
         <CardHeader>
