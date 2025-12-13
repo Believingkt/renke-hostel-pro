@@ -107,6 +107,19 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
     setSelectedBlockedDates(new Set()); // 清除選擇
   }, [roomTypeId, currentMonth, accommodationId]);
 
+  // 監聽從編輯視窗發出的重新載入信號
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'room-inventory-refresh') {
+        loadInventory();
+        toast.success("訂單已更新，資料已重新載入");
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   // 載入自訂專案
   useEffect(() => {
     const loadCustomMealPlans = async () => {
