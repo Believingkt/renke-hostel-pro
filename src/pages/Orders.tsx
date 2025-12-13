@@ -522,13 +522,13 @@ const Orders = () => {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>訂單資訊</BreadcrumbPage>
+            <BreadcrumbPage>訂單列表</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
 
       <PageHeader
-        title="訂單資訊"
+        title="訂單列表"
         icon={ShoppingBag}
         action={
           <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
