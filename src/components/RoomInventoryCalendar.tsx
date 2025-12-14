@@ -1138,8 +1138,8 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         ) : viewMode === 'list' ? (
-          /* 列表視圖 - 僅在小螢幕顯示 */
-          <div className="space-y-2 sm:hidden">
+          /* 列表視圖 - 在手機和平板顯示 */
+          <div className="space-y-2 lg:hidden">
             {daysInMonth.map((day) => {
               const dateStr = format(day, 'yyyy-MM-dd');
               const dayInventory = inventory[dateStr];
@@ -1282,8 +1282,8 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
             })}
           </div>
         ) : (
-          /* 月曆視圖 */
-          <div className="grid grid-cols-7 gap-1 sm:gap-2">
+          /* 月曆視圖 - 僅在大螢幕顯示 */
+          <div className="hidden lg:grid grid-cols-7 gap-1 sm:gap-2">
             {/* 星期標題 */}
             {['一', '二', '三', '四', '五', '六', '日'].map((day) => (
               <div
