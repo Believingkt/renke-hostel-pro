@@ -923,33 +923,6 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
             {/* 第一行/左側：房型名稱和視圖切換 */}
             <div className="flex items-center justify-between sm:justify-start gap-3">
               <CardTitle className="text-base sm:text-lg font-bold">{roomTypeName}</CardTitle>
-              
-              {/* 視圖切換按鈕組 - 優化設計 */}
-              <div className="flex sm:hidden border rounded-lg overflow-hidden">
-                <Button
-                  variant={viewMode === 'calendar' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('calendar')}
-                  className={cn(
-                    "h-9 w-9 rounded-none border-0 touch-manipulation transition-all",
-                    viewMode === 'calendar' && "shadow-sm"
-                  )}
-                >
-                  <Grid3x3 className="h-4 w-4" />
-                </Button>
-                <div className="w-px bg-border" />
-                <Button
-                  variant={viewMode === 'list' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                  className={cn(
-                    "h-9 w-9 rounded-none border-0 touch-manipulation transition-all",
-                    viewMode === 'list' && "shadow-sm"
-                  )}
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-              </div>
             </div>
             
             {/* 第二行/右側：月份導航 */}
