@@ -2390,41 +2390,43 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                     const remainingAmount = (order as any).final_price - ((order as any).paid_amount || 0);
                     
                     return (
-                      <div key={order.id} className="border rounded-lg p-5 space-y-4 bg-card hover:shadow-lg transition-all duration-200">
-                        {/* 標題區 */}
-                        <div className="flex items-start justify-between">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <div className="font-semibold text-lg">{order.order_number}</div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 px-2 text-xs gap-1"
-                                onClick={() => window.open(`/admin/orders?tab=list&edit=${order.id}`, '_blank')}
-                              >
-                                <Edit className="h-3.5 w-3.5" />
-                                編輯
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 px-2 text-xs"
-                                onClick={() => window.open(`/admin/orders/${order.id}`, '_blank')}
-                              >
-                                查看詳情 →
-                              </Button>
+                      <div key={order.id} className="border rounded-xl overflow-hidden bg-card shadow-sm hover:shadow-md transition-all duration-200">
+                        {/* 標題區 - 獨立卡片頭部 */}
+                        <div className="p-4 bg-muted/20 border-b">
+                          <div className="flex items-start justify-between">
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-3">
+                                <span className="font-bold text-lg">{order.order_number}</span>
+                                <div className="flex gap-1.5">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 px-2.5 text-xs gap-1 bg-background hover:bg-primary hover:text-primary-foreground transition-colors"
+                                    onClick={() => window.open(`/admin/orders?tab=list&edit=${order.id}`, '_blank')}
+                                  >
+                                    <Edit className="h-3.5 w-3.5" />
+                                    編輯
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 px-2.5 text-xs bg-background hover:bg-primary hover:text-primary-foreground transition-colors"
+                                    onClick={() => window.open(`/admin/orders/${order.id}`, '_blank')}
+                                  >
+                                    查看詳情 →
+                                  </Button>
+                                </div>
+                              </div>
+                              <div className="text-sm text-muted-foreground flex items-center gap-2">
+                                <span className="font-medium text-foreground">{(order.room_types as any)?.name}</span>
+                                {(order as any).order_date && (
+                                  <>
+                                    <span className="text-muted-foreground/50">•</span>
+                                    <span>訂單日期：{format(new Date((order as any).order_date), "yyyy-MM-dd")}</span>
+                                  </>
+                                )}
+                              </div>
                             </div>
-                            <div className="text-sm text-muted-foreground flex items-center gap-2">
-                              <span>{(order.room_types as any)?.name}</span>
-                              {(order as any).order_date && (
-                                <>
-                                  <span>•</span>
-                                  <span>訂單日期：{format(new Date((order as any).order_date), "yyyy-MM-dd")}</span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex flex-col gap-2">
                             <div className="flex gap-2">
                               <Badge className={orderStatusConfig.className}>
                                 {orderStatusConfig.label}
@@ -2436,120 +2438,128 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                           </div>
                         </div>
 
-                        {/* 客人信息 */}
-                        <div className="grid grid-cols-2 gap-3 text-sm p-3 bg-muted/30 rounded-md">
-                          <div>
-                            <span className="text-muted-foreground">客人姓名：</span>
-                            <span className="font-medium ml-1">{order.guest_name}</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">聯絡電話：</span>
-                            <span className="font-medium ml-1">{order.guest_phone}</span>
-                          </div>
-                          {order.guest_email && (
-                            <div className="col-span-2">
-                              <span className="text-muted-foreground">電子郵件：</span>
-                              <span className="font-medium ml-1">{order.guest_email}</span>
+                        {/* 內容區域 */}
+                        <div className="p-4 space-y-4">
+                          {/* 客人信息卡片 */}
+                          <div className="p-4 bg-muted/30 rounded-lg border border-border/50">
+                            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">客戶資訊</h4>
+                            <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground">客人姓名：</span>
+                                <span className="font-medium">{order.guest_name}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground">聯絡電話：</span>
+                                <a href={`tel:${order.guest_phone}`} className="font-medium text-primary hover:underline">
+                                  {order.guest_phone}
+                                </a>
+                              </div>
+                              {order.guest_email && (
+                                <div className="col-span-2 flex items-center gap-2">
+                                  <span className="text-muted-foreground">電子郵件：</span>
+                                  <span className="font-medium">{order.guest_email}</span>
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
+                          </div>
 
-                        {/* 入住信息 */}
-                        <div className="flex items-center gap-4 text-sm p-3 bg-muted/30 rounded-md">
-                          <div>
-                            <span className="text-muted-foreground">入住：</span>
-                            <span className="font-medium ml-1">
-                              {format(new Date(order.check_in_date), "yyyy-MM-dd")}
-                            </span>
+                          {/* 入住信息卡片 */}
+                          <div className="p-4 bg-muted/30 rounded-lg border border-border/50">
+                            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">入住資訊</h4>
+                            <div className="grid grid-cols-4 gap-4 text-sm">
+                              <div className="text-center p-2 bg-background rounded-md">
+                                <div className="text-muted-foreground text-xs mb-1">入住日期</div>
+                                <div className="font-semibold">{format(new Date(order.check_in_date), "yyyy-MM-dd")}</div>
+                              </div>
+                              <div className="text-center p-2 bg-background rounded-md">
+                                <div className="text-muted-foreground text-xs mb-1">退房日期</div>
+                                <div className="font-semibold">{format(new Date(order.check_out_date), "yyyy-MM-dd")}</div>
+                              </div>
+                              <div className="text-center p-2 bg-background rounded-md">
+                                <div className="text-muted-foreground text-xs mb-1">入住人數</div>
+                                <div className="font-semibold">{order.guest_count} 人</div>
+                              </div>
+                              <div className="text-center p-2 bg-background rounded-md">
+                                <div className="text-muted-foreground text-xs mb-1">入住天數</div>
+                                <div className="font-semibold">
+                                  {Math.ceil((new Date(order.check_out_date).getTime() - new Date(order.check_in_date).getTime()) / (1000 * 60 * 60 * 24))} 晚
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                          <div>
-                            <span className="text-muted-foreground">退房：</span>
-                            <span className="font-medium ml-1">
-                              {format(new Date(order.check_out_date), "yyyy-MM-dd")}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">人數：</span>
-                            <span className="font-medium ml-1">{order.guest_count} 人</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">天數：</span>
-                            <span className="font-medium ml-1">
-                              {Math.ceil((new Date(order.check_out_date).getTime() - new Date(order.check_in_date).getTime()) / (1000 * 60 * 60 * 24))} 晚
-                            </span>
-                          </div>
-                        </div>
 
-                        {/* 金額信息 */}
-                        <div className="space-y-2 p-3 bg-muted/30 rounded-md">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">訂單金額</span>
-                            <span className="font-medium">NT$ {order.total_price.toLocaleString()}</span>
-                          </div>
-                          
-                          {order.discount_amount > 0 && (
-                            <>
+                          {/* 金額信息卡片 */}
+                          <div className="p-4 bg-muted/30 rounded-lg border border-border/50">
+                            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">費用明細</h4>
+                            <div className="space-y-2">
                               <div className="flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">
-                                  折扣金額
-                                  {(order as any).discount_code && (
-                                    <span className="ml-1 text-xs">({(order as any).discount_code})</span>
-                                  )}
-                                </span>
-                                <span className="font-medium text-green-600">-NT$ {order.discount_amount.toLocaleString()}</span>
+                                <span className="text-muted-foreground">訂單金額</span>
+                                <span className="font-medium">NT$ {order.total_price.toLocaleString()}</span>
                               </div>
-                              <div className="h-px bg-border" />
-                            </>
-                          )}
-                          
-                          <div className="flex items-center justify-between text-base font-bold">
-                            <span className="text-muted-foreground">實付金額</span>
-                            <span className="text-primary">NT$ {order.final_price.toLocaleString()}</span>
+                              
+                              {order.discount_amount > 0 && (
+                                <div className="flex items-center justify-between text-sm">
+                                  <span className="text-muted-foreground">
+                                    折扣金額
+                                    {(order as any).discount_code && (
+                                      <span className="ml-1 text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded">
+                                        {(order as any).discount_code}
+                                      </span>
+                                    )}
+                                  </span>
+                                  <span className="font-medium text-green-600">-NT$ {order.discount_amount.toLocaleString()}</span>
+                                </div>
+                              )}
+                              
+                              <div className="h-px bg-border my-2" />
+                              
+                              <div className="flex items-center justify-between py-2 px-3 bg-primary/5 rounded-md">
+                                <span className="font-semibold">實付金額</span>
+                                <span className="text-primary text-lg font-bold">NT$ {order.final_price.toLocaleString()}</span>
+                              </div>
+
+                              {((order as any).paid_amount > 0 || (order as any).deposit_amount > 0) && (
+                                <div className="grid grid-cols-3 gap-3 mt-3 pt-3 border-t">
+                                  {(order as any).deposit_amount > 0 && (
+                                    <div className="text-center p-2 bg-background rounded-md">
+                                      <div className="text-muted-foreground text-xs mb-1">訂金金額</div>
+                                      <div className="font-medium text-sm">NT$ {((order as any).deposit_amount).toLocaleString()}</div>
+                                    </div>
+                                  )}
+                                  {(order as any).paid_amount > 0 && (
+                                    <div className="text-center p-2 bg-green-50 dark:bg-green-950/20 rounded-md">
+                                      <div className="text-muted-foreground text-xs mb-1">已付金額</div>
+                                      <div className="font-medium text-sm text-green-600">NT$ {((order as any).paid_amount).toLocaleString()}</div>
+                                    </div>
+                                  )}
+                                  {remainingAmount > 0 && (
+                                    <div className="text-center p-2 bg-orange-50 dark:bg-orange-950/20 rounded-md">
+                                      <div className="text-muted-foreground text-xs mb-1">待付金額</div>
+                                      <div className="font-medium text-sm text-orange-600">NT$ {remainingAmount.toLocaleString()}</div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {(order as any).payment_method && (
+                                <div className="flex items-center justify-between text-sm pt-2 mt-2 border-t">
+                                  <span className="text-muted-foreground">付款方式</span>
+                                  <span className="font-medium px-2 py-0.5 bg-muted rounded">{(order as any).payment_method}</span>
+                                </div>
+                              )}
+                            </div>
                           </div>
 
-                          {((order as any).paid_amount > 0 || (order as any).deposit_amount > 0) && (
-                            <>
-                              <div className="h-px bg-border" />
-                              <div className="space-y-1">
-                                {(order as any).deposit_amount > 0 && (
-                                  <div className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">訂金金額</span>
-                                    <span className="font-medium">NT$ {((order as any).deposit_amount).toLocaleString()}</span>
-                                  </div>
-                                )}
-                                {(order as any).paid_amount > 0 && (
-                                  <div className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">已付金額</span>
-                                    <span className="font-medium text-green-600">NT$ {((order as any).paid_amount).toLocaleString()}</span>
-                                  </div>
-                                )}
-                                {remainingAmount > 0 && (
-                                  <div className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">待付金額</span>
-                                    <span className="font-medium text-orange-600">NT$ {remainingAmount.toLocaleString()}</span>
-                                  </div>
-                                )}
+                          {/* 備註卡片 */}
+                          {(order as any).notes && (
+                            <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                              <h4 className="text-xs font-semibold text-amber-700 dark:text-amber-300 uppercase tracking-wider mb-2">備註</h4>
+                              <div className="text-sm text-amber-800 dark:text-amber-200 whitespace-pre-wrap">
+                                {(order as any).notes}
                               </div>
-                            </>
-                          )}
-
-                          {(order as any).payment_method && (
-                            <div className="flex items-center justify-between text-sm pt-2 border-t">
-                              <span className="text-muted-foreground">付款方式</span>
-                              <span className="font-medium">{(order as any).payment_method}</span>
                             </div>
                           )}
                         </div>
-
-                        {/* 備註 */}
-                        {(order as any).notes && (
-                          <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-md">
-                            <div className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-1">備註</div>
-                            <div className="text-sm text-amber-800 dark:text-amber-200 whitespace-pre-wrap">
-                              {(order as any).notes}
-                            </div>
-                          </div>
-                        )}
                       </div>
                     );
                   })}
