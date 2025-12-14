@@ -47,9 +47,14 @@ interface CreateOrderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+  initialData?: {
+    check_in_date?: string;
+    check_out_date?: string;
+    room_type_id?: string;
+  };
 }
 
-export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrderDialogProps) {
+export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }: CreateOrderDialogProps) {
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const { currentAccommodationId } = useAccommodation();
@@ -101,9 +106,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
         guest_name: "",
         guest_phone: "",
         guest_email: "",
-        check_in_date: "",
-        check_out_date: "",
-        room_type_id: "",
+        check_in_date: initialData?.check_in_date || "",
+        check_out_date: initialData?.check_out_date || "",
+        room_type_id: initialData?.room_type_id || "",
         guest_count: 2,
         order_status: "confirmed",
         deposit_payment_method: "",
@@ -122,7 +127,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess }: CreateOrder
       setShowNameSuggestions(false);
       setShowPhoneSuggestions(false);
     }
-  }, [open]);
+  }, [open, initialData]);
 
   // Fetch room types, public holidays, and customers
   useEffect(() => {
