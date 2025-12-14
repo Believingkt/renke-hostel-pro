@@ -1812,11 +1812,22 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
       {isMobile ? (
         <Drawer open={singleEditDialogOpen} onOpenChange={setSingleEditDialogOpen}>
           <DrawerContent className="max-h-[90vh]">
-            <DrawerHeader>
-              <DrawerTitle>預訂管理</DrawerTitle>
-              <DrawerDescription>
-                {editingDate && format(parseISO(editingDate), 'yyyy年 M月 d日（EEEE）', { locale: zhTW })}
-              </DrawerDescription>
+            <DrawerHeader className="flex flex-row items-start justify-between">
+              <div>
+                <DrawerTitle>預訂管理</DrawerTitle>
+                <DrawerDescription>
+                  {editingDate && format(parseISO(editingDate), 'yyyy年 M月 d日（EEEE）', { locale: zhTW })}
+                </DrawerDescription>
+              </div>
+              <Button
+                onClick={handleCreateBooking}
+                variant="secondary"
+                size="sm"
+                className="touch-manipulation"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                新增預訂
+              </Button>
             </DrawerHeader>
 
             <div className="px-4 space-y-4 overflow-y-auto">
@@ -1903,14 +1914,6 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
 
             <DrawerFooter className="pt-4">
               <Button
-                onClick={handleCreateBooking}
-                variant="secondary"
-                className="h-12 text-base touch-manipulation"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                新增預訂
-              </Button>
-              <Button
                 onClick={handleSingleDateUpdate}
                 disabled={saving || !singleEditData.availableRooms || 
                   (singleEditData.mealPlan === '2meals' && !singleEditData.price_2_meals) ||
@@ -1933,11 +1936,22 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
       ) : (
         <Dialog open={singleEditDialogOpen} onOpenChange={setSingleEditDialogOpen}>
           <DialogContent>
-            <DialogHeader>
-              <DialogTitle>預訂管理</DialogTitle>
-              <DialogDescription>
-                {editingDate && format(parseISO(editingDate), 'yyyy年 M月 d日（EEEE）', { locale: zhTW })}
-              </DialogDescription>
+            <DialogHeader className="flex flex-row items-start justify-between space-y-0">
+              <div className="space-y-1.5">
+                <DialogTitle>預訂管理</DialogTitle>
+                <DialogDescription>
+                  {editingDate && format(parseISO(editingDate), 'yyyy年 M月 d日（EEEE）', { locale: zhTW })}
+                </DialogDescription>
+              </div>
+              <Button
+                onClick={handleCreateBooking}
+                variant="secondary"
+                size="sm"
+                className="touch-manipulation"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                新增預訂
+              </Button>
             </DialogHeader>
 
             <div className="space-y-4 py-4">
@@ -2030,14 +2044,6 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                 className="touch-manipulation"
               >
                 取消
-              </Button>
-              <Button
-                onClick={handleCreateBooking}
-                variant="secondary"
-                className="touch-manipulation"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                新增預訂
               </Button>
               <Button
                 onClick={handleSingleDateUpdate}
