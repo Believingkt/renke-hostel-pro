@@ -1812,22 +1812,21 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
       {isMobile ? (
         <Drawer open={singleEditDialogOpen} onOpenChange={setSingleEditDialogOpen}>
           <DrawerContent className="max-h-[90vh]">
-            <DrawerHeader className="flex flex-row items-start justify-between">
+            <DrawerHeader className="flex flex-row items-start gap-3">
+              <Button
+                onClick={handleCreateBooking}
+                size="sm"
+                className="touch-manipulation bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                新增預訂
+              </Button>
               <div>
                 <DrawerTitle>預訂管理</DrawerTitle>
                 <DrawerDescription>
                   {editingDate && format(parseISO(editingDate), 'yyyy年 M月 d日（EEEE）', { locale: zhTW })}
                 </DrawerDescription>
               </div>
-              <Button
-                onClick={handleCreateBooking}
-                variant="secondary"
-                size="sm"
-                className="touch-manipulation"
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                新增預訂
-              </Button>
             </DrawerHeader>
 
             <div className="px-4 space-y-4 overflow-y-auto">
@@ -1936,22 +1935,21 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
       ) : (
         <Dialog open={singleEditDialogOpen} onOpenChange={setSingleEditDialogOpen}>
           <DialogContent>
-            <DialogHeader className="flex flex-row items-start justify-between space-y-0">
+            <DialogHeader className="flex flex-row items-start gap-3 space-y-0">
+              <Button
+                onClick={handleCreateBooking}
+                size="sm"
+                className="touch-manipulation bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                新增預訂
+              </Button>
               <div className="space-y-1.5">
                 <DialogTitle>預訂管理</DialogTitle>
                 <DialogDescription>
                   {editingDate && format(parseISO(editingDate), 'yyyy年 M月 d日（EEEE）', { locale: zhTW })}
                 </DialogDescription>
               </div>
-              <Button
-                onClick={handleCreateBooking}
-                variant="secondary"
-                size="sm"
-                className="touch-manipulation"
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                新增預訂
-              </Button>
             </DialogHeader>
 
             <div className="space-y-4 py-4">
