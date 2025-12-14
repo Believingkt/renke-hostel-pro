@@ -1847,9 +1847,9 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                 </div>
               </div>
 
-              {/* 專案與價格設定區 */}
+              {/* 修改專案價格區 */}
               <div className="space-y-4 p-4 bg-muted/30 rounded-lg border">
-                <h4 className="text-sm font-medium text-foreground">專案與價格設定</h4>
+                <h4 className="text-sm font-medium text-foreground">修改專案價格</h4>
                 <div className="space-y-3">
                   <Label className="text-sm font-medium">專案類型</Label>
                   <RadioGroup
@@ -1998,9 +1998,9 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                 </div>
               </div>
 
-              {/* 專案與價格設定區 */}
+              {/* 修改專案價格區 */}
               <div className="space-y-3 p-3 bg-muted/30 rounded-lg border">
-                <h4 className="text-sm font-medium text-foreground">專案與價格設定</h4>
+                <h4 className="text-sm font-medium text-foreground">修改專案價格</h4>
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">專案類型</Label>
                   <RadioGroup
