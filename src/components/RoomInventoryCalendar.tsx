@@ -1904,9 +1904,9 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                 )}
               </div>
 
-              {/* 庫存設定區 */}
+              {/* 修改庫存區 */}
               <div className="space-y-4 p-4 bg-muted/30 rounded-lg border">
-                <h4 className="text-sm font-medium text-foreground">庫存設定</h4>
+                <h4 className="text-sm font-medium text-foreground">修改庫存</h4>
                 <div className="space-y-2">
                   <Label htmlFor="single-availableRooms" className="text-sm font-medium">庫存數</Label>
                   <Input
@@ -2055,9 +2055,9 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                 )}
               </div>
 
-              {/* 庫存設定區 */}
+              {/* 修改庫存區 */}
               <div className="space-y-3 p-3 bg-muted/30 rounded-lg border">
-                <h4 className="text-sm font-medium text-foreground">庫存設定</h4>
+                <h4 className="text-sm font-medium text-foreground">修改庫存</h4>
                 <div className="space-y-1.5">
                   <Label htmlFor="single-availableRooms-desktop" className="text-sm font-medium">庫存數</Label>
                   <Input
