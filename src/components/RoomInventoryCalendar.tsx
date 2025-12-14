@@ -405,7 +405,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
 
   const handleBatchUpdate = async () => {
     if (!batchEditData.availableRooms) {
-      toast.error('請填寫可用房數');
+      toast.error('請填寫庫存數');
       return;
     }
 
@@ -827,7 +827,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
 
   const handleSingleDateUpdate = async () => {
     if (!editingDate || !singleEditData.availableRooms) {
-      toast.error('請填寫可用房數');
+      toast.error('請填寫庫存數');
       return;
     }
 
@@ -1626,13 +1626,13 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="batch-availableRooms">可用房數 *</Label>
+                <Label htmlFor="batch-availableRooms">庫存數 *</Label>
                 <Input
                   id="batch-availableRooms"
                   type="number"
                   inputMode="numeric"
                   min="0"
-                  placeholder="輸入可用房數"
+                  placeholder="輸入庫存數"
                   value={batchEditData.availableRooms}
                   onChange={(e) => setBatchEditData({ ...batchEditData, availableRooms: e.target.value })}
                   className="h-12 text-base touch-manipulation"
@@ -1749,13 +1749,13 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="batch-availableRooms-desktop">可用房數 *</Label>
+                <Label htmlFor="batch-availableRooms-desktop">庫存數 *</Label>
                 <Input
                   id="batch-availableRooms-desktop"
                   type="number"
                   inputMode="numeric"
                   min="0"
-                  placeholder="輸入可用房數"
+                  placeholder="輸入庫存數"
                   value={batchEditData.availableRooms}
                   onChange={(e) => setBatchEditData({ ...batchEditData, availableRooms: e.target.value })}
                   className="touch-manipulation"
@@ -1906,13 +1906,13 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
               {/* 庫存設定區 */}
               <div className="space-y-4 p-4 bg-muted/30 rounded-lg border">
                 <div className="space-y-2">
-                  <Label htmlFor="single-availableRooms" className="text-sm font-medium">可用房數</Label>
+                  <Label htmlFor="single-availableRooms" className="text-sm font-medium">庫存數</Label>
                   <Input
                     id="single-availableRooms"
                     type="number"
                     inputMode="numeric"
                     min="0"
-                    placeholder="輸入可用房數"
+                    placeholder="輸入庫存數"
                     value={singleEditData.availableRooms}
                     onChange={(e) => setSingleEditData({ ...singleEditData, availableRooms: e.target.value })}
                     className="h-12 text-base touch-manipulation"
@@ -2055,13 +2055,13 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
               {/* 庫存設定區 */}
               <div className="space-y-3 p-3 bg-muted/30 rounded-lg border">
                 <div className="space-y-1.5">
-                  <Label htmlFor="single-availableRooms-desktop" className="text-sm font-medium">可用房數</Label>
+                  <Label htmlFor="single-availableRooms-desktop" className="text-sm font-medium">庫存數</Label>
                   <Input
                     id="single-availableRooms-desktop"
                     type="number"
                     inputMode="numeric"
                     min="0"
-                    placeholder="輸入可用房數"
+                    placeholder="輸入庫存數"
                     value={singleEditData.availableRooms}
                     onChange={(e) => setSingleEditData({ ...singleEditData, availableRooms: e.target.value })}
                     className="touch-manipulation"
