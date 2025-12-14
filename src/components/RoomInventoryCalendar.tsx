@@ -2337,18 +2337,16 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">訂單操作</h4>
                             <div className="flex gap-2">
                               <Button
-                                variant="outline"
                                 size="sm"
-                                className="flex-1 h-10 gap-1.5 bg-background hover:bg-primary hover:text-primary-foreground transition-colors touch-manipulation"
+                                className="flex-1 h-10 gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors touch-manipulation"
                                 onClick={() => window.open(`/admin/orders?tab=list&edit=${order.id}`, '_blank')}
                               >
                                 <Edit className="h-4 w-4" />
                                 編輯訂單
                               </Button>
                               <Button
-                                variant="outline"
                                 size="sm"
-                                className="flex-1 h-10 bg-background hover:bg-primary hover:text-primary-foreground transition-colors touch-manipulation"
+                                className="flex-1 h-10 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors touch-manipulation"
                                 onClick={() => window.open(`/admin/orders/${order.id}`, '_blank')}
                               >
                                 查看詳情 →
@@ -2563,18 +2561,16 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">訂單操作</h4>
                             <div className="flex gap-2">
                               <Button
-                                variant="outline"
                                 size="sm"
-                                className="flex-1 h-9 gap-1.5 bg-background hover:bg-primary hover:text-primary-foreground transition-colors"
+                                className="flex-1 h-9 gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                                 onClick={() => window.open(`/admin/orders?tab=list&edit=${order.id}`, '_blank')}
                               >
                                 <Edit className="h-4 w-4" />
                                 編輯訂單
                               </Button>
                               <Button
-                                variant="outline"
                                 size="sm"
-                                className="flex-1 h-9 bg-background hover:bg-primary hover:text-primary-foreground transition-colors"
+                                className="flex-1 h-9 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                                 onClick={() => window.open(`/admin/orders/${order.id}`, '_blank')}
                               >
                                 查看詳情 →
