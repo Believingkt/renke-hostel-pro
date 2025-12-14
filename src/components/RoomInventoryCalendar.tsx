@@ -1843,7 +1843,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                   <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">編輯專案價格與庫存</span>
+                  <span className="bg-background px-2 text-muted-foreground">編輯價格與庫存</span>
                 </div>
               </div>
 
@@ -1994,7 +1994,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                   <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">編輯專案價格與庫存</span>
+                  <span className="bg-background px-2 text-muted-foreground">編輯價格與庫存</span>
                 </div>
               </div>
 
