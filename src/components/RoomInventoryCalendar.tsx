@@ -93,7 +93,8 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
   const [customMealPlans, setCustomMealPlans] = useState<{ id: string; name: string }[]>([]);
   const [createOrderDialogOpen, setCreateOrderDialogOpen] = useState(false);
   const [createOrderInitialData, setCreateOrderInitialData] = useState<{ check_in_date: string; check_out_date: string; room_type_id: string } | null>(null);
-
+  const [singleEditOrders, setSingleEditOrders] = useState<any[]>([]);
+  const [loadingSingleEditOrders, setLoadingSingleEditOrders] = useState(false);
   // 獲取專案顯示名稱
   const getMealPlanDisplayName = (planId: string | null) => {
     if (!planId) return "";
@@ -621,18 +622,12 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
     }
   };
 
-  const handleSingleClick = (dateStr: string) => {
+  const handleSingleClick = async (dateStr: string) => {
     if (isSelectionMode) {
       // 在批量編輯模式下執行選擇邏輯
       toggleDateSelection(dateStr);
     } else {
       const dayData = inventory[dateStr];
-      
-      // 如果有預訂，直接顯示預訂詳情
-      if (dayData?.bookedCount && dayData.bookedCount > 0) {
-        handleBookingClick(dateStr);
-        return;
-      }
       
       // 在一般模式下開啟單日編輯對話框
       setEditingDate(dateStr);
@@ -653,6 +648,44 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
         isAvailable: dayData?.isAvailable ?? true,
       });
       setSingleEditDialogOpen(true);
+      
+      // 同時載入當日訂單
+      setLoadingSingleEditOrders(true);
+      setSingleEditOrders([]);
+      try {
+        const { data, error } = await supabase
+          .from('orders')
+          .select(`
+            id,
+            order_number,
+            guest_name,
+            guest_phone,
+            guest_email,
+            check_in_date,
+            check_out_date,
+            guest_count,
+            order_status,
+            payment_status,
+            total_price,
+            discount_amount,
+            final_price,
+            paid_amount,
+            meal_plan,
+            notes,
+            room_types(name)
+          `)
+          .eq('room_type_id', roomTypeId)
+          .neq('order_status', 'cancelled')
+          .lte('check_in_date', dateStr)
+          .gt('check_out_date', dateStr);
+
+        if (error) throw error;
+        setSingleEditOrders(data || []);
+      } catch (error) {
+        console.error('載入當日訂單失敗:', error);
+      } finally {
+        setLoadingSingleEditOrders(false);
+      }
     }
   };
 
@@ -1837,6 +1870,70 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                 </div>
               </div>
 
+              {/* 當日已有訂單列表 */}
+              <div className="space-y-3 p-4 bg-muted/30 rounded-lg border">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-medium text-foreground">當日訂單</h4>
+                  {singleEditOrders.length > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                      {singleEditOrders.length} 筆
+                    </Badge>
+                  )}
+                </div>
+                
+                {loadingSingleEditOrders ? (
+                  <div className="flex items-center justify-center py-6">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                  </div>
+                ) : singleEditOrders.length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground text-sm">
+                    <Calendar className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                    <p>此日期尚無訂單</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {singleEditOrders.map((order) => {
+                      const orderStatusConfig = getOrderStatusConfig(order.order_status);
+                      const paymentStatusConfig = getPaymentStatusConfig(order.payment_status);
+                      
+                      return (
+                        <div key={order.id} className="p-3 bg-background rounded-lg border space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-medium text-sm">{order.order_number}</span>
+                            <div className="flex gap-1">
+                              <Badge className={cn("text-xs", orderStatusConfig.className)}>
+                                {orderStatusConfig.label}
+                              </Badge>
+                              <Badge className={cn("text-xs", paymentStatusConfig.className)}>
+                                {paymentStatusConfig.label}
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="text-xs text-muted-foreground space-y-0.5">
+                            <p>{order.guest_name} · {order.guest_count}人</p>
+                            <p>{format(parseISO(order.check_in_date), 'M/d', { locale: zhTW })} - {format(parseISO(order.check_out_date), 'M/d', { locale: zhTW })}</p>
+                          </div>
+                          <div className="flex items-center justify-between pt-1">
+                            <span className="text-sm font-medium text-primary">NT$ {order.final_price.toLocaleString()}</span>
+                            <div className="flex gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-xs"
+                                onClick={() => window.open(`/admin/orders/${order.id}`, '_blank')}
+                              >
+                                <Edit className="h-3 w-3 mr-1" />
+                                查看
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               {/* 分隔線 */}
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
@@ -1986,6 +2083,69 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                     新增預訂
                   </Button>
                 </div>
+              </div>
+
+              {/* 當日已有訂單列表 */}
+              <div className="space-y-3 p-3 bg-muted/30 rounded-lg border">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-medium text-foreground">當日訂單</h4>
+                  {singleEditOrders.length > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                      {singleEditOrders.length} 筆
+                    </Badge>
+                  )}
+                </div>
+                
+                {loadingSingleEditOrders ? (
+                  <div className="flex items-center justify-center py-4">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+                  </div>
+                ) : singleEditOrders.length === 0 ? (
+                  <div className="text-center py-4 text-muted-foreground text-sm">
+                    <Calendar className="h-6 w-6 mx-auto mb-1.5 opacity-30" />
+                    <p>此日期尚無訂單</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-36 overflow-y-auto">
+                    {singleEditOrders.map((order) => {
+                      const orderStatusConfig = getOrderStatusConfig(order.order_status);
+                      const paymentStatusConfig = getPaymentStatusConfig(order.payment_status);
+                      
+                      return (
+                        <div key={order.id} className="p-2.5 bg-background rounded-md border space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-medium text-xs">{order.order_number}</span>
+                            <div className="flex gap-1">
+                              <Badge className={cn("text-[10px] px-1.5 py-0", orderStatusConfig.className)}>
+                                {orderStatusConfig.label}
+                              </Badge>
+                              <Badge className={cn("text-[10px] px-1.5 py-0", paymentStatusConfig.className)}>
+                                {paymentStatusConfig.label}
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">
+                              {order.guest_name} · {order.guest_count}人 · {format(parseISO(order.check_in_date), 'M/d', { locale: zhTW })}-{format(parseISO(order.check_out_date), 'M/d', { locale: zhTW })}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2 text-xs"
+                              onClick={() => window.open(`/admin/orders/${order.id}`, '_blank')}
+                            >
+                              <Edit className="h-3 w-3 mr-1" />
+                              查看
+                            </Button>
+                          </div>
+                          <div className="text-xs font-medium text-primary">
+                            NT$ {order.final_price.toLocaleString()}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* 分隔線 */}
