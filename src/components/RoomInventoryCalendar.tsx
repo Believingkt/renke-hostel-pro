@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ChevronLeft, ChevronRight, DollarSign, Package, Edit, X, Check, Calendar, CalendarDays, CalendarRange, Briefcase, Copy, List, Grid3x3, Lock, AlertCircle, Unlock, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, DollarSign, Package, Edit, X, Check, Calendar, CalendarDays, CalendarRange, Briefcase, Copy, List, Grid3x3, Lock, AlertCircle, Unlock, Plus, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -2346,10 +2346,11 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                               </Button>
                               <Button
                                 size="sm"
-                                className="flex-1 h-10 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors touch-manipulation"
+                                className="flex-1 h-10 gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors touch-manipulation"
                                 onClick={() => window.open(`/admin/orders/${order.id}`, '_blank')}
                               >
-                                查看詳情 →
+                                <Eye className="h-4 w-4" />
+                                查看詳情
                               </Button>
                             </div>
                           </div>
@@ -2570,10 +2571,11 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                               </Button>
                               <Button
                                 size="sm"
-                                className="flex-1 h-9 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                                className="flex-1 h-9 gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                                 onClick={() => window.open(`/admin/orders/${order.id}`, '_blank')}
                               >
-                                查看詳情 →
+                                <Eye className="h-4 w-4" />
+                                查看詳情
                               </Button>
                             </div>
                           </div>
