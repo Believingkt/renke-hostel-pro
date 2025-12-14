@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ChevronLeft, ChevronRight, DollarSign, Package, Edit, X, Check, Calendar, CalendarDays, CalendarRange, Briefcase, Copy, List, Grid3x3, Lock, AlertCircle, Unlock } from "lucide-react";
+import { ChevronLeft, ChevronRight, DollarSign, Package, Edit, X, Check, Calendar, CalendarDays, CalendarRange, Briefcase, Copy, List, Grid3x3, Lock, AlertCircle, Unlock, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { getOrderStatusConfig, getPaymentStatusConfig } from "@/utils/orderHelpers";
 import { RoomInventoryCalendarSkeleton, RoomInventoryListSkeleton } from "@/components/skeletons/RoomInventoryCalendarSkeleton";
+import { CreateOrderDialog } from "@/components/orders/CreateOrderDialog";
 
 interface RoomInventoryCalendarProps {
   roomTypeId: string;
@@ -90,6 +91,8 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
   const [selectedDateOrders, setSelectedDateOrders] = useState<any[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [customMealPlans, setCustomMealPlans] = useState<{ id: string; name: string }[]>([]);
+  const [createOrderDialogOpen, setCreateOrderDialogOpen] = useState(false);
+  const [createOrderInitialData, setCreateOrderInitialData] = useState<{ check_in_date: string; check_out_date: string; room_type_id: string } | null>(null);
 
   // 獲取專案顯示名稱
   const getMealPlanDisplayName = (planId: string | null) => {
@@ -803,6 +806,23 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
     } finally {
       setIsUnlocking(false);
     }
+  };
+
+  const handleCreateBooking = () => {
+    if (!editingDate) return;
+    setCreateOrderInitialData({
+      check_in_date: editingDate,
+      check_out_date: format(addDays(parseISO(editingDate), 1), 'yyyy-MM-dd'),
+      room_type_id: roomTypeId,
+    });
+    setSingleEditDialogOpen(false);
+    setCreateOrderDialogOpen(true);
+  };
+
+  const handleCreateOrderSuccess = () => {
+    setCreateOrderDialogOpen(false);
+    setCreateOrderInitialData(null);
+    loadInventory();
   };
 
   const handleSingleDateUpdate = async () => {
@@ -1793,7 +1813,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
         <Drawer open={singleEditDialogOpen} onOpenChange={setSingleEditDialogOpen}>
           <DrawerContent className="max-h-[90vh]">
             <DrawerHeader>
-              <DrawerTitle>編輯日期</DrawerTitle>
+              <DrawerTitle>預訂管理</DrawerTitle>
               <DrawerDescription>
                 {editingDate && format(parseISO(editingDate), 'yyyy年 M月 d日（EEEE）', { locale: zhTW })}
               </DrawerDescription>
@@ -1883,6 +1903,14 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
 
             <DrawerFooter className="pt-4">
               <Button
+                onClick={handleCreateBooking}
+                variant="secondary"
+                className="h-12 text-base touch-manipulation"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                新增預訂
+              </Button>
+              <Button
                 onClick={handleSingleDateUpdate}
                 disabled={saving || !singleEditData.availableRooms || 
                   (singleEditData.mealPlan === '2meals' && !singleEditData.price_2_meals) ||
@@ -1906,7 +1934,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
         <Dialog open={singleEditDialogOpen} onOpenChange={setSingleEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>編輯日期</DialogTitle>
+              <DialogTitle>預訂管理</DialogTitle>
               <DialogDescription>
                 {editingDate && format(parseISO(editingDate), 'yyyy年 M月 d日（EEEE）', { locale: zhTW })}
               </DialogDescription>
@@ -2002,6 +2030,14 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                 className="touch-manipulation"
               >
                 取消
+              </Button>
+              <Button
+                onClick={handleCreateBooking}
+                variant="secondary"
+                className="touch-manipulation"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                新增預訂
               </Button>
               <Button
                 onClick={handleSingleDateUpdate}
@@ -2473,6 +2509,14 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
           </DialogContent>
         </Dialog>
       )}
+
+      {/* 新增預訂對話框 */}
+      <CreateOrderDialog
+        open={createOrderDialogOpen}
+        onOpenChange={setCreateOrderDialogOpen}
+        onSuccess={handleCreateOrderSuccess}
+        initialData={createOrderInitialData || undefined}
+      />
     </Card>
   );
 }
