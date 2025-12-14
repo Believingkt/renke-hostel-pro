@@ -1843,7 +1843,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                   <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">價格與庫存設定</span>
+                  <span className="bg-background px-2 text-muted-foreground">編輯專案價格與庫存</span>
                 </div>
               </div>
 
@@ -1946,7 +1946,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                   (singleEditData.mealPlan === '3meals' && !singleEditData.price_3_meals)}
                 className="h-12 text-base touch-manipulation"
               >
-                {saving ? '更新中...' : '儲存價格與庫存設定'}
+                {saving ? '更新中...' : '儲存設定'}
               </Button>
               <Button
                 variant="outline"
@@ -1994,7 +1994,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                   <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">價格與庫存設定</span>
+                  <span className="bg-background px-2 text-muted-foreground">編輯專案價格與庫存</span>
                 </div>
               </div>
 
