@@ -1849,6 +1849,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
 
               {/* 專案與價格設定區 */}
               <div className="space-y-4 p-4 bg-muted/30 rounded-lg border">
+                <h4 className="text-sm font-medium text-foreground">專案與價格設定</h4>
                 <div className="space-y-3">
                   <Label className="text-sm font-medium">專案類型</Label>
                   <RadioGroup
@@ -1905,6 +1906,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
 
               {/* 庫存設定區 */}
               <div className="space-y-4 p-4 bg-muted/30 rounded-lg border">
+                <h4 className="text-sm font-medium text-foreground">庫存設定</h4>
                 <div className="space-y-2">
                   <Label htmlFor="single-availableRooms" className="text-sm font-medium">庫存數</Label>
                   <Input
@@ -1998,6 +2000,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
 
               {/* 專案與價格設定區 */}
               <div className="space-y-3 p-3 bg-muted/30 rounded-lg border">
+                <h4 className="text-sm font-medium text-foreground">專案與價格設定</h4>
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">專案類型</Label>
                   <RadioGroup
@@ -2054,6 +2057,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
 
               {/* 庫存設定區 */}
               <div className="space-y-3 p-3 bg-muted/30 rounded-lg border">
+                <h4 className="text-sm font-medium text-foreground">庫存設定</h4>
                 <div className="space-y-1.5">
                   <Label htmlFor="single-availableRooms-desktop" className="text-sm font-medium">庫存數</Label>
                   <Input
