@@ -105,6 +105,13 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
     return planId === "2_meals" ? "一泊二食" : planId === "3_meals" ? "一泊三食" : planId;
   };
 
+  // 手機版預設使用清單視圖
+  useEffect(() => {
+    if (isMobile) {
+      setViewMode('list');
+    }
+  }, [isMobile]);
+
   useEffect(() => {
     loadInventory();
     loadPublicHolidays();
