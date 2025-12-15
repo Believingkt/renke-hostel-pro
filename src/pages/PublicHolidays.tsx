@@ -389,36 +389,6 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
     }
   };
 
-  const handleBatchImport = async (year: number) => {
-    try {
-      const holidaysToImport = COMMON_HOLIDAYS.map(holiday => ({
-        accommodation_id: accommodationId,
-        holiday_name: holiday.name,
-        holiday_date: `${year}-${String(holiday.month).padStart(2, '0')}-${String(holiday.day).padStart(2, '0')}`,
-      }));
-
-      const { error } = await supabase
-        .from("public_holidays")
-        .insert(holidaysToImport);
-
-      if (error) throw error;
-
-      toast({
-        title: "批量導入成功",
-        description: `已成功導入 ${year} 年常見假日`,
-      });
-
-      setIsBatchDialogOpen(false);
-      loadHolidays();
-    } catch (error) {
-      console.error("Error batch importing holidays:", error);
-      toast({
-        title: "批量導入失敗",
-        description: "部分假日可能已存在或發生錯誤",
-        variant: "destructive",
-      });
-    }
-  };
 
   // 篩選後的假日列表
   const filteredHolidays = useMemo(() => {
@@ -1260,26 +1230,6 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
               </div>
             )}
 
-            {/* Fallback option */}
-            <div className="border-t pt-4">
-              <p className="text-sm text-muted-foreground mb-2">或使用簡易模式（固定日期）：</p>
-              <div className="grid grid-cols-3 gap-2">
-                {[currentYear - 1, currentYear, currentYear + 1].map(year => (
-                  <Button
-                    key={`fallback-${year}`}
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs"
-                    onClick={() => handleBatchImport(year)}
-                  >
-                    {year} 年基本版
-                  </Button>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                ⚠️ 基本版使用固定日期，農曆假日需手動調整
-              </p>
-            </div>
           </div>
           <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button variant="outline" onClick={() => setIsBatchDialogOpen(false)}>
