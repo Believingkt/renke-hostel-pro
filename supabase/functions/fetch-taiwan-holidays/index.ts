@@ -62,12 +62,11 @@ serve(async (req) => {
         
         console.log(`Filtered to ${filteredData.length} records for year ${year}`);
         
-        // Transform the data
-        holidays = filteredData
+        // Transform holidays (放假日)
+        const holidayRecords = filteredData
           .filter((item: GovernmentHoliday) => 
             item.isHoliday === '是' && 
             (item.holidayCategory === '放假之紀念日及節日' || 
-             item.holidayCategory === '星期六、星期日' ||
              item.holidayCategory.includes('放假'))
           )
           .filter((item: GovernmentHoliday) => 
@@ -82,7 +81,20 @@ serve(async (req) => {
             type: 'holiday' as const,
           }));
         
-        console.log(`Transformed to ${holidays.length} holidays`);
+        // Transform workdays (補班日)
+        const workdayRecords = filteredData
+          .filter((item: GovernmentHoliday) => 
+            item.isHoliday === '否' && 
+            item.holidayCategory.includes('補行上班')
+          )
+          .map((item: GovernmentHoliday) => ({
+            date: `${item.date.substring(0, 4)}-${item.date.substring(4, 6)}-${item.date.substring(6, 8)}`,
+            name: item.name || '補班日',
+            type: 'workday' as const,
+          }));
+        
+        holidays = [...holidayRecords, ...workdayRecords];
+        console.log(`Transformed to ${holidayRecords.length} holidays and ${workdayRecords.length} workdays`);
       }
     } catch (apiError) {
       console.error('Government API error:', apiError);
