@@ -352,12 +352,27 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
     }
   };
 
-  // 確認導入已獲取的假日
+  // 確認導入已獲取的假日（含重複檢查）
   const confirmImportHolidays = async () => {
     if (!selectedImportYear || apiHolidays.length === 0) return;
     
     try {
-      const holidaysToImport = apiHolidays.map(holiday => ({
+      // 獲取現有假日的日期列表
+      const existingDates = holidays.map(h => h.holiday_date);
+      
+      // 過濾掉已存在的日期
+      const newHolidays = apiHolidays.filter(holiday => !existingDates.includes(holiday.date));
+      const duplicateCount = apiHolidays.length - newHolidays.length;
+      
+      if (newHolidays.length === 0) {
+        toast({
+          title: "無需導入",
+          description: `所有 ${apiHolidays.length} 個假日都已存在，無需重複導入`,
+        });
+        return;
+      }
+      
+      const holidaysToImport = newHolidays.map(holiday => ({
         accommodation_id: accommodationId,
         holiday_name: holiday.name,
         holiday_date: holiday.date,
@@ -370,9 +385,13 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
 
       if (error) throw error;
 
+      const duplicateMessage = duplicateCount > 0 
+        ? `（已跳過 ${duplicateCount} 個重複日期）` 
+        : '';
+      
       toast({
         title: "批量導入成功",
-        description: `已成功導入 ${selectedImportYear} 年 ${apiHolidays.length} 個國定假日`,
+        description: `已成功導入 ${newHolidays.length} 個國定假日${duplicateMessage}`,
       });
 
       setIsBatchDialogOpen(false);
@@ -383,7 +402,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
       console.error("Error batch importing holidays:", error);
       toast({
         title: "批量導入失敗",
-        description: "部分假日可能已存在或發生錯誤",
+        description: "發生錯誤，請稍後再試",
         variant: "destructive",
       });
     }
