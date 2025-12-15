@@ -74,3 +74,6 @@ verify_jwt = false
 
 [functions.update-password]
 verify_jwt = false
+
+[functions.fetch-taiwan-holidays]
+verify_jwt = true

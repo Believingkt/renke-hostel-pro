@@ -45,7 +45,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Calendar, Plus, Trash2, CalendarDays, Edit, Download, Filter, TrendingUp, LayoutGrid, List, Home } from "lucide-react";
+import { Calendar, Plus, Trash2, CalendarDays, Edit, Download, Filter, TrendingUp, LayoutGrid, List, Home, Loader2, Globe } from "lucide-react";
 import { format, getYear, startOfYear, endOfYear, isSameDay, addMonths, subMonths } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -74,7 +74,14 @@ interface PublicHoliday {
   created_at: string;
 }
 
-// 常見假日模板
+// API holiday response type
+interface ApiHoliday {
+  date: string;
+  name: string;
+  type: 'holiday' | 'workday';
+}
+
+// 常見假日模板 (fallback)
 const COMMON_HOLIDAYS = [
   { name: "元旦", month: 1, day: 1 },
   { name: "農曆春節", month: 2, day: 1 }, // 示例日期
@@ -99,6 +106,9 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isBatchDialogOpen, setIsBatchDialogOpen] = useState(false);
+  const [isImportingFromApi, setIsImportingFromApi] = useState(false);
+  const [apiHolidays, setApiHolidays] = useState<ApiHoliday[]>([]);
+  const [selectedImportYear, setSelectedImportYear] = useState<number | null>(null);
   const [selectedHoliday, setSelectedHoliday] = useState<PublicHoliday | null>(null);
   const [newHoliday, setNewHoliday] = useState({
     name: "",
@@ -274,6 +284,92 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
     openAddDialog: () => setIsAddDialogOpen(true),
     openBatchDialog: () => setIsBatchDialogOpen(true),
   }));
+
+  // 從政府API獲取國定假日
+  const fetchHolidaysFromApi = async (year: number) => {
+    setIsImportingFromApi(true);
+    setSelectedImportYear(year);
+    setApiHolidays([]);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-taiwan-holidays', {
+        body: { year }
+      });
+
+      if (error) throw error;
+
+      if (data?.holidays && data.holidays.length > 0) {
+        setApiHolidays(data.holidays);
+        toast({
+          title: "取得假日資料成功",
+          description: `已從${data.source === 'government_api' ? '政府開放資料' : '內建資料'}取得 ${data.holidays.length} 個假日`,
+        });
+      } else {
+        // Fallback to local data
+        const fallbackHolidays = COMMON_HOLIDAYS.map(holiday => ({
+          date: `${year}-${String(holiday.month).padStart(2, '0')}-${String(holiday.day).padStart(2, '0')}`,
+          name: holiday.name,
+          type: 'holiday' as const,
+        }));
+        setApiHolidays(fallbackHolidays);
+        toast({
+          title: "使用預設資料",
+          description: "無法連接政府API，將使用預設假日資料",
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching holidays from API:", error);
+      // Fallback to local data on error
+      const fallbackHolidays = COMMON_HOLIDAYS.map(holiday => ({
+        date: `${year}-${String(holiday.month).padStart(2, '0')}-${String(holiday.day).padStart(2, '0')}`,
+        name: holiday.name,
+        type: 'holiday' as const,
+      }));
+      setApiHolidays(fallbackHolidays);
+      toast({
+        title: "使用預設資料",
+        description: "API連線失敗，將使用預設假日資料",
+      });
+    } finally {
+      setIsImportingFromApi(false);
+    }
+  };
+
+  // 確認導入已獲取的假日
+  const confirmImportHolidays = async () => {
+    if (!selectedImportYear || apiHolidays.length === 0) return;
+    
+    try {
+      const holidaysToImport = apiHolidays.map(holiday => ({
+        accommodation_id: accommodationId,
+        holiday_name: holiday.name,
+        holiday_date: holiday.date,
+      }));
+
+      const { error } = await supabase
+        .from("public_holidays")
+        .insert(holidaysToImport);
+
+      if (error) throw error;
+
+      toast({
+        title: "批量導入成功",
+        description: `已成功導入 ${selectedImportYear} 年 ${apiHolidays.length} 個國定假日`,
+      });
+
+      setIsBatchDialogOpen(false);
+      setApiHolidays([]);
+      setSelectedImportYear(null);
+      loadHolidays();
+    } catch (error) {
+      console.error("Error batch importing holidays:", error);
+      toast({
+        title: "批量導入失敗",
+        description: "部分假日可能已存在或發生錯誤",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleBatchImport = async (year: number) => {
     try {
@@ -966,50 +1062,109 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
       </Dialog>
 
       {/* 批量導入對話框 */}
-      <Dialog open={isBatchDialogOpen} onOpenChange={setIsBatchDialogOpen}>
-        <DialogContent className="max-w-2xl">
+      <Dialog open={isBatchDialogOpen} onOpenChange={(open) => {
+        setIsBatchDialogOpen(open);
+        if (!open) {
+          setApiHolidays([]);
+          setSelectedImportYear(null);
+        }
+      }}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>批量導入常見假日</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5" />
+              自動導入國定假日
+            </DialogTitle>
             <DialogDescription>
-              選擇年份後，系統將自動導入該年度的常見國定假日
+              從政府開放資料平台自動取得台灣國定假日（包含正確的農曆節日日期）
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {[currentYear - 1, currentYear, currentYear + 1].map(year => (
-                <Button
-                  key={year}
-                  variant="outline"
-                  className="h-auto py-4 flex flex-col items-center gap-2"
-                  onClick={() => handleBatchImport(year)}
-                >
-                  <CalendarDays className="h-5 w-5" />
-                  <span className="font-semibold">{year} 年</span>
-                  <span className="text-xs text-muted-foreground">
-                    導入 {COMMON_HOLIDAYS.length} 個假日
-                  </span>
-                </Button>
-              ))}
-            </div>
-            <div className="rounded-lg border p-4 bg-muted/50">
-              <p className="text-sm font-medium mb-2">將導入以下假日：</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm text-muted-foreground">
-                {COMMON_HOLIDAYS.map(holiday => (
-                  <div key={holiday.name} className="flex items-center gap-1">
-                    <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                    {holiday.name}
-                  </div>
+            {/* Step 1: 選擇年份並獲取資料 */}
+            <div className="space-y-3">
+              <p className="text-sm font-medium">步驟 1：選擇年份取得假日資料</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {[currentYear - 1, currentYear, currentYear + 1, currentYear + 2].map(year => (
+                  <Button
+                    key={year}
+                    variant={selectedImportYear === year ? "default" : "outline"}
+                    className="h-auto py-3 flex flex-col items-center gap-1"
+                    onClick={() => fetchHolidaysFromApi(year)}
+                    disabled={isImportingFromApi}
+                  >
+                    {isImportingFromApi && selectedImportYear === year ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <CalendarDays className="h-4 w-4" />
+                    )}
+                    <span className="font-semibold">{year} 年</span>
+                  </Button>
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground mt-3">
-                ⚠️ 注意：農曆假日的日期為示例日期，請在導入後手動調整為正確日期
+            </div>
+            
+            {/* Step 2: 顯示取得的假日列表 */}
+            {apiHolidays.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">步驟 2：確認假日列表</p>
+                  <Badge variant="secondary">
+                    共 {apiHolidays.length} 個假日
+                  </Badge>
+                </div>
+                <div className="rounded-lg border p-4 bg-muted/50 max-h-64 overflow-y-auto">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                    {apiHolidays.map((holiday, index) => (
+                      <div key={`${holiday.date}-${index}`} className="flex items-center justify-between py-1 px-2 rounded hover:bg-muted">
+                        <div className="flex items-center gap-2">
+                          <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                          <span>{holiday.name}</span>
+                        </div>
+                        <span className="text-muted-foreground text-xs">
+                          {format(new Date(holiday.date), "M/d (EEE)", { locale: zhTW })}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <TrendingUp className="h-3 w-3" />
+                  資料來源：政府資料開放平台 / 內建假日資料
+                </p>
+              </div>
+            )}
+
+            {/* Fallback option */}
+            <div className="border-t pt-4">
+              <p className="text-sm text-muted-foreground mb-2">或使用簡易模式（固定日期）：</p>
+              <div className="grid grid-cols-3 gap-2">
+                {[currentYear - 1, currentYear, currentYear + 1].map(year => (
+                  <Button
+                    key={`fallback-${year}`}
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => handleBatchImport(year)}
+                  >
+                    {year} 年基本版
+                  </Button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                ⚠️ 基本版使用固定日期，農曆假日需手動調整
               </p>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button variant="outline" onClick={() => setIsBatchDialogOpen(false)}>
-              關閉
+              取消
             </Button>
+            {apiHolidays.length > 0 && (
+              <Button onClick={confirmImportHolidays} className="gap-2">
+                <Download className="h-4 w-4" />
+                確認導入 {selectedImportYear} 年假日
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
