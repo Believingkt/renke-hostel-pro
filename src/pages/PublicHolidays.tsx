@@ -45,7 +45,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Calendar, Plus, Trash2, CalendarDays, Edit, Download, Filter, TrendingUp, LayoutGrid, List, Home, Loader2, Globe } from "lucide-react";
+import { Calendar, Plus, Trash2, CalendarDays, Edit, Download, Filter, TrendingUp, LayoutGrid, List, Home, Loader2, Globe, Briefcase } from "lucide-react";
 import { format, getYear, startOfYear, endOfYear, isSameDay, addMonths, subMonths } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -67,12 +67,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResponsiveTabs, TabItem } from "@/components/ResponsiveTabs";
 import { PageHeader } from "@/components/PageHeader";
 
+type HolidayType = 'holiday' | 'workday';
+
 interface PublicHoliday {
   id: string;
   holiday_date: string;
   holiday_name: string;
+  holiday_type: HolidayType;
   created_at: string;
 }
+
+const HOLIDAY_TYPE_CONFIG = {
+  holiday: { label: '假日', color: 'bg-green-500', badge: 'default' as const, description: '國定假日（使用假日定價）' },
+  workday: { label: '補班', color: 'bg-orange-500', badge: 'secondary' as const, description: '補班日（使用平日定價）' },
+};
 
 // API holiday response type
 interface ApiHoliday {
@@ -113,10 +121,12 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
   const [newHoliday, setNewHoliday] = useState({
     name: "",
     date: undefined as Date | undefined,
+    type: 'holiday' as HolidayType,
   });
   const [editHoliday, setEditHoliday] = useState({
     name: "",
     date: undefined as Date | undefined,
+    type: 'holiday' as HolidayType,
   });
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [isEditDatePickerOpen, setIsEditDatePickerOpen] = useState(false);
@@ -143,7 +153,12 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
         .order("holiday_date", { ascending: true });
 
       if (error) throw error;
-      setHolidays(data || []);
+      // Cast to handle string -> HolidayType
+      const holidaysWithType = (data || []).map(h => ({
+        ...h,
+        holiday_type: (h.holiday_type as HolidayType) || 'holiday'
+      }));
+      setHolidays(holidaysWithType);
     } catch (error) {
       console.error("Error loading holidays:", error);
       setError(error instanceof Error ? error.message : "載入假日資料失敗");
@@ -179,6 +194,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
         accommodation_id: accommodationId,
         holiday_name: newHoliday.name.trim(),
         holiday_date: format(newHoliday.date, "yyyy-MM-dd"),
+        holiday_type: newHoliday.type,
       });
 
       if (error) throw error;
@@ -189,7 +205,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
       });
 
       setIsAddDialogOpen(false);
-      setNewHoliday({ name: "", date: undefined });
+      setNewHoliday({ name: "", date: undefined, type: 'holiday' });
       loadHolidays();
     } catch (error) {
       console.error("Error adding holiday:", error);
@@ -226,6 +242,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
         .update({
           holiday_name: editHoliday.name.trim(),
           holiday_date: format(editHoliday.date, "yyyy-MM-dd"),
+          holiday_type: editHoliday.type,
         })
         .eq("id", selectedHoliday.id);
 
@@ -238,7 +255,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
 
       setIsEditDialogOpen(false);
       setSelectedHoliday(null);
-      setEditHoliday({ name: "", date: undefined });
+      setEditHoliday({ name: "", date: undefined, type: 'holiday' });
       loadHolidays();
     } catch (error) {
       console.error("Error updating holiday:", error);
@@ -344,6 +361,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
         accommodation_id: accommodationId,
         holiday_name: holiday.name,
         holiday_date: holiday.date,
+        holiday_type: holiday.type || 'holiday',
       }));
 
       const { error } = await supabase
@@ -419,6 +437,9 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
 
   // 統計資訊
   const stats = useMemo(() => {
+    const holidayCount = holidays.filter(h => h.holiday_type !== 'workday').length;
+    const workdayCount = holidays.filter(h => h.holiday_type === 'workday').length;
+    
     const currentYearHolidays = holidays.filter(holiday => {
       const year = getYear(new Date(holiday.holiday_date));
       return year === currentYear;
@@ -431,6 +452,8 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
 
     return {
       total: holidays.length,
+      holidays: holidayCount,
+      workdays: workdayCount,
       currentYear: currentYearHolidays.length,
       upcoming: upcomingHolidays.length,
     };
@@ -469,11 +492,12 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
       setEditHoliday({
         name: existingHoliday.holiday_name,
         date: new Date(existingHoliday.holiday_date),
+        type: existingHoliday.holiday_type || 'holiday',
       });
       setIsEditDialogOpen(true);
     } else {
       // 如果不是假日，打開新增對話框並預設日期
-      setNewHoliday({ name: "", date });
+      setNewHoliday({ name: "", date, type: 'holiday' });
       setIsAddDialogOpen(true);
     }
   };
@@ -590,7 +614,10 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
       <Card>
         <CardHeader className="p-4 sm:p-6">
           <CardDescription className="text-xs sm:text-sm">
-            管理假日定價的國定假日日期（假日定價包含：星期六 + 國定假日）
+            管理假日定價的國定假日日期（假日定價包含：星期六 + 國定假日）。
+            <span className="text-muted-foreground ml-1">
+              共 {stats.holidays} 個假日、{stats.workdays} 個補班日
+            </span>
           </CardDescription>
           <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-3 mt-3 sm:mt-4">
             <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "list" | "calendar")} className="w-auto">
@@ -656,6 +683,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                 <TableHeader>
                   <TableRow className="bg-muted/50">
                     <TableHead className="font-semibold text-foreground text-sm">假日名稱</TableHead>
+                    <TableHead className="font-semibold text-foreground text-sm">類型</TableHead>
                     <TableHead className="font-semibold text-foreground text-sm">日期</TableHead>
                     <TableHead className="font-semibold text-foreground text-sm">星期</TableHead>
                     <TableHead className="font-semibold text-foreground text-sm">年份</TableHead>
@@ -682,6 +710,22 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                           </div>
                         </TableCell>
                         <TableCell className="text-sm">
+                          <Badge 
+                            variant={HOLIDAY_TYPE_CONFIG[holiday.holiday_type || 'holiday'].badge}
+                            className={cn(
+                              "gap-1",
+                              holiday.holiday_type === 'workday' && "bg-orange-100 text-orange-700 border-orange-200"
+                            )}
+                          >
+                            {holiday.holiday_type === 'workday' ? (
+                              <Briefcase className="h-3 w-3" />
+                            ) : (
+                              <CalendarDays className="h-3 w-3" />
+                            )}
+                            {HOLIDAY_TYPE_CONFIG[holiday.holiday_type || 'holiday'].label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm">
                           {format(date, "yyyy年MM月dd日", { locale: zhTW })}
                         </TableCell>
                         <TableCell className="text-sm">
@@ -699,6 +743,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                                 setEditHoliday({
                                   name: holiday.holiday_name,
                                   date: new Date(holiday.holiday_date),
+                                  type: holiday.holiday_type || 'holiday',
                                 });
                                 setIsEditDialogOpen(true);
                               }}
@@ -739,6 +784,20 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <h4 className="font-semibold text-sm truncate">{holiday.holiday_name}</h4>
+                            <Badge 
+                              variant={HOLIDAY_TYPE_CONFIG[holiday.holiday_type || 'holiday'].badge}
+                              className={cn(
+                                "text-xs gap-1",
+                                holiday.holiday_type === 'workday' && "bg-orange-100 text-orange-700 border-orange-200"
+                              )}
+                            >
+                              {holiday.holiday_type === 'workday' ? (
+                                <Briefcase className="h-3 w-3" />
+                              ) : (
+                                <CalendarDays className="h-3 w-3" />
+                              )}
+                              {HOLIDAY_TYPE_CONFIG[holiday.holiday_type || 'holiday'].label}
+                            </Badge>
                             {isPast && (
                               <Badge variant="secondary" className="text-xs flex-shrink-0">
                                 已過
@@ -759,6 +818,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                               setEditHoliday({
                                 name: holiday.holiday_name,
                                 date: new Date(holiday.holiday_date),
+                                type: holiday.holiday_type || 'holiday',
                               });
                               setIsEditDialogOpen(true);
                             }}
@@ -843,6 +903,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                           setEditHoliday({
                             name: holiday.holiday_name,
                             date: new Date(holiday.holiday_date),
+                            type: holiday.holiday_type || 'holiday',
                           });
                           setIsEditDialogOpen(true);
                         }}
@@ -987,6 +1048,31 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                 </PopoverContent>
               </Popover>
             </div>
+            <div className="space-y-2">
+              <Label>類型</Label>
+              <Select
+                value={newHoliday.type}
+                onValueChange={(value: HolidayType) => setNewHoliday({ ...newHoliday, type: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="holiday">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-green-500" />
+                      <span>假日（使用假日定價）</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="workday">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-orange-500" />
+                      <span>補班日（使用平日定價）</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
@@ -1051,6 +1137,31 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                 </PopoverContent>
               </Popover>
             </div>
+            <div className="space-y-2">
+              <Label>類型</Label>
+              <Select
+                value={editHoliday.type}
+                onValueChange={(value: HolidayType) => setEditHoliday({ ...editHoliday, type: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="holiday">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-green-500" />
+                      <span>假日（使用假日定價）</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="workday">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-orange-500" />
+                      <span>補班日（使用平日定價）</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
@@ -1076,7 +1187,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
               自動導入國定假日
             </DialogTitle>
             <DialogDescription>
-              從政府開放資料平台自動取得台灣國定假日（包含正確的農曆節日日期）
+              從政府開放資料平台自動取得台灣國定假日與補班日（包含正確的農曆節日日期）
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -1106,19 +1217,34 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
             {/* Step 2: 顯示取得的假日列表 */}
             {apiHolidays.length > 0 && (
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <p className="text-sm font-medium">步驟 2：確認假日列表</p>
-                  <Badge variant="secondary">
-                    共 {apiHolidays.length} 個假日
-                  </Badge>
+                  <div className="flex gap-2">
+                    <Badge variant="default" className="gap-1">
+                      <CalendarDays className="h-3 w-3" />
+                      {apiHolidays.filter(h => h.type === 'holiday').length} 假日
+                    </Badge>
+                    <Badge variant="secondary" className="gap-1 bg-orange-100 text-orange-700 border-orange-200">
+                      <Briefcase className="h-3 w-3" />
+                      {apiHolidays.filter(h => h.type === 'workday').length} 補班
+                    </Badge>
+                  </div>
                 </div>
                 <div className="rounded-lg border p-4 bg-muted/50 max-h-64 overflow-y-auto">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                     {apiHolidays.map((holiday, index) => (
                       <div key={`${holiday.date}-${index}`} className="flex items-center justify-between py-1 px-2 rounded hover:bg-muted">
                         <div className="flex items-center gap-2">
-                          <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                          <div className={cn(
+                            "h-1.5 w-1.5 rounded-full",
+                            holiday.type === 'workday' ? "bg-orange-500" : "bg-green-500"
+                          )} />
                           <span>{holiday.name}</span>
+                          {holiday.type === 'workday' && (
+                            <Badge variant="secondary" className="text-[10px] px-1 py-0 bg-orange-100 text-orange-700">
+                              補班
+                            </Badge>
+                          )}
                         </div>
                         <span className="text-muted-foreground text-xs">
                           {format(new Date(holiday.date), "M/d (EEE)", { locale: zhTW })}
