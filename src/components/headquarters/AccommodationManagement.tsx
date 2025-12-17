@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,8 +32,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
-import { Building2, Plus, Pencil, Power, PowerOff, Loader2, ExternalLink, Copy } from "lucide-react";
+import { Building2, Plus, Pencil, Power, PowerOff, Loader2, ExternalLink, Copy, Search, X } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { AccommodationDialog } from "./AccommodationDialog";
 
@@ -77,6 +84,32 @@ export function AccommodationManagement({
   const [isCloning, setIsCloning] = useState(false);
   const [cloneProgress, setCloneProgress] = useState(0);
   const [cloneStep, setCloneStep] = useState("");
+
+  // Search and filter states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+
+  // Filtered accommodations
+  const filteredAccommodations = useMemo(() => {
+    return accommodations.filter((acc) => {
+      // Status filter
+      if (statusFilter === "active" && !acc.is_active) return false;
+      if (statusFilter === "inactive" && acc.is_active) return false;
+
+      // Search filter
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const matchesName = acc.name.toLowerCase().includes(query);
+        const matchesType = acc.type?.toLowerCase().includes(query);
+        const matchesRegion = acc.region_1?.toLowerCase().includes(query) || acc.region_2?.toLowerCase().includes(query);
+        const matchesPhone = acc.phone?.toLowerCase().includes(query);
+        const matchesEmail = acc.email?.toLowerCase().includes(query);
+        return matchesName || matchesType || matchesRegion || matchesPhone || matchesEmail;
+      }
+
+      return true;
+    });
+  }, [accommodations, searchQuery, statusFilter]);
 
   const handleCreate = async (data: any) => {
     try {
@@ -528,7 +561,42 @@ export function AccommodationManagement({
             新增民宿
           </Button>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {/* Search and Filter */}
+          {!loading && accommodations.length > 0 && (
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="搜尋民宿名稱、地區、電話..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 pr-9"
+                />
+                {searchQuery && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                    onClick={() => setSearchQuery("")}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as "all" | "active" | "inactive")}>
+                <SelectTrigger className="w-full sm:w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部狀態</SelectItem>
+                  <SelectItem value="active">營運中</SelectItem>
+                  <SelectItem value="inactive">已停用</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {loading ? (
             <div className="flex justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin" />
@@ -538,6 +606,12 @@ export function AccommodationManagement({
               icon={Building2}
               title="尚無民宿資料"
               description="點擊「新增民宿」開始建立第一個民宿"
+            />
+          ) : filteredAccommodations.length === 0 ? (
+            <EmptyState
+              icon={Search}
+              title="找不到符合的民宿"
+              description="嘗試調整搜尋條件或篩選狀態"
             />
           ) : (
             <div className="overflow-x-auto rounded-md border">
@@ -554,7 +628,7 @@ export function AccommodationManagement({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {accommodations.map((acc) => (
+                  {filteredAccommodations.map((acc) => (
                     <TableRow key={acc.id} className={!acc.is_active ? "opacity-60" : ""}>
                       <TableCell className="font-medium">{acc.name}</TableCell>
                       <TableCell>{acc.type || "-"}</TableCell>
