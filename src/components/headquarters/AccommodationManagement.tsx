@@ -140,6 +140,34 @@ export function AccommodationManagement({
           driving_info: "",
           public_transport_info: "",
         }),
+
+        // Default room types
+        supabase.from("room_types").insert([
+          {
+            accommodation_id: accommodationId,
+            name: "雙人房",
+            name_en: "Double Room",
+            capacity: 2,
+            base_price: 2800,
+            size_sqm: 20,
+            description: "溫馨舒適的雙人房，適合情侶或好友入住。",
+            display_order: 1,
+            room_count: 1,
+            double_room_count: 1,
+          },
+          {
+            accommodation_id: accommodationId,
+            name: "四人房",
+            name_en: "Family Room",
+            capacity: 4,
+            base_price: 4800,
+            size_sqm: 30,
+            description: "寬敞的四人房，適合家庭或團體入住。",
+            display_order: 2,
+            room_count: 1,
+            quad_room_count: 1,
+          },
+        ]),
       ];
 
       // Execute all init promises but don't fail if some fail
@@ -153,7 +181,7 @@ export function AccommodationManagement({
       });
 
       toast.success("民宿新增成功", {
-        description: "已自動建立預訂設定、價格模板等基礎資料",
+        description: "已自動建立預設房型、預訂設定、價格模板等基礎資料",
       });
       onRefresh();
     } catch (error: any) {
