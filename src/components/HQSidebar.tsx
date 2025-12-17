@@ -4,7 +4,12 @@ import {
   TrendingUp, 
   DollarSign, 
   Users, 
-  Settings
+  Settings,
+  ChevronDown,
+  FileText,
+  ClipboardList,
+  Calculator,
+  Clock
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { PreloadLink } from "@/components/PreloadLink";
@@ -18,13 +23,28 @@ import {
   SidebarMenuItem,
   SidebarHeader,
   useSidebar,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import lokezeLogo from "@/assets/lokeze-logo.png";
 
 const menuItems = [
   { title: "營運概況", url: "/hq", icon: BarChart3, tab: "overview" },
   { title: "業績報表", url: "/hq?tab=performance", icon: TrendingUp, tab: "performance" },
-  { title: "金流拆帳", url: "/hq?tab=split", icon: DollarSign, tab: "split" },
+  { 
+    title: "金流拆帳", 
+    url: "/hq?tab=split", 
+    icon: DollarSign, 
+    tab: "split",
+    subItems: [
+      { title: "拆帳規則", url: "/hq?tab=split&section=rules", icon: FileText },
+      { title: "拆帳明細", url: "/hq?tab=split&section=details", icon: ClipboardList },
+      { title: "結算報表", url: "/hq?tab=split&section=reports", icon: Calculator },
+      { title: "待結算", url: "/hq?tab=split&section=pending", icon: Clock },
+    ]
+  },
   { title: "民宿管理", url: "/hq?tab=accommodations", icon: Building2, tab: "accommodations" },
   { title: "用戶管理", url: "/hq?tab=users", icon: Users, tab: "users" },
   { title: "系統管理", url: "/hq?tab=system", icon: Settings, tab: "system" },
@@ -35,6 +55,7 @@ export function HQSidebar() {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const currentTab = searchParams.get('tab') || 'overview';
+  const currentSection = searchParams.get('section');
 
   const handleLinkClick = () => {
     if (isMobile) {
@@ -47,6 +68,13 @@ export function HQSidebar() {
       return currentTab === 'overview' || !searchParams.has('tab');
     }
     return currentTab === tab;
+  };
+
+  const isActiveSubItem = (url: string) => {
+    const urlParams = new URLSearchParams(url.split('?')[1] || '');
+    const urlTab = urlParams.get('tab');
+    const urlSection = urlParams.get('section');
+    return currentTab === urlTab && currentSection === urlSection;
   };
 
   return (
@@ -69,19 +97,52 @@ export function HQSidebar() {
             <SidebarMenu className="gap-2.5">
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild 
-                    isActive={isActiveRoute(item.tab)} 
-                    className="h-12 py-3 text-base"
-                  >
-                    <PreloadLink 
-                      to={item.url}
-                      onClick={handleLinkClick}
+                  {item.subItems ? (
+                    <Collapsible defaultOpen={isActiveRoute(item.tab)} className="group/collapsible">
+                      <CollapsibleTrigger asChild>
+                        <SidebarMenuButton 
+                          className="h-12 py-3 text-base"
+                          isActive={isActiveRoute(item.tab)}
+                        >
+                          <item.icon className="h-5 w-5" />
+                          <span>{item.title}</span>
+                          <ChevronDown className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
+                        </SidebarMenuButton>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="overflow-hidden transition-all duration-300 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                        <SidebarMenuSub className="ml-2 border-l-2 border-sidebar-border px-0 space-y-1 mt-1">
+                          {item.subItems.map((subItem) => (
+                            <SidebarMenuSubItem key={subItem.title}>
+                              <SidebarMenuSubButton asChild className="h-10 px-4 pl-8 hover:bg-sidebar-accent/50 transition-all duration-200">
+                                <PreloadLink 
+                                  to={subItem.url}
+                                  onClick={handleLinkClick}
+                                  className={isActiveSubItem(subItem.url) ? "bg-sidebar-accent" : ""}
+                                >
+                                  <subItem.icon className="h-4 w-4" />
+                                  <span>{subItem.title}</span>
+                                </PreloadLink>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          ))}
+                        </SidebarMenuSub>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  ) : (
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={isActiveRoute(item.tab)} 
+                      className="h-12 py-3 text-base"
                     >
-                      <item.icon className="h-5 w-5" />
-                      <span>{item.title}</span>
-                    </PreloadLink>
-                  </SidebarMenuButton>
+                      <PreloadLink 
+                        to={item.url}
+                        onClick={handleLinkClick}
+                      >
+                        <item.icon className="h-5 w-5" />
+                        <span>{item.title}</span>
+                      </PreloadLink>
+                    </SidebarMenuButton>
+                  )}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
