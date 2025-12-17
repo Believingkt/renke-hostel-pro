@@ -41,7 +41,8 @@ import {
   CheckCircle2,
   AlertCircle,
   BarChart3,
-  Users
+  Users,
+  TrendingUp
 } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
@@ -61,6 +62,7 @@ import { Switch } from "@/components/ui/switch";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { AccommodationManagement } from "@/components/headquarters/AccommodationManagement";
 import { OperationalOverview } from "@/components/headquarters/OperationalOverview";
+import { PerformanceReport } from "@/components/headquarters/PerformanceReport";
 
 interface UserRole {
   id: string;
@@ -600,10 +602,14 @@ const Headquarters = () => {
       />
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
+        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
           <TabsTrigger value="overview" className="gap-2">
             <BarChart3 className="h-4 w-4 hidden sm:inline" />
             營運概況
+          </TabsTrigger>
+          <TabsTrigger value="performance" className="gap-2">
+            <TrendingUp className="h-4 w-4 hidden sm:inline" />
+            業績報表
           </TabsTrigger>
           <TabsTrigger value="accommodations" className="gap-2">
             <Building2 className="h-4 w-4 hidden sm:inline" />
@@ -622,6 +628,11 @@ const Headquarters = () => {
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
           <OperationalOverview accommodations={accommodations} />
+        </TabsContent>
+
+        {/* Performance Report Tab */}
+        <TabsContent value="performance" className="space-y-6">
+          <PerformanceReport accommodations={accommodations} />
         </TabsContent>
 
         {/* Accommodations Tab */}
