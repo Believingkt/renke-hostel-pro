@@ -152,6 +152,7 @@ export type Database = {
           hero_subtitle: string | null
           id: string
           instagram_url: string | null
+          is_active: boolean
           latitude: number | null
           line_id: string | null
           longitude: number | null
@@ -190,6 +191,7 @@ export type Database = {
           hero_subtitle?: string | null
           id?: string
           instagram_url?: string | null
+          is_active?: boolean
           latitude?: number | null
           line_id?: string | null
           longitude?: number | null
@@ -228,6 +230,7 @@ export type Database = {
           hero_subtitle?: string | null
           id?: string
           instagram_url?: string | null
+          is_active?: boolean
           latitude?: number | null
           line_id?: string | null
           longitude?: number | null
