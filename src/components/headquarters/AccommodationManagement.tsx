@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -74,6 +75,8 @@ export function AccommodationManagement({
   const [cloningAccommodation, setCloningAccommodation] = useState<Accommodation | null>(null);
   const [cloneName, setCloneName] = useState("");
   const [isCloning, setIsCloning] = useState(false);
+  const [cloneProgress, setCloneProgress] = useState(0);
+  const [cloneStep, setCloneStep] = useState("");
 
   const handleCreate = async (data: any) => {
     try {
@@ -237,16 +240,34 @@ export function AccommodationManagement({
     if (!cloningAccommodation || !cloneName.trim()) return;
 
     setIsCloning(true);
+    setCloneProgress(0);
+    setCloneStep("建立新民宿...");
+    
+    const steps = [
+      { name: "預訂設定", weight: 10 },
+      { name: "關於我們", weight: 10 },
+      { name: "特色說明", weight: 10 },
+      { name: "位置資訊", weight: 10 },
+      { name: "價格模板", weight: 10 },
+      { name: "常見問題", weight: 10 },
+      { name: "民宿設施", weight: 10 },
+      { name: "房型設定", weight: 20 },
+      { name: "附加服務", weight: 10 },
+    ];
+    
+    let completedWeight = 0;
+    const totalWeight = steps.reduce((sum, s) => sum + s.weight, 0);
+    
     try {
       const sourceId = cloningAccommodation.id;
 
-      // Step 1: Create new accommodation
+      // Step 1: Create new accommodation (5%)
       const { data: newAccommodation, error: createError } = await supabase
         .from("accommodation_info")
         .insert({
           name: cloneName.trim(),
           type: cloningAccommodation.type,
-          registration_number: null, // Don't copy registration number
+          registration_number: null,
           country: cloningAccommodation.country,
           region_1: cloningAccommodation.region_1,
           region_2: cloningAccommodation.region_2,
@@ -261,186 +282,186 @@ export function AccommodationManagement({
 
       if (createError) throw createError;
       const newId = newAccommodation.id;
+      setCloneProgress(5);
 
-      // Step 2: Copy related data
-      const copyOperations: Promise<void>[] = [];
+      // Helper to update progress
+      const updateProgress = (stepIndex: number) => {
+        completedWeight = steps.slice(0, stepIndex + 1).reduce((sum, s) => sum + s.weight, 0);
+        setCloneProgress(5 + Math.round((completedWeight / totalWeight) * 95));
+      };
 
-      // Copy booking settings
-      copyOperations.push(
-        (async () => {
-          const { data } = await supabase
-            .from("booking_settings")
-            .select("*")
-            .eq("accommodation_id", sourceId)
-            .single();
-          if (data) {
-            const { id, accommodation_id, created_at, updated_at, ...rest } = data;
-            await supabase.from("booking_settings").insert({ ...rest, accommodation_id: newId });
-          }
-        })()
-      );
+      // Step 2: Copy booking settings
+      setCloneStep(steps[0].name);
+      try {
+        const { data } = await supabase
+          .from("booking_settings")
+          .select("*")
+          .eq("accommodation_id", sourceId)
+          .single();
+        if (data) {
+          const { id, accommodation_id, created_at, updated_at, ...rest } = data;
+          await supabase.from("booking_settings").insert({ ...rest, accommodation_id: newId });
+        }
+      } catch (e) { console.warn("Failed to copy booking settings:", e); }
+      updateProgress(0);
 
-      // Copy about section
-      copyOperations.push(
-        (async () => {
-          const { data } = await supabase
-            .from("about_section")
-            .select("*")
-            .eq("accommodation_id", sourceId)
-            .single();
-          if (data) {
-            const { id, accommodation_id, created_at, updated_at, ...rest } = data;
-            await supabase.from("about_section").insert({ ...rest, accommodation_id: newId });
-          }
-        })()
-      );
+      // Step 3: Copy about section
+      setCloneStep(steps[1].name);
+      try {
+        const { data } = await supabase
+          .from("about_section")
+          .select("*")
+          .eq("accommodation_id", sourceId)
+          .single();
+        if (data) {
+          const { id, accommodation_id, created_at, updated_at, ...rest } = data;
+          await supabase.from("about_section").insert({ ...rest, accommodation_id: newId });
+        }
+      } catch (e) { console.warn("Failed to copy about section:", e); }
+      updateProgress(1);
 
-      // Copy about features
-      copyOperations.push(
-        (async () => {
-          const { data } = await supabase
-            .from("about_features")
-            .select("*")
-            .eq("accommodation_id", sourceId);
-          if (data && data.length > 0) {
-            const newFeatures = data.map(({ id, accommodation_id, created_at, updated_at, ...rest }) => ({
-              ...rest,
-              accommodation_id: newId,
-            }));
-            await supabase.from("about_features").insert(newFeatures);
-          }
-        })()
-      );
+      // Step 4: Copy about features
+      setCloneStep(steps[2].name);
+      try {
+        const { data } = await supabase
+          .from("about_features")
+          .select("*")
+          .eq("accommodation_id", sourceId);
+        if (data && data.length > 0) {
+          const newFeatures = data.map(({ id, accommodation_id, created_at, updated_at, ...rest }) => ({
+            ...rest,
+            accommodation_id: newId,
+          }));
+          await supabase.from("about_features").insert(newFeatures);
+        }
+      } catch (e) { console.warn("Failed to copy about features:", e); }
+      updateProgress(2);
 
-      // Copy location info
-      copyOperations.push(
-        (async () => {
-          const { data } = await supabase
-            .from("location_info")
-            .select("*")
-            .eq("accommodation_id", sourceId)
-            .single();
-          if (data) {
-            const { id, accommodation_id, created_at, updated_at, ...rest } = data;
-            await supabase.from("location_info").insert({ ...rest, accommodation_id: newId });
-          }
-        })()
-      );
+      // Step 5: Copy location info
+      setCloneStep(steps[3].name);
+      try {
+        const { data } = await supabase
+          .from("location_info")
+          .select("*")
+          .eq("accommodation_id", sourceId)
+          .single();
+        if (data) {
+          const { id, accommodation_id, created_at, updated_at, ...rest } = data;
+          await supabase.from("location_info").insert({ ...rest, accommodation_id: newId });
+        }
+      } catch (e) { console.warn("Failed to copy location info:", e); }
+      updateProgress(3);
 
-      // Copy pricing templates
-      copyOperations.push(
-        (async () => {
-          const { data } = await supabase
-            .from("pricing_templates")
-            .select("*")
-            .eq("accommodation_id", sourceId);
-          if (data && data.length > 0) {
-            const newTemplates = data.map(({ id, accommodation_id, created_at, updated_at, ...rest }) => ({
-              ...rest,
-              accommodation_id: newId,
-            }));
-            await supabase.from("pricing_templates").insert(newTemplates);
-          }
-        })()
-      );
+      // Step 6: Copy pricing templates
+      setCloneStep(steps[4].name);
+      try {
+        const { data } = await supabase
+          .from("pricing_templates")
+          .select("*")
+          .eq("accommodation_id", sourceId);
+        if (data && data.length > 0) {
+          const newTemplates = data.map(({ id, accommodation_id, created_at, updated_at, ...rest }) => ({
+            ...rest,
+            accommodation_id: newId,
+          }));
+          await supabase.from("pricing_templates").insert(newTemplates);
+        }
+      } catch (e) { console.warn("Failed to copy pricing templates:", e); }
+      updateProgress(4);
 
-      // Copy FAQs
-      copyOperations.push(
-        (async () => {
-          const { data } = await supabase
-            .from("faqs")
-            .select("*")
-            .eq("accommodation_id", sourceId);
-          if (data && data.length > 0) {
-            const newFaqs = data.map(({ id, accommodation_id, created_at, updated_at, ...rest }) => ({
-              ...rest,
-              accommodation_id: newId,
-            }));
-            await supabase.from("faqs").insert(newFaqs);
-          }
-        })()
-      );
+      // Step 7: Copy FAQs
+      setCloneStep(steps[5].name);
+      try {
+        const { data } = await supabase
+          .from("faqs")
+          .select("*")
+          .eq("accommodation_id", sourceId);
+        if (data && data.length > 0) {
+          const newFaqs = data.map(({ id, accommodation_id, created_at, updated_at, ...rest }) => ({
+            ...rest,
+            accommodation_id: newId,
+          }));
+          await supabase.from("faqs").insert(newFaqs);
+        }
+      } catch (e) { console.warn("Failed to copy FAQs:", e); }
+      updateProgress(5);
 
-      // Copy facilities
-      copyOperations.push(
-        (async () => {
-          const { data } = await supabase
-            .from("accommodation_facilities")
-            .select("*")
-            .eq("accommodation_id", sourceId);
-          if (data && data.length > 0) {
-            const newFacilities = data.map(({ id, accommodation_id, created_at, ...rest }) => ({
-              ...rest,
-              accommodation_id: newId,
-            }));
-            await supabase.from("accommodation_facilities").insert(newFacilities);
-          }
-        })()
-      );
+      // Step 8: Copy facilities
+      setCloneStep(steps[6].name);
+      try {
+        const { data } = await supabase
+          .from("accommodation_facilities")
+          .select("*")
+          .eq("accommodation_id", sourceId);
+        if (data && data.length > 0) {
+          const newFacilities = data.map(({ id, accommodation_id, created_at, ...rest }) => ({
+            ...rest,
+            accommodation_id: newId,
+          }));
+          await supabase.from("accommodation_facilities").insert(newFacilities);
+        }
+      } catch (e) { console.warn("Failed to copy facilities:", e); }
+      updateProgress(6);
 
-      // Copy room types with amenities
-      copyOperations.push(
-        (async () => {
-          const { data: roomTypes } = await supabase
-            .from("room_types")
-            .select("*")
-            .eq("accommodation_id", sourceId);
-          
-          if (roomTypes && roomTypes.length > 0) {
-            for (const roomType of roomTypes) {
-              const { id: oldRoomId, accommodation_id, created_at, updated_at, ...rest } = roomType;
+      // Step 9: Copy room types with amenities
+      setCloneStep(steps[7].name);
+      try {
+        const { data: roomTypes } = await supabase
+          .from("room_types")
+          .select("*")
+          .eq("accommodation_id", sourceId);
+        
+        if (roomTypes && roomTypes.length > 0) {
+          for (const roomType of roomTypes) {
+            const { id: oldRoomId, accommodation_id, created_at, updated_at, ...rest } = roomType;
+            
+            const { data: newRoomType } = await supabase
+              .from("room_types")
+              .insert({ ...rest, accommodation_id: newId })
+              .select("id")
+              .single();
+            
+            if (newRoomType) {
+              const { data: amenities } = await supabase
+                .from("room_amenities")
+                .select("*")
+                .eq("room_type_id", oldRoomId);
               
-              // Create new room type
-              const { data: newRoomType } = await supabase
-                .from("room_types")
-                .insert({ ...rest, accommodation_id: newId })
-                .select("id")
-                .single();
-              
-              if (newRoomType) {
-                // Copy room amenities
-                const { data: amenities } = await supabase
-                  .from("room_amenities")
-                  .select("*")
-                  .eq("room_type_id", oldRoomId);
-                
-                if (amenities && amenities.length > 0) {
-                  const newAmenities = amenities.map(({ id, room_type_id, created_at, ...rest }) => ({
-                    ...rest,
-                    room_type_id: newRoomType.id,
-                  }));
-                  await supabase.from("room_amenities").insert(newAmenities);
-                }
+              if (amenities && amenities.length > 0) {
+                const newAmenities = amenities.map(({ id, room_type_id, created_at, ...rest }) => ({
+                  ...rest,
+                  room_type_id: newRoomType.id,
+                }));
+                await supabase.from("room_amenities").insert(newAmenities);
               }
             }
           }
-        })()
-      );
+        }
+      } catch (e) { console.warn("Failed to copy room types:", e); }
+      updateProgress(7);
 
-      // Copy addon settings
-      copyOperations.push(
-        (async () => {
-          const { data } = await supabase
-            .from("addon_settings")
-            .select("*")
-            .eq("accommodation_id", sourceId);
-          if (data && data.length > 0) {
-            const newAddons = data.map(({ id, accommodation_id, created_at, updated_at, ...rest }) => ({
-              ...rest,
-              accommodation_id: newId,
-            }));
-            await supabase.from("addon_settings").insert(newAddons);
-          }
-        })()
-      );
+      // Step 10: Copy addon settings
+      setCloneStep(steps[8].name);
+      try {
+        const { data } = await supabase
+          .from("addon_settings")
+          .select("*")
+          .eq("accommodation_id", sourceId);
+        if (data && data.length > 0) {
+          const newAddons = data.map(({ id, accommodation_id, created_at, updated_at, ...rest }) => ({
+            ...rest,
+            accommodation_id: newId,
+          }));
+          await supabase.from("addon_settings").insert(newAddons);
+        }
+      } catch (e) { console.warn("Failed to copy addon settings:", e); }
+      updateProgress(8);
 
-      // Execute all copy operations
-      const results = await Promise.allSettled(copyOperations);
-      const failedCount = results.filter(r => r.status === "rejected").length;
+      setCloneStep("完成！");
+      setCloneProgress(100);
 
-      if (failedCount > 0) {
-        console.warn(`${failedCount} copy operations failed`);
-      }
+      // Small delay to show 100%
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       toast.success("民宿複製成功", {
         description: `已建立「${cloneName.trim()}」並複製所有設定`,
@@ -449,6 +470,8 @@ export function AccommodationManagement({
       setCloneDialogOpen(false);
       setCloningAccommodation(null);
       setCloneName("");
+      setCloneProgress(0);
+      setCloneStep("");
       onRefresh();
     } catch (error: any) {
       console.error("Error cloning accommodation:", error);
@@ -644,21 +667,32 @@ export function AccommodationManagement({
                 disabled={isCloning}
               />
             </div>
-            <div className="text-sm text-muted-foreground space-y-1">
-              <p className="font-medium">將複製以下設定：</p>
-              <ul className="list-disc list-inside space-y-0.5 ml-2">
-                <li>預訂設定（入住時間、付款方式等）</li>
-                <li>房型設定與設施</li>
-                <li>價格模板</li>
-                <li>關於我們內容</li>
-                <li>常見問題 FAQ</li>
-                <li>民宿設施</li>
-                <li>附加服務設定</li>
-              </ul>
-              <p className="text-xs mt-2 text-muted-foreground/80">
-                註：圖片、訂單、客戶資料不會被複製
-              </p>
-            </div>
+            
+            {isCloning ? (
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">正在複製：{cloneStep}</span>
+                  <span className="font-medium">{cloneProgress}%</span>
+                </div>
+                <Progress value={cloneProgress} className="h-2" />
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground space-y-1">
+                <p className="font-medium">將複製以下設定：</p>
+                <ul className="list-disc list-inside space-y-0.5 ml-2">
+                  <li>預訂設定（入住時間、付款方式等）</li>
+                  <li>房型設定與設施</li>
+                  <li>價格模板</li>
+                  <li>關於我們內容</li>
+                  <li>常見問題 FAQ</li>
+                  <li>民宿設施</li>
+                  <li>附加服務設定</li>
+                </ul>
+                <p className="text-xs mt-2 text-muted-foreground/80">
+                  註：圖片、訂單、客戶資料不會被複製
+                </p>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button
