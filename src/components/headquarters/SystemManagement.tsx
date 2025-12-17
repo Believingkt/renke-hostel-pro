@@ -401,20 +401,6 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="logs" className="gap-2">
-            <ScrollText className="h-4 w-4" />
-            操作日誌
-          </TabsTrigger>
-          <TabsTrigger value="backup" className="gap-2">
-            <Database className="h-4 w-4" />
-            資料備份
-          </TabsTrigger>
-          <TabsTrigger value="settings" className="gap-2">
-            <Settings className="h-4 w-4" />
-            系統設定
-          </TabsTrigger>
-        </TabsList>
 
         {/* Audit Logs Tab */}
         <TabsContent value="logs" className="space-y-4">
