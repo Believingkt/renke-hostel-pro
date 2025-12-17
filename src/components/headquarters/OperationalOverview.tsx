@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { HQOverviewSkeleton } from "@/components/skeletons/HQSkeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -257,11 +258,7 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
     .sort((a, b) => b.月營收 - a.月營收);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <HQOverviewSkeleton />;
   }
 
   return (
