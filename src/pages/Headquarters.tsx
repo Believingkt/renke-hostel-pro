@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { 
   Loader2, 
@@ -38,7 +39,9 @@ import {
   Eraser,
   Archive,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  BarChart3,
+  Users
 } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
@@ -56,6 +59,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
+import { AccommodationManagement } from "@/components/headquarters/AccommodationManagement";
+import { OperationalOverview } from "@/components/headquarters/OperationalOverview";
 
 interface UserRole {
   id: string;
@@ -73,6 +78,17 @@ interface UserRole {
 interface AccommodationInfo {
   id: string;
   name: string;
+  type?: string | null;
+  registration_number?: string | null;
+  country?: string | null;
+  region_1?: string | null;
+  region_2?: string | null;
+  address?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  description?: string | null;
+  is_active?: boolean;
+  created_at?: string;
 }
 
 interface BackupLog {
@@ -130,7 +146,7 @@ const Headquarters = () => {
   const loadAccommodations = async () => {
     const { data, error } = await supabase
       .from("accommodation_info")
-      .select("id, name")
+      .select("id, name, type, registration_number, country, region_1, region_2, address, phone, email, description, is_active, created_at")
       .order("name");
 
     if (error) {
@@ -583,6 +599,42 @@ const Headquarters = () => {
         icon={Building2}
       />
 
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
+          <TabsTrigger value="overview" className="gap-2">
+            <BarChart3 className="h-4 w-4 hidden sm:inline" />
+            營運概況
+          </TabsTrigger>
+          <TabsTrigger value="accommodations" className="gap-2">
+            <Building2 className="h-4 w-4 hidden sm:inline" />
+            民宿管理
+          </TabsTrigger>
+          <TabsTrigger value="users" className="gap-2">
+            <Users className="h-4 w-4 hidden sm:inline" />
+            用戶管理
+          </TabsTrigger>
+          <TabsTrigger value="backup" className="gap-2">
+            <Database className="h-4 w-4 hidden sm:inline" />
+            資料備份
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-6">
+          <OperationalOverview accommodations={accommodations} />
+        </TabsContent>
+
+        {/* Accommodations Tab */}
+        <TabsContent value="accommodations" className="space-y-6">
+          <AccommodationManagement
+            accommodations={accommodations as any}
+            onRefresh={loadAccommodations}
+            loading={loading}
+          />
+        </TabsContent>
+
+        {/* Users Tab */}
+        <TabsContent value="users" className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>邀請新用戶</CardTitle>
@@ -771,7 +823,10 @@ const Headquarters = () => {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
 
+        {/* Backup Tab */}
+        <TabsContent value="backup" className="space-y-6">
       {/* 資料備份管理 */}
       <Card>
         <CardHeader>
@@ -1000,6 +1055,8 @@ const Headquarters = () => {
           </CardContent>
         </Card>
       )}
+        </TabsContent>
+      </Tabs>
 
       {/* Restore Dialog */}
       <AlertDialog open={restoreDialogOpen} onOpenChange={setRestoreDialogOpen}>
