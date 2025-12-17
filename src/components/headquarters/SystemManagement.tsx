@@ -116,10 +116,19 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
     const currentYear = new Date().getFullYear();
     return [currentYear, currentYear + 1];
   });
+  const [syncedHolidays, setSyncedHolidays] = useState<{ date: string; name: string; type: string }[]>([]);
+  const [previewYear, setPreviewYear] = useState<number>(new Date().getFullYear());
+  const [loadingHolidays, setLoadingHolidays] = useState(false);
 
   useEffect(() => {
     loadData();
   }, [activeTab, categoryFilter, accommodationFilter, dateRange]);
+
+  useEffect(() => {
+    if (activeTab === "settings") {
+      loadSyncedHolidays();
+    }
+  }, [previewYear, accommodations]);
 
   const loadData = async () => {
     setLoading(true);
@@ -128,6 +137,7 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
         await loadAuditLogs();
       } else if (activeTab === "settings") {
         await loadSystemSettings();
+        await loadSyncedHolidays();
       }
     } catch (error) {
       console.error("Error loading data:", error);
@@ -180,6 +190,37 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
     }
 
     setSystemSettings(data || []);
+  };
+
+  const loadSyncedHolidays = async () => {
+    if (accommodations.length === 0) return;
+    
+    setLoadingHolidays(true);
+    try {
+      // Load holidays from the first accommodation (all should have the same data)
+      const { data, error } = await supabase
+        .from("public_holidays")
+        .select("holiday_date, holiday_name, holiday_type")
+        .eq("accommodation_id", accommodations[0].id)
+        .gte("holiday_date", `${previewYear}-01-01`)
+        .lte("holiday_date", `${previewYear}-12-31`)
+        .order("holiday_date");
+
+      if (error) {
+        console.error("Error loading holidays:", error);
+        return;
+      }
+
+      setSyncedHolidays(
+        (data || []).map(h => ({
+          date: h.holiday_date,
+          name: h.holiday_name,
+          type: h.holiday_type,
+        }))
+      );
+    } finally {
+      setLoadingHolidays(false);
+    }
   };
 
   const updateSetting = async (key: string, value: Record<string, unknown>) => {
@@ -645,7 +686,79 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
             </CardContent>
           </Card>
 
-          {/* Backup Retention Settings */}
+          {/* Holiday Preview */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                已同步假日預覽
+              </CardTitle>
+              <CardDescription>
+                檢視已同步的國定假日資料
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Label>選擇年份：</Label>
+                <Select value={previewYear.toString()} onValueChange={(v) => setPreviewYear(parseInt(v))}>
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(() => {
+                      const currentYear = new Date().getFullYear();
+                      return [currentYear - 1, currentYear, currentYear + 1, currentYear + 2].map(year => (
+                        <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                      ));
+                    })()}
+                  </SelectContent>
+                </Select>
+                <Badge variant="outline" className="ml-2">
+                  共 {syncedHolidays.length} 筆
+                </Badge>
+              </div>
+
+              {loadingHolidays ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : syncedHolidays.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                  <Calendar className="h-10 w-10 mb-2 opacity-50" />
+                  <p className="text-sm">尚無 {previewYear} 年的假日資料</p>
+                  <p className="text-xs">請點擊「立即同步」取得假日資料</p>
+                </div>
+              ) : (
+                <div className="max-h-[300px] overflow-y-auto rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead className="w-[120px]">日期</TableHead>
+                        <TableHead>假日名稱</TableHead>
+                        <TableHead className="w-[100px]">類型</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {syncedHolidays.map((holiday, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell className="font-mono text-sm">
+                            {format(new Date(holiday.date), "MM/dd (E)", { locale: zhTW })}
+                          </TableCell>
+                          <TableCell>{holiday.name}</TableCell>
+                          <TableCell>
+                            <Badge variant={holiday.type === "workday" ? "destructive" : "secondary"}>
+                              {holiday.type === "workday" ? "補班日" : "假日"}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
