@@ -9,7 +9,8 @@ import {
   FileText,
   ClipboardList,
   Calculator,
-  Clock
+  Clock,
+  Database
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { PreloadLink } from "@/components/PreloadLink";
@@ -47,7 +48,17 @@ const menuItems = [
   },
   { title: "民宿管理", url: "/hq?tab=accommodations", icon: Building2, tab: "accommodations" },
   { title: "用戶管理", url: "/hq?tab=users", icon: Users, tab: "users" },
-  { title: "系統管理", url: "/hq?tab=system", icon: Settings, tab: "system" },
+  { 
+    title: "系統管理", 
+    url: "/hq?tab=system", 
+    icon: Settings, 
+    tab: "system",
+    subItems: [
+      { title: "操作日誌", url: "/hq?tab=system&section=logs", icon: FileText },
+      { title: "資料備份", url: "/hq?tab=system&section=backup", icon: Database },
+      { title: "系統設定", url: "/hq?tab=system&section=settings", icon: Settings },
+    ]
+  },
 ];
 
 export function HQSidebar() {
