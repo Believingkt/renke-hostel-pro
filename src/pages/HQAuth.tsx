@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, LogIn, Eye, EyeOff, Mail, Building2 } from "lucide-react";
-import sensanLogo from "@/assets/sensan-logo-white.png";
+import { Loader2, LogIn, Eye, EyeOff, Mail } from "lucide-react";
+import lokezeLogo from "@/assets/lokeze-logo-auth.png";
 
 export default function HQAuth() {
   const navigate = useNavigate();
@@ -144,27 +144,24 @@ export default function HQAuth() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
-      <Card className="w-full max-w-md shadow-lg border-slate-700 bg-slate-800">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-3">
-          <div className="flex flex-col items-center space-y-3">
-            <div className="flex items-center gap-3">
-              <Building2 className="h-8 w-8 text-primary" />
-              <img src={sensanLogo} alt="森三" className="h-10 object-contain" />
-            </div>
-            <p className="text-lg font-medium text-slate-300">總部管理系統</p>
+          <div className="flex flex-col items-center space-y-2">
+            <img src={lokezeLogo} alt="Lokeze" className="h-12 object-contain" />
+            <p className="text-lg font-medium text-muted-foreground">總部管理系統</p>
           </div>
           {isForgotPasswordMode ? (
             <div className="flex items-center justify-center gap-2 pt-2">
-              <Mail className="h-5 w-5 text-primary" />
-              <CardDescription className="text-center text-slate-400">
+              <Mail className="h-5 w-5 text-auth-primary" />
+              <CardDescription className="text-center">
                 重設您的密碼
               </CardDescription>
             </div>
           ) : (
             <div className="flex items-center justify-center gap-2 pt-2">
-              <LogIn className="h-5 w-5 text-primary" />
-              <CardDescription className="text-center text-slate-400">
+              <LogIn className="h-5 w-5 text-auth-primary" />
+              <CardDescription className="text-center">
                 請登入總部管理帳號
               </CardDescription>
             </div>
@@ -174,7 +171,7 @@ export default function HQAuth() {
           {isForgotPasswordMode ? (
             <form onSubmit={handleForgotPassword} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="forgot-email" className="text-slate-200">電子郵件</Label>
+                <Label htmlFor="forgot-email">電子郵件</Label>
                 <Input
                   id="forgot-email"
                   type="email"
@@ -182,20 +179,19 @@ export default function HQAuth() {
                   value={forgotPasswordEmail}
                   onChange={(e) => setForgotPasswordEmail(e.target.value)}
                   required
-                  className="bg-slate-700 border-slate-600 text-slate-100 placeholder:text-slate-400"
                 />
               </div>
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-muted-foreground">
                 輸入您的電子郵件，我們將發送重設密碼連結給您。
               </p>
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full bg-auth-primary hover:bg-auth-primary-hover" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 發送重設連結
               </Button>
               <Button 
                 type="button"
                 variant="ghost" 
-                className="w-full text-slate-300 hover:text-slate-100 hover:bg-slate-700"
+                className="w-full"
                 onClick={() => {
                   setIsForgotPasswordMode(false);
                   setForgotPasswordEmail("");
@@ -207,7 +203,7 @@ export default function HQAuth() {
           ) : (
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="login-email" className="text-slate-200">電子郵件</Label>
+                <Label htmlFor="login-email">電子郵件</Label>
                 <Input
                   id="login-email"
                   type="email"
@@ -215,16 +211,15 @@ export default function HQAuth() {
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
                   required
-                  className="bg-slate-700 border-slate-600 text-slate-100 placeholder:text-slate-400"
                 />
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="login-password" className="text-slate-200">密碼</Label>
+                  <Label htmlFor="login-password">密碼</Label>
                   <Button
                     type="button"
                     variant="link"
-                    className="h-auto p-0 text-sm text-slate-400 hover:text-primary"
+                    className="h-auto p-0 text-sm text-muted-foreground hover:text-auth-primary"
                     onClick={() => setIsForgotPasswordMode(true)}
                   >
                     忘記密碼？
@@ -237,7 +232,7 @@ export default function HQAuth() {
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
                     required
-                    className="pr-10 bg-slate-700 border-slate-600 text-slate-100"
+                    className="pr-10"
                   />
                   <Button
                     type="button"
@@ -247,14 +242,14 @@ export default function HQAuth() {
                     onClick={() => setShowLoginPassword(!showLoginPassword)}
                   >
                     {showLoginPassword ? (
-                      <Eye className="h-4 w-4 text-slate-400" />
+                      <Eye className="h-4 w-4 text-muted-foreground" />
                     ) : (
-                      <EyeOff className="h-4 w-4 text-slate-400" />
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
                     )}
                   </Button>
                 </div>
               </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full bg-auth-primary hover:bg-auth-primary-hover" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 登入
               </Button>
