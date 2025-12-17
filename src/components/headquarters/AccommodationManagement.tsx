@@ -56,6 +56,7 @@ interface Accommodation {
   phone: string | null;
   email: string | null;
   description: string | null;
+  short_url_alias: string | null;
   is_active: boolean;
   created_at: string;
 }
@@ -127,6 +128,7 @@ export function AccommodationManagement({
           phone: data.phone || null,
           email: data.email || null,
           description: data.description || null,
+          short_url_alias: data.short_url_alias || null,
           is_active: true,
         })
         .select("id")
@@ -241,6 +243,7 @@ export function AccommodationManagement({
           phone: data.phone || null,
           email: data.email || null,
           description: data.description || null,
+          short_url_alias: data.short_url_alias || null,
         })
         .eq("id", editingAccommodation.id);
 
@@ -619,9 +622,9 @@ export function AccommodationManagement({
                 <TableHeader>
                   <TableRow className="bg-muted/50">
                     <TableHead className="font-semibold">民宿名稱</TableHead>
+                    <TableHead className="font-semibold">子網域</TableHead>
                     <TableHead className="font-semibold">類型</TableHead>
                     <TableHead className="font-semibold">地區</TableHead>
-                    <TableHead className="font-semibold">電話</TableHead>
                     <TableHead className="font-semibold">狀態</TableHead>
                     <TableHead className="font-semibold">建立時間</TableHead>
                     <TableHead className="text-right font-semibold">操作</TableHead>
@@ -631,13 +634,26 @@ export function AccommodationManagement({
                   {filteredAccommodations.map((acc) => (
                     <TableRow key={acc.id} className={!acc.is_active ? "opacity-60" : ""}>
                       <TableCell className="font-medium">{acc.name}</TableCell>
+                      <TableCell>
+                        {acc.short_url_alias ? (
+                          <a
+                            href={`https://${acc.short_url_alias}.lakeze.com`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline text-sm"
+                          >
+                            {acc.short_url_alias}.lakeze.com
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">未設定</span>
+                        )}
+                      </TableCell>
                       <TableCell>{acc.type || "-"}</TableCell>
                       <TableCell>
                         {acc.region_1 && acc.region_2
                           ? `${acc.region_1} ${acc.region_2}`
                           : acc.region_1 || "-"}
                       </TableCell>
-                      <TableCell>{acc.phone || "-"}</TableCell>
                       <TableCell>
                         <Badge variant={acc.is_active ? "default" : "secondary"}>
                           {acc.is_active ? "營運中" : "已停用"}
