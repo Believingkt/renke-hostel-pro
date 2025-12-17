@@ -1,6 +1,6 @@
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Menu, LogOut, Building2 } from "lucide-react";
+import { LogOut, KeyRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -14,10 +14,14 @@ export function HQHeader() {
     try {
       await supabase.auth.signOut();
       toast.success("已登出");
-      navigate("/auth");
+      navigate("/hq-auth");
     } catch (error) {
       toast.error("登出失敗");
     }
+  };
+
+  const handleChangePassword = () => {
+    navigate("/headquarters/change-password");
   };
 
   return (
@@ -35,6 +39,15 @@ export function HQHeader() {
       <div className="flex-1" />
       
       <div className="flex items-center gap-2">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={handleChangePassword}
+          className="gap-2 h-9 md:h-10 text-sm"
+        >
+          <KeyRound className="h-4 w-4" />
+          <span className="hidden sm:inline">修改密碼</span>
+        </Button>
         <Button 
           variant="ghost" 
           size="sm" 

@@ -74,6 +74,7 @@ export default function ChangePassword() {
   
   // 判斷是否從後台訪問
   const isAdminRoute = location.pathname.includes('/admin/');
+  const isHQRoute = location.pathname.includes('/headquarters/');
 
   useEffect(() => {
     const fetchUserEmail = async () => {
@@ -136,6 +137,10 @@ export default function ChangePassword() {
         // 從後台主動修改密碼：不登出，直接返回後台
         toast.success("密碼已更新");
         navigate("/admin");
+      } else if (isHQRoute) {
+        // 從總部後台主動修改密碼：不登出，直接返回總部
+        toast.success("密碼已更新");
+        navigate("/headquarters");
       } else {
         // 首次登入強制修改密碼：需要更新標記並登出
         // Get current user
@@ -174,10 +179,10 @@ export default function ChangePassword() {
             <img src={lokezeLogo} alt="Lokeze" className="h-10 sm:h-12 object-contain" />
           </div>
           <CardTitle className="text-xl sm:text-2xl text-center">
-            {isAdminRoute ? "修改密碼" : "設定新密碼"}
+            {(isAdminRoute || isHQRoute) ? "修改密碼" : "設定新密碼"}
           </CardTitle>
           <CardDescription className="text-center text-sm sm:text-base">
-            {isAdminRoute ? "請輸入新密碼" : "這是您首次登入，請設定新密碼"}
+            {(isAdminRoute || isHQRoute) ? "請輸入新密碼" : "這是您首次登入，請設定新密碼"}
           </CardDescription>
           {userEmail && (
             <div className="mt-2 sm:mt-3 text-center">
