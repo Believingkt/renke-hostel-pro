@@ -36,7 +36,12 @@ import {
   Users,
   TrendingUp,
   Settings,
-  DollarSign
+  DollarSign,
+  FileText,
+  ClipboardList,
+  Calculator,
+  Clock,
+  Database
 } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
@@ -630,17 +635,17 @@ const Headquarters = () => {
     
     if (currentTab === 'split' && section) {
       switch (section) {
-        case 'rules': return DollarSign;
-        case 'details': return DollarSign;
-        case 'reports': return BarChart3;
-        case 'pending': return DollarSign;
+        case 'rules': return FileText;
+        case 'details': return ClipboardList;
+        case 'reports': return Calculator;
+        case 'pending': return Clock;
       }
     }
     
     if (currentTab === 'system' && section) {
       switch (section) {
-        case 'logs': return Settings;
-        case 'backup': return Settings;
+        case 'logs': return FileText;
+        case 'backup': return Database;
         case 'settings': return Settings;
       }
     }
