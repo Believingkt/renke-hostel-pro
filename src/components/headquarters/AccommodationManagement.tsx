@@ -61,23 +61,81 @@ export function AccommodationManagement({
 
   const handleCreate = async (data: any) => {
     try {
-      const { error } = await supabase.from("accommodation_info").insert({
-        name: data.name,
-        type: data.type,
-        registration_number: data.registration_number || null,
-        country: data.country || "台灣",
-        region_1: data.region_1 || null,
-        region_2: data.region_2 || null,
-        address: data.address || null,
-        phone: data.phone || null,
-        email: data.email || null,
-        description: data.description || null,
-        is_active: true,
+      // Step 1: Create the accommodation and get the ID
+      const { data: newAccommodation, error: createError } = await supabase
+        .from("accommodation_info")
+        .insert({
+          name: data.name,
+          type: data.type,
+          registration_number: data.registration_number || null,
+          country: data.country || "台灣",
+          region_1: data.region_1 || null,
+          region_2: data.region_2 || null,
+          address: data.address || null,
+          phone: data.phone || null,
+          email: data.email || null,
+          description: data.description || null,
+          is_active: true,
+        })
+        .select("id")
+        .single();
+
+      if (createError) throw createError;
+
+      const accommodationId = newAccommodation.id;
+
+      // Step 2: Create default settings in parallel
+      const initPromises = [
+        // Default booking settings
+        supabase.from("booking_settings").insert({
+          accommodation_id: accommodationId,
+          check_in_time: "15:00",
+          check_out_time: "11:00",
+          use_deposit: true,
+          deposit_percentage: 30,
+          payment_methods: ["現金", "信用卡", "銀行轉帳"],
+          cancellation_policy: "入住前7天可免費取消，入住前3天取消收取50%費用，入住前1天取消收取全額費用。",
+          pet_policy: "本民宿不接受寵物入住。",
+        }),
+
+        // Default about section
+        supabase.from("about_section").insert({
+          accommodation_id: accommodationId,
+          section_title: "關於我們",
+          section_description: "歡迎來到我們的民宿，這裡提供舒適的住宿體驗。",
+        }),
+
+        // Default pricing template
+        supabase.from("pricing_templates").insert({
+          accommodation_id: accommodationId,
+          template_name: "平日價格",
+          description: "週一至週四的基本價格",
+          is_default: true,
+          display_order: 1,
+        }),
+
+        // Default location info
+        supabase.from("location_info").insert({
+          accommodation_id: accommodationId,
+          location_description: data.address || "",
+          driving_info: "",
+          public_transport_info: "",
+        }),
+      ];
+
+      // Execute all init promises but don't fail if some fail
+      const results = await Promise.allSettled(initPromises);
+      
+      // Log any failures but don't block the creation
+      results.forEach((result, index) => {
+        if (result.status === "rejected") {
+          console.warn(`Failed to create default setting ${index}:`, result.reason);
+        }
       });
 
-      if (error) throw error;
-
-      toast.success("民宿新增成功");
+      toast.success("民宿新增成功", {
+        description: "已自動建立預訂設定、價格模板等基礎資料",
+      });
       onRefresh();
     } catch (error: any) {
       console.error("Error creating accommodation:", error);
