@@ -593,8 +593,27 @@ const Headquarters = () => {
     setRestoreDialogOpen(true);
   };
 
-  // Helper to get page title based on current tab
+  // Helper to get page title based on current tab and section
   const getPageTitle = () => {
+    const section = searchParams.get('section');
+    
+    if (currentTab === 'split' && section) {
+      switch (section) {
+        case 'rules': return '拆帳規則';
+        case 'details': return '拆帳明細';
+        case 'reports': return '結算報表';
+        case 'pending': return '待結算';
+      }
+    }
+    
+    if (currentTab === 'system' && section) {
+      switch (section) {
+        case 'logs': return '操作日誌';
+        case 'backup': return '資料備份';
+        case 'settings': return '系統設定';
+      }
+    }
+    
     switch (currentTab) {
       case 'overview': return '營運概況';
       case 'performance': return '業績報表';
@@ -607,6 +626,25 @@ const Headquarters = () => {
   };
 
   const getPageIcon = () => {
+    const section = searchParams.get('section');
+    
+    if (currentTab === 'split' && section) {
+      switch (section) {
+        case 'rules': return DollarSign;
+        case 'details': return DollarSign;
+        case 'reports': return BarChart3;
+        case 'pending': return DollarSign;
+      }
+    }
+    
+    if (currentTab === 'system' && section) {
+      switch (section) {
+        case 'logs': return Settings;
+        case 'backup': return Settings;
+        case 'settings': return Settings;
+      }
+    }
+    
     switch (currentTab) {
       case 'overview': return BarChart3;
       case 'performance': return TrendingUp;
