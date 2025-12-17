@@ -45,6 +45,7 @@ const EmailTest = lazy(() => import("./pages/EmailTest"));
 
 // Auth 頁面保持即時載入（關鍵路徑）
 import Auth from "./pages/Auth";
+import HQAuth from "./pages/HQAuth";
 import ChangePassword from "./pages/ChangePassword";
 import ResetPassword from "./pages/ResetPassword";
 
@@ -91,6 +92,7 @@ function App() {
                 
                 {/* Auth 頁面 - 無需骨架屏 */}
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/hq-auth" element={<HQAuth />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/change-password" element={<ChangePassword />} />
                 <Route path="/admin/change-password" element={<ChangePassword />} />
