@@ -908,7 +908,7 @@ const Headquarters = () => {
 
   return (
     <div className="space-y-6 md:space-y-8">
-      <div className="space-y-3">
+      <div className="space-y-4 md:space-y-5">
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
