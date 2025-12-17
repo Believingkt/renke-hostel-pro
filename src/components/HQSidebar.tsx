@@ -4,9 +4,7 @@ import {
   TrendingUp, 
   DollarSign, 
   Users, 
-  Settings,
-  ChevronDown,
-  Home
+  Settings
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { PreloadLink } from "@/components/PreloadLink";
@@ -33,7 +31,7 @@ const menuItems = [
 ];
 
 export function HQSidebar() {
-  const { open, setOpenMobile, isMobile } = useSidebar();
+  const { setOpenMobile, isMobile } = useSidebar();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const currentTab = searchParams.get('tab') || 'overview';
@@ -52,19 +50,17 @@ export function HQSidebar() {
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r transition-all duration-300">
-      <SidebarHeader className="border-b px-6 py-4 transition-all duration-300">
+    <Sidebar collapsible="none" className="border-r">
+      <SidebarHeader className="border-b px-6 py-4">
         <PreloadLink 
           to="/hq" 
           onClick={handleLinkClick}
           className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity duration-200"
         >
-          {open && (
-            <div className="animate-in fade-in-0 slide-in-from-left-5 duration-300 flex items-center gap-2">
-              <img src={lokezeLogo} alt="Lokeze" className="h-8 object-contain" />
-              <span className="text-sm font-medium text-muted-foreground">總部</span>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            <img src={lokezeLogo} alt="Lokeze" className="h-8 object-contain" />
+            <span className="text-sm font-medium text-muted-foreground">總部</span>
+          </div>
         </PreloadLink>
       </SidebarHeader>
       <SidebarContent>
@@ -76,14 +72,14 @@ export function HQSidebar() {
                   <SidebarMenuButton 
                     asChild 
                     isActive={isActiveRoute(item.tab)} 
-                    className="h-12 py-3 text-base transition-all duration-200 hover:scale-[1.02]"
+                    className="h-12 py-3 text-base"
                   >
                     <PreloadLink 
                       to={item.url}
                       onClick={handleLinkClick}
                     >
-                      <item.icon className="h-5 w-5 transition-all duration-200 group-hover:scale-110" />
-                      <span className="transition-all duration-200">{item.title}</span>
+                      <item.icon className="h-5 w-5" />
+                      <span>{item.title}</span>
                     </PreloadLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
