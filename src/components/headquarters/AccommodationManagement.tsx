@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { HQAccommodationSkeleton } from "@/components/skeletons/HQSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -611,9 +612,7 @@ export function AccommodationManagement({
           )}
 
           {loading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
+            <HQAccommodationSkeleton />
           ) : accommodations.length === 0 ? (
             <EmptyState
               icon={Building2}

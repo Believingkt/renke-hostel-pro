@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { HQSplitSkeleton } from "@/components/skeletons/HQSkeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -378,11 +379,7 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
   const pendingRecords = splitRecords.filter(r => r.settlement_status === "pending");
 
   if (loading && splitRules.length === 0 && splitRecords.length === 0) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <HQSplitSkeleton />;
   }
 
   return (
