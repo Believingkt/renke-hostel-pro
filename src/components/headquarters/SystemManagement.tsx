@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -100,7 +101,10 @@ const ACTION_TYPE_LABELS: Record<string, string> = {
 };
 
 export function SystemManagement({ accommodations }: SystemManagementProps) {
-  const [activeTab, setActiveTab] = useState("logs");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const section = searchParams.get("section") || "logs";
+  const activeTab = section; // section values match tab values: logs, backup, settings
+  
   const [loading, setLoading] = useState(true);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [systemSettings, setSystemSettings] = useState<SystemSetting[]>([]);
@@ -119,6 +123,10 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
   const [syncedHolidays, setSyncedHolidays] = useState<{ date: string; name: string; type: string }[]>([]);
   const [previewYear, setPreviewYear] = useState<number>(new Date().getFullYear());
   const [loadingHolidays, setLoadingHolidays] = useState(false);
+
+  const handleTabChange = (value: string) => {
+    setSearchParams({ tab: "system", section: value });
+  };
 
   useEffect(() => {
     loadData();
@@ -392,7 +400,7 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
 
   return (
     <div className="space-y-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="logs" className="gap-2">
             <ScrollText className="h-4 w-4" />
