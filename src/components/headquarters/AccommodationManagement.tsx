@@ -40,9 +40,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Building2, Plus, Pencil, Power, PowerOff, Loader2, ExternalLink, Copy, Search, X } from "lucide-react";
+import { Building2, Plus, Pencil, Power, PowerOff, Loader2, ExternalLink, Copy, Search, X, Globe } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { AccommodationDialog } from "./AccommodationDialog";
+import { DnsSettingsDialog } from "./DnsSettingsDialog";
 
 interface Accommodation {
   id: string;
@@ -89,6 +90,15 @@ export function AccommodationManagement({
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+
+  // DNS settings dialog state
+  const [dnsDialogOpen, setDnsDialogOpen] = useState(false);
+  const [dnsAccommodation, setDnsAccommodation] = useState<Accommodation | null>(null);
+
+  const openDnsDialog = (accommodation: Accommodation) => {
+    setDnsAccommodation(accommodation);
+    setDnsDialogOpen(true);
+  };
 
   // Filtered accommodations
   const filteredAccommodations = useMemo(() => {
@@ -672,6 +682,16 @@ export function AccommodationManagement({
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
+                          {acc.short_url_alias && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openDnsDialog(acc)}
+                              title="DNS 設定"
+                            >
+                              <Globe className="h-4 w-4 text-blue-600" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon"
@@ -830,6 +850,16 @@ export function AccommodationManagement({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* DNS Settings Dialog */}
+      {dnsAccommodation?.short_url_alias && (
+        <DnsSettingsDialog
+          open={dnsDialogOpen}
+          onOpenChange={setDnsDialogOpen}
+          subdomain={dnsAccommodation.short_url_alias}
+          accommodationName={dnsAccommodation.name}
+        />
+      )}
     </>
   );
 }
