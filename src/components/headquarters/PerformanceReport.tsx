@@ -30,10 +30,24 @@ import {
   Loader2,
   BarChart3,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  LineChart as LineChartIcon
 } from "lucide-react";
 import { format, subDays, subWeeks, subMonths, subYears, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, differenceInDays } from "date-fns";
 import { zhTW } from "date-fns/locale";
+import { 
+  LineChart, 
+  Line, 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  ResponsiveContainer, 
+  Tooltip, 
+  Legend 
+} from "recharts";
+import { ChartContainer, ChartTooltip, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 
 interface AccommodationPerformance {
   id: string;
@@ -47,6 +61,13 @@ interface AccommodationPerformance {
   roomNights: number;
 }
 
+interface TrendDataPoint {
+  date: string;
+  label: string;
+  revenue: number;
+  orders: number;
+}
+
 interface PerformanceReportProps {
   accommodations: { id: string; name: string; is_active?: boolean }[];
 }
@@ -58,6 +79,7 @@ export function PerformanceReport({ accommodations }: PerformanceReportProps) {
   const [timeRange, setTimeRange] = useState<TimeRange>("month");
   const [performanceData, setPerformanceData] = useState<AccommodationPerformance[]>([]);
   const [previousPeriodData, setPreviousPeriodData] = useState<AccommodationPerformance[]>([]);
+  const [trendData, setTrendData] = useState<TrendDataPoint[]>([]);
   const [exporting, setExporting] = useState(false);
 
   // Calculate date range based on selected time range
@@ -135,18 +157,76 @@ export function PerformanceReport({ accommodations }: PerformanceReportProps) {
       const prevStartStr = format(prevRange.start, "yyyy-MM-dd");
       const prevEndStr = format(prevRange.end, "yyyy-MM-dd");
 
-      const [currentData, previousData] = await Promise.all([
+      const [currentData, previousData, trend] = await Promise.all([
         loadPeriodData(startStr, endStr),
         timeRange !== "all" ? loadPeriodData(prevStartStr, prevEndStr) : Promise.resolve([]),
+        loadTrendData(start, end),
       ]);
 
       setPerformanceData(currentData);
       setPreviousPeriodData(previousData);
+      setTrendData(trend);
     } catch (error) {
       console.error("Error loading performance data:", error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadTrendData = async (start: Date, end: Date): Promise<TrendDataPoint[]> => {
+    const days = eachDayOfInterval({ start, end });
+    const accIds = accommodations.map(a => a.id);
+    
+    // Limit to reasonable number of data points
+    const maxPoints = 31;
+    const step = Math.max(1, Math.ceil(days.length / maxPoints));
+    const sampledDays = days.filter((_, i) => i % step === 0 || i === days.length - 1);
+    
+    // Load all orders for the period for all accommodations
+    const { data: allOrders } = await supabase
+      .from("orders")
+      .select("created_at, final_price, order_status, accommodation_id")
+      .in("accommodation_id", accIds)
+      .gte("created_at", format(start, "yyyy-MM-dd"))
+      .lte("created_at", format(end, "yyyy-MM-dd") + "T23:59:59");
+    
+    const orders = allOrders || [];
+    
+    // Group by date
+    const trendMap = new Map<string, { revenue: number; orders: number }>();
+    
+    sampledDays.forEach(day => {
+      const dateKey = format(day, "yyyy-MM-dd");
+      trendMap.set(dateKey, { revenue: 0, orders: 0 });
+    });
+    
+    orders.forEach(order => {
+      if (order.order_status === "cancelled") return;
+      const orderDate = format(new Date(order.created_at), "yyyy-MM-dd");
+      // Find the closest sampled date
+      const closestDate = sampledDays.reduce((prev, curr) => {
+        const currKey = format(curr, "yyyy-MM-dd");
+        const prevKey = format(prev, "yyyy-MM-dd");
+        return currKey <= orderDate ? curr : prev;
+      });
+      const dateKey = format(closestDate, "yyyy-MM-dd");
+      
+      const existing = trendMap.get(dateKey) || { revenue: 0, orders: 0 };
+      existing.revenue += order.final_price || 0;
+      existing.orders += 1;
+      trendMap.set(dateKey, existing);
+    });
+    
+    return sampledDays.map(day => {
+      const dateKey = format(day, "yyyy-MM-dd");
+      const data = trendMap.get(dateKey) || { revenue: 0, orders: 0 };
+      return {
+        date: dateKey,
+        label: format(day, "M/d", { locale: zhTW }),
+        revenue: data.revenue,
+        orders: data.orders,
+      };
+    });
   };
 
   const loadPeriodData = async (startDate: string, endDate: string): Promise<AccommodationPerformance[]> => {
@@ -414,6 +494,138 @@ export function PerformanceReport({ accommodations }: PerformanceReportProps) {
                 <p className="text-xl font-bold">{totals.totalRoomNights}</p>
               </div>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Revenue Trend Line Chart */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <LineChartIcon className="h-5 w-5 text-primary" />
+              營收趨勢
+            </CardTitle>
+            <CardDescription>
+              {getTimeRangeLabel(timeRange)}營收變化趨勢
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {trendData.length > 0 && trendData.some(d => d.revenue > 0) ? (
+              <div className="h-[280px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={trendData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted/50" vertical={false} />
+                    <XAxis 
+                      dataKey="label" 
+                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value}
+                      width={50}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--background))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                      }}
+                      formatter={(value: number) => [formatCurrency(value), '營收']}
+                      labelFormatter={(label) => `日期: ${label}`}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="revenue" 
+                      stroke="hsl(var(--primary))" 
+                      strokeWidth={2}
+                      dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 3 }}
+                      activeDot={{ r: 5, strokeWidth: 2 }}
+                      name="營收"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-[280px] text-muted-foreground">
+                <div className="text-center">
+                  <p className="text-sm">暫無營收數據</p>
+                  <p className="text-xs mt-1">請選擇有訂單的時間區間</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Accommodation Revenue Comparison Bar Chart */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <BarChart3 className="h-5 w-5 text-blue-500" />
+              民宿營收比較
+            </CardTitle>
+            <CardDescription>
+              各民宿{getTimeRangeLabel(timeRange)}營收對比
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {performanceData.length > 0 && performanceData.some(d => d.revenue > 0) ? (
+              <div className="h-[280px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart 
+                    data={performanceData.sort((a, b) => b.revenue - a.revenue).slice(0, 10)} 
+                    layout="vertical"
+                    margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted/50" horizontal={false} />
+                    <XAxis 
+                      type="number"
+                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value}
+                    />
+                    <YAxis 
+                      type="category"
+                      dataKey="name" 
+                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={100}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--background))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                      }}
+                      formatter={(value: number) => [formatCurrency(value), '營收']}
+                    />
+                    <Bar 
+                      dataKey="revenue" 
+                      fill="hsl(210, 80%, 55%)"
+                      radius={[0, 4, 4, 0]}
+                      name="營收"
+                      maxBarSize={35}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-[280px] text-muted-foreground">
+                <div className="text-center">
+                  <p className="text-sm">暫無民宿營收數據</p>
+                  <p className="text-xs mt-1">請新增訂單後查看統計</p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
