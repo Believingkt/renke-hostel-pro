@@ -232,13 +232,61 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
     }
   };
 
+  const [syncingHolidays, setSyncingHolidays] = useState(false);
+
   const syncHolidays = async () => {
-    toast.info("正在同步國定假日...");
+    setSyncingHolidays(true);
+    const toastId = toast.loading("正在同步國定假日...");
+    
     try {
-      // Call the existing fetch-taiwan-holidays edge function
-      const { error } = await supabase.functions.invoke("fetch-taiwan-holidays");
+      const currentYear = new Date().getFullYear();
+      const yearsToSync = [currentYear, currentYear + 1];
+      let totalSynced = 0;
       
-      if (error) throw error;
+      for (const year of yearsToSync) {
+        // Call the fetch-taiwan-holidays edge function
+        const { data, error } = await supabase.functions.invoke("fetch-taiwan-holidays", {
+          body: { year }
+        });
+        
+        if (error) {
+          console.error(`Error fetching holidays for ${year}:`, error);
+          continue;
+        }
+
+        if (data?.holidays && Array.isArray(data.holidays)) {
+          // Save holidays to all accommodations
+          for (const acc of accommodations) {
+            // Delete existing holidays for this year and accommodation
+            await supabase
+              .from("public_holidays")
+              .delete()
+              .eq("accommodation_id", acc.id)
+              .gte("holiday_date", `${year}-01-01`)
+              .lte("holiday_date", `${year}-12-31`);
+
+            // Insert new holidays
+            const holidaysToInsert = data.holidays.map((holiday: { date: string; name: string; type: string }) => ({
+              accommodation_id: acc.id,
+              holiday_date: holiday.date,
+              holiday_name: holiday.name,
+              holiday_type: holiday.type || "holiday",
+            }));
+
+            if (holidaysToInsert.length > 0) {
+              const { error: insertError } = await supabase
+                .from("public_holidays")
+                .insert(holidaysToInsert);
+
+              if (insertError) {
+                console.error(`Error inserting holidays for ${acc.name}:`, insertError);
+              } else {
+                totalSynced += holidaysToInsert.length;
+              }
+            }
+          }
+        }
+      }
 
       // Update the last sync time
       const holidaySetting = systemSettings.find(s => s.setting_key === "holiday_sync");
@@ -250,11 +298,18 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
         });
       }
 
-      await logAction("sync", "system", "holidays", "taiwan", "台灣國定假日", {});
-      toast.success("國定假日同步完成");
+      await logAction("sync", "system", "holidays", "taiwan", "台灣國定假日", {
+        years: yearsToSync,
+        total_synced: totalSynced,
+        accommodations_count: accommodations.length,
+      });
+
+      toast.success(`國定假日同步完成，共更新 ${totalSynced} 筆資料`, { id: toastId });
     } catch (error) {
       console.error("Error syncing holidays:", error);
-      toast.error("同步國定假日失敗");
+      toast.error("同步國定假日失敗", { id: toastId });
+    } finally {
+      setSyncingHolidays(false);
     }
   };
 
@@ -536,9 +591,13 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
                             : "尚未同步"}
                         </p>
                       </div>
-                      <Button onClick={syncHolidays} variant="outline" className="gap-2">
-                        <RefreshCw className="h-4 w-4" />
-                        立即同步
+                      <Button onClick={syncHolidays} variant="outline" className="gap-2" disabled={syncingHolidays}>
+                        {syncingHolidays ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="h-4 w-4" />
+                        )}
+                        {syncingHolidays ? "同步中..." : "立即同步"}
                       </Button>
                     </div>
                   </>
