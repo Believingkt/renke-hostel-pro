@@ -110,6 +110,12 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [accommodationFilter, setAccommodationFilter] = useState<string>("all");
   const [dateRange, setDateRange] = useState<string>("7");
+  
+  // Holiday sync
+  const [selectedYears, setSelectedYears] = useState<number[]>(() => {
+    const currentYear = new Date().getFullYear();
+    return [currentYear, currentYear + 1];
+  });
 
   useEffect(() => {
     loadData();
@@ -235,15 +241,18 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
   const [syncingHolidays, setSyncingHolidays] = useState(false);
 
   const syncHolidays = async () => {
+    if (selectedYears.length === 0) {
+      toast.error("請至少選擇一個年份");
+      return;
+    }
+    
     setSyncingHolidays(true);
     const toastId = toast.loading("正在同步國定假日...");
     
     try {
-      const currentYear = new Date().getFullYear();
-      const yearsToSync = [currentYear, currentYear + 1];
       let totalSynced = 0;
       
-      for (const year of yearsToSync) {
+      for (const year of selectedYears) {
         // Call the fetch-taiwan-holidays edge function
         const { data, error } = await supabase.functions.invoke("fetch-taiwan-holidays", {
           body: { year }
@@ -299,7 +308,7 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
       }
 
       await logAction("sync", "system", "holidays", "taiwan", "台灣國定假日", {
-        years: yearsToSync,
+        years: selectedYears,
         total_synced: totalSynced,
         accommodations_count: accommodations.length,
       });
@@ -582,6 +591,36 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
                       />
                     </div>
 
+                    <div className="space-y-2 pt-4 border-t">
+                      <Label>選擇同步年份</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {(() => {
+                          const currentYear = new Date().getFullYear();
+                          const availableYears = [currentYear - 1, currentYear, currentYear + 1, currentYear + 2];
+                          return availableYears.map((year) => (
+                            <Button
+                              key={year}
+                              variant={selectedYears.includes(year) ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => {
+                                setSelectedYears(prev => 
+                                  prev.includes(year) 
+                                    ? prev.filter(y => y !== year)
+                                    : [...prev, year].sort()
+                                );
+                              }}
+                              disabled={syncingHolidays}
+                            >
+                              {year}
+                            </Button>
+                          ));
+                        })()}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        已選擇 {selectedYears.length} 個年份
+                      </p>
+                    </div>
+
                     <div className="flex items-center justify-between pt-4 border-t">
                       <div className="space-y-0.5">
                         <Label>上次同步時間</Label>
@@ -591,7 +630,7 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
                             : "尚未同步"}
                         </p>
                       </div>
-                      <Button onClick={syncHolidays} variant="outline" className="gap-2" disabled={syncingHolidays}>
+                      <Button onClick={syncHolidays} variant="outline" className="gap-2" disabled={syncingHolidays || selectedYears.length === 0}>
                         {syncingHolidays ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
