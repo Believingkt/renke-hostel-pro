@@ -1504,6 +1504,129 @@ export type Database = {
           },
         ]
       }
+      split_records: {
+        Row: {
+          accommodation_amount: number
+          accommodation_id: string
+          accommodation_percentage: number
+          created_at: string
+          hq_amount: number
+          hq_percentage: number
+          id: string
+          order_amount: number
+          order_id: string
+          settled_by: string | null
+          settlement_date: string | null
+          settlement_note: string | null
+          settlement_status: string
+          split_rule_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          accommodation_amount: number
+          accommodation_id: string
+          accommodation_percentage: number
+          created_at?: string
+          hq_amount: number
+          hq_percentage: number
+          id?: string
+          order_amount: number
+          order_id: string
+          settled_by?: string | null
+          settlement_date?: string | null
+          settlement_note?: string | null
+          settlement_status?: string
+          split_rule_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accommodation_amount?: number
+          accommodation_id?: string
+          accommodation_percentage?: number
+          created_at?: string
+          hq_amount?: number
+          hq_percentage?: number
+          id?: string
+          order_amount?: number
+          order_id?: string
+          settled_by?: string | null
+          settlement_date?: string | null
+          settlement_note?: string | null
+          settlement_status?: string
+          split_rule_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "split_records_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "split_records_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "split_records_split_rule_id_fkey"
+            columns: ["split_rule_id"]
+            isOneToOne: false
+            referencedRelation: "split_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      split_rules: {
+        Row: {
+          accommodation_id: string
+          accommodation_percentage: number
+          created_at: string
+          description: string | null
+          effective_from: string
+          effective_to: string | null
+          hq_percentage: number
+          id: string
+          is_active: boolean
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          accommodation_percentage?: number
+          created_at?: string
+          description?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          hq_percentage?: number
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          accommodation_percentage?: number
+          created_at?: string
+          description?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          hq_percentage?: number
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "split_rules_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_settings: {
         Row: {
           created_at: string

@@ -43,7 +43,8 @@ import {
   BarChart3,
   Users,
   TrendingUp,
-  Settings
+  Settings,
+  DollarSign
 } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
@@ -65,6 +66,7 @@ import { AccommodationManagement } from "@/components/headquarters/Accommodation
 import { OperationalOverview } from "@/components/headquarters/OperationalOverview";
 import { PerformanceReport } from "@/components/headquarters/PerformanceReport";
 import { SystemManagement } from "@/components/headquarters/SystemManagement";
+import { SplitManagement } from "@/components/headquarters/SplitManagement";
 
 interface UserRole {
   id: string;
@@ -604,7 +606,7 @@ const Headquarters = () => {
       />
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
+        <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-flex">
           <TabsTrigger value="overview" className="gap-2">
             <BarChart3 className="h-4 w-4 hidden sm:inline" />
             營運概況
@@ -612,6 +614,10 @@ const Headquarters = () => {
           <TabsTrigger value="performance" className="gap-2">
             <TrendingUp className="h-4 w-4 hidden sm:inline" />
             業績報表
+          </TabsTrigger>
+          <TabsTrigger value="split" className="gap-2">
+            <DollarSign className="h-4 w-4 hidden sm:inline" />
+            金流拆帳
           </TabsTrigger>
           <TabsTrigger value="accommodations" className="gap-2">
             <Building2 className="h-4 w-4 hidden sm:inline" />
@@ -635,6 +641,11 @@ const Headquarters = () => {
         {/* Performance Report Tab */}
         <TabsContent value="performance" className="space-y-6">
           <PerformanceReport accommodations={accommodations} />
+        </TabsContent>
+
+        {/* Split Management Tab */}
+        <TabsContent value="split" className="space-y-6">
+          <SplitManagement accommodations={accommodations} />
         </TabsContent>
 
         {/* Accommodations Tab */}
