@@ -45,6 +45,14 @@ import {
 } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { format } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import {
@@ -878,12 +886,74 @@ const Headquarters = () => {
     }
   };
 
+  // Get parent tab title for breadcrumb
+  const getParentTabTitle = () => {
+    switch (currentTab) {
+      case 'overview': return '營運概況';
+      case 'performance': return '業績報表';
+      case 'split': return '金流拆帳';
+      case 'accommodations': return '民宿管理';
+      case 'users': return '用戶管理';
+      case 'system': return '系統管理';
+      default: return '營運概況';
+    }
+  };
+
+  // Check if current view has a sub-section
+  const hasSubSection = () => {
+    const section = searchParams.get('section');
+    return (currentTab === 'split' || currentTab === 'system') && section;
+  };
+
   return (
     <div className="space-y-6 md:space-y-8">
-      <PageHeader
-        title={getPageTitle()}
-        icon={getPageIcon()}
-      />
+      <div className="space-y-3">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink 
+                href="/hq" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate('/hq?tab=overview');
+                }}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                總部後台
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            {hasSubSection() ? (
+              <>
+                <BreadcrumbItem>
+                  <BreadcrumbLink 
+                    href={`/hq?tab=${currentTab}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigate(`/hq?tab=${currentTab}`);
+                    }}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    {getParentTabTitle()}
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>{getPageTitle()}</BreadcrumbPage>
+                </BreadcrumbItem>
+              </>
+            ) : (
+              <BreadcrumbItem>
+                <BreadcrumbPage>{getPageTitle()}</BreadcrumbPage>
+              </BreadcrumbItem>
+            )}
+          </BreadcrumbList>
+        </Breadcrumb>
+        <PageHeader
+          title={getPageTitle()}
+          icon={getPageIcon()}
+        />
+      </div>
 
       {renderContent()}
 
