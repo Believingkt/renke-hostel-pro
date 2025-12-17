@@ -398,26 +398,8 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
     );
   }
 
-  const sectionTitles: Record<string, { title: string; description: string; icon: React.ReactNode }> = {
-    logs: { title: "操作日誌", description: "查看系統所有操作記錄", icon: <ScrollText className="h-5 w-5" /> },
-    backup: { title: "資料備份", description: "管理系統資料備份與還原", icon: <Database className="h-5 w-5" /> },
-    settings: { title: "系統設定", description: "配置系統參數與國定假日", icon: <Settings className="h-5 w-5" /> },
-  };
-
-  const currentSection = sectionTitles[activeTab] || sectionTitles.logs;
-
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3 pb-2 border-b">
-        <div className="p-2 rounded-lg bg-primary/10 text-primary">
-          {currentSection.icon}
-        </div>
-        <div>
-          <h2 className="text-xl font-semibold">{currentSection.title}</h2>
-          <p className="text-sm text-muted-foreground">{currentSection.description}</p>
-        </div>
-      </div>
-
       <Tabs value={activeTab} onValueChange={handleTabChange}>
 
         {/* Audit Logs Tab */}
