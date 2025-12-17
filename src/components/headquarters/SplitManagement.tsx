@@ -385,8 +385,27 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
     );
   }
 
+  const sectionTitles: Record<string, { title: string; description: string; icon: React.ReactNode }> = {
+    rules: { title: "拆帳規則", description: "設定總部與各民宿的分潤比例", icon: <Percent className="h-5 w-5" /> },
+    records: { title: "拆帳明細", description: "查看所有訂單的拆帳記錄", icon: <FileText className="h-5 w-5" /> },
+    reports: { title: "結算報表", description: "各民宿的拆帳統計與報表", icon: <BarChart3 className="h-5 w-5" /> },
+    settlement: { title: "待結算", description: "待處理的結算項目", icon: <Clock className="h-5 w-5" /> },
+  };
+
+  const currentSection = sectionTitles[activeTab] || sectionTitles.rules;
+
   return (
     <div className="space-y-6">
+      <div className="flex items-center gap-3 pb-2 border-b">
+        <div className="p-2 rounded-lg bg-primary/10 text-primary">
+          {currentSection.icon}
+        </div>
+        <div>
+          <h2 className="text-xl font-semibold">{currentSection.title}</h2>
+          <p className="text-sm text-muted-foreground">{currentSection.description}</p>
+        </div>
+      </div>
+
       <Tabs value={activeTab} onValueChange={handleTabChange}>
 
         {/* Rules Tab */}
