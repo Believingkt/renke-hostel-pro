@@ -498,13 +498,13 @@ export function PerformanceReport({ accommodations }: PerformanceReportProps) {
         </Card>
       </div>
 
-      {/* Charts Section */}
+      {/* Trend Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Revenue Trend Line Chart */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
-              <LineChartIcon className="h-5 w-5 text-primary" />
+              <DollarSign className="h-5 w-5 text-green-500" />
               營收趨勢
             </CardTitle>
             <CardDescription>
@@ -513,22 +513,22 @@ export function PerformanceReport({ accommodations }: PerformanceReportProps) {
           </CardHeader>
           <CardContent>
             {trendData.length > 0 && trendData.some(d => d.revenue > 0) ? (
-              <div className="h-[280px]">
+              <div className="h-[240px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={trendData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted/50" vertical={false} />
                     <XAxis 
                       dataKey="label" 
-                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                      tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
                       axisLine={false}
                       tickLine={false}
                     />
                     <YAxis 
-                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                      tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
                       axisLine={false}
                       tickLine={false}
                       tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value}
-                      width={50}
+                      width={45}
                     />
                     <Tooltip 
                       contentStyle={{ 
@@ -543,9 +543,9 @@ export function PerformanceReport({ accommodations }: PerformanceReportProps) {
                     <Line 
                       type="monotone" 
                       dataKey="revenue" 
-                      stroke="hsl(var(--primary))" 
+                      stroke="hsl(142, 76%, 36%)" 
                       strokeWidth={2}
-                      dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 3 }}
+                      dot={{ fill: 'hsl(142, 76%, 36%)', strokeWidth: 2, r: 3 }}
                       activeDot={{ r: 5, strokeWidth: 2 }}
                       name="營收"
                     />
@@ -553,7 +553,7 @@ export function PerformanceReport({ accommodations }: PerformanceReportProps) {
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="flex items-center justify-center h-[280px] text-muted-foreground">
+              <div className="flex items-center justify-center h-[240px] text-muted-foreground">
                 <div className="text-center">
                   <p className="text-sm">暫無營收數據</p>
                   <p className="text-xs mt-1">請選擇有訂單的時間區間</p>
@@ -563,7 +563,72 @@ export function PerformanceReport({ accommodations }: PerformanceReportProps) {
           </CardContent>
         </Card>
 
-        {/* Accommodation Revenue Comparison Bar Chart */}
+        {/* Order Count Trend Line Chart */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ShoppingCart className="h-5 w-5 text-blue-500" />
+              訂單趨勢
+            </CardTitle>
+            <CardDescription>
+              {getTimeRangeLabel(timeRange)}訂單數量變化趨勢
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {trendData.length > 0 && trendData.some(d => d.orders > 0) ? (
+              <div className="h-[240px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={trendData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted/50" vertical={false} />
+                    <XAxis 
+                      dataKey="label" 
+                      tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                      axisLine={false}
+                      tickLine={false}
+                      allowDecimals={false}
+                      width={30}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--background))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                      }}
+                      formatter={(value: number) => [`${value} 筆`, '訂單']}
+                      labelFormatter={(label) => `日期: ${label}`}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="orders" 
+                      stroke="hsl(210, 80%, 55%)" 
+                      strokeWidth={2}
+                      dot={{ fill: 'hsl(210, 80%, 55%)', strokeWidth: 2, r: 3 }}
+                      activeDot={{ r: 5, strokeWidth: 2 }}
+                      name="訂單數"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-[240px] text-muted-foreground">
+                <div className="text-center">
+                  <p className="text-sm">暫無訂單數據</p>
+                  <p className="text-xs mt-1">請選擇有訂單的時間區間</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Comparison Charts Section */}
+      <div className="grid grid-cols-1 gap-6">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
