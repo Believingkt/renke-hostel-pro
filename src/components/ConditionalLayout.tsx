@@ -5,7 +5,9 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { HQSidebar } from "@/components/HQSidebar";
 import { Header } from "@/components/Header";
+import { HQHeader } from "@/components/HQHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { useOrderNotifications } from "@/hooks/use-order-notifications";
@@ -15,6 +17,7 @@ export function ConditionalLayout() {
   const location = useLocation();
   const isFrontendPage = location.pathname === "/";
   const isAdminPage = location.pathname.startsWith("/admin");
+  const isHQPage = location.pathname.startsWith("/hq");
   const isAuthPage = location.pathname === "/auth";
   
   const [session, setSession] = useState<Session | null>(null);
@@ -22,20 +25,22 @@ export function ConditionalLayout() {
   const [needsPasswordChange, setNeedsPasswordChange] = useState<boolean | null>(null);
 
   // 啟用訂單即時通知（僅在後台頁面且已登入時）
-  useOrderNotifications(isAdminPage && !!session);
+  useOrderNotifications((isAdminPage || isHQPage) && !!session);
 
   useEffect(() => {
     if (isAdminPage) {
       document.title = "人客多 PMS 管理系統";
+    } else if (isHQPage) {
+      document.title = "人客多總部管理系統";
     } else if (isAuthPage) {
       document.title = "登入 - 人客多 PMS 管理系統";
     } else {
       document.title = "森山寫照 - 山間的寧靜時光";
     }
-  }, [isAdminPage, isAuthPage, isFrontendPage]);
+  }, [isAdminPage, isHQPage, isAuthPage, isFrontendPage]);
 
   useEffect(() => {
-    console.log('[ConditionalLayout] Initial load, isAdminPage:', isAdminPage);
+    console.log('[ConditionalLayout] Initial load, isAdminPage:', isAdminPage, 'isHQPage:', isHQPage);
     
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       console.log('[ConditionalLayout] Got session:', session?.user?.email);
@@ -136,7 +141,7 @@ export function ConditionalLayout() {
   }
 
   // Show loading when checking session or password requirements
-  if ((loading || needsPasswordChange === null) && isAdminPage) {
+  if ((loading || needsPasswordChange === null) && (isAdminPage || isHQPage)) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -147,7 +152,7 @@ export function ConditionalLayout() {
     );
   }
 
-  if (isAdminPage && !session && !loading) {
+  if ((isAdminPage || isHQPage) && !session && !loading) {
     return <Navigate to="/auth" replace />;
   }
 
@@ -170,12 +175,12 @@ export function ConditionalLayout() {
     return <Navigate to="/admin" replace />;
   }
   
-  // If on admin page but needs password change, redirect to auth
-  if (isAdminPage && session && needsPasswordChange && !loading) {
+  // If on admin/hq page but needs password change, redirect to auth
+  if ((isAdminPage || isHQPage) && session && needsPasswordChange && !loading) {
     return <Navigate to="/auth" replace />;
   }
 
-  if (!isAdminPage && !isAuthPage) {
+  if (!isAdminPage && !isHQPage && !isAuthPage) {
     return <Outlet />;
   }
 
@@ -191,6 +196,33 @@ export function ConditionalLayout() {
     );
   }
 
+  // HQ pages - use HQ sidebar and header
+  if (isHQPage) {
+    return (
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <SidebarProvider>
+          <div className="admin-theme flex min-h-screen w-full">
+            <HQSidebar />
+            <div className="flex flex-1 flex-col overflow-hidden">
+              <HQHeader />
+              <main className="flex-1 p-4 md:p-6 overflow-y-auto overflow-x-hidden">
+                <Outlet />
+              </main>
+              <footer className="border-t py-3 px-4 md:py-4 md:px-6">
+                <p className="text-xs md:text-sm text-center text-muted-foreground">
+                  © 2025 人客多總部管理系統. 版權所有
+                </p>
+              </footer>
+            </div>
+          </div>
+        </SidebarProvider>
+      </TooltipProvider>
+    );
+  }
+
+  // Admin pages
   return (
     <TooltipProvider>
       <Toaster />

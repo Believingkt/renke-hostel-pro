@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { 
   Loader2, 
@@ -30,14 +29,7 @@ import {
   UserCog, 
   Mail, 
   MailCheck,
-  Database,
-  Download,
   Upload,
-  Clock,
-  FileArchive,
-  Calendar,
-  Eraser,
-  Archive,
   CheckCircle2,
   AlertCircle,
   BarChart3,
@@ -61,7 +53,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
-import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { AccommodationManagement } from "@/components/headquarters/AccommodationManagement";
 import { OperationalOverview } from "@/components/headquarters/OperationalOverview";
 import { PerformanceReport } from "@/components/headquarters/PerformanceReport";
@@ -118,6 +109,9 @@ interface BackupLog {
 
 const Headquarters = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentTab = searchParams.get('tab') || 'overview';
+  
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [accommodations, setAccommodations] = useState<AccommodationInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -598,262 +592,256 @@ const Headquarters = () => {
     setRestoreDialogOpen(true);
   };
 
-  return (
-    <div className="container mx-auto p-6 space-y-6 md:space-y-8">
-      <PageHeader
-        title="人客多總部"
-        icon={Building2}
-      />
+  // Helper to get page title based on current tab
+  const getPageTitle = () => {
+    switch (currentTab) {
+      case 'overview': return '營運概況';
+      case 'performance': return '業績報表';
+      case 'split': return '金流拆帳';
+      case 'accommodations': return '民宿管理';
+      case 'users': return '用戶管理';
+      case 'system': return '系統管理';
+      default: return '營運概況';
+    }
+  };
 
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-flex">
-          <TabsTrigger value="overview" className="gap-2">
-            <BarChart3 className="h-4 w-4 hidden sm:inline" />
-            營運概況
-          </TabsTrigger>
-          <TabsTrigger value="performance" className="gap-2">
-            <TrendingUp className="h-4 w-4 hidden sm:inline" />
-            業績報表
-          </TabsTrigger>
-          <TabsTrigger value="split" className="gap-2">
-            <DollarSign className="h-4 w-4 hidden sm:inline" />
-            金流拆帳
-          </TabsTrigger>
-          <TabsTrigger value="accommodations" className="gap-2">
-            <Building2 className="h-4 w-4 hidden sm:inline" />
-            民宿管理
-          </TabsTrigger>
-          <TabsTrigger value="users" className="gap-2">
-            <Users className="h-4 w-4 hidden sm:inline" />
-            用戶管理
-          </TabsTrigger>
-          <TabsTrigger value="system" className="gap-2">
-            <Settings className="h-4 w-4 hidden sm:inline" />
-            系統管理
-          </TabsTrigger>
-        </TabsList>
+  const getPageIcon = () => {
+    switch (currentTab) {
+      case 'overview': return BarChart3;
+      case 'performance': return TrendingUp;
+      case 'split': return DollarSign;
+      case 'accommodations': return Building2;
+      case 'users': return Users;
+      case 'system': return Settings;
+      default: return BarChart3;
+    }
+  };
 
-        {/* Overview Tab */}
-        <TabsContent value="overview" className="space-y-6">
-          <OperationalOverview accommodations={accommodations} />
-        </TabsContent>
-
-        {/* Performance Report Tab */}
-        <TabsContent value="performance" className="space-y-6">
-          <PerformanceReport accommodations={accommodations} />
-        </TabsContent>
-
-        {/* Split Management Tab */}
-        <TabsContent value="split" className="space-y-6">
-          <SplitManagement accommodations={accommodations} />
-        </TabsContent>
-
-        {/* Accommodations Tab */}
-        <TabsContent value="accommodations" className="space-y-6">
+  // Render content based on current tab
+  const renderContent = () => {
+    switch (currentTab) {
+      case 'overview':
+        return <OperationalOverview accommodations={accommodations} />;
+      case 'performance':
+        return <PerformanceReport accommodations={accommodations} />;
+      case 'split':
+        return <SplitManagement accommodations={accommodations} />;
+      case 'accommodations':
+        return (
           <AccommodationManagement
             accommodations={accommodations as any}
             onRefresh={loadAccommodations}
             loading={loading}
           />
-        </TabsContent>
+        );
+      case 'users':
+        return (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">邀請新用戶</CardTitle>
+                <CardDescription>輸入用戶資訊後，系統將發送邀請郵件至指定信箱</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="userName">名稱</Label>
+                    <Input
+                      id="userName"
+                      type="text"
+                      placeholder="請輸入名稱"
+                      value={newUserName}
+                      onChange={(e) => setNewUserName(e.target.value)}
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="userEmail">Email</Label>
+                    <Input
+                      id="userEmail"
+                      type="email"
+                      placeholder="請輸入 Email"
+                      value={newUserEmail}
+                      onChange={(e) => setNewUserEmail(e.target.value)}
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="accommodation">旅館</Label>
+                    <Select 
+                      value={selectedAccommodation} 
+                      onValueChange={setSelectedAccommodation}
+                      disabled={isSubmitting}
+                    >
+                      <SelectTrigger id="accommodation">
+                        <SelectValue placeholder="選擇旅館" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {accommodations.map((accommodation) => (
+                          <SelectItem key={accommodation.id} value={accommodation.id}>
+                            {accommodation.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="role">角色</Label>
+                    <Select 
+                      value={selectedRole} 
+                      onValueChange={(value) => setSelectedRole(value as "super_admin" | "hotel_admin" | "staff")}
+                      disabled={isSubmitting}
+                    >
+                      <SelectTrigger id="role">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="super_admin">總部管理員</SelectItem>
+                        <SelectItem value="hotel_admin">民宿管理員</SelectItem>
+                        <SelectItem value="staff">現場營運</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-end">
+                    <Button 
+                      onClick={handleAddUser} 
+                      className="w-full"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      發送邀請
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-        {/* Users Tab */}
-        <TabsContent value="users" className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>邀請新用戶</CardTitle>
-          <CardDescription>輸入用戶資訊後，系統將發送邀請郵件至指定信箱</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="userName">名稱</Label>
-              <Input
-                id="userName"
-                type="text"
-                placeholder="請輸入名稱"
-                value={newUserName}
-                onChange={(e) => setNewUserName(e.target.value)}
-                disabled={isSubmitting}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="userEmail">Email</Label>
-              <Input
-                id="userEmail"
-                type="email"
-                placeholder="請輸入 Email"
-                value={newUserEmail}
-                onChange={(e) => setNewUserEmail(e.target.value)}
-                disabled={isSubmitting}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="accommodation">旅館</Label>
-              <Select 
-                value={selectedAccommodation} 
-                onValueChange={setSelectedAccommodation}
-                disabled={isSubmitting}
-              >
-                <SelectTrigger id="accommodation">
-                  <SelectValue placeholder="選擇旅館" />
-                </SelectTrigger>
-                <SelectContent>
-                  {accommodations.map((accommodation) => (
-                    <SelectItem key={accommodation.id} value={accommodation.id}>
-                      {accommodation.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="role">角色</Label>
-              <Select 
-                value={selectedRole} 
-                onValueChange={(value) => setSelectedRole(value as "super_admin" | "hotel_admin" | "staff")}
-                disabled={isSubmitting}
-              >
-                <SelectTrigger id="role">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="super_admin">總部管理員</SelectItem>
-                  <SelectItem value="hotel_admin">民宿管理員</SelectItem>
-                  <SelectItem value="staff">現場營運</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-end">
-              <Button 
-                onClick={handleAddUser} 
-                className="w-full"
-                disabled={isSubmitting}
-              >
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                發送邀請
-              </Button>
-            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">用戶權限列表</CardTitle>
+                <CardDescription>查看和管理所有用戶的權限設定</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                  </div>
+                ) : userRoles.length === 0 ? (
+                  <EmptyState
+                    icon={UserCog}
+                    title="尚無用戶權限資料"
+                    description="這裡會顯示所有旅館的用戶權限資訊"
+                  />
+                ) : (
+                  <div className="table-scroll-container overflow-x-auto rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50">
+                          <TableHead className="font-semibold text-sm">用戶名稱</TableHead>
+                          <TableHead className="font-semibold text-sm">Email</TableHead>
+                          <TableHead className="font-semibold text-sm">狀態</TableHead>
+                          <TableHead className="font-semibold text-sm">用戶 ID</TableHead>
+                          <TableHead className="font-semibold text-sm">旅館</TableHead>
+                          <TableHead className="font-semibold text-sm">角色</TableHead>
+                          <TableHead className="font-semibold text-sm">創建時間</TableHead>
+                          <TableHead className="text-right font-semibold text-sm">操作</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {userRoles.map((userRole) => (
+                          <TableRow key={userRole.id}>
+                            <TableCell className="font-medium text-sm">
+                              {userRole.user_name}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {userRole.user_email}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              <Badge 
+                                variant={userRole.status === 'active' ? 'default' : 'secondary'}
+                                className="gap-1"
+                              >
+                                {userRole.status === 'active' ? (
+                                  <MailCheck className="h-3 w-3" />
+                                ) : (
+                                  <Mail className="h-3 w-3" />
+                                )}
+                                {userRole.statusLabel}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="font-mono text-sm">
+                              {userRole.user_id.substring(0, 8)}...
+                            </TableCell>
+                            <TableCell className="text-sm">{getAccommodationName(userRole.accommodation_id)}</TableCell>
+                            <TableCell className="text-sm">
+                              <div className="flex items-center gap-2">
+                                <Badge variant={getRoleBadgeVariant(userRole.role)}>
+                                  {getRoleLabel(userRole.role)}
+                                </Badge>
+                                <Select
+                                  value={userRole.role}
+                                  onValueChange={(value) => handleUpdateRole(userRole.id, value as "super_admin" | "hotel_admin" | "staff")}
+                                >
+                                  <SelectTrigger className="w-[140px] h-8">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="super_admin">總部管理員</SelectItem>
+                                    <SelectItem value="hotel_admin">民宿管理員</SelectItem>
+                                    <SelectItem value="staff">現場營運</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {new Date(userRole.created_at).toLocaleDateString("zh-TW")}
+                            </TableCell>
+                            <TableCell className="text-right text-sm">
+                              <div className="flex items-center justify-end gap-2">
+                                {userRole.status === 'pending' && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleResendInvite(userRole.user_id, userRole.user_name || "用戶", userRole.accommodation_id)}
+                                    title="重新發送邀請"
+                                  >
+                                    <Mail className="h-4 w-4 text-primary" />
+                                  </Button>
+                                )}
+                                <Button
+                                  variant="ghost-destructive"
+                                  size="icon"
+                                  onClick={() => handleDeleteRoleClick(userRole.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
+        );
+      case 'system':
+        return <SystemManagement accommodations={accommodations} />;
+      default:
+        return <OperationalOverview accommodations={accommodations} />;
+    }
+  };
 
-      <Card>
-        <CardHeader>
-          <CardTitle>用戶權限列表</CardTitle>
-          <CardDescription>查看和管理所有用戶的權限設定</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
-          ) : userRoles.length === 0 ? (
-            <EmptyState
-              icon={UserCog}
-              title="尚無用戶權限資料"
-              description="這裡會顯示所有旅館的用戶權限資訊"
-            />
-          ) : (
-            <div className="table-scroll-container overflow-x-auto rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="font-semibold text-sm">用戶名稱</TableHead>
-                    <TableHead className="font-semibold text-sm">Email</TableHead>
-                    <TableHead className="font-semibold text-sm">狀態</TableHead>
-                    <TableHead className="font-semibold text-sm">用戶 ID</TableHead>
-                    <TableHead className="font-semibold text-sm">旅館</TableHead>
-                    <TableHead className="font-semibold text-sm">角色</TableHead>
-                    <TableHead className="font-semibold text-sm">創建時間</TableHead>
-                    <TableHead className="text-right font-semibold text-sm">操作</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {userRoles.map((userRole) => (
-                    <TableRow key={userRole.id}>
-                      <TableCell className="font-medium text-sm">
-                        {userRole.user_name}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {userRole.user_email}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        <Badge 
-                          variant={userRole.status === 'active' ? 'default' : 'secondary'}
-                          className="gap-1"
-                        >
-                          {userRole.status === 'active' ? (
-                            <MailCheck className="h-3 w-3" />
-                          ) : (
-                            <Mail className="h-3 w-3" />
-                          )}
-                          {userRole.statusLabel}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {userRole.user_id.substring(0, 8)}...
-                      </TableCell>
-                      <TableCell className="text-sm">{getAccommodationName(userRole.accommodation_id)}</TableCell>
-                      <TableCell className="text-sm">
-                        <div className="flex items-center gap-2">
-                          <Badge variant={getRoleBadgeVariant(userRole.role)}>
-                            {getRoleLabel(userRole.role)}
-                          </Badge>
-                          <Select
-                            value={userRole.role}
-                            onValueChange={(value) => handleUpdateRole(userRole.id, value as "super_admin" | "hotel_admin" | "staff")}
-                          >
-                            <SelectTrigger className="w-[140px] h-8">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="super_admin">總部管理員</SelectItem>
-                              <SelectItem value="hotel_admin">民宿管理員</SelectItem>
-                              <SelectItem value="staff">現場營運</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {new Date(userRole.created_at).toLocaleDateString("zh-TW")}
-                      </TableCell>
-                      <TableCell className="text-right text-sm">
-                        <div className="flex items-center justify-end gap-2">
-                          {userRole.status === 'pending' && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleResendInvite(userRole.user_id, userRole.user_name || "用戶", userRole.accommodation_id)}
-                              title="重新發送邀請"
-                            >
-                              <Mail className="h-4 w-4 text-primary" />
-                            </Button>
-                          )}
-                            <Button
-                              variant="ghost-destructive"
-                              size="icon"
-                              onClick={() => handleDeleteRoleClick(userRole.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-        </TabsContent>
+  return (
+    <div className="space-y-6 md:space-y-8">
+      <PageHeader
+        title={getPageTitle()}
+        icon={getPageIcon()}
+      />
 
-        {/* System Management Tab */}
-        <TabsContent value="system" className="space-y-6">
-          <SystemManagement accommodations={accommodations} />
-        </TabsContent>
-      </Tabs>
+      {renderContent()}
 
       {/* Restore Dialog */}
       <AlertDialog open={restoreDialogOpen} onOpenChange={setRestoreDialogOpen}>
