@@ -17,8 +17,9 @@ export function ConditionalLayout() {
   const location = useLocation();
   const isFrontendPage = location.pathname === "/";
   const isAdminPage = location.pathname.startsWith("/admin");
-  const isHQPage = location.pathname.startsWith("/hq");
+  const isHQPage = location.pathname.startsWith("/hq") && location.pathname !== "/hq-auth";
   const isAuthPage = location.pathname === "/auth";
+  const isHQAuthPage = location.pathname === "/hq-auth";
   
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -34,10 +35,12 @@ export function ConditionalLayout() {
       document.title = "人客多總部管理系統";
     } else if (isAuthPage) {
       document.title = "登入 - 人客多 PMS 管理系統";
+    } else if (isHQAuthPage) {
+      document.title = "登入 - 總部管理系統";
     } else {
       document.title = "森山寫照 - 山間的寧靜時光";
     }
-  }, [isAdminPage, isHQPage, isAuthPage, isFrontendPage]);
+  }, [isAdminPage, isHQPage, isAuthPage, isHQAuthPage, isFrontendPage]);
 
   useEffect(() => {
     console.log('[ConditionalLayout] Initial load, isAdminPage:', isAdminPage, 'isHQPage:', isHQPage);
@@ -152,8 +155,12 @@ export function ConditionalLayout() {
     );
   }
 
-  if ((isAdminPage || isHQPage) && !session && !loading) {
+  if (isAdminPage && !session && !loading) {
     return <Navigate to="/auth" replace />;
+  }
+
+  if (isHQPage && !session && !loading) {
+    return <Navigate to="/hq-auth" replace />;
   }
 
   // If on auth page with session, check if password change is needed
@@ -175,16 +182,21 @@ export function ConditionalLayout() {
     return <Navigate to="/admin" replace />;
   }
   
-  // If on admin/hq page but needs password change, redirect to auth
-  if ((isAdminPage || isHQPage) && session && needsPasswordChange && !loading) {
+  // If on admin page but needs password change, redirect to auth
+  if (isAdminPage && session && needsPasswordChange && !loading) {
     return <Navigate to="/auth" replace />;
   }
+  
+  // If on HQ page but needs password change, redirect to hq-auth
+  if (isHQPage && session && needsPasswordChange && !loading) {
+    return <Navigate to="/hq-auth" replace />;
+  }
 
-  if (!isAdminPage && !isHQPage && !isAuthPage) {
+  if (!isAdminPage && !isHQPage && !isAuthPage && !isHQAuthPage) {
     return <Outlet />;
   }
 
-  if (isAuthPage) {
+  if (isAuthPage || isHQAuthPage) {
     return (
       <TooltipProvider>
         <div className="admin-theme">
