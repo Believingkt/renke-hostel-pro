@@ -23,7 +23,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { 
-  Loader2, 
+  Loader2,
+  Home,
   Trash2, 
   Building2, 
   UserCog, 
@@ -919,7 +920,7 @@ const Headquarters = () => {
                 }}
                 className="text-muted-foreground hover:text-foreground"
               >
-                總部後台
+                <Home className="h-4 w-4" />
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
