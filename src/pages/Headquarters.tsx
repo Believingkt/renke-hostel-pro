@@ -42,7 +42,8 @@ import {
   AlertCircle,
   BarChart3,
   Users,
-  TrendingUp
+  TrendingUp,
+  Settings
 } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
@@ -63,6 +64,7 @@ import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { AccommodationManagement } from "@/components/headquarters/AccommodationManagement";
 import { OperationalOverview } from "@/components/headquarters/OperationalOverview";
 import { PerformanceReport } from "@/components/headquarters/PerformanceReport";
+import { SystemManagement } from "@/components/headquarters/SystemManagement";
 
 interface UserRole {
   id: string;
@@ -619,9 +621,9 @@ const Headquarters = () => {
             <Users className="h-4 w-4 hidden sm:inline" />
             用戶管理
           </TabsTrigger>
-          <TabsTrigger value="backup" className="gap-2">
-            <Database className="h-4 w-4 hidden sm:inline" />
-            資料備份
+          <TabsTrigger value="system" className="gap-2">
+            <Settings className="h-4 w-4 hidden sm:inline" />
+            系統管理
           </TabsTrigger>
         </TabsList>
 
@@ -836,125 +838,13 @@ const Headquarters = () => {
       </Card>
         </TabsContent>
 
-        {/* Backup Tab */}
-        <TabsContent value="backup" className="space-y-6">
-      {/* 資料備份管理 */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Database className="h-5 w-5" />
-            資料備份管理
-          </CardTitle>
-          <CardDescription>備份和還原各民宿的訂單與客戶資料</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="backupAccommodation">選擇民宿</Label>
-            <Select 
-              value={selectedBackupAccommodation} 
-              onValueChange={setSelectedBackupAccommodation}
-            >
-              <SelectTrigger id="backupAccommodation">
-                <SelectValue placeholder="請選擇民宿" />
-              </SelectTrigger>
-              <SelectContent>
-                {accommodations.map((accommodation) => (
-                  <SelectItem key={accommodation.id} value={accommodation.id}>
-                    {accommodation.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        {/* System Management Tab */}
+        <TabsContent value="system" className="space-y-6">
+          <SystemManagement accommodations={accommodations} />
+        </TabsContent>
+      </Tabs>
 
-          {selectedBackupAccommodation && (
-            <>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-                  <div className="space-y-1">
-                    <p className="font-medium">自動每日備份</p>
-                    <p className="text-sm text-muted-foreground">
-                      系統將在每天凌晨 2:00 自動備份資料
-                    </p>
-                  </div>
-                  <Badge variant="outline" className="gap-1">
-                    <Clock className="h-3 w-3" />
-                    已啟用
-                  </Badge>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-                  <div className="space-y-1">
-                    <p className="font-medium">自動清理舊備份</p>
-                    <p className="text-sm text-muted-foreground">
-                      系統將在每天凌晨 3:00 自動刪除超過 30 天的舊備份
-                    </p>
-                  </div>
-                  <Badge variant="outline" className="gap-1">
-                    <Clock className="h-3 w-3" />
-                    已啟用
-                  </Badge>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-2 p-4 bg-muted/30 rounded-lg">
-                  <Label className="text-sm font-medium">備份模式</Label>
-                  <div className="flex gap-2">
-                    <Button
-                      variant={backupMode === 'full' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setBackupMode('full')}
-                      disabled={creating || cleaning}
-                      className="flex-1"
-                    >
-                      完整備份
-                    </Button>
-                    <Button
-                      variant={backupMode === 'incremental' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setBackupMode('incremental')}
-                      disabled={creating || cleaning}
-                      className="flex-1"
-                    >
-                      增量備份
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {backupMode === 'full' 
-                      ? '完整備份所有資料，適合首次備份或定期備份' 
-                      : '僅備份自上次備份後變更的資料，節省時間和空間'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  onClick={handleCreateBackup}
-                  disabled={creating || cleaning}
-                  className="gap-2"
-                >
-                  <Download className="h-4 w-4" />
-                  {creating ? '備份中...' : '立即建立備份'}
-                </Button>
-                <Button
-                  onClick={() => handleCleanupOldBackups(false)}
-                  disabled={creating || cleaning}
-                  variant="outline"
-                  className="gap-2"
-                >
-                  <Eraser className="h-4 w-4" />
-                  {cleaning ? '清理中...' : '清理舊備份'}
-                </Button>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* 備份歷史記錄 */}
-      {selectedBackupAccommodation && (
-        <Card>
+      {/* Delete Role Dialog */}
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileArchive className="h-5 w-5" />
