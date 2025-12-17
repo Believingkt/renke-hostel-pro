@@ -96,6 +96,7 @@ function App() {
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/change-password" element={<ChangePassword />} />
                 <Route path="/admin/change-password" element={<ChangePassword />} />
+                <Route path="/headquarters/change-password" element={<ChangePassword />} />
                 <Route path="/hq" element={<Headquarters />} />
                 
                 {/* 後台管理頁面 - 使用 DashboardSkeleton */}
