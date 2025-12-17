@@ -646,14 +646,28 @@ export function AccommodationManagement({
                       <TableCell className="font-medium">{acc.name}</TableCell>
                       <TableCell>
                         {acc.short_url_alias ? (
-                          <a
-                            href={`https://${acc.short_url_alias}.lakeze.com`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline text-sm"
-                          >
-                            {acc.short_url_alias}.lakeze.com
-                          </a>
+                          <div className="flex items-center gap-1">
+                            <a
+                              href={`https://${acc.short_url_alias}.lakeze.com`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline text-sm"
+                            >
+                              {acc.short_url_alias}.lakeze.com
+                            </a>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => {
+                                navigator.clipboard.writeText(`https://${acc.short_url_alias}.lakeze.com`);
+                                toast.success("已複製連結");
+                              }}
+                              title="複製連結"
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                          </div>
                         ) : (
                           <span className="text-muted-foreground text-sm">未設定</span>
                         )}
