@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -91,8 +92,26 @@ interface SplitManagementProps {
   accommodations: { id: string; name: string }[];
 }
 
+// Map URL section to internal tab value
+const sectionToTab: Record<string, string> = {
+  rules: "rules",
+  details: "records",
+  reports: "reports",
+  pending: "settlement",
+};
+
+const tabToSection: Record<string, string> = {
+  rules: "rules",
+  records: "details",
+  reports: "reports",
+  settlement: "pending",
+};
+
 export function SplitManagement({ accommodations }: SplitManagementProps) {
-  const [activeTab, setActiveTab] = useState("rules");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const section = searchParams.get("section") || "rules";
+  const activeTab = sectionToTab[section] || "rules";
+  
   const [loading, setLoading] = useState(true);
   const [splitRules, setSplitRules] = useState<SplitRule[]>([]);
   const [splitRecords, setSplitRecords] = useState<SplitRecord[]>([]);
@@ -119,6 +138,11 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
     description: "",
   });
   const [saving, setSaving] = useState(false);
+
+  const handleTabChange = (value: string) => {
+    const newSection = tabToSection[value] || "rules";
+    setSearchParams({ tab: "split", section: newSection });
+  };
 
   useEffect(() => {
     loadData();
@@ -363,7 +387,7 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
 
   return (
     <div className="space-y-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="rules" className="gap-2">
             <Percent className="h-4 w-4" />
