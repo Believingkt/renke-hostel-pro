@@ -5,9 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardDescription } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Loader2, KeyRound, LogIn, Eye, EyeOff, Mail } from "lucide-react";
 import lokezeLogo from "@/assets/lokeze-logo-auth.png";
+
+const AUTH_REMEMBER_EMAIL_KEY = "auth_remember_email";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -25,6 +28,16 @@ export default function Auth() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isForgotPasswordMode, setIsForgotPasswordMode] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
+
+  // Load remembered email on mount
+  useEffect(() => {
+    const savedEmail = localStorage.getItem(AUTH_REMEMBER_EMAIL_KEY);
+    if (savedEmail) {
+      setLoginEmail(savedEmail);
+      setRememberMe(true);
+    }
+  }, []);
 
   useEffect(() => {
     // Check for expired/invalid invite link from URL params
@@ -116,6 +129,12 @@ export default function Auth() {
           toast.error(error.message);
         }
       } else {
+        // Handle remember me
+        if (rememberMe) {
+          localStorage.setItem(AUTH_REMEMBER_EMAIL_KEY, loginEmail);
+        } else {
+          localStorage.removeItem(AUTH_REMEMBER_EMAIL_KEY);
+        }
         toast.success("登入成功！");
       }
     } catch (error: any) {
@@ -451,6 +470,16 @@ export default function Auth() {
                     )}
                   </Button>
                 </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="remember-me"
+                  checked={rememberMe}
+                  onCheckedChange={(checked) => setRememberMe(checked === true)}
+                />
+                <Label htmlFor="remember-me" className="text-sm font-normal cursor-pointer">
+                  記住我
+                </Label>
               </div>
               <Button type="submit" className="w-full bg-auth-primary hover:bg-auth-primary-hover" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
