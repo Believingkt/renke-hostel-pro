@@ -224,12 +224,15 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
 
           <Separator className="my-6 md:my-8 bg-white/20" />
           
-          <div className="flex items-center justify-center gap-2 text-white/60 text-xs md:text-sm">
-            <span>PRESENTED BY</span>
-            <a href="https://lakeze.com" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity inline-flex items-center">
-              <img src={lakezeLogoWhite} alt="Lakeze" className="h-4 md:h-5 w-auto -translate-y-0.5" loading="lazy" />
-            </a>
-            <span>2025 © All Rights Reserved.</span>
+          <div className="flex flex-col items-center justify-center gap-2 text-white/60 text-xs md:text-sm">
+            <div className="flex items-center gap-2">
+              <span>PRESENTED BY</span>
+              <a href="https://lakeze.com" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity inline-flex items-center">
+                <img src={lakezeLogoWhite} alt="Lakeze" className="h-4 md:h-5 w-auto -translate-y-0.5" loading="lazy" />
+              </a>
+              <span>2025 © All Rights Reserved.</span>
+            </div>
+            <div>人客多股份有限公司　統一編號：00224568</div>
           </div>
         </div>
       </div>
