@@ -72,20 +72,20 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
   };
 
   return (
-    <footer className="bg-[#0d2620] text-white py-8 md:py-16">
+    <footer className="bg-[#0d2620] text-white py-6 md:py-16">
       <div className="container mx-auto px-4">
         <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 mb-8 md:mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-12 mb-6 md:mb-12">
             {/* 左側 - Logo 與社交媒體 */}
-            <div>
-              <div className="mb-4 md:mb-6">
+            <div className="text-center md:text-left">
+              <div className="mb-3 md:mb-6 flex justify-center md:justify-start">
                 <img 
                   src={footerLogoUrl || sensanLogoWhite} 
                   alt={accommodationName || "森山寫照"} 
-                  className="h-12 md:h-16 w-auto object-contain" 
+                  className="h-10 md:h-16 w-auto object-contain" 
                 />
               </div>
-              <div className="flex gap-4">
+              <div className="flex gap-4 justify-center md:justify-start">
                 {facebookUrl && (
                   <a 
                     href={facebookUrl} 
@@ -149,8 +149,8 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
             </div>
 
             {/* 中間 - 快速連結 */}
-            <div>
-              <h4 className="text-base md:text-lg font-semibold mb-4 md:mb-6">快速連結</h4>
+            <div className="text-center md:text-left">
+              <h4 className="text-base md:text-lg font-semibold mb-3 md:mb-6">快速連結</h4>
               <ul className="space-y-2 md:space-y-3">
                 <li>
                   <button onClick={() => scrollToSection("rooms")} className="text-sm md:text-base text-white/80 hover:text-white transition-colors">
@@ -186,21 +186,21 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
             </div>
 
             {/* 右側 - 聯絡資訊 */}
-            <div>
-              <h4 className="text-base md:text-lg font-semibold mb-4 md:mb-6">聯絡資訊</h4>
-              <ul className="space-y-3 md:space-y-4">
-                <li className="flex items-start gap-2 md:gap-3">
+            <div className="text-center md:text-left">
+              <h4 className="text-base md:text-lg font-semibold mb-3 md:mb-6">聯絡資訊</h4>
+              <ul className="space-y-2 md:space-y-4">
+                <li className="flex items-start gap-2 md:gap-3 justify-center md:justify-start">
                   <MapPin className="h-4 w-4 md:h-5 md:w-5 text-white/80 flex-shrink-0 mt-0.5" />
-                  <span className="text-sm md:text-base text-white/80">{address || "台灣南投縣信義鄉東埔村開高巷123號"}</span>
+                  <span className="text-sm md:text-base text-white/80 text-left">{address || "台灣南投縣信義鄉東埔村開高巷123號"}</span>
                 </li>
                 {phone && (
-                  <li className="flex items-center gap-2 md:gap-3">
+                  <li className="flex items-center gap-2 md:gap-3 justify-center md:justify-start">
                     <Phone className="h-4 w-4 md:h-5 md:w-5 text-white/80 flex-shrink-0" />
                     <span className="text-sm md:text-base text-white/80">{phone}</span>
                   </li>
                 )}
                 {lineId && (
-                  <li className="flex items-center gap-2 md:gap-3">
+                  <li className="flex items-center gap-2 md:gap-3 justify-center md:justify-start">
                     <svg 
                       className="h-4 w-4 md:h-5 md:w-5 text-white/80 flex-shrink-0" 
                       viewBox="0 0 24 24" 
@@ -213,7 +213,7 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
                   </li>
                 )}
                 {email && (
-                  <li className="flex items-center gap-2 md:gap-3">
+                  <li className="flex items-center gap-2 md:gap-3 justify-center md:justify-start">
                     <Mail className="h-4 w-4 md:h-5 md:w-5 text-white/80 flex-shrink-0" />
                     <span className="text-sm md:text-base text-white/80">{email}</span>
                   </li>
@@ -222,17 +222,17 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
             </div>
           </div>
 
-          <Separator className="my-6 md:my-8 bg-white/20" />
+          <Separator className="my-4 md:my-8 bg-white/20" />
           
-          <div className="flex flex-col items-center justify-center gap-2 text-white/60 text-xs md:text-sm">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col items-center justify-center gap-1.5 md:gap-2 text-white/60 text-[10px] md:text-sm">
+            <div className="flex flex-wrap items-center justify-center gap-1 md:gap-2">
               <span>PRESENTED BY</span>
               <a href="https://lakeze.com" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity inline-flex items-center">
-                <img src={lakezeLogoWhite} alt="Lakeze" className="h-4 md:h-5 w-auto -translate-y-0.5" loading="lazy" />
+                <img src={lakezeLogoWhite} alt="Lakeze" className="h-3.5 md:h-5 w-auto -translate-y-0.5" loading="lazy" />
               </a>
               <span>2025 © All Rights Reserved.</span>
             </div>
-            <div>人客多股份有限公司　統一編號：00224568</div>
+            <div className="text-[10px] md:text-sm">人客多股份有限公司　統一編號：00224568</div>
           </div>
         </div>
       </div>
