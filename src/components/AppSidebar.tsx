@@ -112,7 +112,7 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r transition-all duration-300">
+    <Sidebar collapsible="icon" className="admin-theme border-r transition-all duration-300">
       <SidebarHeader className="border-b px-6 py-4 transition-all duration-300">
         <PreloadLink 
           to="/admin" 
