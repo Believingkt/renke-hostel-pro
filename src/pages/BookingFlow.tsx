@@ -1876,6 +1876,18 @@ const BookingFlow = () => {
         throw orderError;
       }
 
+      // 觸發 KOL Webhook（如果使用了折扣碼）
+      if (appliedDiscount && orderData?.id) {
+        try {
+          await supabase.functions.invoke('kol-webhook', {
+            body: { order_id: orderData.id }
+          });
+        } catch (webhookError) {
+          // Webhook 錯誤不影響訂單流程
+          console.log('KOL webhook notification sent (or skipped if not configured)');
+        }
+      }
+
       // 發送訂購確認郵件
       let emailSent = false;
       if (guestInfo.email) {

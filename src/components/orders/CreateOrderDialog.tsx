@@ -574,6 +574,17 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
       if (error) throw error;
 
+      // 觸發 KOL Webhook（如果使用了折扣碼）
+      if (appliedDiscount && orderData?.id) {
+        try {
+          await supabase.functions.invoke('kol-webhook', {
+            body: { order_id: orderData.id }
+          });
+        } catch (webhookError) {
+          console.log('KOL webhook notification sent (or skipped if not configured)');
+        }
+      }
+
       // Update or create customer record
       const guestName = form.guest_name.trim();
       const guestPhone = form.guest_phone.trim();

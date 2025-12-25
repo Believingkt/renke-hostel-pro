@@ -77,3 +77,6 @@ verify_jwt = false
 
 [functions.fetch-taiwan-holidays]
 verify_jwt = true
+
+[functions.kol-webhook]
+verify_jwt = true

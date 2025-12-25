@@ -111,6 +111,9 @@ interface DiscountCode {
   display_order: number;
   commission_rate: number;
   api_key: string | null;
+  webhook_url: string | null;
+  webhook_secret: string | null;
+  webhook_enabled: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -148,6 +151,9 @@ const KolDiscount = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [regeneratingApiKeyId, setRegeneratingApiKeyId] = useState<string | null>(null);
+  const [webhookUrl, setWebhookUrl] = useState("");
+  const [webhookEnabled, setWebhookEnabled] = useState(false);
+  const [testingWebhook, setTestingWebhook] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -413,6 +419,8 @@ const KolDiscount = () => {
     setApplicableDateFrom(code.applicable_date_from ? new Date(code.applicable_date_from) : undefined);
     setApplicableDateTo(code.applicable_date_to ? new Date(code.applicable_date_to) : undefined);
     setCommissionRate(code.commission_rate?.toString() || "0");
+    setWebhookUrl(code.webhook_url || "");
+    setWebhookEnabled(code.webhook_enabled || false);
     setEditOpen(true);
   };
 
@@ -453,6 +461,14 @@ const KolDiscount = () => {
     }
 
     try {
+      // Generate webhook secret if webhook is enabled and URL is provided
+      let webhookSecret = editingCode.webhook_secret;
+      if (webhookEnabled && webhookUrl && !webhookSecret) {
+        webhookSecret = `whsec_${Array.from(crypto.getRandomValues(new Uint8Array(24)))
+          .map(b => b.toString(16).padStart(2, '0'))
+          .join('')}`;
+      }
+
       const { error } = await supabase
         .from("discount_codes")
         .update({
@@ -467,6 +483,9 @@ const KolDiscount = () => {
           applicable_date_from: applicableDateFrom?.toISOString().split('T')[0] || null,
           applicable_date_to: applicableDateTo?.toISOString().split('T')[0] || null,
           commission_rate: commissionRate ? parseFloat(commissionRate) : 0,
+          webhook_url: webhookUrl || null,
+          webhook_enabled: webhookEnabled,
+          webhook_secret: webhookSecret,
         })
         .eq("id", editingCode.id);
 
@@ -489,6 +508,8 @@ const KolDiscount = () => {
       setApplicableDateFrom(undefined);
       setApplicableDateTo(undefined);
       setCommissionRate("");
+      setWebhookUrl("");
+      setWebhookEnabled(false);
       fetchDiscountCodes();
     } catch (error) {
       console.error("Error updating discount code:", error);
@@ -497,6 +518,42 @@ const KolDiscount = () => {
         description: "無法更新網紅導購",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleTestWebhook = async (discountCodeId: string) => {
+    setTestingWebhook(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('kol-webhook', {
+        body: { 
+          test_mode: true, 
+          discount_code_id: discountCodeId 
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast({
+          title: "Webhook 測試成功",
+          description: `狀態碼: ${data.statusCode}`,
+        });
+      } else {
+        toast({
+          title: "Webhook 測試失敗",
+          description: data.error || data.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error testing webhook:", error);
+      toast({
+        title: "測試失敗",
+        description: error instanceof Error ? error.message : "無法發送測試 webhook",
+        variant: "destructive",
+      });
+    } finally {
+      setTestingWebhook(false);
     }
   };
 
@@ -1687,6 +1744,68 @@ const KolDiscount = () => {
                   佣金將根據實際付款金額計算，例如訂房 30,000 元折扣後實付 27,000 元且佣金率 5%，則佣金為 1,350 元
                 </p>
               </div>
+
+          <Separator className="my-2" />
+          <p className="text-sm font-medium">Webhook 通知設定</p>
+          
+          <div className="grid gap-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="edit-webhookEnabled">啟用 Webhook</Label>
+                <p className="text-xs text-muted-foreground">
+                  新訂單時自動發送通知到指定網址
+                </p>
+              </div>
+              <Switch
+                id="edit-webhookEnabled"
+                checked={webhookEnabled}
+                onCheckedChange={setWebhookEnabled}
+              />
+            </div>
+            
+            {webhookEnabled && (
+              <>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-webhookUrl">Webhook URL</Label>
+                  <Input
+                    id="edit-webhookUrl"
+                    type="url"
+                    value={webhookUrl}
+                    onChange={(e) => setWebhookUrl(e.target.value)}
+                    placeholder="https://example.com/webhook"
+                    className="h-12 text-base touch-manipulation"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    系統會以 POST 方式發送訂單資訊到此網址
+                  </p>
+                </div>
+                
+                {editingCode?.webhook_secret && (
+                  <div className="grid gap-2">
+                    <Label>Webhook Secret</Label>
+                    <div className="p-2 bg-muted rounded text-xs font-mono break-all">
+                      {editingCode.webhook_secret}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      用於驗證 webhook 請求的簽名（X-Webhook-Signature header）
+                    </p>
+                  </div>
+                )}
+                
+                {editingCode?.id && editingCode.webhook_url && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleTestWebhook(editingCode.id)}
+                    disabled={testingWebhook}
+                    className="h-12 touch-manipulation"
+                  >
+                    {testingWebhook ? "發送中..." : "測試 Webhook"}
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
             </div>
             <DrawerFooter className="flex-col gap-2 px-4">
               <Button onClick={handleUpdateCode} className="w-full h-12 touch-manipulation">更新</Button>
@@ -2089,6 +2208,66 @@ const KolDiscount = () => {
                 <p className="text-xs text-muted-foreground">
                   佣金將根據實際付款金額計算，例如訂房 30,000 元折扣後實付 27,000 元且佣金率 5%，則佣金為 1,350 元
                 </p>
+              </div>
+
+              <Separator className="my-2" />
+              <p className="text-sm font-medium">Webhook 通知設定</p>
+              
+              <div className="grid gap-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="edit-webhookEnabled-dialog">啟用 Webhook</Label>
+                    <p className="text-xs text-muted-foreground">
+                      新訂單時自動發送通知到指定網址
+                    </p>
+                  </div>
+                  <Switch
+                    id="edit-webhookEnabled-dialog"
+                    checked={webhookEnabled}
+                    onCheckedChange={setWebhookEnabled}
+                  />
+                </div>
+                
+                {webhookEnabled && (
+                  <>
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-webhookUrl-dialog">Webhook URL</Label>
+                      <Input
+                        id="edit-webhookUrl-dialog"
+                        type="url"
+                        value={webhookUrl}
+                        onChange={(e) => setWebhookUrl(e.target.value)}
+                        placeholder="https://example.com/webhook"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        系統會以 POST 方式發送訂單資訊到此網址
+                      </p>
+                    </div>
+                    
+                    {editingCode?.webhook_secret && (
+                      <div className="grid gap-2">
+                        <Label>Webhook Secret</Label>
+                        <div className="p-2 bg-muted rounded text-xs font-mono break-all">
+                          {editingCode.webhook_secret}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          用於驗證 webhook 請求的簽名（X-Webhook-Signature header）
+                        </p>
+                      </div>
+                    )}
+                    
+                    {editingCode?.id && editingCode.webhook_url && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => handleTestWebhook(editingCode.id)}
+                        disabled={testingWebhook}
+                      >
+                        {testingWebhook ? "發送中..." : "測試 Webhook"}
+                      </Button>
+                    )}
+                  </>
+                )}
               </div>
             </div>
             <DialogFooter>
