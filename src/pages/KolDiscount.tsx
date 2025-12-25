@@ -2979,6 +2979,195 @@ function setCachedStats(code, data) {
 
             <Separator />
 
+            {/* Webhook */}
+            <div>
+              <h3 className="font-semibold mb-2">Webhook 即時通知</h3>
+              <div className="p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded mb-3">
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  當有使用您折扣碼的新訂單成立時，系統會自動發送 Webhook 通知到您設定的 URL
+                </p>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Webhook 請求格式</Label>
+                  <p className="text-xs text-muted-foreground mb-2">系統會發送 POST 請求到您的 Webhook URL</p>
+                  <pre className="p-3 bg-muted rounded text-xs font-mono overflow-x-auto">
+{`POST https://your-webhook-url.com/endpoint
+Content-Type: application/json
+X-Webhook-Signature: sha256=xxxxxx...
+X-Webhook-Timestamp: 1735123456789
+
+{
+  "event": "order.created",
+  "timestamp": "2024-12-25T10:30:00.000Z",
+  "discount_code": "SPRING2024",
+  "order": {
+    "order_number": "20241225001",
+    "order_date": "2024-12-25",
+    "check_in_date": "2025-01-15",
+    "check_out_date": "2025-01-17",
+    "guest_name": "王小明",
+    "guest_count": 2,
+    "room_type": "標準雙人房",
+    "total_price": 5000,
+    "discount_amount": 500,
+    "final_price": 4500
+  }
+}`}
+                  </pre>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-muted-foreground">簽名驗證</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    為確保請求來源安全，每個 Webhook 請求都包含 HMAC-SHA256 簽名
+                  </p>
+                  <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded mb-3">
+                    <p className="text-xs text-amber-800 dark:text-amber-200">
+                      <strong>重要：</strong>請務必驗證簽名以防止偽造請求
+                    </p>
+                  </div>
+                  <pre className="p-3 bg-muted rounded text-xs font-mono overflow-x-auto">
+{`// Node.js 簽名驗證範例
+const crypto = require('crypto');
+
+function verifyWebhookSignature(payload, signature, timestamp, secret) {
+  // 1. 檢查時間戳（防止重放攻擊，建議 5 分鐘內有效）
+  const now = Date.now();
+  if (Math.abs(now - parseInt(timestamp)) > 5 * 60 * 1000) {
+    return false;
+  }
+  
+  // 2. 計算期望的簽名
+  const signaturePayload = timestamp + '.' + JSON.stringify(payload);
+  const expectedSignature = 'sha256=' + crypto
+    .createHmac('sha256', secret)
+    .update(signaturePayload)
+    .digest('hex');
+  
+  // 3. 比較簽名（使用時序安全比較）
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSignature)
+  );
+}
+
+// Express.js 使用範例
+app.post('/webhook', express.json(), (req, res) => {
+  const signature = req.headers['x-webhook-signature'];
+  const timestamp = req.headers['x-webhook-timestamp'];
+  const secret = 'YOUR_WEBHOOK_SECRET'; // 從設定頁面取得
+  
+  if (!verifyWebhookSignature(req.body, signature, timestamp, secret)) {
+    return res.status(401).json({ error: 'Invalid signature' });
+  }
+  
+  // 處理訂單通知
+  const { event, order, discount_code } = req.body;
+  console.log(\`新訂單: \${order.order_number}\`);
+  
+  res.status(200).json({ received: true });
+});`}
+                  </pre>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-muted-foreground">Python 驗證範例</Label>
+                  <pre className="p-3 bg-muted rounded text-xs font-mono overflow-x-auto">
+{`import hmac
+import hashlib
+import json
+import time
+
+def verify_webhook(payload, signature, timestamp, secret):
+    # 檢查時間戳
+    now = int(time.time() * 1000)
+    if abs(now - int(timestamp)) > 5 * 60 * 1000:
+        return False
+    
+    # 計算簽名
+    message = f"{timestamp}.{json.dumps(payload, separators=(',', ':'))}"
+    expected = 'sha256=' + hmac.new(
+        secret.encode(),
+        message.encode(),
+        hashlib.sha256
+    ).hexdigest()
+    
+    return hmac.compare_digest(signature, expected)
+
+# Flask 使用範例
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    signature = request.headers.get('X-Webhook-Signature')
+    timestamp = request.headers.get('X-Webhook-Timestamp')
+    
+    if not verify_webhook(request.json, signature, timestamp, WEBHOOK_SECRET):
+        return jsonify({'error': 'Invalid signature'}), 401
+    
+    order = request.json['order']
+    print(f"新訂單: {order['order_number']}")
+    
+    return jsonify({'received': True})`}
+                  </pre>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-muted-foreground">PHP 驗證範例</Label>
+                  <pre className="p-3 bg-muted rounded text-xs font-mono overflow-x-auto">
+{`<?php
+function verifyWebhook($payload, $signature, $timestamp, $secret) {
+    // 檢查時間戳
+    $now = round(microtime(true) * 1000);
+    if (abs($now - intval($timestamp)) > 5 * 60 * 1000) {
+        return false;
+    }
+    
+    // 計算簽名
+    $message = $timestamp . '.' . json_encode($payload);
+    $expected = 'sha256=' . hash_hmac('sha256', $message, $secret);
+    
+    return hash_equals($expected, $signature);
+}
+
+// 接收 Webhook
+$payload = json_decode(file_get_contents('php://input'), true);
+$signature = $_SERVER['HTTP_X_WEBHOOK_SIGNATURE'] ?? '';
+$timestamp = $_SERVER['HTTP_X_WEBHOOK_TIMESTAMP'] ?? '';
+
+if (!verifyWebhook($payload, $signature, $timestamp, $webhookSecret)) {
+    http_response_code(401);
+    echo json_encode(['error' => 'Invalid signature']);
+    exit;
+}
+
+$order = $payload['order'];
+error_log("新訂單: " . $order['order_number']);
+
+echo json_encode(['received' => true]);
+?>`}
+                  </pre>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-muted-foreground">Webhook 回應要求</Label>
+                  <div className="space-y-2 text-xs text-muted-foreground">
+                    <div className="p-2 bg-muted rounded">
+                      <strong>成功回應：</strong>回傳 HTTP 200-299 狀態碼
+                    </div>
+                    <div className="p-2 bg-muted rounded">
+                      <strong>逾時設定：</strong>請在 10 秒內回應，否則視為失敗
+                    </div>
+                    <div className="p-2 bg-muted rounded">
+                      <strong>重試機制：</strong>失敗時系統會在 1 分鐘、5 分鐘、30 分鐘後重試（最多 3 次）
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
             {/* Notes */}
             <div className="space-y-2">
               <h3 className="font-semibold">注意事項</h3>
@@ -2989,8 +3178,9 @@ function setCachedStats(code, data) {
                 <li>結算狀態：pending（待結算）、approved（已核准）、paid（已付款）、cancelled（已取消）</li>
                 <li>建議在外部網站實作快取機制，避免頻繁請求</li>
                 <li>API 支援 CORS，可直接從瀏覽器調用</li>
-                <li>請妥善保管您的折扣碼，避免洩露給非授權人員</li>
+                <li>請妥善保管您的折扣碼和 Webhook 密鑰，避免洩露給非授權人員</li>
                 <li>API 回應時間通常在 100-500ms 之間</li>
+                <li>Webhook 通知為即時發送，建議設定穩定的接收端點</li>
                 </ul>
               </div>
             </div>
@@ -3196,6 +3386,82 @@ const commissionData = await commissionResponse.json();`}
 
               <Separator />
 
+              {/* Webhook */}
+              <div className="space-y-3">
+                <h3 className="font-semibold">Webhook 即時通知</h3>
+                <div className="p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded">
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    當有使用您折扣碼的新訂單成立時，系統會自動發送 Webhook 通知到您設定的 URL
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Webhook 請求格式：</p>
+                  <pre className="p-3 bg-muted rounded text-xs overflow-x-auto">
+{`POST https://your-webhook-url.com/endpoint
+Content-Type: application/json
+X-Webhook-Signature: sha256=xxxxxx...
+X-Webhook-Timestamp: 1735123456789
+
+{
+  "event": "order.created",
+  "timestamp": "2024-12-25T10:30:00.000Z",
+  "discount_code": "SPRING2024",
+  "order": {
+    "order_number": "20241225001",
+    "order_date": "2024-12-25",
+    "check_in_date": "2025-01-15",
+    "check_out_date": "2025-01-17",
+    "guest_name": "王小明",
+    "guest_count": 2,
+    "room_type": "標準雙人房",
+    "total_price": 5000,
+    "discount_amount": 500,
+    "final_price": 4500
+  }
+}`}
+                  </pre>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">簽名驗證（Node.js）：</p>
+                  <div className="p-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded mb-2">
+                    <p className="text-xs text-amber-800 dark:text-amber-200">
+                      <strong>重要：</strong>請務必驗證簽名以防止偽造請求
+                    </p>
+                  </div>
+                  <pre className="p-3 bg-muted rounded text-xs overflow-x-auto">
+{`const crypto = require('crypto');
+
+function verifyWebhook(payload, signature, timestamp, secret) {
+  // 檢查時間戳（5 分鐘內有效）
+  if (Math.abs(Date.now() - parseInt(timestamp)) > 5 * 60 * 1000) {
+    return false;
+  }
+  
+  // 計算簽名
+  const message = timestamp + '.' + JSON.stringify(payload);
+  const expected = 'sha256=' + crypto
+    .createHmac('sha256', secret)
+    .update(message)
+    .digest('hex');
+  
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expected)
+  );
+}`}
+                  </pre>
+                </div>
+
+                <div className="space-y-1 text-xs text-muted-foreground">
+                  <p><strong>回應要求：</strong>回傳 HTTP 200-299 狀態碼，10 秒內回應</p>
+                  <p><strong>重試機制：</strong>失敗時會在 1 分鐘、5 分鐘、30 分鐘後重試（最多 3 次）</p>
+                </div>
+              </div>
+
+              <Separator />
+
               {/* Notes */}
               <div className="space-y-2">
                 <h3 className="font-semibold">注意事項</h3>
@@ -3207,7 +3473,8 @@ const commissionData = await commissionResponse.json();`}
                   <li>結算狀態：pending（待結算）、approved（已核准）、paid（已付款）、cancelled（已取消）</li>
                   <li>建議在外部網站實作快取機制，避免頻繁請求</li>
                   <li>API 支援 CORS，可直接從瀏覽器調用</li>
-                  <li>請妥善保管您的 API 金鑰，避免洩露給非授權人員</li>
+                  <li>請妥善保管您的 API 金鑰和 Webhook 密鑰，避免洩露給非授權人員</li>
+                  <li>Webhook 通知為即時發送，建議設定穩定的接收端點</li>
                 </ul>
               </div>
             </div>
