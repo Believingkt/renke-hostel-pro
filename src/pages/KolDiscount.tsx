@@ -2833,9 +2833,37 @@ function setCachedStats(code, data) {
             <div className="space-y-6 py-4">
               {/* Base URL */}
               <div className="space-y-2">
-                <h3 className="font-semibold">基礎 URL</h3>
-                <div className="p-3 bg-muted rounded font-mono text-sm break-all">
-                  {import.meta.env.VITE_SUPABASE_URL}/functions/v1/kol-api
+                <h3 className="font-semibold">API Base URL</h3>
+                <code className="block p-3 bg-muted rounded text-sm font-mono break-all">
+                  https://sensaninn.lakeze.com/functions/v1/kol-api
+                </code>
+              </div>
+
+              <Separator />
+
+              {/* Authentication */}
+              <div className="space-y-3">
+                <h3 className="font-semibold">API 金鑰驗證</h3>
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded">
+                  <p className="text-sm text-amber-800 dark:text-amber-200 mb-2">
+                    <strong>重要：</strong>所有 API 請求都需要提供 API 金鑰進行驗證
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    每個折扣碼都有唯一的 API 金鑰，可以在「查看詳情」中找到並複製
+                  </p>
+                </div>
+                <div className="mt-3 space-y-2">
+                  <p className="text-xs text-muted-foreground font-medium">驗證方式（二選一）</p>
+                  <div className="space-y-2">
+                    <div className="p-2 bg-muted rounded">
+                      <p className="text-xs font-medium mb-1">方式一：HTTP Header</p>
+                      <code className="text-xs">x-api-key: YOUR_API_KEY</code>
+                    </div>
+                    <div className="p-2 bg-muted rounded">
+                      <p className="text-xs font-medium mb-1">方式二：URL 參數</p>
+                      <code className="text-xs">?api_key=YOUR_API_KEY</code>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -2846,32 +2874,69 @@ function setCachedStats(code, data) {
                 <h3 className="font-semibold">1. 查詢訂單列表</h3>
                 <div className="space-y-2">
                   <p className="text-sm font-medium">端點：</p>
-                  <div className="p-3 bg-muted rounded font-mono text-sm">
-                    GET /orders?code=YOUR_DISCOUNT_CODE
-                  </div>
+                  <code className="block p-2 bg-muted rounded text-sm font-mono">
+                    GET /orders?code=YOUR_DISCOUNT_CODE&api_key=YOUR_API_KEY
+                  </code>
                   
                   <p className="text-sm font-medium mt-4">回應範例：</p>
                   <pre className="p-3 bg-muted rounded text-xs overflow-x-auto">
 {`{
   "success": true,
-  "data": {
-    "orders": [
-      {
-        "order_number": "ORD-20240101-001",
-        "guest_name": "王小明",
-        "check_in_date": "2024-01-15",
-        "check_out_date": "2024-01-17",
-        "total_price": 5000,
-        "discount_amount": 500,
-        "order_status": "confirmed",
-        "created_at": "2024-01-01T10:00:00Z"
-      }
-    ],
-    "stats": {
-      "total_orders": 10,
-      "total_revenue": 50000,
-      "total_discount": 5000
+  "discount_code": "SPRING2024",
+  "orders": [
+    {
+      "id": "...",
+      "order_number": "20240115001",
+      "order_date": "2024-01-15T10:30:00",
+      "check_in_date": "2024-02-01",
+      "check_out_date": "2024-02-03",
+      "guest_name": "王小明",
+      "guest_count": 2,
+      "order_status": "confirmed",
+      "payment_status": "paid",
+      "total_price": 5000,
+      "discount_amount": 500,
+      "final_price": 4500,
+      "paid_amount": 4500,
+      "room_types": { "name": "標準雙人房" }
     }
+  ]
+}`}
+                  </pre>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Endpoint 2: Get Stats */}
+              <div className="space-y-3">
+                <h3 className="font-semibold">2. 查詢統計數據</h3>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">端點：</p>
+                  <code className="block p-2 bg-muted rounded text-sm font-mono">
+                    GET /stats?code=YOUR_DISCOUNT_CODE&api_key=YOUR_API_KEY
+                  </code>
+                  
+                  <p className="text-sm font-medium mt-4">回應範例：</p>
+                  <pre className="p-3 bg-muted rounded text-xs overflow-x-auto">
+{`{
+  "success": true,
+  "discount_code": "SPRING2024",
+  "discount_info": {
+    "name": "春季促銷",
+    "discount_type": "percentage",
+    "discount_value": 10,
+    "used_count": 25,
+    "usage_limit": 100,
+    "is_active": true
+  },
+  "statistics": {
+    "total_orders": 25,
+    "confirmed_orders": 23,
+    "total_revenue": 115000,
+    "total_discount": 11500,
+    "estimated_commission": 1150,
+    "commission_rate": 10
   }
 }`}
                   </pre>
@@ -2880,44 +2945,45 @@ function setCachedStats(code, data) {
 
               <Separator />
 
-              {/* Endpoint 2: Get Commission Records */}
+              {/* Endpoint 3: Get Commission Records */}
               <div className="space-y-3">
-                <h3 className="font-semibold">2. 查詢佣金記錄</h3>
+                <h3 className="font-semibold">3. 查詢佣金記錄</h3>
                 <div className="space-y-2">
                   <p className="text-sm font-medium">端點：</p>
-                  <div className="p-3 bg-muted rounded font-mono text-sm">
-                    GET /commissions?code=YOUR_DISCOUNT_CODE
-                  </div>
-                  
-                  <p className="text-sm font-medium mt-4">查詢參數（選填）：</p>
-                  <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground pl-3">
-                    <li><code>status</code> - 結算狀態（pending/approved/paid/cancelled）</li>
-                    <li><code>from_date</code> - 開始日期（YYYY-MM-DD）</li>
-                    <li><code>to_date</code> - 結束日期（YYYY-MM-DD）</li>
-                  </ul>
+                  <code className="block p-2 bg-muted rounded text-sm font-mono">
+                    GET /commission?code=YOUR_DISCOUNT_CODE&api_key=YOUR_API_KEY
+                  </code>
                   
                   <p className="text-sm font-medium mt-4">回應範例：</p>
                   <pre className="p-3 bg-muted rounded text-xs overflow-x-auto">
 {`{
   "success": true,
-  "data": {
-    "commissions": [
-      {
-        "order_number": "ORD-20240101-001",
-        "order_total": 5000,
-        "discount_amount": 500,
-        "commission_rate": 10,
-        "commission_amount": 50,
-        "settlement_status": "pending",
-        "created_at": "2024-01-01T10:00:00Z"
-      }
-    ],
-    "summary": {
-      "total_commission": 500,
-      "pending_commission": 300,
-      "paid_commission": 200
+  "discount_code": "SPRING2024",
+  "commission_statistics": {
+    "total_records": 23,
+    "total_commission": 1150,
+    "pending_commission": 230,
+    "approved_commission": 460,
+    "paid_commission": 460,
+    "commission_rate": 10
+  },
+  "commission_records": [
+    {
+      "id": "...",
+      "order_number": "20240115001",
+      "guest_name": "王小明",
+      "check_in_date": "2024-02-01",
+      "order_status": "confirmed",
+      "order_total": 5000,
+      "discount_amount": 500,
+      "commission_rate": 10,
+      "commission_amount": 50,
+      "settlement_status": "paid",
+      "settlement_date": "2024-01-20T10:00:00Z",
+      "payment_date": "2024-01-25T15:30:00Z",
+      "created_at": "2024-01-15T14:30:00Z"
     }
-  }
+  ]
 }`}
                   </pre>
                 </div>
@@ -2931,60 +2997,22 @@ function setCachedStats(code, data) {
                 <pre className="p-3 bg-muted rounded text-xs overflow-x-auto">
 {`// 查詢訂單
 const response = await fetch(
-  '${import.meta.env.VITE_SUPABASE_URL}/functions/v1/kol-api/orders?code=YOUR_CODE'
+  'https://sensaninn.lakeze.com/functions/v1/kol-api/orders?code=YOUR_CODE&api_key=YOUR_API_KEY'
 );
 const data = await response.json();
 
-// 查詢佣金（帶篩選）
+// 查詢統計
+const statsResponse = await fetch(
+  'https://sensaninn.lakeze.com/functions/v1/kol-api/stats?code=YOUR_CODE&api_key=YOUR_API_KEY'
+);
+const statsData = await statsResponse.json();
+
+// 查詢佣金
 const commissionResponse = await fetch(
-  '${import.meta.env.VITE_SUPABASE_URL}/functions/v1/kol-api/commissions?' +
-  'code=YOUR_CODE&status=pending&from_date=2024-01-01'
+  'https://sensaninn.lakeze.com/functions/v1/kol-api/commission?code=YOUR_CODE&api_key=YOUR_API_KEY'
 );
 const commissionData = await commissionResponse.json();`}
                 </pre>
-              </div>
-
-              <Separator />
-
-              {/* Best Practices */}
-              <div className="space-y-2">
-                <h3 className="font-semibold">最佳實踐建議</h3>
-                <div className="space-y-2">
-                  <div className="p-3 bg-muted rounded">
-                    <strong className="text-foreground">1. 錯誤處理</strong>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      檢查 response.success 狀態，並妥善處理錯誤訊息
-                    </p>
-                  </div>
-
-                  <div className="p-3 bg-muted rounded">
-                    <strong className="text-foreground">2. 快取策略</strong>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      實作本地快取，減少 API 請求頻率（建議 5-10 分鐘更新一次）
-                    </p>
-                  </div>
-
-                  <div className="p-3 bg-muted rounded">
-                    <strong className="text-foreground">3. 載入狀態指示</strong>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      在請求期間顯示載入動畫，提升用戶體驗
-                    </p>
-                  </div>
-
-                  <div className="p-3 bg-muted rounded">
-                    <strong className="text-foreground">4. 定期重試機制</strong>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      網路暫時失敗時，自動重試 2-3 次後再顯示錯誤
-                    </p>
-                  </div>
-
-                  <div className="p-3 bg-muted rounded">
-                    <strong className="text-foreground">5. 資料驗證</strong>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      檢查 API 回應的資料結構是否正確，避免程式錯誤
-                    </p>
-                  </div>
-                </div>
               </div>
 
               <Separator />
@@ -2993,14 +3021,14 @@ const commissionData = await commissionResponse.json();`}
               <div className="space-y-2">
                 <h3 className="font-semibold">注意事項</h3>
                 <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                  <li>API 端點不需要身份驗證，但需要提供有效的折扣碼</li>
+                  <li><strong>API 金鑰驗證</strong>：所有請求都需要提供有效的 API 金鑰</li>
+                  <li><strong>速率限制</strong>：每個 API 金鑰每小時最多 100 次請求</li>
                   <li>回應格式為 JSON</li>
                   <li>佣金根據折扣碼設定的佣金率自動計算</li>
                   <li>結算狀態：pending（待結算）、approved（已核准）、paid（已付款）、cancelled（已取消）</li>
                   <li>建議在外部網站實作快取機制，避免頻繁請求</li>
                   <li>API 支援 CORS，可直接從瀏覽器調用</li>
-                  <li>請妥善保管您的折扣碼，避免洩露給非授權人員</li>
-                  <li>API 回應時間通常在 100-500ms 之間</li>
+                  <li>請妥善保管您的 API 金鑰，避免洩露給非授權人員</li>
                 </ul>
               </div>
             </div>
