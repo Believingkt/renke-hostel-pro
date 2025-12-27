@@ -71,6 +71,7 @@ export default function ChangePassword() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState<PasswordStrength | null>(null);
+  const [isBackendUser, setIsBackendUser] = useState(false);
   
   // 判斷是否從後台訪問（透過 URL 參數或路徑）
   const searchParams = new URLSearchParams(location.search);
@@ -83,6 +84,26 @@ export default function ChangePassword() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user?.email) {
         setUserEmail(user.email);
+      }
+
+      // 受邀帳號首次登入（後台）會帶 force_password_change 標記：視為後台流程
+      const isForcedChange = user?.user_metadata?.force_password_change === true;
+      if (isForcedChange) {
+        setIsBackendUser(true);
+        return;
+      }
+
+      // 若可讀取到 user_roles，且有角色，也視為後台流程（前台不變）
+      if (user?.id) {
+        const { data: roles, error: rolesError } = await supabase
+          .from("user_roles")
+          .select("id")
+          .eq("user_id", user.id)
+          .limit(1);
+
+        if (!rolesError) {
+          setIsBackendUser((roles?.length ?? 0) > 0);
+        }
       }
     };
     fetchUserEmail();
@@ -362,7 +383,7 @@ export default function ChangePassword() {
             <Button 
               type="submit" 
               className={`w-full h-11 sm:h-10 text-base sm:text-sm touch-manipulation ${
-                (isAdminRoute || isHQRoute) 
+                (isAdminRoute || isHQRoute || isBackendUser)
                   ? 'bg-blue-600 hover:bg-blue-700' 
                   : ''
               }`}
