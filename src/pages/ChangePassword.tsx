@@ -72,9 +72,11 @@ export default function ChangePassword() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState<PasswordStrength | null>(null);
   
-  // 判斷是否從後台訪問
-  const isAdminRoute = location.pathname.includes('/admin/');
-  const isHQRoute = location.pathname.includes('/headquarters/');
+  // 判斷是否從後台訪問（透過 URL 參數或路徑）
+  const searchParams = new URLSearchParams(location.search);
+  const sourceParam = searchParams.get('source');
+  const isAdminRoute = location.pathname.includes('/admin/') || sourceParam === 'admin';
+  const isHQRoute = location.pathname.includes('/headquarters/') || sourceParam === 'hq';
 
   useEffect(() => {
     const fetchUserEmail = async () => {
