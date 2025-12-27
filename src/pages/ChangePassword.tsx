@@ -359,7 +359,11 @@ export default function ChangePassword() {
             </div>
             <Button 
               type="submit" 
-              className="w-full h-11 sm:h-10 text-base sm:text-sm touch-manipulation" 
+              className={`w-full h-11 sm:h-10 text-base sm:text-sm touch-manipulation ${
+                (isAdminRoute || isHQRoute) 
+                  ? 'bg-blue-600 hover:bg-blue-700' 
+                  : ''
+              }`}
               disabled={isLoading}
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
