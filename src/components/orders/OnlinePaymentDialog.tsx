@@ -179,7 +179,13 @@ export function OnlinePaymentDialog({
           console.log('[TapPay][Admin] getPrime result:', result);
           if (result.status !== 0) {
             const host = typeof window !== 'undefined' ? window.location.hostname : '';
-            reject(new Error(`TapPay 授權失敗 (${result.status}): ${result.msg || 'unknown'} (domain: ${host})`));
+            const appId = '165714';
+            const env = 'production';
+            reject(
+              new Error(
+                `TapPay 授權失敗 (${result.status}): ${result.msg || 'unknown'} (domain: ${host}, appId: ${appId}, env: ${env})`
+              )
+            );
             return;
           }
           resolve(result.card.prime);
