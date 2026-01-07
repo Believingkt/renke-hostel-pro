@@ -176,12 +176,19 @@ export function OnlinePaymentDialog({
       // 獲取 Prime
       const prime = await new Promise<string>((resolve, reject) => {
         window.TPDirect.card.getPrime((result: any) => {
+          console.log('[TapPay][Admin] getPrime result:', result);
           if (result.status !== 0) {
-            reject(new Error(result.msg || '無法取得付款授權'));
-          } else {
-            resolve(result.card.prime);
+            const host = typeof window !== 'undefined' ? window.location.hostname : '';
+            reject(new Error(`TapPay 授權失敗 (${result.status}): ${result.msg || 'unknown'} (domain: ${host})`));
+            return;
           }
+          resolve(result.card.prime);
         });
+      });
+
+      console.log('[TapPay][Admin] invoking process-tappay-payment', {
+        orderNumber: order.order_number,
+        amount: paymentAmount,
       });
 
       // 呼叫後端處理付款
@@ -198,6 +205,8 @@ export function OnlinePaymentDialog({
           details: `訂單 ${order.order_number} 付款`,
         },
       });
+
+      console.log('[TapPay][Admin] process-tappay-payment response:', data);
 
       if (error) throw error;
 
