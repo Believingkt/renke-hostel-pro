@@ -180,10 +180,14 @@ export function OnlinePaymentDialog({
           if (result.status !== 0) {
             const host = typeof window !== 'undefined' ? window.location.hostname : '';
             const appId = '165714';
+            const appKey = 'app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP';
+            const appKeyPrefix = appKey.substring(0, 6);
+            const sdkVersion = 'v5.18.0';
+            const tpDirectLoaded = typeof window.TPDirect !== 'undefined' ? 'Yes' : 'No';
             const env = 'production';
             reject(
               new Error(
-                `TapPay 授權失敗 (${result.status}): ${result.msg || 'unknown'} (domain: ${host}, appId: ${appId}, env: ${env})`
+                `TapPay 授權失敗 (${result.status}): ${result.msg || 'unknown'} | domain: ${host} | appId: ${appId} | appKey: ${appKeyPrefix}... | SDK: ${sdkVersion} | TPDirect: ${tpDirectLoaded} | env: ${env}`
               )
             );
             return;
