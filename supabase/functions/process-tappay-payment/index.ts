@@ -96,7 +96,7 @@ serve(async (req) => {
     }
 
     // Call TapPay Pay by Prime API
-    const tappayResponse = await fetch('https://sandbox.tappaysdk.com/tpc/payment/pay-by-prime', {
+    const tappayResponse = await fetch('https://prod.tappaysdk.com/tpc/payment/pay-by-prime', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
