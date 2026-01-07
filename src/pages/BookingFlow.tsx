@@ -743,10 +743,10 @@ const BookingFlow = () => {
     // 第一步：載入 TapPay SDK
     const loadTapPaySDK = () => {
       if (window.TPDirect) {
-        // SDK 已載入，設定基本配置
-        console.log('TapPay SDK already loaded, setting up...');
-        window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8l3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'sandbox');
-        console.log('TapPay SDK setup completed');
+        // SDK 已載入，設定基本配置（正式環境）
+        console.log('TapPay SDK already loaded, setting up for production...');
+        window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'production');
+        console.log('TapPay SDK setup completed (production)');
         setIsTapPayReady(true);
         return;
       }
@@ -757,9 +757,9 @@ const BookingFlow = () => {
       script.async = true;
       script.onload = () => {
         if (window.TPDirect) {
-          console.log('TapPay SDK loaded, setting up...');
-          window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8l3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'sandbox');
-          console.log('TapPay SDK setup completed');
+          console.log('TapPay SDK loaded, setting up for production...');
+          window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'production');
+          console.log('TapPay SDK setup completed (production)');
           setIsTapPayReady(true);
         }
       };
