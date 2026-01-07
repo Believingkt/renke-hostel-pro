@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Mail, Home, ShoppingBag, Globe, UserPlus } from "lucide-react";
+import { ArrowLeft, Mail, Home, ShoppingBag, Globe, UserPlus, CreditCard } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { OnlinePaymentDialog } from "@/components/orders/OnlinePaymentDialog";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -75,66 +76,67 @@ const OrderDetail = () => {
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
 
-  useEffect(() => {
+  const fetchOrder = async () => {
     if (!orderId) return;
+    
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("orders")
+        .select(`
+          *,
+          room_types (
+            name,
+            name_en
+          )
+        `)
+        .eq("id", orderId)
+        .maybeSingle();
 
-    const fetchOrder = async () => {
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from("orders")
-          .select(`
-            *,
-            room_types (
-              name,
-              name_en
-            )
-          `)
-          .eq("id", orderId)
-          .maybeSingle();
+      if (error) throw error;
+      
+      if (data) {
+        const orderData = data as any;
+        const orderObj = {
+          ...orderData,
+          pet_count: orderData.pet_count || 0,
+          pet_plan_price: orderData.pet_plan_price || 0,
+          meal_plan_details: orderData.meal_plan_details || [],
+          meal_plan_total: orderData.meal_plan_total || 0,
+        } as OrderDetail;
+        setOrder(orderObj);
 
-        if (error) throw error;
-        
-        if (data) {
-          const orderData = data as any;
-          const orderObj = {
-            ...orderData,
-            pet_count: orderData.pet_count || 0,
-            pet_plan_price: orderData.pet_plan_price || 0,
-            meal_plan_details: orderData.meal_plan_details || [],
-            meal_plan_total: orderData.meal_plan_total || 0,
-          } as OrderDetail;
-          setOrder(orderObj);
+        // 獲取自訂餐食方案
+        if (orderData.accommodation_id) {
+          const { data: templatesData } = await supabase
+            .from("pricing_templates")
+            .select("meal_plans")
+            .eq("accommodation_id", orderData.accommodation_id)
+            .eq("is_default", true)
+            .maybeSingle();
 
-          // 獲取自訂餐食方案
-          if (orderData.accommodation_id) {
-            const { data: templatesData } = await supabase
-              .from("pricing_templates")
-              .select("meal_plans")
-              .eq("accommodation_id", orderData.accommodation_id)
-              .eq("is_default", true)
-              .maybeSingle();
-
-            if (templatesData?.meal_plans && Array.isArray(templatesData.meal_plans)) {
-              setCustomMealPlans(templatesData.meal_plans as unknown as CustomMealPlan[]);
-            }
+          if (templatesData?.meal_plans && Array.isArray(templatesData.meal_plans)) {
+            setCustomMealPlans(templatesData.meal_plans as unknown as CustomMealPlan[]);
           }
         }
-      } catch (error) {
-        console.error("Error fetching order:", error);
-        toast({
-          title: "載入失敗",
-          description: "無法載入訂單資料",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching order:", error);
+      toast({
+        title: "載入失敗",
+        description: "無法載入訂單資料",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchOrder();
-  }, [orderId, toast]);
+  }, [orderId]);
 
   const getPaymentStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; className: string }> = {
@@ -337,18 +339,31 @@ const OrderDetail = () => {
           </Button>
           <h1 className="text-xl md:text-2xl lg:text-3xl font-bold tracking-tight">訂單詳情</h1>
         </div>
-        {order.guest_email && (
-          <Button 
-            variant="outline" 
-            onClick={handleResendConfirmation}
-            disabled={isSendingEmail}
-            className="w-full sm:w-auto text-sm"
-          >
-            <Mail className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">{isSendingEmail ? "發送中..." : "重發確認信"}</span>
-            <span className="sm:hidden">{isSendingEmail ? "發送中..." : "重發信件"}</span>
-          </Button>
-        )}
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          {/* 線上付款按鈕 - 只在未全額付清且未取消時顯示 */}
+          {order.payment_status !== 'paid' && order.order_status !== 'cancelled' && (
+            <Button 
+              onClick={() => setShowPaymentDialog(true)}
+              className="w-full sm:w-auto text-sm"
+            >
+              <CreditCard className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">線上收款</span>
+              <span className="sm:hidden">收款</span>
+            </Button>
+          )}
+          {order.guest_email && (
+            <Button 
+              variant="outline" 
+              onClick={handleResendConfirmation}
+              disabled={isSendingEmail}
+              className="w-full sm:w-auto text-sm"
+            >
+              <Mail className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">{isSendingEmail ? "發送中..." : "重發確認信"}</span>
+              <span className="sm:hidden">{isSendingEmail ? "發送中..." : "重發信件"}</span>
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
@@ -606,6 +621,24 @@ const OrderDetail = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* 線上付款對話框 */}
+      <OnlinePaymentDialog
+        open={showPaymentDialog}
+        onOpenChange={setShowPaymentDialog}
+        order={order ? {
+          id: order.id,
+          order_number: order.order_number,
+          guest_name: order.guest_name,
+          guest_phone: order.guest_phone,
+          guest_email: order.guest_email,
+          final_price: order.final_price,
+          payment_status: order.payment_status,
+          deposit_amount: order.deposit_amount,
+          paid_amount: order.paid_amount,
+        } : null}
+        onPaymentSuccess={fetchOrder}
+      />
     </div>
   );
 };
