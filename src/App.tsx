@@ -22,6 +22,7 @@ const OrderSearch = lazy(() => import("./pages/OrderSearch"));
 const PaymentTest = lazy(() => import("./pages/PaymentTest"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const OgImagePreview = lazy(() => import("./pages/OgImagePreview"));
+const KolApiDocs = lazy(() => import("./pages/KolApiDocs"));
 
 // 路由懶加載 - 後台管理頁面
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -87,6 +88,11 @@ function App() {
                 <Route path="/payment-test" element={
                   <Suspense fallback={<FrontendSkeleton />}>
                     <PaymentTest />
+                  </Suspense>
+                } />
+                <Route path="/kol-api-docs" element={
+                  <Suspense fallback={<FrontendSkeleton />}>
+                    <KolApiDocs />
                   </Suspense>
                 } />
                 
