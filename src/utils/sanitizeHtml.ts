@@ -36,14 +36,33 @@ export function sanitizeHtml(dirty: string | null | undefined, options?: Sanitiz
   };
 
   const config = { ...defaultConfig, ...options };
-  
+
   // Sanitize the HTML and ensure it returns a string
   let clean = DOMPurify.sanitize(dirty, { ...config, RETURN_TRUSTED_TYPE: false }) as string;
-  
-  // Add target="_blank" and rel="noopener noreferrer" to all links
-  clean = clean.replace(/<a\s/g, '<a target="_blank" rel="noopener noreferrer" ');
-  
+
+  // Ensure all links are opened safely in a new tab.
+  clean = ensureSafeLinkAttributes(clean);
+
   return clean;
+}
+
+function ensureSafeLinkAttributes(html: string): string {
+  // Prefer DOM parsing over regex to avoid edge cases with string replacement.
+  try {
+    if (typeof window === 'undefined' || typeof DOMParser === 'undefined') {
+      return html.replace(/<a\s/gi, '<a target="_blank" rel="noopener noreferrer" ');
+    }
+
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    doc.querySelectorAll('a').forEach((a) => {
+      a.setAttribute('target', '_blank');
+      a.setAttribute('rel', 'noopener noreferrer');
+    });
+
+    return doc.body.innerHTML;
+  } catch {
+    return html.replace(/<a\s/gi, '<a target="_blank" rel="noopener noreferrer" ');
+  }
 }
 
 /**
