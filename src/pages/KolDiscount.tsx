@@ -192,7 +192,16 @@ const KolDiscount = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setDiscountCodes((data || []) as DiscountCode[]);
+      const codes = (data || []) as DiscountCode[];
+      setDiscountCodes(codes);
+      
+      // Update selectedCodeForCommission if it exists in the new data
+      if (selectedCodeForCommission) {
+        const updatedCode = codes.find(c => c.id === selectedCodeForCommission.id);
+        if (updatedCode) {
+          setSelectedCodeForCommission(updatedCode);
+        }
+      }
     } catch (error) {
       console.error("Error fetching discount codes:", error);
       toast({
