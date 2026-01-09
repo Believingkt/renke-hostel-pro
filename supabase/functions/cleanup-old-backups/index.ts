@@ -22,31 +22,52 @@ interface CleanupRequest {
 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
-  
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  if (req.method !== 'POST') {
+    return new Response(
+      JSON.stringify({ success: false, error: 'Method not allowed' }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 405,
+      }
     );
+  }
 
-    const { retentionDays = 30, dryRun = false }: CleanupRequest = await req.json().catch(() => ({}));
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+  const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
-    console.log(`Starting backup cleanup: retention=${retentionDays} days, dryRun=${dryRun}`);
+  try {
+    if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceRoleKey) {
+      throw new HttpError(500, 'Backend not configured');
+    }
+
+    // Admin client used for storage + database operations.
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
+
+    // Authn/Authz: only allow super admins to execute.
+    const userId = await requireSuperAdmin(req, supabaseUrl, supabaseAnonKey, supabaseAdmin);
+
+    const { retentionDays = 30, dryRun = false }: CleanupRequest = await req
+      .json()
+      .catch(() => ({}));
+
+    console.log(
+      `[cleanup-old-backups] user=${userId} retention=${retentionDays} days dryRun=${dryRun}`
+    );
 
     // Calculate cutoff date
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
     const cutoffIso = cutoffDate.toISOString();
 
-    console.log(`Cutoff date: ${cutoffIso}`);
-
     // Find old backups
-    const { data: oldBackups, error: queryError } = await supabase
+    const { data: oldBackups, error: queryError } = await supabaseAdmin
       .from('backup_logs')
       .select('*')
       .lt('created_at', cutoffIso)
@@ -57,13 +78,14 @@ Deno.serve(async (req) => {
     }
 
     if (!oldBackups || oldBackups.length === 0) {
-      console.log('No old backups found to clean up');
       return new Response(
         JSON.stringify({
           success: true,
           message: 'No backups to clean up',
           deleted: 0,
           dryRun,
+          retentionDays,
+          cutoffDate: cutoffIso,
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -72,11 +94,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Found ${oldBackups.length} old backups to clean up`);
-
     if (dryRun) {
       // Just report what would be deleted
-      const report = oldBackups.map(backup => ({
+      const report = oldBackups.map((backup) => ({
         id: backup.id,
         created_at: backup.created_at,
         file_path: backup.file_path,
@@ -90,6 +110,8 @@ Deno.serve(async (req) => {
           success: true,
           message: `Would delete ${oldBackups.length} backups (dry run)`,
           dryRun: true,
+          retentionDays,
+          cutoffDate: cutoffIso,
           backups: report,
         }),
         {
@@ -107,28 +129,24 @@ Deno.serve(async (req) => {
 
     for (const backup of oldBackups) {
       try {
-        console.log(`Deleting backup: ${backup.file_path}`);
-
         // Delete from storage
-        const { error: storageError } = await supabase.storage
+        const { error: storageError } = await supabaseAdmin.storage
           .from('backups')
           .remove([backup.file_path]);
 
         if (storageError) {
-          console.error(`Failed to delete file ${backup.file_path}:`, storageError);
           errors.push(`Storage error for ${backup.file_path}: ${storageError.message}`);
           failedCount++;
           continue;
         }
 
         // Delete from database
-        const { error: dbError } = await supabase
+        const { error: dbError } = await supabaseAdmin
           .from('backup_logs')
           .delete()
           .eq('id', backup.id);
 
         if (dbError) {
-          console.error(`Failed to delete log ${backup.id}:`, dbError);
           errors.push(`Database error for ${backup.id}: ${dbError.message}`);
           failedCount++;
           continue;
@@ -136,24 +154,12 @@ Deno.serve(async (req) => {
 
         deletedCount++;
         totalSpaceFreed += backup.file_size || 0;
-        console.log(`Successfully deleted backup: ${backup.file_path}`);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        console.error(`Error deleting backup ${backup.id}:`, error);
         errors.push(`Error for ${backup.id}: ${errorMessage}`);
         failedCount++;
       }
     }
-
-    const formatBytes = (bytes: number) => {
-      if (bytes === 0) return '0 Bytes';
-      const k = 1024;
-      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-      const i = Math.floor(Math.log(bytes) / Math.log(k));
-      return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-    };
-
-    console.log(`Cleanup complete: deleted=${deletedCount}, failed=${failedCount}`);
 
     return new Response(
       JSON.stringify({
@@ -161,7 +167,6 @@ Deno.serve(async (req) => {
         message: `Cleaned up ${deletedCount} old backups`,
         deleted: deletedCount,
         failed: failedCount,
-        spaceFreed: formatBytes(totalSpaceFreed),
         spaceFreedBytes: totalSpaceFreed,
         retentionDays,
         cutoffDate: cutoffIso,
@@ -173,19 +178,66 @@ Deno.serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Cleanup error:', error);
-    
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: errorMessage,
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      }
-    );
+    const status = error instanceof HttpError ? error.status : 400;
+    const message = error instanceof Error ? error.message : 'Unknown error occurred';
+
+    console.error('[cleanup-old-backups] error:', message);
+
+    return new Response(JSON.stringify({ success: false, error: message }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status,
+    });
   }
 });
+
+class HttpError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
+async function requireSuperAdmin(
+  req: Request,
+  supabaseUrl: string,
+  anonKey: string,
+  // Use a loose type here to avoid edge-runtime generic mismatches.
+  supabaseAdmin: any
+): Promise<string> {
+  const authHeader = req.headers.get('authorization') ?? req.headers.get('Authorization');
+  if (!authHeader) {
+    throw new HttpError(401, 'Missing authorization');
+  }
+
+  // Validate JWT and obtain user via a non-admin client.
+  const supabaseAuth = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+
+  const { data: userData, error: userError } = await supabaseAuth.auth.getUser();
+  const user = userData?.user;
+
+  if (userError || !user) {
+    throw new HttpError(401, 'Unauthorized');
+  }
+
+  const { data: roleRows, error: roleError } = await supabaseAdmin
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', user.id);
+
+  if (roleError) {
+    console.error('[cleanup-old-backups] role lookup failed:', roleError);
+    throw new HttpError(500, 'Authorization check failed');
+  }
+
+  const isSuperAdmin = (roleRows ?? []).some((r: { role: string }) => r.role === 'super_admin');
+  if (!isSuperAdmin) {
+    throw new HttpError(403, 'Forbidden');
+  }
+
+  return user.id;
+}
+
