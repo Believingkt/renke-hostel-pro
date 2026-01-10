@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardDescription } from "@/components/ui/
 import { toast } from "sonner";
 import { Loader2, KeyRound, Eye, EyeOff, AlertCircle } from "lucide-react";
 import lokezeLogo from "@/assets/lokeze-logo-auth.png";
+import { getPasswordIssues } from "@/utils/passwordPolicy";
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -59,13 +60,14 @@ export default function ResetPassword() {
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (newPassword.length < 6) {
-      toast.error("密碼長度至少需要 6 個字元");
+    if (newPassword !== confirmPassword) {
+      toast.error("兩次輸入的密碼不一致");
       return;
     }
 
-    if (newPassword !== confirmPassword) {
-      toast.error("兩次輸入的密碼不一致");
+    const issues = getPasswordIssues(newPassword, { email: tokenData?.email });
+    if (issues.length > 0) {
+      toast.error(issues[0]);
       return;
     }
 
@@ -176,11 +178,11 @@ export default function ResetPassword() {
                 <Input
                   id="new-password"
                   type={showNewPassword ? "text" : "password"}
-                  placeholder="至少 6 個字元"
+                  placeholder="至少 8 個字元"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   required
-                  minLength={6}
+                  minLength={8}
                   className="focus-visible:ring-auth-primary"
                 />
                 <Button
