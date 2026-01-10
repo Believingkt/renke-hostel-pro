@@ -41,24 +41,71 @@ function checkTokenRateLimit(token: string): { allowed: boolean; remaining: numb
   return { allowed: true, remaining: TOKEN_RATE_LIMIT_MAX - existing.count };
 }
 
-// Password strength validation
-function validatePasswordStrength(password: string): { valid: boolean; message: string } {
+// Password strength validation (server-side)
+const COMMON_PASSWORDS = new Set(
+  [
+    "password",
+    "password123",
+    "123456",
+    "12345678",
+    "123456789",
+    "qwerty",
+    "qwerty123",
+    "111111",
+    "11111111",
+    "000000",
+    "00000000",
+    "admin",
+    "admin123",
+    "letmein",
+    "iloveyou",
+  ].map((p) => p.toLowerCase())
+);
+
+function validatePasswordStrength(
+  password: string,
+  email?: string
+): { valid: boolean; message: string } {
   if (password.length < 8) {
     return { valid: false, message: "密碼長度至少需要 8 個字元" };
   }
-  
+
   if (!/[A-Z]/.test(password)) {
     return { valid: false, message: "密碼需包含至少一個大寫字母" };
   }
-  
+
   if (!/[a-z]/.test(password)) {
     return { valid: false, message: "密碼需包含至少一個小寫字母" };
   }
-  
+
   if (!/[0-9]/.test(password)) {
     return { valid: false, message: "密碼需包含至少一個數字" };
   }
-  
+
+  const normalized = password.trim().toLowerCase();
+  if (COMMON_PASSWORDS.has(normalized)) {
+    return { valid: false, message: "此密碼過於常見，請更換為更難猜的密碼" };
+  }
+
+  if (email) {
+    const normalizedEmail = email.trim().toLowerCase();
+    const passwordLower = password.toLowerCase();
+    const [localPart, domain] = normalizedEmail.split("@");
+
+    if (normalizedEmail && passwordLower.includes(normalizedEmail)) {
+      return { valid: false, message: "密碼不可包含您的電子郵件" };
+    }
+    if (localPart && localPart.length >= 3 && passwordLower.includes(localPart)) {
+      return { valid: false, message: "密碼不可包含您的帳號（電子郵件前綴）" };
+    }
+    if (domain) {
+      const domainPrefix = domain.split(".")[0];
+      if (domainPrefix && domainPrefix.length >= 3 && passwordLower.includes(domainPrefix)) {
+        return { valid: false, message: "密碼不可包含您的電子郵件網域" };
+      }
+    }
+  }
+
   return { valid: true, message: "" };
 }
 
@@ -95,18 +142,6 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Validate password strength
-    const passwordValidation = validatePasswordStrength(newPassword);
-    if (!passwordValidation.valid) {
-      return new Response(
-        JSON.stringify({ error: passwordValidation.message }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
-      );
-    }
-
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Verify token with explicit column selection
@@ -125,7 +160,18 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Token verified for user:", tokenData.user_id);
 
-    // Update user password
+    // Validate password strength (needs email context)
+    const passwordValidation = validatePasswordStrength(newPassword, tokenData.email);
+    if (!passwordValidation.valid) {
+      return new Response(
+        JSON.stringify({ error: passwordValidation.message }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
     const { error: updateError } = await supabase.auth.admin.updateUserById(
       tokenData.user_id,
       { password: newPassword }

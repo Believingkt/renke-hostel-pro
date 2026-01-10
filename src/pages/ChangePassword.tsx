@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner";
 import { Loader2, Eye, EyeOff, Check, X, HelpCircle } from "lucide-react";
 import lokezeLogo from "@/assets/lokeze-logo-auth.png";
+import { getPasswordIssues } from "@/utils/passwordPolicy";
 
 // 密碼強度檢測
 interface PasswordStrength {
@@ -126,23 +127,9 @@ export default function ChangePassword() {
       return;
     }
 
-    if (newPassword.length < 8) {
-      toast.error("密碼至少需要 8 個字元");
-      return;
-    }
-
-    if (!/[A-Z]/.test(newPassword)) {
-      toast.error("密碼需包含至少一個大寫字母");
-      return;
-    }
-
-    if (!/[a-z]/.test(newPassword)) {
-      toast.error("密碼需包含至少一個小寫字母");
-      return;
-    }
-
-    if (!/[0-9]/.test(newPassword)) {
-      toast.error("密碼需包含至少一個數字");
+    const issues = getPasswordIssues(newPassword, { email: userEmail });
+    if (issues.length > 0) {
+      toast.error(issues[0]);
       return;
     }
 

@@ -9,6 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Loader2, KeyRound, LogIn, Eye, EyeOff, Mail } from "lucide-react";
 import lokezeLogo from "@/assets/lokeze-logo-auth.png";
+import { getPasswordIssues } from "@/utils/passwordPolicy";
+
 
 const AUTH_REMEMBER_EMAIL_KEY = "auth_remember_email";
 
@@ -188,17 +190,9 @@ export default function Auth() {
 
   // Password validation helper
   const validatePassword = (password: string): { valid: boolean; message: string } => {
-    if (password.length < 8) {
-      return { valid: false, message: "密碼長度至少需要 8 個字元" };
-    }
-    if (!/[A-Z]/.test(password)) {
-      return { valid: false, message: "密碼需包含至少一個大寫字母" };
-    }
-    if (!/[a-z]/.test(password)) {
-      return { valid: false, message: "密碼需包含至少一個小寫字母" };
-    }
-    if (!/[0-9]/.test(password)) {
-      return { valid: false, message: "密碼需包含至少一個數字" };
+    const issues = getPasswordIssues(password, { email: inviteEmail });
+    if (issues.length > 0) {
+      return { valid: false, message: issues[0] };
     }
     return { valid: true, message: "" };
   };
@@ -329,7 +323,7 @@ export default function Auth() {
               <div className="space-y-2">
                 <Label htmlFor="new-password">設定密碼</Label>
                 <p className="text-xs text-muted-foreground">
-                  至少 8 個字元，需包含大寫字母、小寫字母及數字
+                  至少 8 個字元，需包含大寫字母、小寫字母及數字（避免常見密碼）
                 </p>
                 <div className="relative">
                   <Input
