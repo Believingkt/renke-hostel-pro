@@ -1525,6 +1525,56 @@ const BookingFlow = () => {
         // 繼續創建訂單，即使客戶資料處理失敗
       }
 
+      // Server-side price validation to prevent client-side manipulation
+      try {
+        const { data: validationResult, error: validationError } = await supabase.functions.invoke(
+          'validate-order-prices',
+          {
+            body: {
+              accommodationId,
+              roomTypeId: selectedRoom.id,
+              checkInDate: checkInDateStr,
+              checkOutDate: checkOutDateStr,
+              totalPrice,
+              discountCode: appliedDiscount?.code || null,
+              discountAmount,
+              finalPrice,
+              mealPlan: selectedMealPlan,
+              mealPlanDetails: mealPlanDetailsData,
+              mealPlanTotal: mealPlanTotalPrice,
+              petCount,
+              petPlanPrice,
+            },
+          }
+        );
+
+        if (validationError) {
+          console.error("Price validation error:", validationError);
+          toast({
+            title: "價格驗證失敗",
+            description: "無法驗證訂單價格，請重新整理頁面後再試",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+
+        if (!validationResult?.isValid) {
+          console.error("Price validation failed:", validationResult?.errors);
+          toast({
+            title: "價格驗證失敗",
+            description: "訂單價格與系統計算不符，請重新整理頁面後再試",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+      } catch (validationErr) {
+        console.error("Price validation exception:", validationErr);
+        // Continue with order if validation service is unavailable but log the error
+        // This is a fallback to prevent blocking orders if the validation service fails
+      }
+
       // 檢查包區互斥邏輯
       const isExclusiveRoom = ['12人包區', '14人包區', '16人包區', '18人包區'].includes(selectedRoom.name);
       if (isExclusiveRoom) {
