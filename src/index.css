@@ -103,69 +103,69 @@ All colors MUST be HSL.
     --chart-occupancy-bg: 45 93% 95%;
   }
 
-  /* 天頌幸福和苑 - 溫暖橘色與米白主題 */
+  /* 天頌幸福和苑 - 柔和暖橙與奶油米白主題 */
   .theme-warm {
-    --background: 40 33% 98%;
-    --foreground: 25 20% 20%;
+    --background: 38 40% 97%;
+    --foreground: 28 25% 18%;
 
-    --card: 40 30% 99%;
-    --card-foreground: 25 20% 20%;
+    --card: 40 35% 98%;
+    --card-foreground: 28 25% 18%;
 
-    --popover: 40 30% 99%;
-    --popover-foreground: 25 20% 20%;
+    --popover: 40 35% 98%;
+    --popover-foreground: 28 25% 18%;
 
-    --primary: 24 80% 50%;
-    --primary-foreground: 40 30% 99%;
+    --primary: 28 65% 52%;
+    --primary-foreground: 40 40% 98%;
 
-    --secondary: 35 60% 94%;
-    --secondary-foreground: 25 20% 20%;
+    --secondary: 38 45% 93%;
+    --secondary-foreground: 28 25% 22%;
 
-    --muted: 35 30% 95%;
-    --muted-foreground: 25 15% 45%;
+    --muted: 38 35% 94%;
+    --muted-foreground: 28 18% 42%;
 
-    --accent: 16 85% 45%;
-    --accent-foreground: 40 30% 99%;
+    --accent: 22 55% 48%;
+    --accent-foreground: 40 40% 98%;
 
-    --border: 35 25% 88%;
-    --input: 35 25% 90%;
-    --ring: 24 80% 50%;
+    --border: 35 30% 86%;
+    --input: 38 28% 89%;
+    --ring: 28 65% 52%;
 
-    --hero-gradient-start: 24 80% 50%;
-    --hero-gradient-end: 16 85% 45%;
+    --hero-gradient-start: 28 65% 52%;
+    --hero-gradient-end: 22 55% 48%;
     
-    --card-hover: 40 25% 96%;
-    --shadow-sm: 0 1px 2px 0 rgba(139, 90, 43, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(139, 90, 43, 0.1);
-    --shadow-lg: 0 10px 15px -3px rgba(139, 90, 43, 0.1);
+    --card-hover: 38 30% 95%;
+    --shadow-sm: 0 1px 2px 0 rgba(160, 110, 60, 0.06);
+    --shadow-md: 0 4px 6px -1px rgba(160, 110, 60, 0.08);
+    --shadow-lg: 0 10px 15px -3px rgba(160, 110, 60, 0.1);
 
-    --sidebar-background: 40 25% 97%;
-    --sidebar-foreground: 25 20% 25%;
-    --sidebar-primary: 24 80% 50%;
-    --sidebar-primary-foreground: 40 30% 99%;
-    --sidebar-accent: 35 40% 94%;
-    --sidebar-accent-foreground: 25 20% 20%;
-    --sidebar-border: 35 20% 90%;
-    --sidebar-ring: 24 80% 50%;
+    --sidebar-background: 38 30% 96%;
+    --sidebar-foreground: 28 22% 25%;
+    --sidebar-primary: 28 65% 52%;
+    --sidebar-primary-foreground: 40 40% 98%;
+    --sidebar-accent: 38 35% 93%;
+    --sidebar-accent-foreground: 28 25% 22%;
+    --sidebar-border: 35 25% 88%;
+    --sidebar-ring: 28 65% 52%;
 
-    --auth-primary: 24 80% 50%;
-    --auth-primary-hover: 24 80% 42%;
+    --auth-primary: 28 65% 52%;
+    --auth-primary-hover: 28 65% 45%;
 
-    --stat-coral: 16 85% 55%;
-    --stat-coral-light: 16 85% 95%;
+    --stat-coral: 22 60% 55%;
+    --stat-coral-light: 28 50% 94%;
 
-    --chart-1: 24 80% 50%;
-    --chart-2: 16 85% 45%;
-    --chart-3: 35 70% 55%;
-    --chart-4: 45 93% 58%;
-    --chart-5: 271 81% 56%;
+    --chart-1: 28 65% 52%;
+    --chart-2: 22 55% 48%;
+    --chart-3: 38 55% 55%;
+    --chart-4: 45 70% 55%;
+    --chart-5: 15 50% 50%;
 
-    --chart-revenue-primary: 24 80% 50%;
-    --chart-revenue-secondary: 35 70% 55%;
-    --chart-revenue-bg: 35 60% 95%;
+    --chart-revenue-primary: 28 65% 52%;
+    --chart-revenue-secondary: 38 55% 55%;
+    --chart-revenue-bg: 38 45% 94%;
     
-    --chart-booking-primary: 16 85% 45%;
-    --chart-booking-secondary: 24 80% 50%;
-    --chart-booking-bg: 24 80% 95%;
+    --chart-booking-primary: 22 55% 48%;
+    --chart-booking-secondary: 28 65% 52%;
+    --chart-booking-bg: 28 55% 94%;
   }
 
   /* Admin theme - Blue & Orange colors */
