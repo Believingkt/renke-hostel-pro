@@ -654,7 +654,7 @@ const Accounts = () => {
                         : emailFormatValid === false
                         ? "border-destructive/50 focus-visible:ring-destructive/50 pr-10"
                         : emailFormatValid === true
-                        ? "border-green-500 focus-visible:ring-green-500 pr-10"
+                        ? "border-success focus-visible:ring-success pr-10"
                         : "pr-10"
                     }
                     disabled={isLoading}
@@ -664,7 +664,7 @@ const Accounts = () => {
                       <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                     )}
                     {!isCheckingEmail && emailFormatValid === true && !emailError && (
-                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      <CheckCircle2 className="h-4 w-4 text-success" />
                     )}
                     {!isCheckingEmail && emailFormatValid === false && (
                       <XCircle className="h-4 w-4 text-destructive/70" />

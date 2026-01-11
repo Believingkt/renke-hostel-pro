@@ -799,13 +799,13 @@ export default function PaymentTest() {
                             </TooltipTrigger>
                             <TooltipContent className="max-w-xs">
                               <div className="space-y-1 text-xs">
-                                <div className={validation.cardNumber.valid ? 'text-green-500' : 'text-red-500'}>
+                                <div className={validation.cardNumber.valid ? 'text-success' : 'text-red-500'}>
                                   卡號: {validation.cardNumber.message}
                                 </div>
-                                <div className={validation.expiry.valid ? 'text-green-500' : 'text-red-500'}>
+                                <div className={validation.expiry.valid ? 'text-success' : 'text-red-500'}>
                                   有效期限: {validation.expiry.message}
                                 </div>
-                                <div className={validation.cvv.valid ? 'text-green-500' : 'text-red-500'}>
+                                <div className={validation.cvv.valid ? 'text-success' : 'text-red-500'}>
                                   CVV: {validation.cvv.message}
                                 </div>
                               </div>
@@ -837,7 +837,7 @@ export default function PaymentTest() {
                       <div className="flex items-center gap-2">
                         <code className="text-sm">{card.number}</code>
                         {validation.cardNumber.valid ? (
-                          <CheckCircle2 className="w-3 h-3 text-green-500" />
+                          <CheckCircle2 className="w-3 h-3 text-success" />
                         ) : (
                           <XCircle className="w-3 h-3 text-red-500" />
                         )}
@@ -858,7 +858,7 @@ export default function PaymentTest() {
                         <div className="flex items-center gap-2">
                           <code className="text-sm">{card.expiry}</code>
                           {validation.expiry.valid ? (
-                            <CheckCircle2 className="w-3 h-3 text-green-500" />
+                            <CheckCircle2 className="w-3 h-3 text-success" />
                           ) : (
                             <XCircle className="w-3 h-3 text-red-500" />
                           )}
@@ -878,7 +878,7 @@ export default function PaymentTest() {
                         <div className="flex items-center gap-2">
                           <code className="text-sm">{card.cvv}</code>
                           {validation.cvv.valid ? (
-                            <CheckCircle2 className="w-3 h-3 text-green-500" />
+                            <CheckCircle2 className="w-3 h-3 text-success" />
                           ) : (
                             <XCircle className="w-3 h-3 text-red-500" />
                           )}
@@ -1210,7 +1210,7 @@ export default function PaymentTest() {
                           <p className="text-xs text-muted-foreground">測試總數</p>
                         </div>
                         <div>
-                          <p className="text-2xl font-bold text-green-500">
+                          <p className="text-2xl font-bold text-success">
                             {batchResults.filter(r => r.validation.isValid).length}
                           </p>
                           <p className="text-xs text-muted-foreground">驗證通過</p>
@@ -1240,14 +1240,14 @@ export default function PaymentTest() {
                               key={index}
                               className={`p-3 rounded-lg border ${
                                 result.validation.isValid 
-                                  ? 'bg-green-500/5 border-green-500/20' 
+                                  ? 'bg-success/5 border-success/20' 
                                   : 'bg-red-500/5 border-red-500/20'
                               }`}
                             >
                               <div className="flex items-start justify-between">
                                 <div className="flex items-center gap-2">
                                   {result.validation.isValid ? (
-                                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                    <CheckCircle2 className="w-4 h-4 text-success" />
                                   ) : (
                                     <XCircle className="w-4 h-4 text-red-500" />
                                   )}
@@ -1262,13 +1262,13 @@ export default function PaymentTest() {
                                 <code className="text-xs">{result.card.number}</code>
                               </div>
                               <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
-                                <div className={result.validation.cardNumber.valid ? 'text-green-600' : 'text-red-600'}>
+                                <div className={result.validation.cardNumber.valid ? 'text-success' : 'text-red-600'}>
                                   卡號: {result.validation.cardNumber.valid ? '✓' : '✗'}
                                 </div>
-                                <div className={result.validation.expiry.valid ? 'text-green-600' : 'text-red-600'}>
+                                <div className={result.validation.expiry.valid ? 'text-success' : 'text-red-600'}>
                                   效期: {result.validation.expiry.valid ? '✓' : '✗'}
                                 </div>
-                                <div className={result.validation.cvv.valid ? 'text-green-600' : 'text-red-600'}>
+                                <div className={result.validation.cvv.valid ? 'text-success' : 'text-red-600'}>
                                   CVV: {result.validation.cvv.valid ? '✓' : '✗'}
                                 </div>
                               </div>
@@ -1309,7 +1309,7 @@ export default function PaymentTest() {
             {lastResult && (
               <Card className={
                 lastResult.success 
-                  ? "border-green-500 bg-green-500/5" 
+                  ? "border-success bg-success/5" 
                   : "border-red-500 bg-red-500/5"
               }>
                 <CardHeader>
@@ -1318,13 +1318,13 @@ export default function PaymentTest() {
                 <CardContent>
                   <div className="flex items-start gap-3">
                     {lastResult.success ? (
-                      <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
+                      <CheckCircle2 className="w-5 h-5 text-success shrink-0 mt-0.5" />
                     ) : (
                       <XCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
                     )}
                     <div className="flex-1 space-y-1">
                       <p className={`font-medium ${
-                        lastResult.success ? "text-green-700 dark:text-green-400" : "text-red-700 dark:text-red-400"
+                        lastResult.success ? "text-success" : "text-red-700 dark:text-red-400"
                       }`}>
                         {lastResult.success ? "測試成功" : "測試失敗"}
                       </p>
@@ -1344,7 +1344,7 @@ export default function PaymentTest() {
             {paymentTestResult && (
               <Card className={
                 paymentTestResult.success 
-                  ? "border-green-500 bg-green-500/5" 
+                  ? "border-success bg-success/5" 
                   : "border-red-500 bg-red-500/5"
               }>
                 <CardHeader>
@@ -1353,13 +1353,13 @@ export default function PaymentTest() {
                 <CardContent>
                   <div className="flex items-start gap-3">
                     {paymentTestResult.success ? (
-                      <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
+                      <CheckCircle2 className="w-5 h-5 text-success shrink-0 mt-0.5" />
                     ) : (
                       <XCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
                     )}
                     <div className="flex-1 space-y-2">
                       <p className={`font-medium ${
-                        paymentTestResult.success ? "text-green-700 dark:text-green-400" : "text-red-700 dark:text-red-400"
+                        paymentTestResult.success ? "text-success" : "text-red-700 dark:text-red-400"
                       }`}>
                         {paymentTestResult.success ? "支付成功" : "支付失敗"}
                       </p>

@@ -1012,7 +1012,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                       <X className="h-3 w-3" />
                     </Button>
                   </div>
-                  <p className="text-xs text-green-700 mt-1">請選擇要套用的目標日期</p>
+                  <p className="text-xs text-success mt-1">請選擇要套用的目標日期</p>
                 </div>
               )}
 
@@ -1197,7 +1197,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                         <span className={cn(
                           "text-xs px-1.5 py-0.5 rounded font-medium",
                           isRegularHoliday && "bg-orange-600 text-white",
-                          isCompensatoryDayOff && "bg-green-600 text-white",
+                          isCompensatoryDayOff && "bg-success text-white",
                           isWorkOnWeekend && "bg-blue-600 text-white"
                         )}>
                           {isRegularHoliday && '假'}
@@ -1361,7 +1361,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                       <span className={cn(
                         "ml-1 text-[9px] sm:text-[10px] px-1 py-0.5 rounded font-medium leading-none",
                         isRegularHoliday && "bg-orange-600 text-white",
-                        isCompensatoryDayOff && "bg-green-600 text-white",
+                        isCompensatoryDayOff && "bg-success text-white",
                         isWorkOnWeekend && "bg-blue-600 text-white"
                       )}>
                         {isRegularHoliday && '假'}
@@ -1513,7 +1513,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                   </span>
                   <span className="mx-1">•</span>
                   <span className="inline-flex items-center gap-1">
-                    <span className="px-1 py-0.5 bg-green-600 text-white rounded text-[10px]">休</span>
+                    <span className="px-1 py-0.5 bg-success text-white rounded text-[10px]">休</span>
                     補休
                   </span>
                   <span className="mx-1">•</span>

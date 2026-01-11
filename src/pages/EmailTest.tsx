@@ -139,27 +139,27 @@ const EmailTest = () => {
             <div
               className={`p-4 rounded-lg border ${
                 result.success
-                  ? "bg-green-50 border-green-200"
+                  ? "bg-success/10 border-success/30"
                   : "bg-red-50 border-red-200"
               }`}
             >
               <div className="flex items-start gap-3">
                 {result.success ? (
-                  <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                  <CheckCircle className="h-5 w-5 text-success mt-0.5" />
                 ) : (
                   <XCircle className="h-5 w-5 text-red-600 mt-0.5" />
                 )}
                 <div className="flex-1">
                   <h4
                     className={`font-medium ${
-                      result.success ? "text-green-900" : "text-red-900"
+                      result.success ? "text-success" : "text-red-900"
                     }`}
                   >
                     {result.success ? "發送成功" : "發送失敗"}
                   </h4>
                   <p
                     className={`text-sm mt-1 ${
-                      result.success ? "text-green-700" : "text-red-700"
+                      result.success ? "text-success/80" : "text-red-700"
                     }`}
                   >
                     {result.message}
@@ -169,12 +169,12 @@ const EmailTest = () => {
             </div>
           )}
 
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <h4 className="font-medium text-green-900 mb-2">✅ 使用測試域名</h4>
-            <p className="text-sm text-green-700 mb-2">
+          <div className="bg-success/10 border border-success/30 rounded-lg p-4">
+            <h4 className="font-medium text-success mb-2">✅ 使用測試域名</h4>
+            <p className="text-sm text-success/80 mb-2">
               目前使用 Resend 官方測試域名 <strong>onboarding@resend.dev</strong> 發送郵件。
             </p>
-            <p className="text-sm text-green-600">
+            <p className="text-sm text-success/70">
               這個域名已驗證，可以正常發送測試郵件。等 sensaninn.lakeze.com 驗證完成後，記得切換回自訂域名。
             </p>
           </div>
