@@ -62,6 +62,8 @@ interface Accommodation {
   short_url_alias: string | null;
   custom_domain: string | null;
   theme_preset: string | null;
+  header_logo_url: string | null;
+  footer_logo_url: string | null;
   is_active: boolean;
   created_at: string;
 }
