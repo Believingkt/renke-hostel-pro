@@ -88,7 +88,7 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
                 <img 
                   src={footerLogoUrl || sensanLogoWhite} 
                   alt={accommodationName || "森山寫照"} 
-                  className="h-12 md:h-16 w-auto object-contain" 
+                  className="h-10 md:h-14 max-w-[200px] md:max-w-[260px] w-auto object-contain" 
                 />
               </div>
               <div className="flex gap-5 justify-center md:justify-start">
