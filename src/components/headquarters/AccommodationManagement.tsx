@@ -632,8 +632,6 @@ export function AccommodationManagement({
                   <TableRow className="bg-muted/50">
                     <TableHead className="font-semibold">民宿名稱</TableHead>
                     <TableHead className="font-semibold">子網域</TableHead>
-                    <TableHead className="font-semibold">類型</TableHead>
-                    <TableHead className="font-semibold">地區</TableHead>
                     <TableHead className="font-semibold">狀態</TableHead>
                     <TableHead className="font-semibold">建立時間</TableHead>
                     <TableHead className="text-right font-semibold">操作</TableHead>
@@ -670,12 +668,6 @@ export function AccommodationManagement({
                         ) : (
                           <span className="text-muted-foreground text-sm">未設定</span>
                         )}
-                      </TableCell>
-                      <TableCell>{acc.type || "-"}</TableCell>
-                      <TableCell>
-                        {acc.region_1 && acc.region_2
-                          ? `${acc.region_1} ${acc.region_2}`
-                          : acc.region_1 || "-"}
                       </TableCell>
                       <TableCell>
                         <Badge variant={acc.is_active ? "default" : "secondary"}>
