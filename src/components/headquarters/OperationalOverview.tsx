@@ -969,16 +969,23 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
             <div className="flex items-start justify-between">
               <div>
                 <CardTitle className="text-lg font-semibold">訂單數趨勢</CardTitle>
-                <CardDescription>近12個月訂單數量變化</CardDescription>
+                <CardDescription>近12個月訂單數量變化（含去年同期比較）</CardDescription>
               </div>
-              <div className="p-2 bg-orange-500/10 rounded-lg">
-                <Activity className="h-4 w-4 text-orange-500" />
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 text-xs">
+                  <div className="w-3 h-0.5 rounded" style={{ backgroundColor: 'hsl(25, 90%, 60%)' }} />
+                  <span className="text-muted-foreground">今年</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <div className="w-3 h-0.5 rounded" style={{ backgroundColor: 'hsl(25, 90%, 60%, 0.4)' }} />
+                  <span className="text-muted-foreground">去年同期</span>
+                </div>
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            {monthlyTrends.some(d => d.orders > 0) ? (
-              <ResponsiveContainer width="100%" height={200}>
+            {monthlyTrends.some(d => d.orders > 0 || d.prevOrders > 0) ? (
+              <ResponsiveContainer width="100%" height={240}>
                 <LineChart data={monthlyTrends} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" vertical={false} />
                   <XAxis 
@@ -994,7 +1001,10 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
                     width={30}
                   />
                   <Tooltip 
-                    formatter={(value: number) => [value, '訂單數']}
+                    formatter={(value: number, name: string) => [
+                      value, 
+                      name === 'orders' ? '今年訂單' : '去年同期'
+                    ]}
                     contentStyle={{ 
                       backgroundColor: 'hsl(var(--background))',
                       borderColor: 'hsl(var(--border))',
@@ -1004,16 +1014,27 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
                   />
                   <Line 
                     type="monotone" 
+                    dataKey="prevOrders" 
+                    stroke="hsl(25, 90%, 60%, 0.4)" 
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    dot={{ fill: 'hsl(var(--background))', stroke: 'hsl(25, 90%, 60%, 0.4)', strokeWidth: 2, r: 3 }}
+                    activeDot={{ r: 5, fill: 'hsl(25, 90%, 60%, 0.4)' }}
+                    name="去年同期"
+                  />
+                  <Line 
+                    type="monotone" 
                     dataKey="orders" 
                     stroke="hsl(25, 90%, 60%)" 
                     strokeWidth={2}
                     dot={{ fill: 'hsl(var(--background))', stroke: 'hsl(25, 90%, 60%)', strokeWidth: 2, r: 4 }}
                     activeDot={{ r: 6, fill: 'hsl(25, 90%, 60%)' }}
+                    name="今年訂單"
                   />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex items-center justify-center h-[200px] text-muted-foreground">
+              <div className="flex items-center justify-center h-[240px] text-muted-foreground">
                 <p className="text-sm">暫無訂單數據</p>
               </div>
             )}
