@@ -59,6 +59,14 @@ const getThemeClass = (themePreset?: string): string => {
       return 'theme-ocean';
     case 'elegant':
       return 'theme-elegant';
+    case 'rose':
+      return 'theme-rose';
+    case 'earth':
+      return 'theme-earth';
+    case 'zen':
+      return 'theme-zen';
+    case 'sunset':
+      return 'theme-sunset';
     default:
       return '';
   }

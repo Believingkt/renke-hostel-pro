@@ -65,6 +65,54 @@ const THEME_PRESETS = [
       footer: "hsl(270, 30%, 15%)",
     }
   },
+  { 
+    value: "rose", 
+    label: "玫瑰粉", 
+    description: "浪漫柔美的粉色調",
+    colors: {
+      primary: "hsl(350, 65%, 55%)",
+      accent: "hsl(340, 60%, 50%)",
+      background: "hsl(350, 30%, 98%)",
+      card: "hsl(350, 35%, 94%)",
+      footer: "hsl(350, 35%, 18%)",
+    }
+  },
+  { 
+    value: "earth", 
+    label: "大地棕", 
+    description: "質樸沉穩的棕色調",
+    colors: {
+      primary: "hsl(30, 50%, 42%)",
+      accent: "hsl(25, 45%, 38%)",
+      background: "hsl(35, 25%, 96%)",
+      card: "hsl(32, 22%, 92%)",
+      footer: "hsl(28, 40%, 15%)",
+    }
+  },
+  { 
+    value: "zen", 
+    label: "日式和風", 
+    description: "禪意自然的米灰色調",
+    colors: {
+      primary: "hsl(45, 35%, 45%)",
+      accent: "hsl(40, 30%, 40%)",
+      background: "hsl(42, 25%, 97%)",
+      card: "hsl(40, 20%, 93%)",
+      footer: "hsl(38, 25%, 16%)",
+    }
+  },
+  { 
+    value: "sunset", 
+    label: "夕陽紅", 
+    description: "溫暖浪漫的紅橘漸變",
+    colors: {
+      primary: "hsl(10, 75%, 50%)",
+      accent: "hsl(25, 85%, 55%)",
+      background: "hsl(20, 30%, 97%)",
+      card: "hsl(15, 28%, 93%)",
+      footer: "hsl(8, 45%, 16%)",
+    }
+  },
 ] as const;
 
 // 主題預覽元件
