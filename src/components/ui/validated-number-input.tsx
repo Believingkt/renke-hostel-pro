@@ -71,14 +71,14 @@ const ValidatedNumberInput = React.forwardRef<HTMLInputElement, ValidatedNumberI
           className={cn(
             "transition-all duration-200",
             error && "border-destructive focus-visible:ring-destructive/20 animate-shake",
-            isValid && "border-green-500 focus-visible:ring-green-500/20",
+            isValid && "border-success focus-visible:ring-success/20",
             isFocused && !error && "ring-2 ring-primary/20",
             className
           )}
           {...props}
         />
         {isValid && showSuccess && (
-          <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500 animate-scale-in" />
+          <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-success animate-scale-in" />
         )}
       </div>
     );

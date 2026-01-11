@@ -78,7 +78,7 @@ interface PublicHoliday {
 }
 
 const HOLIDAY_TYPE_CONFIG = {
-  holiday: { label: '假日', color: 'bg-green-500', badge: 'default' as const, description: '國定假日（使用假日定價）' },
+  holiday: { label: '假日', color: 'bg-success', badge: 'default' as const, description: '國定假日（使用假日定價）' },
   workday: { label: '補班', color: 'bg-orange-500', badge: 'secondary' as const, description: '補班日（使用平日定價）' },
 };
 
@@ -1049,7 +1049,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                 <SelectContent>
                   <SelectItem value="holiday">
                     <div className="flex items-center gap-2">
-                      <div className="h-2 w-2 rounded-full bg-green-500" />
+                      <div className="h-2 w-2 rounded-full bg-success" />
                       <span>假日（使用假日定價）</span>
                     </div>
                   </SelectItem>
@@ -1138,7 +1138,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                 <SelectContent>
                   <SelectItem value="holiday">
                     <div className="flex items-center gap-2">
-                      <div className="h-2 w-2 rounded-full bg-green-500" />
+                      <div className="h-2 w-2 rounded-full bg-success" />
                       <span>假日（使用假日定價）</span>
                     </div>
                   </SelectItem>
@@ -1226,7 +1226,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                         <div className="flex items-center gap-2">
                           <div className={cn(
                             "h-1.5 w-1.5 rounded-full",
-                            holiday.type === 'workday' ? "bg-orange-500" : "bg-green-500"
+                            holiday.type === 'workday' ? "bg-orange-500" : "bg-success"
                           )} />
                           <span>{holiday.name}</span>
                           {holiday.type === 'workday' && (

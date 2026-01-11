@@ -823,9 +823,9 @@ export default function AIBooking() {
                           
                           {/* 訂單創建結果 */}
                           {tool.type === 'booking' && tool.data.success && (
-                            <div className="border rounded-xl overflow-hidden bg-green-50 border-green-200 shadow-lg">
-                              <div className="bg-green-100 px-5 py-4 border-b border-green-200">
-                                <div className="flex items-center gap-3 text-green-700 font-semibold text-lg">
+                            <div className="border rounded-xl overflow-hidden bg-success/10 border-success/30 shadow-lg">
+                              <div className="bg-success/20 px-5 py-4 border-b border-success/30">
+                                <div className="flex items-center gap-3 text-success font-semibold text-lg">
                                   <span className="text-2xl">✅</span>
                                   <span>訂單創建成功！</span>
                                 </div>
@@ -834,7 +834,7 @@ export default function AIBooking() {
                               <div className="p-5 space-y-4">
                                 <div className="flex items-center justify-between">
                                   <span className="text-muted-foreground">訂單編號</span>
-                                  <span className="font-mono font-semibold text-green-700 text-lg">
+                                  <span className="font-mono font-semibold text-success text-lg">
                                     {tool.data.order_number}
                                   </span>
                                 </div>
