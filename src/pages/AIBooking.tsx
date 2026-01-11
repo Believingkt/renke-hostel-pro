@@ -35,6 +35,10 @@ interface Message {
 export default function AIBooking() {
   const navigate = useNavigate();
   const { accommodationId } = useSubdomain();
+
+  // 天頌幸福和苑的 ID - 使用橘色主題
+  const TIANSONG_ID = '4ee31aca-5641-4d05-80e2-1c67626be83d';
+  const isWarmTheme = accommodationId === TIANSONG_ID;
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -583,7 +587,7 @@ export default function AIBooking() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+    <div className={`min-h-screen bg-gradient-to-br from-background via-background to-muted/20 ${isWarmTheme ? 'theme-warm' : ''}`}>
       <SEOHead
         title="AI 訂房助手 - 森山寫照"
         description="使用 AI 智能助手快速完成訂房流程，即時查詢房型、價格和空房狀況"
