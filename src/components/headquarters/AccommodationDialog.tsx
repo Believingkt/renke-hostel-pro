@@ -11,23 +11,140 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Loader2, Globe, CheckCircle2, XCircle, AlertCircle, Palette } from "lucide-react";
 import { toast } from "sonner";
 
-// 主題預設選項
+// 主題預設選項（包含顏色資訊用於預覽）
 const THEME_PRESETS = [
-  { value: "default", label: "森林綠（預設）", description: "清新自然的綠色調" },
-  { value: "warm", label: "南瓜橘", description: "溫暖的焦糖橘色調" },
-  { value: "ocean", label: "海洋藍", description: "沉靜的藍色調" },
-  { value: "elegant", label: "優雅紫", description: "高雅的紫灰色調" },
+  { 
+    value: "default", 
+    label: "森林綠（預設）", 
+    description: "清新自然的綠色調",
+    colors: {
+      primary: "hsl(142, 76%, 36%)",
+      accent: "hsl(160, 84%, 39%)",
+      background: "hsl(0, 0%, 100%)",
+      card: "hsl(142, 40%, 96%)",
+      footer: "hsl(160, 45%, 12%)",
+    }
+  },
+  { 
+    value: "warm", 
+    label: "南瓜橘", 
+    description: "溫暖的焦糖橘色調",
+    colors: {
+      primary: "hsl(20, 75%, 52%)",
+      accent: "hsl(16, 70%, 46%)",
+      background: "hsl(36, 32%, 96%)",
+      card: "hsl(35, 30%, 91%)",
+      footer: "hsl(20, 45%, 18%)",
+    }
+  },
+  { 
+    value: "ocean", 
+    label: "海洋藍", 
+    description: "沉靜的藍色調",
+    colors: {
+      primary: "hsl(200, 80%, 45%)",
+      accent: "hsl(185, 70%, 40%)",
+      background: "hsl(200, 30%, 97%)",
+      card: "hsl(200, 40%, 92%)",
+      footer: "hsl(200, 45%, 15%)",
+    }
+  },
+  { 
+    value: "elegant", 
+    label: "優雅紫", 
+    description: "高雅的紫灰色調",
+    colors: {
+      primary: "hsl(270, 50%, 50%)",
+      accent: "hsl(280, 45%, 45%)",
+      background: "hsl(260, 20%, 97%)",
+      card: "hsl(260, 25%, 92%)",
+      footer: "hsl(270, 30%, 15%)",
+    }
+  },
 ] as const;
+
+// 主題預覽元件
+const ThemePreview = ({ themeValue }: { themeValue: string }) => {
+  const theme = THEME_PRESETS.find(t => t.value === themeValue) || THEME_PRESETS[0];
+  const { colors } = theme;
+
+  return (
+    <div 
+      className="rounded-lg border overflow-hidden shadow-sm"
+      style={{ backgroundColor: colors.background }}
+    >
+      {/* 模擬導航列 */}
+      <div 
+        className="h-8 flex items-center px-3 gap-2"
+        style={{ backgroundColor: colors.background, borderBottom: `1px solid ${colors.card}` }}
+      >
+        <div 
+          className="h-4 w-16 rounded"
+          style={{ backgroundColor: colors.primary }}
+        />
+        <div className="flex-1" />
+        <div className="flex gap-1.5">
+          {[1, 2, 3].map(i => (
+            <div 
+              key={i}
+              className="h-2 w-8 rounded"
+              style={{ backgroundColor: colors.card }}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* 模擬 Hero 區塊 */}
+      <div 
+        className="h-16 flex items-center justify-center"
+        style={{ 
+          background: `linear-gradient(135deg, ${colors.primary}, ${colors.accent})` 
+        }}
+      >
+        <div className="text-center">
+          <div className="h-2 w-20 rounded bg-white/90 mx-auto mb-1" />
+          <div className="h-1.5 w-14 rounded bg-white/60 mx-auto" />
+        </div>
+      </div>
+
+      {/* 模擬內容區塊 */}
+      <div className="p-3 space-y-2" style={{ backgroundColor: colors.background }}>
+        <div className="flex gap-2">
+          {[1, 2].map(i => (
+            <div 
+              key={i}
+              className="flex-1 h-10 rounded-md p-2"
+              style={{ backgroundColor: colors.card }}
+            >
+              <div 
+                className="h-1.5 w-8 rounded mb-1"
+                style={{ backgroundColor: colors.primary, opacity: 0.7 }}
+              />
+              <div className="h-1 w-full rounded" style={{ backgroundColor: colors.primary, opacity: 0.2 }} />
+            </div>
+          ))}
+        </div>
+        <div 
+          className="h-6 rounded-md flex items-center justify-center"
+          style={{ backgroundColor: colors.primary }}
+        >
+          <div className="h-1.5 w-12 rounded bg-white/90" />
+        </div>
+      </div>
+
+      {/* 模擬 Footer */}
+      <div 
+        className="h-6 flex items-center justify-center"
+        style={{ backgroundColor: colors.footer }}
+      >
+        <div className="h-1 w-16 rounded bg-white/40" />
+      </div>
+    </div>
+  );
+};
 
 interface AccommodationFormData {
   name: string;
@@ -309,33 +426,61 @@ export function AccommodationDialog({
           </div>
 
           {/* 主題配色選擇 */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             <Label htmlFor="theme_preset" className="flex items-center gap-2">
               <Palette className="h-4 w-4" />
               網站主題配色
             </Label>
-            <Select
-              value={formData.theme_preset}
-              onValueChange={(value) => setFormData({ ...formData, theme_preset: value })}
-              disabled={isSubmitting}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="選擇主題配色" />
-              </SelectTrigger>
-              <SelectContent>
+            
+            <div className="grid grid-cols-2 gap-3">
+              {/* 主題選擇按鈕 */}
+              <div className="space-y-2">
                 {THEME_PRESETS.map((theme) => (
-                  <SelectItem key={theme.value} value={theme.value}>
-                    <div className="flex flex-col">
-                      <span>{theme.label}</span>
-                      <span className="text-xs text-muted-foreground">{theme.description}</span>
+                  <button
+                    key={theme.value}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, theme_preset: theme.value })}
+                    disabled={isSubmitting}
+                    className={`w-full text-left p-2.5 rounded-lg border transition-all ${
+                      formData.theme_preset === theme.value 
+                        ? 'border-primary bg-primary/5 ring-1 ring-primary/20' 
+                        : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {/* 顏色指示點 */}
+                      <div className="flex -space-x-1">
+                        <div 
+                          className="w-3.5 h-3.5 rounded-full border border-white shadow-sm"
+                          style={{ backgroundColor: theme.colors.primary }}
+                        />
+                        <div 
+                          className="w-3.5 h-3.5 rounded-full border border-white shadow-sm"
+                          style={{ backgroundColor: theme.colors.accent }}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate">{theme.label}</div>
+                        <div className="text-xs text-muted-foreground truncate">{theme.description}</div>
+                      </div>
+                      {formData.theme_preset === theme.value && (
+                        <div className="text-primary">
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      )}
                     </div>
-                  </SelectItem>
+                  </button>
                 ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              選擇民宿前台網站的整體配色風格
-            </p>
+              </div>
+
+              {/* 即時預覽 */}
+              <div className="space-y-1.5">
+                <p className="text-xs text-muted-foreground text-center">網站預覽</p>
+                <ThemePreview themeValue={formData.theme_preset} />
+              </div>
+            </div>
           </div>
 
           <DialogFooter>
