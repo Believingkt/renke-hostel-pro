@@ -889,6 +889,133 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
           </Card>
         </div>
 
+        {/* ==================== 營運分析區塊 ==================== */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <TrendingUp className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold">營運分析</h2>
+              <p className="text-sm text-muted-foreground">
+                {getTimeRangeLabel(timeRange)}業績總覽與民宿對比
+                {timeRange !== "all" && ` (與${getPreviousLabel(timeRange)}同期比較)`}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
+              <SelectTrigger className="w-[140px]">
+                <Calendar className="h-4 w-4 mr-2" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="today">今日</SelectItem>
+                <SelectItem value="week">本週</SelectItem>
+                <SelectItem value="month">本月</SelectItem>
+                <SelectItem value="quarter">本季</SelectItem>
+                <SelectItem value="year">本年</SelectItem>
+                <SelectItem value="all">全部時間</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" onClick={handleExportCSV} disabled={exporting} className="gap-2">
+              {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              匯出 CSV
+            </Button>
+          </div>
+        </div>
+
+        {performanceLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <>
+            {/* Summary Cards with Growth */}
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+              <Card>
+                <CardContent className="pt-5 pb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                      <DollarSign className="h-5 w-5 text-primary" />
+                    </div>
+                    {timeRange !== "all" && <GrowthIndicator value={performanceTotals.revenueChange} />}
+                  </div>
+                  <p className="text-sm text-muted-foreground">總營收</p>
+                  <p className="text-xl font-bold">{formatCurrency(performanceTotals.totalRevenue)}</p>
+                  {timeRange !== "all" && performanceTotals.prevRevenue > 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {getPreviousLabel(timeRange)}: {formatCurrency(performanceTotals.prevRevenue)}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-5 pb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="p-2 bg-blue-500/10 rounded-lg">
+                      <ShoppingCart className="h-5 w-5 text-blue-500" />
+                    </div>
+                    {timeRange !== "all" && <GrowthIndicator value={performanceTotals.ordersChange} />}
+                  </div>
+                  <p className="text-sm text-muted-foreground">訂單數</p>
+                  <p className="text-xl font-bold">{performanceTotals.totalOrders}</p>
+                  {timeRange !== "all" && performanceTotals.prevOrders > 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {getPreviousLabel(timeRange)}: {performanceTotals.prevOrders} 筆
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-5 pb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="p-2 bg-purple-500/10 rounded-lg">
+                      <Target className="h-5 w-5 text-purple-500" />
+                    </div>
+                    {timeRange !== "all" && <GrowthIndicator value={performanceTotals.avgOrderValueChange} />}
+                  </div>
+                  <p className="text-sm text-muted-foreground">平均客單價</p>
+                  <p className="text-xl font-bold">{formatCurrency(performanceTotals.avgOrderValue)}</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-5 pb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="p-2 bg-amber-500/10 rounded-lg">
+                      <Percent className="h-5 w-5 text-amber-500" />
+                    </div>
+                    {timeRange !== "all" && <GrowthIndicator value={performanceTotals.occupancyChange} />}
+                  </div>
+                  <p className="text-sm text-muted-foreground">平均入住率</p>
+                  <p className="text-xl font-bold">{performanceTotals.avgOccupancy}%</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-5 pb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="p-2 bg-orange-500/10 rounded-lg">
+                      <Calendar className="h-5 w-5 text-orange-500" />
+                    </div>
+                    {timeRange !== "all" && <GrowthIndicator value={performanceTotals.roomNightsChange} />}
+                  </div>
+                  <p className="text-sm text-muted-foreground">總房晚數</p>
+                  <p className="text-xl font-bold">{performanceTotals.totalRoomNights}</p>
+                  {timeRange !== "all" && performanceTotals.prevRoomNights > 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {getPreviousLabel(timeRange)}: {performanceTotals.prevRoomNights} 晚
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </>
+        )}
+
         {/* Monthly Revenue Trend - Full Width */}
         <Card className="mb-6">
             <CardHeader className="pb-2">
@@ -1101,382 +1228,6 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
               </ResponsiveContainer>
             </CardContent>
           </Card>
-        )}
-      </section>
-
-      {/* ==================== 營運分析區塊 ==================== */}
-      <section>
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <TrendingUp className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold">營運分析</h2>
-              <p className="text-sm text-muted-foreground">
-                {getTimeRangeLabel(timeRange)}業績總覽與民宿對比
-                {timeRange !== "all" && ` (與${getPreviousLabel(timeRange)}同期比較)`}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
-              <SelectTrigger className="w-[140px]">
-                <Calendar className="h-4 w-4 mr-2" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="today">今日</SelectItem>
-                <SelectItem value="week">本週</SelectItem>
-                <SelectItem value="month">本月</SelectItem>
-                <SelectItem value="quarter">本季</SelectItem>
-                <SelectItem value="year">本年</SelectItem>
-                <SelectItem value="all">全部時間</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" onClick={handleExportCSV} disabled={exporting} className="gap-2">
-              {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-              匯出 CSV
-            </Button>
-          </div>
-        </div>
-
-        {performanceLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : (
-          <>
-            {/* Summary Cards with Growth */}
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-              <Card>
-                <CardContent className="pt-5 pb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="p-2 bg-primary/10 rounded-lg">
-                      <DollarSign className="h-5 w-5 text-primary" />
-                    </div>
-                    {timeRange !== "all" && <GrowthIndicator value={performanceTotals.revenueChange} />}
-                  </div>
-                  <p className="text-sm text-muted-foreground">總營收</p>
-                  <p className="text-xl font-bold">{formatCurrency(performanceTotals.totalRevenue)}</p>
-                  {timeRange !== "all" && performanceTotals.prevRevenue > 0 && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {getPreviousLabel(timeRange)}: {formatCurrency(performanceTotals.prevRevenue)}
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="pt-5 pb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="p-2 bg-blue-500/10 rounded-lg">
-                      <ShoppingCart className="h-5 w-5 text-blue-500" />
-                    </div>
-                    {timeRange !== "all" && <GrowthIndicator value={performanceTotals.ordersChange} />}
-                  </div>
-                  <p className="text-sm text-muted-foreground">訂單數</p>
-                  <p className="text-xl font-bold">{performanceTotals.totalOrders}</p>
-                  {timeRange !== "all" && performanceTotals.prevOrders > 0 && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {getPreviousLabel(timeRange)}: {performanceTotals.prevOrders} 筆
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="pt-5 pb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="p-2 bg-purple-500/10 rounded-lg">
-                      <Target className="h-5 w-5 text-purple-500" />
-                    </div>
-                    {timeRange !== "all" && <GrowthIndicator value={performanceTotals.avgOrderValueChange} />}
-                  </div>
-                  <p className="text-sm text-muted-foreground">平均客單價</p>
-                  <p className="text-xl font-bold">{formatCurrency(performanceTotals.avgOrderValue)}</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="pt-5 pb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="p-2 bg-amber-500/10 rounded-lg">
-                      <Percent className="h-5 w-5 text-amber-500" />
-                    </div>
-                    {timeRange !== "all" && <GrowthIndicator value={performanceTotals.occupancyChange} />}
-                  </div>
-                  <p className="text-sm text-muted-foreground">平均入住率</p>
-                  <p className="text-xl font-bold">{performanceTotals.avgOccupancy}%</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="pt-5 pb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="p-2 bg-orange-500/10 rounded-lg">
-                      <Calendar className="h-5 w-5 text-orange-500" />
-                    </div>
-                    {timeRange !== "all" && <GrowthIndicator value={performanceTotals.roomNightsChange} />}
-                  </div>
-                  <p className="text-sm text-muted-foreground">總房晚數</p>
-                  <p className="text-xl font-bold">{performanceTotals.totalRoomNights}</p>
-                  {timeRange !== "all" && performanceTotals.prevRoomNights > 0 && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {getPreviousLabel(timeRange)}: {performanceTotals.prevRoomNights} 晚
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Period Comparison Chart */}
-            {timeRange !== "all" && (
-              <Card className="mb-6">
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <GitCompareArrows className="h-5 w-5 text-blue-500" />
-                    營收同期比較
-                  </CardTitle>
-                  <CardDescription>
-                    {getTimeRangeLabel(timeRange)} vs {getPreviousLabel(timeRange)}營收趨勢對比
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {trendData.length > 0 && trendData.some(d => d.revenue > 0 || d.prevRevenue! > 0) ? (
-                    <div className="h-[280px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <ComposedChart data={trendData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                          <CartesianGrid strokeDasharray="3 3" className="stroke-muted/50" vertical={false} />
-                          <XAxis 
-                            dataKey="label" 
-                            tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                            axisLine={false}
-                            tickLine={false}
-                          />
-                          <YAxis 
-                            tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                            axisLine={false}
-                            tickLine={false}
-                            tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value}
-                            width={45}
-                          />
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: 'hsl(var(--background))', 
-                              border: '1px solid hsl(var(--border))',
-                              borderRadius: '8px',
-                              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                            }}
-                            formatter={(value: number, name: string) => [
-                              formatCurrency(value), 
-                              name === 'revenue' ? getTimeRangeLabel(timeRange) : getPreviousLabel(timeRange)
-                            ]}
-                          />
-                          <Legend 
-                            formatter={(value) => value === 'revenue' ? getTimeRangeLabel(timeRange) : getPreviousLabel(timeRange)}
-                          />
-                          <Area 
-                            type="monotone" 
-                            dataKey="prevRevenue" 
-                            fill="hsl(var(--muted))" 
-                            stroke="hsl(var(--muted-foreground))"
-                            strokeWidth={1}
-                            strokeDasharray="4 4"
-                            fillOpacity={0.3}
-                            name="prevRevenue"
-                          />
-                          <Line 
-                            type="monotone" 
-                            dataKey="revenue" 
-                            stroke="hsl(var(--primary))" 
-                            strokeWidth={2.5}
-                            dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 4 }}
-                            activeDot={{ r: 6, strokeWidth: 2 }}
-                            name="revenue"
-                          />
-                        </ComposedChart>
-                      </ResponsiveContainer>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center h-[280px] text-muted-foreground">
-                      <p className="text-sm">暫無同期比較數據</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Monthly YoY Comparison - Full Width */}
-            <Card className="mb-6">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Activity className="h-5 w-5 text-primary" />
-                  月營收年度比較
-                </CardTitle>
-                <CardDescription>
-                  今年各月營收 vs 去年同期
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {monthlyComparison.length > 0 ? (
-                  <div className="h-[280px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={monthlyComparison} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted/50" vertical={false} />
-                        <XAxis 
-                          dataKey="label" 
-                          tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                          axisLine={false}
-                          tickLine={false}
-                        />
-                        <YAxis 
-                          tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                          axisLine={false}
-                          tickLine={false}
-                          tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value}
-                          width={45}
-                        />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: 'hsl(var(--background))', 
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px'
-                          }}
-                          formatter={(value: number, name: string) => [
-                            formatCurrency(value), 
-                            name === 'currentRevenue' ? '今年' : '去年'
-                          ]}
-                        />
-                        <Legend formatter={(value) => value === 'currentRevenue' ? '今年' : '去年'} />
-                        <Bar dataKey="previousRevenue" fill="hsl(var(--muted))" radius={[4, 4, 0, 0]} maxBarSize={30} name="previousRevenue" />
-                        <Bar dataKey="currentRevenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} maxBarSize={30} name="currentRevenue" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center h-[280px] text-muted-foreground">
-                    <p className="text-sm">暫無年度比較數據</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Detailed Comparison Table */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  民宿業績對比明細
-                </CardTitle>
-                <CardDescription>
-                  各民宿{getTimeRangeLabel(timeRange)}業績與{getPreviousLabel(timeRange)}同期比較
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {performanceData.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">尚無民宿資料</p>
-                ) : (
-                  <div className="overflow-x-auto rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-muted/50">
-                          <TableHead className="font-semibold">民宿名稱</TableHead>
-                          <TableHead className="font-semibold text-right">訂單數</TableHead>
-                          <TableHead className="font-semibold text-right">營收</TableHead>
-                          <TableHead className="font-semibold text-right">成長率</TableHead>
-                          <TableHead className="font-semibold text-right">平均客單價</TableHead>
-                          <TableHead className="font-semibold text-right">入住率</TableHead>
-                          <TableHead className="font-semibold text-right">房晚數</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {performanceData
-                          .sort((a, b) => b.revenue - a.revenue)
-                          .map((data, index) => {
-                            const prevData = previousPeriodData.find((p) => p.id === data.id);
-                            const revenueChange = prevData && prevData.revenue > 0
-                              ? ((data.revenue - prevData.revenue) / prevData.revenue) * 100
-                              : 0;
-                            const ordersChange = prevData && prevData.orderCount > 0
-                              ? ((data.orderCount - prevData.orderCount) / prevData.orderCount) * 100
-                              : 0;
-
-                            return (
-                              <TableRow key={data.id} className={!data.is_active ? "opacity-60" : ""}>
-                                <TableCell>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-muted-foreground text-sm">#{index + 1}</span>
-                                    <Building2 className="h-4 w-4 text-muted-foreground" />
-                                    <span className="font-medium">{data.name}</span>
-                                    {!data.is_active && <Badge variant="secondary">已停用</Badge>}
-                                  </div>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <div className="flex items-center justify-end gap-2">
-                                    <span className="font-medium">{data.orderCount}</span>
-                                    {timeRange !== "all" && prevData && ordersChange !== 0 && (
-                                      <GrowthIndicator value={Math.round(ordersChange)} showValue={false} />
-                                    )}
-                                  </div>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <div>
-                                    <span className="font-medium">{formatCurrency(data.revenue)}</span>
-                                    {prevData && prevData.revenue > 0 && (
-                                      <p className="text-xs text-muted-foreground">
-                                        {getPreviousLabel(timeRange)}: {formatCurrency(prevData.revenue)}
-                                      </p>
-                                    )}
-                                  </div>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  {timeRange !== "all" && prevData ? (
-                                    <div className={`flex items-center justify-end gap-1 font-medium ${
-                                      revenueChange > 0 ? "text-primary" : revenueChange < 0 ? "text-destructive" : ""
-                                    }`}>
-                                      {revenueChange > 0 ? <ArrowUpRight className="h-4 w-4" /> : 
-                                       revenueChange < 0 ? <ArrowDownRight className="h-4 w-4" /> : 
-                                       <Minus className="h-4 w-4" />}
-                                      {Math.abs(Math.round(revenueChange))}%
-                                    </div>
-                                  ) : (
-                                    <span className="text-muted-foreground">-</span>
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-right">{formatCurrency(data.averageOrderValue)}</TableCell>
-                                <TableCell className="text-right">
-                                  <Badge variant={data.occupancyRate >= 70 ? "default" : data.occupancyRate >= 40 ? "secondary" : "outline"}>
-                                    {data.occupancyRate}%
-                                  </Badge>
-                                </TableCell>
-                                <TableCell className="text-right">{data.roomNights}</TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        <TableRow className="bg-muted/30 font-semibold">
-                          <TableCell>合計</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              {performanceTotals.totalOrders}
-                              {timeRange !== "all" && <GrowthIndicator value={performanceTotals.ordersChange} showValue={false} />}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">{formatCurrency(performanceTotals.totalRevenue)}</TableCell>
-                          <TableCell className="text-right">
-                            {timeRange !== "all" && <GrowthIndicator value={performanceTotals.revenueChange} />}
-                          </TableCell>
-                          <TableCell className="text-right">{formatCurrency(performanceTotals.avgOrderValue)}</TableCell>
-                          <TableCell className="text-right">{performanceTotals.avgOccupancy}%</TableCell>
-                          <TableCell className="text-right">{performanceTotals.totalRoomNights}</TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </>
         )}
       </section>
     </div>
