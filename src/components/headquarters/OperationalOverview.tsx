@@ -862,6 +862,49 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
           </Card>
         </div>
 
+        {/* Revenue Ranking Cards */}
+        {stats.length > 0 && (
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium text-muted-foreground">本月營收排名</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {stats
+                .slice()
+                .sort((a, b) => b.monthly_revenue - a.monthly_revenue)
+                .map((stat, index) => (
+                  <div
+                    key={stat.id}
+                    className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                  >
+                    <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold ${
+                      index === 0 
+                        ? 'bg-yellow-500/20 text-yellow-600' 
+                        : index === 1 
+                        ? 'bg-gray-300/30 text-gray-500' 
+                        : index === 2 
+                        ? 'bg-orange-400/20 text-orange-500' 
+                        : 'bg-muted text-muted-foreground'
+                    }`}>
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{stat.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {stat.pending_orders + stat.confirmed_orders + stat.checked_in_orders} 筆有效訂單
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-primary">{formatCurrency(stat.monthly_revenue)}</p>
+                      <p className="text-xs text-muted-foreground">本月</p>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Monthly Revenue Trend */}
