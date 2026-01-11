@@ -69,7 +69,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { AccommodationManagement } from "@/components/headquarters/AccommodationManagement";
 import { OperationalOverview } from "@/components/headquarters/OperationalOverview";
-import { PerformanceReport } from "@/components/headquarters/PerformanceReport";
+
 import { SystemManagement } from "@/components/headquarters/SystemManagement";
 import { SplitManagement } from "@/components/headquarters/SplitManagement";
 import { HQUsersSkeleton } from "@/components/skeletons/HQSkeleton";
@@ -680,8 +680,6 @@ const Headquarters = () => {
     switch (currentTab) {
       case 'overview':
         return <OperationalOverview accommodations={accommodations} />;
-      case 'performance':
-        return <PerformanceReport accommodations={accommodations} />;
       case 'split':
         return <SplitManagement accommodations={accommodations} />;
       case 'accommodations':
@@ -894,7 +892,6 @@ const Headquarters = () => {
   const getParentTabTitle = () => {
     switch (currentTab) {
       case 'overview': return '營運概況';
-      case 'performance': return '業績報表';
       case 'split': return '金流拆帳';
       case 'accommodations': return '民宿管理';
       case 'users': return '用戶管理';
