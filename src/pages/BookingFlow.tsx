@@ -161,6 +161,10 @@ const BookingFlow = () => {
     guests: contextGuests = { adults: 2, children: 0 },
     setGuests
   } = useAccommodation();
+
+  // 天頌幸福和苑的 ID - 使用橘色主題
+  const TIANSONG_ID = '4ee31aca-5641-4d05-80e2-1c67626be83d';
+  const isWarmTheme = accommodationId === TIANSONG_ID;
   
   const [currentStep, setCurrentStep] = useState<BookingStep>("dates");
   const [bookingSettings, setBookingSettings] = useState<BookingSettings | null>(null);
@@ -2040,7 +2044,7 @@ const BookingFlow = () => {
   const currentStepIndex = stepIndicators.findIndex((s) => s.key === currentStep);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className={`min-h-screen bg-background ${isWarmTheme ? 'theme-warm' : ''}`}>
       {/* Header */}
       <header className="border-b bg-background/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
