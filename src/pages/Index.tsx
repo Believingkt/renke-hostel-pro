@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubdomain } from "@/hooks/use-subdomain";
+import { useAccommodation } from "@/contexts/AccommodationContext";
 import Navigation from "@/components/Navigation";
 import HeroSection from "@/components/HeroSection";
 import AboutSection from "@/components/AboutSection";
@@ -52,6 +53,14 @@ const Index = () => {
   const [data, setData] = useState<AccommodationData | null>(null);
   const [loadTimeout, setLoadTimeout] = useState(false);
   const { accommodationId, isLoading: subdomainLoading, error: subdomainError } = useSubdomain();
+  const { setCurrentAccommodationId } = useAccommodation();
+
+  // 同步 subdomain 解析的 accommodationId 到 AccommodationContext
+  useEffect(() => {
+    if (accommodationId) {
+      setCurrentAccommodationId(accommodationId);
+    }
+  }, [accommodationId, setCurrentAccommodationId]);
 
   // 添加超時保護，10秒後強制顯示錯誤
   useEffect(() => {
