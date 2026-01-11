@@ -48,6 +48,10 @@ const OrderSearch = () => {
   const [orderData, setOrderData] = useState<OrderData | null>(null);
   const [searchAttempted, setSearchAttempted] = useState(false);
 
+  // 天頌幸福和苑的 ID - 使用橘色主題
+  const TIANSONG_ID = '4ee31aca-5641-4d05-80e2-1c67626be83d';
+  const isWarmTheme = accommodationId === TIANSONG_ID;
+
   const getOrderStatusLabel = (status: string) => {
     const statusMap: Record<string, string> = {
       pending: "待確認",
@@ -200,7 +204,7 @@ const OrderSearch = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 py-8 px-4">
+    <div className={`min-h-screen bg-gradient-to-b from-background to-muted/20 py-8 px-4 ${isWarmTheme ? 'theme-warm' : ''}`}>
       <div className="max-w-2xl mx-auto">
         <Button
           variant="ghost"
