@@ -125,6 +125,13 @@ export function AccommodationManagement({
 
   const handleCreate = async (data: any) => {
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("請先登入");
+        return;
+      }
+
       // Step 1: Create the accommodation and get the ID
       const { data: newAccommodation, error: createError } = await supabase
         .from("accommodation_info")
@@ -149,7 +156,20 @@ export function AccommodationManagement({
 
       const accommodationId = newAccommodation.id;
 
-      // Step 2: Create default settings in parallel
+      // Step 2: Create user role for current user (super_admin)
+      const { error: roleError } = await supabase
+        .from("user_roles")
+        .insert({
+          user_id: user.id,
+          accommodation_id: accommodationId,
+          role: "super_admin",
+        });
+
+      if (roleError) {
+        console.warn("Failed to create user role:", roleError);
+      }
+
+      // Step 3: Create default settings in parallel
       const initPromises = [
         // Default booking settings
         supabase.from("booking_settings").insert({
