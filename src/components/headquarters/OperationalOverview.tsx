@@ -121,6 +121,8 @@ interface MonthlyData {
 
 interface OperationalOverviewProps {
   accommodations: { id: string; name: string; is_active?: boolean }[];
+  selectedAccommodation: string;
+  onAccommodationChange: (value: string) => void;
 }
 
 type TimeRange = "today" | "week" | "month" | "quarter" | "year" | "all";
@@ -142,9 +144,8 @@ const STATUS_COLORS = {
   cancelled: 'hsl(0, 84%, 60%)',
 };
 
-export function OperationalOverview({ accommodations }: OperationalOverviewProps) {
+export function OperationalOverview({ accommodations, selectedAccommodation, onAccommodationChange }: OperationalOverviewProps) {
   const navigate = useNavigate();
-  const [selectedAccommodation, setSelectedAccommodation] = useState<string>("all");
   
   // Overview states
   const [stats, setStats] = useState<AccommodationStats[]>([]);
@@ -801,29 +802,6 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
 
   return (
     <div className="space-y-8">
-      {/* Page Header with Accommodation Selector */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-        <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold">營運分析</h1>
-          <div className="flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-            <Select value={selectedAccommodation} onValueChange={setSelectedAccommodation}>
-              <SelectTrigger className="w-[160px] bg-background">
-                <SelectValue placeholder="選擇民宿" />
-              </SelectTrigger>
-              <SelectContent className="bg-background border shadow-lg z-50">
-                <SelectItem value="all">全部民宿</SelectItem>
-                {accommodations.map((acc) => (
-                  <SelectItem key={acc.id} value={acc.id}>
-                    {acc.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
-
       {/* ==================== 即時概況區塊 ==================== */}
       <section>
         <div className="flex items-center gap-2 mb-6">
