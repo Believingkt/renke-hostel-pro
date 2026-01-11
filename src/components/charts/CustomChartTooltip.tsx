@@ -77,7 +77,7 @@ export const CustomChartTooltip = ({
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">增長率</span>
             <span className={`text-sm font-semibold ${
-              growth >= 0 ? 'text-green-600' : 'text-red-600'
+              growth >= 0 ? 'text-primary' : 'text-red-600'
             }`}>
               {growth >= 0 ? '+' : ''}{growth.toFixed(1)}%
             </span>
@@ -85,7 +85,7 @@ export const CustomChartTooltip = ({
           <div className="flex items-center justify-between mt-1">
             <span className="text-xs text-muted-foreground">差異</span>
             <span className={`text-xs font-medium ${
-              growth >= 0 ? 'text-green-600' : 'text-red-600'
+              growth >= 0 ? 'text-primary' : 'text-red-600'
             }`}>
               {growth >= 0 ? '+' : ''}{valueFormatter(payload[0].value - payload[1].value)}
             </span>

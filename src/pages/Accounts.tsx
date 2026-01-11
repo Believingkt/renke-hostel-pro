@@ -682,7 +682,7 @@ const Accounts = () => {
                     請輸入有效的 Email 格式
                   </p>
                 ) : emailFormatValid === true && !isCheckingEmail ? (
-                  <p className="text-xs text-green-600 font-medium flex items-center gap-1">
+                  <p className="text-xs text-primary font-medium flex items-center gap-1">
                     <CheckCircle2 className="h-3 w-3" />
                     Email 格式正確
                   </p>

@@ -263,11 +263,11 @@ export function OnlinePaymentDialog({
     <div className="space-y-6 py-4">
       {paymentSuccess ? (
         <div className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
-            <CheckCircle2 className="h-8 w-8 text-green-600" />
+          <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+            <CheckCircle2 className="h-8 w-8 text-primary" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-green-600">付款成功！</h3>
+            <h3 className="text-lg font-semibold text-primary">付款成功！</h3>
             <p className="text-sm text-muted-foreground mt-1">
               已收取 NT$ {paymentAmount.toLocaleString()}
             </p>

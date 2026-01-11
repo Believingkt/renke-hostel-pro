@@ -774,7 +774,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
                 </div>
               )}
               {calculatedPrice.discount > 0 && (
-                <div className="flex justify-between items-center text-green-600">
+                <div className="flex justify-between items-center text-primary">
                   <span className="text-sm">折扣</span>
                   <span className="font-medium">- NT$ {calculatedPrice.discount.toLocaleString()}</span>
                 </div>
@@ -795,7 +795,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
                     editForm.deposit_paid && "line-through text-muted-foreground"
                   )}>
                     NT$ {depositAmount.toLocaleString()}
-                    {editForm.deposit_paid && <span className="ml-2 text-green-600 no-underline">已付</span>}
+                    {editForm.deposit_paid && <span className="ml-2 text-primary no-underline">已付</span>}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -805,7 +805,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
                     editForm.balance_paid && "line-through text-muted-foreground"
                   )}>
                     NT$ {balanceAmount.toLocaleString()}
-                    {editForm.balance_paid && <span className="ml-2 text-green-600 no-underline">已付</span>}
+                    {editForm.balance_paid && <span className="ml-2 text-primary no-underline">已付</span>}
                   </span>
                 </div>
               </div>

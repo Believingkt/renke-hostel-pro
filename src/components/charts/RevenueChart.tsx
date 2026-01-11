@@ -220,10 +220,10 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
                             : '0';
                           return (
                             <>
-                              <span className={`text-xl font-bold ${diff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              <span className={`text-xl font-bold ${diff >= 0 ? 'text-primary' : 'text-red-600'}`}>
                                 {diff >= 0 ? '+' : ''}{valueFormatter(diff)}
                               </span>
-                              <span className={`text-base font-semibold ${diff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              <span className={`text-base font-semibold ${diff >= 0 ? 'text-primary' : 'text-red-600'}`}>
                                 ({diff >= 0 ? '+' : ''}{percentage}%)
                               </span>
                             </>
@@ -256,10 +256,10 @@ export const RevenueChart = ({ data, comparisonMode, isCustomRange }: RevenueCha
                             : '0';
                           return (
                             <>
-                              <span className={`text-xl font-bold ${diff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              <span className={`text-xl font-bold ${diff >= 0 ? 'text-primary' : 'text-red-600'}`}>
                                 {diff >= 0 ? '+' : ''}{valueFormatter(diff)}
                               </span>
-                              <span className={`text-base font-semibold ${diff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              <span className={`text-base font-semibold ${diff >= 0 ? 'text-primary' : 'text-red-600'}`}>
                                 ({diff >= 0 ? '+' : ''}{percentage}%)
                               </span>
                             </>
