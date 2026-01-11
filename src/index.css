@@ -96,6 +96,9 @@ All colors MUST be HSL.
     --chart-booking-primary: 0 80% 60%;
     --chart-booking-secondary: 25 90% 60%;
     --chart-booking-bg: 0 80% 95%;
+
+    /* Footer 底色 - 默認深綠色 */
+    --footer-background: 160 45% 12%;
     
     /* 圖表語義化顏色 - 入住率（琥珀色系）*/
     --chart-occupancy-primary: 38 92% 50%;
@@ -166,6 +169,9 @@ All colors MUST be HSL.
     --chart-booking-primary: 16 70% 46%;
     --chart-booking-secondary: 20 75% 52%;
     --chart-booking-bg: 32 38% 92%;
+
+    /* Footer 使用溫暖的深棕橘色 */
+    --footer-background: 20 45% 18%;
   }
 
   /* Admin theme - Blue & Orange colors */
