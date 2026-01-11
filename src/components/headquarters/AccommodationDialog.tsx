@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -12,13 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Loader2, Globe, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -43,14 +35,6 @@ interface AccommodationDialogProps {
   initialData?: Partial<AccommodationFormData> & { id?: string };
   isEditing?: boolean;
 }
-
-const accommodationTypes = [
-  { value: "民宿", label: "民宿" },
-  { value: "旅館", label: "旅館" },
-  { value: "飯店", label: "飯店" },
-  { value: "露營區", label: "露營區" },
-  { value: "度假村", label: "度假村" },
-];
 
 // Subdomain validation regex: lowercase letters, numbers, hyphens, 3-30 chars
 const SUBDOMAIN_REGEX = /^[a-z0-9]([a-z0-9-]{1,28}[a-z0-9])?$/;
@@ -236,7 +220,7 @@ export function AccommodationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>{isEditing ? "編輯民宿" : "新增民宿"}</DialogTitle>
           <DialogDescription>
@@ -244,159 +228,67 @@ export function AccommodationDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2 space-y-2">
-              <Label htmlFor="name">民宿名稱 *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="請輸入民宿名稱"
-                required
-                disabled={isSubmitting}
-              />
-            </div>
+          {/* 民宿名稱 */}
+          <div className="space-y-2">
+            <Label htmlFor="name">民宿名稱 *</Label>
+            <Input
+              id="name"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="請輸入民宿名稱"
+              required
+              disabled={isSubmitting}
+            />
+          </div>
 
-            {/* Subdomain field */}
-            <div className="col-span-2 space-y-2">
-              <Label htmlFor="short_url_alias" className="flex items-center gap-2">
-                <Globe className="h-4 w-4" />
-                自訂子網域
-              </Label>
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <Input
-                    id="short_url_alias"
-                    value={formData.short_url_alias}
-                    onChange={(e) => handleSubdomainChange(e.target.value)}
-                    placeholder="例如：myhotel"
-                    disabled={isSubmitting}
-                    className="pr-10"
-                    maxLength={30}
-                  />
-                  {formData.short_url_alias && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      {getSubdomainStatusIcon()}
-                    </div>
-                  )}
-                </div>
-                <span className="text-sm text-muted-foreground whitespace-nowrap">.lakeze.com</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">
-                  使用小寫英文、數字和連字號，長度 3-30 字元
-                </p>
-                {formData.short_url_alias && subdomainStatus !== "idle" && (
-                  <p className={`text-xs flex items-center gap-1 ${
-                    subdomainStatus === "available" ? "text-green-600" :
-                    subdomainStatus === "taken" ? "text-destructive" :
-                    subdomainStatus === "invalid" ? "text-amber-500" :
-                    "text-muted-foreground"
-                  }`}>
-                    {getSubdomainStatusText()}
-                  </p>
+          {/* 自訂子網域 */}
+          <div className="space-y-2">
+            <Label htmlFor="short_url_alias" className="flex items-center gap-2">
+              <Globe className="h-4 w-4" />
+              自訂子網域
+            </Label>
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Input
+                  id="short_url_alias"
+                  value={formData.short_url_alias}
+                  onChange={(e) => handleSubdomainChange(e.target.value)}
+                  placeholder="例如：myhotel"
+                  disabled={isSubmitting}
+                  className="pr-10"
+                  maxLength={30}
+                />
+                {formData.short_url_alias && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    {getSubdomainStatusIcon()}
+                  </div>
                 )}
               </div>
-              {formData.short_url_alias && subdomainStatus === "available" && (
-                <div className="bg-muted/50 rounded-md p-2 text-sm">
-                  <span className="text-muted-foreground">您的網站網址：</span>
-                  <span className="font-medium ml-1">https://{formData.short_url_alias}.lakeze.com</span>
-                </div>
+              <span className="text-sm text-muted-foreground whitespace-nowrap">.lakeze.com</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">
+                使用小寫英文、數字和連字號，長度 3-30 字元
+              </p>
+              {formData.short_url_alias && subdomainStatus !== "idle" && (
+                <p className={`text-xs flex items-center gap-1 ${
+                  subdomainStatus === "available" ? "text-green-600" :
+                  subdomainStatus === "taken" ? "text-destructive" :
+                  subdomainStatus === "invalid" ? "text-amber-500" :
+                  "text-muted-foreground"
+                }`}>
+                  {getSubdomainStatusText()}
+                </p>
               )}
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="type">類型</Label>
-              <Select
-                value={formData.type}
-                onValueChange={(value) => setFormData({ ...formData, type: value })}
-                disabled={isSubmitting}
-              >
-                <SelectTrigger id="type">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {accommodationTypes.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="registration_number">登記證號</Label>
-              <Input
-                id="registration_number"
-                value={formData.registration_number}
-                onChange={(e) => setFormData({ ...formData, registration_number: e.target.value })}
-                placeholder="例如：台觀業字第000號"
-                disabled={isSubmitting}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="region_1">縣市</Label>
-              <Input
-                id="region_1"
-                value={formData.region_1}
-                onChange={(e) => setFormData({ ...formData, region_1: e.target.value })}
-                placeholder="例如：台北市"
-                disabled={isSubmitting}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="region_2">區域</Label>
-              <Input
-                id="region_2"
-                value={formData.region_2}
-                onChange={(e) => setFormData({ ...formData, region_2: e.target.value })}
-                placeholder="例如：中山區"
-                disabled={isSubmitting}
-              />
-            </div>
-            <div className="col-span-2 space-y-2">
-              <Label htmlFor="address">地址</Label>
-              <Input
-                id="address"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                placeholder="請輸入完整地址"
-                disabled={isSubmitting}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">電話</Label>
-              <Input
-                id="phone"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="例如：02-1234-5678"
-                disabled={isSubmitting}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="例如：contact@example.com"
-                disabled={isSubmitting}
-              />
-            </div>
-            <div className="col-span-2 space-y-2">
-              <Label htmlFor="description">簡介</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="請輸入民宿簡介..."
-                rows={3}
-                disabled={isSubmitting}
-              />
-            </div>
+            {formData.short_url_alias && subdomainStatus === "available" && (
+              <div className="bg-muted/50 rounded-md p-2 text-sm">
+                <span className="text-muted-foreground">您的網站網址：</span>
+                <span className="font-medium ml-1">https://{formData.short_url_alias}.lakeze.com</span>
+              </div>
+            )}
           </div>
+
           <DialogFooter>
             <Button
               type="button"
