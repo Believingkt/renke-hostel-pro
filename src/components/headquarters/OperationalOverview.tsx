@@ -1307,62 +1307,60 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
               </Card>
             )}
 
-            {/* Monthly YoY Comparison */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Activity className="h-5 w-5 text-primary" />
-                    月營收年度比較
-                  </CardTitle>
-                  <CardDescription>
-                    今年各月營收 vs 去年同期
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {monthlyComparison.length > 0 ? (
-                    <div className="h-[260px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={monthlyComparison} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                          <CartesianGrid strokeDasharray="3 3" className="stroke-muted/50" vertical={false} />
-                          <XAxis 
-                            dataKey="label" 
-                            tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                            axisLine={false}
-                            tickLine={false}
-                          />
-                          <YAxis 
-                            tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                            axisLine={false}
-                            tickLine={false}
-                            tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value}
-                            width={45}
-                          />
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: 'hsl(var(--background))', 
-                              border: '1px solid hsl(var(--border))',
-                              borderRadius: '8px'
-                            }}
-                            formatter={(value: number, name: string) => [
-                              formatCurrency(value), 
-                              name === 'currentRevenue' ? '今年' : '去年'
-                            ]}
-                          />
-                          <Legend formatter={(value) => value === 'currentRevenue' ? '今年' : '去年'} />
-                          <Bar dataKey="previousRevenue" fill="hsl(var(--muted))" radius={[4, 4, 0, 0]} maxBarSize={20} name="previousRevenue" />
-                          <Bar dataKey="currentRevenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} maxBarSize={20} name="currentRevenue" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center h-[260px] text-muted-foreground">
-                      <p className="text-sm">暫無年度比較數據</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+            {/* Monthly YoY Comparison - Full Width */}
+            <Card className="mb-6">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Activity className="h-5 w-5 text-primary" />
+                  月營收年度比較
+                </CardTitle>
+                <CardDescription>
+                  今年各月營收 vs 去年同期
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {monthlyComparison.length > 0 ? (
+                  <div className="h-[280px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={monthlyComparison} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted/50" vertical={false} />
+                        <XAxis 
+                          dataKey="label" 
+                          tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <YAxis 
+                          tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                          axisLine={false}
+                          tickLine={false}
+                          tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value}
+                          width={45}
+                        />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'hsl(var(--background))', 
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '8px'
+                          }}
+                          formatter={(value: number, name: string) => [
+                            formatCurrency(value), 
+                            name === 'currentRevenue' ? '今年' : '去年'
+                          ]}
+                        />
+                        <Legend formatter={(value) => value === 'currentRevenue' ? '今年' : '去年'} />
+                        <Bar dataKey="previousRevenue" fill="hsl(var(--muted))" radius={[4, 4, 0, 0]} maxBarSize={30} name="previousRevenue" />
+                        <Bar dataKey="currentRevenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} maxBarSize={30} name="currentRevenue" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-[280px] text-muted-foreground">
+                    <p className="text-sm">暫無年度比較數據</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Detailed Comparison Table */}
             <Card>
