@@ -55,6 +55,10 @@ const Index = () => {
   const { accommodationId, isLoading: subdomainLoading, error: subdomainError } = useSubdomain();
   const { setCurrentAccommodationId } = useAccommodation();
 
+  // 天頌幸福和苑的 ID - 使用橘色主題
+  const TIANSONG_ID = '4ee31aca-5641-4d05-80e2-1c67626be83d';
+  const isWarmTheme = accommodationId === TIANSONG_ID;
+
   // 同步 subdomain 解析的 accommodationId 到 AccommodationContext
   useEffect(() => {
     if (accommodationId) {
@@ -202,7 +206,7 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className={`min-h-screen ${isWarmTheme ? 'theme-warm' : ''}`}>
       {/* SEO Meta 標籤 */}
       <SEOHead
         title={data.info.og_title || data.info.name}
