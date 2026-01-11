@@ -1362,63 +1362,6 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
                   )}
                 </CardContent>
               </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <TrendingUp className="h-5 w-5 text-blue-500" />
-                    月成長率趨勢
-                  </CardTitle>
-                  <CardDescription>
-                    各月份營收年增率
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {monthlyComparison.length > 0 ? (
-                    <div className="h-[260px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <ComposedChart data={monthlyComparison} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                          <CartesianGrid strokeDasharray="3 3" className="stroke-muted/50" vertical={false} />
-                          <XAxis 
-                            dataKey="label" 
-                            tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                            axisLine={false}
-                            tickLine={false}
-                          />
-                          <YAxis 
-                            tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                            axisLine={false}
-                            tickLine={false}
-                            tickFormatter={(value) => `${value}%`}
-                            width={45}
-                          />
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: 'hsl(var(--background))', 
-                              border: '1px solid hsl(var(--border))',
-                              borderRadius: '8px'
-                            }}
-                            formatter={(value: number) => [`${value}%`, '年增率']}
-                          />
-                          <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
-                          <Bar dataKey="revenueGrowth" name="年增率" maxBarSize={24} radius={[4, 4, 0, 0]}>
-                            {monthlyComparison.map((entry, index) => (
-                              <Cell 
-                                key={`cell-${index}`} 
-                                fill={entry.revenueGrowth >= 0 ? 'hsl(var(--primary))' : 'hsl(var(--destructive))'} 
-                              />
-                            ))}
-                          </Bar>
-                        </ComposedChart>
-                      </ResponsiveContainer>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center h-[260px] text-muted-foreground">
-                      <p className="text-sm">暫無成長率數據</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
             </div>
 
             {/* Detailed Comparison Table */}
