@@ -139,6 +139,9 @@ const STATUS_COLORS = {
 };
 
 export function OperationalOverview({ accommodations }: OperationalOverviewProps) {
+  // Accommodation filter state
+  const [selectedAccommodation, setSelectedAccommodation] = useState<string>("all");
+  
   // Overview states
   const [stats, setStats] = useState<AccommodationStats[]>([]);
   const [loading, setLoading] = useState(true);
@@ -163,19 +166,25 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
   const [trendData, setTrendData] = useState<TrendDataPoint[]>([]);
   const [monthlyComparison, setMonthlyComparison] = useState<MonthlyComparison[]>([]);
   const [exporting, setExporting] = useState(false);
+  
+  // Filtered accommodations based on selection
+  const filteredAccommodations = useMemo(() => {
+    if (selectedAccommodation === "all") return accommodations;
+    return accommodations.filter(a => a.id === selectedAccommodation);
+  }, [accommodations, selectedAccommodation]);
 
   useEffect(() => {
     loadStats();
     loadPerformanceData();
-  }, [accommodations]);
+  }, [accommodations, selectedAccommodation]);
 
   useEffect(() => {
     loadPerformanceData();
-  }, [timeRange]);
+  }, [timeRange, selectedAccommodation]);
 
   // Overview data loading
   const loadStats = async () => {
-    if (accommodations.length === 0) {
+    if (filteredAccommodations.length === 0) {
       setLoading(false);
       return;
     }
@@ -188,10 +197,15 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
       const yearStart = format(startOfYear(now), 'yyyy-MM-dd');
       const yearEnd = format(endOfYear(now), 'yyyy-MM-dd');
 
-      const { data: allOrders, error: allOrdersError } = await supabase
+      // Build query for monthly trends with accommodation filter
+      const accIds = filteredAccommodations.map(a => a.id);
+      let allOrdersQuery = supabase
         .from("orders")
         .select("accommodation_id, order_status, final_price, created_at")
+        .in("accommodation_id", accIds)
         .gte("created_at", format(subMonths(now, 11), 'yyyy-MM-dd'));
+
+      const { data: allOrders, error: allOrdersError } = await allOrdersQuery;
 
       if (allOrdersError) throw allOrdersError;
 
@@ -222,7 +236,7 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
         }))
       );
 
-      const statsPromises = accommodations.map(async (acc) => {
+      const statsPromises = filteredAccommodations.map(async (acc) => {
         const { data: orders, error: ordersError } = await supabase
           .from("orders")
           .select("order_status, final_price, created_at")
@@ -352,7 +366,7 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
   };
 
   const loadPerformanceData = async () => {
-    if (accommodations.length === 0) {
+    if (filteredAccommodations.length === 0) {
       setPerformanceLoading(false);
       return;
     }
@@ -393,7 +407,7 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
   ): Promise<TrendDataPoint[]> => {
     const days = eachDayOfInterval({ start, end });
     const prevDays = eachDayOfInterval({ start: prevStart, end: prevEnd });
-    const accIds = accommodations.map(a => a.id);
+    const accIds = filteredAccommodations.map(a => a.id);
     
     const maxPoints = 31;
     const step = Math.max(1, Math.ceil(days.length / maxPoints));
@@ -479,7 +493,7 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
     const now = new Date();
     const currentYear = getYear(now);
     const previousYear = currentYear - 1;
-    const accIds = accommodations.map(a => a.id);
+    const accIds = filteredAccommodations.map(a => a.id);
 
     const months = eachMonthOfInterval({
       start: new Date(currentYear, 0, 1),
@@ -538,7 +552,7 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
 
   const loadPeriodData = async (startDate: string, endDate: string): Promise<AccommodationPerformance[]> => {
     const results = await Promise.all(
-      accommodations.map(async (acc) => {
+      filteredAccommodations.map(async (acc) => {
         const { data: orders } = await supabase
           .from("orders")
           .select("order_status, final_price, check_in_date, check_out_date")
@@ -758,15 +772,48 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
 
   return (
     <div className="space-y-8">
-      {/* ==================== 即時概況區塊 ==================== */}
-      <section>
-        <div className="flex items-center gap-2 mb-6">
+      {/* Header with accommodation filter */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-2">
           <div className="p-2 bg-primary/10 rounded-lg">
             <BarChart3 className="h-5 w-5 text-primary" />
           </div>
           <div>
+            <h2 className="text-lg font-semibold">營運分析</h2>
+            <p className="text-sm text-muted-foreground">查看各民宿營運數據與績效分析</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Building2 className="h-4 w-4 text-muted-foreground" />
+          <Select value={selectedAccommodation} onValueChange={setSelectedAccommodation}>
+            <SelectTrigger className="w-[180px] bg-background">
+              <SelectValue placeholder="選擇民宿" />
+            </SelectTrigger>
+            <SelectContent className="bg-background border shadow-lg">
+              <SelectItem value="all">全部民宿</SelectItem>
+              {accommodations.map((acc) => (
+                <SelectItem key={acc.id} value={acc.id}>
+                  {acc.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* ==================== 即時概況區塊 ==================== */}
+      <section>
+        <div className="flex items-center gap-2 mb-6">
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <Activity className="h-5 w-5 text-primary" />
+          </div>
+          <div>
             <h2 className="text-lg font-semibold">即時概況</h2>
-            <p className="text-sm text-muted-foreground">各民宿即時訂單與營收總覽</p>
+            <p className="text-sm text-muted-foreground">
+              {selectedAccommodation === "all" 
+                ? "各民宿即時訂單與營收總覽" 
+                : `${accommodations.find(a => a.id === selectedAccommodation)?.name || ''} 即時數據`}
+            </p>
           </div>
         </div>
 
@@ -780,7 +827,7 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">民宿數量</p>
-                  <p className="text-2xl font-bold">{accommodations.length}</p>
+                  <p className="text-2xl font-bold">{filteredAccommodations.length}</p>
                 </div>
               </div>
             </CardContent>
