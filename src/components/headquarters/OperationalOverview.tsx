@@ -1080,7 +1080,7 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <TrendingUp className="h-5 w-5" />
-              各民宿營運概況
+              各民宿營運分析
             </CardTitle>
             <CardDescription>
               查看每個民宿的訂單狀態和營收數據
