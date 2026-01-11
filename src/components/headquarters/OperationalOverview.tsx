@@ -802,30 +802,25 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
   return (
     <div className="space-y-8">
       {/* Page Header with Accommodation Selector */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold">營運分析</h1>
-          <p className="text-sm text-muted-foreground">
-            {selectedAccommodation === "all" 
-              ? "全部民宿營運數據總覽" 
-              : `${accommodations.find(a => a.id === selectedAccommodation)?.name || ''} 營運數據`}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Building2 className="h-4 w-4 text-muted-foreground" />
-          <Select value={selectedAccommodation} onValueChange={setSelectedAccommodation}>
-            <SelectTrigger className="w-[180px] bg-background">
-              <SelectValue placeholder="選擇民宿" />
-            </SelectTrigger>
-            <SelectContent className="bg-background border shadow-lg z-50">
-              <SelectItem value="all">全部民宿</SelectItem>
-              {accommodations.map((acc) => (
-                <SelectItem key={acc.id} value={acc.id}>
-                  {acc.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+            <Select value={selectedAccommodation} onValueChange={setSelectedAccommodation}>
+              <SelectTrigger className="w-[160px] bg-background">
+                <SelectValue placeholder="選擇民宿" />
+              </SelectTrigger>
+              <SelectContent className="bg-background border shadow-lg z-50">
+                <SelectItem value="all">全部民宿</SelectItem>
+                {accommodations.map((acc) => (
+                  <SelectItem key={acc.id} value={acc.id}>
+                    {acc.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
