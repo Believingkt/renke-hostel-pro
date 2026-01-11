@@ -62,7 +62,10 @@ const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
 >(({ className, children, position = "popper", ...props }, ref) => {
-  const isAdminContext = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+  const isAdminContext = typeof window !== 'undefined' && (
+    window.location.pathname.startsWith('/admin') || 
+    window.location.pathname.startsWith('/hq')
+  );
   
   return (
     <SelectPrimitive.Portal>
