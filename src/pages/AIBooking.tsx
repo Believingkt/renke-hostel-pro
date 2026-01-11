@@ -39,6 +39,7 @@ export default function AIBooking() {
   // 天頌幸福和苑的 ID - 使用橘色主題
   const TIANSONG_ID = '4ee31aca-5641-4d05-80e2-1c67626be83d';
   const isWarmTheme = accommodationId === TIANSONG_ID;
+  const [accommodationName, setAccommodationName] = useState<string>("載入中...");
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -61,6 +62,25 @@ export default function AIBooking() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // 獲取住宿名稱
+  useEffect(() => {
+    const fetchAccommodationName = async () => {
+      if (!accommodationId) return;
+      
+      const { data } = await supabase
+        .from('accommodation_info')
+        .select('name')
+        .eq('id', accommodationId)
+        .maybeSingle();
+      
+      if (data?.name) {
+        setAccommodationName(data.name);
+      }
+    };
+    
+    fetchAccommodationName();
+  }, [accommodationId]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -589,9 +609,9 @@ export default function AIBooking() {
   return (
     <div className={`min-h-screen bg-gradient-to-br from-background via-background to-muted/20 ${isWarmTheme ? 'theme-warm' : ''}`}>
       <SEOHead
-        title="AI 訂房助手 - 森山寫照"
+        title={`AI 訂房助手 - ${accommodationName}`}
         description="使用 AI 智能助手快速完成訂房流程，即時查詢房型、價格和空房狀況"
-        keywords={["AI 訂房", "智能助手", "線上訂房", "森山寫照"]}
+        keywords={["AI 訂房", "智能助手", "線上訂房", accommodationName]}
       />
 
       {/* 頂部導航 */}
@@ -610,7 +630,7 @@ export default function AIBooking() {
           <div className="flex items-center gap-3">
             <div>
               <h1 className="text-lg md:text-xl font-bold">AI 訂房助手</h1>
-              <p className="text-xs md:text-sm opacity-90">森山寫照</p>
+              <p className="text-xs md:text-sm opacity-90">{accommodationName}</p>
             </div>
           </div>
 
