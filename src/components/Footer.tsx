@@ -76,7 +76,7 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
   };
 
   return (
-    <footer className="bg-[#0d2620] text-white py-8 md:py-16">
+    <footer className="bg-[hsl(var(--footer-background))] text-white py-8 md:py-16">
       <div className="container mx-auto px-4">
         <div className="max-w-6xl mx-auto">
           {/* 手機版：改為單欄垂直排列，更緊湊的佈局 */}
