@@ -937,22 +937,13 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
           </div>
         ) : (
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-            <Card 
-              className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50 group"
-              onClick={() => {
-                const accId = selectedAccommodation !== "all" ? selectedAccommodation : accommodations[0]?.id;
-                if (accId) navigate(`/dashboard?acc=${accId}`);
-              }}
-            >
+            <Card>
               <CardContent className="pt-5 pb-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="p-2 bg-primary/10 rounded-lg">
                     <DollarSign className="h-5 w-5 text-primary" />
                   </div>
-                  <div className="flex items-center gap-1">
-                    {timeRange !== "all" && <GrowthIndicator value={performanceTotals.revenueChange} />}
-                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
+                  {timeRange !== "all" && <GrowthIndicator value={performanceTotals.revenueChange} />}
                 </div>
                 <p className="text-sm text-muted-foreground">總營收</p>
                 <p className="text-xl font-bold">{formatCurrency(performanceTotals.totalRevenue)}</p>
@@ -964,22 +955,13 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
               </CardContent>
             </Card>
 
-            <Card 
-              className="cursor-pointer transition-all hover:shadow-md hover:border-blue-500/50 group"
-              onClick={() => {
-                const accId = selectedAccommodation !== "all" ? selectedAccommodation : accommodations[0]?.id;
-                if (accId) navigate(`/orders?acc=${accId}`);
-              }}
-            >
+            <Card>
               <CardContent className="pt-5 pb-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="p-2 bg-blue-500/10 rounded-lg">
                     <ShoppingCart className="h-5 w-5 text-blue-500" />
                   </div>
-                  <div className="flex items-center gap-1">
-                    {timeRange !== "all" && <GrowthIndicator value={performanceTotals.ordersChange} />}
-                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
+                  {timeRange !== "all" && <GrowthIndicator value={performanceTotals.ordersChange} />}
                 </div>
                 <p className="text-sm text-muted-foreground">訂單數</p>
                 <p className="text-xl font-bold">{performanceTotals.totalOrders}</p>
@@ -991,66 +973,39 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
               </CardContent>
             </Card>
 
-            <Card 
-              className="cursor-pointer transition-all hover:shadow-md hover:border-purple-500/50 group"
-              onClick={() => {
-                const accId = selectedAccommodation !== "all" ? selectedAccommodation : accommodations[0]?.id;
-                if (accId) navigate(`/orders?acc=${accId}`);
-              }}
-            >
+            <Card>
               <CardContent className="pt-5 pb-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="p-2 bg-purple-500/10 rounded-lg">
                     <Target className="h-5 w-5 text-purple-500" />
                   </div>
-                  <div className="flex items-center gap-1">
-                    {timeRange !== "all" && <GrowthIndicator value={performanceTotals.avgOrderValueChange} />}
-                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
+                  {timeRange !== "all" && <GrowthIndicator value={performanceTotals.avgOrderValueChange} />}
                 </div>
                 <p className="text-sm text-muted-foreground">平均客單價</p>
                 <p className="text-xl font-bold">{formatCurrency(performanceTotals.avgOrderValue)}</p>
               </CardContent>
             </Card>
 
-            <Card 
-              className="cursor-pointer transition-all hover:shadow-md hover:border-amber-500/50 group"
-              onClick={() => {
-                const accId = selectedAccommodation !== "all" ? selectedAccommodation : accommodations[0]?.id;
-                if (accId) navigate(`/room-inventory?acc=${accId}`);
-              }}
-            >
+            <Card>
               <CardContent className="pt-5 pb-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="p-2 bg-amber-500/10 rounded-lg">
                     <Percent className="h-5 w-5 text-amber-500" />
                   </div>
-                  <div className="flex items-center gap-1">
-                    {timeRange !== "all" && <GrowthIndicator value={performanceTotals.occupancyChange} />}
-                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
+                  {timeRange !== "all" && <GrowthIndicator value={performanceTotals.occupancyChange} />}
                 </div>
                 <p className="text-sm text-muted-foreground">平均入住率</p>
                 <p className="text-xl font-bold">{performanceTotals.avgOccupancy}%</p>
               </CardContent>
             </Card>
 
-            <Card 
-              className="cursor-pointer transition-all hover:shadow-md hover:border-orange-500/50 group"
-              onClick={() => {
-                const accId = selectedAccommodation !== "all" ? selectedAccommodation : accommodations[0]?.id;
-                if (accId) navigate(`/room-inventory?acc=${accId}`);
-              }}
-            >
+            <Card>
               <CardContent className="pt-5 pb-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="p-2 bg-orange-500/10 rounded-lg">
                     <Calendar className="h-5 w-5 text-orange-500" />
                   </div>
-                  <div className="flex items-center gap-1">
-                    {timeRange !== "all" && <GrowthIndicator value={performanceTotals.roomNightsChange} />}
-                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
+                  {timeRange !== "all" && <GrowthIndicator value={performanceTotals.roomNightsChange} />}
                 </div>
                 <p className="text-sm text-muted-foreground">總房晚數</p>
                 <p className="text-xl font-bold">{performanceTotals.totalRoomNights}</p>
