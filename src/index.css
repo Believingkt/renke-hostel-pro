@@ -8,44 +8,45 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 220 15% 20%;
+    /* 溫暖橘色與米白配色 */
+    --background: 40 33% 98%;
+    --foreground: 25 20% 20%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 220 15% 20%;
+    --card: 40 30% 99%;
+    --card-foreground: 25 20% 20%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 15% 20%;
+    --popover: 40 30% 99%;
+    --popover-foreground: 25 20% 20%;
 
-    --primary: 142 76% 36%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 24 80% 50%;
+    --primary-foreground: 40 30% 99%;
 
-    --secondary: 142 70% 94%;
-    --secondary-foreground: 220 15% 20%;
+    --secondary: 35 60% 94%;
+    --secondary-foreground: 25 20% 20%;
 
-    --muted: 142 40% 96%;
-    --muted-foreground: 220 10% 50%;
+    --muted: 35 30% 95%;
+    --muted-foreground: 25 15% 45%;
 
-    --accent: 160 84% 39%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 16 85% 45%;
+    --accent-foreground: 40 30% 99%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 142 30% 90%;
-    --input: 142 30% 92%;
-    --ring: 142 76% 36%;
+    --border: 35 25% 88%;
+    --input: 35 25% 90%;
+    --ring: 24 80% 50%;
 
     --radius: 0.5rem;
 
     /* Custom design tokens */
-    --hero-gradient-start: 142 76% 36%;
-    --hero-gradient-end: 160 84% 39%;
+    --hero-gradient-start: 24 80% 50%;
+    --hero-gradient-end: 16 85% 45%;
     
-    --card-hover: 0 0% 98%;
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    --card-hover: 40 25% 96%;
+    --shadow-sm: 0 1px 2px 0 rgba(139, 90, 43, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(139, 90, 43, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(139, 90, 43, 0.1);
     
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -58,21 +59,21 @@ All colors MUST be HSL.
     --sidebar-animation-duration: 0.3s;
     --sidebar-animation-easing: cubic-bezier(0.32, 0.72, 0, 1);
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 220 15% 30%;
-    --sidebar-primary: 142 76% 36%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 142 40% 96%;
-    --sidebar-accent-foreground: 220 15% 20%;
-    --sidebar-border: 142 20% 92%;
-    --sidebar-ring: 142 76% 36%;
+    --sidebar-background: 40 25% 97%;
+    --sidebar-foreground: 25 20% 25%;
+    --sidebar-primary: 24 80% 50%;
+    --sidebar-primary-foreground: 40 30% 99%;
+    --sidebar-accent: 35 40% 94%;
+    --sidebar-accent-foreground: 25 20% 20%;
+    --sidebar-border: 35 20% 90%;
+    --sidebar-ring: 24 80% 50%;
 
     /* Auth branding colors */
-    --auth-primary: 207 52% 49%;
-    --auth-primary-hover: 207 54% 43%;
+    --auth-primary: 24 80% 50%;
+    --auth-primary-hover: 24 80% 42%;
 
-    --stat-coral: 0 84% 60%;
-    --stat-coral-light: 0 84% 95%;
+    --stat-coral: 16 85% 55%;
+    --stat-coral-light: 16 85% 95%;
     --stat-cyan: 189 75% 48%;
     --stat-cyan-light: 189 75% 96%;
     --stat-blue: 217 91% 60%;
@@ -80,21 +81,21 @@ All colors MUST be HSL.
     --stat-purple: 271 81% 56%;
     --stat-purple-light: 271 81% 95%;
 
-    --chart-1: 142 76% 36%;
-    --chart-2: 160 84% 39%;
-    --chart-3: 0 84% 60%;
+    --chart-1: 24 80% 50%;
+    --chart-2: 16 85% 45%;
+    --chart-3: 35 70% 55%;
     --chart-4: 45 93% 58%;
     --chart-5: 271 81% 56%;
 
-    /* 圖表語義化顏色 - 營收圖表（紅色橘色系）*/
-    --chart-revenue-primary: 0 80% 60%;
-    --chart-revenue-secondary: 25 90% 60%;
-    --chart-revenue-bg: 0 80% 95%;
+    /* 圖表語義化顏色 - 營收圖表（橘色系）*/
+    --chart-revenue-primary: 24 80% 50%;
+    --chart-revenue-secondary: 35 70% 55%;
+    --chart-revenue-bg: 35 60% 95%;
     
-    /* 圖表語義化顏色 - 訂單趨勢（紅色橘色系）*/
-    --chart-booking-primary: 0 80% 60%;
-    --chart-booking-secondary: 25 90% 60%;
-    --chart-booking-bg: 0 80% 95%;
+    /* 圖表語義化顏色 - 訂單趨勢（深橘色系）*/
+    --chart-booking-primary: 16 85% 45%;
+    --chart-booking-secondary: 24 80% 50%;
+    --chart-booking-bg: 24 80% 95%;
     
     /* 圖表語義化顏色 - 入住率（琥珀色系）*/
     --chart-occupancy-primary: 38 92% 50%;
