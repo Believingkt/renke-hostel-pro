@@ -1,5 +1,5 @@
 import { Separator } from "@/components/ui/separator";
-import { MapPin, Phone, Mail, Facebook, Instagram, Youtube } from "lucide-react";
+import { MapPin, Phone, Mail, Facebook, Instagram, Youtube, ChevronUp } from "lucide-react";
 import sensanLogoWhite from "@/assets/sensan-logo-white.png";
 import lakezeLogoWhite from "@/assets/lakeze-logo-white.png";
 import { useState, useEffect } from "react";
@@ -69,6 +69,10 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
     if (element) {
       element.scrollIntoView({ behavior: "smooth" });
     }
+  };
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
@@ -247,6 +251,20 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
                 </li>
               </ul>
             </div>
+          </div>
+
+          {/* 返回頂部按鈕 */}
+          <div className="flex justify-center mb-6 md:mb-8">
+            <button
+              onClick={scrollToTop}
+              className="flex flex-col items-center gap-1 text-white/50 hover:text-white transition-colors group"
+              aria-label="返回頂部"
+            >
+              <div className="w-10 h-10 rounded-full border border-white/30 group-hover:border-white/60 flex items-center justify-center transition-colors">
+                <ChevronUp className="h-5 w-5" />
+              </div>
+              <span className="text-xs">返回頂部</span>
+            </button>
           </div>
 
           <Separator className="my-6 md:my-8 bg-white/20" />
