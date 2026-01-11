@@ -711,7 +711,7 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
       ]);
 
       const csvContent = [
-        `業績報表 - ${getTimeRangeLabel(timeRange)} (${format(start, "yyyy/MM/dd")} ~ ${format(end, "yyyy/MM/dd")})`,
+        `營運分析 - ${getTimeRangeLabel(timeRange)} (${format(start, "yyyy/MM/dd")} ~ ${format(end, "yyyy/MM/dd")})`,
         `同期比較: ${getPreviousLabel(timeRange)}`,
         "",
         headers.join(","),
@@ -723,7 +723,7 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `業績報表_${getTimeRangeLabel(timeRange)}_${format(new Date(), "yyyyMMdd")}.csv`;
+      link.download = `營運分析_${getTimeRangeLabel(timeRange)}_${format(new Date(), "yyyyMMdd")}.csv`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (error) {
@@ -1160,7 +1160,7 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
         </Card>
       </section>
 
-      {/* ==================== 業績報表區塊 ==================== */}
+      {/* ==================== 營運分析區塊 ==================== */}
       <section>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div className="flex items-center gap-2">
@@ -1168,7 +1168,7 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
               <TrendingUp className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold">業績報表</h2>
+              <h2 className="text-lg font-semibold">營運分析</h2>
               <p className="text-sm text-muted-foreground">
                 {getTimeRangeLabel(timeRange)}業績總覽與民宿對比
                 {timeRange !== "all" && ` (與${getPreviousLabel(timeRange)}同期比較)`}

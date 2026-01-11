@@ -635,7 +635,7 @@ const Headquarters = () => {
     
     switch (currentTab) {
       case 'overview': return '營運概況';
-      case 'performance': return '業績報表';
+      case 'performance': return '營運分析';
       case 'split': return '金流拆帳';
       case 'accommodations': return '民宿管理';
       case 'users': return '用戶管理';
