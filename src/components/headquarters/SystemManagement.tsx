@@ -375,7 +375,7 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
   const getActionIcon = (actionType: string) => {
     switch (actionType) {
       case "create":
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
+        return <CheckCircle className="h-4 w-4 text-primary" />;
       case "delete":
         return <XCircle className="h-4 w-4 text-destructive" />;
       case "update":

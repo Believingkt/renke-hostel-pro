@@ -294,8 +294,8 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-500/10 rounded-lg">
-                <DollarSign className="h-5 w-5 text-green-500" />
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <DollarSign className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">本月營收</p>
@@ -329,8 +329,8 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
                 <CardTitle className="text-lg font-semibold">營收趨勢</CardTitle>
                 <CardDescription>近12個月營收變化</CardDescription>
               </div>
-              <div className="p-2 bg-green-500/10 rounded-lg">
-                <TrendingUp className="h-4 w-4 text-green-500" />
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <TrendingUp className="h-4 w-4 text-primary" />
               </div>
             </div>
           </CardHeader>
@@ -605,7 +605,7 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
                       <span className="font-medium">{stat.pending_orders}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      <CheckCircle2 className="h-4 w-4 text-primary" />
                       <span className="text-muted-foreground">已確認:</span>
                       <span className="font-medium">{stat.confirmed_orders}</span>
                     </div>
@@ -628,7 +628,7 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
                   <div className="grid grid-cols-2 gap-4 mt-3 pt-3 border-t">
                     <div>
                       <span className="text-sm text-muted-foreground">本月營收:</span>
-                      <span className="ml-2 font-semibold text-green-600 dark:text-green-400">
+                      <span className="ml-2 font-semibold text-primary">
                         {formatCurrency(stat.monthly_revenue)}
                       </span>
                     </div>

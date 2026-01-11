@@ -233,7 +233,7 @@ export function DnsSettingsDialog({
                 <Alert variant={verificationResult.status === 'verified' ? 'default' : 'destructive'}>
                   <div className="flex items-start gap-2">
                     {verificationResult.status === 'verified' ? (
-                      <CheckCircle2 className="h-5 w-5 text-green-600" />
+                      <CheckCircle2 className="h-5 w-5 text-primary" />
                     ) : (
                       <XCircle className="h-5 w-5" />
                     )}

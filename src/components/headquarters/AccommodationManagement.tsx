@@ -811,7 +811,7 @@ export function AccommodationManagement({
                               onClick={() => openCustomDomainDialog(acc)}
                               title="自訂網域設定"
                             >
-                              <Link2 className="h-4 w-4 text-green-600" />
+                              <Link2 className="h-4 w-4 text-primary" />
                             </Button>
                           )}
                           {acc.short_url_alias && (
@@ -841,7 +841,7 @@ export function AccommodationManagement({
                             {acc.is_active ? (
                               <PowerOff className="h-4 w-4 text-destructive" />
                             ) : (
-                              <Power className="h-4 w-4 text-green-600" />
+                              <Power className="h-4 w-4 text-primary" />
                             )}
                           </Button>
                           <Button

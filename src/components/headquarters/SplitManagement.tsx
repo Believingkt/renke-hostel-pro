@@ -456,7 +456,7 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
                           </TableCell>
                           <TableCell>
                             {rule.is_active ? (
-                              <Badge className="bg-green-500">啟用中</Badge>
+                              <Badge className="bg-primary">啟用中</Badge>
                             ) : (
                               <Badge variant="secondary">已停用</Badge>
                             )}
@@ -561,7 +561,7 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
                               ({record.hq_percentage}%)
                             </span>
                           </TableCell>
-                          <TableCell className="text-right text-green-600">
+                          <TableCell className="text-right text-primary">
                             NT$ {record.accommodation_amount.toLocaleString()}
                             <span className="text-xs text-muted-foreground ml-1">
                               ({record.accommodation_percentage}%)
@@ -569,7 +569,7 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
                           </TableCell>
                           <TableCell>
                             {record.settlement_status === "settled" ? (
-                              <Badge className="bg-green-500">已結算</Badge>
+                              <Badge className="bg-primary">已結算</Badge>
                             ) : (
                               <Badge variant="outline" className="text-orange-500 border-orange-500">待結算</Badge>
                             )}
@@ -640,7 +640,7 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
                           </div>
                           <div className="space-y-1">
                             <p className="text-sm text-muted-foreground">已結算</p>
-                            <p className="text-xl font-bold text-green-600">NT$ {summary.settled.toLocaleString()}</p>
+                            <p className="text-xl font-bold text-primary">NT$ {summary.settled.toLocaleString()}</p>
                           </div>
                         </div>
                       </CardContent>
