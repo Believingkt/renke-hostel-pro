@@ -1,9 +1,16 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
-import { useSubdomain } from "@/hooks/use-subdomain";
 
-// 天頌幸福和苑的 ID - 使用橘色主題
+// 天頌幸福和苑的識別資訊
 const TIANSONG_ID = '4ee31aca-5641-4d05-80e2-1c67626be83d';
+const TIANSONG_ALIAS = 'tiansong-villa';
+
+// 同步判斷是否為天頌主題（不需要等待 API）
+const getIsWarmTheme = () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const accParam = urlParams.get('acc');
+  return accParam === TIANSONG_ALIAS || accParam === TIANSONG_ID;
+};
 // Navigation Skeleton
 export const NavigationSkeleton = () => (
   <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -297,8 +304,8 @@ export const FooterSkeleton = () => (
 
 // Complete Frontend Skeleton
 export const FrontendSkeleton = () => {
-  const { accommodationId } = useSubdomain();
-  const isWarmTheme = accommodationId === TIANSONG_ID;
+  // 使用同步方式判斷主題，避免閃爍
+  const isWarmTheme = getIsWarmTheme();
 
   return (
     <div className={`min-h-screen ${isWarmTheme ? 'theme-warm' : ''}`}>
