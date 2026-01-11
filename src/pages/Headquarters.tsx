@@ -139,6 +139,7 @@ const Headquarters = () => {
   const [newUserName, setNewUserName] = useState("");
   const [newUserEmail, setNewUserEmail] = useState("");
   const [selectedAccommodation, setSelectedAccommodation] = useState("");
+  const [selectedOverviewAccommodation, setSelectedOverviewAccommodation] = useState("all");
   const [selectedRole, setSelectedRole] = useState<"super_admin" | "hotel_admin" | "staff">("staff");
 
   // Backup states
@@ -678,7 +679,13 @@ const Headquarters = () => {
   const renderContent = () => {
     switch (currentTab) {
       case 'overview':
-        return <OperationalOverview accommodations={accommodations} />;
+        return (
+          <OperationalOverview 
+            accommodations={accommodations} 
+            selectedAccommodation={selectedOverviewAccommodation}
+            onAccommodationChange={setSelectedOverviewAccommodation}
+          />
+        );
       case 'split':
         return <SplitManagement accommodations={accommodations} />;
       case 'accommodations':
@@ -883,7 +890,13 @@ const Headquarters = () => {
       case 'system':
         return <SystemManagement accommodations={accommodations} />;
       default:
-        return <OperationalOverview accommodations={accommodations} />;
+        return (
+          <OperationalOverview 
+            accommodations={accommodations} 
+            selectedAccommodation={selectedOverviewAccommodation}
+            onAccommodationChange={setSelectedOverviewAccommodation}
+          />
+        );
     }
   };
 
@@ -952,6 +965,24 @@ const Headquarters = () => {
         <PageHeader
           title={getPageTitle()}
           icon={getPageIcon()}
+          action={currentTab === 'overview' && (
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+              <Select value={selectedOverviewAccommodation} onValueChange={setSelectedOverviewAccommodation}>
+                <SelectTrigger className="w-[160px] bg-background">
+                  <SelectValue placeholder="選擇民宿" />
+                </SelectTrigger>
+                <SelectContent className="bg-background border shadow-lg z-50">
+                  <SelectItem value="all">全部民宿</SelectItem>
+                  {accommodations.map((acc) => (
+                    <SelectItem key={acc.id} value={acc.id}>
+                      {acc.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         />
       </div>
 
