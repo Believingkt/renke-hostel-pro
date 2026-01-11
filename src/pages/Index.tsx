@@ -216,8 +216,8 @@ const Index = () => {
           "管家服務",
           "度假",
           "寫真拍攝",
-          data.info.address.includes("南投") ? "南投住宿" : "台灣住宿",
-          data.info.address.includes("南投") ? "南投民宿" : "民宿"
+          data.info.address?.includes("南投") ? "南投住宿" : "台灣住宿",
+          data.info.address?.includes("南投") ? "南投民宿" : "民宿"
         ]}
         image={data.info.og_image_url}
       />
