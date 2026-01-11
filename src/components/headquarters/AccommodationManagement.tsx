@@ -61,6 +61,7 @@ interface Accommodation {
   description: string | null;
   short_url_alias: string | null;
   custom_domain: string | null;
+  theme_preset: string | null;
   is_active: boolean;
   created_at: string;
 }
@@ -286,6 +287,7 @@ export function AccommodationManagement({
           email: data.email || null,
           description: data.description || null,
           short_url_alias: data.short_url_alias || null,
+          theme_preset: data.theme_preset || "default",
         })
         .eq("id", editingAccommodation.id);
 

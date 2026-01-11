@@ -11,8 +11,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, Globe, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Loader2, Globe, CheckCircle2, XCircle, AlertCircle, Palette } from "lucide-react";
 import { toast } from "sonner";
+
+// 主題預設選項
+const THEME_PRESETS = [
+  { value: "default", label: "森林綠（預設）", description: "清新自然的綠色調" },
+  { value: "warm", label: "南瓜橘", description: "溫暖的焦糖橘色調" },
+  { value: "ocean", label: "海洋藍", description: "沉靜的藍色調" },
+  { value: "elegant", label: "優雅紫", description: "高雅的紫灰色調" },
+] as const;
 
 interface AccommodationFormData {
   name: string;
@@ -26,6 +41,7 @@ interface AccommodationFormData {
   email: string;
   description: string;
   short_url_alias: string;
+  theme_preset: string;
 }
 
 interface AccommodationDialogProps {
@@ -60,6 +76,7 @@ export function AccommodationDialog({
     email: "",
     description: "",
     short_url_alias: "",
+    theme_preset: "default",
   });
 
   useEffect(() => {
@@ -76,6 +93,7 @@ export function AccommodationDialog({
         email: initialData.email || "",
         description: initialData.description || "",
         short_url_alias: initialData.short_url_alias || "",
+        theme_preset: (initialData as any).theme_preset || "default",
       });
       setSubdomainStatus("idle");
     } else {
@@ -91,6 +109,7 @@ export function AccommodationDialog({
         email: "",
         description: "",
         short_url_alias: "",
+        theme_preset: "default",
       });
       setSubdomainStatus("idle");
     }
@@ -287,6 +306,36 @@ export function AccommodationDialog({
                 <span className="font-medium ml-1">https://{formData.short_url_alias}.lakeze.com</span>
               </div>
             )}
+          </div>
+
+          {/* 主題配色選擇 */}
+          <div className="space-y-2">
+            <Label htmlFor="theme_preset" className="flex items-center gap-2">
+              <Palette className="h-4 w-4" />
+              網站主題配色
+            </Label>
+            <Select
+              value={formData.theme_preset}
+              onValueChange={(value) => setFormData({ ...formData, theme_preset: value })}
+              disabled={isSubmitting}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="選擇主題配色" />
+              </SelectTrigger>
+              <SelectContent>
+                {THEME_PRESETS.map((theme) => (
+                  <SelectItem key={theme.value} value={theme.value}>
+                    <div className="flex flex-col">
+                      <span>{theme.label}</span>
+                      <span className="text-xs text-muted-foreground">{theme.description}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              選擇民宿前台網站的整體配色風格
+            </p>
           </div>
 
           <DialogFooter>
