@@ -862,10 +862,8 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
           </Card>
         </div>
 
-        {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Monthly Revenue Trend */}
-          <Card>
+        {/* Monthly Revenue Trend - Full Width */}
+        <Card className="mb-6">
             <CardHeader className="pb-2">
               <div className="flex items-start justify-between">
                 <div>
@@ -919,7 +917,6 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
               )}
             </CardContent>
           </Card>
-        </div>
 
         {/* Monthly Orders Trend */}
         <Card className="mb-6">
