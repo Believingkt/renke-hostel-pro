@@ -39,8 +39,7 @@ import {
   Activity,
   Target,
   Minus,
-  GitCompareArrows,
-  ExternalLink
+  GitCompareArrows
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subDays, subWeeks, subYears, startOfDay, endOfDay, startOfWeek, endOfWeek, eachDayOfInterval, differenceInDays, eachMonthOfInterval, getMonth, getYear } from "date-fns";
@@ -63,6 +62,7 @@ import {
   Area,
   ReferenceLine
 } from "recharts";
+import { useHQ } from "@/contexts/HQContext";
 
 interface AccommodationStats {
   id: string;
@@ -144,9 +144,7 @@ const STATUS_COLORS = {
 
 export function OperationalOverview({ accommodations }: OperationalOverviewProps) {
   const navigate = useNavigate();
-  
-  // Accommodation filter state
-  const [selectedAccommodation, setSelectedAccommodation] = useState<string>("all");
+  const { selectedAccommodation } = useHQ();
   
   // Overview states
   const [stats, setStats] = useState<AccommodationStats[]>([]);
@@ -805,35 +803,17 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
     <div className="space-y-8">
       {/* ==================== 即時概況區塊 ==================== */}
       <section>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Activity className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold">即時概況</h2>
-              <p className="text-sm text-muted-foreground">
-                {selectedAccommodation === "all" 
-                  ? "各民宿即時訂單與營收總覽" 
-                  : `${accommodations.find(a => a.id === selectedAccommodation)?.name || ''} 即時數據`}
-              </p>
-            </div>
+        <div className="flex items-center gap-2 mb-6">
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <Activity className="h-5 w-5 text-primary" />
           </div>
-          <div className="flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-            <Select value={selectedAccommodation} onValueChange={setSelectedAccommodation}>
-              <SelectTrigger className="w-[180px] bg-background">
-                <SelectValue placeholder="選擇民宿" />
-              </SelectTrigger>
-              <SelectContent className="bg-background border shadow-lg">
-                <SelectItem value="all">全部民宿</SelectItem>
-                {accommodations.map((acc) => (
-                  <SelectItem key={acc.id} value={acc.id}>
-                    {acc.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div>
+            <h2 className="text-lg font-semibold">即時概況</h2>
+            <p className="text-sm text-muted-foreground">
+              {selectedAccommodation === "all" 
+                ? "各民宿即時訂單與營收總覽" 
+                : `${accommodations.find(a => a.id === selectedAccommodation)?.name || ''} 即時數據`}
+            </p>
           </div>
         </div>
 
