@@ -41,10 +41,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Building2, Plus, Pencil, Power, PowerOff, Loader2, ExternalLink, Copy, Search, X, Globe } from "lucide-react";
+import { Building2, Plus, Pencil, Power, PowerOff, Loader2, ExternalLink, Copy, Search, X, Globe, Link2 } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { AccommodationDialog } from "./AccommodationDialog";
 import { DnsSettingsDialog } from "./DnsSettingsDialog";
+import { CustomDomainDialog } from "./CustomDomainDialog";
 
 interface Accommodation {
   id: string;
@@ -59,6 +60,7 @@ interface Accommodation {
   email: string | null;
   description: string | null;
   short_url_alias: string | null;
+  custom_domain: string | null;
   is_active: boolean;
   created_at: string;
 }
@@ -96,9 +98,18 @@ export function AccommodationManagement({
   const [dnsDialogOpen, setDnsDialogOpen] = useState(false);
   const [dnsAccommodation, setDnsAccommodation] = useState<Accommodation | null>(null);
 
+  // Custom domain dialog state
+  const [customDomainDialogOpen, setCustomDomainDialogOpen] = useState(false);
+  const [customDomainAccommodation, setCustomDomainAccommodation] = useState<Accommodation | null>(null);
+
   const openDnsDialog = (accommodation: Accommodation) => {
     setDnsAccommodation(accommodation);
     setDnsDialogOpen(true);
+  };
+
+  const openCustomDomainDialog = (accommodation: Accommodation) => {
+    setCustomDomainAccommodation(accommodation);
+    setCustomDomainDialogOpen(true);
   };
 
   // Filtered accommodations
@@ -652,6 +663,7 @@ export function AccommodationManagement({
                   <TableRow className="bg-muted/50">
                     <TableHead className="font-semibold">民宿名稱</TableHead>
                     <TableHead className="font-semibold">子網域</TableHead>
+                    <TableHead className="font-semibold">自訂網域</TableHead>
                     <TableHead className="font-semibold">狀態</TableHead>
                     <TableHead className="font-semibold">建立時間</TableHead>
                     <TableHead className="text-right font-semibold">操作</TableHead>
@@ -690,6 +702,42 @@ export function AccommodationManagement({
                         )}
                       </TableCell>
                       <TableCell>
+                        {acc.custom_domain ? (
+                          <div className="flex items-center gap-1">
+                            <a
+                              href={`https://${acc.custom_domain}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline text-sm"
+                            >
+                              {acc.custom_domain}
+                            </a>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => {
+                                navigator.clipboard.writeText(`https://${acc.custom_domain}`);
+                                toast.success("已複製連結");
+                              }}
+                              title="複製連結"
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs text-muted-foreground hover:text-primary"
+                            onClick={() => openCustomDomainDialog(acc)}
+                          >
+                            <Link2 className="h-3 w-3 mr-1" />
+                            設定網域
+                          </Button>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         <Badge variant={acc.is_active ? "default" : "secondary"}>
                           {acc.is_active ? "營運中" : "已停用"}
                         </Badge>
@@ -707,12 +755,22 @@ export function AccommodationManagement({
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
+                          {acc.custom_domain && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openCustomDomainDialog(acc)}
+                              title="自訂網域設定"
+                            >
+                              <Link2 className="h-4 w-4 text-green-600" />
+                            </Button>
+                          )}
                           {acc.short_url_alias && (
                             <Button
                               variant="ghost"
                               size="icon"
                               onClick={() => openDnsDialog(acc)}
-                              title="DNS 設定"
+                              title="子網域 DNS 設定"
                             >
                               <Globe className="h-4 w-4 text-blue-600" />
                             </Button>
@@ -883,6 +941,18 @@ export function AccommodationManagement({
           onOpenChange={setDnsDialogOpen}
           subdomain={dnsAccommodation.short_url_alias}
           accommodationName={dnsAccommodation.name}
+        />
+      )}
+
+      {/* Custom Domain Dialog */}
+      {customDomainAccommodation && (
+        <CustomDomainDialog
+          open={customDomainDialogOpen}
+          onOpenChange={setCustomDomainDialogOpen}
+          accommodationId={customDomainAccommodation.id}
+          accommodationName={customDomainAccommodation.name}
+          currentDomain={customDomainAccommodation.custom_domain}
+          onDomainUpdated={onRefresh}
         />
       )}
     </>

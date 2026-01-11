@@ -140,6 +140,7 @@ export type Database = {
           check_in_notice: string | null
           country: string | null
           created_at: string
+          custom_domain: string | null
           description: string | null
           email: string | null
           facebook_url: string | null
@@ -179,6 +180,7 @@ export type Database = {
           check_in_notice?: string | null
           country?: string | null
           created_at?: string
+          custom_domain?: string | null
           description?: string | null
           email?: string | null
           facebook_url?: string | null
@@ -218,6 +220,7 @@ export type Database = {
           check_in_notice?: string | null
           country?: string | null
           created_at?: string
+          custom_domain?: string | null
           description?: string | null
           email?: string | null
           facebook_url?: string | null
