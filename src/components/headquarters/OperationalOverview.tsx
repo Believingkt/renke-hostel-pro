@@ -788,7 +788,7 @@ export function OperationalOverview({ accommodations, selectedAccommodation, onA
 
   const accommodationRevenueData = stats
     .map((s, index) => ({
-      name: s.name.length > 6 ? s.name.slice(0, 6) + '...' : s.name,
+      name: s.name,
       fullName: s.name,
       月營收: s.monthly_revenue,
       年營收: s.yearly_revenue,
@@ -1196,7 +1196,7 @@ export function OperationalOverview({ accommodations, selectedAccommodation, onA
                     tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
                     axisLine={false}
                     tickLine={false}
-                    width={80}
+                    width={100}
                   />
                   <Tooltip 
                     formatter={(value: number) => [formatCurrency(value), '營收']}
