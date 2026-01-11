@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { useOrderNotifications } from "@/hooks/use-order-notifications";
 import { toast } from "sonner";
+import { HQProvider } from "@/contexts/HQContext";
 
 export function ConditionalLayout() {
   const location = useLocation();
@@ -214,22 +215,24 @@ export function ConditionalLayout() {
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <SidebarProvider>
-          <div className="admin-theme flex min-h-screen w-full">
-            <HQSidebar />
-            <div className="flex flex-1 flex-col overflow-hidden">
-              <HQHeader />
-              <main className="flex-1 p-4 md:p-6 overflow-y-auto overflow-x-hidden">
-                <Outlet />
-              </main>
-              <footer className="border-t py-3 px-4 md:py-4 md:px-6">
-                <p className="text-xs md:text-sm text-center text-muted-foreground">
-                  © 2025 人客多總部管理系統. 版權所有
-                </p>
-              </footer>
+        <HQProvider>
+          <SidebarProvider>
+            <div className="admin-theme flex min-h-screen w-full">
+              <HQSidebar />
+              <div className="flex flex-1 flex-col overflow-hidden">
+                <HQHeader />
+                <main className="flex-1 p-4 md:p-6 overflow-y-auto overflow-x-hidden">
+                  <Outlet />
+                </main>
+                <footer className="border-t py-3 px-4 md:py-4 md:px-6">
+                  <p className="text-xs md:text-sm text-center text-muted-foreground">
+                    © 2025 人客多總部管理系統. 版權所有
+                  </p>
+                </footer>
+              </div>
             </div>
-          </div>
-        </SidebarProvider>
+          </SidebarProvider>
+        </HQProvider>
       </TooltipProvider>
     );
   }
