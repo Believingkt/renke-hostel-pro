@@ -1,7 +1,6 @@
 import { 
   Building2, 
   BarChart3, 
-  TrendingUp, 
   DollarSign, 
   Users, 
   Settings,
@@ -33,7 +32,6 @@ import lokezeLogo from "@/assets/lokeze-logo.png";
 
 const menuItems = [
   { title: "營運概況", url: "/hq", icon: BarChart3, tab: "overview" },
-  { title: "業績報表", url: "/hq?tab=performance", icon: TrendingUp, tab: "performance" },
   { 
     title: "金流拆帳", 
     url: "/hq?tab=split", 
