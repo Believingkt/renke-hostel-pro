@@ -62,7 +62,7 @@ import {
   Area,
   ReferenceLine
 } from "recharts";
-import { useHQ } from "@/contexts/HQContext";
+
 
 interface AccommodationStats {
   id: string;
@@ -144,7 +144,7 @@ const STATUS_COLORS = {
 
 export function OperationalOverview({ accommodations }: OperationalOverviewProps) {
   const navigate = useNavigate();
-  const { selectedAccommodation } = useHQ();
+  const [selectedAccommodation, setSelectedAccommodation] = useState<string>("all");
   
   // Overview states
   const [stats, setStats] = useState<AccommodationStats[]>([]);
@@ -801,6 +801,34 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
 
   return (
     <div className="space-y-8">
+      {/* Page Header with Accommodation Selector */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">營運分析</h1>
+          <p className="text-sm text-muted-foreground">
+            {selectedAccommodation === "all" 
+              ? "全部民宿營運數據總覽" 
+              : `${accommodations.find(a => a.id === selectedAccommodation)?.name || ''} 營運數據`}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Building2 className="h-4 w-4 text-muted-foreground" />
+          <Select value={selectedAccommodation} onValueChange={setSelectedAccommodation}>
+            <SelectTrigger className="w-[180px] bg-background">
+              <SelectValue placeholder="選擇民宿" />
+            </SelectTrigger>
+            <SelectContent className="bg-background border shadow-lg z-50">
+              <SelectItem value="all">全部民宿</SelectItem>
+              {accommodations.map((acc) => (
+                <SelectItem key={acc.id} value={acc.id}>
+                  {acc.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       {/* ==================== 即時概況區塊 ==================== */}
       <section>
         <div className="flex items-center gap-2 mb-6">
@@ -809,11 +837,7 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
           </div>
           <div>
             <h2 className="text-lg font-semibold">即時概況</h2>
-            <p className="text-sm text-muted-foreground">
-              {selectedAccommodation === "all" 
-                ? "各民宿即時訂單與營收總覽" 
-                : `${accommodations.find(a => a.id === selectedAccommodation)?.name || ''} 即時數據`}
-            </p>
+            <p className="text-sm text-muted-foreground">即時訂單與營收數據</p>
           </div>
         </div>
 
