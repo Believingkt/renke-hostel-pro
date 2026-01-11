@@ -11,8 +11,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, Globe, CheckCircle2, XCircle, AlertCircle, Palette, Upload, Trash2, Image } from "lucide-react";
+import { Loader2, Globe, CheckCircle2, XCircle, AlertCircle, Palette, Upload, Trash2, Image, Crop } from "lucide-react";
 import { toast } from "sonner";
+import { LogoCropDialog } from "@/components/LogoCropDialog";
 
 // 主題預設選項（包含顏色資訊用於預覽）
 const THEME_PRESETS = [
@@ -208,6 +209,11 @@ export function AccommodationDialog({
   const headerInputRef = useRef<HTMLInputElement>(null);
   const footerInputRef = useRef<HTMLInputElement>(null);
 
+  // Crop dialog states
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState<string>("");
+  const [cropLogoType, setCropLogoType] = useState<'header' | 'footer'>('header');
+
   useEffect(() => {
     if (initialData) {
       setFormData({
@@ -248,26 +254,42 @@ export function AccommodationDialog({
     }
   }, [initialData, open]);
 
-  // Logo upload handler
-  const handleLogoUpload = async (
+  // Handle file selection - open crop dialog
+  const handleFileSelect = (
     event: React.ChangeEvent<HTMLInputElement>,
     type: 'header' | 'footer'
   ) => {
     const file = event.target.files?.[0];
     if (!file || !initialData?.id) return;
 
-    const isHeader = type === 'header';
+    // Create object URL for cropping
+    const imageUrl = URL.createObjectURL(file);
+    setCropImageSrc(imageUrl);
+    setCropLogoType(type);
+    setCropDialogOpen(true);
+
+    // Reset input
+    if (event.target) event.target.value = '';
+  };
+
+  // Handle cropped image upload
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    if (!initialData?.id) return;
+
+    const isHeader = cropLogoType === 'header';
     isHeader ? setUploadingHeader(true) : setUploadingFooter(true);
 
     try {
       // Generate unique filename
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${initialData.id}/${type}-logo-${Date.now()}.${fileExt}`;
+      const fileName = `${initialData.id}/${cropLogoType}-logo-${Date.now()}.png`;
 
       // Upload to storage
       const { error: uploadError } = await supabase.storage
         .from('logos')
-        .upload(fileName, file, { upsert: true });
+        .upload(fileName, croppedBlob, { 
+          upsert: true,
+          contentType: 'image/png'
+        });
 
       if (uploadError) throw uploadError;
 
@@ -301,8 +323,11 @@ export function AccommodationDialog({
       toast.error('Logo 上傳失敗', { description: error.message });
     } finally {
       isHeader ? setUploadingHeader(false) : setUploadingFooter(false);
-      // Reset input
-      if (event.target) event.target.value = '';
+      // Clean up object URL
+      if (cropImageSrc) {
+        URL.revokeObjectURL(cropImageSrc);
+        setCropImageSrc("");
+      }
     }
   };
 
@@ -646,7 +671,7 @@ export function AccommodationDialog({
                       ref={headerInputRef}
                       type="file"
                       accept="image/*"
-                      onChange={(e) => handleLogoUpload(e, 'header')}
+                      onChange={(e) => handleFileSelect(e, 'header')}
                       className="hidden"
                     />
                   </div>
@@ -699,7 +724,7 @@ export function AccommodationDialog({
                       ref={footerInputRef}
                       type="file"
                       accept="image/*"
-                      onChange={(e) => handleLogoUpload(e, 'footer')}
+                      onChange={(e) => handleFileSelect(e, 'footer')}
                       className="hidden"
                     />
                   </div>
@@ -730,6 +755,21 @@ export function AccommodationDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+
+      {/* Logo Crop Dialog */}
+      <LogoCropDialog
+        open={cropDialogOpen}
+        onOpenChange={(open) => {
+          setCropDialogOpen(open);
+          if (!open && cropImageSrc) {
+            URL.revokeObjectURL(cropImageSrc);
+            setCropImageSrc("");
+          }
+        }}
+        imageSrc={cropImageSrc}
+        onCropComplete={handleCropComplete}
+        logoType={cropLogoType}
+      />
     </Dialog>
   );
 }
