@@ -83,7 +83,7 @@ import { HeroCarouselPreviewDialog } from "@/components/HeroCarouselPreviewDialo
 import { OgImagePreview } from "@/components/OgImagePreview";
 import { OgImageCropDialog } from "@/components/OgImageCropDialog";
 import { bookingSettingsSchema, addonSettingsSchema } from "@/utils/roomValidation";
-
+import { useAccommodation } from "@/contexts/AccommodationContext";
 // 定義所有設施項目
 const facilitiesData = {
   public: [
@@ -376,6 +376,7 @@ const SortableFeatureItem = ({ feature, index, onEdit, onDelete }: SortableFeatu
 const WebsiteContent = () => {
   const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
+  const { currentAccommodationId } = useAccommodation();
   const [activeTab, setActiveTab] = useState("basic-info");
   const [selectedFacilities, setSelectedFacilities] = useState<Record<string, boolean>>({});
   const [pricingTypes, setPricingTypes] = useState<Record<string, string>>({});
@@ -523,13 +524,22 @@ const WebsiteContent = () => {
   }, [searchParams]);
 
   // 加載現有設施資料、訂房須知和常見問題
-  const loadData = async () => {
+  const loadData = async (targetAccommodationId?: string) => {
     try {
-      // 獲取 accommodation ID 和基本資料
-      const { data: infoData } = await supabase
+      // 使用傳入的 ID 或從 context 取得的 ID
+      const accIdToUse = targetAccommodationId || currentAccommodationId;
+      
+      // 構建查詢
+      let query = supabase
         .from("accommodation_info")
-        .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url, og_title, og_description, og_image_url, website_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay")
-        .maybeSingle();
+        .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url, og_title, og_description, og_image_url, website_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay");
+      
+      // 如果有指定 accommodation ID，則使用它來過濾
+      if (accIdToUse) {
+        query = query.eq("id", accIdToUse);
+      }
+      
+      const { data: infoData } = await query.maybeSingle();
 
       if (infoData) {
         setAccommodationId(infoData.id);
@@ -746,9 +756,10 @@ const WebsiteContent = () => {
     }
   };
 
+  // 初始載入資料和當 currentAccommodationId 變化時重新載入
   useEffect(() => {
-    loadData();
-  }, []);
+    loadData(currentAccommodationId || undefined);
+  }, [currentAccommodationId]);
 
   // 當切換 tab 時重新載入對應資料
   useEffect(() => {
