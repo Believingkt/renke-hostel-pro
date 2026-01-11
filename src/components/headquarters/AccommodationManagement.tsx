@@ -41,11 +41,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Building2, Plus, Pencil, Power, PowerOff, Loader2, ExternalLink, Copy, Search, X, Globe, Link2 } from "lucide-react";
+import { Building2, Plus, Pencil, Power, PowerOff, Loader2, ExternalLink, Copy, Search, X, Globe, Link2, Image, Palette } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { AccommodationDialog } from "./AccommodationDialog";
 import { DnsSettingsDialog } from "./DnsSettingsDialog";
 import { CustomDomainDialog } from "./CustomDomainDialog";
+
+// 主題預設選項配色（與 AccommodationDialog 對應）
+const THEME_COLORS: Record<string, { primary: string; label: string }> = {
+  default: { primary: "hsl(142, 76%, 36%)", label: "森林綠" },
+  warm: { primary: "hsl(20, 75%, 52%)", label: "南瓜橘" },
+  ocean: { primary: "hsl(200, 80%, 45%)", label: "海洋藍" },
+  elegant: { primary: "hsl(270, 50%, 50%)", label: "優雅紫" },
+  rose: { primary: "hsl(350, 65%, 55%)", label: "玫瑰粉" },
+  earth: { primary: "hsl(30, 50%, 42%)", label: "大地棕" },
+  zen: { primary: "hsl(45, 35%, 45%)", label: "日式和風" },
+  sunset: { primary: "hsl(15, 70%, 50%)", label: "夕陽紅" },
+};
 
 interface Accommodation {
   id: string;
@@ -665,7 +677,9 @@ export function AccommodationManagement({
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
+                    <TableHead className="font-semibold w-12">Logo</TableHead>
                     <TableHead className="font-semibold">民宿名稱</TableHead>
+                    <TableHead className="font-semibold w-24">主題配色</TableHead>
                     <TableHead className="font-semibold">子網域</TableHead>
                     <TableHead className="font-semibold">自訂網域</TableHead>
                     <TableHead className="font-semibold">狀態</TableHead>
@@ -674,9 +688,40 @@ export function AccommodationManagement({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredAccommodations.map((acc) => (
+                  {filteredAccommodations.map((acc) => {
+                    const theme = THEME_COLORS[acc.theme_preset || "default"] || THEME_COLORS.default;
+                    return (
                     <TableRow key={acc.id} className={!acc.is_active ? "opacity-60" : ""}>
+                      {/* Logo 縮圖 */}
+                      <TableCell className="w-12">
+                        {acc.header_logo_url ? (
+                          <div className="w-10 h-10 rounded border bg-muted/30 flex items-center justify-center overflow-hidden">
+                            <img 
+                              src={acc.header_logo_url} 
+                              alt={`${acc.name} Logo`}
+                              className="max-w-full max-h-full object-contain"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 rounded border bg-muted/30 flex items-center justify-center">
+                            <Image className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell className="font-medium">{acc.name}</TableCell>
+                      {/* 主題配色預覽 */}
+                      <TableCell className="w-24">
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-5 h-5 rounded-full border-2 border-background shadow-sm"
+                            style={{ backgroundColor: theme.primary }}
+                            title={theme.label}
+                          />
+                          <span className="text-xs text-muted-foreground hidden sm:inline">
+                            {theme.label}
+                          </span>
+                        </div>
+                      </TableCell>
                       <TableCell>
                         {acc.short_url_alias ? (
                           <div className="flex items-center gap-1">
@@ -816,7 +861,8 @@ export function AccommodationManagement({
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
