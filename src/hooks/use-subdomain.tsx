@@ -16,8 +16,41 @@ export function useSubdomain() {
       const hostname = window.location.hostname;
       const parts = hostname.split('.');
       
-      // For development (localhost) and Lovable preview, use the first accommodation
+      // For development (localhost) and Lovable preview, check for query parameter first
       if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('lovableproject.com') || hostname.includes('lovable.app')) {
+        // Check for ?acc= query parameter (supports alias or id)
+        const urlParams = new URLSearchParams(window.location.search);
+        const accParam = urlParams.get('acc');
+        
+        if (accParam) {
+          // Try to find by short_url_alias first, then by id
+          const { data: aliasData, error: aliasError } = await supabase
+            .from('accommodation_info')
+            .select('id')
+            .eq('short_url_alias', accParam)
+            .maybeSingle();
+          
+          if (!aliasError && aliasData) {
+            setAccommodationId(aliasData.id);
+            setIsLoading(false);
+            return;
+          }
+          
+          // Try by ID if alias not found
+          const { data: idData, error: idError } = await supabase
+            .from('accommodation_info')
+            .select('id')
+            .eq('id', accParam)
+            .maybeSingle();
+          
+          if (!idError && idData) {
+            setAccommodationId(idData.id);
+            setIsLoading(false);
+            return;
+          }
+        }
+        
+        // Fallback to first accommodation
         const { data, error } = await supabase
           .from('accommodation_info')
           .select('id')
