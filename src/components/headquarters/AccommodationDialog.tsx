@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, Globe, CheckCircle2, XCircle, AlertCircle, Palette } from "lucide-react";
+import { Loader2, Globe, CheckCircle2, XCircle, AlertCircle, Palette, Upload, Trash2, Image } from "lucide-react";
 import { toast } from "sonner";
 
 // 主題預設選項（包含顏色資訊用於預覽）
@@ -165,7 +165,11 @@ interface AccommodationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: AccommodationFormData) => Promise<void>;
-  initialData?: Partial<AccommodationFormData> & { id?: string };
+  initialData?: Partial<AccommodationFormData> & { 
+    id?: string;
+    header_logo_url?: string | null;
+    footer_logo_url?: string | null;
+  };
   isEditing?: boolean;
 }
 
@@ -196,6 +200,14 @@ export function AccommodationDialog({
     theme_preset: "default",
   });
 
+  // Logo states
+  const [headerLogoUrl, setHeaderLogoUrl] = useState<string | null>(null);
+  const [footerLogoUrl, setFooterLogoUrl] = useState<string | null>(null);
+  const [uploadingHeader, setUploadingHeader] = useState(false);
+  const [uploadingFooter, setUploadingFooter] = useState(false);
+  const headerInputRef = useRef<HTMLInputElement>(null);
+  const footerInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (initialData) {
       setFormData({
@@ -212,6 +224,8 @@ export function AccommodationDialog({
         short_url_alias: initialData.short_url_alias || "",
         theme_preset: (initialData as any).theme_preset || "default",
       });
+      setHeaderLogoUrl(initialData.header_logo_url || null);
+      setFooterLogoUrl(initialData.footer_logo_url || null);
       setSubdomainStatus("idle");
     } else {
       setFormData({
@@ -228,9 +242,102 @@ export function AccommodationDialog({
         short_url_alias: "",
         theme_preset: "default",
       });
+      setHeaderLogoUrl(null);
+      setFooterLogoUrl(null);
       setSubdomainStatus("idle");
     }
   }, [initialData, open]);
+
+  // Logo upload handler
+  const handleLogoUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+    type: 'header' | 'footer'
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file || !initialData?.id) return;
+
+    const isHeader = type === 'header';
+    isHeader ? setUploadingHeader(true) : setUploadingFooter(true);
+
+    try {
+      // Generate unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${initialData.id}/${type}-logo-${Date.now()}.${fileExt}`;
+
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from('logos')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('logos')
+        .getPublicUrl(fileName);
+
+      // Update database
+      const updateData = isHeader 
+        ? { header_logo_url: publicUrl }
+        : { footer_logo_url: publicUrl };
+
+      const { error: updateError } = await supabase
+        .from('accommodation_info')
+        .update(updateData)
+        .eq('id', initialData.id);
+
+      if (updateError) throw updateError;
+
+      // Update local state
+      if (isHeader) {
+        setHeaderLogoUrl(publicUrl);
+      } else {
+        setFooterLogoUrl(publicUrl);
+      }
+
+      toast.success(`${isHeader ? '頁首' : '頁尾'} Logo 上傳成功`);
+    } catch (error: any) {
+      console.error('Logo upload error:', error);
+      toast.error('Logo 上傳失敗', { description: error.message });
+    } finally {
+      isHeader ? setUploadingHeader(false) : setUploadingFooter(false);
+      // Reset input
+      if (event.target) event.target.value = '';
+    }
+  };
+
+  // Logo delete handler
+  const handleDeleteLogo = async (type: 'header' | 'footer') => {
+    if (!initialData?.id) return;
+
+    const isHeader = type === 'header';
+    
+    try {
+      // Update database to remove logo URL
+      const updateData = isHeader 
+        ? { header_logo_url: null }
+        : { footer_logo_url: null };
+
+      const { error } = await supabase
+        .from('accommodation_info')
+        .update(updateData)
+        .eq('id', initialData.id);
+
+      if (error) throw error;
+
+      // Update local state
+      if (isHeader) {
+        setHeaderLogoUrl(null);
+      } else {
+        setFooterLogoUrl(null);
+      }
+
+      toast.success(`${isHeader ? '頁首' : '頁尾'} Logo 已刪除`);
+    } catch (error: any) {
+      console.error('Logo delete error:', error);
+      toast.error('刪除失敗', { description: error.message });
+    }
+  };
 
   // Check subdomain availability
   const checkSubdomainAvailability = async (alias: string) => {
@@ -482,6 +589,127 @@ export function AccommodationDialog({
               </div>
             </div>
           </div>
+
+          {/* Logo 上傳（僅編輯模式） */}
+          {isEditing && initialData?.id && (
+            <div className="space-y-4">
+              <Label className="flex items-center gap-2">
+                <Image className="h-4 w-4" />
+                民宿 Logo
+              </Label>
+              
+              <div className="grid grid-cols-2 gap-4">
+                {/* 頁首 Logo */}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">頁首 Logo</p>
+                  <div className="border rounded-lg p-3 space-y-2">
+                    {headerLogoUrl ? (
+                      <div className="relative">
+                        <div className="w-full h-16 border rounded overflow-hidden bg-muted">
+                          <img 
+                            src={headerLogoUrl} 
+                            alt="頁首 Logo" 
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteLogo('header')}
+                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="w-full h-16 border-2 border-dashed rounded flex items-center justify-center text-muted-foreground">
+                        <span className="text-xs">尚未設定</span>
+                      </div>
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => headerInputRef.current?.click()}
+                      disabled={uploadingHeader || isSubmitting}
+                      className="w-full"
+                    >
+                      {uploadingHeader ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                      ) : (
+                        <Upload className="h-4 w-4 mr-1" />
+                      )}
+                      {uploadingHeader ? '上傳中...' : '上傳'}
+                    </Button>
+                    <input
+                      ref={headerInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleLogoUpload(e, 'header')}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+
+                {/* 頁尾 Logo */}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">頁尾 Logo</p>
+                  <div className="border rounded-lg p-3 space-y-2">
+                    {footerLogoUrl ? (
+                      <div className="relative">
+                        <div className="w-full h-16 border rounded overflow-hidden bg-slate-800">
+                          <img 
+                            src={footerLogoUrl} 
+                            alt="頁尾 Logo" 
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteLogo('footer')}
+                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="w-full h-16 border-2 border-dashed rounded flex items-center justify-center text-muted-foreground">
+                        <span className="text-xs">尚未設定</span>
+                      </div>
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => footerInputRef.current?.click()}
+                      disabled={uploadingFooter || isSubmitting}
+                      className="w-full"
+                    >
+                      {uploadingFooter ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                      ) : (
+                        <Upload className="h-4 w-4 mr-1" />
+                      )}
+                      {uploadingFooter ? '上傳中...' : '上傳'}
+                    </Button>
+                    <input
+                      ref={footerInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleLogoUpload(e, 'footer')}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                建議尺寸：200×60 像素，支援 PNG、JPG 格式
+              </p>
+            </div>
+          )}
 
           <DialogFooter>
             <Button
