@@ -1,6 +1,9 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
+import { useSubdomain } from "@/hooks/use-subdomain";
 
+// 天頌幸福和苑的 ID - 使用橘色主題
+const TIANSONG_ID = '4ee31aca-5641-4d05-80e2-1c67626be83d';
 // Navigation Skeleton
 export const NavigationSkeleton = () => (
   <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -293,20 +296,25 @@ export const FooterSkeleton = () => (
 );
 
 // Complete Frontend Skeleton
-export const FrontendSkeleton = () => (
-  <div className="min-h-screen">
-    <NavigationSkeleton />
-    <main>
-      <HeroSkeleton />
-      <AboutSkeleton />
-      <RoomsSkeleton />
-      <FacilitiesSkeleton />
-      <PhotoGallerySkeleton />
-      <LocationSkeleton />
-      <BookingInfoSkeleton />
-      <ReviewsSkeleton />
-      <FaqSkeleton />
-    </main>
-    <FooterSkeleton />
-  </div>
-);
+export const FrontendSkeleton = () => {
+  const { accommodationId } = useSubdomain();
+  const isWarmTheme = accommodationId === TIANSONG_ID;
+
+  return (
+    <div className={`min-h-screen ${isWarmTheme ? 'theme-warm' : ''}`}>
+      <NavigationSkeleton />
+      <main>
+        <HeroSkeleton />
+        <AboutSkeleton />
+        <RoomsSkeleton />
+        <FacilitiesSkeleton />
+        <PhotoGallerySkeleton />
+        <LocationSkeleton />
+        <BookingInfoSkeleton />
+        <ReviewsSkeleton />
+        <FaqSkeleton />
+      </main>
+      <FooterSkeleton />
+    </div>
+  );
+};
