@@ -41,6 +41,7 @@ interface AccommodationData {
     hero_description?: string;
     hero_overlay_opacity?: number;
     hero_autoplay_delay?: number;
+    theme_preset?: string;
   };
   roomTypes: any[];
   bookingSettings: any;
@@ -49,15 +50,28 @@ interface AccommodationData {
   locationInfo: any;
 }
 
+// 根據主題預設值返回對應的 CSS 類名
+const getThemeClass = (themePreset?: string): string => {
+  switch (themePreset) {
+    case 'warm':
+      return 'theme-warm';
+    case 'ocean':
+      return 'theme-ocean';
+    case 'elegant':
+      return 'theme-elegant';
+    default:
+      return '';
+  }
+};
+
 const Index = () => {
   const [data, setData] = useState<AccommodationData | null>(null);
   const [loadTimeout, setLoadTimeout] = useState(false);
   const { accommodationId, isLoading: subdomainLoading, error: subdomainError } = useSubdomain();
   const { setCurrentAccommodationId } = useAccommodation();
 
-  // 天頌幸福和苑的 ID - 使用橘色主題
-  const TIANSONG_ID = '4ee31aca-5641-4d05-80e2-1c67626be83d';
-  const isWarmTheme = accommodationId === TIANSONG_ID;
+  // 從資料庫讀取的主題設定
+  const themeClass = data?.info?.theme_preset ? getThemeClass(data.info.theme_preset) : '';
 
   // 同步 subdomain 解析的 accommodationId 到 AccommodationContext
   useEffect(() => {
@@ -87,7 +101,7 @@ const Index = () => {
       try {
         const { data: infoData, error: infoError } = await supabase
           .from("accommodation_info")
-          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, og_title, og_description, og_image_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay")
+          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, og_title, og_description, og_image_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay, theme_preset")
           .eq("id", accommodationId)
           .maybeSingle();
         
@@ -206,7 +220,7 @@ const Index = () => {
   }
 
   return (
-    <div className={`min-h-screen ${isWarmTheme ? 'theme-warm' : ''}`}>
+    <div className={`min-h-screen ${themeClass}`}>
       {/* SEO Meta 標籤 */}
       <SEOHead
         title={data.info.og_title || data.info.name}

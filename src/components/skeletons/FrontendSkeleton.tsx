@@ -1,15 +1,33 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 
-// 天頌幸福和苑的識別資訊
-const TIANSONG_ID = '4ee31aca-5641-4d05-80e2-1c67626be83d';
-const TIANSONG_ALIAS = 'tiansong-villa';
+// 住宿主題映射（用於 URL 參數）
+const THEME_MAPPINGS: Record<string, string> = {
+  // 天頌幸福和苑使用 warm 主題
+  '4ee31aca-5641-4d05-80e2-1c67626be83d': 'warm',
+  'tiansong-villa': 'warm',
+};
 
-// 同步判斷是否為天頌主題（不需要等待 API）
-const getIsWarmTheme = () => {
+// 同步判斷主題類名（不需要等待 API）
+const getThemeClass = (): string => {
   const urlParams = new URLSearchParams(window.location.search);
   const accParam = urlParams.get('acc');
-  return accParam === TIANSONG_ALIAS || accParam === TIANSONG_ID;
+  
+  if (!accParam) return '';
+  
+  const themePreset = THEME_MAPPINGS[accParam];
+  if (!themePreset) return '';
+  
+  switch (themePreset) {
+    case 'warm':
+      return 'theme-warm';
+    case 'ocean':
+      return 'theme-ocean';
+    case 'elegant':
+      return 'theme-elegant';
+    default:
+      return '';
+  }
 };
 // Navigation Skeleton
 export const NavigationSkeleton = () => (
@@ -305,10 +323,10 @@ export const FooterSkeleton = () => (
 // Complete Frontend Skeleton
 export const FrontendSkeleton = () => {
   // 使用同步方式判斷主題，避免閃爍
-  const isWarmTheme = getIsWarmTheme();
+  const themeClass = getThemeClass();
 
   return (
-    <div className={`min-h-screen ${isWarmTheme ? 'theme-warm' : ''}`}>
+    <div className={`min-h-screen ${themeClass}`}>
       <NavigationSkeleton />
       <main>
         <HeroSkeleton />

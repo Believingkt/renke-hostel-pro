@@ -167,6 +167,7 @@ export type Database = {
           registration_number: string | null
           short_url_alias: string | null
           star_rating: string | null
+          theme_preset: string | null
           threads_url: string | null
           tiktok_url: string | null
           total_rooms: number | null
@@ -207,6 +208,7 @@ export type Database = {
           registration_number?: string | null
           short_url_alias?: string | null
           star_rating?: string | null
+          theme_preset?: string | null
           threads_url?: string | null
           tiktok_url?: string | null
           total_rooms?: number | null
@@ -247,6 +249,7 @@ export type Database = {
           registration_number?: string | null
           short_url_alias?: string | null
           star_rating?: string | null
+          theme_preset?: string | null
           threads_url?: string | null
           tiktok_url?: string | null
           total_rooms?: number | null

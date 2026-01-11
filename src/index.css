@@ -174,6 +174,142 @@ All colors MUST be HSL.
     --footer-background: 20 45% 18%;
   }
 
+  /* 海洋藍主題 */
+  .theme-ocean {
+    --background: 200 30% 97%;
+    --foreground: 210 25% 18%;
+
+    --card: 200 25% 98%;
+    --card-foreground: 210 25% 18%;
+
+    --popover: 200 25% 98%;
+    --popover-foreground: 210 25% 18%;
+
+    --primary: 200 80% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 200 40% 92%;
+    --secondary-foreground: 210 25% 20%;
+
+    --muted: 200 30% 94%;
+    --muted-foreground: 210 15% 45%;
+
+    --accent: 185 70% 40%;
+    --accent-foreground: 0 0% 100%;
+
+    --border: 200 25% 88%;
+    --input: 200 25% 90%;
+    --ring: 200 80% 45%;
+
+    --hero-gradient-start: 200 80% 45%;
+    --hero-gradient-end: 185 70% 40%;
+    
+    --card-hover: 200 22% 95%;
+    --shadow-sm: 0 1px 2px 0 rgba(40, 80, 120, 0.06);
+    --shadow-md: 0 4px 6px -1px rgba(40, 80, 120, 0.08);
+    --shadow-lg: 0 10px 15px -3px rgba(40, 80, 120, 0.1);
+
+    --sidebar-background: 200 22% 96%;
+    --sidebar-foreground: 210 20% 26%;
+    --sidebar-primary: 200 80% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 200 28% 91%;
+    --sidebar-accent-foreground: 210 25% 20%;
+    --sidebar-border: 200 20% 88%;
+    --sidebar-ring: 200 80% 45%;
+
+    --auth-primary: 200 80% 45%;
+    --auth-primary-hover: 200 80% 38%;
+
+    --stat-coral: 200 50% 50%;
+    --stat-coral-light: 200 40% 92%;
+
+    --chart-1: 200 80% 45%;
+    --chart-2: 185 70% 40%;
+    --chart-3: 210 60% 50%;
+    --chart-4: 195 65% 55%;
+    --chart-5: 175 55% 45%;
+
+    --chart-revenue-primary: 200 80% 45%;
+    --chart-revenue-secondary: 210 60% 50%;
+    --chart-revenue-bg: 200 35% 92%;
+    
+    --chart-booking-primary: 185 70% 40%;
+    --chart-booking-secondary: 200 80% 45%;
+    --chart-booking-bg: 200 38% 92%;
+
+    /* Footer 使用深海藍色 */
+    --footer-background: 200 45% 15%;
+  }
+
+  /* 優雅紫主題 */
+  .theme-elegant {
+    --background: 260 20% 97%;
+    --foreground: 260 20% 18%;
+
+    --card: 260 18% 98%;
+    --card-foreground: 260 20% 18%;
+
+    --popover: 260 18% 98%;
+    --popover-foreground: 260 20% 18%;
+
+    --primary: 270 50% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 260 25% 92%;
+    --secondary-foreground: 260 20% 22%;
+
+    --muted: 260 18% 94%;
+    --muted-foreground: 260 12% 45%;
+
+    --accent: 280 45% 45%;
+    --accent-foreground: 0 0% 100%;
+
+    --border: 260 18% 86%;
+    --input: 260 18% 88%;
+    --ring: 270 50% 50%;
+
+    --hero-gradient-start: 270 50% 50%;
+    --hero-gradient-end: 280 45% 45%;
+    
+    --card-hover: 260 15% 95%;
+    --shadow-sm: 0 1px 2px 0 rgba(100, 60, 140, 0.06);
+    --shadow-md: 0 4px 6px -1px rgba(100, 60, 140, 0.08);
+    --shadow-lg: 0 10px 15px -3px rgba(100, 60, 140, 0.1);
+
+    --sidebar-background: 260 15% 96%;
+    --sidebar-foreground: 260 15% 26%;
+    --sidebar-primary: 270 50% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 260 20% 91%;
+    --sidebar-accent-foreground: 260 20% 22%;
+    --sidebar-border: 260 15% 86%;
+    --sidebar-ring: 270 50% 50%;
+
+    --auth-primary: 270 50% 50%;
+    --auth-primary-hover: 270 50% 42%;
+
+    --stat-coral: 270 40% 50%;
+    --stat-coral-light: 260 30% 92%;
+
+    --chart-1: 270 50% 50%;
+    --chart-2: 280 45% 45%;
+    --chart-3: 260 45% 55%;
+    --chart-4: 290 40% 52%;
+    --chart-5: 250 45% 48%;
+
+    --chart-revenue-primary: 270 50% 50%;
+    --chart-revenue-secondary: 260 45% 55%;
+    --chart-revenue-bg: 260 28% 92%;
+    
+    --chart-booking-primary: 280 45% 45%;
+    --chart-booking-secondary: 270 50% 50%;
+    --chart-booking-bg: 260 32% 92%;
+
+    /* Footer 使用深紫灰色 */
+    --footer-background: 270 30% 15%;
+  }
+
   /* Admin theme - Blue & Orange colors */
   .admin-theme {
     --primary: 203 78% 43%;
