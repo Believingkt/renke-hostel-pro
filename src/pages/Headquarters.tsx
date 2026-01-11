@@ -638,7 +638,7 @@ const Headquarters = () => {
       case 'performance': return '營運分析';
       case 'split': return '金流拆帳';
       case 'accommodations': return '民宿管理';
-      case 'users': return '用戶管理';
+      case 'users': return '帳號管理';
       case 'system': return '系統管理';
       default: return '營運概況';
     }
@@ -894,7 +894,7 @@ const Headquarters = () => {
       case 'overview': return '營運概況';
       case 'split': return '金流拆帳';
       case 'accommodations': return '民宿管理';
-      case 'users': return '用戶管理';
+      case 'users': return '帳號管理';
       case 'system': return '系統管理';
       default: return '營運概況';
     }

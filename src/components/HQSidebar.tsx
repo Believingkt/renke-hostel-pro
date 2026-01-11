@@ -45,7 +45,7 @@ const menuItems = [
     ]
   },
   { title: "民宿管理", url: "/hq?tab=accommodations", icon: Building2, tab: "accommodations" },
-  { title: "用戶管理", url: "/hq?tab=users", icon: Users, tab: "users" },
+  { title: "帳號管理", url: "/hq?tab=users", icon: Users, tab: "users" },
   { 
     title: "系統管理", 
     url: "/hq?tab=system", 
