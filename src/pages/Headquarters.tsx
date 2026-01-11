@@ -100,6 +100,7 @@ interface AccommodationInfo {
   email?: string | null;
   description?: string | null;
   short_url_alias?: string | null;
+  custom_domain?: string | null;
   is_active?: boolean;
   created_at?: string;
 }
@@ -162,7 +163,7 @@ const Headquarters = () => {
   const loadAccommodations = async () => {
     const { data, error } = await supabase
       .from("accommodation_info")
-      .select("id, name, type, registration_number, country, region_1, region_2, address, phone, email, description, short_url_alias, is_active, created_at")
+      .select("id, name, type, registration_number, country, region_1, region_2, address, phone, email, description, short_url_alias, custom_domain, is_active, created_at")
       .order("name");
 
     if (error) {
