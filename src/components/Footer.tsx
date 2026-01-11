@@ -227,7 +227,12 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
                 {email && (
                   <li className="flex items-center gap-2 md:gap-3 justify-center md:justify-start">
                     <Mail className="h-4 w-4 md:h-5 md:w-5 text-white/80 flex-shrink-0" />
-                    <span className="text-sm md:text-base text-white/80">{email}</span>
+                    <a 
+                      href={`mailto:${email}`}
+                      className="text-sm md:text-base text-white/80 hover:text-white transition-colors"
+                    >
+                      {email}
+                    </a>
                   </li>
                 )}
               </ul>
