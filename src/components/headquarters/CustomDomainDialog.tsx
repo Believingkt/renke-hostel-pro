@@ -182,7 +182,7 @@ export function CustomDomainDialog({
       case "checking":
         return <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />;
       case "available":
-        return <CheckCircle2 className="h-4 w-4 text-green-600" />;
+        return <CheckCircle2 className="h-4 w-4 text-primary" />;
       case "taken":
         return <XCircle className="h-4 w-4 text-destructive" />;
       case "invalid":
@@ -229,7 +229,7 @@ export function CustomDomainDialog({
             <Card className="border-primary/20 bg-primary/5">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
                   目前綁定的網域
                 </CardTitle>
               </CardHeader>
@@ -289,7 +289,7 @@ export function CustomDomainDialog({
               </span>
               {domain && domainStatus !== "idle" && (
                 <span className={`flex items-center gap-1 ${
-                  domainStatus === "available" ? "text-green-600" :
+                  domainStatus === "available" ? "text-primary" :
                   domainStatus === "taken" ? "text-destructive" :
                   domainStatus === "invalid" ? "text-amber-500" :
                   "text-muted-foreground"

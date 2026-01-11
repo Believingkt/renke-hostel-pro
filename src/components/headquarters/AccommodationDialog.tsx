@@ -509,7 +509,7 @@ export function AccommodationDialog({
       case "checking":
         return <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />;
       case "available":
-        return <CheckCircle2 className="h-4 w-4 text-green-600" />;
+        return <CheckCircle2 className="h-4 w-4 text-primary" />;
       case "taken":
         return <XCircle className="h-4 w-4 text-destructive" />;
       case "invalid":
@@ -588,7 +588,7 @@ export function AccommodationDialog({
               </p>
               {formData.short_url_alias && subdomainStatus !== "idle" && (
                 <p className={`text-xs flex items-center gap-1 ${
-                  subdomainStatus === "available" ? "text-green-600" :
+                  subdomainStatus === "available" ? "text-primary" :
                   subdomainStatus === "taken" ? "text-destructive" :
                   subdomainStatus === "invalid" ? "text-amber-500" :
                   "text-muted-foreground"

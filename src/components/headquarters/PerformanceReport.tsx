@@ -479,7 +479,7 @@ export function PerformanceReport({ accommodations }: PerformanceReportProps) {
     if (value === 0) return <Minus className="h-4 w-4 text-muted-foreground" />;
     const isPositive = value > 0;
     return (
-      <div className={`flex items-center gap-1 text-sm font-medium ${isPositive ? "text-green-500" : "text-destructive"}`}>
+      <div className={`flex items-center gap-1 text-sm font-medium ${isPositive ? "text-primary" : "text-destructive"}`}>
         {isPositive ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
         {showValue && <span>{Math.abs(value)}%</span>}
       </div>
@@ -589,8 +589,8 @@ export function PerformanceReport({ accommodations }: PerformanceReportProps) {
         <Card>
           <CardContent className="pt-5 pb-4">
             <div className="flex items-center justify-between mb-2">
-              <div className="p-2 bg-green-500/10 rounded-lg">
-                <DollarSign className="h-5 w-5 text-green-500" />
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <DollarSign className="h-5 w-5 text-primary" />
               </div>
               {timeRange !== "all" && <GrowthIndicator value={totals.revenueChange} />}
             </div>
@@ -751,7 +751,7 @@ export function PerformanceReport({ accommodations }: PerformanceReportProps) {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
-              <Activity className="h-5 w-5 text-green-500" />
+              <Activity className="h-5 w-5 text-primary" />
               月營收年度比較
             </CardTitle>
             <CardDescription>
@@ -865,7 +865,7 @@ export function PerformanceReport({ accommodations }: PerformanceReportProps) {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
-              <DollarSign className="h-5 w-5 text-green-500" />
+              <DollarSign className="h-5 w-5 text-primary" />
               營收趨勢
             </CardTitle>
             <CardDescription>
@@ -1112,7 +1112,7 @@ export function PerformanceReport({ accommodations }: PerformanceReportProps) {
                           <TableCell className="text-right">
                             {timeRange !== "all" && prevData ? (
                               <div className={`flex items-center justify-end gap-1 font-medium ${
-                                revenueChange > 0 ? "text-green-500" : revenueChange < 0 ? "text-destructive" : ""
+                                revenueChange > 0 ? "text-primary" : revenueChange < 0 ? "text-destructive" : ""
                               }`}>
                                 {revenueChange > 0 ? <ArrowUpRight className="h-4 w-4" /> : 
                                  revenueChange < 0 ? <ArrowDownRight className="h-4 w-4" /> : 
