@@ -2,11 +2,11 @@ import { useEffect } from "react";
 
 interface AccommodationInfo {
   name: string;
-  description: string;
-  address: string;
-  phone?: string;
-  email?: string;
-  star_rating?: string;
+  description: string | null;
+  address: string | null;
+  phone?: string | null;
+  email?: string | null;
+  star_rating?: string | null;
 }
 
 interface RoomType {
@@ -50,10 +50,10 @@ export const StructuredData = ({
       "email": accommodationInfo.email || "",
       "address": {
         "@type": "PostalAddress",
-        "streetAddress": accommodationInfo.address,
+        "streetAddress": accommodationInfo.address || "",
         "addressCountry": "TW",
-        "addressLocality": accommodationInfo.address.includes("南投") ? "南投縣" : 
-                          accommodationInfo.address.includes("宜蘭") ? "宜蘭縣" : "台灣"
+        "addressLocality": accommodationInfo.address?.includes("南投") ? "南投縣" : 
+                          accommodationInfo.address?.includes("宜蘭") ? "宜蘭縣" : "台灣"
       },
       "geo": {
         "@type": "GeoCoordinates",
