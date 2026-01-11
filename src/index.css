@@ -114,7 +114,7 @@ All colors MUST be HSL.
     --popover: 38 28% 97%;
     --popover-foreground: 30 25% 20%;
 
-    --primary: 32 55% 50%;
+    --primary: 32 55% 54%;
     --primary-foreground: 38 30% 98%;
 
     --secondary: 35 30% 91%;
@@ -123,15 +123,15 @@ All colors MUST be HSL.
     --muted: 35 25% 92%;
     --muted-foreground: 30 18% 42%;
 
-    --accent: 28 50% 45%;
+    --accent: 28 50% 48%;
     --accent-foreground: 38 30% 98%;
 
     --border: 32 22% 84%;
     --input: 35 20% 87%;
     --ring: 32 55% 45%;
 
-    --hero-gradient-start: 32 55% 50%;
-    --hero-gradient-end: 28 50% 45%;
+    --hero-gradient-start: 32 55% 54%;
+    --hero-gradient-end: 28 50% 48%;
     
     --card-hover: 35 22% 94%;
     --shadow-sm: 0 1px 2px 0 rgba(140, 100, 60, 0.06);
@@ -140,31 +140,31 @@ All colors MUST be HSL.
 
     --sidebar-background: 35 22% 95%;
     --sidebar-foreground: 30 20% 26%;
-    --sidebar-primary: 32 55% 50%;
+    --sidebar-primary: 32 55% 54%;
     --sidebar-primary-foreground: 38 30% 98%;
     --sidebar-accent: 35 28% 91%;
     --sidebar-accent-foreground: 30 25% 22%;
     --sidebar-border: 32 20% 86%;
-    --sidebar-ring: 32 55% 50%;
+    --sidebar-ring: 32 55% 54%;
 
-    --auth-primary: 32 55% 50%;
-    --auth-primary-hover: 32 55% 42%;
+    --auth-primary: 32 55% 54%;
+    --auth-primary-hover: 32 55% 46%;
 
     --stat-coral: 28 50% 50%;
     --stat-coral-light: 32 40% 92%;
 
-    --chart-1: 32 55% 50%;
-    --chart-2: 28 50% 45%;
-    --chart-3: 38 45% 52%;
-    --chart-4: 42 50% 55%;
-    --chart-5: 22 45% 48%;
+    --chart-1: 32 55% 54%;
+    --chart-2: 28 50% 48%;
+    --chart-3: 38 45% 55%;
+    --chart-4: 42 50% 58%;
+    --chart-5: 22 45% 50%;
 
-    --chart-revenue-primary: 32 55% 50%;
-    --chart-revenue-secondary: 38 45% 52%;
+    --chart-revenue-primary: 32 55% 54%;
+    --chart-revenue-secondary: 38 45% 55%;
     --chart-revenue-bg: 35 32% 92%;
     
-    --chart-booking-primary: 28 50% 45%;
-    --chart-booking-secondary: 32 55% 50%;
+    --chart-booking-primary: 28 50% 48%;
+    --chart-booking-secondary: 32 55% 54%;
     --chart-booking-bg: 32 38% 92%;
   }
 
