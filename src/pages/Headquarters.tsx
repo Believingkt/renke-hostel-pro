@@ -910,7 +910,7 @@ const Headquarters = () => {
   };
 
   return (
-    <div className="space-y-6 md:space-y-8">
+    <div className="admin-theme space-y-6 md:space-y-8">
       <div className="space-y-4 md:space-y-5">
         <Breadcrumb>
           <BreadcrumbList>
