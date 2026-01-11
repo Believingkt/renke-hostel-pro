@@ -72,29 +72,31 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
   };
 
   return (
-    <footer className="bg-[#0d2620] text-white py-6 md:py-16">
+    <footer className="bg-[#0d2620] text-white py-8 md:py-16">
       <div className="container mx-auto px-4">
         <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-12 mb-6 md:mb-12">
-            {/* 左側 - Logo 與社交媒體 */}
-            <div className="text-center md:text-left">
-              <div className="mb-3 md:mb-6 flex justify-center md:justify-start">
+          {/* 手機版：改為單欄垂直排列，更緊湊的佈局 */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 mb-8 md:mb-12">
+            
+            {/* Logo 與社交媒體 */}
+            <div className="text-center md:text-left order-1">
+              <div className="mb-4 md:mb-6 flex justify-center md:justify-start">
                 <img 
                   src={footerLogoUrl || sensanLogoWhite} 
                   alt={accommodationName || "森山寫照"} 
-                  className="h-10 md:h-16 w-auto object-contain" 
+                  className="h-12 md:h-16 w-auto object-contain" 
                 />
               </div>
-              <div className="flex gap-4 justify-center md:justify-start">
+              <div className="flex gap-5 justify-center md:justify-start">
                 {facebookUrl && (
                   <a 
                     href={facebookUrl} 
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover:text-primary transition-colors" 
+                    className="text-white/70 hover:text-white transition-colors" 
                     aria-label="Facebook"
                   >
-                    <Facebook className="h-5 w-5" />
+                    <Facebook className="h-5 w-5 md:h-5 md:w-5" />
                   </a>
                 )}
                 {instagramUrl && (
@@ -102,10 +104,10 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
                     href={instagramUrl} 
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover:text-primary transition-colors" 
+                    className="text-white/70 hover:text-white transition-colors" 
                     aria-label="Instagram"
                   >
-                    <Instagram className="h-5 w-5" />
+                    <Instagram className="h-5 w-5 md:h-5 md:w-5" />
                   </a>
                 )}
                 {threadsUrl && (
@@ -113,7 +115,7 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
                     href={threadsUrl} 
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover:text-primary transition-colors" 
+                    className="text-white/70 hover:text-white transition-colors" 
                     aria-label="Threads"
                   >
                     <svg className="h-5 w-5" viewBox="0 0 192 192" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -126,10 +128,10 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
                     href={youtubeUrl} 
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover:text-primary transition-colors" 
+                    className="text-white/70 hover:text-white transition-colors" 
                     aria-label="YouTube"
                   >
-                    <Youtube className="h-5 w-5" />
+                    <Youtube className="h-5 w-5 md:h-5 md:w-5" />
                   </a>
                 )}
                 {tiktokUrl && (
@@ -137,7 +139,7 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
                     href={tiktokUrl} 
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover:text-primary transition-colors" 
+                    className="text-white/70 hover:text-white transition-colors" 
                     aria-label="TikTok"
                   >
                     <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -148,53 +150,16 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
               </div>
             </div>
 
-            {/* 中間 - 快速連結 */}
-            <div className="text-center md:text-left">
-              <h4 className="text-base md:text-lg font-semibold mb-3 md:mb-6">快速連結</h4>
-              <ul className="space-y-2 md:space-y-3">
-                <li>
-                  <button onClick={() => scrollToSection("rooms")} className="text-sm md:text-base text-white/80 hover:text-white transition-colors">
-                    房型導覽
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => scrollToSection("facilities")} className="text-sm md:text-base text-white/80 hover:text-white transition-colors">
-                    設施服務
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => scrollToSection("gallery")} className="text-sm md:text-base text-white/80 hover:text-white transition-colors">
-                    精選照片
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => scrollToSection("location")} className="text-sm md:text-base text-white/80 hover:text-white transition-colors">
-                    交通地圖
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => scrollToSection("booking-info")} className="text-sm md:text-base text-white/80 hover:text-white transition-colors">
-                    訂房須知
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => scrollToSection("faq")} className="text-sm md:text-base text-white/80 hover:text-white transition-colors">
-                    常見問題
-                  </button>
-                </li>
-              </ul>
-            </div>
-
-            {/* 右側 - 聯絡資訊 */}
-            <div className="text-center md:text-left">
-              <h4 className="text-base md:text-lg font-semibold mb-3 md:mb-6">聯絡資訊</h4>
-              <ul className="space-y-2 md:space-y-4 flex flex-col items-center md:items-start">
+            {/* 聯絡資訊 - 手機版放在第二個 */}
+            <div className="text-center md:text-left order-2 md:order-3">
+              <h4 className="text-base md:text-lg font-semibold mb-4 md:mb-6">聯絡資訊</h4>
+              <ul className="space-y-3 md:space-y-4 flex flex-col items-center md:items-start">
                 <li>
                   <a 
                     href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address || "台灣南投縣信義鄉東埔村開高巷123號")}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-start gap-2 md:gap-3 text-sm md:text-base text-white/80 hover:text-white transition-colors"
+                    className="inline-flex items-start gap-2.5 text-sm md:text-base text-white/70 hover:text-white transition-colors"
                   >
                     <MapPin className="h-4 w-4 md:h-5 md:w-5 flex-shrink-0 mt-0.5" />
                     <span className="text-left">{address || "台灣南投縣信義鄉東埔村開高巷123號"}</span>
@@ -204,7 +169,7 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
                   <li>
                     <a 
                       href={`tel:${phone.replace(/\s/g, '')}`}
-                      className="inline-flex items-center gap-2 md:gap-3 text-sm md:text-base text-white/80 hover:text-white transition-colors"
+                      className="inline-flex items-center gap-2.5 text-sm md:text-base text-white/70 hover:text-white transition-colors"
                     >
                       <Phone className="h-4 w-4 md:h-5 md:w-5 flex-shrink-0" />
                       <span>{phone}</span>
@@ -217,7 +182,7 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
                       href={`https://line.me/R/ti/p/${lineId}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 md:gap-3 text-sm md:text-base text-white/80 hover:text-white transition-colors"
+                      className="inline-flex items-center gap-2.5 text-sm md:text-base text-white/70 hover:text-white transition-colors"
                     >
                       <svg 
                         className="h-4 w-4 md:h-5 md:w-5 flex-shrink-0" 
@@ -235,7 +200,7 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
                   <li>
                     <a 
                       href={`mailto:${email}`}
-                      className="inline-flex items-center gap-2 md:gap-3 text-sm md:text-base text-white/80 hover:text-white transition-colors"
+                      className="inline-flex items-center gap-2.5 text-sm md:text-base text-white/70 hover:text-white transition-colors"
                     >
                       <Mail className="h-4 w-4 md:h-5 md:w-5 flex-shrink-0" />
                       <span>{email}</span>
@@ -244,19 +209,57 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
                 )}
               </ul>
             </div>
+
+            {/* 快速連結 - 手機版放在最後 */}
+            <div className="text-center md:text-left order-3 md:order-2">
+              <h4 className="text-base md:text-lg font-semibold mb-4 md:mb-6">快速連結</h4>
+              {/* 手機版使用兩欄，桌機版使用單欄 */}
+              <ul className="grid grid-cols-2 md:grid-cols-1 gap-2 md:gap-3">
+                <li>
+                  <button onClick={() => scrollToSection("rooms")} className="text-sm md:text-base text-white/70 hover:text-white transition-colors">
+                    房型導覽
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => scrollToSection("facilities")} className="text-sm md:text-base text-white/70 hover:text-white transition-colors">
+                    設施服務
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => scrollToSection("gallery")} className="text-sm md:text-base text-white/70 hover:text-white transition-colors">
+                    精選照片
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => scrollToSection("location")} className="text-sm md:text-base text-white/70 hover:text-white transition-colors">
+                    交通地圖
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => scrollToSection("booking-info")} className="text-sm md:text-base text-white/70 hover:text-white transition-colors">
+                    訂房須知
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => scrollToSection("faq")} className="text-sm md:text-base text-white/70 hover:text-white transition-colors">
+                    常見問題
+                  </button>
+                </li>
+              </ul>
+            </div>
           </div>
 
-          <Separator className="my-4 md:my-8 bg-white/20" />
+          <Separator className="my-6 md:my-8 bg-white/20" />
           
-          <div className="flex flex-col items-center justify-center gap-1.5 md:gap-2 text-white/60 text-[10px] md:text-sm">
-            <div className="flex flex-wrap items-center justify-center gap-1 md:gap-2">
+          <div className="flex flex-col items-center justify-center gap-2 text-white/50 text-xs md:text-sm">
+            <div className="flex flex-wrap items-center justify-center gap-1.5 md:gap-2">
               <span>PRESENTED BY</span>
               <a href="https://lakeze.com" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity inline-flex items-center">
-                <img src={lakezeLogoWhite} alt="Lakeze" className="h-3.5 md:h-5 w-auto -translate-y-0.5" loading="lazy" />
+                <img src={lakezeLogoWhite} alt="Lakeze" className="h-4 md:h-5 w-auto -translate-y-0.5" loading="lazy" />
               </a>
               <span>2025 © All Rights Reserved.</span>
             </div>
-            <div className="text-[10px] md:text-sm">人客多股份有限公司　統一編號：00224568</div>
+            <div className="text-xs md:text-sm">人客多股份有限公司　統一編號：00224568</div>
           </div>
         </div>
       </div>
