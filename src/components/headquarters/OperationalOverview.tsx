@@ -113,6 +113,8 @@ interface MonthlyData {
   month: string;
   revenue: number;
   orders: number;
+  prevRevenue: number;
+  prevOrders: number;
 }
 
 interface OperationalOverviewProps {
@@ -197,25 +199,35 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
       const yearStart = format(startOfYear(now), 'yyyy-MM-dd');
       const yearEnd = format(endOfYear(now), 'yyyy-MM-dd');
 
-      // Build query for monthly trends with accommodation filter
+      // Build query for monthly trends with accommodation filter (current year and previous year)
       const accIds = filteredAccommodations.map(a => a.id);
-      let allOrdersQuery = supabase
-        .from("orders")
-        .select("accommodation_id, order_status, final_price, created_at")
-        .in("accommodation_id", accIds)
-        .gte("created_at", format(subMonths(now, 11), 'yyyy-MM-dd'));
-
-      const { data: allOrders, error: allOrdersError } = await allOrdersQuery;
+      
+      // Get orders from last 24 months for year-over-year comparison
+      const [{ data: allOrders, error: allOrdersError }, { data: prevYearOrders, error: prevYearOrdersError }] = await Promise.all([
+        supabase
+          .from("orders")
+          .select("accommodation_id, order_status, final_price, created_at")
+          .in("accommodation_id", accIds)
+          .gte("created_at", format(subMonths(now, 11), 'yyyy-MM-dd')),
+        supabase
+          .from("orders")
+          .select("accommodation_id, order_status, final_price, created_at")
+          .in("accommodation_id", accIds)
+          .gte("created_at", format(subMonths(now, 23), 'yyyy-MM-dd'))
+          .lt("created_at", format(subMonths(now, 11), 'yyyy-MM-dd'))
+      ]);
 
       if (allOrdersError) throw allOrdersError;
+      if (prevYearOrdersError) throw prevYearOrdersError;
 
-      const monthlyMap = new Map<string, { revenue: number; orders: number }>();
+      const monthlyMap = new Map<string, { revenue: number; orders: number; prevRevenue: number; prevOrders: number }>();
       for (let i = 11; i >= 0; i--) {
         const date = subMonths(now, i);
         const key = format(date, 'M月');
-        monthlyMap.set(key, { revenue: 0, orders: 0 });
+        monthlyMap.set(key, { revenue: 0, orders: 0, prevRevenue: 0, prevOrders: 0 });
       }
 
+      // Current year data
       allOrders?.forEach(order => {
         if (order.order_status !== 'cancelled' && order.created_at) {
           const orderDate = new Date(order.created_at);
@@ -228,11 +240,26 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
         }
       });
 
+      // Previous year data (map to same month names)
+      prevYearOrders?.forEach(order => {
+        if (order.order_status !== 'cancelled' && order.created_at) {
+          const orderDate = new Date(order.created_at);
+          const key = format(orderDate, 'M月');
+          const current = monthlyMap.get(key);
+          if (current) {
+            current.prevRevenue += order.final_price || 0;
+            current.prevOrders += 1;
+          }
+        }
+      });
+
       setMonthlyTrends(
         Array.from(monthlyMap.entries()).map(([month, data]) => ({
           month,
           revenue: data.revenue,
           orders: data.orders,
+          prevRevenue: data.prevRevenue,
+          prevOrders: data.prevOrders,
         }))
       );
 
@@ -868,16 +895,23 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
               <div className="flex items-start justify-between">
                 <div>
                   <CardTitle className="text-lg font-semibold">營收趨勢</CardTitle>
-                  <CardDescription>近12個月營收變化</CardDescription>
+                  <CardDescription>近12個月營收變化（含去年同期比較）</CardDescription>
                 </div>
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <TrendingUp className="h-4 w-4 text-primary" />
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2 text-xs">
+                    <div className="w-3 h-3 rounded" style={{ backgroundColor: 'hsl(203, 78%, 43%)' }} />
+                    <span className="text-muted-foreground">今年</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    <div className="w-3 h-3 rounded" style={{ backgroundColor: 'hsl(203, 78%, 43%, 0.3)' }} />
+                    <span className="text-muted-foreground">去年同期</span>
+                  </div>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              {monthlyTrends.some(d => d.revenue > 0) ? (
-                <ResponsiveContainer width="100%" height={240}>
+              {monthlyTrends.some(d => d.revenue > 0 || d.prevRevenue > 0) ? (
+                <ResponsiveContainer width="100%" height={280}>
                   <BarChart data={monthlyTrends} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" vertical={false} />
                     <XAxis 
@@ -894,7 +928,10 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
                       width={50}
                     />
                     <Tooltip 
-                      formatter={(value: number) => [formatCurrency(value), '營收']}
+                      formatter={(value: number, name: string) => [
+                        formatCurrency(value), 
+                        name === 'revenue' ? '今年營收' : '去年同期'
+                      ]}
                       contentStyle={{ 
                         backgroundColor: 'hsl(var(--background))',
                         borderColor: 'hsl(var(--border))',
@@ -903,15 +940,23 @@ export function OperationalOverview({ accommodations }: OperationalOverviewProps
                       }}
                     />
                     <Bar 
+                      dataKey="prevRevenue" 
+                      fill="hsl(203, 78%, 43%, 0.3)" 
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={35}
+                      name="去年同期"
+                    />
+                    <Bar 
                       dataKey="revenue" 
                       fill="hsl(203, 78%, 43%)" 
                       radius={[4, 4, 0, 0]}
-                      maxBarSize={40}
+                      maxBarSize={35}
+                      name="今年營收"
                     />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-[240px] text-muted-foreground">
+                <div className="flex items-center justify-center h-[280px] text-muted-foreground">
                   <p className="text-sm">暫無營收數據</p>
                 </div>
               )}
