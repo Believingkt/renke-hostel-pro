@@ -643,7 +643,7 @@ const KolDiscount = () => {
       case "full":
         return <Badge variant="destructive">已達上限</Badge>;
       case "active":
-        return <Badge variant="default" className="bg-green-600">有效</Badge>;
+        return <Badge variant="default" className="bg-primary">有效</Badge>;
     }
   };
 
@@ -848,7 +848,7 @@ const KolDiscount = () => {
               {item.is_active ? (
                 <Pause className="h-4 w-4" />
               ) : (
-                <Check className="h-4 w-4 text-green-600" />
+                <Check className="h-4 w-4 text-primary" />
               )}
             </Button>
             <Button
@@ -2534,7 +2534,7 @@ const KolDiscount = () => {
                             </>
                           ) : (
                             <>
-                              <Check className="h-3.5 w-3.5 mr-1 text-green-600" />
+                              <Check className="h-3.5 w-3.5 mr-1 text-primary" />
                               啟用
                             </>
                           )}

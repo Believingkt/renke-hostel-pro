@@ -992,11 +992,11 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
               )}
               
               {copiedData && !isCopyMode && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm">
+                <div className="bg-primary/10 border border-primary/20 rounded-lg p-3 text-sm">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-green-600" />
-                      <span className="text-green-800">
+                      <Check className="h-4 w-4 text-primary" />
+                      <span className="text-primary">
                         已複製：價格 NT$ {copiedData.price?.toLocaleString()} / 房數 {copiedData.availableRooms}
                       </span>
                     </div>
@@ -1232,7 +1232,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                         {!dayInventory.isBlocked && dayInventory.bookedCount && dayInventory.bookedCount > 0 ? (
                           <Badge 
                             variant="secondary" 
-                            className="w-full justify-center gap-1.5 py-1.5 bg-green-100 text-green-800 border-green-300 cursor-pointer hover:bg-green-200 transition-colors"
+                            className="w-full justify-center gap-1.5 py-1.5 bg-primary/10 text-primary border-primary/30 cursor-pointer hover:bg-primary/20 transition-colors"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleBookingClick(dateStr);
@@ -1390,14 +1390,14 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                       {/* 已預訂標記 - 優先顯示 */}
                       {!dayInventory.isBlocked && dayInventory.bookedCount > 0 ? (
                         <div 
-                          className="flex items-center justify-center gap-1 bg-green-100 border border-green-300 rounded px-1.5 py-0.5 cursor-pointer hover:bg-green-200 transition-colors"
+                          className="flex items-center justify-center gap-1 bg-primary/10 border border-primary/30 rounded px-1.5 py-0.5 cursor-pointer hover:bg-primary/20 transition-colors"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleBookingClick(dateStr);
                           }}
                         >
-                          <Check className="h-2.5 w-2.5 text-green-600 flex-shrink-0" />
-                          <span className="text-[8px] sm:text-[9px] text-green-700 font-bold leading-none">已預訂</span>
+                          <Check className="h-2.5 w-2.5 text-primary flex-shrink-0" />
+                          <span className="text-[8px] sm:text-[9px] text-primary font-bold leading-none">已預訂</span>
                         </div>
                       ) : (
                         /* 可預訂標籤 - 僅在無預訂時顯示 */
@@ -1470,8 +1470,8 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
               <span className="font-medium">已鎖定</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-5 h-5 sm:w-4 sm:h-4 bg-green-100 border border-green-300 rounded flex-shrink-0 relative">
-                <Check className="h-2.5 w-2.5 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-green-600" />
+              <div className="w-5 h-5 sm:w-4 sm:h-4 bg-primary/10 border border-primary/30 rounded flex-shrink-0 relative">
+                <Check className="h-2.5 w-2.5 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary" />
               </div>
               <span className="font-medium">已預訂</span>
             </div>
@@ -2254,12 +2254,12 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                                   <span className="text-muted-foreground">
                                     折扣
                                     {(order as any).discount_code && (
-                                      <span className="ml-1 text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1 py-0.5 rounded">
+                                      <span className="ml-1 text-xs bg-primary/10 text-primary px-1 py-0.5 rounded">
                                         {(order as any).discount_code}
                                       </span>
                                     )}
                                   </span>
-                                  <span className="font-medium text-green-600">-NT$ {order.discount_amount.toLocaleString()}</span>
+                                  <span className="font-medium text-primary">-NT$ {order.discount_amount.toLocaleString()}</span>
                                 </div>
                               )}
                               
@@ -2279,9 +2279,9 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                                     </div>
                                   )}
                                   {(order as any).paid_amount > 0 && (
-                                    <div className="text-center p-1.5 bg-green-50 dark:bg-green-950/20 rounded-md">
+                                    <div className="text-center p-1.5 bg-primary/10 rounded-md">
                                       <div className="text-muted-foreground text-xs">已付</div>
-                                      <div className="font-medium text-xs text-green-600">NT$ {((order as any).paid_amount).toLocaleString()}</div>
+                                      <div className="font-medium text-xs text-primary">NT$ {((order as any).paid_amount).toLocaleString()}</div>
                                     </div>
                                   )}
                                   {remainingAmount > 0 && (
@@ -2479,12 +2479,12 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                                   <span className="text-muted-foreground">
                                     折扣金額
                                     {(order as any).discount_code && (
-                                      <span className="ml-1 text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded">
+                                      <span className="ml-1 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
                                         {(order as any).discount_code}
                                       </span>
                                     )}
                                   </span>
-                                  <span className="font-medium text-green-600">-NT$ {order.discount_amount.toLocaleString()}</span>
+                                  <span className="font-medium text-primary">-NT$ {order.discount_amount.toLocaleString()}</span>
                                 </div>
                               )}
                               
@@ -2504,9 +2504,9 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                                     </div>
                                   )}
                                   {(order as any).paid_amount > 0 && (
-                                    <div className="text-center p-2 bg-green-50 dark:bg-green-950/20 rounded-md">
+                                    <div className="text-center p-2 bg-primary/10 rounded-md">
                                       <div className="text-muted-foreground text-xs mb-1">已付金額</div>
-                                      <div className="font-medium text-sm text-green-600">NT$ {((order as any).paid_amount).toLocaleString()}</div>
+                                      <div className="font-medium text-sm text-primary">NT$ {((order as any).paid_amount).toLocaleString()}</div>
                                     </div>
                                   )}
                                   {remainingAmount > 0 && (

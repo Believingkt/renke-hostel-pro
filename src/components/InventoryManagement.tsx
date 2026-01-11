@@ -633,11 +633,11 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
                   )}
                   
                   {copiedData && !isCopyMode && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm">
+                    <div className="bg-primary/10 border border-primary/20 rounded-lg p-3 text-sm">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Check className="h-4 w-4 text-green-600" />
-                          <span className="text-green-800">
+                          <Check className="h-4 w-4 text-primary" />
+                          <span className="text-primary">
                             已複製：房數 {copiedData.availableRooms}
                           </span>
                         </div>
@@ -653,7 +653,7 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
                           <X className="h-3 w-3" />
                         </Button>
                       </div>
-                      <p className="text-xs text-green-700 mt-1">請選擇要套用的目標日期</p>
+                      <p className="text-xs text-primary mt-1">請選擇要套用的目標日期</p>
                     </div>
                   )}
 

@@ -1027,7 +1027,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               </div>
             )}
             {calculatedPrice.discount > 0 && (
-              <div className="flex justify-between text-sm text-green-600">
+              <div className="flex justify-between text-sm text-primary">
                 <span>折扣</span>
                 <span>- NT$ {calculatedPrice.discount.toLocaleString()}</span>
               </div>

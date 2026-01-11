@@ -49,7 +49,7 @@ interface Order {
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
   confirmed: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-  checked_in: "bg-green-500/10 text-green-500 border-green-500/20",
+  checked_in: "bg-primary/10 text-primary border-primary/20",
   checked_out: "bg-gray-500/10 text-gray-500 border-gray-500/20",
   cancelled: "bg-red-500/10 text-red-500 border-red-500/20",
 };
@@ -191,7 +191,7 @@ const DiscountCodeOrders = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-primary">
               NT$ {totalRevenue.toLocaleString()}
             </div>
           </CardContent>
@@ -327,7 +327,7 @@ const DiscountCodeOrders = () => {
                     </div>
                     <div>
                       <p className="text-muted-foreground text-xs">實收</p>
-                      <p className="font-semibold text-green-600">NT$ {order.final_price.toLocaleString()}</p>
+                      <p className="font-semibold text-primary">NT$ {order.final_price.toLocaleString()}</p>
                     </div>
                   </div>
 

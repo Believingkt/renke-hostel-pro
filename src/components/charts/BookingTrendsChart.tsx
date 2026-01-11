@@ -228,7 +228,7 @@ export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: Book
                   <p className="text-sm text-muted-foreground">差異</p>
                   <p className={`text-lg font-semibold ${
                     (selectedData[categories[0]] || 0) >= (selectedData[categories[1]] || 0) 
-                      ? 'text-green-600' 
+                      ? 'text-primary' 
                       : 'text-red-600'
                   }`}>
                     {((selectedData[categories[0]] || 0) - (selectedData[categories[1]] || 0)) >= 0 ? '+' : ''}

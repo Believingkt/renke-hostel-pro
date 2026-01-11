@@ -17,7 +17,7 @@ const buttonVariants = cva(
         "ghost-destructive": "text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors",
         link: "text-primary underline-offset-4 hover:underline",
         info: "bg-blue-500 text-white hover:bg-blue-600",
-        success: "bg-green-500 text-white hover:bg-green-600",
+        success: "bg-success text-success-foreground hover:bg-success/90",
       },
       size: {
         default: "min-h-[48px] md:h-10 px-5 md:px-4 py-3 md:py-2 text-base md:text-sm [&_svg]:size-5 md:[&_svg]:size-4",

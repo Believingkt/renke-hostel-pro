@@ -470,11 +470,11 @@ export const IntegratedCodeDetailsDialog = ({
                         disabled={!apiKey}
                         className={cn(
                           "transition-all",
-                          copiedApiKey && "bg-green-50 border-green-500"
+                          copiedApiKey && "bg-primary/10 border-primary"
                         )}
                       >
                         {copiedApiKey ? (
-                          <Check className="h-4 w-4 text-green-600" />
+                          <Check className="h-4 w-4 text-primary" />
                         ) : (
                           <Copy className="h-4 w-4" />
                         )}

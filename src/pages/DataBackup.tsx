@@ -435,7 +435,7 @@ const DataBackup = () => {
                       <CheckCircle2 className="h-3 w-3" />
                       平均壓縮率: {stats.avgCompressionRatio.toFixed(1)}%
                     </span>
-                    <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                    <span className="flex items-center gap-1 text-primary">
                       節省空間: {formatFileSize(stats.spaceSaved)}
                     </span>
                   </>
