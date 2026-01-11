@@ -80,7 +80,7 @@ interface SystemManagementProps {
 
 const ACTION_CATEGORY_LABELS: Record<string, string> = {
   accommodation: "民宿管理",
-  user: "用戶管理",
+  user: "帳號管理",
   order: "訂單管理",
   system: "系統設定",
   backup: "資料備份",
