@@ -818,17 +818,6 @@ All colors MUST be HSL.
     animation: skeleton-shimmer 1.5s ease-in-out infinite;
   }
 
-  /* 天頌幸福和苑專用骨架屏動畫 - 南瓜橘色 */
-  .theme-warm .skeleton-shimmer {
-    background: linear-gradient(
-      90deg,
-      hsl(28 40% 88%) 0%,
-      hsl(24 50% 82%) 50%,
-      hsl(28 40% 88%) 100%
-    );
-    background-size: 200% 100%;
-    animation: skeleton-shimmer 1.5s ease-in-out infinite;
-  }
 
   /* Utilities */
   .shadow-card {
