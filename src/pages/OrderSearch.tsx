@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { PageHeader } from "@/components/PageHeader";
+import { DevAccommodationSwitcher } from "@/components/DevAccommodationSwitcher";
 
 interface OrderData {
   id: string;
@@ -485,6 +486,9 @@ const OrderSearch = () => {
           </CardContent>
         </Card>
       </div>
+      
+      {/* 開發環境住宿切換器 */}
+      <DevAccommodationSwitcher />
     </div>
   );
 };

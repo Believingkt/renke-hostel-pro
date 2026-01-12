@@ -66,6 +66,7 @@ import roomSuite from "@/assets/room-suite.jpg";
 import roomStandard from "@/assets/room-standard.jpg";
 import sensanLogo from "@/assets/sensan-logo-10.png";
 import { createSanitizedHtml } from "@/utils/sanitizeHtml";
+import { DevAccommodationSwitcher } from "@/components/DevAccommodationSwitcher";
 
 // TapPay SDK 類型定義
 declare global {
@@ -4063,6 +4064,9 @@ const BookingFlow = () => {
           </div>
         </DialogContent>
       </Dialog>
+      
+      {/* 開發環境住宿切換器 */}
+      <DevAccommodationSwitcher />
     </div>
   );
 };
