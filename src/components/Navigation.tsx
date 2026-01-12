@@ -1,10 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, Search } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { PreloadLink } from "@/components/PreloadLink";
-import { supabase } from "@/integrations/supabase/client";
-import { useAccommodation } from "@/contexts/AccommodationContext";
+import AccommodationLogo from "@/components/AccommodationLogo";
 
 interface NavigationProps {
   accommodationName?: string;
@@ -13,57 +12,6 @@ interface NavigationProps {
 
 const Navigation = ({ accommodationName = "", onNavigate }: NavigationProps) => {
   const [open, setOpen] = useState(false);
-  const [headerLogoUrl, setHeaderLogoUrl] = useState<string | null>(null);
-  const [isLogoLoaded, setIsLogoLoaded] = useState(false);
-  const { currentAccommodationId } = useAccommodation();
-
-  useEffect(() => {
-    const fetchHeaderLogo = async () => {
-      if (!currentAccommodationId) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from("accommodation_info")
-          .select("header_logo_url")
-          .eq("id", currentAccommodationId)
-          .maybeSingle();
-
-        if (!error && data?.header_logo_url) {
-          setHeaderLogoUrl(data.header_logo_url);
-          setIsLogoLoaded(true);
-        }
-      } catch (error) {
-        if (import.meta.env.DEV) {
-          console.error("Error fetching header logo:", error);
-        }
-      }
-    };
-
-    fetchHeaderLogo();
-
-    // 訂閱 realtime 更新
-    const channel = supabase
-      .channel('accommodation-logo-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'accommodation_info',
-          filter: `id=eq.${currentAccommodationId}`
-        },
-        (payload) => {
-          if (payload.new.header_logo_url) {
-            setHeaderLogoUrl(payload.new.header_logo_url);
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [currentAccommodationId]);
 
   const handleNavigate = (sectionId: string) => {
     onNavigate(sectionId);
@@ -74,15 +22,10 @@ const Navigation = ({ accommodationName = "", onNavigate }: NavigationProps) => 
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <button onClick={() => onNavigate("home")} className="flex items-center hover:opacity-80 transition-opacity">
-          {isLogoLoaded && headerLogoUrl ? (
-            <img 
-              src={headerLogoUrl} 
-              alt={accommodationName || "住宿"} 
-              className="h-14 w-auto object-contain" 
-            />
-          ) : (
-            <div className="h-14 w-32 bg-muted/30 animate-pulse rounded" />
-          )}
+          <AccommodationLogo
+            variant="header"
+            accommodationName={accommodationName}
+          />
         </button>
         
         {/* Desktop Navigation */}

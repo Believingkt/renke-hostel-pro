@@ -1,9 +1,7 @@
 import { Separator } from "@/components/ui/separator";
 import { MapPin, Phone, Mail, Facebook, Instagram, Youtube, ChevronUp } from "lucide-react";
 import lakezeLogoWhite from "@/assets/lakeze-logo-white.png";
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAccommodation } from "@/contexts/AccommodationContext";
+import AccommodationLogo from "@/components/AccommodationLogo";
 
 interface FooterProps {
   accommodationName?: string;
@@ -19,65 +17,6 @@ interface FooterProps {
 }
 
 const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl, instagramUrl, threadsUrl, youtubeUrl, tiktokUrl }: FooterProps) => {
-  const [footerLogoUrl, setFooterLogoUrl] = useState<string | null>(null);
-  const [isFooterLogoLoaded, setIsFooterLogoLoaded] = useState(false);
-  const { currentAccommodationId } = useAccommodation();
-
-  useEffect(() => {
-    const fetchFooterLogo = async () => {
-      if (!currentAccommodationId) return;
-
-      // 切換住宿時，先清空，避免先顯示上一個住宿的 logo 或預設 logo 造成閃爍
-      setIsFooterLogoLoaded(false);
-      setFooterLogoUrl(null);
-
-      try {
-        const { data, error } = await supabase
-          .from("accommodation_info")
-          .select("footer_logo_url")
-          .eq("id", currentAccommodationId)
-          .maybeSingle();
-
-        if (error) throw error;
-
-        setFooterLogoUrl(data?.footer_logo_url ?? null);
-        setIsFooterLogoLoaded(true);
-      } catch (error) {
-        if (import.meta.env.DEV) {
-          console.error("Error fetching footer logo:", error);
-        }
-        setIsFooterLogoLoaded(true);
-      }
-    };
-
-    fetchFooterLogo();
-
-    // 訂閱 realtime 更新
-    const channel = supabase
-      .channel('footer-logo-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'accommodation_info',
-          filter: `id=eq.${currentAccommodationId}`
-        },
-        (payload) => {
-          if (Object.prototype.hasOwnProperty.call(payload.new, "footer_logo_url")) {
-            // 允許清空 logo
-            setFooterLogoUrl((payload.new as any).footer_logo_url ?? null);
-            setIsFooterLogoLoaded(true);
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [currentAccommodationId]);
-
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
@@ -99,20 +38,10 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
             {/* Logo 與社交媒體 */}
             <div className="text-center md:text-left order-1">
               <div className="mb-4 md:mb-6 flex justify-center md:justify-start">
-                {!isFooterLogoLoaded ? (
-                  <div className="h-10 md:h-14 w-40 md:w-56 bg-white/10 animate-pulse rounded" />
-                ) : footerLogoUrl ? (
-                  <img 
-                    src={footerLogoUrl} 
-                    alt={accommodationName || "住宿"} 
-                    className="h-10 md:h-14 max-w-[200px] md:max-w-[260px] w-auto object-contain" 
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="h-10 md:h-14 flex items-center">
-                    <span className="text-base md:text-lg font-semibold">{accommodationName || "住宿"}</span>
-                  </div>
-                )}
+                <AccommodationLogo
+                  variant="footer"
+                  accommodationName={accommodationName}
+                />
               </div>
               <div className="flex gap-5 justify-center md:justify-start">
                 {facebookUrl && (
