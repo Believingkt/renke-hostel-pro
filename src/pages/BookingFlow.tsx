@@ -66,6 +66,7 @@ import roomSuite from "@/assets/room-suite.jpg";
 import roomStandard from "@/assets/room-standard.jpg";
 import { createSanitizedHtml } from "@/utils/sanitizeHtml";
 import { DevAccommodationSwitcher } from "@/components/DevAccommodationSwitcher";
+import AccommodationLogo from "@/components/AccommodationLogo";
 
 // TapPay SDK 類型定義
 declare global {
@@ -2053,11 +2054,12 @@ const BookingFlow = () => {
       <header className="border-b bg-background/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
-            {isAccommodationLoaded && accommodationLogo ? (
-              <img src={accommodationLogo} alt={accommodationName} className="h-14 w-auto" />
-            ) : (
-              <div className="h-14 w-32 bg-muted/30 animate-pulse rounded" />
-            )}
+            <AccommodationLogo
+              variant="header"
+              accommodationName={accommodationName}
+              logoUrl={accommodationLogo}
+              isLoaded={isAccommodationLoaded}
+            />
           </Link>
           <Button variant="ghost" onClick={() => navigate("/")} size="sm">
             <ChevronLeft className="h-4 w-4 mr-1" />
