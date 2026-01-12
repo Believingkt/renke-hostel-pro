@@ -13,22 +13,14 @@ import { Session } from "@supabase/supabase-js";
 import { useOrderNotifications } from "@/hooks/use-order-notifications";
 import { toast } from "sonner";
 import { HQProvider } from "@/contexts/HQContext";
-import { useAccommodation } from "@/contexts/AccommodationContext";
-
-// 天頌幸福和苑的 ID - 使用橘色主題
-const TIANSONG_ID = '4ee31aca-5641-4d05-80e2-1c67626be83d';
 
 export function ConditionalLayout() {
   const location = useLocation();
-  const { currentAccommodationId } = useAccommodation();
   const isFrontendPage = location.pathname === "/";
   const isAdminPage = location.pathname.startsWith("/admin");
   const isHQPage = location.pathname.startsWith("/hq") && location.pathname !== "/hq-auth";
   const isAuthPage = location.pathname === "/auth";
   const isHQAuthPage = location.pathname === "/hq-auth";
-  
-  // 判斷是否為天頌幸福和苑 - 使用橘色主題
-  const isWarmTheme = currentAccommodationId === TIANSONG_ID;
   
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -155,7 +147,7 @@ export function ConditionalLayout() {
   // Show loading when checking session or password requirements
   if ((loading || needsPasswordChange === null) && (isAdminPage || isHQPage)) {
     return (
-      <div className={`flex items-center justify-center min-h-screen ${isWarmTheme ? 'theme-warm' : ''}`}>
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
           <p className="text-sm text-muted-foreground">載入中...</p>
@@ -251,7 +243,7 @@ export function ConditionalLayout() {
       <Toaster />
       <Sonner />
       <SidebarProvider>
-        <div className={`admin-theme flex min-h-screen w-full ${isWarmTheme ? 'theme-warm' : ''}`}>
+        <div className="admin-theme flex min-h-screen w-full">
           <AppSidebar />
           <div className="flex flex-1 flex-col overflow-hidden">
             <Header />
