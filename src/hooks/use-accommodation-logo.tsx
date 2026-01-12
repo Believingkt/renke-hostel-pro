@@ -11,12 +11,16 @@ interface UseAccommodationLogoOptions {
   externalLogoUrl?: string | null;
   /** 外部傳入的 loading 狀態 */
   externalIsLoaded?: boolean;
+  /** 是否同時取得住宿名稱 */
+  fetchName?: boolean;
 }
 
 interface UseAccommodationLogoReturn {
   logoUrl: string | null;
   isLoaded: boolean;
   accommodationId: string | null;
+  /** 住宿名稱（需設定 fetchName: true） */
+  accommodationName: string;
 }
 
 /**
@@ -27,10 +31,12 @@ export function useAccommodationLogo({
   variant = "header",
   externalLogoUrl,
   externalIsLoaded,
+  fetchName = false,
 }: UseAccommodationLogoOptions = {}): UseAccommodationLogoReturn {
   const { currentAccommodationId } = useAccommodation();
   const [internalLogoUrl, setInternalLogoUrl] = useState<string | null>(null);
   const [internalIsLoaded, setInternalIsLoaded] = useState(false);
+  const [accommodationName, setAccommodationName] = useState("");
 
   // 判斷是否使用外部狀態
   const useExternalState = externalLogoUrl !== undefined && externalIsLoaded !== undefined;
@@ -50,17 +56,27 @@ export function useAccommodationLogo({
       // 切換住宿時重置狀態
       setInternalIsLoaded(false);
       setInternalLogoUrl(null);
+      if (fetchName) setAccommodationName("");
 
       try {
+        // 動態建立 select 欄位
+        const selectFields = fetchName ? `${logoField},name` : logoField;
+        
         const { data, error } = await supabase
           .from("accommodation_info")
-          .select(logoField)
+          .select(selectFields)
           .eq("id", currentAccommodationId)
           .maybeSingle();
 
         if (error) throw error;
 
-        setInternalLogoUrl((data as Record<string, string | null>)?.[logoField] ?? null);
+        if (data) {
+          const record = data as unknown as Record<string, string | null>;
+          setInternalLogoUrl(record[logoField] ?? null);
+          if (fetchName && record.name) {
+            setAccommodationName(record.name);
+          }
+        }
         setInternalIsLoaded(true);
       } catch (error) {
         if (import.meta.env.DEV) {
@@ -84,9 +100,13 @@ export function useAccommodationLogo({
           filter: `id=eq.${currentAccommodationId}`,
         },
         (payload) => {
-          if (Object.prototype.hasOwnProperty.call(payload.new, logoField)) {
-            setInternalLogoUrl((payload.new as Record<string, string | null>)[logoField] ?? null);
+          const newData = payload.new as Record<string, string | null>;
+          if (Object.prototype.hasOwnProperty.call(newData, logoField)) {
+            setInternalLogoUrl(newData[logoField] ?? null);
             setInternalIsLoaded(true);
+          }
+          if (fetchName && Object.prototype.hasOwnProperty.call(newData, "name")) {
+            setAccommodationName(newData.name ?? "");
           }
         }
       )
@@ -95,11 +115,12 @@ export function useAccommodationLogo({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentAccommodationId, useExternalState, logoField, channelName, variant]);
+  }, [currentAccommodationId, useExternalState, logoField, channelName, variant, fetchName]);
 
   return {
     logoUrl,
     isLoaded,
     accommodationId: currentAccommodationId,
+    accommodationName,
   };
 }

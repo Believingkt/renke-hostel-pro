@@ -16,6 +16,8 @@ import { AccommodationSelector } from "@/components/AccommodationSelector";
 import { Badge } from "@/components/ui/badge";
 import AccommodationLogo from "@/components/AccommodationLogo";
 import { useAccommodation } from "@/contexts/AccommodationContext";
+import { useAccommodationLogo } from "@/hooks/use-accommodation-logo";
+
 export function Header() {
   const navigate = useNavigate();
   const { accommodationId } = useSubdomain();
@@ -23,30 +25,9 @@ export function Header() {
   const { open, isMobile } = useSidebar();
   const [unreadCount, setUnreadCount] = useState(0);
   const [userName, setUserName] = useState<string | null>(null);
-  const [accommodationName, setAccommodationName] = useState<string>("");
-
-  // 取得住宿名稱
-  useEffect(() => {
-    const fetchAccommodationName = async () => {
-      if (!accommodationId) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from("accommodation_info")
-          .select("name")
-          .eq("id", accommodationId)
-          .maybeSingle();
-        
-        if (!error && data) {
-          setAccommodationName(data.name);
-        }
-      } catch (error) {
-        console.error("Error fetching accommodation name:", error);
-      }
-    };
-
-    fetchAccommodationName();
-  }, [accommodationId]);
+  
+  // 使用統一的 hook 取得 logo 和住宿名稱
+  const { accommodationName } = useAccommodationLogo({ variant: "header", fetchName: true });
 
   useEffect(() => {
     const fetchUserProfile = async () => {
