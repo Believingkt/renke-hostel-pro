@@ -18,6 +18,7 @@ import { StructuredData } from "@/components/StructuredData";
 import { SEOHead } from "@/components/SEOHead";
 import { FloatingChat } from "@/components/FloatingChat";
 import { DevAccommodationSwitcher } from "@/components/DevAccommodationSwitcher";
+import { getThemeClass } from "@/constants/themes";
 
 interface AccommodationData {
   info: {
@@ -50,28 +51,6 @@ interface AccommodationData {
   photos: any[];
   locationInfo: any;
 }
-
-// 根據主題預設值返回對應的 CSS 類名
-const getThemeClass = (themePreset?: string): string => {
-  switch (themePreset) {
-    case 'warm':
-      return 'theme-warm';
-    case 'ocean':
-      return 'theme-ocean';
-    case 'elegant':
-      return 'theme-elegant';
-    case 'rose':
-      return 'theme-rose';
-    case 'earth':
-      return 'theme-earth';
-    case 'zen':
-      return 'theme-zen';
-    case 'sunset':
-      return 'theme-sunset';
-    default:
-      return '';
-  }
-};
 
 const Index = () => {
   const [data, setData] = useState<AccommodationData | null>(null);
