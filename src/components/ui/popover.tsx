@@ -2,6 +2,7 @@ import * as React from "react";
 import * as PopoverPrimitive from "@radix-ui/react-popover";
 
 import { cn } from "@/lib/utils";
+import { useThemeClass } from "@/hooks/use-theme-class";
 
 const Popover = PopoverPrimitive.Root;
 
@@ -13,26 +14,8 @@ const PopoverContent = React.forwardRef<
     container?: HTMLElement | null;
   }
 >(({ className, align = "center", sideOffset = 4, container, ...props }, ref) => {
-  // 獲取最近的主題容器
-  const [themeContainer, setThemeContainer] = React.useState<HTMLElement | null>(null);
-
-  React.useEffect(() => {
-    // 尋找帶有主題 class 的最近祖先元素
-    const findThemeContainer = () => {
-      const themeElement = document.querySelector('[class*="theme-"]');
-      if (themeElement instanceof HTMLElement) {
-        return themeElement;
-      }
-      return null;
-    };
-    
-    setThemeContainer(findThemeContainer());
-  }, []);
-
   // 獲取主題 class
-  const themeClass = themeContainer?.className
-    .split(' ')
-    .find(c => c.startsWith('theme-')) || '';
+  const themeClass = useThemeClass();
 
   return (
     <PopoverPrimitive.Portal container={container}>

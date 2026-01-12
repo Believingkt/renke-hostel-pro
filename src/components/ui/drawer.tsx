@@ -2,6 +2,7 @@ import * as React from "react";
 import { Drawer as DrawerPrimitive } from "vaul";
 
 import { cn } from "@/lib/utils";
+import { useThemeClass } from "@/hooks/use-theme-class";
 
 const Drawer = ({ shouldScaleBackground = true, ...props }: React.ComponentProps<typeof DrawerPrimitive.Root>) => (
   <DrawerPrimitive.Root shouldScaleBackground={shouldScaleBackground} {...props} />
@@ -29,6 +30,9 @@ const DrawerContent = React.forwardRef<
   // Check if we're in admin context by looking at the current path
   const isAdminContext = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
   
+  // 獲取主題 class
+  const themeClass = useThemeClass();
+  
   return (
     <DrawerPortal>
       <DrawerOverlay />
@@ -36,7 +40,7 @@ const DrawerContent = React.forwardRef<
         ref={ref}
         className={cn(
           "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] border bg-background pb-safe",
-          isAdminContext && "admin-theme",
+          isAdminContext ? "admin-theme" : themeClass,
           className,
         )}
         {...props}
