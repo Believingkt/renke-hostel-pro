@@ -64,6 +64,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import roomDeluxe from "@/assets/room-deluxe.jpg";
 import roomSuite from "@/assets/room-suite.jpg";
 import roomStandard from "@/assets/room-standard.jpg";
+import sensanLogo from "@/assets/sensan-logo-10.png";
 import { createSanitizedHtml } from "@/utils/sanitizeHtml";
 
 // TapPay SDK 類型定義
@@ -2050,9 +2051,7 @@ const BookingFlow = () => {
       <header className="border-b bg-background/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
-            {accommodationLogo && (
-              <img src={accommodationLogo} alt={accommodationName} className="h-14 w-auto" />
-            )}
+            <img src={accommodationLogo || sensanLogo} alt={accommodationName} className="h-14 w-auto" />
           </Link>
           <Button variant="ghost" onClick={() => navigate("/")} size="sm">
             <ChevronLeft className="h-4 w-4 mr-1" />
