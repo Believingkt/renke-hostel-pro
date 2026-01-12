@@ -263,7 +263,7 @@ const Index = () => {
         <AboutSection description={data.info.description} accommodationId={data.info.id} />
         <RoomsSection roomTypes={data.roomTypes || []} />
         <FacilitiesSection facilities={data.facilities || []} />
-        <PhotoGallerySection photos={data.photos || []} />
+        <PhotoGallerySection photos={(data.photos || []).filter(p => p.photo_type !== 'hero')} />
         <LocationSection
           address={data.info.address}
           locationInfo={data.locationInfo}
