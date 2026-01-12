@@ -1,7 +1,5 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAccommodation } from "@/contexts/AccommodationContext";
 import { cn } from "@/lib/utils";
+import { useAccommodationLogo } from "@/hooks/use-accommodation-logo";
 
 type LogoVariant = "header" | "footer";
 
@@ -40,74 +38,12 @@ const AccommodationLogo = ({
   isLoaded: externalIsLoaded,
   onClick,
 }: AccommodationLogoProps) => {
-  const { currentAccommodationId } = useAccommodation();
-  const [internalLogoUrl, setInternalLogoUrl] = useState<string | null>(null);
-  const [internalIsLoaded, setInternalIsLoaded] = useState(false);
-
-  // 使用外部傳入或內部狀態
-  const useExternalState = externalLogoUrl !== undefined && externalIsLoaded !== undefined;
-  const logoUrl = useExternalState ? externalLogoUrl : internalLogoUrl;
-  const isLoaded = useExternalState ? externalIsLoaded : internalIsLoaded;
-
-  const logoField = variant === "header" ? "header_logo_url" : "footer_logo_url";
-  const channelName = variant === "header" ? "accommodation-header-logo" : "accommodation-footer-logo";
-
-  useEffect(() => {
-    // 若使用外部狀態，不需內部 fetch
-    if (useExternalState) return;
-
-    const fetchLogo = async () => {
-      if (!currentAccommodationId) return;
-
-      // 切換住宿時重置狀態
-      setInternalIsLoaded(false);
-      setInternalLogoUrl(null);
-
-      try {
-        const { data, error } = await supabase
-          .from("accommodation_info")
-          .select(logoField)
-          .eq("id", currentAccommodationId)
-          .maybeSingle();
-
-        if (error) throw error;
-
-        setInternalLogoUrl((data as any)?.[logoField] ?? null);
-        setInternalIsLoaded(true);
-      } catch (error) {
-        if (import.meta.env.DEV) {
-          console.error(`Error fetching ${variant} logo:`, error);
-        }
-        setInternalIsLoaded(true);
-      }
-    };
-
-    fetchLogo();
-
-    // 訂閱 realtime 更新
-    const channel = supabase
-      .channel(`${channelName}-${currentAccommodationId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "accommodation_info",
-          filter: `id=eq.${currentAccommodationId}`,
-        },
-        (payload) => {
-          if (Object.prototype.hasOwnProperty.call(payload.new, logoField)) {
-            setInternalLogoUrl((payload.new as any)[logoField] ?? null);
-            setInternalIsLoaded(true);
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [currentAccommodationId, useExternalState, logoField, channelName, variant]);
+  // 使用統一的 logo 載入 hook
+  const { logoUrl, isLoaded } = useAccommodationLogo({
+    variant,
+    externalLogoUrl,
+    externalIsLoaded,
+  });
 
   // 預設樣式
   const defaultImgClass =
