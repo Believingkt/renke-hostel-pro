@@ -18,7 +18,7 @@ import { StructuredData } from "@/components/StructuredData";
 import { SEOHead } from "@/components/SEOHead";
 import { FloatingChat } from "@/components/FloatingChat";
 import { DevAccommodationSwitcher } from "@/components/DevAccommodationSwitcher";
-import { getThemeClass } from "@/constants/themes";
+import { getThemeClass, cacheAccommodationTheme } from "@/constants/themes";
 
 interface AccommodationData {
   info: {
@@ -44,6 +44,7 @@ interface AccommodationData {
     hero_overlay_opacity?: number;
     hero_autoplay_delay?: number;
     theme_preset?: string;
+    short_url_alias?: string;
   };
   roomTypes: any[];
   bookingSettings: any;
@@ -89,7 +90,7 @@ const Index = () => {
       try {
         const { data: infoData, error: infoError } = await supabase
           .from("accommodation_info")
-          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, og_title, og_description, og_image_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay, theme_preset")
+          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, og_title, og_description, og_image_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay, theme_preset, short_url_alias")
           .eq("id", accommodationId)
           .maybeSingle();
         
@@ -143,6 +144,15 @@ const Index = () => {
             ...room,
             room_photos: (room.room_photos || []).sort((a, b) => a.display_order - b.display_order)
           }));
+
+          // 快取主題設定供骨架屏使用
+          if (infoData.theme_preset) {
+            cacheAccommodationTheme(
+              infoData.id, 
+              infoData.short_url_alias, 
+              infoData.theme_preset
+            );
+          }
 
           setData({
             info: infoData,
