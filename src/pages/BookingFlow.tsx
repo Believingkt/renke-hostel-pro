@@ -64,7 +64,6 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import roomDeluxe from "@/assets/room-deluxe.jpg";
 import roomSuite from "@/assets/room-suite.jpg";
 import roomStandard from "@/assets/room-standard.jpg";
-import sensanLogo from "@/assets/sensan-logo-new.png";
 import { createSanitizedHtml } from "@/utils/sanitizeHtml";
 
 // TapPay SDK 類型定義
@@ -169,6 +168,7 @@ const BookingFlow = () => {
   const [currentStep, setCurrentStep] = useState<BookingStep>("dates");
   const [bookingSettings, setBookingSettings] = useState<BookingSettings | null>(null);
   const [accommodationName, setAccommodationName] = useState("森山寫照");
+  const [accommodationLogo, setAccommodationLogo] = useState<string | null>(null);
   const [accommodationLineId, setAccommodationLineId] = useState<string | null>(null);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [roomPricing, setRoomPricing] = useState<Record<string, number>>({});
@@ -297,13 +297,14 @@ const BookingFlow = () => {
       try {
         const { data: infoData } = await supabase
           .from("accommodation_info")
-          .select("name, line_id")
+          .select("name, line_id, header_logo_url")
           .eq("id", accommodationId)
           .single();
         
         if (infoData) {
           setAccommodationName(infoData.name);
           setAccommodationLineId(infoData.line_id);
+          setAccommodationLogo(infoData.header_logo_url);
         }
 
         const { data: settingsData } = await supabase
@@ -2049,7 +2050,9 @@ const BookingFlow = () => {
       <header className="border-b bg-background/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
-            <img src={sensanLogo} alt={accommodationName} className="h-14 w-auto" />
+            {accommodationLogo && (
+              <img src={accommodationLogo} alt={accommodationName} className="h-14 w-auto" />
+            )}
           </Link>
           <Button variant="ghost" onClick={() => navigate("/")} size="sm">
             <ChevronLeft className="h-4 w-4 mr-1" />
