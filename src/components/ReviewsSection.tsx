@@ -1,35 +1,72 @@
 import { Star } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
-const reviews = [
-  {
-    name: "林志偉",
-    date: "2025年1月",
-    rating: 5,
-    comment: "新年來天送住了三天兩夜，房間非常寬敞舒適，和式風格讓人身心放鬆。老闆娘準備的早餐超豐盛，每天都不一樣！窗外就是山景，早晨醒來心情超好。"
-  },
-  {
-    name: "許雅琳",
-    date: "2024年12月",
-    rating: 4,
-    comment: "帶父母來過聖誕節，他們非常喜歡這裡的氛圍。房間乾淨整潔，設備齊全，溫泉浴池超讚！服務人員細心親切，還幫忙推薦附近景點，下次一定再來！"
-  },
-  {
-    name: "陳柏翰",
-    date: "2024年12月",
-    rating: 5,
-    comment: "第一次來宜蘭就選對了民宿！天送幸福的環境清幽，遠離城市喧囂，很適合放空充電。晚上泡個舒服的澡，睡眠品質超好，隔天精神飽滿。大推！"
-  },
-  {
-    name: "張家瑜",
-    date: "2024年11月",
-    rating: 5,
-    comment: "和閨蜜們的輕旅行選這裡太對了！四人房空間很大，拍照超美。周邊很安靜，還可以看到星星。老闆非常熱情，還送我們當地的小點心，滿滿的人情味！"
+interface ReviewsSectionProps {
+  accommodationId?: string;
+}
+
+interface Review {
+  id: string;
+  reviewer_name: string;
+  review_date: string;
+  rating: number;
+  comment: string;
+}
+
+const ReviewsSection = ({ accommodationId }: ReviewsSectionProps) => {
+  const { data: reviews = [], isLoading } = useQuery({
+    queryKey: ['reviews', accommodationId],
+    queryFn: async () => {
+      if (!accommodationId) return [];
+      
+      const { data, error } = await supabase
+        .from('reviews')
+        .select('id, reviewer_name, review_date, rating, comment')
+        .eq('accommodation_id', accommodationId)
+        .eq('is_published', true)
+        .order('display_order', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching reviews:', error);
+        return [];
+      }
+
+      return data as Review[];
+    },
+    enabled: !!accommodationId,
+  });
+
+  // 計算平均評分
+  const averageRating = reviews.length > 0
+    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+    : "0";
+  const totalReviews = reviews.length;
+
+  if (isLoading) {
+    return (
+      <section className="py-12 md:py-16 lg:py-20 bg-secondary/20">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="max-w-6xl mx-auto animate-pulse">
+            <div className="h-8 bg-muted rounded w-48 mx-auto mb-4"></div>
+            <div className="h-4 bg-muted rounded w-64 mx-auto mb-12"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="bg-card p-6 rounded-lg border">
+                  <div className="h-6 bg-muted rounded w-24 mb-2"></div>
+                  <div className="h-4 bg-muted rounded w-full"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+    );
   }
-];
 
-const ReviewsSection = () => {
-  const averageRating = 4.8;
-  const totalReviews = 4;
+  if (reviews.length === 0) {
+    return null;
+  }
 
   return (
     <section className="py-12 md:py-16 lg:py-20 bg-secondary/20">
@@ -56,15 +93,15 @@ const ReviewsSection = () => {
 
           {/* Reviews Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 lg:gap-6">
-            {reviews.map((review, index) => (
+            {reviews.map((review) => (
               <div
-                key={index}
+                key={review.id}
                 className="bg-card p-5 md:p-6 lg:p-6 rounded-lg border border-border/50 hover:shadow-lg transition-all duration-300"
               >
                 <div className="flex items-start justify-between mb-3 md:mb-3 lg:mb-4">
                   <div>
-                    <h3 className="font-semibold text-base md:text-base lg:text-lg">{review.name}</h3>
-                    <p className="text-xs md:text-sm lg:text-sm text-muted-foreground mt-1">{review.date}</p>
+                    <h3 className="font-semibold text-base md:text-base lg:text-lg">{review.reviewer_name}</h3>
+                    <p className="text-xs md:text-sm lg:text-sm text-muted-foreground mt-1">{review.review_date}</p>
                   </div>
                   <div className="flex gap-0.5">
                     {[1, 2, 3, 4, 5].map((star) => (

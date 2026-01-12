@@ -272,7 +272,7 @@ const Index = () => {
           bookingSettings={data.bookingSettings}
           checkInNotice={data.info.check_in_notice}
         />
-        <ReviewsSection />
+        <ReviewsSection accommodationId={data.info.id} />
         <FaqSection />
       </main>
       <Footer 
