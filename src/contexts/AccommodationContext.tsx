@@ -21,8 +21,10 @@ interface AccommodationContextType {
 
 const AccommodationContext = createContext<AccommodationContextType | undefined>(undefined);
 
+const LAST_ACCOMMODATION_KEY = 'lastSelectedAccommodation';
+
 export function AccommodationProvider({ children }: { children: React.ReactNode }) {
-  const [currentAccommodationId, setCurrentAccommodationId] = useState<string | null>(null);
+  const [currentAccommodationId, setCurrentAccommodationIdState] = useState<string | null>(null);
   const [userAccommodations, setUserAccommodations] = useState<Array<{
     accommodation_id: string;
     role: string;
@@ -31,6 +33,18 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
   const [checkInDate, setCheckInDate] = useState<Date | undefined>();
   const [checkOutDate, setCheckOutDate] = useState<Date | undefined>();
   const [guests, setGuests] = useState({ adults: 2, children: 0 });
+
+  // Wrapper to save to localStorage when setting accommodation
+  const setCurrentAccommodationId = (id: string | null) => {
+    setCurrentAccommodationIdState(id);
+    if (id) {
+      try {
+        localStorage.setItem(LAST_ACCOMMODATION_KEY, id);
+      } catch (e) {
+        console.error('[AccommodationContext] Failed to save to localStorage:', e);
+      }
+    }
+  };
 
   useEffect(() => {
     loadUserAccommodations();
@@ -74,17 +88,36 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
       console.log('[AccommodationContext] Loaded accommodations:', data);
       setUserAccommodations(data || []);
 
-      // Auto-select accommodation - prioritize 森山寫照 (Sensan)
+      // Auto-select accommodation - prioritize saved selection, then 森山寫照 (Sensan)
       if (data && data.length > 0 && !currentAccommodationId) {
-        const sensanId = '5f764d55-ae11-4631-80fe-2e611853deae';
-        const sensanAccommodation = data.find(acc => acc.accommodation_id === sensanId);
+        // First, check if there's a saved selection in localStorage
+        let savedAccommodationId: string | null = null;
+        try {
+          savedAccommodationId = localStorage.getItem(LAST_ACCOMMODATION_KEY);
+        } catch (e) {
+          console.error('[AccommodationContext] Failed to read from localStorage:', e);
+        }
         
-        if (sensanAccommodation) {
-          console.log('[AccommodationContext] Auto-selecting 森山寫照:', sensanId);
-          setCurrentAccommodationId(sensanId);
+        // Verify the saved accommodation is still accessible to the user
+        const savedAccommodation = savedAccommodationId 
+          ? data.find(acc => acc.accommodation_id === savedAccommodationId)
+          : null;
+        
+        if (savedAccommodation) {
+          console.log('[AccommodationContext] Restoring last selected accommodation:', savedAccommodationId);
+          setCurrentAccommodationId(savedAccommodationId);
         } else {
-          console.log('[AccommodationContext] Auto-selecting first accommodation:', data[0].accommodation_id);
-          setCurrentAccommodationId(data[0].accommodation_id);
+          // Fall back to 森山寫照 (Sensan) or first accommodation
+          const sensanId = '5f764d55-ae11-4631-80fe-2e611853deae';
+          const sensanAccommodation = data.find(acc => acc.accommodation_id === sensanId);
+          
+          if (sensanAccommodation) {
+            console.log('[AccommodationContext] Auto-selecting 森山寫照:', sensanId);
+            setCurrentAccommodationId(sensanId);
+          } else {
+            console.log('[AccommodationContext] Auto-selecting first accommodation:', data[0].accommodation_id);
+            setCurrentAccommodationId(data[0].accommodation_id);
+          }
         }
       }
       
