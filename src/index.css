@@ -811,7 +811,7 @@ All colors MUST be HSL.
     background: linear-gradient(
       90deg,
       hsl(var(--muted)) 0%,
-      hsl(var(--muted) / 0.8) 50%,
+      hsl(var(--primary) / 0.15) 50%,
       hsl(var(--muted)) 100%
     );
     background-size: 200% 100%;
