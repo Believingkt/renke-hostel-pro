@@ -17,6 +17,7 @@ import { FrontendSkeleton } from "@/components/skeletons/FrontendSkeleton";
 import { StructuredData } from "@/components/StructuredData";
 import { SEOHead } from "@/components/SEOHead";
 import { FloatingChat } from "@/components/FloatingChat";
+import { DevAccommodationSwitcher } from "@/components/DevAccommodationSwitcher";
 
 interface AccommodationData {
   info: {
@@ -297,6 +298,9 @@ const Index = () => {
         youtubeUrl={data.info.youtube_url}
         tiktokUrl={data.info.tiktok_url}
       />
+      
+      {/* 開發環境住宿切換器 */}
+      <DevAccommodationSwitcher />
     </div>
   );
 };

@@ -22,16 +22,18 @@ export function useSubdomain() {
                              hostname.includes('lovable.app');
       
       if (isDevOrPreview) {
-        // 開發/預覽環境：使用 ?acc= 查詢參數
+        // 開發/預覽環境：使用 ?acc= 查詢參數或 localStorage
         const urlParams = new URLSearchParams(window.location.search);
         const accParam = urlParams.get('acc');
+        const savedAcc = localStorage.getItem('dev_selected_accommodation');
+        const accToUse = accParam || savedAcc;
         
-        if (accParam) {
+        if (accToUse) {
           // 先嘗試用 short_url_alias 查詢
           const { data: aliasData, error: aliasError } = await supabase
             .from('accommodation_info')
             .select('id')
-            .eq('short_url_alias', accParam)
+            .eq('short_url_alias', accToUse)
             .maybeSingle();
           
           if (!aliasError && aliasData) {
@@ -44,7 +46,7 @@ export function useSubdomain() {
           const { data: idData, error: idError } = await supabase
             .from('accommodation_info')
             .select('id')
-            .eq('id', accParam)
+            .eq('id', accToUse)
             .maybeSingle();
           
           if (!idError && idData) {
