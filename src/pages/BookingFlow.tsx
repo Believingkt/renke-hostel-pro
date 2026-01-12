@@ -67,6 +67,7 @@ import roomStandard from "@/assets/room-standard.jpg";
 import { createSanitizedHtml } from "@/utils/sanitizeHtml";
 import { DevAccommodationSwitcher } from "@/components/DevAccommodationSwitcher";
 import AccommodationLogo from "@/components/AccommodationLogo";
+import { getThemeClassByAccommodation } from "@/constants/themes";
 
 // TapPay SDK 類型定義
 declare global {
@@ -163,9 +164,8 @@ const BookingFlow = () => {
     setGuests
   } = useAccommodation();
 
-  // 天頌幸福和苑的 ID - 使用橘色主題
-  const TIANSONG_ID = '4ee31aca-5641-4d05-80e2-1c67626be83d';
-  const isWarmTheme = accommodationId === TIANSONG_ID;
+  // 使用共用主題常數
+  const themeClass = getThemeClassByAccommodation(accommodationId);
   
   const [currentStep, setCurrentStep] = useState<BookingStep>("dates");
   const [bookingSettings, setBookingSettings] = useState<BookingSettings | null>(null);
@@ -2049,7 +2049,7 @@ const BookingFlow = () => {
   const currentStepIndex = stepIndicators.findIndex((s) => s.key === currentStep);
 
   return (
-    <div className={`min-h-screen bg-background ${isWarmTheme ? 'theme-warm' : ''}`}>
+    <div className={`min-h-screen bg-background ${themeClass}`}>
       {/* Header */}
       <header className="border-b bg-background/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">

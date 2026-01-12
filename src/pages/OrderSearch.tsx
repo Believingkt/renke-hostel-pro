@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { PageHeader } from "@/components/PageHeader";
 import { DevAccommodationSwitcher } from "@/components/DevAccommodationSwitcher";
+import { getThemeClassByAccommodation } from "@/constants/themes";
 
 interface OrderData {
   id: string;
@@ -49,9 +50,8 @@ const OrderSearch = () => {
   const [orderData, setOrderData] = useState<OrderData | null>(null);
   const [searchAttempted, setSearchAttempted] = useState(false);
 
-  // 天頌幸福和苑的 ID - 使用橘色主題
-  const TIANSONG_ID = '4ee31aca-5641-4d05-80e2-1c67626be83d';
-  const isWarmTheme = accommodationId === TIANSONG_ID;
+  // 使用共用主題常數
+  const themeClass = getThemeClassByAccommodation(accommodationId);
 
   const getOrderStatusLabel = (status: string) => {
     const statusMap: Record<string, string> = {
@@ -205,7 +205,7 @@ const OrderSearch = () => {
   }
 
   return (
-    <div className={`min-h-screen bg-gradient-to-b from-background to-muted/20 py-8 px-4 ${isWarmTheme ? 'theme-warm' : ''}`}>
+    <div className={`min-h-screen bg-gradient-to-b from-background to-muted/20 py-8 px-4 ${themeClass}`}>
       <div className="max-w-2xl mx-auto">
         <Button
           variant="ghost"

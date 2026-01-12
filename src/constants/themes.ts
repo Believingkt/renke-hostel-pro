@@ -137,6 +137,13 @@ export const THEME_PRESETS = THEME_PRESET_CONFIGS.map(t => t.value);
 
 export type ThemePreset = typeof THEME_PRESET_CONFIGS[number]['value'];
 
+// 主題顏色快速查詢映射（用於表格等簡化顯示場景）
+export const THEME_COLORS: Record<string, { primary: string; label: string }> = 
+  THEME_PRESET_CONFIGS.reduce((acc, theme) => {
+    acc[theme.value] = { primary: theme.colors.primary, label: theme.label };
+    return acc;
+  }, {} as Record<string, { primary: string; label: string }>);
+
 /**
  * 根據主題值取得主題配置
  * @param themeValue - 主題值

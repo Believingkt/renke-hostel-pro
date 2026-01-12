@@ -46,18 +46,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { AccommodationDialog } from "./AccommodationDialog";
 import { DnsSettingsDialog } from "./DnsSettingsDialog";
 import { CustomDomainDialog } from "./CustomDomainDialog";
-
-// 主題預設選項配色（與 AccommodationDialog 對應）
-const THEME_COLORS: Record<string, { primary: string; label: string }> = {
-  default: { primary: "hsl(142, 76%, 36%)", label: "森林綠" },
-  warm: { primary: "hsl(20, 75%, 52%)", label: "南瓜橘" },
-  ocean: { primary: "hsl(200, 80%, 45%)", label: "海洋藍" },
-  elegant: { primary: "hsl(270, 50%, 50%)", label: "優雅紫" },
-  rose: { primary: "hsl(350, 65%, 55%)", label: "玫瑰粉" },
-  earth: { primary: "hsl(30, 50%, 42%)", label: "大地棕" },
-  zen: { primary: "hsl(45, 35%, 45%)", label: "日式和風" },
-  sunset: { primary: "hsl(15, 70%, 50%)", label: "夕陽紅" },
-};
+import { THEME_COLORS } from "@/constants/themes";
 
 interface Accommodation {
   id: string;
