@@ -1334,6 +1334,53 @@ export type Database = {
           },
         ]
       }
+      reviews: {
+        Row: {
+          accommodation_id: string
+          comment: string
+          created_at: string
+          display_order: number | null
+          id: string
+          is_published: boolean | null
+          rating: number
+          review_date: string
+          reviewer_name: string
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          comment: string
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_published?: boolean | null
+          rating: number
+          review_date: string
+          reviewer_name: string
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          comment?: string
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_published?: boolean | null
+          rating?: number
+          review_date?: string
+          reviewer_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_amenities: {
         Row: {
           amenity_icon: string | null
