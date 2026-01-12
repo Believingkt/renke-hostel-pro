@@ -74,10 +74,18 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
       console.log('[AccommodationContext] Loaded accommodations:', data);
       setUserAccommodations(data || []);
 
-      // Auto-select first accommodation if only one exists
-      if (data && data.length === 1 && !currentAccommodationId) {
-        console.log('[AccommodationContext] Auto-selecting accommodation:', data[0].accommodation_id);
-        setCurrentAccommodationId(data[0].accommodation_id);
+      // Auto-select accommodation - prioritize 森山寫照 (Sensan)
+      if (data && data.length > 0 && !currentAccommodationId) {
+        const sensanId = '5f764d55-ae11-4631-80fe-2e611853deae';
+        const sensanAccommodation = data.find(acc => acc.accommodation_id === sensanId);
+        
+        if (sensanAccommodation) {
+          console.log('[AccommodationContext] Auto-selecting 森山寫照:', sensanId);
+          setCurrentAccommodationId(sensanId);
+        } else {
+          console.log('[AccommodationContext] Auto-selecting first accommodation:', data[0].accommodation_id);
+          setCurrentAccommodationId(data[0].accommodation_id);
+        }
       }
       
       setIsLoading(false);
