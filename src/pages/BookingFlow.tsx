@@ -64,7 +64,6 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import roomDeluxe from "@/assets/room-deluxe.jpg";
 import roomSuite from "@/assets/room-suite.jpg";
 import roomStandard from "@/assets/room-standard.jpg";
-import sensanLogo from "@/assets/sensan-logo-10.png";
 import { createSanitizedHtml } from "@/utils/sanitizeHtml";
 import { DevAccommodationSwitcher } from "@/components/DevAccommodationSwitcher";
 
@@ -169,8 +168,9 @@ const BookingFlow = () => {
   
   const [currentStep, setCurrentStep] = useState<BookingStep>("dates");
   const [bookingSettings, setBookingSettings] = useState<BookingSettings | null>(null);
-  const [accommodationName, setAccommodationName] = useState("森山寫照");
+  const [accommodationName, setAccommodationName] = useState("");
   const [accommodationLogo, setAccommodationLogo] = useState<string | null>(null);
+  const [isAccommodationLoaded, setIsAccommodationLoaded] = useState(false);
   const [accommodationLineId, setAccommodationLineId] = useState<string | null>(null);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [roomPricing, setRoomPricing] = useState<Record<string, number>>({});
@@ -307,6 +307,7 @@ const BookingFlow = () => {
           setAccommodationName(infoData.name);
           setAccommodationLineId(infoData.line_id);
           setAccommodationLogo(infoData.header_logo_url);
+          setIsAccommodationLoaded(true);
         }
 
         const { data: settingsData } = await supabase
@@ -2052,7 +2053,11 @@ const BookingFlow = () => {
       <header className="border-b bg-background/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
-            <img src={accommodationLogo || sensanLogo} alt={accommodationName} className="h-14 w-auto" />
+            {isAccommodationLoaded && accommodationLogo ? (
+              <img src={accommodationLogo} alt={accommodationName} className="h-14 w-auto" />
+            ) : (
+              <div className="h-14 w-32 bg-muted/30 animate-pulse rounded" />
+            )}
           </Link>
           <Button variant="ghost" onClick={() => navigate("/")} size="sm">
             <ChevronLeft className="h-4 w-4 mr-1" />
