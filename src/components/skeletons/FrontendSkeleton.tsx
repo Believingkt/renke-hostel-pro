@@ -2,10 +2,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 
 // 住宿主題映射（用於 URL 參數和 ID）
+// 同時支援住宿 ID 和短網址別名
 const THEME_MAPPINGS: Record<string, string> = {
-  // 天頌幸福和苑使用 warm 主題（同時支援 ID 和短網址別名）
+  // 天頌幸福和苑 - warm 主題（焦糖色與奶油白）
   '4ee31aca-5641-4d05-80e2-1c67626be83d': 'warm',
   'tiansong-villa': 'warm',
+  
+  // 森山寫照 - default 主題（使用預設綠色）
+  '5f764d55-ae11-4631-80fe-2e611853deae': 'default',
+  'sensaninn': 'default',
 };
 
 // 同步判斷主題類名（不需要等待 API）
