@@ -1,5 +1,5 @@
 import { LogOut, UserCircle, Bell, Key } from "lucide-react";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -14,12 +14,39 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AccommodationSelector } from "@/components/AccommodationSelector";
 import { Badge } from "@/components/ui/badge";
-
+import AccommodationLogo from "@/components/AccommodationLogo";
+import { useAccommodation } from "@/contexts/AccommodationContext";
 export function Header() {
   const navigate = useNavigate();
   const { accommodationId } = useSubdomain();
+  const { userAccommodations } = useAccommodation();
+  const { open, isMobile } = useSidebar();
   const [unreadCount, setUnreadCount] = useState(0);
   const [userName, setUserName] = useState<string | null>(null);
+  const [accommodationName, setAccommodationName] = useState<string>("");
+
+  // 取得住宿名稱
+  useEffect(() => {
+    const fetchAccommodationName = async () => {
+      if (!accommodationId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from("accommodation_info")
+          .select("name")
+          .eq("id", accommodationId)
+          .maybeSingle();
+        
+        if (!error && data) {
+          setAccommodationName(data.name);
+        }
+      } catch (error) {
+        console.error("Error fetching accommodation name:", error);
+      }
+    };
+
+    fetchAccommodationName();
+  }, [accommodationId]);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -108,11 +135,24 @@ export function Header() {
     }
   };
 
+  // 只有一個住宿時不需要選擇器
+  const hasMultipleAccommodations = userAccommodations.length > 1;
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
       <div className="flex h-16 md:h-16 items-center justify-between px-4 md:px-6 gap-2">
-        <div className="flex items-center gap-2 md:gap-4">
+        <div className="flex items-center gap-3">
           <SidebarTrigger className="h-10 w-10" />
+          {/* Sidebar 收起時顯示住宿 logo */}
+          {(!open || isMobile) && (
+            <AccommodationLogo
+              variant="header"
+              accommodationName={accommodationName}
+              imgClassName="h-8 md:h-9 w-auto object-contain"
+              skeletonClassName="h-8 md:h-9 w-24 bg-muted/30 animate-pulse rounded"
+              textClassName="text-sm md:text-base font-semibold"
+            />
+          )}
         </div>
         
         <div className="flex items-center gap-3 md:gap-4">
