@@ -90,6 +90,44 @@ export const getCachedThemePreset = (accommodationIdOrAlias: string): string | n
   return entry.themePreset;
 };
 
+/**
+ * 清除所有主題快取
+ * 用於開發時強制重新載入主題設定
+ */
+export const clearThemeCache = (): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(THEME_CACHE_KEY);
+    console.log('[Theme] 已清除所有主題快取');
+  } catch (e) {
+    console.warn('[Theme] 清除快取失敗:', e);
+  }
+};
+
+/**
+ * 清除特定住宿的主題快取
+ * @param accommodationIdOrAlias - 住宿 ID 或短網址別名
+ */
+export const clearAccommodationThemeCache = (accommodationIdOrAlias: string): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    const cache = getThemeCache();
+    delete cache[accommodationIdOrAlias];
+    localStorage.setItem(THEME_CACHE_KEY, JSON.stringify(cache));
+    console.log(`[Theme] 已清除 ${accommodationIdOrAlias} 的主題快取`);
+  } catch (e) {
+    console.warn('[Theme] 清除快取失敗:', e);
+  }
+};
+
+/**
+ * 取得所有快取的主題資料（用於開發除錯）
+ * @returns 快取物件
+ */
+export const getThemeCacheDebug = (): ThemeCache => {
+  return getThemeCache();
+};
+
 // 主題預設選項（包含顏色資訊用於預覽）
 export const THEME_PRESET_CONFIGS: ThemePresetConfig[] = [
   { 
