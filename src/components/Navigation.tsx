@@ -3,7 +3,6 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, Search } from "lucide-react";
 import { useState, useEffect } from "react";
 import { PreloadLink } from "@/components/PreloadLink";
-import sensanLogo from "@/assets/sensan-logo-10.png";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 
@@ -12,9 +11,10 @@ interface NavigationProps {
   onNavigate: (sectionId: string) => void;
 }
 
-const Navigation = ({ accommodationName = "森山寫照", onNavigate }: NavigationProps) => {
+const Navigation = ({ accommodationName = "", onNavigate }: NavigationProps) => {
   const [open, setOpen] = useState(false);
-  const [headerLogoUrl, setHeaderLogoUrl] = useState<string>("");
+  const [headerLogoUrl, setHeaderLogoUrl] = useState<string | null>(null);
+  const [isLogoLoaded, setIsLogoLoaded] = useState(false);
   const { currentAccommodationId } = useAccommodation();
 
   useEffect(() => {
@@ -30,6 +30,7 @@ const Navigation = ({ accommodationName = "森山寫照", onNavigate }: Navigati
 
         if (!error && data?.header_logo_url) {
           setHeaderLogoUrl(data.header_logo_url);
+          setIsLogoLoaded(true);
         }
       } catch (error) {
         if (import.meta.env.DEV) {
@@ -73,11 +74,15 @@ const Navigation = ({ accommodationName = "森山寫照", onNavigate }: Navigati
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <button onClick={() => onNavigate("home")} className="flex items-center hover:opacity-80 transition-opacity">
-          <img 
-            src={headerLogoUrl || sensanLogo} 
-            alt={accommodationName} 
-            className="h-14 w-auto object-contain" 
-          />
+          {isLogoLoaded && headerLogoUrl ? (
+            <img 
+              src={headerLogoUrl} 
+              alt={accommodationName || "住宿"} 
+              className="h-14 w-auto object-contain" 
+            />
+          ) : (
+            <div className="h-14 w-32 bg-muted/30 animate-pulse rounded" />
+          )}
         </button>
         
         {/* Desktop Navigation */}
