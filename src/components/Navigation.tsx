@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { PreloadLink } from "@/components/PreloadLink";
 import sensanLogo from "@/assets/sensan-logo-10.png";
 import { supabase } from "@/integrations/supabase/client";
+import { useAccommodation } from "@/contexts/AccommodationContext";
 
 interface NavigationProps {
   accommodationName?: string;
@@ -14,13 +15,17 @@ interface NavigationProps {
 const Navigation = ({ accommodationName = "森山寫照", onNavigate }: NavigationProps) => {
   const [open, setOpen] = useState(false);
   const [headerLogoUrl, setHeaderLogoUrl] = useState<string>("");
+  const { currentAccommodationId } = useAccommodation();
 
   useEffect(() => {
     const fetchHeaderLogo = async () => {
+      if (!currentAccommodationId) return;
+      
       try {
         const { data, error } = await supabase
           .from("accommodation_info")
           .select("header_logo_url")
+          .eq("id", currentAccommodationId)
           .maybeSingle();
 
         if (!error && data?.header_logo_url) {
@@ -43,7 +48,8 @@ const Navigation = ({ accommodationName = "森山寫照", onNavigate }: Navigati
         {
           event: 'UPDATE',
           schema: 'public',
-          table: 'accommodation_info'
+          table: 'accommodation_info',
+          filter: `id=eq.${currentAccommodationId}`
         },
         (payload) => {
           if (payload.new.header_logo_url) {
@@ -56,7 +62,7 @@ const Navigation = ({ accommodationName = "森山寫照", onNavigate }: Navigati
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [currentAccommodationId]);
 
   const handleNavigate = (sectionId: string) => {
     onNavigate(sectionId);

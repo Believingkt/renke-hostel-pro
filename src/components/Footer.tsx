@@ -4,6 +4,7 @@ import sensanLogoWhite from "@/assets/sensan-logo-white.png";
 import lakezeLogoWhite from "@/assets/lakeze-logo-white.png";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAccommodation } from "@/contexts/AccommodationContext";
 
 interface FooterProps {
   accommodationName?: string;
@@ -20,13 +21,17 @@ interface FooterProps {
 
 const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl, instagramUrl, threadsUrl, youtubeUrl, tiktokUrl }: FooterProps) => {
   const [footerLogoUrl, setFooterLogoUrl] = useState<string>("");
+  const { currentAccommodationId } = useAccommodation();
 
   useEffect(() => {
     const fetchFooterLogo = async () => {
+      if (!currentAccommodationId) return;
+      
       try {
         const { data, error } = await supabase
           .from("accommodation_info")
           .select("footer_logo_url")
+          .eq("id", currentAccommodationId)
           .maybeSingle();
 
         if (!error && data?.footer_logo_url) {
@@ -49,7 +54,8 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
         {
           event: 'UPDATE',
           schema: 'public',
-          table: 'accommodation_info'
+          table: 'accommodation_info',
+          filter: `id=eq.${currentAccommodationId}`
         },
         (payload) => {
           if (payload.new.footer_logo_url) {
@@ -62,7 +68,7 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [currentAccommodationId]);
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
