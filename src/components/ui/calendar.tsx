@@ -13,9 +13,9 @@ export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
 
 const colorSchemes = {
   frontend: {
-    selected: "bg-[hsl(142,71%,45%)] text-white hover:bg-[hsl(142,71%,45%)] hover:text-white focus:bg-[hsl(142,71%,45%)] focus:text-white",
-    today: "border border-[hsl(142,71%,45%)] font-semibold aria-selected:border-0 aria-selected:bg-[hsl(142,71%,45%)] aria-selected:text-white",
-    hover: "hover:bg-[hsl(142,71%,45%)] hover:text-white",
+    selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+    today: "border-2 border-primary font-semibold aria-selected:border-0 aria-selected:bg-primary aria-selected:text-primary-foreground",
+    hover: "hover:bg-primary/10 hover:text-primary",
   },
   backend: {
     selected: "bg-[hsl(203,78%,43%)] text-white hover:bg-[hsl(203,78%,43%)] hover:text-white focus:bg-[hsl(203,78%,43%)] focus:text-white",

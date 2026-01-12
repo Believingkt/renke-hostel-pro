@@ -525,7 +525,7 @@ const HeroSection = ({
                           holiday: (date) => isHoliday(date)
                         }}
                         modifiersClassNames={{
-                          holiday: "bg-[hsl(142,71%,45%)]/10 text-[hsl(142,71%,45%)] font-semibold rounded-md"
+                          holiday: "bg-primary/10 text-primary font-semibold rounded-md"
                         }}
                         initialFocus
                         className="pointer-events-auto"
@@ -580,7 +580,7 @@ const HeroSection = ({
                           holiday: (date) => isHoliday(date)
                         }}
                         modifiersClassNames={{
-                          holiday: "bg-[hsl(142,71%,45%)]/10 text-[hsl(142,71%,45%)] font-semibold rounded-md"
+                          holiday: "bg-primary/10 text-primary font-semibold rounded-md"
                         }}
                         initialFocus
                         className="pointer-events-auto"
@@ -588,7 +588,7 @@ const HeroSection = ({
                       />
                       <div className="flex items-center gap-4 mt-3 pt-3 border-t text-xs">
                         <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 bg-[hsl(142,71%,45%)]/10 rounded-md border border-[hsl(142,71%,45%)]/20"></div>
+                          <div className="w-6 h-6 bg-primary/10 rounded-md border border-primary/20"></div>
                           <span className="text-muted-foreground">假日定價</span>
                         </div>
                         <div className="flex items-center gap-2">
