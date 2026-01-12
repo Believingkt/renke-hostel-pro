@@ -8,7 +8,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Building2, X } from "lucide-react";
+import { Building2, X, Settings } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface Accommodation {
   id: string;
@@ -22,6 +23,7 @@ export function DevAccommodationSwitcher() {
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [currentAccId, setCurrentAccId] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   // 只在開發/預覽環境顯示
   const isDevOrPreview = 
@@ -54,7 +56,7 @@ export function DevAccommodationSwitcher() {
     setCurrentAccId(accParam || savedAcc || null);
   }, [isDevOrPreview]);
 
-  if (!isDevOrPreview || accommodations.length <= 1) {
+  if (!isDevOrPreview || accommodations.length === 0) {
     return null;
   }
 
@@ -71,6 +73,10 @@ export function DevAccommodationSwitcher() {
     window.location.href = url.toString();
   };
 
+  const handleGoToBackend = () => {
+    navigate('/auth');
+  };
+
   const currentAcc = accommodations.find(a => 
     a.id === currentAccId || 
     a.short_url_alias === currentAccId
@@ -84,7 +90,7 @@ export function DevAccommodationSwitcher() {
         size="sm"
       >
         <Building2 className="h-4 w-4 mr-2" />
-        {currentAcc?.name || "切換住宿"}
+        {currentAcc?.name || "切換民宿"}
       </Button>
     );
   }
@@ -111,7 +117,7 @@ export function DevAccommodationSwitcher() {
         onValueChange={handleSwitch}
       >
         <SelectTrigger className="w-full">
-          <SelectValue placeholder="選擇住宿" />
+          <SelectValue placeholder="選擇民宿" />
         </SelectTrigger>
         <SelectContent className="z-[10000]">
           {accommodations.map((acc) => (
@@ -126,6 +132,15 @@ export function DevAccommodationSwitcher() {
           ))}
         </SelectContent>
       </Select>
+
+      <Button
+        onClick={handleGoToBackend}
+        className="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 text-white"
+        size="sm"
+      >
+        <Settings className="h-4 w-4 mr-2" />
+        進入民宿後台
+      </Button>
 
       <p className="text-xs text-muted-foreground mt-2">
         此元件僅在開發/預覽環境顯示
