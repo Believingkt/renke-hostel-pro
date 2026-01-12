@@ -54,7 +54,7 @@ const LocationSection = ({ address, locationInfo }: LocationSectionProps) => {
                   <MapPin className="h-4 w-4 md:h-5 md:w-5 lg:h-5 lg:w-5 text-primary" />
                   位置資訊
                 </h3>
-                <div className="h-[280px] md:h-[400px] lg:h-[600px] rounded-lg overflow-hidden" style={{ backgroundColor: '#f5f0e6' }}>
+                <div className="h-[280px] md:h-[400px] lg:h-[600px] bg-muted rounded-lg overflow-hidden">
                   <iframe
                     src={`https://www.google.com/maps?q=${encodeURIComponent(address || "宜蘭縣冬山鄉大進三路208號")}&output=embed`}
                     width="100%"
