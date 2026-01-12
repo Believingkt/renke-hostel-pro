@@ -1,21 +1,30 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 
-// 住宿主題映射（用於 URL 參數）
+// 住宿主題映射（用於 URL 參數和 ID）
 const THEME_MAPPINGS: Record<string, string> = {
-  // 天頌幸福和苑使用 warm 主題
+  // 天頌幸福和苑使用 warm 主題（同時支援 ID 和短網址別名）
   '4ee31aca-5641-4d05-80e2-1c67626be83d': 'warm',
   'tiansong-villa': 'warm',
 };
 
 // 同步判斷主題類名（不需要等待 API）
+// 同時支援 URL 參數和 localStorage 儲存的選擇
 const getThemeClass = (): string => {
+  // 1. 優先從 URL 參數判斷
   const urlParams = new URLSearchParams(window.location.search);
   const accParam = urlParams.get('acc');
   
-  if (!accParam) return '';
+  // 2. 如果沒有 URL 參數，嘗試從 localStorage 讀取
+  const savedAcc = typeof window !== 'undefined' 
+    ? localStorage.getItem('dev_selected_accommodation') 
+    : null;
   
-  const themePreset = THEME_MAPPINGS[accParam];
+  const accToUse = accParam || savedAcc;
+  
+  if (!accToUse) return '';
+  
+  const themePreset = THEME_MAPPINGS[accToUse];
   if (!themePreset) return '';
   
   switch (themePreset) {
