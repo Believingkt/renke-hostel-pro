@@ -3,6 +3,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { useThemeClass } from "@/hooks/use-theme-class";
 
 const Dialog = DialogPrimitive.Root;
 
@@ -36,6 +37,9 @@ const DialogContent = React.forwardRef<
   // Check if we're in admin context by looking at the current path
   const isAdminContext = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
   
+  // 獲取主題 class
+  const themeClass = useThemeClass();
+  
   return (
     <DialogPortal>
       <DialogOverlay />
@@ -43,7 +47,7 @@ const DialogContent = React.forwardRef<
         ref={ref}
         className={cn(
           "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-md duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] rounded-lg transition-all",
-          isAdminContext && "admin-theme",
+          isAdminContext ? "admin-theme" : themeClass,
           className,
         )}
         {...props}
