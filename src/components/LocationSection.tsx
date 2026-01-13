@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, Car, Bus } from "lucide-react";
 import { createSanitizedHtml } from "@/utils/sanitizeHtml";
+import EmptySectionPlaceholder from "./EmptySectionPlaceholder";
 
 interface LocationSectionProps {
   address: string;
@@ -18,24 +19,27 @@ interface LocationSectionProps {
 }
 
 const LocationSection = ({ address, locationInfo }: LocationSectionProps) => {
-  // 使用数据库中的数据，如果没有则使用默认值
-  const nearbyAttractions = locationInfo?.nearby_attractions || [
-    {
-      name: "東埔溫泉",
-      distance: "步行5分鐘",
-      description: "著名的碳酸氫鈉泉，有美人湯之稱"
-    },
-    {
-      name: "彩虹瀑布",
-      distance: "開車15分鐘",
-      description: "晨光照射時可見彩虹，景色壯觀"
-    },
-    {
-      name: "八通關古道",
-      distance: "開車10分鐘",
-      description: "歷史悠久的登山古道，適合健行愛好者"
-    }
-  ];
+  // 檢查是否有任何資料設定
+  const hasAddress = address && address.trim() !== '';
+  const hasLocationDescription = locationInfo?.location_description && locationInfo.location_description.trim() !== '';
+  const hasDrivingInfo = locationInfo?.driving_info && locationInfo.driving_info.trim() !== '';
+  const hasPublicTransportInfo = locationInfo?.public_transport_info && locationInfo.public_transport_info.trim() !== '';
+  const hasNearbyAttractions = locationInfo?.nearby_attractions && locationInfo.nearby_attractions.length > 0;
+
+  const hasData = hasAddress || hasLocationDescription || hasDrivingInfo || hasPublicTransportInfo || hasNearbyAttractions;
+
+  if (!hasData) {
+    return (
+      <EmptySectionPlaceholder
+        sectionId="location"
+        icon={<MapPin className="h-8 w-8" />}
+        title="交通資訊"
+        description="尚未設定交通地圖與位置資訊"
+      />
+    );
+  }
+
+  const nearbyAttractions = locationInfo?.nearby_attractions || [];
 
   return (
     <section id="location" className="py-12 md:py-16 lg:py-20 bg-background">
@@ -144,23 +148,25 @@ const LocationSection = ({ address, locationInfo }: LocationSectionProps) => {
             </div>
           </div>
 
-          {/* 周邊景點 */}
-          <Card className="hover:shadow-lg transition-all duration-300 border border-border/50 bg-card">
-            <CardContent className="p-5 md:p-6">
-              <h3 className="text-lg md:text-xl font-semibold mb-5 md:mb-6 text-foreground">周邊景點</h3>
-              <div className="grid md:grid-cols-3 gap-6 md:gap-8">
-                {nearbyAttractions.map((attraction, index) => (
-                  <div key={index}>
-                    <h4 className="font-semibold text-base md:text-lg mb-2 text-foreground">{attraction.name}</h4>
-                    <p className="text-xs md:text-sm text-muted-foreground mb-2">{attraction.distance}</p>
-                    <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
-                      {attraction.description}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          {/* 周邊景點 - 只在有資料時顯示 */}
+          {hasNearbyAttractions && (
+            <Card className="hover:shadow-lg transition-all duration-300 border border-border/50 bg-card">
+              <CardContent className="p-5 md:p-6">
+                <h3 className="text-lg md:text-xl font-semibold mb-5 md:mb-6 text-foreground">周邊景點</h3>
+                <div className="grid md:grid-cols-3 gap-6 md:gap-8">
+                  {nearbyAttractions.map((attraction, index) => (
+                    <div key={index}>
+                      <h4 className="font-semibold text-base md:text-lg mb-2 text-foreground">{attraction.name}</h4>
+                      <p className="text-xs md:text-sm text-muted-foreground mb-2">{attraction.distance}</p>
+                      <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
+                        {attraction.description}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </section>
