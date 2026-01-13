@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Clock, CreditCard, FileText, Info, PawPrint, AlertTriangle } from "lucide-react";
+import { Clock, CreditCard, FileText, Info, PawPrint, AlertTriangle, ClipboardList } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { createSanitizedHtml } from "@/utils/sanitizeHtml";
@@ -13,6 +13,14 @@ interface BookingInfoSectionProps {
 const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSectionProps) => {
   const hasPetPolicy = bookingSettings?.pet_policy && bookingSettings.pet_policy.trim() !== "";
   const hasOtherNotes = bookingSettings?.other_notes && bookingSettings.other_notes.trim() !== "";
+  const hasCheckInTime = bookingSettings?.check_in_time && bookingSettings.check_in_time.trim() !== "";
+  const hasCheckOutTime = bookingSettings?.check_out_time && bookingSettings.check_out_time.trim() !== "";
+  const hasPaymentMethods = Array.isArray(bookingSettings?.payment_methods) && bookingSettings.payment_methods.length > 0;
+  const hasCancellationPolicy = bookingSettings?.cancellation_policy && bookingSettings.cancellation_policy.trim() !== "";
+  const hasCheckInNotice = checkInNotice && checkInNotice.trim() !== "";
+  
+  // 檢查是否有任何訂房須知資料
+  const hasAnyData = hasCheckInTime || hasCheckOutTime || hasPaymentMethods || hasCancellationPolicy || hasCheckInNotice || hasPetPolicy || hasOtherNotes;
   
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState({ title: "", content: "" });
@@ -21,6 +29,23 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
     setDialogContent({ title, content });
     setDialogOpen(true);
   };
+
+  // 如果沒有任何訂房須知資料，顯示空值佔位符（樣式與設施服務一致）
+  if (!hasAnyData) {
+    return (
+      <section id="booking-info" className="py-12 md:py-16 lg:py-20 bg-background">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="max-w-lg mx-auto text-center">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground/40">
+              <ClipboardList className="h-8 w-8" />
+            </div>
+            <h2 className="text-xl md:text-2xl font-semibold text-muted-foreground/60 mb-3">訂房須知準備中</h2>
+            <p className="text-muted-foreground/50 text-sm md:text-base">訂房相關資訊即將更新</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="booking-info" className="py-12 md:py-16 lg:py-20 bg-background">
