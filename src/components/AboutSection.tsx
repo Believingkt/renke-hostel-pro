@@ -1,7 +1,8 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Mountain, Sparkles, UserCheck, Camera } from "lucide-react";
+import { Mountain, Sparkles, UserCheck, Camera, Info } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import EmptySectionPlaceholder from "./EmptySectionPlaceholder";
 
 interface AboutSectionProps {
   description?: string;
@@ -10,23 +11,17 @@ interface AboutSectionProps {
 
 const AboutSection = ({ description, accommodationId }: AboutSectionProps) => {
   const [sectionData, setSectionData] = useState({
-    title: "自然中的秘境 X 宿泊空間",
-    description: description || "園區坐落於群山下，在砂紋蜿蜒的庭園中，遇見一座靜心園林。以「一泊二食，全區獨享」的隱奢理念為起點，誠摯邀請您展開一場自然、舒眠與慢活的豪華露營體驗。"
+    title: "",
+    description: ""
   });
   const [features, setFeatures] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const defaultFeatures = [
-    { icon: Mountain, title: "山林環抱", desc: "坐落於群山之間，遠離喧囂，享受大自然的靜謐" },
-    { icon: Sparkles, title: "日式美學", desc: "融合傳統日式設計與現代舒適，打造獨特住宿體驗" },
-    { icon: UserCheck, title: "管家服務", desc: "客製化的管家服務，一天僅接待 1 組貴賓" },
-    { icon: Camera, title: "寫真棚拍", desc: "森山寫照用專業攝影替您紀錄珍貴的親友相聚時光" },
-  ];
+  const [hasData, setHasData] = useState(false);
 
   useEffect(() => {
     const loadAboutSection = async () => {
       if (!accommodationId) {
-        setFeatures(defaultFeatures);
+        setHasData(false);
         setLoading(false);
         return;
       }
@@ -39,15 +34,6 @@ const AboutSection = ({ description, accommodationId }: AboutSectionProps) => {
           .eq("accommodation_id", accommodationId)
           .maybeSingle();
 
-        if (aboutData) {
-          setSectionData({
-            title: aboutData.section_title || "自然中的秘境 X 宿泊空間",
-            description: aboutData.section_description || description || ""
-          });
-        } else if (description) {
-          setSectionData(prev => ({ ...prev, description }));
-        }
-
         // 載入特色區塊
         const { data: featuresData } = await supabase
           .from("about_features")
@@ -55,14 +41,27 @@ const AboutSection = ({ description, accommodationId }: AboutSectionProps) => {
           .eq("accommodation_id", accommodationId)
           .order("display_order");
 
-        if (featuresData && featuresData.length > 0) {
-          setFeatures(featuresData);
+        // 檢查是否有任何資料
+        const hasAboutData = aboutData && (aboutData.section_title || aboutData.section_description);
+        const hasFeaturesData = featuresData && featuresData.length > 0;
+
+        if (hasAboutData || hasFeaturesData) {
+          setHasData(true);
+          if (aboutData) {
+            setSectionData({
+              title: aboutData.section_title || "關於我們",
+              description: aboutData.section_description || description || ""
+            });
+          }
+          if (hasFeaturesData) {
+            setFeatures(featuresData);
+          }
         } else {
-          setFeatures(defaultFeatures);
+          setHasData(false);
         }
       } catch (error) {
         console.error('Error loading about section:', error);
-        setFeatures(defaultFeatures);
+        setHasData(false);
       } finally {
         setLoading(false);
       }
@@ -86,6 +85,17 @@ const AboutSection = ({ description, accommodationId }: AboutSectionProps) => {
           </div>
         </div>
       </section>
+    );
+  }
+
+  if (!hasData) {
+    return (
+      <EmptySectionPlaceholder
+        sectionId="about"
+        icon={<Info className="h-8 w-8" />}
+        title="關於我們"
+        description="尚未設定關於我們的介紹內容"
+      />
     );
   }
 
