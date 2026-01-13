@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, ZoomIn } from "lucide-react";
+import { Users, ZoomIn, Home } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -340,14 +340,14 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
     room_photos: room.room_photos || [],
   }));
 
-  // 如果沒有房型資料，顯示空值佔位符
+  // 如果沒有房型資料，顯示空值佔位符（樣式與設施服務一致）
   if (!displayRooms || displayRooms.length === 0) {
     return (
-      <section id="rooms" className="py-12 md:py-16 lg:py-20 bg-secondary/20">
+      <section id="rooms" className="py-12 md:py-16 lg:py-20 bg-background">
         <div className="container mx-auto px-4 md:px-6">
           <div className="max-w-lg mx-auto text-center">
             <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground/40">
-              <Users className="h-8 w-8" />
+              <Home className="h-8 w-8" />
             </div>
             <h2 className="text-xl md:text-2xl font-semibold text-muted-foreground/60 mb-3">房型資訊準備中</h2>
             <p className="text-muted-foreground/50 text-sm md:text-base">我們正在準備精緻的房型資訊，敬請期待</p>
