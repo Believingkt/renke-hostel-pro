@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import type { CarouselApi } from "@/components/ui/carousel";
-import { Calendar as CalendarIcon, Users, Search } from "lucide-react";
+import { Calendar as CalendarIcon, Users, Search, Image as ImageIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, isSaturday } from "date-fns";
@@ -18,6 +18,7 @@ import { preloadImageWithLink } from "@/utils/imagePreloader";
 import heroSlide1 from "@/assets/hero-slide-1.jpg";
 import heroSlide2 from "@/assets/hero-slide-2.jpg";
 import heroSlide3 from "@/assets/hero-slide-3.jpg";
+import EmptySectionPlaceholder from "./EmptySectionPlaceholder";
 
 // 預載入首張圖片 - 使用 link preload 提高優先級
 if (typeof window !== 'undefined') {
@@ -57,6 +58,25 @@ interface HeroPhoto {
 
 const defaultHeroImages = [heroSlide1, heroSlide2, heroSlide3];
 
+// 空值佔位符元件 - Hero 特製版
+const HeroEmptyPlaceholder = () => (
+  <section id="home" className="pt-16 relative">
+    <div className="relative h-[580px] md:h-[700px] w-full bg-gradient-to-br from-muted/30 to-muted/10 flex items-center justify-center">
+      <div className="text-center max-w-lg mx-auto px-4">
+        <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground/40">
+          <ImageIcon className="h-12 w-12" />
+        </div>
+        <h2 className="text-2xl md:text-3xl font-semibold text-muted-foreground/60 mb-4">
+          首頁輪播圖
+        </h2>
+        <p className="text-muted-foreground/50 text-sm md:text-base">
+          尚未設定首頁輪播圖片，請至後台上傳精選照片
+        </p>
+      </div>
+    </div>
+  </section>
+);
+
 const HeroSection = ({ 
   accommodationName = "",
   heroMainTitle = "",
@@ -78,29 +98,10 @@ const HeroSection = ({
   const [isLoadingPhotos, setIsLoadingPhotos] = useState(true);
   const [blurDataURLs, setBlurDataURLs] = useState<Map<string, string>>(new Map());
   const [autoplayEnabled, setAutoplayEnabled] = useState(true);
+  const [hasNoData, setHasNoData] = useState(false);
 
-  // 使用數據庫圖片或默認圖片，優先使用數據庫內容
-  const slides = heroPhotos.length > 0 
-    ? heroPhotos
-    : defaultHeroImages.map((img, index) => ({
-        id: `default-${index}`,
-        photo_url: img,
-        display_order: index + 1,
-        title: heroMainTitle || null,
-        subtitle: heroSubtitle || null,
-        secondary_subtitle: heroDescription || null,
-        cta_text: null,
-        cta_link: null,
-        text_color: null,
-        text_size: null,
-        title_size: 'medium', // 確保默認值與預期一致
-        subtitle_size: null,
-        secondary_subtitle_size: null,
-        text_position_x: null,
-        text_position_y: null,
-        overlay_opacity: null,
-        autoplay_delay: null
-      }));
+  // 使用數據庫圖片，不再使用默認圖片
+  const slides = heroPhotos;
 
   // 使用傳入的 photos 或載入數據庫圖片
   useEffect(() => {
@@ -113,6 +114,7 @@ const HeroSection = ({
         secondary_subtitle_size: photo.secondary_subtitle_size || 'medium'
       }));
       setHeroPhotos(photosWithDefaults);
+      setHasNoData(false);
       setIsLoadingPhotos(false);
       return;
     }
@@ -128,6 +130,7 @@ const HeroSection = ({
       const accommodationId = currentAccommodationId || accommodations?.id;
 
       if (!accommodationId) {
+        setHasNoData(true);
         setIsLoadingPhotos(false);
         return;
       }
@@ -170,6 +173,7 @@ const HeroSection = ({
             secondary_subtitle_size: photo.secondary_subtitle_size || 'medium'
           }));
           setHeroPhotos(photosWithDefaults);
+          setHasNoData(false);
           
           // 立即為首張圖片生成模糊預覽
           const firstImageUrl = photosWithDefaults[0]?.photo_url;
@@ -188,9 +192,13 @@ const HeroSection = ({
               }
             }, 800);
           }
+        } else {
+          // 資料庫沒有 hero 圖片
+          setHasNoData(true);
         }
       } catch (error) {
         console.error('Error fetching hero photos:', error);
+        setHasNoData(true);
       } finally {
         setIsLoadingPhotos(false);
       }
@@ -349,6 +357,20 @@ const HeroSection = ({
 
     return () => clearTimeout(timer);
   }, [carouselApi, current, slides, autoplayEnabled, heroAutoplayDelay]);
+
+  // 載入中狀態
+  if (isLoadingPhotos) {
+    return (
+      <section id="home" className="pt-16 relative">
+        <div className="relative h-[580px] md:h-[700px] w-full bg-gradient-to-br from-muted/30 to-muted/10 animate-pulse" />
+      </section>
+    );
+  }
+
+  // 空值狀態：沒有設定任何輪播圖
+  if (hasNoData || slides.length === 0) {
+    return <HeroEmptyPlaceholder />;
+  }
 
   return (
     <section id="home" className="pt-16 relative">
