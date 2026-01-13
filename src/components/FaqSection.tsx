@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/accordion";
 import { supabase } from "@/integrations/supabase/client";
 import { createSanitizedHtml } from "@/utils/sanitizeHtml";
+import { FileQuestion } from "lucide-react";
 
 interface FaqItem {
   id: string;
@@ -47,8 +48,21 @@ const FaqSection = () => {
     }
   };
 
+  // 如果沒有 FAQ，顯示空值佔位符
   if (faqs.length === 0) {
-    return null;
+    return (
+      <section id="faq" className="py-12 md:py-16 lg:py-20 bg-background">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="max-w-lg mx-auto text-center">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground/40">
+              <FileQuestion className="h-8 w-8" />
+            </div>
+            <h2 className="text-xl md:text-2xl font-semibold text-muted-foreground/60 mb-3">常見問題準備中</h2>
+            <p className="text-muted-foreground/50 text-sm md:text-base">我們正在整理常見問題，敬請期待</p>
+          </div>
+        </div>
+      </section>
+    );
   }
 
   return (
