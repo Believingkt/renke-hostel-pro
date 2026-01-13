@@ -41,11 +41,10 @@ const AboutSection = ({ description, accommodationId }: AboutSectionProps) => {
           .eq("accommodation_id", accommodationId)
           .order("display_order");
 
-        // 檢查是否有任何資料
-        const hasAboutData = aboutData && (aboutData.section_title || aboutData.section_description);
+        // 檢查是否有特色區塊資料（必須有特色區塊才算有完整資料）
         const hasFeaturesData = featuresData && featuresData.length > 0;
 
-        if (hasAboutData || hasFeaturesData) {
+        if (hasFeaturesData) {
           setHasData(true);
           if (aboutData) {
             setSectionData({
@@ -53,9 +52,7 @@ const AboutSection = ({ description, accommodationId }: AboutSectionProps) => {
               description: aboutData.section_description || description || ""
             });
           }
-          if (hasFeaturesData) {
-            setFeatures(featuresData);
-          }
+          setFeatures(featuresData);
         } else {
           setHasData(false);
         }
