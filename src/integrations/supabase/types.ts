@@ -1877,18 +1877,31 @@ export type Database = {
           is_blocked: boolean
         }[]
       }
-      get_public_discount_code_info: {
-        Args: { p_accommodation_id: string; p_code: string }
-        Returns: {
-          applicable_date_from: string
-          applicable_date_to: string
-          applicable_room_types: Json
-          code: string
-          discount_type: string
-          discount_value: number
-          min_order_amount: number
-        }[]
-      }
+      get_public_discount_code_info:
+        | {
+            Args: { p_accommodation_id: string; p_code: string }
+            Returns: {
+              applicable_date_from: string
+              applicable_date_to: string
+              applicable_room_types: Json
+              code: string
+              discount_type: string
+              discount_value: number
+              min_order_amount: number
+            }[]
+          }
+        | {
+            Args: { p_accommodation_id: string; p_code: string }
+            Returns: {
+              applicable_date_from: string
+              applicable_date_to: string
+              applicable_room_types: Json
+              code: string
+              discount_type: string
+              discount_value: number
+              min_order_amount: number
+            }[]
+          }
       get_user_accommodations: {
         Args: { _user_id: string }
         Returns: {
