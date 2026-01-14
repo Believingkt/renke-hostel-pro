@@ -4,6 +4,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 const allowedOrigins = [
   'https://sensan.lovable.app',
   'https://dmafqwfynatdvnaeovhz.lovableproject.com',
+  'https://sensaninn.lakeze.com',
+  'https://renke-hostel-pro.lovable.app',
 ];
 
 function getCorsHeaders(req: Request) {
