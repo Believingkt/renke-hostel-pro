@@ -20,6 +20,7 @@ const LinePayConfirm = lazy(() => import("./pages/LinePayConfirm"));
 const AIBooking = lazy(() => import("./pages/AIBooking"));
 const OrderSearch = lazy(() => import("./pages/OrderSearch"));
 const PaymentTest = lazy(() => import("./pages/PaymentTest"));
+const PublicPayment = lazy(() => import("./pages/PublicPayment"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const OgImagePreview = lazy(() => import("./pages/OgImagePreview"));
 const KolApiDocs = lazy(() => import("./pages/KolApiDocs"));
@@ -93,6 +94,11 @@ function App() {
                 <Route path="/kol-api-docs" element={
                   <Suspense fallback={<FrontendSkeleton />}>
                     <KolApiDocs />
+                  </Suspense>
+                } />
+                <Route path="/pay" element={
+                  <Suspense fallback={<FrontendSkeleton />}>
+                    <PublicPayment />
                   </Suspense>
                 } />
                 
