@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { CreditCard, CheckCircle2, XCircle, Copy, AlertCircle, Zap, ShieldCheck, ShieldX, PlayCircle, FileText, Download, Clock, Loader2, Smartphone, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { getTapPayPrime } from "@/utils/tappayPrime";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Progress } from "@/components/ui/progress";
@@ -391,135 +392,14 @@ export default function PaymentTest() {
     try {
       console.log('Starting full payment flow test...');
       
-      // 步驟 1: 取得 Prime Token（帶入 appId 和 appKey 參數）
-      const primeResult = await new Promise<any>((resolve, reject) => {
-        (window.TPDirect.card.getPrime as any)({
-          appId: '165714',
-          appKey: 'app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP'
-        }, (result: any) => {
-          console.log('getPrime result:', result);
-          if (result.status !== 0) {
-            reject(new Error(result.msg || '無法取得付款資訊'));
-            return;
-          }
-          resolve(result);
-        });
-      });
-
-      console.log('Prime token obtained:', primeResult.card.prime);
-      toast.success('Prime Token 已取得', {
-        description: '正在呼叫後端處理支付...'
-      });
-
-      // 步驟 2: 呼叫後端處理支付
-      const testAmount = 1000; // 測試金額 NT$ 1,000
-      // 生成符合格式的測試訂單編號 (YYYYMMDDNNN - 11位數字)
-      const now = new Date();
-      const datePrefix = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-      const testOrderId = `${datePrefix}999`; // e.g., 20251206999
-
-      console.log('Calling process-tappay-payment edge function...');
-      
-      const { data: paymentResult, error: paymentError } = await supabase.functions.invoke(
-        'process-tappay-payment',
-        {
-          body: {
-            prime: primeResult.card.prime,
-            amount: testAmount,
-            orderId: testOrderId,
-            cardholder: {
-              phoneNumber: '0912345678',
-              name: '測試用戶',
-              email: 'test@example.com',
-            },
-            details: '付款測試 - 完整流程',
-          },
-        }
+      // 步驟 1: 取得 Prime Token（含逾時與相容性 fallback，避免卡在「處理中」）
+      const prime = await getTapPayPrime(
+        '165714',
+        'app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP'
       );
 
-      if (paymentError) {
-        throw paymentError;
-      }
+      console.log('Prime token obtained:', prime);
 
-      console.log('Payment result:', paymentResult);
-
-      const timestamp = new Date().toLocaleTimeString('zh-TW');
-      
-      if (paymentResult.success) {
-        setPaymentTestResult({
-          success: true,
-          message: '付款成功！',
-          time: timestamp,
-          transactionId: paymentResult.transactionId,
-        });
-        
-        toast.success('完整支付流程測試成功', {
-          description: `交易 ID: ${paymentResult.transactionId}`
-        });
-      } else {
-        setPaymentTestResult({
-          success: false,
-          message: paymentResult.message || '付款失敗',
-          time: timestamp,
-          errorCode: paymentResult.errorCode,
-          technicalMessage: paymentResult.technicalMessage,
-        });
-        
-        toast.error('支付流程測試失敗', {
-          description: paymentResult.message
-        });
-      }
-    } catch (error: any) {
-      console.error('Full payment test error:', error);
-      
-      const timestamp = new Date().toLocaleTimeString('zh-TW');
-      setPaymentTestResult({
-        success: false,
-        message: error.message || '測試失敗',
-        time: timestamp,
-      });
-      
-      toast.error('完整支付流程測試失敗', {
-        description: error.message
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  // 測試付款 (僅 Prime Token)
-  const testPayment = async () => {
-    if (!window.TPDirect) {
-      toast.error('TapPay SDK 尚未載入');
-      return;
-    }
-
-    if (!cardValid) {
-      toast.error('請先完整填寫信用卡資訊');
-      return;
-    }
-
-    setIsProcessing(true);
-
-    try {
-      console.log('Getting prime token with appId and appKey...');
-      
-      const primeResult = await new Promise<any>((resolve, reject) => {
-        (window.TPDirect.card.getPrime as any)({
-          appId: '165714',
-          appKey: 'app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP'
-        }, (result: any) => {
-          console.log('getPrime result:', result);
-          if (result.status !== 0) {
-            reject(new Error(result.msg || '無法取得付款資訊'));
-            return;
-          }
-          resolve(result);
-        });
-      });
-
-      console.log('Prime token obtained:', primeResult.card.prime);
-      
       const timestamp = new Date().toLocaleTimeString('zh-TW');
       setLastResult({
         success: true,

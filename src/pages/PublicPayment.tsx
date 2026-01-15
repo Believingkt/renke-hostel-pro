@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { CreditCard, Loader2, CheckCircle2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { getTapPayPrime } from "@/utils/tappayPrime";
 
 // TapPay Production 設定
 const TAPPAY_CONFIG = {
@@ -133,27 +134,8 @@ export default function PublicPayment() {
     setErrorMessage("");
 
     try {
-      // 取得 Prime（帶入 appId 和 appKey 參數）
-      const prime = await new Promise<string>((resolve, reject) => {
-        (window.TPDirect.card.getPrime as any)({
-          appId: TAPPAY_CONFIG.appId,
-          appKey: TAPPAY_CONFIG.appKey
-        }, (result: any) => {
-          console.log("[TapPay] getPrime result:", result);
-          if (result.status !== 0) {
-            const hostname = window.location.hostname;
-            const origin = window.location.origin;
-            reject(
-              new Error(
-                `TapPay 授權失敗 (${result.status}): ${result.msg || "unknown"} | hostname: ${hostname} | origin: ${origin}`
-              )
-            );
-            return;
-          }
-          resolve(result.card.prime);
-        });
-      });
-
+      // 取得 Prime（含逾時與相容性 fallback，避免卡在「處理中」）
+      const prime = await getTapPayPrime(TAPPAY_CONFIG.appId, TAPPAY_CONFIG.appKey);
       console.log("[TapPay] Prime obtained, calling backend...");
 
       // 呼叫後端處理付款
