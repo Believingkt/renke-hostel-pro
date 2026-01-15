@@ -54,26 +54,26 @@ export function OnlinePaymentDialog({
   useEffect(() => {
     if (!open) return;
 
-    const loadTapPaySDK = () => {
-      if (window.TPDirect) {
-        console.log('TapPay SDK already loaded (production)');
-        window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8l3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'production');
-        setIsTapPayReady(true);
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.src = 'https://js.tappaysdk.com/sdk/tpdirect/v5.18.0';
-      script.async = true;
-      script.onload = () => {
+      const loadTapPaySDK = () => {
         if (window.TPDirect) {
-          console.log('TapPay SDK loaded (production)');
-          window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8l3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'production');
+          console.log('TapPay SDK already loaded (production)');
+          window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'production');
           setIsTapPayReady(true);
+          return;
         }
+
+        const script = document.createElement('script');
+        script.src = 'https://js.tappaysdk.com/sdk/tpdirect/v5.18.0';
+        script.async = true;
+        script.onload = () => {
+          if (window.TPDirect) {
+            console.log('TapPay SDK loaded (production)');
+            window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'production');
+            setIsTapPayReady(true);
+          }
+        };
+        document.body.appendChild(script);
       };
-      document.body.appendChild(script);
-    };
 
     loadTapPaySDK();
   }, [open]);
@@ -180,7 +180,7 @@ export function OnlinePaymentDialog({
           if (result.status !== 0) {
             const host = typeof window !== 'undefined' ? window.location.hostname : '';
             const appId = '165714';
-            const appKey = 'app_zYcYVG6FPf8l3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP';
+            const appKey = 'app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP';
             const appKeyPrefix = appKey.substring(0, 6);
             const sdkVersion = 'v5.18.0';
             const tpDirectLoaded = typeof window.TPDirect !== 'undefined' ? 'Yes' : 'No';

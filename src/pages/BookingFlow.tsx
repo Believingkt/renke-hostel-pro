@@ -750,28 +750,28 @@ const BookingFlow = () => {
   // 初始化 TapPay SDK - 分兩步驟：先載入 SDK，再設定表單
   useEffect(() => {
     // 第一步：載入 TapPay SDK
-    const loadTapPaySDK = () => {
-      if (window.TPDirect) {
-        // SDK 已載入，設定基本配置（正式環境）
-        console.log('TapPay SDK already loaded, setting up for production...');
-        window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8l3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'production');
-        console.log('TapPay SDK setup completed (production)');
-        setIsTapPayReady(true);
-        return;
-      }
-
-      console.log('Loading TapPay SDK script...');
-      const script = document.createElement('script');
-      script.src = 'https://js.tappaysdk.com/sdk/tpdirect/v5.18.0';
-      script.async = true;
-      script.onload = () => {
+      const loadTapPaySDK = () => {
         if (window.TPDirect) {
-          console.log('TapPay SDK loaded, setting up for production...');
-          window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8l3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'production');
+          // SDK 已載入，設定基本配置（正式環境）
+          console.log('TapPay SDK already loaded, setting up for production...');
+          window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'production');
           console.log('TapPay SDK setup completed (production)');
           setIsTapPayReady(true);
+          return;
         }
-      };
+
+        console.log('Loading TapPay SDK script...');
+        const script = document.createElement('script');
+        script.src = 'https://js.tappaysdk.com/sdk/tpdirect/v5.18.0';
+        script.async = true;
+        script.onload = () => {
+          if (window.TPDirect) {
+            console.log('TapPay SDK loaded, setting up for production...');
+            window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'production');
+            console.log('TapPay SDK setup completed (production)');
+            setIsTapPayReady(true);
+          }
+        };
       script.onerror = () => {
         console.error('Failed to load TapPay SDK script');
       };
