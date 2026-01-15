@@ -178,16 +178,20 @@ export function OnlinePaymentDialog({
         window.TPDirect.card.getPrime((result: any) => {
           console.log('[TapPay][Admin] getPrime result:', result);
           if (result.status !== 0) {
-            const host = typeof window !== 'undefined' ? window.location.hostname : '';
+            const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+            const origin = typeof window !== 'undefined' ? window.location.origin : '';
+            const href = typeof window !== 'undefined' ? window.location.href : '';
+            const protocol = typeof window !== 'undefined' ? window.location.protocol : '';
             const appId = '165714';
             const appKey = 'app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP';
-            const appKeyPrefix = appKey.substring(0, 6);
+            const appKeyPrefix = appKey.substring(0, 8);
+            const appKeySuffix = appKey.substring(appKey.length - 6);
             const sdkVersion = 'v5.18.0';
             const tpDirectLoaded = typeof window.TPDirect !== 'undefined' ? 'Yes' : 'No';
             const env = 'production';
             reject(
               new Error(
-                `TapPay 授權失敗 (${result.status}): ${result.msg || 'unknown'} | domain: ${host} | appId: ${appId} | appKey: ${appKeyPrefix}... | SDK: ${sdkVersion} | TPDirect: ${tpDirectLoaded} | env: ${env}`
+                `TapPay 授權失敗 (${result.status}): ${result.msg || 'unknown'} | hostname: ${hostname} | origin: ${origin} | protocol: ${protocol} | href: ${href} | appId: ${appId} | appKey: ${appKeyPrefix}...${appKeySuffix} | SDK: ${sdkVersion} | TPDirect: ${tpDirectLoaded} | env: ${env}`
               )
             );
             return;
