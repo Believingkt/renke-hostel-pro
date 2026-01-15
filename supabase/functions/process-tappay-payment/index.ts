@@ -32,8 +32,8 @@ function validatePaymentInput(data: Record<string, unknown>): { valid: boolean; 
     return { valid: false, error: 'Invalid amount: must be a positive integer between 1 and 10,000,000' };
   }
 
-  // Validate orderId format (should be date-based: YYYYMMDDNNN)
-  if (!orderId || typeof orderId !== 'string' || !/^\d{11}$/.test(orderId)) {
+  // Validate orderId format (flexible: alphanumeric, 5-50 chars)
+  if (!orderId || typeof orderId !== 'string' || orderId.length < 5 || orderId.length > 50) {
     return { valid: false, error: 'Invalid order ID format' };
   }
 
