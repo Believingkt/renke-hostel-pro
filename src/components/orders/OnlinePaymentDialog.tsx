@@ -57,7 +57,7 @@ export function OnlinePaymentDialog({
     const loadTapPaySDK = () => {
       if (window.TPDirect) {
         console.log('TapPay SDK already loaded (production)');
-        window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'production');
+        window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8l3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'production');
         setIsTapPayReady(true);
         return;
       }
@@ -68,7 +68,7 @@ export function OnlinePaymentDialog({
       script.onload = () => {
         if (window.TPDirect) {
           console.log('TapPay SDK loaded (production)');
-          window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'production');
+          window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8l3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'production');
           setIsTapPayReady(true);
         }
       };
@@ -180,7 +180,7 @@ export function OnlinePaymentDialog({
           if (result.status !== 0) {
             const host = typeof window !== 'undefined' ? window.location.hostname : '';
             const appId = '165714';
-            const appKey = 'app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP';
+            const appKey = 'app_zYcYVG6FPf8l3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP';
             const appKeyPrefix = appKey.substring(0, 6);
             const sdkVersion = 'v5.18.0';
             const tpDirectLoaded = typeof window.TPDirect !== 'undefined' ? 'Yes' : 'No';
