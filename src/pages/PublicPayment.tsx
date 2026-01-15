@@ -6,11 +6,11 @@ import { CreditCard, Loader2, CheckCircle2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-// TapPay Sandbox 設定
+// TapPay Production 設定
 const TAPPAY_CONFIG = {
-  appId: "12348",
-  appKey: "app_pa1pQcKoY22IlnSXq5m5WP5jFKzoRG58VEXpT7wU62ud7mMbDOGzCYIlzzLF",
-  env: "sandbox"
+  appId: "165714",
+  appKey: "app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP",
+  env: "production"
 } as const;
 
 export default function PublicPayment() {
