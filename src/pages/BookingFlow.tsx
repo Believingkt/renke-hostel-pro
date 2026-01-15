@@ -75,7 +75,9 @@ interface TPDirectSDK {
   card: {
     setup: (config: any) => void;
     onUpdate: (callback: (update: any) => void) => void;
-    getPrime: (callback: (result: any) => void) => void;
+    // getPrime 支援兩種呼叫方式：只帶 callback，或帶 options + callback
+    getPrime: ((callback: (result: any) => void) => void) & 
+              ((options: { appId: string; appKey: string }, callback: (result: any) => void) => void);
   };
 }
 
@@ -1650,9 +1652,12 @@ const BookingFlow = () => {
                 return;
               }
               
-              console.log('Requesting TPDirect.card.getPrime...');
+              console.log('Requesting TPDirect.card.getPrime with appId and appKey...');
               
-              window.TPDirect.card.getPrime((result: any) => {
+              window.TPDirect.card.getPrime({
+                appId: TAPPAY_CONFIG.appId,
+                appKey: TAPPAY_CONFIG.appKey
+              }, (result: any) => {
                 console.log('TPDirect.card.getPrime result:', {
                   status: result.status,
                   msg: result.msg,
