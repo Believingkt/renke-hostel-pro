@@ -21,9 +21,18 @@ export default function PublicPayment() {
   const [transactionId, setTransactionId] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
-  // 測試訂單資料
+  // 測試訂單資料 - orderId 格式: YYYYMMDD + 3位流水號 (共11位數字)
+  const generateOrderId = () => {
+    const now = new Date();
+    const dateStr = now.getFullYear().toString() +
+      (now.getMonth() + 1).toString().padStart(2, '0') +
+      now.getDate().toString().padStart(2, '0');
+    const seq = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    return dateStr + seq;
+  };
+
   const orderInfo = {
-    orderNumber: `TEST${Date.now()}`,
+    orderNumber: generateOrderId(),
     amount: 10,
     description: "測試訂單",
     customerName: "測試顧客",
