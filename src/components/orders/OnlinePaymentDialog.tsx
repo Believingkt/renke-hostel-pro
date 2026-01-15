@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { CreditCard, Loader2, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ToastAction } from "@/components/ui/toast";
 
 interface OnlinePaymentDialogProps {
   open: boolean;
@@ -253,10 +254,26 @@ export function OnlinePaymentDialog({
       }
     } catch (error: any) {
       console.error('Payment error:', error);
+      const message = error?.message || "處理付款時發生錯誤";
+
       toast({
         title: "付款失敗",
-        description: error.message || "處理付款時發生錯誤",
+        description: message,
         variant: "destructive",
+        action: (
+          <ToastAction
+            altText="複製錯誤"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(message);
+              } catch {
+                // ignore (clipboard may be blocked)
+              }
+            }}
+          >
+            複製
+          </ToastAction>
+        ),
       });
     } finally {
       setIsProcessing(false);
