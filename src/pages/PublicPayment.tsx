@@ -2,12 +2,19 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { CreditCard, Loader2, CheckCircle2, ShieldCheck } from "lucide-react";
+import { CreditCard, Loader2, CheckCircle2, ShieldCheck, AlertTriangle, Phone, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getTapPayPrime } from "@/utils/tappayPrime";
 import { useTapPayConfig } from "@/hooks/use-tappay-config";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
+interface PaymentError {
+  message: string;
+  suggestion?: string;
+  errorCode?: number;
+  technicalMessage?: string;
+}
 
 export default function PublicPayment() {
   const [isTapPayReady, setIsTapPayReady] = useState(false);
@@ -15,7 +22,8 @@ export default function PublicPayment() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [transactionId, setTransactionId] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
+  const [paymentError, setPaymentError] = useState<PaymentError | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const {
     config: tappayConfig,
@@ -66,7 +74,7 @@ export default function PublicPayment() {
       };
       script.onerror = () => {
         console.error("Failed to load TapPay SDK");
-        setErrorMessage("無法載入付款模組，請重新整理頁面");
+        setPaymentError({ message: "無法載入付款模組", suggestion: "請重新整理頁面" });
       };
       document.body.appendChild(script);
     };
@@ -77,7 +85,7 @@ export default function PublicPayment() {
 
   useEffect(() => {
     if (!tappayConfigError) return;
-    setErrorMessage(tappayConfigError);
+    setPaymentError({ message: tappayConfigError, suggestion: '請重新整理頁面或聯繫客服' });
   }, [tappayConfigError]);
 
   // 設定 TapPay 表單
@@ -132,7 +140,7 @@ export default function PublicPayment() {
     if (!window.TPDirect || !cardValid || !tappayConfig) return;
 
     setIsProcessing(true);
-    setErrorMessage("");
+    setPaymentError(null);
 
     try {
       // 取得 Prime（含逾時與相容性 fallback，避免卡在「處理中」）
@@ -164,14 +172,42 @@ export default function PublicPayment() {
         setPaymentSuccess(true);
         toast.success("付款成功！");
       } else {
-        throw new Error(data.message || "付款失敗");
+        // 顯示詳細錯誤
+        setPaymentError({
+          message: data.message || "付款失敗",
+          suggestion: data.suggestion,
+          errorCode: data.errorCode,
+          technicalMessage: data.technicalMessage,
+        });
+        toast.error("付款失敗", { description: data.message });
       }
     } catch (error: any) {
       console.error("Payment error:", error);
-      setErrorMessage(error.message || "處理付款時發生錯誤");
+      setPaymentError({
+        message: error.message || "處理付款時發生錯誤",
+        suggestion: "請稍後再試或聯繫客服",
+      });
       toast.error("付款失敗", { description: error.message });
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const copyErrorInfo = async () => {
+    if (!paymentError) return;
+    const errorText = [
+      `錯誤訊息: ${paymentError.message}`,
+      paymentError.errorCode !== undefined ? `錯誤碼: ${paymentError.errorCode}` : null,
+      paymentError.technicalMessage ? `技術訊息: ${paymentError.technicalMessage}` : null,
+    ].filter(Boolean).join('\n');
+    
+    try {
+      await navigator.clipboard.writeText(errorText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast.success("已複製錯誤資訊");
+    } catch {
+      // ignore clipboard errors
     }
   };
 
@@ -277,10 +313,46 @@ export default function PublicPayment() {
               </div>
             )}
 
-            {errorMessage && (
-              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">
-                {errorMessage}
-              </div>
+            {paymentError && (
+              <Alert variant="destructive" className="border-destructive/30 bg-destructive/5">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle className="flex items-center justify-between">
+                  <span>{paymentError.message}</span>
+                  {paymentError.errorCode !== undefined && (
+                    <span className="text-xs font-mono bg-destructive/10 px-2 py-0.5 rounded">
+                      錯誤碼: {paymentError.errorCode}
+                    </span>
+                  )}
+                </AlertTitle>
+                <AlertDescription className="mt-2 space-y-3">
+                  {paymentError.suggestion && (
+                    <p className="text-sm">{paymentError.suggestion}</p>
+                  )}
+                  {paymentError.technicalMessage && (
+                    <p className="text-xs font-mono text-muted-foreground bg-muted/50 p-2 rounded">
+                      {paymentError.technicalMessage}
+                    </p>
+                  )}
+                  <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-destructive/20">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={copyErrorInfo}
+                      className="text-xs h-8"
+                    >
+                      {copied ? (
+                        <><Check className="h-3 w-3 mr-1" /> 已複製</>
+                      ) : (
+                        <><Copy className="h-3 w-3 mr-1" /> 複製錯誤資訊</>
+                      )}
+                    </Button>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Phone className="h-3 w-3" />
+                      <span>如需協助，請聯繫民宿客服</span>
+                    </div>
+                  </div>
+                </AlertDescription>
+              </Alert>
             )}
           </div>
 

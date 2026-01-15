@@ -9,9 +9,16 @@ import { useTapPayConfig } from "@/hooks/use-tappay-config";
 import { supabase } from "@/integrations/supabase/client";
 import { getTapPayPrime } from "@/utils/tappayPrime";
 import { useToast } from "@/hooks/use-toast";
-import { CreditCard, Loader2, CheckCircle2 } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CreditCard, Loader2, CheckCircle2, AlertTriangle, Phone, Copy, Check } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ToastAction } from "@/components/ui/toast";
+
+interface PaymentError {
+  message: string;
+  suggestion?: string;
+  errorCode?: number;
+  technicalMessage?: string;
+}
 
 
 interface OnlinePaymentDialogProps {
@@ -54,6 +61,8 @@ export function OnlinePaymentDialog({
   const [customAmount, setCustomAmount] = useState('');
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [transactionId, setTransactionId] = useState('');
+  const [paymentError, setPaymentError] = useState<PaymentError | null>(null);
+  const [copied, setCopied] = useState(false);
 
   // 計算待付金額
   const unpaidAmount = order ? order.final_price - (order.paid_amount || 0) : 0;
@@ -175,6 +184,8 @@ export function OnlinePaymentDialog({
       setPaymentType('full');
       setCustomAmount('');
       setCardValid(false);
+      setPaymentError(null);
+      setCopied(false);
     }
   }, [open]);
 
@@ -182,6 +193,7 @@ export function OnlinePaymentDialog({
     if (!order || !window.TPDirect || paymentAmount <= 0 || !tappayConfig) return;
 
     setIsProcessing(true);
+    setPaymentError(null);
 
     try {
       // 獲取 Prime（含逾時與相容性 fallback，避免卡在「處理中」）
@@ -236,11 +248,28 @@ export function OnlinePaymentDialog({
 
         onPaymentSuccess();
       } else {
-        throw new Error(data.message || '付款失敗');
+        // 顯示詳細錯誤
+        setPaymentError({
+          message: data.message || '付款失敗',
+          suggestion: data.suggestion,
+          errorCode: data.errorCode,
+          technicalMessage: data.technicalMessage,
+        });
+        
+        toast({
+          title: "付款失敗",
+          description: data.message,
+          variant: "destructive",
+        });
       }
     } catch (error: any) {
       console.error('Payment error:', error);
       const message = error?.message || "處理付款時發生錯誤";
+
+      setPaymentError({
+        message,
+        suggestion: '請稍後再試或聯繫技術支援',
+      });
 
       toast({
         title: "付款失敗",
@@ -263,6 +292,24 @@ export function OnlinePaymentDialog({
       });
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const copyErrorInfo = async () => {
+    if (!paymentError) return;
+    const errorText = [
+      `錯誤訊息: ${paymentError.message}`,
+      paymentError.errorCode !== undefined ? `錯誤碼: ${paymentError.errorCode}` : null,
+      paymentError.technicalMessage ? `技術訊息: ${paymentError.technicalMessage}` : null,
+    ].filter(Boolean).join('\n');
+    
+    try {
+      await navigator.clipboard.writeText(errorText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast({ title: "已複製錯誤資訊" });
+    } catch {
+      // ignore clipboard errors
     }
   };
 
@@ -433,6 +480,49 @@ export function OnlinePaymentDialog({
                   <Alert>
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <AlertDescription>正在載入付款模組...</AlertDescription>
+                  </Alert>
+                )}
+
+                {/* 錯誤顯示 */}
+                {paymentError && (
+                  <Alert variant="destructive" className="border-destructive/30 bg-destructive/5">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle className="flex items-center justify-between flex-wrap gap-2">
+                      <span>{paymentError.message}</span>
+                      {paymentError.errorCode !== undefined && (
+                        <span className="text-xs font-mono bg-destructive/10 px-2 py-0.5 rounded">
+                          錯誤碼: {paymentError.errorCode}
+                        </span>
+                      )}
+                    </AlertTitle>
+                    <AlertDescription className="mt-2 space-y-3">
+                      {paymentError.suggestion && (
+                        <p className="text-sm">{paymentError.suggestion}</p>
+                      )}
+                      {paymentError.technicalMessage && (
+                        <p className="text-xs font-mono text-muted-foreground bg-muted/50 p-2 rounded">
+                          {paymentError.technicalMessage}
+                        </p>
+                      )}
+                      <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-destructive/20">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={copyErrorInfo}
+                          className="text-xs h-8"
+                        >
+                          {copied ? (
+                            <><Check className="h-3 w-3 mr-1" /> 已複製</>
+                          ) : (
+                            <><Copy className="h-3 w-3 mr-1" /> 複製錯誤資訊</>
+                          )}
+                        </Button>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Phone className="h-3 w-3" />
+                          <span>如需協助，請聯繫技術支援</span>
+                        </div>
+                      </div>
+                    </AlertDescription>
                   </Alert>
                 )}
               </div>
