@@ -21,12 +21,12 @@ export function ErrorState({
   return (
     <Card className={className}>
       <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12 md:py-16 px-3 sm:px-4">
-        <Alert variant="destructive" className="w-full max-w-md mb-4 sm:mb-6">
+        <Alert variant="destructive" className="w-full max-w-2xl mb-4 sm:mb-6">
           <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
           <AlertTitle className="text-sm sm:text-base md:text-lg break-words pr-6">
             {title}
           </AlertTitle>
-          <AlertDescription className="text-xs sm:text-sm md:text-base mt-1 sm:mt-2 break-words leading-relaxed">
+          <AlertDescription className="text-xs sm:text-sm md:text-base mt-1 sm:mt-2 whitespace-pre-wrap break-all leading-relaxed font-mono">
             {message}
           </AlertDescription>
         </Alert>
