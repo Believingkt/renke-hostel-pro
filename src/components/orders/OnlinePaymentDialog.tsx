@@ -11,6 +11,13 @@ import { CreditCard, Loader2, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ToastAction } from "@/components/ui/toast";
 
+// TapPay Sandbox 設定
+const TAPPAY_CONFIG = {
+  appId: "12348",
+  appKey: "app_pa1pQcKoY22IlnSXq5m5WP5jFKzoRG58VEXpT7wU62ud7mMbDOGzCYIlzzLF",
+  env: "sandbox"
+} as const;
+
 interface OnlinePaymentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -57,8 +64,8 @@ export function OnlinePaymentDialog({
 
       const loadTapPaySDK = () => {
         if (window.TPDirect) {
-          console.log('TapPay SDK already loaded (production)');
-          window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'production');
+          console.log(`TapPay SDK already loaded (${TAPPAY_CONFIG.env})`);
+          window.TPDirect.setupSDK(TAPPAY_CONFIG.appId, TAPPAY_CONFIG.appKey, TAPPAY_CONFIG.env);
           setIsTapPayReady(true);
           return;
         }
@@ -68,8 +75,8 @@ export function OnlinePaymentDialog({
         script.async = true;
         script.onload = () => {
           if (window.TPDirect) {
-            console.log('TapPay SDK loaded (production)');
-            window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'production');
+            console.log(`TapPay SDK loaded (${TAPPAY_CONFIG.env})`);
+            window.TPDirect.setupSDK(TAPPAY_CONFIG.appId, TAPPAY_CONFIG.appKey, TAPPAY_CONFIG.env);
             setIsTapPayReady(true);
           }
         };
@@ -183,13 +190,13 @@ export function OnlinePaymentDialog({
             const origin = typeof window !== 'undefined' ? window.location.origin : '';
             const href = typeof window !== 'undefined' ? window.location.href : '';
             const protocol = typeof window !== 'undefined' ? window.location.protocol : '';
-            const appId = '165714';
-            const appKey = 'app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP';
+            const appId = TAPPAY_CONFIG.appId;
+            const appKey = TAPPAY_CONFIG.appKey;
             const appKeyPrefix = appKey.substring(0, 8);
             const appKeySuffix = appKey.substring(appKey.length - 6);
             const sdkVersion = 'v5.18.0';
             const tpDirectLoaded = typeof window.TPDirect !== 'undefined' ? 'Yes' : 'No';
-            const env = 'production';
+            const env = TAPPAY_CONFIG.env;
             reject(
               new Error(
                 `TapPay 授權失敗 (${result.status}): ${result.msg || 'unknown'} | hostname: ${hostname} | origin: ${origin} | protocol: ${protocol} | href: ${href} | appId: ${appId} | appKey: ${appKeyPrefix}...${appKeySuffix} | SDK: ${sdkVersion} | TPDirect: ${tpDirectLoaded} | env: ${env}`
