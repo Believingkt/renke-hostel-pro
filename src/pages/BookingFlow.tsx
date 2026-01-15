@@ -69,19 +69,28 @@ import { DevAccommodationSwitcher } from "@/components/DevAccommodationSwitcher"
 import AccommodationLogo from "@/components/AccommodationLogo";
 import { getThemeClassByAccommodation } from "@/constants/themes";
 
-// TapPay SDK 類型定義
+// TapPay SDK 類型定義 - 使用 interface merging 避免重複宣告錯誤
+interface TPDirectSDK {
+  setupSDK: (appId: string, appKey: string, env: string) => void;
+  card: {
+    setup: (config: any) => void;
+    onUpdate: (callback: (update: any) => void) => void;
+    getPrime: (callback: (result: any) => void) => void;
+  };
+}
+
 declare global {
   interface Window {
-    TPDirect?: {
-      setupSDK: (appId: string, appKey: string, env: string) => void;
-      card: {
-        setup: (config: any) => void;
-        onUpdate: (callback: (update: any) => void) => void;
-        getPrime: (callback: (result: any) => void) => void;
-      };
-    };
+    TPDirect?: TPDirectSDK;
   }
 }
+
+// TapPay Sandbox 設定
+const TAPPAY_CONFIG = {
+  appId: "12348",
+  appKey: "app_pa1pQcKoY22IlnSXq5m5WP5jFKzoRG58VEXpT7wU62ud7mMbDOGzCYIlzzLF",
+  env: "sandbox"
+} as const;
 
 // 表單驗證 Schema
 const guestInfoSchema = z.object({

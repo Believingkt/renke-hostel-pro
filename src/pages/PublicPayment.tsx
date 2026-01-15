@@ -6,6 +6,13 @@ import { CreditCard, Loader2, CheckCircle2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
+// TapPay Sandbox 設定
+const TAPPAY_CONFIG = {
+  appId: "12348",
+  appKey: "app_pa1pQcKoY22IlnSXq5m5WP5jFKzoRG58VEXpT7wU62ud7mMbDOGzCYIlzzLF",
+  env: "sandbox"
+} as const;
+
 export default function PublicPayment() {
   const [isTapPayReady, setIsTapPayReady] = useState(false);
   const [cardValid, setCardValid] = useState(false);
@@ -28,11 +35,11 @@ export default function PublicPayment() {
   useEffect(() => {
     const loadTapPaySDK = () => {
       if (window.TPDirect) {
-        console.log("TapPay SDK already loaded");
+        console.log(`TapPay SDK already loaded (${TAPPAY_CONFIG.env})`);
         window.TPDirect.setupSDK(
-          "165714",
-          "app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP",
-          "production"
+          TAPPAY_CONFIG.appId,
+          TAPPAY_CONFIG.appKey,
+          TAPPAY_CONFIG.env
         );
         setIsTapPayReady(true);
         return;
@@ -43,11 +50,11 @@ export default function PublicPayment() {
       script.async = true;
       script.onload = () => {
         if (window.TPDirect) {
-          console.log("TapPay SDK loaded");
+          console.log(`TapPay SDK loaded (${TAPPAY_CONFIG.env})`);
           window.TPDirect.setupSDK(
-            "165714",
-            "app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP",
-            "production"
+            TAPPAY_CONFIG.appId,
+            TAPPAY_CONFIG.appKey,
+            TAPPAY_CONFIG.env
           );
           setIsTapPayReady(true);
         }
