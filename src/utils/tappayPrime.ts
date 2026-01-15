@@ -20,10 +20,12 @@ export async function getTapPayPrime(
 
   return await new Promise<string>((resolve, reject) => {
     let settled = false;
+    let timeoutId: number | undefined;
 
     const settle = (fn: () => void) => {
       if (settled) return;
       settled = true;
+      if (timeoutId) window.clearTimeout(timeoutId);
       fn();
     };
 
@@ -48,7 +50,7 @@ export async function getTapPayPrime(
       settle(() => resolve(prime));
     };
 
-    const timeout = window.setTimeout(() => {
+    timeoutId = window.setTimeout(() => {
       settle(() =>
         reject(new Error("取得付款授權逾時，請重試（若持續發生，請重新整理頁面）"))
       );
@@ -76,13 +78,5 @@ export async function getTapPayPrime(
         (tp.card.getPrime as any)(onResult);
       }, "getPrime(callback)");
     }, fallbackAfterMs);
-
-    // Cleanup timer on settle
-    const originalSettle = settle;
-    settle = (fn: () => void) => {
-      if (settled) return;
-      window.clearTimeout(timeout);
-      originalSettle(fn);
-    };
   });
 }

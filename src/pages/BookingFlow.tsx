@@ -1654,7 +1654,7 @@ const BookingFlow = () => {
             'process-tappay-payment',
             {
               body: {
-                prime: primeResult.card.prime,
+                prime,
                 amount: finalPrice,
                 orderId: `TEMP-${Date.now()}`, // 臨時訂單 ID
                 cardholder: {
