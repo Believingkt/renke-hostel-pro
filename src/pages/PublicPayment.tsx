@@ -133,9 +133,12 @@ export default function PublicPayment() {
     setErrorMessage("");
 
     try {
-      // 取得 Prime
+      // 取得 Prime（帶入 appId 和 appKey 參數）
       const prime = await new Promise<string>((resolve, reject) => {
-        window.TPDirect.card.getPrime((result: any) => {
+        (window.TPDirect.card.getPrime as any)({
+          appId: TAPPAY_CONFIG.appId,
+          appKey: TAPPAY_CONFIG.appKey
+        }, (result: any) => {
           console.log("[TapPay] getPrime result:", result);
           if (result.status !== 0) {
             const hostname = window.location.hostname;

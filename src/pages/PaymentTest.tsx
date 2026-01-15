@@ -391,9 +391,12 @@ export default function PaymentTest() {
     try {
       console.log('Starting full payment flow test...');
       
-      // 步驟 1: 取得 Prime Token
+      // 步驟 1: 取得 Prime Token（帶入 appId 和 appKey 參數）
       const primeResult = await new Promise<any>((resolve, reject) => {
-        window.TPDirect.card.getPrime((result: any) => {
+        (window.TPDirect.card.getPrime as any)({
+          appId: '165714',
+          appKey: 'app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP'
+        }, (result: any) => {
           console.log('getPrime result:', result);
           if (result.status !== 0) {
             reject(new Error(result.msg || '無法取得付款資訊'));
@@ -499,10 +502,13 @@ export default function PaymentTest() {
     setIsProcessing(true);
 
     try {
-      console.log('Getting prime token...');
+      console.log('Getting prime token with appId and appKey...');
       
       const primeResult = await new Promise<any>((resolve, reject) => {
-        window.TPDirect.card.getPrime((result: any) => {
+        (window.TPDirect.card.getPrime as any)({
+          appId: '165714',
+          appKey: 'app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP'
+        }, (result: any) => {
           console.log('getPrime result:', result);
           if (result.status !== 0) {
             reject(new Error(result.msg || '無法取得付款資訊'));
