@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
+import { getTapPayPrime } from "@/utils/tappayPrime";
 import { useToast } from "@/hooks/use-toast";
 import { CreditCard, Loader2, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -181,35 +182,8 @@ export function OnlinePaymentDialog({
     setIsProcessing(true);
 
     try {
-      // 獲取 Prime（帶入 appId 和 appKey 參數）
-      const prime = await new Promise<string>((resolve, reject) => {
-        (window.TPDirect.card.getPrime as any)({
-          appId: TAPPAY_CONFIG.appId,
-          appKey: TAPPAY_CONFIG.appKey
-        }, (result: any) => {
-          console.log('[TapPay][Admin] getPrime result:', result);
-          if (result.status !== 0) {
-            const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
-            const origin = typeof window !== 'undefined' ? window.location.origin : '';
-            const href = typeof window !== 'undefined' ? window.location.href : '';
-            const protocol = typeof window !== 'undefined' ? window.location.protocol : '';
-            const appId = TAPPAY_CONFIG.appId;
-            const appKey = TAPPAY_CONFIG.appKey;
-            const appKeyPrefix = appKey.substring(0, 8);
-            const appKeySuffix = appKey.substring(appKey.length - 6);
-            const sdkVersion = 'v5.18.0';
-            const tpDirectLoaded = typeof window.TPDirect !== 'undefined' ? 'Yes' : 'No';
-            const env = TAPPAY_CONFIG.env;
-            reject(
-              new Error(
-                `TapPay 授權失敗 (${result.status}): ${result.msg || 'unknown'} | hostname: ${hostname} | origin: ${origin} | protocol: ${protocol} | href: ${href} | appId: ${appId} | appKey: ${appKeyPrefix}...${appKeySuffix} | SDK: ${sdkVersion} | TPDirect: ${tpDirectLoaded} | env: ${env}`
-              )
-            );
-            return;
-          }
-          resolve(result.card.prime);
-        });
-      });
+      // 獲取 Prime（含逾時與相容性 fallback，避免卡在「處理中」）
+      const prime = await getTapPayPrime(TAPPAY_CONFIG.appId, TAPPAY_CONFIG.appKey);
 
       console.log('[TapPay][Admin] invoking process-tappay-payment', {
         orderNumber: order.order_number,

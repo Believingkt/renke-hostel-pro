@@ -65,6 +65,7 @@ import roomDeluxe from "@/assets/room-deluxe.jpg";
 import roomSuite from "@/assets/room-suite.jpg";
 import roomStandard from "@/assets/room-standard.jpg";
 import { createSanitizedHtml } from "@/utils/sanitizeHtml";
+import { getTapPayPrime } from "@/utils/tappayPrime";
 import { DevAccommodationSwitcher } from "@/components/DevAccommodationSwitcher";
 import AccommodationLogo from "@/components/AccommodationLogo";
 import { getThemeClassByAccommodation } from "@/constants/themes";
@@ -1644,70 +1645,8 @@ const BookingFlow = () => {
             throw new Error('請完整填寫信用卡資訊（卡號、有效期限、安全碼）');
           }
 
-          // 獲取 Prime token
-          const getPrime = (): Promise<any> => {
-            return new Promise((resolve, reject) => {
-              if (!window.TPDirect) {
-                reject(new Error('TapPay SDK 尚未載入'));
-                return;
-              }
-              
-              console.log('Requesting TPDirect.card.getPrime with appId and appKey...');
-              
-              window.TPDirect.card.getPrime({
-                appId: TAPPAY_CONFIG.appId,
-                appKey: TAPPAY_CONFIG.appKey
-              }, (result: any) => {
-                console.log('TPDirect.card.getPrime result:', {
-                  status: result.status,
-                  msg: result.msg,
-                  cardType: result.card?.type,
-                  hasCardInfo: !!result.card
-                });
-                
-                if (result.status !== 0) {
-                  // 根據 TapPay 錯誤碼提供詳細錯誤訊息
-                  let errorMessage = '無法取得付款資訊';
-                  let suggestion = '請檢查卡片資訊';
-                  
-                  switch (result.status) {
-                    case 1:
-                      errorMessage = '欄位驗證失敗';
-                      suggestion = '請確認卡號、有效期限和安全碼格式正確';
-                      break;
-                    case 2:
-                      errorMessage = '卡號格式錯誤';
-                      suggestion = '請檢查卡號是否正確輸入';
-                      break;
-                    case 3:
-                      errorMessage = '有效期限格式錯誤';
-                      suggestion = '請檢查有效期限格式 (MM/YY)';
-                      break;
-                    case 4:
-                      errorMessage = '安全碼格式錯誤';
-                      suggestion = '請檢查 CVV 安全碼';
-                      break;
-                    default:
-                      if (result.msg) {
-                        errorMessage = result.msg;
-                      }
-                  }
-                  
-                  console.error('TPDirect.card.getPrime failed:', {
-                    status: result.status,
-                    message: errorMessage,
-                    originalMsg: result.msg
-                  });
-                  
-                  reject(new Error(`${errorMessage}。${suggestion}`));
-                  return;
-                }
-                resolve(result);
-              });
-            });
-          };
-
-          const primeResult = await getPrime();
+          // 獲取 Prime token（含逾時與相容性 fallback，避免卡在「處理中」）
+          const prime = await getTapPayPrime(TAPPAY_CONFIG.appId, TAPPAY_CONFIG.appKey);
           console.log('Got prime token');
 
           // 呼叫後端處理支付
