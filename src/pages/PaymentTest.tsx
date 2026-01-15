@@ -273,7 +273,7 @@ export default function PaymentTest() {
     const loadTapPaySDK = () => {
       if (window.TPDirect) {
         console.log('TapPay SDK already loaded (production)');
-        window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'production');
+        window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8l3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'production');
         setIsTapPayReady(true);
         return;
       }
@@ -284,7 +284,7 @@ export default function PaymentTest() {
       script.onload = () => {
         if (window.TPDirect) {
           console.log('TapPay SDK loaded (production)');
-          window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'production');
+          window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8l3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'production');
           setIsTapPayReady(true);
         }
       };
