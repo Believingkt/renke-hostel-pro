@@ -6,13 +6,8 @@ import { CreditCard, Loader2, CheckCircle2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getTapPayPrime } from "@/utils/tappayPrime";
+import { useTapPayConfig } from "@/hooks/use-tappay-config";
 
-// TapPay Production 設定
-const TAPPAY_CONFIG = {
-  appId: "165714",
-  appKey: "app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP",
-  env: "production"
-} as const;
 
 export default function PublicPayment() {
   const [isTapPayReady, setIsTapPayReady] = useState(false);
@@ -21,6 +16,12 @@ export default function PublicPayment() {
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [transactionId, setTransactionId] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+
+  const {
+    config: tappayConfig,
+    loading: tappayConfigLoading,
+    error: tappayConfigError,
+  } = useTapPayConfig(true);
 
   // 測試訂單資料 - orderId 格式: YYYYMMDD + 3位流水號 (共11位數字)
   const generateOrderId = () => {
@@ -43,14 +44,12 @@ export default function PublicPayment() {
 
   // 載入 TapPay SDK
   useEffect(() => {
+    if (!tappayConfig) return;
+
     const loadTapPaySDK = () => {
       if (window.TPDirect) {
-        console.log(`TapPay SDK already loaded (${TAPPAY_CONFIG.env})`);
-        window.TPDirect.setupSDK(
-          TAPPAY_CONFIG.appId,
-          TAPPAY_CONFIG.appKey,
-          TAPPAY_CONFIG.env
-        );
+        console.log(`TapPay SDK already loaded (${tappayConfig.env})`);
+        window.TPDirect.setupSDK(tappayConfig.appId, tappayConfig.appKey, tappayConfig.env);
         setIsTapPayReady(true);
         return;
       }
@@ -60,12 +59,8 @@ export default function PublicPayment() {
       script.async = true;
       script.onload = () => {
         if (window.TPDirect) {
-          console.log(`TapPay SDK loaded (${TAPPAY_CONFIG.env})`);
-          window.TPDirect.setupSDK(
-            TAPPAY_CONFIG.appId,
-            TAPPAY_CONFIG.appKey,
-            TAPPAY_CONFIG.env
-          );
+          console.log(`TapPay SDK loaded (${tappayConfig.env})`);
+          window.TPDirect.setupSDK(tappayConfig.appId, tappayConfig.appKey, tappayConfig.env);
           setIsTapPayReady(true);
         }
       };
@@ -76,8 +71,14 @@ export default function PublicPayment() {
       document.body.appendChild(script);
     };
 
+    setIsTapPayReady(false);
     loadTapPaySDK();
-  }, []);
+  }, [tappayConfig]);
+
+  useEffect(() => {
+    if (!tappayConfigError) return;
+    setErrorMessage(tappayConfigError);
+  }, [tappayConfigError]);
 
   // 設定 TapPay 表單
   useEffect(() => {
@@ -128,14 +129,14 @@ export default function PublicPayment() {
   }, [isTapPayReady]);
 
   const handlePayment = async () => {
-    if (!window.TPDirect || !cardValid) return;
+    if (!window.TPDirect || !cardValid || !tappayConfig) return;
 
     setIsProcessing(true);
     setErrorMessage("");
 
     try {
       // 取得 Prime（含逾時與相容性 fallback，避免卡在「處理中」）
-      const prime = await getTapPayPrime(TAPPAY_CONFIG.appId, TAPPAY_CONFIG.appKey);
+      const prime = await getTapPayPrime(tappayConfig.appId, tappayConfig.appKey);
       console.log("[TapPay] Prime obtained, calling backend...");
 
       // 呼叫後端處理付款
@@ -269,7 +270,7 @@ export default function PublicPayment() {
               </div>
             </div>
 
-            {!isTapPayReady && (
+            {(tappayConfigLoading || !isTapPayReady) && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 正在載入付款模組...
@@ -286,7 +287,7 @@ export default function PublicPayment() {
           {/* 付款按鈕 */}
           <Button
             onClick={handlePayment}
-            disabled={!cardValid || isProcessing || !isTapPayReady}
+            disabled={!tappayConfig || !cardValid || isProcessing || !isTapPayReady}
             className="w-full h-12 text-base"
             size="lg"
           >

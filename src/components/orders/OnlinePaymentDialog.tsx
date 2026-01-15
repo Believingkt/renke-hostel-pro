@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useTapPayConfig } from "@/hooks/use-tappay-config";
 import { supabase } from "@/integrations/supabase/client";
 import { getTapPayPrime } from "@/utils/tappayPrime";
 import { useToast } from "@/hooks/use-toast";
@@ -12,12 +13,6 @@ import { CreditCard, Loader2, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ToastAction } from "@/components/ui/toast";
 
-// TapPay Production 設定
-const TAPPAY_CONFIG = {
-  appId: "165714",
-  appKey: "app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP",
-  env: "production"
-} as const;
 
 interface OnlinePaymentDialogProps {
   open: boolean;
@@ -44,6 +39,12 @@ export function OnlinePaymentDialog({
 }: OnlinePaymentDialogProps) {
   const isMobile = useIsMobile();
   const { toast } = useToast();
+
+  const {
+    config: tappayConfig,
+    loading: tappayConfigLoading,
+    error: tappayConfigError,
+  } = useTapPayConfig(open);
   
   const [isTapPayReady, setIsTapPayReady] = useState(false);
   const [cardValid, setCardValid] = useState(false);
@@ -61,31 +62,32 @@ export function OnlinePaymentDialog({
 
   // 初始化 TapPay SDK
   useEffect(() => {
-    if (!open) return;
+    if (!open || !tappayConfig) return;
 
-      const loadTapPaySDK = () => {
+    const loadTapPaySDK = () => {
+      if (window.TPDirect) {
+        console.log(`TapPay SDK already loaded (${tappayConfig.env})`);
+        window.TPDirect.setupSDK(tappayConfig.appId, tappayConfig.appKey, tappayConfig.env);
+        setIsTapPayReady(true);
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://js.tappaysdk.com/sdk/tpdirect/v5.18.0';
+      script.async = true;
+      script.onload = () => {
         if (window.TPDirect) {
-          console.log(`TapPay SDK already loaded (${TAPPAY_CONFIG.env})`);
-          window.TPDirect.setupSDK(TAPPAY_CONFIG.appId, TAPPAY_CONFIG.appKey, TAPPAY_CONFIG.env);
+          console.log(`TapPay SDK loaded (${tappayConfig.env})`);
+          window.TPDirect.setupSDK(tappayConfig.appId, tappayConfig.appKey, tappayConfig.env);
           setIsTapPayReady(true);
-          return;
         }
-
-        const script = document.createElement('script');
-        script.src = 'https://js.tappaysdk.com/sdk/tpdirect/v5.18.0';
-        script.async = true;
-        script.onload = () => {
-          if (window.TPDirect) {
-            console.log(`TapPay SDK loaded (${TAPPAY_CONFIG.env})`);
-            window.TPDirect.setupSDK(TAPPAY_CONFIG.appId, TAPPAY_CONFIG.appKey, TAPPAY_CONFIG.env);
-            setIsTapPayReady(true);
-          }
-        };
-        document.body.appendChild(script);
       };
+      document.body.appendChild(script);
+    };
 
+    setIsTapPayReady(false);
     loadTapPaySDK();
-  }, [open]);
+  }, [open, tappayConfig]);
 
   // 設定 TapPay 表單
   useEffect(() => {
@@ -177,13 +179,13 @@ export function OnlinePaymentDialog({
   }, [open]);
 
   const handlePayment = async () => {
-    if (!order || !window.TPDirect || paymentAmount <= 0) return;
+    if (!order || !window.TPDirect || paymentAmount <= 0 || !tappayConfig) return;
 
     setIsProcessing(true);
 
     try {
       // 獲取 Prime（含逾時與相容性 fallback，避免卡在「處理中」）
-      const prime = await getTapPayPrime(TAPPAY_CONFIG.appId, TAPPAY_CONFIG.appKey);
+      const prime = await getTapPayPrime(tappayConfig.appId, tappayConfig.appKey);
 
       console.log('[TapPay][Admin] invoking process-tappay-payment', {
         orderNumber: order.order_number,
@@ -427,7 +429,7 @@ export function OnlinePaymentDialog({
                   </div>
                 </div>
 
-                {!isTapPayReady && (
+                {((tappayConfigLoading || !isTapPayReady) && !tappayConfigError) && (
                   <Alert>
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <AlertDescription>正在載入付款模組...</AlertDescription>
@@ -438,7 +440,7 @@ export function OnlinePaymentDialog({
               {/* 付款按鈕 */}
               <Button
                 onClick={handlePayment}
-                disabled={!cardValid || isProcessing || paymentAmount <= 0 || !isTapPayReady}
+                disabled={!tappayConfig || !cardValid || isProcessing || paymentAmount <= 0 || !isTapPayReady}
                 className="w-full"
                 size="lg"
               >
