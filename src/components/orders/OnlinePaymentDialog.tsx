@@ -496,9 +496,6 @@ export function OnlinePaymentDialog({
                       )}
                     </AlertTitle>
                     <AlertDescription className="mt-2 space-y-3">
-                      {paymentError.suggestion && (
-                        <p className="text-sm">{paymentError.suggestion}</p>
-                      )}
                       {paymentError.technicalMessage && (
                         <p className="text-xs font-mono text-muted-foreground bg-muted/50 p-2 rounded">
                           {paymentError.technicalMessage}
