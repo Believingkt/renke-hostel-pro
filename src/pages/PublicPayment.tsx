@@ -333,24 +333,6 @@ export default function PublicPayment() {
                       {paymentError.technicalMessage}
                     </p>
                   )}
-                  <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-destructive/20">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={copyErrorInfo}
-                      className="text-xs h-8"
-                    >
-                      {copied ? (
-                        <><Check className="h-3 w-3 mr-1" /> 已複製</>
-                      ) : (
-                        <><Copy className="h-3 w-3 mr-1" /> 複製錯誤資訊</>
-                      )}
-                    </Button>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Phone className="h-3 w-3" />
-                      <span>如需協助，請聯繫民宿客服</span>
-                    </div>
-                  </div>
                 </AlertDescription>
               </Alert>
             )}
