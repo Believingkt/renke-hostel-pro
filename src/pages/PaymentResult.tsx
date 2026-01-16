@@ -35,13 +35,8 @@ export default function PaymentResult() {
         return;
       }
 
-      // Quick check: if TapPay returned status != 0, it's already failed
-      if (tappayStatus && tappayStatus !== '0') {
-        setStatus('failed');
-        setTransaction({ recTradeId, orderNumber: orderNumber || undefined });
-        setErrorMessage('付款未完成或已取消');
-        return;
-      }
+      // Note: Don't rely solely on URL status param for 3D Secure
+      // Always query TapPay API to get actual transaction status
 
       try {
         // Query TapPay for transaction status
