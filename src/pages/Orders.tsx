@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { useSubdomain } from "@/hooks/use-subdomain";
+import { useAccommodation } from "@/contexts/AccommodationContext";
 import { format, addDays } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useOrderNotifications } from "@/hooks/use-order-notifications";
@@ -48,7 +48,7 @@ import { PageHeader } from "@/components/PageHeader";
 const Orders = () => {
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "list");
-  const { accommodationId } = useSubdomain();
+  const { currentAccommodationId: accommodationId } = useAccommodation();
   const { toast } = useToast();
   
   // Enable real-time order notifications
