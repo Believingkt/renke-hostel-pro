@@ -96,6 +96,22 @@ export const useOrderNotifications = (enabled: boolean = true) => {
 
             saveNotification(title, description, 'payment', newOrder.id);
           }
+
+          // 退款狀態改變時通知
+          if (oldOrder.payment_status !== newOrder.payment_status && 
+              (newOrder.payment_status === 'refunded' || newOrder.payment_status === 'partial_refunded')) {
+            const isFullRefund = newOrder.payment_status === 'refunded';
+            const title = isFullRefund ? "💸 訂單已退款" : "💸 訂單部分退款";
+            const description = `訂單編號：${newOrder.order_number}\n剩餘已付金額：$${newOrder.paid_amount.toLocaleString()}`;
+            
+            toast({
+              title,
+              description,
+              duration: 8000,
+            });
+
+            saveNotification(title, description, 'payment', newOrder.id);
+          }
         }
       )
       .subscribe();

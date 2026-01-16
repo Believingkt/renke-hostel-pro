@@ -314,6 +314,8 @@ function getPaymentStatusLabel(status: string): string {
     'deposit_paid': '已付訂金',
     'partial': '部分付款',
     'paid': '已付清',
+    'refunded': '已退款',
+    'partial_refunded': '部分退款',
   };
   return labels[status] || status;
 }
