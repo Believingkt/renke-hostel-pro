@@ -224,7 +224,26 @@ export function OnlinePaymentDialog({
       if (error) throw error;
 
       if (data.success) {
-        // 更新訂單付款狀態
+        // Check if 3D Secure redirect is required
+        if (data.requires3DSecure && data.paymentUrl) {
+          console.log('[TapPay][Admin] Redirecting to 3D Secure...');
+          toast({
+            title: "跳轉 3D 驗證",
+            description: "即將跳轉至銀行驗證頁面...",
+          });
+          // Redirect to 3D Secure page with return URL
+          const returnUrl = `${window.location.origin}/payment-result?order_number=${order.order_number}&amount=${paymentAmount}&source=admin`;
+          sessionStorage.setItem('pending_payment', JSON.stringify({
+            orderId: order.id,
+            orderNumber: order.order_number,
+            amount: paymentAmount,
+            source: 'admin'
+          }));
+          window.location.href = data.paymentUrl;
+          return;
+        }
+
+        // Direct success (non-3DS card)
         const newPaidAmount = (order.paid_amount || 0) + paymentAmount;
         const newPaymentStatus = newPaidAmount >= order.final_price ? 'paid' : 
                                  newPaidAmount > 0 ? 'partial' : 'unpaid';
