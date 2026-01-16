@@ -52,7 +52,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useSubdomain } from "@/hooks/use-subdomain";
+import { useAccommodation } from "@/contexts/AccommodationContext";
 import { format } from "date-fns";
 import { z } from 'zod';
 
@@ -80,7 +80,7 @@ const Accounts = () => {
   const [emailFormatValid, setEmailFormatValid] = useState<boolean | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
-  const { accommodationId } = useSubdomain();
+  const { currentAccommodationId: accommodationId } = useAccommodation();
 
   useEffect(() => {
     if (accommodationId) {
