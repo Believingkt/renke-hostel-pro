@@ -661,7 +661,7 @@ const Orders = () => {
                     description="目前還沒有任何訂單。開始建立第一筆訂單，追蹤預訂狀態與營運數據。"
                     action={{
                       label: "建立第一筆訂單",
-                      onClick: () => setEditDialogOpen(true)
+                      onClick: () => setCreateDialogOpen(true)
                     }}
                     suggestions={[
                       {
