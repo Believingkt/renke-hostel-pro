@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -11,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, Globe, CheckCircle2, XCircle, AlertCircle, Palette, Upload, Trash2, Image, Crop } from "lucide-react";
+import { Loader2, Globe, CheckCircle2, XCircle, AlertCircle, Palette, Upload, Trash2, Image, Crop, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { LogoCropDialog } from "@/components/LogoCropDialog";
 import { THEME_PRESET_CONFIGS, getThemeConfig } from "@/constants/themes";
@@ -163,6 +165,10 @@ export function AccommodationDialog({
   const [cropImageSrc, setCropImageSrc] = useState<string>("");
   const [cropLogoType, setCropLogoType] = useState<'header' | 'footer'>('header');
 
+  // LINE Pay setting state
+  const [linePayEnabled, setLinePayEnabled] = useState(false);
+  const [loadingLinePay, setLoadingLinePay] = useState(false);
+
   useEffect(() => {
     if (initialData) {
       setFormData({
@@ -200,8 +206,81 @@ export function AccommodationDialog({
       setHeaderLogoUrl(null);
       setFooterLogoUrl(null);
       setSubdomainStatus("idle");
+      setLinePayEnabled(false);
     }
   }, [initialData, open]);
+
+  // Load LINE Pay setting when editing
+  useEffect(() => {
+    if (isEditing && initialData?.id && open) {
+      loadLinePaySetting(initialData.id);
+    }
+  }, [isEditing, initialData?.id, open]);
+
+  const loadLinePaySetting = async (accommodationId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("booking_settings")
+        .select("payment_methods")
+        .eq("accommodation_id", accommodationId)
+        .single();
+
+      if (error) throw error;
+
+      const paymentMethods = Array.isArray(data?.payment_methods) ? data.payment_methods : [];
+      setLinePayEnabled(paymentMethods.includes("LINE Pay"));
+    } catch (error) {
+      console.error("Error loading LINE Pay setting:", error);
+    }
+  };
+
+  const handleLinePayToggle = async (enabled: boolean) => {
+    if (!initialData?.id) return;
+
+    setLoadingLinePay(true);
+    try {
+      // Get current payment methods
+      const { data: currentData, error: fetchError } = await supabase
+        .from("booking_settings")
+        .select("payment_methods")
+        .eq("accommodation_id", initialData.id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      let paymentMethods = Array.isArray(currentData?.payment_methods) 
+        ? [...currentData.payment_methods] 
+        : [];
+
+      if (enabled) {
+        // Add LINE Pay if not exists
+        if (!paymentMethods.includes("LINE Pay")) {
+          paymentMethods.push("LINE Pay");
+        }
+      } else {
+        // Remove LINE Pay
+        paymentMethods = paymentMethods.filter((m: string) => m !== "LINE Pay");
+      }
+
+      const { error: updateError } = await supabase
+        .from("booking_settings")
+        .update({ 
+          payment_methods: paymentMethods,
+          updated_at: new Date().toISOString()
+        })
+        .eq("accommodation_id", initialData.id);
+
+      if (updateError) throw updateError;
+
+      setLinePayEnabled(enabled);
+      toast.success(enabled ? "LINE Pay 已啟用" : "LINE Pay 已停用");
+    } catch (error: any) {
+      console.error("Error updating LINE Pay setting:", error);
+      toast.error("更新失敗", { description: error.message });
+    } finally {
+      setLoadingLinePay(false);
+    }
+  };
 
   // Handle file selection - open crop dialog
   const handleFileSelect = (
@@ -682,6 +761,42 @@ export function AccommodationDialog({
               <p className="text-xs text-muted-foreground">
                 建議尺寸：200×60 像素，支援 PNG、JPG 格式
               </p>
+            </div>
+          )}
+
+          {/* LINE Pay 設定（僅編輯模式） */}
+          {isEditing && initialData?.id && (
+            <div className="space-y-3">
+              <Label className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4" />
+                付款方式設定
+              </Label>
+              <div className="border rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm">LINE Pay</span>
+                      {linePayEnabled && (
+                        <Badge variant="secondary" className="text-xs">已啟用</Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      啟用後，前台訂房可使用 LINE Pay 線上付款
+                    </p>
+                  </div>
+                  <Switch
+                    checked={linePayEnabled}
+                    onCheckedChange={handleLinePayToggle}
+                    disabled={loadingLinePay || isSubmitting}
+                  />
+                </div>
+                {loadingLinePay && (
+                  <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    更新中...
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
