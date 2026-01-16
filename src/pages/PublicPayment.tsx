@@ -43,7 +43,7 @@ export default function PublicPayment() {
 
   const orderInfo = {
     orderNumber: generateOrderId(),
-    amount: 100,
+    amount: 10,
     description: "測試訂單",
     customerName: "測試顧客",
     customerPhone: "0912345678",
