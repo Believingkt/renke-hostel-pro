@@ -1650,6 +1650,11 @@ const BookingFlow = () => {
           console.log('Got prime token');
 
           // 呼叫後端處理支付
+          // Build 3D Secure redirect URLs
+          const baseUrl = window.location.origin;
+          const frontendRedirectUrl = `${baseUrl}/payment-result?source=booking`;
+          const backendNotifyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/tappay-notify`;
+
           const { data: paymentResult, error: paymentError } = await supabase.functions.invoke(
             'process-tappay-payment',
             {
@@ -1663,6 +1668,8 @@ const BookingFlow = () => {
                   email: guestInfo.email || '',
                 },
                 details: `${selectedRoom.name} - ${checkInDateStr} 至 ${checkOutDateStr}`,
+                frontendRedirectUrl,
+                backendNotifyUrl,
               },
             }
           );
