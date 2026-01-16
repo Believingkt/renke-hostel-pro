@@ -160,10 +160,17 @@ serve(async (req) => {
       };
     }
 
-    console.log('Calling TapPay API with 3D Secure enabled');
+    const envRaw = Deno.env.get('TAPPAY_ENV');
+    const env = envRaw === 'sandbox' ? 'sandbox' : 'production';
+    const endpoint =
+      env === 'sandbox'
+        ? 'https://sandbox.tappaysdk.com/tpc/payment/pay-by-prime'
+        : 'https://prod.tappaysdk.com/tpc/payment/pay-by-prime';
+
+    console.log('Calling TapPay API with 3D Secure enabled', { env, endpoint });
 
     // Call TapPay Pay by Prime API
-    const tappayResponse = await fetch('https://prod.tappaysdk.com/tpc/payment/pay-by-prime', {
+    const tappayResponse = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
