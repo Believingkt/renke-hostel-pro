@@ -1571,12 +1571,19 @@ export type Database = {
           accommodation_amount: number
           accommodation_id: string
           accommodation_percentage: number
+          approved_at: string | null
+          approved_by: string | null
           created_at: string
           hq_amount: number
           hq_percentage: number
           id: string
           order_amount: number
           order_id: string
+          paid_at: string | null
+          payment_method: string | null
+          payment_reference: string | null
+          requested_at: string | null
+          requested_by: string | null
           settled_by: string | null
           settlement_date: string | null
           settlement_note: string | null
@@ -1588,12 +1595,19 @@ export type Database = {
           accommodation_amount: number
           accommodation_id: string
           accommodation_percentage: number
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           hq_amount: number
           hq_percentage: number
           id?: string
           order_amount: number
           order_id: string
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          requested_at?: string | null
+          requested_by?: string | null
           settled_by?: string | null
           settlement_date?: string | null
           settlement_note?: string | null
@@ -1605,12 +1619,19 @@ export type Database = {
           accommodation_amount?: number
           accommodation_id?: string
           accommodation_percentage?: number
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           hq_amount?: number
           hq_percentage?: number
           id?: string
           order_amount?: number
           order_id?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          requested_at?: string | null
+          requested_by?: string | null
           settled_by?: string | null
           settlement_date?: string | null
           settlement_note?: string | null

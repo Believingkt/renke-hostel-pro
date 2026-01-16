@@ -27,6 +27,7 @@ import {
   KeyRound,
   Megaphone,
   BadgePercent,
+  Banknote,
   Sparkles,
   BookOpen,
   Bed
@@ -88,6 +89,7 @@ const menuItems = [
   },
   { title: "顧客資料", url: "/admin/customers", icon: Users },
   { title: "網紅導購", url: "/admin/discount-codes", icon: Sparkles },
+  { title: "請款管理", url: "/admin/settlement", icon: Banknote },
   { title: "帳號管理", url: "/admin/accounts", icon: KeyRound },
 ];
 

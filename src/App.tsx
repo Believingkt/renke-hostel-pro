@@ -45,6 +45,7 @@ const PublicHolidays = lazy(() => import("./pages/PublicHolidays"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const DataBackup = lazy(() => import("./pages/DataBackup"));
 const EmailTest = lazy(() => import("./pages/EmailTest"));
+const Settlement = lazy(() => import("./pages/Settlement"));
 
 // Auth 頁面保持即時載入（關鍵路徑）
 import Auth from "./pages/Auth";
@@ -243,6 +244,14 @@ function App() {
                   element={
                     <Suspense fallback={<FormSkeleton fields={5} />}>
                       <DataBackup />
+                    </Suspense>
+                  } 
+                />
+                <Route 
+                  path="/admin/settlement" 
+                  element={
+                    <Suspense fallback={<TableSkeleton rows={8} columns={6} />}>
+                      <Settlement />
                     </Suspense>
                   } 
                 />

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -51,8 +52,11 @@ import {
   DollarSign,
   Calendar,
   AlertCircle,
+  Send,
+  Banknote,
+  Download,
 } from "lucide-react";
-import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { toast } from "sonner";
 
@@ -80,6 +84,13 @@ interface SplitRecord {
   settlement_status: string;
   settlement_date: string | null;
   settlement_note: string | null;
+  requested_at: string | null;
+  requested_by: string | null;
+  approved_at: string | null;
+  approved_by: string | null;
+  paid_at: string | null;
+  payment_method: string | null;
+  payment_reference: string | null;
   created_at: string;
   orders?: {
     order_number: string;
@@ -98,14 +109,18 @@ const sectionToTab: Record<string, string> = {
   rules: "rules",
   details: "records",
   reports: "reports",
-  pending: "settlement",
+  pending: "pending",
+  requested: "requested",
+  approved: "approved",
 };
 
 const tabToSection: Record<string, string> = {
   rules: "rules",
   records: "details",
   reports: "reports",
-  settlement: "pending",
+  pending: "pending",
+  requested: "requested",
+  approved: "approved",
 };
 
 export function SplitManagement({ accommodations }: SplitManagementProps) {
@@ -125,8 +140,11 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
   // Dialog states
   const [showRuleDialog, setShowRuleDialog] = useState(false);
   const [editingRule, setEditingRule] = useState<SplitRule | null>(null);
-  const [showSettleDialog, setShowSettleDialog] = useState(false);
-  const [settlingRecords, setSettlingRecords] = useState<SplitRecord[]>([]);
+  const [showApproveDialog, setShowApproveDialog] = useState(false);
+  const [showPayDialog, setShowPayDialog] = useState(false);
+  const [selectedRecords, setSelectedRecords] = useState<string[]>([]);
+  const [paymentMethod, setPaymentMethod] = useState("");
+  const [paymentReference, setPaymentReference] = useState("");
   const [settlementNote, setSettlementNote] = useState("");
   
   // Form state
@@ -154,7 +172,7 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
     try {
       if (activeTab === "rules") {
         await loadSplitRules();
-      } else if (activeTab === "records" || activeTab === "reports") {
+      } else {
         await loadSplitRecords();
       }
     } catch (error) {
@@ -200,7 +218,14 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
       query = query.eq("accommodation_id", accommodationFilter);
     }
 
-    if (statusFilter !== "all") {
+    // Filter by status based on active tab
+    if (activeTab === "pending") {
+      query = query.eq("settlement_status", "pending");
+    } else if (activeTab === "requested") {
+      query = query.eq("settlement_status", "requested");
+    } else if (activeTab === "approved") {
+      query = query.in("settlement_status", ["approved", "paid"]);
+    } else if (statusFilter !== "all") {
       query = query.eq("settlement_status", statusFilter);
     }
 
@@ -226,14 +251,12 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
     setSaving(true);
     try {
       if (editingRule) {
-        // Deactivate old rule
         await supabase
           .from("split_rules")
           .update({ is_active: false, effective_to: format(new Date(), "yyyy-MM-dd") })
           .eq("id", editingRule.id);
       }
 
-      // Create new rule
       const { error } = await supabase.from("split_rules").insert([{
         accommodation_id: ruleForm.accommodation_id,
         hq_percentage: ruleForm.hq_percentage,
@@ -277,8 +300,9 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
     }
   };
 
-  const handleSettleRecords = async () => {
-    if (settlingRecords.length === 0) return;
+  // Approve requested records
+  const handleApproveRecords = async () => {
+    if (selectedRecords.length === 0) return;
 
     setSaving(true);
     try {
@@ -287,23 +311,62 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
       const { error } = await supabase
         .from("split_records")
         .update({
-          settlement_status: "settled",
-          settlement_date: new Date().toISOString(),
+          settlement_status: "approved",
+          approved_at: new Date().toISOString(),
+          approved_by: user?.id,
           settlement_note: settlementNote || null,
-          settled_by: user?.id,
         })
-        .in("id", settlingRecords.map(r => r.id));
+        .in("id", selectedRecords);
 
       if (error) throw error;
 
-      toast.success(`已結算 ${settlingRecords.length} 筆記錄`);
-      setShowSettleDialog(false);
-      setSettlingRecords([]);
+      toast.success(`已審核通過 ${selectedRecords.length} 筆請款`);
+      setShowApproveDialog(false);
+      setSelectedRecords([]);
       setSettlementNote("");
       await loadSplitRecords();
     } catch (error) {
-      console.error("Error settling records:", error);
-      toast.error("結算失敗");
+      console.error("Error approving records:", error);
+      toast.error("審核失敗");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Mark records as paid
+  const handlePayRecords = async () => {
+    if (selectedRecords.length === 0) return;
+
+    if (!paymentMethod) {
+      toast.error("請選擇付款方式");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("split_records")
+        .update({
+          settlement_status: "paid",
+          paid_at: new Date().toISOString(),
+          payment_method: paymentMethod,
+          payment_reference: paymentReference || null,
+          settlement_note: settlementNote || null,
+        })
+        .in("id", selectedRecords);
+
+      if (error) throw error;
+
+      toast.success(`已完成 ${selectedRecords.length} 筆撥款`);
+      setShowPayDialog(false);
+      setSelectedRecords([]);
+      setPaymentMethod("");
+      setPaymentReference("");
+      setSettlementNote("");
+      await loadSplitRecords();
+    } catch (error) {
+      console.error("Error paying records:", error);
+      toast.error("撥款失敗");
     } finally {
       setSaving(false);
     }
@@ -337,6 +400,35 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
     return accommodations.find(a => a.id === id)?.name || "未知";
   };
 
+  const handleSelectAll = (records: SplitRecord[]) => {
+    if (selectedRecords.length === records.length) {
+      setSelectedRecords([]);
+    } else {
+      setSelectedRecords(records.map(r => r.id));
+    }
+  };
+
+  const handleSelectRecord = (id: string) => {
+    setSelectedRecords(prev => 
+      prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]
+    );
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "pending":
+        return <Badge variant="outline" className="text-orange-500 border-orange-500">待請款</Badge>;
+      case "requested":
+        return <Badge variant="outline" className="text-blue-500 border-blue-500">已請款</Badge>;
+      case "approved":
+        return <Badge variant="outline" className="text-purple-500 border-purple-500">已審核</Badge>;
+      case "paid":
+        return <Badge className="bg-primary">已撥款</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+
   // Calculate summary for reports
   const reportSummary = useMemo(() => {
     const byAccommodation: Record<string, {
@@ -344,7 +436,9 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
       hqTotal: number;
       accTotal: number;
       pending: number;
-      settled: number;
+      requested: number;
+      approved: number;
+      paid: number;
       count: number;
     }> = {};
 
@@ -355,7 +449,9 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
           hqTotal: 0,
           accTotal: 0,
           pending: 0,
-          settled: 0,
+          requested: 0,
+          approved: 0,
+          paid: 0,
           count: 0,
         };
       }
@@ -366,17 +462,68 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
       acc.accTotal += record.accommodation_amount;
       acc.count += 1;
 
-      if (record.settlement_status === "pending") {
-        acc.pending += record.hq_amount;
-      } else {
-        acc.settled += record.hq_amount;
+      switch (record.settlement_status) {
+        case "pending":
+          acc.pending += record.accommodation_amount;
+          break;
+        case "requested":
+          acc.requested += record.accommodation_amount;
+          break;
+        case "approved":
+          acc.approved += record.accommodation_amount;
+          break;
+        case "paid":
+          acc.paid += record.accommodation_amount;
+          break;
       }
     });
 
     return byAccommodation;
   }, [splitRecords]);
 
-  const pendingRecords = splitRecords.filter(r => r.settlement_status === "pending");
+  const requestedRecords = splitRecords.filter(r => r.settlement_status === "requested");
+  const approvedRecords = splitRecords.filter(r => r.settlement_status === "approved");
+
+  const selectedAmount = useMemo(() => 
+    splitRecords
+      .filter(r => selectedRecords.includes(r.id))
+      .reduce((sum, r) => sum + r.accommodation_amount, 0),
+    [splitRecords, selectedRecords]
+  );
+
+  const handleExportCSV = () => {
+    if (splitRecords.length === 0) {
+      toast.error("沒有資料可匯出");
+      return;
+    }
+
+    const headers = ["民宿", "訂單編號", "入住日期", "訂單金額", "總部分潤", "民宿分潤", "狀態", "請款日期", "審核日期", "撥款日期", "付款方式"];
+    const rows = splitRecords.map(r => [
+      getAccommodationName(r.accommodation_id),
+      r.orders?.order_number || "",
+      r.orders?.check_in_date || "",
+      r.order_amount,
+      r.hq_amount,
+      r.accommodation_amount,
+      r.settlement_status === "pending" ? "待請款" :
+      r.settlement_status === "requested" ? "已請款" :
+      r.settlement_status === "approved" ? "已審核" : "已撥款",
+      r.requested_at ? format(new Date(r.requested_at), "yyyy/MM/dd") : "",
+      r.approved_at ? format(new Date(r.approved_at), "yyyy/MM/dd") : "",
+      r.paid_at ? format(new Date(r.paid_at), "yyyy/MM/dd") : "",
+      r.payment_method || "",
+    ]);
+
+    const csvContent = [headers.join(","), ...rows.map(row => row.join(","))].join("\n");
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `分帳報表_${monthFilter}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("報表已匯出");
+  };
 
   if (loading && splitRules.length === 0 && splitRecords.length === 0) {
     return <HQSplitSkeleton />;
@@ -385,6 +532,26 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={handleTabChange}>
+        <div className="flex items-center gap-4 flex-wrap mb-4">
+          <TabsList className="flex-wrap">
+            <TabsTrigger value="rules">拆帳規則</TabsTrigger>
+            <TabsTrigger value="records">明細記錄</TabsTrigger>
+            <TabsTrigger value="requested" className="gap-1">
+              <Send className="h-3.5 w-3.5" />
+              待審核
+              {requestedRecords.length > 0 && (
+                <Badge variant="destructive" className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                  {requestedRecords.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="approved" className="gap-1">
+              <CheckCircle className="h-3.5 w-3.5" />
+              待撥款
+            </TabsTrigger>
+            <TabsTrigger value="reports">結算報表</TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Rules Tab */}
         <TabsContent value="rules" className="space-y-4">
@@ -502,8 +669,10 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">全部狀態</SelectItem>
-                <SelectItem value="pending">待結算</SelectItem>
-                <SelectItem value="settled">已結算</SelectItem>
+                <SelectItem value="pending">待請款</SelectItem>
+                <SelectItem value="requested">已請款</SelectItem>
+                <SelectItem value="approved">已審核</SelectItem>
+                <SelectItem value="paid">已撥款</SelectItem>
               </SelectContent>
             </Select>
 
@@ -513,6 +682,10 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
               onChange={(e) => setMonthFilter(e.target.value)}
               className="w-[180px]"
             />
+
+            <Button variant="outline" size="icon" onClick={handleExportCSV}>
+              <Download className="h-4 w-4" />
+            </Button>
           </div>
 
           <Card>
@@ -568,14 +741,226 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
                             </span>
                           </TableCell>
                           <TableCell>
-                            {record.settlement_status === "settled" ? (
-                              <Badge className="bg-primary">已結算</Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-orange-500 border-orange-500">待結算</Badge>
-                            )}
+                            {getStatusBadge(record.settlement_status)}
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
                             {format(new Date(record.created_at), "MM/dd HH:mm")}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Requested (Pending Approval) Tab */}
+        <TabsContent value="requested" className="space-y-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            <Select value={accommodationFilter} onValueChange={setAccommodationFilter}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="全部民宿" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部民宿</SelectItem>
+                {accommodations.map(acc => (
+                  <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Input
+              type="month"
+              value={monthFilter}
+              onChange={(e) => setMonthFilter(e.target.value)}
+              className="w-[180px]"
+            />
+          </div>
+
+          {requestedRecords.length > 0 && (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                已選擇 {selectedRecords.length} 筆，金額 NT$ {selectedAmount.toLocaleString()}
+              </p>
+              <Button 
+                onClick={() => setShowApproveDialog(true)}
+                disabled={selectedRecords.length === 0}
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                審核通過
+              </Button>
+            </div>
+          )}
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Send className="h-5 w-5" />
+                待審核請款
+              </CardTitle>
+              <CardDescription>民宿提交的請款申請</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {requestedRecords.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                  <CheckCircle className="h-12 w-12 mb-4 opacity-50" />
+                  <p>目前沒有待審核的請款</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead className="w-12">
+                          <Checkbox
+                            checked={selectedRecords.length === requestedRecords.length && requestedRecords.length > 0}
+                            onCheckedChange={() => handleSelectAll(requestedRecords)}
+                          />
+                        </TableHead>
+                        <TableHead>民宿</TableHead>
+                        <TableHead>訂單編號</TableHead>
+                        <TableHead>入住日期</TableHead>
+                        <TableHead className="text-right">民宿分潤</TableHead>
+                        <TableHead>請款日期</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {requestedRecords.map(record => (
+                        <TableRow key={record.id}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedRecords.includes(record.id)}
+                              onCheckedChange={() => handleSelectRecord(record.id)}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Building2 className="h-4 w-4 text-muted-foreground" />
+                              {getAccommodationName(record.accommodation_id)}
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {record.orders?.order_number}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {record.orders?.check_in_date && format(new Date(record.orders.check_in_date), "yyyy/MM/dd")}
+                          </TableCell>
+                          <TableCell className="text-right text-primary font-medium">
+                            NT$ {record.accommodation_amount.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {record.requested_at && format(new Date(record.requested_at), "MM/dd HH:mm")}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Approved (Pending Payment) Tab */}
+        <TabsContent value="approved" className="space-y-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            <Select value={accommodationFilter} onValueChange={setAccommodationFilter}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="全部民宿" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部民宿</SelectItem>
+                {accommodations.map(acc => (
+                  <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Input
+              type="month"
+              value={monthFilter}
+              onChange={(e) => setMonthFilter(e.target.value)}
+              className="w-[180px]"
+            />
+          </div>
+
+          {approvedRecords.length > 0 && (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                已選擇 {selectedRecords.length} 筆，金額 NT$ {selectedAmount.toLocaleString()}
+              </p>
+              <Button 
+                onClick={() => setShowPayDialog(true)}
+                disabled={selectedRecords.length === 0}
+              >
+                <Banknote className="h-4 w-4 mr-2" />
+                確認撥款
+              </Button>
+            </div>
+          )}
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Banknote className="h-5 w-5" />
+                待撥款記錄
+              </CardTitle>
+              <CardDescription>已審核通過，待撥款給民宿</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {approvedRecords.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                  <Banknote className="h-12 w-12 mb-4 opacity-50" />
+                  <p>目前沒有待撥款的記錄</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead className="w-12">
+                          <Checkbox
+                            checked={selectedRecords.length === approvedRecords.length && approvedRecords.length > 0}
+                            onCheckedChange={() => handleSelectAll(approvedRecords)}
+                          />
+                        </TableHead>
+                        <TableHead>民宿</TableHead>
+                        <TableHead>訂單編號</TableHead>
+                        <TableHead className="text-right">民宿分潤</TableHead>
+                        <TableHead>審核日期</TableHead>
+                        <TableHead>狀態</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {approvedRecords.map(record => (
+                        <TableRow key={record.id}>
+                          <TableCell>
+                            {record.settlement_status === "approved" && (
+                              <Checkbox
+                                checked={selectedRecords.includes(record.id)}
+                                onCheckedChange={() => handleSelectRecord(record.id)}
+                              />
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Building2 className="h-4 w-4 text-muted-foreground" />
+                              {getAccommodationName(record.accommodation_id)}
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {record.orders?.order_number}
+                          </TableCell>
+                          <TableCell className="text-right text-primary font-medium">
+                            NT$ {record.accommodation_amount.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {record.approved_at && format(new Date(record.approved_at), "MM/dd HH:mm")}
+                          </TableCell>
+                          <TableCell>
+                            {getStatusBadge(record.settlement_status)}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -596,6 +981,9 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
               onChange={(e) => setMonthFilter(e.target.value)}
               className="w-[180px]"
             />
+            <Button variant="outline" size="icon" onClick={handleExportCSV}>
+              <Download className="h-4 w-4" />
+            </Button>
           </div>
 
           <Card>
@@ -625,109 +1013,31 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                           <div className="space-y-1">
                             <p className="text-sm text-muted-foreground">訂單總額</p>
                             <p className="text-xl font-bold">NT$ {summary.total.toLocaleString()}</p>
                           </div>
                           <div className="space-y-1">
-                            <p className="text-sm text-muted-foreground">總部分潤</p>
-                            <p className="text-xl font-bold text-blue-600">NT$ {summary.hqTotal.toLocaleString()}</p>
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-sm text-muted-foreground">待結算</p>
+                            <p className="text-sm text-muted-foreground">待請款</p>
                             <p className="text-xl font-bold text-orange-500">NT$ {summary.pending.toLocaleString()}</p>
                           </div>
                           <div className="space-y-1">
-                            <p className="text-sm text-muted-foreground">已結算</p>
-                            <p className="text-xl font-bold text-primary">NT$ {summary.settled.toLocaleString()}</p>
+                            <p className="text-sm text-muted-foreground">審核中</p>
+                            <p className="text-xl font-bold text-blue-500">NT$ {summary.requested.toLocaleString()}</p>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-sm text-muted-foreground">待撥款</p>
+                            <p className="text-xl font-bold text-purple-500">NT$ {summary.approved.toLocaleString()}</p>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-sm text-muted-foreground">已撥款</p>
+                            <p className="text-xl font-bold text-primary">NT$ {summary.paid.toLocaleString()}</p>
                           </div>
                         </div>
                       </CardContent>
                     </Card>
                   ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Settlement Tab */}
-        <TabsContent value="settlement" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Clock className="h-5 w-5" />
-                    待結算記錄
-                  </CardTitle>
-                  <CardDescription>標記訂單拆帳為已結算狀態</CardDescription>
-                </div>
-                {pendingRecords.length > 0 && (
-                  <Button
-                    onClick={() => {
-                      setSettlingRecords(pendingRecords);
-                      setShowSettleDialog(true);
-                    }}
-                  >
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    全部結算 ({pendingRecords.length})
-                  </Button>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              {pendingRecords.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                  <CheckCircle className="h-12 w-12 mb-4 opacity-50" />
-                  <p>目前沒有待結算的記錄</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50">
-                        <TableHead>訂單編號</TableHead>
-                        <TableHead>民宿</TableHead>
-                        <TableHead>入住日期</TableHead>
-                        <TableHead className="text-right">訂單金額</TableHead>
-                        <TableHead className="text-right">總部應收</TableHead>
-                        <TableHead className="text-right">操作</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {pendingRecords.map(record => (
-                        <TableRow key={record.id}>
-                          <TableCell className="font-mono text-sm">
-                            {record.orders?.order_number}
-                          </TableCell>
-                          <TableCell>{getAccommodationName(record.accommodation_id)}</TableCell>
-                          <TableCell className="text-sm">
-                            {record.orders?.check_in_date && format(new Date(record.orders.check_in_date), "yyyy/MM/dd")}
-                          </TableCell>
-                          <TableCell className="text-right font-medium">
-                            NT$ {record.order_amount.toLocaleString()}
-                          </TableCell>
-                          <TableCell className="text-right text-blue-600 font-medium">
-                            NT$ {record.hq_amount.toLocaleString()}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setSettlingRecords([record]);
-                                setShowSettleDialog(true);
-                              }}
-                            >
-                              結算
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
                 </div>
               )}
             </CardContent>
@@ -827,32 +1137,109 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Settlement Dialog */}
-      <Dialog open={showSettleDialog} onOpenChange={setShowSettleDialog}>
+      {/* Approve Dialog */}
+      <Dialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>確認結算</DialogTitle>
+            <DialogTitle>審核請款申請</DialogTitle>
             <DialogDescription>
-              即將結算 {settlingRecords.length} 筆記錄，總計 NT$ {settlingRecords.reduce((sum, r) => sum + r.hq_amount, 0).toLocaleString()}
+              即將審核通過 {selectedRecords.length} 筆請款，總計 NT$ {selectedAmount.toLocaleString()}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            <div className="p-4 bg-muted rounded-lg">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">請款筆數</span>
+                <span className="font-medium">{selectedRecords.length} 筆</span>
+              </div>
+              <div className="flex justify-between items-center mt-2">
+                <span className="text-sm text-muted-foreground">請款金額</span>
+                <span className="text-xl font-bold text-primary">NT$ {selectedAmount.toLocaleString()}</span>
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <Label>結算備註</Label>
+              <Label>審核備註（選填）</Label>
               <Textarea
                 value={settlementNote}
                 onChange={(e) => setSettlementNote(e.target.value)}
-                placeholder="選填，例如：轉帳單號、付款方式等"
+                placeholder="如有特殊說明，請在此填寫"
               />
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSettleDialog(false)}>取消</Button>
-            <Button onClick={handleSettleRecords} disabled={saving}>
+            <Button variant="outline" onClick={() => setShowApproveDialog(false)}>取消</Button>
+            <Button onClick={handleApproveRecords} disabled={saving}>
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              確認結算
+              確認審核通過
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Pay Dialog */}
+      <Dialog open={showPayDialog} onOpenChange={setShowPayDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>確認撥款</DialogTitle>
+            <DialogDescription>
+              即將撥款 {selectedRecords.length} 筆，總計 NT$ {selectedAmount.toLocaleString()}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="p-4 bg-muted rounded-lg">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">撥款筆數</span>
+                <span className="font-medium">{selectedRecords.length} 筆</span>
+              </div>
+              <div className="flex justify-between items-center mt-2">
+                <span className="text-sm text-muted-foreground">撥款金額</span>
+                <span className="text-xl font-bold text-primary">NT$ {selectedAmount.toLocaleString()}</span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>付款方式 *</Label>
+              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <SelectTrigger>
+                  <SelectValue placeholder="選擇付款方式" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bank_transfer">銀行轉帳</SelectItem>
+                  <SelectItem value="cash">現金</SelectItem>
+                  <SelectItem value="check">支票</SelectItem>
+                  <SelectItem value="other">其他</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>付款參考編號（選填）</Label>
+              <Input
+                value={paymentReference}
+                onChange={(e) => setPaymentReference(e.target.value)}
+                placeholder="例如：轉帳帳號後五碼"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>備註（選填）</Label>
+              <Textarea
+                value={settlementNote}
+                onChange={(e) => setSettlementNote(e.target.value)}
+                placeholder="如有特殊說明，請在此填寫"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPayDialog(false)}>取消</Button>
+            <Button onClick={handlePayRecords} disabled={saving || !paymentMethod}>
+              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              確認撥款完成
             </Button>
           </DialogFooter>
         </DialogContent>
