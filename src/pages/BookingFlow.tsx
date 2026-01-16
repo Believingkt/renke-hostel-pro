@@ -1690,6 +1690,40 @@ const BookingFlow = () => {
             return;
           }
 
+          // Check if 3D Secure redirect is required
+          if (paymentResult.requires3DSecure && paymentResult.paymentUrl) {
+            console.log('[TapPay][Booking] Redirecting to 3D Secure...');
+            
+            // Store pending booking data in sessionStorage for recovery after 3DS
+            const pendingBookingData = {
+              accommodationId,
+              selectedRoom: { id: selectedRoom.id, name: selectedRoom.name },
+              checkInDate: checkInDateStr,
+              checkOutDate: checkOutDateStr,
+              guestInfo,
+              mealPlan: selectedMealPlan,
+              mealPlanDetails: mealPlanDetailsData,
+              mealPlanTotal: mealPlanTotalPrice,
+              petCount,
+              petPlanPrice,
+              finalPrice,
+              nights,
+              discountCode,
+              discountAmount,
+              source: 'booking'
+            };
+            sessionStorage.setItem('pending_booking_3ds', JSON.stringify(pendingBookingData));
+            
+            toast({
+              title: "跳轉 3D 驗證",
+              description: "即將跳轉至銀行驗證頁面，完成驗證後將自動建立訂單...",
+            });
+            
+            // Redirect to 3D Secure page
+            window.location.href = paymentResult.paymentUrl;
+            return;
+          }
+
           paymentTransactionId = paymentResult.transactionId;
           console.log('Payment successful:', paymentTransactionId);
           

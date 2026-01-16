@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle, Loader2, AlertTriangle, Home, RotateCw } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, AlertTriangle, Home, RotateCw, ClipboardList } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 type PaymentStatus = 'loading' | 'success' | 'failed' | 'error';
+type PaymentSource = 'booking' | 'admin' | 'test' | 'unknown';
 
 interface TransactionInfo {
   recTradeId: string;
@@ -15,28 +16,58 @@ interface TransactionInfo {
   authCode?: string;
 }
 
+interface PendingPayment {
+  orderId?: string;
+  orderNumber?: string;
+  amount?: number;
+  source?: string;
+}
+
 export default function PaymentResult() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [status, setStatus] = useState<PaymentStatus>('loading');
   const [transaction, setTransaction] = useState<TransactionInfo | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [paymentSource, setPaymentSource] = useState<PaymentSource>('unknown');
+  const [pendingPayment, setPendingPayment] = useState<PendingPayment | null>(null);
 
   // Get rec_trade_id from TapPay redirect URL params
   const recTradeId = searchParams.get('rec_trade_id');
   const orderNumber = searchParams.get('order_number');
-  const tappayStatus = searchParams.get('status');
+  const source = searchParams.get('source');
 
   useEffect(() => {
+    // Determine payment source and load pending data
+    let detectedSource: PaymentSource = 'unknown';
+    let pending: PendingPayment | null = null;
+
+    if (source === 'admin') {
+      detectedSource = 'admin';
+      const storedData = sessionStorage.getItem('pending_payment');
+      if (storedData) {
+        try {
+          pending = JSON.parse(storedData);
+        } catch (e) {
+          console.error('Failed to parse pending_payment:', e);
+        }
+      }
+    } else if (sessionStorage.getItem('pending_booking_3ds')) {
+      detectedSource = 'booking';
+      // Booking data is handled separately
+    } else {
+      detectedSource = 'test';
+    }
+
+    setPaymentSource(detectedSource);
+    setPendingPayment(pending);
+
     const queryTransaction = async () => {
       if (!recTradeId) {
         setStatus('error');
         setErrorMessage('缺少交易編號，無法查詢付款結果');
         return;
       }
-
-      // Note: Don't rely solely on URL status param for 3D Secure
-      // Always query TapPay API to get actual transaction status
 
       try {
         // Query TapPay for transaction status
@@ -51,13 +82,49 @@ export default function PaymentResult() {
           setTransaction({
             recTradeId: data.recTradeId,
             bankTransactionId: data.bankTransactionId,
-            orderNumber: data.orderNumber,
-            amount: data.amount,
+            orderNumber: data.orderNumber || orderNumber || pending?.orderNumber,
+            amount: data.amount || pending?.amount,
             authCode: data.authCode,
           });
+
+          // Update order payment status for admin payments
+          if (detectedSource === 'admin' && pending?.orderId && pending?.amount) {
+            try {
+              // Fetch current order state
+              const { data: orderData } = await supabase
+                .from('orders')
+                .select('final_price, paid_amount')
+                .eq('id', pending.orderId)
+                .single();
+
+              if (orderData) {
+                const newPaidAmount = (orderData.paid_amount || 0) + pending.amount;
+                const newPaymentStatus = newPaidAmount >= orderData.final_price ? 'paid' :
+                                         newPaidAmount > 0 ? 'partial' : 'unpaid';
+
+                await supabase
+                  .from('orders')
+                  .update({
+                    paid_amount: newPaidAmount,
+                    payment_status: newPaymentStatus,
+                    balance_payment_method: '信用卡(3D驗證)',
+                  })
+                  .eq('id', pending.orderId);
+              }
+            } catch (updateErr) {
+              console.error('Failed to update order after 3DS:', updateErr);
+            }
+          }
+
+          // Clear stored pending data
+          sessionStorage.removeItem('pending_payment');
         } else {
           setStatus('failed');
-          setTransaction({ recTradeId, orderNumber: data.orderNumber || orderNumber || undefined });
+          setTransaction({ 
+            recTradeId, 
+            orderNumber: data.orderNumber || orderNumber || pending?.orderNumber,
+            amount: pending?.amount
+          });
           setErrorMessage(data.message || '付款驗證失敗');
         }
       } catch (err: any) {
@@ -68,15 +135,36 @@ export default function PaymentResult() {
     };
 
     queryTransaction();
-  }, [recTradeId, orderNumber, tappayStatus]);
+  }, [recTradeId, orderNumber, source]);
 
   const handleRetry = () => {
-    // Go back to previous page or booking
-    navigate(-1);
+    // Navigate based on source
+    if (paymentSource === 'admin') {
+      navigate('/orders');
+    } else if (paymentSource === 'booking') {
+      navigate('/booking?step=payment');
+    } else {
+      navigate(-1);
+    }
   };
 
   const handleHome = () => {
     navigate('/');
+  };
+
+  const handleViewOrders = () => {
+    navigate('/orders');
+  };
+
+  const getSuccessMessage = () => {
+    switch (paymentSource) {
+      case 'admin':
+        return '訂單付款已完成，付款狀態已自動更新';
+      case 'booking':
+        return '您的付款已完成，訂單正在處理中';
+      default:
+        return '您的付款已完成，感謝您的訂購';
+    }
   };
 
   if (status === 'loading') {
@@ -105,7 +193,7 @@ export default function PaymentResult() {
             </div>
             <CardTitle className="text-2xl text-green-700">付款成功！</CardTitle>
             <CardDescription>
-              您的付款已完成，感謝您的訂購
+              {getSuccessMessage()}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -133,10 +221,18 @@ export default function PaymentResult() {
                 </div>
               )}
             </div>
-            <Button onClick={handleHome} className="w-full">
-              <Home className="h-4 w-4 mr-2" />
-              返回首頁
-            </Button>
+            
+            {paymentSource === 'admin' ? (
+              <Button onClick={handleViewOrders} className="w-full">
+                <ClipboardList className="h-4 w-4 mr-2" />
+                返回訂單管理
+              </Button>
+            ) : (
+              <Button onClick={handleHome} className="w-full">
+                <Home className="h-4 w-4 mr-2" />
+                返回首頁
+              </Button>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -159,6 +255,12 @@ export default function PaymentResult() {
           <CardContent className="space-y-4">
             {transaction && (
               <div className="bg-muted/50 rounded-lg p-4 space-y-2 text-sm">
+                {transaction.amount && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">付款金額</span>
+                    <span className="font-semibold">NT$ {transaction.amount.toLocaleString()}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">交易編號</span>
                   <span className="font-mono text-xs">{transaction.recTradeId}</span>
