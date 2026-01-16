@@ -3296,9 +3296,10 @@ const BookingFlow = () => {
                             : ['現場付款'];
                           
                           // 如果沒有設定付款方式，預設提供「現場付款」
-                          const displayMethods = availableMethods.length > 0 
+                          // 暫時隱藏 LINE Pay 選項
+                          const displayMethods = (availableMethods.length > 0 
                             ? availableMethods 
-                            : ['現場付款'];
+                            : ['現場付款']).filter((m: string) => m !== 'LINE Pay');
                           
                           return displayMethods.map((method: string) => {
                             const PaymentIcon = method === '信用卡' ? CreditCard : 
