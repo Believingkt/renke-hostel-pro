@@ -86,3 +86,9 @@ verify_jwt = false
 
 [functions.tappay-query]
 verify_jwt = false
+
+[functions.complete-3ds-booking]
+verify_jwt = false
+
+[functions.validate-order-prices]
+verify_jwt = false
