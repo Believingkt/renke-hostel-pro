@@ -69,6 +69,7 @@ import { getTapPayPrime } from "@/utils/tappayPrime";
 import { DevAccommodationSwitcher } from "@/components/DevAccommodationSwitcher";
 import AccommodationLogo from "@/components/AccommodationLogo";
 import { getThemeClassByAccommodation } from "@/constants/themes";
+import { useTapPayConfig } from "@/hooks/use-tappay-config";
 
 // TapPay SDK 類型定義 - 使用 interface merging 避免重複宣告錯誤
 interface TPDirectSDK {
@@ -88,12 +89,7 @@ declare global {
   }
 }
 
-// TapPay Production 設定
-const TAPPAY_CONFIG = {
-  appId: "165714",
-  appKey: "app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP",
-  env: "production"
-} as const;
+// TapPay 設定現在從後端動態載入
 
 // 表單驗證 Schema
 const guestInfoSchema = z.object({
@@ -269,6 +265,10 @@ const BookingFlow = () => {
   const [isBbqMealsExpanded, setIsBbqMealsExpanded] = useState(false);
   const [isBbqDetailsDialogOpen, setIsBbqDetailsDialogOpen] = useState(false);
   const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
+  
+  // TapPay 設定 - 從後端動態載入
+  const shouldLoadTapPay = paymentMethod === '信用卡';
+  const { config: tappayConfig, loading: tappayConfigLoading, error: tappayConfigError } = useTapPayConfig(shouldLoadTapPay);
   
   // TapPay 狀態
   const [isTapPayReady, setIsTapPayReady] = useState(false);
@@ -759,42 +759,43 @@ const BookingFlow = () => {
     }
   }, [currentStep, checkInDate, checkOutDate, selectedMealPlan, selectedRoom]);
 
-  // 初始化 TapPay SDK - 分兩步驟：先載入 SDK，再設定表單
+  // 初始化 TapPay SDK - 使用從後端動態載入的設定
   useEffect(() => {
-    // 第一步：載入 TapPay SDK
-      const loadTapPaySDK = () => {
-        if (window.TPDirect) {
-          // SDK 已載入，設定基本配置（正式環境）
-          console.log('TapPay SDK already loaded, setting up for production...');
-          window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'production');
-          console.log('TapPay SDK setup completed (production)');
-          setIsTapPayReady(true);
-          return;
-        }
+    // 需要 tappayConfig 才能初始化
+    if (!tappayConfig || currentStep !== 'payment' || paymentMethod !== '信用卡') {
+      return;
+    }
 
-        console.log('Loading TapPay SDK script...');
-        const script = document.createElement('script');
-        script.src = 'https://js.tappaysdk.com/sdk/tpdirect/v5.18.0';
-        script.async = true;
-        script.onload = () => {
-          if (window.TPDirect) {
-            console.log('TapPay SDK loaded, setting up for production...');
-            window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'production');
-            console.log('TapPay SDK setup completed (production)');
-            setIsTapPayReady(true);
-          }
-        };
+    const loadTapPaySDK = () => {
+      if (window.TPDirect) {
+        // SDK 已載入，設定基本配置
+        console.log(`TapPay SDK already loaded, setting up for ${tappayConfig.env}...`);
+        window.TPDirect.setupSDK(tappayConfig.appId, tappayConfig.appKey, tappayConfig.env);
+        console.log(`TapPay SDK setup completed (${tappayConfig.env})`);
+        setIsTapPayReady(true);
+        return;
+      }
+
+      console.log('Loading TapPay SDK script...');
+      const script = document.createElement('script');
+      script.src = 'https://js.tappaysdk.com/sdk/tpdirect/v5.18.0';
+      script.async = true;
+      script.onload = () => {
+        if (window.TPDirect && tappayConfig) {
+          console.log(`TapPay SDK loaded, setting up for ${tappayConfig.env}...`);
+          window.TPDirect.setupSDK(tappayConfig.appId, tappayConfig.appKey, tappayConfig.env);
+          console.log(`TapPay SDK setup completed (${tappayConfig.env})`);
+          setIsTapPayReady(true);
+        }
+      };
       script.onerror = () => {
         console.error('Failed to load TapPay SDK script');
       };
       document.body.appendChild(script);
     };
 
-    // 只在付款步驟且選擇信用卡時載入 SDK
-    if (currentStep === 'payment' && paymentMethod === '信用卡') {
-      loadTapPaySDK();
-    }
-  }, [currentStep, paymentMethod]);
+    loadTapPaySDK();
+  }, [currentStep, paymentMethod, tappayConfig]);
 
   // 第二步：當 DOM 元素準備好後設定 TapPay 表單
   useEffect(() => {
