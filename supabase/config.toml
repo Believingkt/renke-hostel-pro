@@ -80,3 +80,9 @@ verify_jwt = true
 
 [functions.kol-webhook]
 verify_jwt = true
+
+[functions.tappay-notify]
+verify_jwt = false
+
+[functions.tappay-query]
+verify_jwt = false

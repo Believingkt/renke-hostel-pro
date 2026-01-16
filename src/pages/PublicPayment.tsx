@@ -147,6 +147,18 @@ export default function PublicPayment() {
       const prime = await getTapPayPrime();
       console.log("[TapPay] Prime obtained, calling backend...");
 
+      // Build redirect URLs for 3D Secure
+      const baseUrl = window.location.origin;
+      const frontendRedirectUrl = `${baseUrl}/payment-result`;
+      const backendNotifyUrl = `https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/tappay-notify`;
+
+      // Normalize phone to E.164 format
+      const phoneE164 = orderInfo.customerPhone.startsWith('+') 
+        ? orderInfo.customerPhone 
+        : orderInfo.customerPhone.startsWith('09')
+          ? '+886' + orderInfo.customerPhone.substring(1)
+          : '+886' + orderInfo.customerPhone;
+
       // 呼叫後端處理付款
       const { data, error } = await supabase.functions.invoke(
         "process-tappay-payment",
@@ -156,11 +168,13 @@ export default function PublicPayment() {
             amount: orderInfo.amount,
             orderId: orderInfo.orderNumber,
             cardholder: {
-              phoneNumber: orderInfo.customerPhone,
+              phoneNumber: phoneE164,
               name: orderInfo.customerName,
               email: orderInfo.customerEmail,
             },
             details: orderInfo.description,
+            frontendRedirectUrl,
+            backendNotifyUrl,
           },
         }
       );
@@ -168,6 +182,15 @@ export default function PublicPayment() {
       if (error) throw error;
 
       if (data.success) {
+        // Check if 3D Secure redirect is required
+        if (data.requires3DSecure && data.paymentUrl) {
+          console.log("[TapPay] Redirecting to 3D Secure...");
+          // Redirect to TapPay 3D Secure page
+          window.location.href = data.paymentUrl;
+          return;
+        }
+
+        // Direct success (rare in production with 3D enabled)
         setTransactionId(data.transactionId);
         setPaymentSuccess(true);
         toast.success("付款成功！");

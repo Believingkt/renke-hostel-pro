@@ -10,7 +10,14 @@ const allowedOrigins = [
 
 function getCorsHeaders(req: Request) {
   const origin = req.headers.get('origin') || '';
-  const allowedOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+  const isTrustedLovableOrigin =
+    origin.endsWith('.lovable.app') || origin.endsWith('.lovableproject.com');
+  const allowedOrigin =
+    !origin
+      ? allowedOrigins[0]
+      : allowedOrigins.includes(origin) || isTrustedLovableOrigin
+        ? origin
+        : allowedOrigins[0];
   return {
     'Access-Control-Allow-Origin': allowedOrigin,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -58,6 +65,30 @@ function validatePaymentInput(data: Record<string, unknown>): { valid: boolean; 
   return { valid: true };
 }
 
+// Normalize phone number to E.164 format for Taiwan
+function normalizePhoneE164(phone: string): string {
+  // Remove all non-digit characters except leading +
+  const cleaned = phone.replace(/[^\d+]/g, '');
+  
+  // If already starts with +, assume it's E.164
+  if (cleaned.startsWith('+')) {
+    return cleaned;
+  }
+  
+  // Taiwan local format: 09xxxxxxxx -> +8869xxxxxxxx
+  if (cleaned.startsWith('09') && cleaned.length === 10) {
+    return '+886' + cleaned.substring(1);
+  }
+  
+  // If starts with 886, add +
+  if (cleaned.startsWith('886')) {
+    return '+' + cleaned;
+  }
+  
+  // Default: assume Taiwan, prepend +886
+  return '+886' + cleaned;
+}
+
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   
@@ -81,17 +112,15 @@ serve(async (req) => {
           technicalMessage: validation.error,
         }),
         {
-          // NOTE: Return 200 so the frontend can surface the structured error payload
-          // instead of showing a generic "non-2xx" function error.
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
     }
 
-    const { prime, amount, orderId, cardholder, details } = requestData;
+    const { prime, amount, orderId, cardholder, details, frontendRedirectUrl, backendNotifyUrl } = requestData;
 
-    console.log('Processing TapPay payment:', { orderId, amount });
+    console.log('Processing TapPay payment with 3D Secure:', { orderId, amount, has3DUrls: !!frontendRedirectUrl });
 
     const partnerKey = Deno.env.get('TAPPAY_PARTNER_KEY');
     const merchantId = Deno.env.get('TAPPAY_MERCHANT_ID');
@@ -101,6 +130,38 @@ serve(async (req) => {
       throw new Error('TapPay credentials not configured');
     }
 
+    // Normalize phone to E.164 format
+    const phoneE164 = normalizePhoneE164(cardholder.phoneNumber);
+    console.log('Phone normalized:', { original: cardholder.phoneNumber, e164: phoneE164 });
+
+    // Build request body with 3D Secure support
+    const tappayBody: Record<string, unknown> = {
+      prime: prime,
+      partner_key: partnerKey,
+      merchant_id: merchantId,
+      amount: amount,
+      currency: 'TWD',
+      details: details || '訂房付款',
+      order_number: orderId,
+      cardholder: {
+        phone_number: phoneE164,
+        name: cardholder.name,
+        email: cardholder.email,
+      },
+      remember: false,
+      three_domain_secure: true, // Enable 3D Secure
+    };
+
+    // Add result_url for 3D Secure redirect
+    if (frontendRedirectUrl || backendNotifyUrl) {
+      tappayBody.result_url = {
+        frontend_redirect_url: frontendRedirectUrl || '',
+        backend_notify_url: backendNotifyUrl || '',
+      };
+    }
+
+    console.log('Calling TapPay API with 3D Secure enabled');
+
     // Call TapPay Pay by Prime API
     const tappayResponse = await fetch('https://prod.tappaysdk.com/tpc/payment/pay-by-prime', {
       method: 'POST',
@@ -108,20 +169,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
         'x-api-key': partnerKey,
       },
-      body: JSON.stringify({
-        prime: prime,
-        partner_key: partnerKey,
-        merchant_id: merchantId,
-        amount: amount,
-        currency: 'TWD',
-        details: details || '訂房付款',
-        cardholder: {
-          phone_number: cardholder.phoneNumber,
-          name: cardholder.name,
-          email: cardholder.email,
-        },
-        remember: false,
-      }),
+      body: JSON.stringify(tappayBody),
     });
 
     const result = await tappayResponse.json();
@@ -130,12 +178,35 @@ serve(async (req) => {
       status: result.status, 
       msg: result.msg,
       orderId,
-      amount 
+      amount,
+      hasPaymentUrl: !!result.payment_url,
     });
 
     if (result.status === 0) {
-      // Payment successful
-      console.log('TapPay payment successful:', {
+      // Check if 3D Secure redirect is required
+      if (result.payment_url) {
+        console.log('3D Secure redirect required:', { 
+          recTradeId: result.rec_trade_id,
+          paymentUrl: result.payment_url.substring(0, 50) + '...'
+        });
+        
+        return new Response(
+          JSON.stringify({
+            success: true,
+            requires3DSecure: true,
+            paymentUrl: result.payment_url,
+            recTradeId: result.rec_trade_id,
+            bankTransactionId: result.bank_transaction_id,
+            message: '需要進行 3D 驗證',
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      // Payment successful without 3D (rare for production)
+      console.log('TapPay payment successful (no 3D):', {
         transactionId: result.rec_trade_id,
         bankTransactionId: result.bank_transaction_id
       });
@@ -143,6 +214,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: true,
+          requires3DSecure: false,
           transactionId: result.rec_trade_id,
           bankTransactionId: result.bank_transaction_id,
           message: '付款成功',
@@ -190,7 +262,7 @@ serve(async (req) => {
           break;
         case 10023:
           userMessage = '銀行端回覆錯誤';
-          suggestion = '請稍後重試或更換卡片；若持續發生，請聯繫發卡銀行或確認卡片交易限制/3D 驗證設定';
+          suggestion = '請稍後重試或更換卡片；若持續發生，請聯繫發卡銀行確認卡片交易限制';
           break;
         default:
           if (result.msg) {
@@ -207,8 +279,6 @@ serve(async (req) => {
           technicalMessage: result.msg
         }),
         {
-          // NOTE: Return 200 so the frontend can display TapPay's structured error
-          // instead of a generic "non-2xx" edge function error.
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
