@@ -1646,7 +1646,7 @@ const BookingFlow = () => {
           }
 
           // 獲取 Prime token（含逾時與相容性 fallback，避免卡在「處理中」）
-          const prime = await getTapPayPrime(TAPPAY_CONFIG.appId, TAPPAY_CONFIG.appKey);
+          const prime = await getTapPayPrime();
           console.log('Got prime token');
 
           // 呼叫後端處理支付

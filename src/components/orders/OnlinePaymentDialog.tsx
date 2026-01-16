@@ -197,7 +197,7 @@ export function OnlinePaymentDialog({
 
     try {
       // 獲取 Prime（含逾時與相容性 fallback，避免卡在「處理中」）
-      const prime = await getTapPayPrime(tappayConfig.appId, tappayConfig.appKey);
+      const prime = await getTapPayPrime();
 
       console.log('[TapPay][Admin] invoking process-tappay-payment', {
         orderNumber: order.order_number,
