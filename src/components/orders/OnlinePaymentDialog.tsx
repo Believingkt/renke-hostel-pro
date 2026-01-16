@@ -64,6 +64,19 @@ export function OnlinePaymentDialog({
   const [paymentError, setPaymentError] = useState<PaymentError | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // 禁止在處理中關閉 Dialog
+  const handleOpenChange = (newOpen: boolean) => {
+    if (isProcessing) {
+      toast({
+        title: "付款處理中",
+        description: "請等待付款完成後再關閉視窗",
+        variant: "destructive",
+      });
+      return;
+    }
+    onOpenChange(newOpen);
+  };
+
   // 計算待付金額
   const unpaidAmount = order ? order.final_price - (order.paid_amount || 0) : 0;
   const depositAmount = order?.deposit_amount || 0;
@@ -192,12 +205,42 @@ export function OnlinePaymentDialog({
   const handlePayment = async () => {
     if (!order || !window.TPDirect || paymentAmount <= 0 || !tappayConfig) return;
 
+    // 先檢查卡片欄位狀態，避免在欄位失效時呼叫 getPrime
+    if (!cardValid) {
+      setPaymentError({
+        message: "信用卡資訊不完整",
+        suggestion: "請確認卡號、有效期限和安全碼都已正確填寫",
+      });
+      toast({
+        title: "付款失敗",
+        description: "請完整填寫信用卡資訊",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsProcessing(true);
     setPaymentError(null);
 
     try {
       // 獲取 Prime（含逾時與相容性 fallback，避免卡在「處理中」）
-      const prime = await getTapPayPrime();
+      let prime: string;
+      try {
+        prime = await getTapPayPrime();
+      } catch (primeError: any) {
+        const msg = primeError?.message || "無法取得付款授權";
+        setPaymentError({
+          message: msg,
+          suggestion: "請檢查信用卡資訊後重試",
+          technicalMessage: "[Direct Pay] 取得 Prime 失敗",
+        });
+        toast({
+          title: "付款失敗",
+          description: msg,
+          variant: "destructive",
+        });
+        return;
+      }
 
       console.log('[TapPay][Admin] invoking process-tappay-payment', {
         orderNumber: order.order_number,
@@ -557,7 +600,7 @@ export function OnlinePaymentDialog({
 
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={onOpenChange}>
+      <Drawer open={open} onOpenChange={handleOpenChange}>
         <DrawerContent>
           <DrawerHeader>
             <DrawerTitle>線上收款</DrawerTitle>
@@ -570,7 +613,7 @@ export function OnlinePaymentDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>線上收款</DialogTitle>
