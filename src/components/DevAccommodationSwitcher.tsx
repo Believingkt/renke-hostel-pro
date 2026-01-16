@@ -64,8 +64,9 @@ export function DevAccommodationSwitcher() {
     const acc = accommodations.find(a => a.id === accIdOrAlias);
     if (!acc) return;
 
-    // 儲存選擇
+    // 儲存選擇 - 同時更新前台和後台使用的 localStorage key
     localStorage.setItem(DEV_ACC_STORAGE_KEY, acc.short_url_alias || acc.id);
+    localStorage.setItem('selected_accommodation_id', acc.id); // 後台 AccommodationContext 使用
 
     // 更新 URL 並刷新
     const url = new URL(window.location.href);
