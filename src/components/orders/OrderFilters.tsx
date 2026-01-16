@@ -87,6 +87,8 @@ export function OrderFilters({
             <option value="deposit_paid">已付訂金</option>
             <option value="paid">已付清</option>
             <option value="overdue">已逾期</option>
+            <option value="refunded">已退款</option>
+            <option value="partial_refunded">部分退款</option>
           </select>
         </div>
 

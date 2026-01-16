@@ -162,6 +162,8 @@ const CustomerOrders = () => {
       deposit_paid: { label: "已付訂金", variant: "outline" },
       paid: { label: "已付清", variant: "default" },
       overdue: { label: "已逾期", variant: "destructive" },
+      refunded: { label: "已退款", variant: "secondary" },
+      partial_refunded: { label: "部分退款", variant: "outline" },
     };
     const config = statusConfig[status] || { label: status, variant: "default" };
     return <Badge variant={config.variant}>{config.label}</Badge>;

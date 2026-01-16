@@ -4,6 +4,8 @@ export const getPaymentStatusConfig = (status: string) => {
     deposit_paid: { label: "已付訂金", className: "bg-orange-100 text-orange-700 border-orange-200" },
     paid: { label: "已付清", className: "bg-primary/10 text-primary border-primary/20" },
     overdue: { label: "已逾期", className: "bg-red-100 text-red-700 border-red-200" },
+    refunded: { label: "已退款", className: "bg-gray-100 text-gray-700 border-gray-200" },
+    partial_refunded: { label: "部分退款", className: "bg-amber-100 text-amber-700 border-amber-200" },
   };
   return statusMap[status] || { label: status, className: "bg-muted text-muted-foreground border-border" };
 };

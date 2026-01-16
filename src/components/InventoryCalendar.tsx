@@ -190,6 +190,8 @@ export const InventoryCalendar = ({ accommodationId }: InventoryCalendarProps) =
       unpaid: { label: "未付款", variant: "destructive" },
       partial: { label: "部分付款", variant: "outline" },
       paid: { label: "已付款", variant: "default" },
+      refunded: { label: "已退款", variant: "secondary" },
+      partial_refunded: { label: "部分退款", variant: "outline" },
     };
     const config = statusMap[status] || { label: status, variant: "outline" };
     return <Badge variant={config.variant}>{config.label}</Badge>;

@@ -81,6 +81,7 @@ const OrderSearch = () => {
       deposit_paid: { label: "已付訂金", variant: "outline" },
       paid: { label: "已付款", variant: "default" },
       refunded: { label: "已退款", variant: "secondary" },
+      partial_refunded: { label: "部分退款", variant: "outline" },
     };
     const config = statusConfig[status] || { label: status, variant: "outline" };
     return <Badge variant={config.variant}>{config.label}</Badge>;

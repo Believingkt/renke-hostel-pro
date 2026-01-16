@@ -144,6 +144,8 @@ const OrderDetail = () => {
       deposit_paid: { label: "已付訂金", className: "bg-warning-light text-warning border-warning/20" },
       paid: { label: "已付清", className: "bg-success-light text-success border-success/20" },
       overdue: { label: "已逾期", className: "bg-error-light text-error border-error/20" },
+      refunded: { label: "已退款", className: "bg-muted text-muted-foreground border-border" },
+      partial_refunded: { label: "部分退款", className: "bg-amber-100 text-amber-700 border-amber-200" },
     };
     const config = statusMap[status] || { label: status, className: "bg-muted text-muted-foreground border-border" };
     return (
