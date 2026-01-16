@@ -91,10 +91,11 @@ serve(async (req) => {
 
     console.log('Processing TapPay payment:', { orderId, amount });
 
-    const appId = Deno.env.get('TAPPAY_APP_ID');
-    const appKey = Deno.env.get('TAPPAY_APP_KEY');
+    const partnerKey = Deno.env.get('TAPPAY_PARTNER_KEY');
+    const merchantId = Deno.env.get('TAPPAY_MERCHANT_ID');
 
-    if (!appId || !appKey) {
+    if (!partnerKey || !merchantId) {
+      console.error('Missing TapPay credentials:', { hasPartnerKey: !!partnerKey, hasMerchantId: !!merchantId });
       throw new Error('TapPay credentials not configured');
     }
 
@@ -103,12 +104,12 @@ serve(async (req) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': appKey,
+        'x-api-key': partnerKey,
       },
       body: JSON.stringify({
         prime: prime,
-        partner_key: appKey,
-        merchant_id: appId,
+        partner_key: partnerKey,
+        merchant_id: merchantId,
         amount: amount,
         currency: 'TWD',
         details: details || '訂房付款',
