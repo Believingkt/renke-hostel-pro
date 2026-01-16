@@ -393,10 +393,7 @@ export default function PaymentTest() {
       console.log('Starting full payment flow test...');
       
       // 步驟 1: 取得 Prime Token（含逾時與相容性 fallback，避免卡在「處理中」）
-      const prime = await getTapPayPrime(
-        '165714',
-        'app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP'
-      );
+      const prime = await getTapPayPrime();
 
       console.log('Prime token obtained:', prime);
       toast.success('Prime Token 已取得', {
@@ -496,10 +493,7 @@ export default function PaymentTest() {
     try {
       console.log('Getting prime token with appId and appKey...');
 
-      const prime = await getTapPayPrime(
-        '165714',
-        'app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP'
-      );
+      const prime = await getTapPayPrime();
 
       console.log('Prime token obtained:', prime);
       

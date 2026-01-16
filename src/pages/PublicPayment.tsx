@@ -144,7 +144,7 @@ export default function PublicPayment() {
 
     try {
       // 取得 Prime（含逾時與相容性 fallback，避免卡在「處理中」）
-      const prime = await getTapPayPrime(tappayConfig.appId, tappayConfig.appKey);
+      const prime = await getTapPayPrime();
       console.log("[TapPay] Prime obtained, calling backend...");
 
       // 呼叫後端處理付款
