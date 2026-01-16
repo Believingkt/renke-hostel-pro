@@ -71,7 +71,11 @@ serve(async (req) => {
       recordCount: result.trade_records?.length || 0,
     });
 
-    if (result.status !== 0) {
+    // TapPay Record API status codes:
+    // 0 = success with more data available
+    // 2 = success but end of list (still valid!)
+    // Other values = actual errors
+    if (result.status !== 0 && result.status !== 2) {
       return new Response(
         JSON.stringify({
           success: false,
