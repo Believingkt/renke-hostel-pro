@@ -81,7 +81,9 @@ serve(async (req) => {
           technicalMessage: validation.error,
         }),
         {
-          status: 400,
+          // NOTE: Return 200 so the frontend can surface the structured error payload
+          // instead of showing a generic "non-2xx" function error.
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
@@ -186,6 +188,10 @@ serve(async (req) => {
           userMessage = '交易被拒絕';
           suggestion = '請聯繫發卡銀行確認卡片狀態';
           break;
+        case 10023:
+          userMessage = '銀行端回覆錯誤';
+          suggestion = '請稍後重試或更換卡片；若持續發生，請聯繫發卡銀行或確認卡片交易限制/3D 驗證設定';
+          break;
         default:
           if (result.msg) {
             userMessage = result.msg;
@@ -201,7 +207,9 @@ serve(async (req) => {
           technicalMessage: result.msg
         }),
         {
-          status: 400,
+          // NOTE: Return 200 so the frontend can display TapPay's structured error
+          // instead of a generic "non-2xx" edge function error.
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
