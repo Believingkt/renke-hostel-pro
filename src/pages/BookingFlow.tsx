@@ -268,14 +268,27 @@ const BookingFlow = () => {
   
   // TapPay 設定 - 從後端動態載入
   const shouldLoadTapPay = paymentMethod === '信用卡';
-  const { config: tappayConfig, loading: tappayConfigLoading, error: tappayConfigError } = useTapPayConfig(shouldLoadTapPay);
-  
+  const { config: tappayConfig, loading: tappayConfigLoading, error: tappayConfigError } =
+    useTapPayConfig(shouldLoadTapPay);
+
   // TapPay 狀態
   const [isTapPayReady, setIsTapPayReady] = useState(false);
   const [cardValid, setCardValid] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+  // Prime 只能在卡片欄位仍在 DOM 時產生；為了避免「確認頁」欄位卸載導致 getPrime 失敗，
+  // 我們會在付款步驟先取得 prime，並帶到 confirm 步驟使用。
+  const [tappayPrime, setTappayPrime] = useState<string | null>(null);
+  const [isPreparingPrime, setIsPreparingPrime] = useState(false);
+
   const [showTestCards, setShowTestCards] = useState(false);
-  
+
+  useEffect(() => {
+    // 切換付款方式時，清掉先前的 prime / 卡片狀態，避免用到過期或不相符的授權
+    setTappayPrime(null);
+    setCardValid(false);
+  }, [paymentMethod]);
+
   // 加購方案設定
   const [petPlanSettings, setPetPlanSettings] = useState({
     enabled: true,
@@ -874,6 +887,8 @@ const BookingFlow = () => {
             hasError: update.hasError
           });
           setCardValid(update.canGetPrime);
+          // 卡片內容一變動，就視為需要重新取得 prime
+          setTappayPrime(null);
         });
       } catch (error) {
         console.error('TapPay card setup error:', error);
@@ -1095,7 +1110,7 @@ const BookingFlow = () => {
     });
   };
 
-  const handleNextStep = () => {
+  const handleNextStep = async () => {
     // 驗證當前步驟
     if (currentStep === "dates") {
       // 強化日期驗證
@@ -1139,7 +1154,7 @@ const BookingFlow = () => {
       // 驗證日期字符串可以被正確解析
       const checkInParsed = new Date(checkInDateStr);
       const checkOutParsed = new Date(checkOutDateStr);
-      
+
       if (isNaN(checkInParsed.getTime()) || isNaN(checkOutParsed.getTime())) {
         toast({
           title: "日期無效",
@@ -1159,7 +1174,7 @@ const BookingFlow = () => {
         return;
       }
     }
-    
+
     if (currentStep === "room") {
       if (!selectedRoom) {
         toast({
@@ -1169,10 +1184,10 @@ const BookingFlow = () => {
         });
         return;
       }
-      
+
       // 檢查房型可用性狀態
       const availability = roomAvailability[selectedRoom.id];
-      
+
       // 檢查是否有缺少價格的日期
       if (availability?.hasMissingPricing) {
         toast({
@@ -1182,7 +1197,7 @@ const BookingFlow = () => {
         });
         return;
       }
-      
+
       // 檢查是否有無庫存的日期
       if (availability?.hasNoAvailability) {
         toast({
@@ -1192,7 +1207,7 @@ const BookingFlow = () => {
         });
         return;
       }
-      
+
       // 檢查是否被互斥房型阻擋
       if (availability?.isBlocked) {
         toast({
@@ -1202,7 +1217,7 @@ const BookingFlow = () => {
         });
         return;
       }
-      
+
       // 檢查總價是否為 0
       const total = calculateTotal();
       if (total <= 0) {
@@ -1217,7 +1232,7 @@ const BookingFlow = () => {
 
     if (currentStep === "addons") {
       // 驗證加購方案 - 檢查是否有任何日期設定了人數
-      const hasBbqMeals = Object.values(bbqMealsByDate).some(count => count > 0);
+      const hasBbqMeals = Object.values(bbqMealsByDate).some((count) => count > 0);
       if (!hasBbqMeals && Object.keys(bbqMealsByDate).length > 0) {
         toast({
           title: "請設定用餐人數",
@@ -1261,7 +1276,7 @@ const BookingFlow = () => {
       return;
     }
 
-    // 如果選擇信用卡，驗證 TapPay 卡片狀態
+    // 如果選擇信用卡，驗證 TapPay 卡片狀態 + 先取得 prime（避免 confirm 步驟欄位卸載）
     if (currentStep === "payment" && paymentMethod === '信用卡') {
       if (!isTapPayReady) {
         toast({
@@ -1271,7 +1286,7 @@ const BookingFlow = () => {
         });
         return;
       }
-      
+
       if (!cardValid) {
         toast({
           title: "請輸入完整的信用卡資訊",
@@ -1280,6 +1295,37 @@ const BookingFlow = () => {
         });
         return;
       }
+
+      if (!window.TPDirect) {
+        toast({
+          title: "付款模組尚未就緒",
+          description: "請重新整理頁面後再試",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!tappayPrime) {
+        setIsPreparingPrime(true);
+        try {
+          const prime = await getTapPayPrime();
+          setTappayPrime(prime);
+          console.log('[TapPay][Booking] Prime prepared for confirm step');
+        } catch (err: any) {
+          const msg = err?.message || '取得付款授權失敗，請重新輸入信用卡資訊後再試';
+          toast({
+            title: "無法取得付款授權",
+            description: msg,
+            variant: "destructive",
+          });
+          return;
+        } finally {
+          setIsPreparingPrime(false);
+        }
+      }
+    } else if (currentStep === "payment") {
+      // 非信用卡付款，確保不會誤用舊 prime
+      setTappayPrime(null);
     }
 
     // 切換到下一步
@@ -1360,11 +1406,22 @@ const BookingFlow = () => {
       });
       return;
     }
-    
-    setPaymentRetryCount(prev => prev + 1);
+
+    setPaymentRetryCount((prev) => prev + 1);
     setShowRetryDialog(false);
     setPaymentFailed(false);
     setLastPaymentError(null);
+
+    // 信用卡重試需要重新取得 prime（confirm 步驟沒有卡片欄位）
+    if (paymentMethod === '信用卡') {
+      setCurrentStep('payment');
+      toast({
+        title: "請重新輸入信用卡資訊",
+        description: "為了重試付款，需要重新取得付款授權",
+      });
+      return;
+    }
+
     handleConfirmBooking();
   };
 
@@ -1634,21 +1691,23 @@ const BookingFlow = () => {
         
         try {
           console.log('Processing TapPay payment...');
-          
-          // 檢查 TapPay SDK 是否已載入
-          if (!window.TPDirect) {
-            throw new Error('TapPay SDK 尚未載入，請重新整理頁面後再試');
-          }
-          
-          // 檢查卡片欄位是否已正確設定
-          console.log('Checking card validity before getPrime, cardValid:', cardValid);
-          if (!cardValid) {
-            throw new Error('請完整填寫信用卡資訊（卡號、有效期限、安全碼）');
+
+          // confirm 步驟會卸載 TapPay 欄位，因此 prime 需在 payment 步驟先取得
+          const prime = tappayPrime;
+          if (!prime) {
+            toast({
+              title: "請回到付款步驟",
+              description: "付款授權尚未建立或已失效，請重新輸入信用卡資訊後再試",
+              variant: "destructive",
+            });
+            setCurrentStep("payment");
+            setIsSubmitting(false);
+            return;
           }
 
-          // 獲取 Prime token（含逾時與相容性 fallback，避免卡在「處理中」）
-          const prime = await getTapPayPrime();
-          console.log('Got prime token');
+          // prime 為一次性 token，立即清除避免重用
+          setTappayPrime(null);
+          console.log('Using prepared prime token');
 
           // 呼叫後端處理支付
           // Build 3D Secure redirect URLs
@@ -3655,11 +3714,21 @@ const BookingFlow = () => {
               {currentStep !== "confirm" ? (
                 <Button
                   onClick={handleNextStep}
+                  disabled={isPreparingPrime}
                   className="flex-1"
                   size="lg"
                 >
-                  下一步
-                  <ChevronRight className="h-4 w-4 ml-2" />
+                  {isPreparingPrime ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      準備付款中...
+                    </>
+                  ) : (
+                    <>
+                      下一步
+                      <ChevronRight className="h-4 w-4 ml-2" />
+                    </>
+                  )}
                 </Button>
               ) : (
                 <Button
