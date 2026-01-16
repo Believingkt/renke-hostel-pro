@@ -66,7 +66,7 @@ export function DevAccommodationSwitcher() {
 
     // 儲存選擇 - 同時更新前台和後台使用的 localStorage key
     localStorage.setItem(DEV_ACC_STORAGE_KEY, acc.short_url_alias || acc.id);
-    localStorage.setItem('selected_accommodation_id', acc.id); // 後台 AccommodationContext 使用
+    localStorage.setItem('lastSelectedAccommodation', acc.id); // 後台 AccommodationContext 使用的正確 key
 
     // 更新 URL 並刷新
     const url = new URL(window.location.href);
