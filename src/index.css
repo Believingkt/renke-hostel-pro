@@ -582,6 +582,454 @@ All colors MUST be HSL.
     --footer-background: 8 45% 16%;
   }
 
+  /* 薄荷青主題 */
+  .theme-mint {
+    --background: 165 30% 97%;
+    --foreground: 170 25% 18%;
+
+    --card: 168 28% 97%;
+    --card-foreground: 170 25% 18%;
+
+    --popover: 168 28% 97%;
+    --popover-foreground: 170 25% 18%;
+
+    --primary: 168 70% 42%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 165 35% 92%;
+    --secondary-foreground: 170 22% 22%;
+
+    --muted: 165 28% 93%;
+    --muted-foreground: 170 18% 45%;
+
+    --accent: 175 65% 38%;
+    --accent-foreground: 0 0% 100%;
+
+    --border: 168 22% 87%;
+    --input: 168 22% 89%;
+    --ring: 168 70% 42%;
+
+    --hero-gradient-start: 168 70% 42%;
+    --hero-gradient-end: 175 65% 38%;
+    
+    --card-hover: 168 18% 94%;
+    --shadow-sm: 0 1px 2px 0 rgba(60, 140, 120, 0.06);
+    --shadow-md: 0 4px 6px -1px rgba(60, 140, 120, 0.08);
+    --shadow-lg: 0 10px 15px -3px rgba(60, 140, 120, 0.1);
+
+    --sidebar-background: 165 20% 96%;
+    --sidebar-foreground: 170 22% 26%;
+    --sidebar-primary: 168 70% 42%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 165 28% 90%;
+    --sidebar-accent-foreground: 170 22% 22%;
+    --sidebar-border: 168 18% 86%;
+    --sidebar-ring: 168 70% 42%;
+
+    --auth-primary: 168 70% 42%;
+    --auth-primary-hover: 168 70% 35%;
+
+    --chart-1: 168 70% 42%;
+    --chart-2: 175 65% 38%;
+    --chart-3: 162 60% 45%;
+    --chart-4: 180 55% 40%;
+    --chart-5: 155 58% 42%;
+
+    --footer-background: 170 40% 14%;
+  }
+
+  /* 薰衣草紫主題 */
+  .theme-lavender {
+    --background: 248 25% 98%;
+    --foreground: 252 22% 18%;
+
+    --card: 250 24% 97%;
+    --card-foreground: 252 22% 18%;
+
+    --popover: 250 24% 97%;
+    --popover-foreground: 252 22% 18%;
+
+    --primary: 250 55% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 248 30% 93%;
+    --secondary-foreground: 252 20% 22%;
+
+    --muted: 248 24% 94%;
+    --muted-foreground: 252 16% 45%;
+
+    --accent: 260 50% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --border: 250 20% 88%;
+    --input: 250 20% 90%;
+    --ring: 250 55% 60%;
+
+    --hero-gradient-start: 250 55% 60%;
+    --hero-gradient-end: 260 50% 55%;
+    
+    --card-hover: 250 16% 95%;
+    --shadow-sm: 0 1px 2px 0 rgba(120, 100, 160, 0.06);
+    --shadow-md: 0 4px 6px -1px rgba(120, 100, 160, 0.08);
+    --shadow-lg: 0 10px 15px -3px rgba(120, 100, 160, 0.1);
+
+    --sidebar-background: 248 18% 96%;
+    --sidebar-foreground: 252 18% 26%;
+    --sidebar-primary: 250 55% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 248 24% 91%;
+    --sidebar-accent-foreground: 252 20% 22%;
+    --sidebar-border: 250 16% 87%;
+    --sidebar-ring: 250 55% 60%;
+
+    --auth-primary: 250 55% 60%;
+    --auth-primary-hover: 250 55% 52%;
+
+    --chart-1: 250 55% 60%;
+    --chart-2: 260 50% 55%;
+    --chart-3: 242 50% 58%;
+    --chart-4: 268 48% 55%;
+    --chart-5: 235 52% 56%;
+
+    --footer-background: 252 35% 18%;
+  }
+
+  /* 珊瑚紅主題 */
+  .theme-coral {
+    --background: 18 35% 97%;
+    --foreground: 14 28% 18%;
+
+    --card: 16 32% 97%;
+    --card-foreground: 14 28% 18%;
+
+    --popover: 16 32% 97%;
+    --popover-foreground: 14 28% 18%;
+
+    --primary: 16 80% 58%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 18 38% 92%;
+    --secondary-foreground: 14 25% 22%;
+
+    --muted: 18 30% 93%;
+    --muted-foreground: 14 20% 45%;
+
+    --accent: 12 75% 52%;
+    --accent-foreground: 0 0% 100%;
+
+    --border: 16 25% 87%;
+    --input: 16 25% 89%;
+    --ring: 16 80% 58%;
+
+    --hero-gradient-start: 16 80% 58%;
+    --hero-gradient-end: 12 75% 52%;
+    
+    --card-hover: 16 20% 94%;
+    --shadow-sm: 0 1px 2px 0 rgba(200, 100, 80, 0.06);
+    --shadow-md: 0 4px 6px -1px rgba(200, 100, 80, 0.08);
+    --shadow-lg: 0 10px 15px -3px rgba(200, 100, 80, 0.1);
+
+    --sidebar-background: 18 22% 96%;
+    --sidebar-foreground: 14 24% 26%;
+    --sidebar-primary: 16 80% 58%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 18 32% 90%;
+    --sidebar-accent-foreground: 14 25% 22%;
+    --sidebar-border: 16 20% 86%;
+    --sidebar-ring: 16 80% 58%;
+
+    --auth-primary: 16 80% 58%;
+    --auth-primary-hover: 16 80% 50%;
+
+    --chart-1: 16 80% 58%;
+    --chart-2: 12 75% 52%;
+    --chart-3: 22 72% 55%;
+    --chart-4: 8 70% 52%;
+    --chart-5: 28 68% 55%;
+
+    --footer-background: 14 45% 16%;
+  }
+
+  /* 午夜藍主題 */
+  .theme-midnight {
+    --background: 218 28% 97%;
+    --foreground: 222 28% 18%;
+
+    --card: 220 26% 97%;
+    --card-foreground: 222 28% 18%;
+
+    --popover: 220 26% 97%;
+    --popover-foreground: 222 28% 18%;
+
+    --primary: 220 65% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 218 32% 92%;
+    --secondary-foreground: 222 25% 22%;
+
+    --muted: 218 25% 93%;
+    --muted-foreground: 222 18% 45%;
+
+    --accent: 230 60% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --border: 220 22% 87%;
+    --input: 220 22% 89%;
+    --ring: 220 65% 45%;
+
+    --hero-gradient-start: 220 65% 45%;
+    --hero-gradient-end: 230 60% 50%;
+    
+    --card-hover: 220 18% 94%;
+    --shadow-sm: 0 1px 2px 0 rgba(50, 70, 120, 0.06);
+    --shadow-md: 0 4px 6px -1px rgba(50, 70, 120, 0.08);
+    --shadow-lg: 0 10px 15px -3px rgba(50, 70, 120, 0.1);
+
+    --sidebar-background: 218 20% 96%;
+    --sidebar-foreground: 222 22% 26%;
+    --sidebar-primary: 220 65% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 218 28% 90%;
+    --sidebar-accent-foreground: 222 25% 22%;
+    --sidebar-border: 220 18% 86%;
+    --sidebar-ring: 220 65% 45%;
+
+    --auth-primary: 220 65% 45%;
+    --auth-primary-hover: 220 65% 38%;
+
+    --chart-1: 220 65% 45%;
+    --chart-2: 230 60% 50%;
+    --chart-3: 212 58% 48%;
+    --chart-4: 238 55% 52%;
+    --chart-5: 205 60% 45%;
+
+    --footer-background: 222 45% 12%;
+  }
+
+  /* 鼠尾草綠主題 */
+  .theme-sage {
+    --background: 135 20% 97%;
+    --foreground: 140 22% 18%;
+
+    --card: 138 18% 97%;
+    --card-foreground: 140 22% 18%;
+
+    --popover: 138 18% 97%;
+    --popover-foreground: 140 22% 18%;
+
+    --primary: 138 30% 48%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 135 22% 91%;
+    --secondary-foreground: 140 20% 22%;
+
+    --muted: 135 16% 93%;
+    --muted-foreground: 140 14% 45%;
+
+    --accent: 145 28% 42%;
+    --accent-foreground: 0 0% 100%;
+
+    --border: 138 15% 86%;
+    --input: 138 15% 88%;
+    --ring: 138 30% 48%;
+
+    --hero-gradient-start: 138 30% 48%;
+    --hero-gradient-end: 145 28% 42%;
+    
+    --card-hover: 138 12% 94%;
+    --shadow-sm: 0 1px 2px 0 rgba(80, 100, 80, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(80, 100, 80, 0.07);
+    --shadow-lg: 0 10px 15px -3px rgba(80, 100, 80, 0.09);
+
+    --sidebar-background: 135 14% 96%;
+    --sidebar-foreground: 140 18% 26%;
+    --sidebar-primary: 138 30% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 135 18% 89%;
+    --sidebar-accent-foreground: 140 20% 22%;
+    --sidebar-border: 138 12% 85%;
+    --sidebar-ring: 138 30% 48%;
+
+    --auth-primary: 138 30% 48%;
+    --auth-primary-hover: 138 30% 40%;
+
+    --chart-1: 138 30% 48%;
+    --chart-2: 145 28% 42%;
+    --chart-3: 132 28% 50%;
+    --chart-4: 150 26% 45%;
+    --chart-5: 125 25% 48%;
+
+    --footer-background: 140 28% 15%;
+  }
+
+  /* 香檳金主題 */
+  .theme-gold {
+    --background: 45 28% 97%;
+    --foreground: 40 28% 18%;
+
+    --card: 42 26% 97%;
+    --card-foreground: 40 28% 18%;
+
+    --popover: 42 26% 97%;
+    --popover-foreground: 40 28% 18%;
+
+    --primary: 42 70% 50%;
+    --primary-foreground: 40 40% 15%;
+
+    --secondary: 45 32% 91%;
+    --secondary-foreground: 40 25% 22%;
+
+    --muted: 45 24% 93%;
+    --muted-foreground: 40 18% 45%;
+
+    --accent: 38 65% 45%;
+    --accent-foreground: 0 0% 100%;
+
+    --border: 42 22% 86%;
+    --input: 42 22% 88%;
+    --ring: 42 70% 50%;
+
+    --hero-gradient-start: 42 70% 50%;
+    --hero-gradient-end: 38 65% 45%;
+    
+    --card-hover: 42 18% 94%;
+    --shadow-sm: 0 1px 2px 0 rgba(160, 130, 60, 0.06);
+    --shadow-md: 0 4px 6px -1px rgba(160, 130, 60, 0.08);
+    --shadow-lg: 0 10px 15px -3px rgba(160, 130, 60, 0.1);
+
+    --sidebar-background: 45 20% 96%;
+    --sidebar-foreground: 40 24% 26%;
+    --sidebar-primary: 42 70% 50%;
+    --sidebar-primary-foreground: 40 40% 15%;
+    --sidebar-accent: 45 28% 89%;
+    --sidebar-accent-foreground: 40 25% 22%;
+    --sidebar-border: 42 18% 85%;
+    --sidebar-ring: 42 70% 50%;
+
+    --auth-primary: 42 70% 50%;
+    --auth-primary-hover: 42 70% 42%;
+
+    --chart-1: 42 70% 50%;
+    --chart-2: 38 65% 45%;
+    --chart-3: 48 65% 52%;
+    --chart-4: 35 60% 48%;
+    --chart-5: 52 58% 50%;
+
+    --footer-background: 40 40% 15%;
+  }
+
+  /* 莓果紅主題 */
+  .theme-berry {
+    --background: 328 28% 98%;
+    --foreground: 325 25% 18%;
+
+    --card: 330 26% 97%;
+    --card-foreground: 325 25% 18%;
+
+    --popover: 330 26% 97%;
+    --popover-foreground: 325 25% 18%;
+
+    --primary: 330 65% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 328 32% 93%;
+    --secondary-foreground: 325 22% 22%;
+
+    --muted: 328 25% 94%;
+    --muted-foreground: 325 16% 45%;
+
+    --accent: 320 60% 45%;
+    --accent-foreground: 0 0% 100%;
+
+    --border: 330 20% 88%;
+    --input: 330 20% 90%;
+    --ring: 330 65% 50%;
+
+    --hero-gradient-start: 330 65% 50%;
+    --hero-gradient-end: 320 60% 45%;
+    
+    --card-hover: 330 16% 95%;
+    --shadow-sm: 0 1px 2px 0 rgba(180, 80, 120, 0.06);
+    --shadow-md: 0 4px 6px -1px rgba(180, 80, 120, 0.08);
+    --shadow-lg: 0 10px 15px -3px rgba(180, 80, 120, 0.1);
+
+    --sidebar-background: 328 18% 96%;
+    --sidebar-foreground: 325 20% 26%;
+    --sidebar-primary: 330 65% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 328 28% 91%;
+    --sidebar-accent-foreground: 325 22% 22%;
+    --sidebar-border: 330 16% 87%;
+    --sidebar-ring: 330 65% 50%;
+
+    --auth-primary: 330 65% 50%;
+    --auth-primary-hover: 330 65% 42%;
+
+    --chart-1: 330 65% 50%;
+    --chart-2: 320 60% 45%;
+    --chart-3: 338 58% 52%;
+    --chart-4: 312 55% 48%;
+    --chart-5: 345 60% 52%;
+
+    --footer-background: 325 40% 16%;
+  }
+
+  /* 現代灰主題 */
+  .theme-slate {
+    --background: 212 18% 97%;
+    --foreground: 218 20% 18%;
+
+    --card: 215 16% 97%;
+    --card-foreground: 218 20% 18%;
+
+    --popover: 215 16% 97%;
+    --popover-foreground: 218 20% 18%;
+
+    --primary: 215 25% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 212 20% 91%;
+    --secondary-foreground: 218 18% 22%;
+
+    --muted: 212 15% 93%;
+    --muted-foreground: 218 12% 45%;
+
+    --accent: 210 22% 40%;
+    --accent-foreground: 0 0% 100%;
+
+    --border: 215 14% 86%;
+    --input: 215 14% 88%;
+    --ring: 215 25% 45%;
+
+    --hero-gradient-start: 215 25% 45%;
+    --hero-gradient-end: 210 22% 40%;
+    
+    --card-hover: 215 10% 94%;
+    --shadow-sm: 0 1px 2px 0 rgba(80, 90, 100, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(80, 90, 100, 0.07);
+    --shadow-lg: 0 10px 15px -3px rgba(80, 90, 100, 0.09);
+
+    --sidebar-background: 212 12% 96%;
+    --sidebar-foreground: 218 16% 26%;
+    --sidebar-primary: 215 25% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 212 16% 89%;
+    --sidebar-accent-foreground: 218 18% 22%;
+    --sidebar-border: 215 10% 85%;
+    --sidebar-ring: 215 25% 45%;
+
+    --auth-primary: 215 25% 45%;
+    --auth-primary-hover: 215 25% 38%;
+
+    --chart-1: 215 25% 45%;
+    --chart-2: 210 22% 40%;
+    --chart-3: 220 22% 48%;
+    --chart-4: 205 20% 42%;
+    --chart-5: 225 20% 50%;
+
+    --footer-background: 218 28% 14%;
+  }
+
   /* Admin theme - Blue & Orange colors */
   .admin-theme {
     --primary: 203 78% 43%;

@@ -516,7 +516,7 @@ export function AccommodationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEditing ? "編輯民宿" : "新增民宿"}</DialogTitle>
           <DialogDescription>

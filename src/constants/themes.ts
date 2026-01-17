@@ -226,6 +226,103 @@ export const THEME_PRESET_CONFIGS: ThemePresetConfig[] = [
       footer: "hsl(8, 45%, 16%)",
     }
   },
+  // ===== 新增 8 種主題 =====
+  { 
+    value: "mint", 
+    label: "薄荷青", 
+    description: "清涼舒爽的青綠色調",
+    colors: {
+      primary: "hsl(168, 70%, 42%)",
+      accent: "hsl(175, 65%, 38%)",
+      background: "hsl(165, 30%, 97%)",
+      card: "hsl(168, 35%, 94%)",
+      footer: "hsl(170, 40%, 14%)",
+    }
+  },
+  { 
+    value: "lavender", 
+    label: "薰衣草紫", 
+    description: "夢幻柔和的淡紫色調",
+    colors: {
+      primary: "hsl(250, 55%, 60%)",
+      accent: "hsl(260, 50%, 55%)",
+      background: "hsl(248, 25%, 98%)",
+      card: "hsl(250, 30%, 95%)",
+      footer: "hsl(252, 35%, 18%)",
+    }
+  },
+  { 
+    value: "coral", 
+    label: "珊瑚紅", 
+    description: "活力熱情的珊瑚色調",
+    colors: {
+      primary: "hsl(16, 80%, 58%)",
+      accent: "hsl(12, 75%, 52%)",
+      background: "hsl(18, 35%, 97%)",
+      card: "hsl(16, 40%, 94%)",
+      footer: "hsl(14, 45%, 16%)",
+    }
+  },
+  { 
+    value: "midnight", 
+    label: "午夜藍", 
+    description: "深邃神秘的深藍色調",
+    colors: {
+      primary: "hsl(220, 65%, 45%)",
+      accent: "hsl(230, 60%, 50%)",
+      background: "hsl(218, 28%, 97%)",
+      card: "hsl(220, 32%, 94%)",
+      footer: "hsl(222, 45%, 12%)",
+    }
+  },
+  { 
+    value: "sage", 
+    label: "鼠尾草綠", 
+    description: "沉穩質感的灰綠色調",
+    colors: {
+      primary: "hsl(138, 30%, 48%)",
+      accent: "hsl(145, 28%, 42%)",
+      background: "hsl(135, 20%, 97%)",
+      card: "hsl(138, 22%, 94%)",
+      footer: "hsl(140, 28%, 15%)",
+    }
+  },
+  { 
+    value: "gold", 
+    label: "香檳金", 
+    description: "奢華典雅的金色調",
+    colors: {
+      primary: "hsl(42, 70%, 50%)",
+      accent: "hsl(38, 65%, 45%)",
+      background: "hsl(45, 28%, 97%)",
+      card: "hsl(42, 32%, 94%)",
+      footer: "hsl(40, 40%, 15%)",
+    }
+  },
+  { 
+    value: "berry", 
+    label: "莓果紅", 
+    description: "甜美誘人的莓果色調",
+    colors: {
+      primary: "hsl(330, 65%, 50%)",
+      accent: "hsl(320, 60%, 45%)",
+      background: "hsl(328, 28%, 98%)",
+      card: "hsl(330, 32%, 95%)",
+      footer: "hsl(325, 40%, 16%)",
+    }
+  },
+  { 
+    value: "slate", 
+    label: "現代灰", 
+    description: "簡約時尚的石板灰調",
+    colors: {
+      primary: "hsl(215, 25%, 45%)",
+      accent: "hsl(210, 22%, 40%)",
+      background: "hsl(212, 18%, 97%)",
+      card: "hsl(215, 20%, 94%)",
+      footer: "hsl(218, 28%, 14%)",
+    }
+  },
 ];
 
 // 所有可用的主題預設值（簡單陣列，用於類型定義）
@@ -270,6 +367,22 @@ export const getThemeClass = (themePreset?: string): string => {
       return 'theme-zen';
     case 'sunset':
       return 'theme-sunset';
+    case 'mint':
+      return 'theme-mint';
+    case 'lavender':
+      return 'theme-lavender';
+    case 'coral':
+      return 'theme-coral';
+    case 'midnight':
+      return 'theme-midnight';
+    case 'sage':
+      return 'theme-sage';
+    case 'gold':
+      return 'theme-gold';
+    case 'berry':
+      return 'theme-berry';
+    case 'slate':
+      return 'theme-slate';
     default:
       return '';
   }
