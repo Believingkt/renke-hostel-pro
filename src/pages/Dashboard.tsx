@@ -41,7 +41,7 @@ const Dashboard = () => {
   const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date());
   const [isGenerating, setIsGenerating] = useState(false);
   const [testDataCount, setTestDataCount] = useState(20);
-  const [useLastYear, setUseLastYear] = useState(false);
+  const [generateYears, setGenerateYears] = useState<number[]>([2025, 2026]);
   
   // 使用 React Query hook 獲取儀表板資料
   const { 
@@ -67,11 +67,8 @@ const Dashboard = () => {
       const requestBody: any = {
         accommodationId,
         count: testDataCount,
+        years: generateYears.length > 0 ? generateYears : undefined,
       };
-      
-      if (useLastYear) {
-        requestBody.year = new Date().getFullYear() - 1;
-      }
       
       const { data, error } = await supabase.functions.invoke('generate-test-orders', {
         body: requestBody,
@@ -289,17 +286,30 @@ const Dashboard = () => {
                     className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
                   />
                 </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="useLastYear"
-                    checked={useLastYear}
-                    onChange={(e) => setUseLastYear(e.target.checked)}
-                    className="h-4 w-4 rounded border-input"
-                  />
-                  <Label htmlFor="useLastYear" className="text-sm font-normal cursor-pointer">
-                    生成去年（{new Date().getFullYear() - 1}）的資料
-                  </Label>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">生成年份</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {[2025, 2026].map((year) => (
+                      <label key={year} className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={generateYears.includes(year)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setGenerateYears([...generateYears, year].sort());
+                            } else {
+                              setGenerateYears(generateYears.filter(y => y !== year));
+                            }
+                          }}
+                          className="h-4 w-4 rounded border-input"
+                        />
+                        <span className="text-sm">{year} 年</span>
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {generateYears.length === 0 ? '未選擇則生成最近 6 個月資料' : `將生成 ${generateYears.join(' 和 ')} 年的資料`}
+                  </p>
                 </div>
                 <Button
                   onClick={handleGenerateTestData}

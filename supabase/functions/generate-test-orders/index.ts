@@ -1,29 +1,18 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 
-// Allowed origins for CORS
-const allowedOrigins = [
-  'https://sensan.lovable.app',
-  'https://dmafqwfynatdvnaeovhz.lovableproject.com',
-];
-
-function getCorsHeaders(req: Request) {
-  const origin = req.headers.get('origin') || '';
-  const allowedOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
-  return {
-    'Access-Control-Allow-Origin': allowedOrigin,
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  };
-}
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 interface TestOrderParams {
   accommodationId: string;
   count?: number;
-  year?: number; // 指定年份，例如 2024 表示生成去年的資料
+  year?: number; // 單一年份（向後兼容）
+  years?: number[]; // 多年份陣列，例如 [2025, 2026]
 }
 
 Deno.serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req);
-  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -37,13 +26,20 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { accommodationId, count = 20, year }: TestOrderParams = await req.json();
+    const { accommodationId, count = 20, year, years }: TestOrderParams = await req.json();
 
     if (!accommodationId) {
       throw new Error('Accommodation ID is required');
     }
 
-    console.log(`Generating ${count} test orders for accommodation ${accommodationId}`);
+    // 決定要生成的年份列表
+    const targetYears: number[] = years && years.length > 0 
+      ? years 
+      : year 
+        ? [year] 
+        : []; // 空陣列表示使用預設邏輯（過去6個月）
+
+    console.log(`Generating ${count} test orders for accommodation ${accommodationId}, years: ${targetYears.length > 0 ? targetYears.join(', ') : 'default (past 6 months)'}`);
 
     // 獲取現有房型
     const { data: roomTypes, error: roomTypesError } = await supabaseClient
@@ -99,10 +95,11 @@ Deno.serve(async (req) => {
       
       let orderDate: Date;
       
-      if (year) {
-        // 如果指定了年份，生成該年份的隨機日期
-        const startOfYear = new Date(year, 0, 1);
-        const endOfYear = new Date(year, 11, 31);
+      if (targetYears.length > 0) {
+        // 從指定的年份中隨機選擇一個
+        const selectedYear = targetYears[Math.floor(Math.random() * targetYears.length)];
+        const startOfYear = new Date(selectedYear, 0, 1);
+        const endOfYear = new Date(selectedYear, 11, 31);
         const randomTime = startOfYear.getTime() + Math.random() * (endOfYear.getTime() - startOfYear.getTime());
         orderDate = new Date(randomTime);
       } else {
