@@ -697,7 +697,6 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
-                    <TableHead className="font-semibold w-12">Logo</TableHead>
                     <TableHead className="font-semibold">民宿名稱</TableHead>
                     <TableHead className="font-semibold w-24">主題配色</TableHead>
                     <TableHead className="font-semibold">自訂網域</TableHead>
@@ -711,22 +710,6 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
                     const theme = THEME_COLORS[acc.theme_preset || "default"] || THEME_COLORS.default;
                     return (
                     <TableRow key={acc.id} className={!acc.is_active ? "opacity-60" : ""}>
-                      {/* Logo 縮圖 */}
-                      <TableCell className="w-12">
-                        {acc.header_logo_url ? (
-                          <div className="w-10 h-10 rounded border bg-muted/30 flex items-center justify-center overflow-hidden">
-                            <img 
-                              src={acc.header_logo_url} 
-                              alt={`${acc.name} Logo`}
-                              className="max-w-full max-h-full object-contain"
-                            />
-                          </div>
-                        ) : (
-                          <div className="w-10 h-10 rounded border bg-muted/30 flex items-center justify-center">
-                            <Image className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                        )}
-                      </TableCell>
                       <TableCell className="font-medium">{acc.name}</TableCell>
                       {/* 主題配色預覽 */}
                       <TableCell className="w-24">
