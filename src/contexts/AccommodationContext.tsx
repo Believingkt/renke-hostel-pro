@@ -47,12 +47,17 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
   };
 
   useEffect(() => {
-    loadUserAccommodations();
+    // 初始載入時自動選擇民宿
+    loadUserAccommodations(true);
 
     // Listen to auth state changes to reload accommodations when user logs in
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        loadUserAccommodations();
+        // 登入時也要自動選擇
+        loadUserAccommodations(true);
+      } else if (event === 'TOKEN_REFRESHED') {
+        // Token 刷新時只更新列表，不改變選擇
+        loadUserAccommodations(false);
       }
     });
 
@@ -61,7 +66,7 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
     };
   }, []);
 
-  const loadUserAccommodations = async () => {
+  const loadUserAccommodations = async (forceAutoSelect = false) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -88,8 +93,9 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
       console.log('[AccommodationContext] Loaded accommodations:', data);
       setUserAccommodations(data || []);
 
-      // Auto-select accommodation - prioritize saved selection, then 森山寫照 (Sensan)
-      if (data && data.length > 0 && !currentAccommodationId) {
+      // 只在 forceAutoSelect 時才自動選擇，否則保留現有選擇
+      // 優先使用 localStorage 儲存的選擇
+      if (data && data.length > 0 && forceAutoSelect) {
         // First, check if there's a saved selection in localStorage
         let savedAccommodationId: string | null = null;
         try {
