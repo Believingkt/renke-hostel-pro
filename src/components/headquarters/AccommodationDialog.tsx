@@ -516,308 +516,355 @@ export function AccommodationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{isEditing ? "編輯民宿" : "新增民宿"}</DialogTitle>
-          <DialogDescription>
-            {isEditing ? "修改民宿基本資訊" : "輸入新民宿的基本資訊"}
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* 民宿名稱 */}
-          <div className="space-y-2">
-            <Label htmlFor="name">民宿名稱 *</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="請輸入民宿名稱"
-              required
-              disabled={isSubmitting}
-            />
-          </div>
+      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-hidden p-0">
+        <div className="flex flex-col h-full max-h-[90vh]">
+          {/* Header */}
+          <DialogHeader className="px-6 pt-6 pb-4 border-b bg-muted/30">
+            <DialogTitle className="text-xl">{isEditing ? "編輯民宿" : "新增民宿"}</DialogTitle>
+            <DialogDescription>
+              {isEditing ? "修改民宿基本資訊與外觀設定" : "設定新民宿的基本資訊與網站風格"}
+            </DialogDescription>
+          </DialogHeader>
 
-          {/* 自訂子網域 */}
-          <div className="space-y-2">
-            <Label htmlFor="short_url_alias" className="flex items-center gap-2">
-              <Globe className="h-4 w-4" />
-              自訂子網域
-            </Label>
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1">
-                <Input
-                  id="short_url_alias"
-                  value={formData.short_url_alias}
-                  onChange={(e) => handleSubdomainChange(e.target.value)}
-                  placeholder="例如：myhotel"
-                  disabled={isSubmitting}
-                  className="pr-10"
-                  maxLength={30}
-                />
-                {formData.short_url_alias && (
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                    {getSubdomainStatusIcon()}
+          {/* Content - Two Column Layout */}
+          <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col">
+            <div className="flex-1 overflow-y-auto">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 min-h-full">
+                {/* Left Column - Basic Info */}
+                <div className="p-6 space-y-5 border-r bg-background">
+                  <div className="space-y-1">
+                    <h3 className="font-semibold text-base flex items-center gap-2">
+                      <div className="h-5 w-1 rounded-full bg-primary" />
+                      基本資訊
+                    </h3>
+                    <p className="text-xs text-muted-foreground">設定民宿名稱與網站網址</p>
                   </div>
-                )}
-              </div>
-              <span className="text-sm text-muted-foreground whitespace-nowrap">.lakeze.com</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">
-                使用小寫英文、數字和連字號，長度 3-30 字元
-              </p>
-              {formData.short_url_alias && subdomainStatus !== "idle" && (
-                <p className={`text-xs flex items-center gap-1 ${
-                  subdomainStatus === "available" ? "text-primary" :
-                  subdomainStatus === "taken" ? "text-destructive" :
-                  subdomainStatus === "invalid" ? "text-amber-500" :
-                  "text-muted-foreground"
-                }`}>
-                  {getSubdomainStatusText()}
-                </p>
-              )}
-            </div>
-            {formData.short_url_alias && subdomainStatus === "available" && (
-              <div className="bg-muted/50 rounded-md p-2 text-sm">
-                <span className="text-muted-foreground">您的網站網址：</span>
-                <span className="font-medium ml-1">https://{formData.short_url_alias}.lakeze.com</span>
-              </div>
-            )}
-          </div>
 
-          {/* 主題配色選擇 */}
-          <div className="space-y-3">
-            <Label htmlFor="theme_preset" className="flex items-center gap-2">
-              <Palette className="h-4 w-4" />
-              網站主題配色
-            </Label>
-            
-            <div className="grid grid-cols-2 gap-3">
-              {/* 主題選擇按鈕 */}
-              <div className="space-y-2">
-                {THEME_PRESET_CONFIGS.map((theme) => (
-                  <button
-                    key={theme.value}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, theme_preset: theme.value })}
-                    disabled={isSubmitting}
-                    className={`w-full text-left p-2.5 rounded-lg border transition-all ${
-                      formData.theme_preset === theme.value 
-                        ? 'border-primary bg-primary/5 ring-1 ring-primary/20' 
-                        : 'border-border hover:border-primary/50 hover:bg-muted/50'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      {/* 顏色指示點 */}
-                      <div className="flex -space-x-1">
-                        <div 
-                          className="w-3.5 h-3.5 rounded-full border border-white shadow-sm"
-                          style={{ backgroundColor: theme.colors.primary }}
-                        />
-                        <div 
-                          className="w-3.5 h-3.5 rounded-full border border-white shadow-sm"
-                          style={{ backgroundColor: theme.colors.accent }}
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium truncate">{theme.label}</div>
-                        <div className="text-xs text-muted-foreground truncate">{theme.description}</div>
-                      </div>
-                      {formData.theme_preset === theme.value && (
-                        <div className="text-primary">
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                ))}
-              </div>
-
-              {/* 即時預覽 */}
-              <div className="space-y-1.5">
-                <p className="text-xs text-muted-foreground text-center">網站預覽</p>
-                <ThemePreview themeValue={formData.theme_preset} />
-              </div>
-            </div>
-          </div>
-
-          {/* Logo 上傳（僅編輯模式） */}
-          {isEditing && initialData?.id && (
-            <div className="space-y-4">
-              <Label className="flex items-center gap-2">
-                <Image className="h-4 w-4" />
-                民宿 Logo
-              </Label>
-              
-              <div className="grid grid-cols-2 gap-4">
-                {/* 頁首 Logo */}
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">頁首 Logo</p>
-                  <div className="border rounded-lg p-3 space-y-2">
-                    {headerLogoUrl ? (
-                      <div className="relative">
-                        <div className="w-full h-16 border rounded overflow-hidden bg-muted">
-                          <img 
-                            src={headerLogoUrl} 
-                            alt="頁首 Logo" 
-                            className="w-full h-full object-contain"
-                          />
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteLogo('header')}
-                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="w-full h-16 border-2 border-dashed rounded flex items-center justify-center text-muted-foreground">
-                        <span className="text-xs">尚未設定</span>
-                      </div>
-                    )}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => headerInputRef.current?.click()}
-                      disabled={uploadingHeader || isSubmitting}
-                      className="w-full"
-                    >
-                      {uploadingHeader ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                      ) : (
-                        <Upload className="h-4 w-4 mr-1" />
-                      )}
-                      {uploadingHeader ? '上傳中...' : '上傳'}
-                    </Button>
-                    <input
-                      ref={headerInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleFileSelect(e, 'header')}
-                      className="hidden"
+                  {/* 民宿名稱 */}
+                  <div className="space-y-2">
+                    <Label htmlFor="name" className="text-sm font-medium">民宿名稱 *</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="請輸入民宿名稱"
+                      required
+                      disabled={isSubmitting}
+                      className="h-11"
                     />
                   </div>
-                </div>
 
-                {/* 頁尾 Logo */}
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">頁尾 Logo</p>
-                  <div className="border rounded-lg p-3 space-y-2">
-                    {footerLogoUrl ? (
-                      <div className="relative">
-                        <div className="w-full h-16 border rounded overflow-hidden bg-slate-800">
-                          <img 
-                            src={footerLogoUrl} 
-                            alt="頁尾 Logo" 
-                            className="w-full h-full object-contain"
-                          />
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteLogo('footer')}
-                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="w-full h-16 border-2 border-dashed rounded flex items-center justify-center text-muted-foreground">
-                        <span className="text-xs">尚未設定</span>
-                      </div>
-                    )}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => footerInputRef.current?.click()}
-                      disabled={uploadingFooter || isSubmitting}
-                      className="w-full"
-                    >
-                      {uploadingFooter ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                      ) : (
-                        <Upload className="h-4 w-4 mr-1" />
-                      )}
-                      {uploadingFooter ? '上傳中...' : '上傳'}
-                    </Button>
-                    <input
-                      ref={footerInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleFileSelect(e, 'footer')}
-                      className="hidden"
-                    />
-                  </div>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                建議尺寸：200×60 像素，支援 PNG、JPG 格式
-              </p>
-            </div>
-          )}
-
-          {/* LINE Pay 設定（僅編輯模式） */}
-          {isEditing && initialData?.id && (
-            <div className="space-y-3">
-              <Label className="flex items-center gap-2">
-                <CreditCard className="h-4 w-4" />
-                付款方式設定
-              </Label>
-              <div className="border rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
+                  {/* 自訂子網域 */}
+                  <div className="space-y-2">
+                    <Label htmlFor="short_url_alias" className="flex items-center gap-2 text-sm font-medium">
+                      <Globe className="h-4 w-4 text-muted-foreground" />
+                      自訂子網域
+                    </Label>
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm">LINE Pay</span>
-                      {linePayEnabled && (
-                        <Badge variant="secondary" className="text-xs">已啟用</Badge>
+                      <div className="relative flex-1">
+                        <Input
+                          id="short_url_alias"
+                          value={formData.short_url_alias}
+                          onChange={(e) => handleSubdomainChange(e.target.value)}
+                          placeholder="例如：myhotel"
+                          disabled={isSubmitting}
+                          className="pr-10 h-11"
+                          maxLength={30}
+                        />
+                        {formData.short_url_alias && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            {getSubdomainStatusIcon()}
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-sm text-muted-foreground whitespace-nowrap font-medium">.lakeze.com</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-muted-foreground">
+                        小寫英文、數字和連字號，3-30 字元
+                      </p>
+                      {formData.short_url_alias && subdomainStatus !== "idle" && (
+                        <p className={`text-xs flex items-center gap-1 font-medium ${
+                          subdomainStatus === "available" ? "text-primary" :
+                          subdomainStatus === "taken" ? "text-destructive" :
+                          subdomainStatus === "invalid" ? "text-amber-500" :
+                          "text-muted-foreground"
+                        }`}>
+                          {getSubdomainStatusText()}
+                        </p>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      啟用後，前台訂房可使用 LINE Pay 線上付款
-                    </p>
+                    {formData.short_url_alias && subdomainStatus === "available" && (
+                      <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-sm">
+                        <span className="text-muted-foreground">您的網站網址：</span>
+                        <span className="font-semibold text-primary ml-1">https://{formData.short_url_alias}.lakeze.com</span>
+                      </div>
+                    )}
                   </div>
-                  <Switch
-                    checked={linePayEnabled}
-                    onCheckedChange={handleLinePayToggle}
-                    disabled={loadingLinePay || isSubmitting}
-                  />
+
+                  {/* Logo 上傳（僅編輯模式） */}
+                  {isEditing && initialData?.id && (
+                    <>
+                      <div className="pt-4 border-t">
+                        <div className="space-y-1 mb-4">
+                          <h3 className="font-semibold text-base flex items-center gap-2">
+                            <div className="h-5 w-1 rounded-full bg-primary" />
+                            Logo 設定
+                          </h3>
+                          <p className="text-xs text-muted-foreground">建議尺寸：200×60 像素，支援 PNG、JPG</p>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          {/* 頁首 Logo */}
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium">頁首 Logo</p>
+                            <div className="border rounded-lg p-3 space-y-2 bg-muted/30">
+                              {headerLogoUrl ? (
+                                <div className="relative">
+                                  <div className="w-full h-14 border rounded overflow-hidden bg-white">
+                                    <img 
+                                      src={headerLogoUrl} 
+                                      alt="頁首 Logo" 
+                                      className="w-full h-full object-contain"
+                                    />
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteLogo('header')}
+                                    className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="w-full h-14 border-2 border-dashed rounded flex items-center justify-center text-muted-foreground bg-background">
+                                  <span className="text-xs">尚未設定</span>
+                                </div>
+                              )}
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => headerInputRef.current?.click()}
+                                disabled={uploadingHeader || isSubmitting}
+                                className="w-full h-8"
+                              >
+                                {uploadingHeader ? (
+                                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                ) : (
+                                  <Upload className="h-3 w-3 mr-1" />
+                                )}
+                                {uploadingHeader ? '上傳中...' : '上傳'}
+                              </Button>
+                              <input
+                                ref={headerInputRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => handleFileSelect(e, 'header')}
+                                className="hidden"
+                              />
+                            </div>
+                          </div>
+
+                          {/* 頁尾 Logo */}
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium">頁尾 Logo</p>
+                            <div className="border rounded-lg p-3 space-y-2 bg-muted/30">
+                              {footerLogoUrl ? (
+                                <div className="relative">
+                                  <div className="w-full h-14 border rounded overflow-hidden bg-slate-800">
+                                    <img 
+                                      src={footerLogoUrl} 
+                                      alt="頁尾 Logo" 
+                                      className="w-full h-full object-contain"
+                                    />
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteLogo('footer')}
+                                    className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="w-full h-14 border-2 border-dashed rounded flex items-center justify-center text-muted-foreground bg-background">
+                                  <span className="text-xs">尚未設定</span>
+                                </div>
+                              )}
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => footerInputRef.current?.click()}
+                                disabled={uploadingFooter || isSubmitting}
+                                className="w-full h-8"
+                              >
+                                {uploadingFooter ? (
+                                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                ) : (
+                                  <Upload className="h-3 w-3 mr-1" />
+                                )}
+                                {uploadingFooter ? '上傳中...' : '上傳'}
+                              </Button>
+                              <input
+                                ref={footerInputRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => handleFileSelect(e, 'footer')}
+                                className="hidden"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* LINE Pay 設定 */}
+                      <div className="pt-4 border-t">
+                        <div className="space-y-1 mb-4">
+                          <h3 className="font-semibold text-base flex items-center gap-2">
+                            <div className="h-5 w-1 rounded-full bg-primary" />
+                            付款設定
+                          </h3>
+                        </div>
+                        <div className="border rounded-lg p-4 bg-muted/30">
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                              <div className="flex items-center gap-2">
+                                <CreditCard className="h-4 w-4 text-muted-foreground" />
+                                <span className="font-medium text-sm">LINE Pay</span>
+                                {linePayEnabled && (
+                                  <Badge variant="secondary" className="text-xs">已啟用</Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                啟用後可使用 LINE Pay 線上付款
+                              </p>
+                            </div>
+                            <Switch
+                              checked={linePayEnabled}
+                              onCheckedChange={handleLinePayToggle}
+                              disabled={loadingLinePay || isSubmitting}
+                            />
+                          </div>
+                          {loadingLinePay && (
+                            <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              更新中...
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
-                {loadingLinePay && (
-                  <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    更新中...
+
+                {/* Right Column - Theme Selection */}
+                <div className="p-6 space-y-5 bg-muted/20">
+                  <div className="space-y-1">
+                    <h3 className="font-semibold text-base flex items-center gap-2">
+                      <div className="h-5 w-1 rounded-full bg-primary" />
+                      <Palette className="h-4 w-4" />
+                      網站主題配色
+                    </h3>
+                    <p className="text-xs text-muted-foreground">選擇適合您民宿風格的配色方案</p>
                   </div>
-                )}
+
+                  {/* Theme Preview - Sticky */}
+                  <div className="sticky top-0 z-10 bg-muted/20 pb-4">
+                    <div className="bg-background rounded-xl border shadow-sm p-4">
+                      <p className="text-xs text-muted-foreground text-center mb-3 font-medium">
+                        即時預覽
+                      </p>
+                      <ThemePreview themeValue={formData.theme_preset} />
+                      <p className="text-center text-sm font-medium mt-3 text-foreground">
+                        {THEME_PRESET_CONFIGS.find(t => t.value === formData.theme_preset)?.label}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Theme Grid */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {THEME_PRESET_CONFIGS.map((theme) => (
+                      <button
+                        key={theme.value}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, theme_preset: theme.value })}
+                        disabled={isSubmitting}
+                        className={`text-left p-3 rounded-xl border-2 transition-all hover:scale-[1.02] ${
+                          formData.theme_preset === theme.value 
+                            ? 'border-primary bg-primary/5 shadow-md ring-2 ring-primary/20' 
+                            : 'border-transparent bg-background hover:border-primary/30 hover:shadow-sm'
+                        }`}
+                      >
+                        <div className="flex items-start gap-2.5">
+                          {/* 顏色指示條 */}
+                          <div 
+                            className="w-1.5 h-10 rounded-full flex-shrink-0 mt-0.5"
+                            style={{ 
+                              background: `linear-gradient(180deg, ${theme.colors.primary}, ${theme.colors.accent})`
+                            }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm font-semibold truncate">{theme.label}</span>
+                              {formData.theme_preset === theme.value && (
+                                <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate mt-0.5">{theme.description}</p>
+                            {/* Mini color swatches */}
+                            <div className="flex gap-1 mt-2">
+                              <div 
+                                className="w-4 h-4 rounded-full border border-white shadow-sm"
+                                style={{ backgroundColor: theme.colors.primary }}
+                                title="主色"
+                              />
+                              <div 
+                                className="w-4 h-4 rounded-full border border-white shadow-sm"
+                                style={{ backgroundColor: theme.colors.accent }}
+                                title="強調色"
+                              />
+                              <div 
+                                className="w-4 h-4 rounded-full border border-white shadow-sm"
+                                style={{ backgroundColor: theme.colors.footer }}
+                                title="頁尾色"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
-          )}
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
-            >
-              取消
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={isSubmitting || !formData.name || (formData.short_url_alias !== "" && (subdomainStatus === "taken" || subdomainStatus === "invalid" || subdomainStatus === "checking"))}
-            >
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEditing ? "儲存變更" : "新增民宿"}
-            </Button>
-          </DialogFooter>
-        </form>
+            {/* Footer */}
+            <DialogFooter className="px-6 py-4 border-t bg-muted/30">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={isSubmitting}
+              >
+                取消
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={isSubmitting || !formData.name || (formData.short_url_alias !== "" && (subdomainStatus === "taken" || subdomainStatus === "invalid" || subdomainStatus === "checking"))}
+                className="min-w-[120px]"
+              >
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isEditing ? "儲存變更" : "新增民宿"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </div>
       </DialogContent>
 
       {/* Logo Crop Dialog */}
