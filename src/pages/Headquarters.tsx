@@ -679,6 +679,36 @@ const Headquarters = () => {
     }
   };
 
+  const getPageDescription = () => {
+    const section = searchParams.get('section');
+    
+    if (currentTab === 'split' && section) {
+      switch (section) {
+        case 'rules': return '設定各民宿的分潤比例與生效期間';
+        case 'details': return '查看所有訂單的分潤明細記錄';
+        case 'reports': return '統計各民宿分潤金額與結算報表';
+        case 'pending': return '處理待結算的分潤請款申請';
+      }
+    }
+    
+    if (currentTab === 'system' && section) {
+      switch (section) {
+        case 'logs': return '記錄系統重要操作，包含用戶、時間和詳細資訊';
+        case 'backup': return '備份與還原系統資料';
+        case 'settings': return '設定全平台系統參數';
+      }
+    }
+    
+    switch (currentTab) {
+      case 'overview': return '查看全平台營運數據與分析趨勢';
+      case 'split': return '設定各民宿分潤比例與管理請款結算記錄';
+      case 'accommodations': return '新增、編輯或停用民宿';
+      case 'users': return '邀請新用戶並管理所有帳號的權限設定';
+      case 'system': return '查看系統操作日誌與進行全平台系統設定';
+      default: return undefined;
+    }
+  };
+
   // Render content based on current tab
   const renderContent = () => {
     switch (currentTab) {
@@ -969,7 +999,7 @@ const Headquarters = () => {
         </Breadcrumb>
         <PageHeader
           title={getPageTitle()}
-          description={currentTab === 'accommodations' ? '新增、編輯或停用民宿' : undefined}
+          description={getPageDescription()}
           icon={getPageIcon()}
           action={
             currentTab === 'overview' ? (
