@@ -171,8 +171,8 @@ const Headquarters = () => {
   const loadAccommodations = async () => {
     const { data, error } = await supabase
       .from("accommodation_info")
-      .select("id, name, type, registration_number, country, region_1, region_2, address, phone, email, description, short_url_alias, custom_domain, header_logo_url, footer_logo_url, theme_preset, is_active, created_at")
-      .order("name");
+      .select("id, name, type, registration_number, country, region_1, region_2, address, phone, email, description, short_url_alias, custom_domain, header_logo_url, footer_logo_url, theme_preset, is_active, created_at, display_order")
+      .order("display_order", { ascending: true });
 
     if (error) {
       toast.error("載入旅館列表失敗");

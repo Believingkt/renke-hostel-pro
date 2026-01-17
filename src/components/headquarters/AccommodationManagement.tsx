@@ -168,9 +168,9 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
   // Check if drag is disabled (when searching or filtering)
   const isDragDisabled = searchQuery.trim() !== "" || statusFilter !== "all";
 
-  // Filtered and sorted accommodations
+  // Filtered accommodations (already sorted by display_order from database)
   const filteredAccommodations = useMemo(() => {
-    let result = accommodations.filter((acc) => {
+    return accommodations.filter((acc) => {
       // Status filter
       if (statusFilter === "active" && !acc.is_active) return false;
       if (statusFilter === "inactive" && acc.is_active) return false;
@@ -188,18 +188,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
 
       return true;
     });
-
-    // Sort by display_order when not filtering/searching
-    if (!isDragDisabled) {
-      result = [...result].sort((a, b) => {
-        const orderA = (a as any).display_order ?? 0;
-        const orderB = (b as any).display_order ?? 0;
-        return orderA - orderB;
-      });
-    }
-
-    return result;
-  }, [accommodations, searchQuery, statusFilter, isDragDisabled]);
+  }, [accommodations, searchQuery, statusFilter]);
 
   // Handle drag end
   const handleDragEnd = useCallback(async (event: DragEndEvent) => {
