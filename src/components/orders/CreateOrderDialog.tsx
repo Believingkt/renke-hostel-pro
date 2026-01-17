@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAccommodation } from "@/contexts/AccommodationContext";
+import { useAuditLog } from "@/hooks/use-audit-log";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -58,6 +59,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const { currentAccommodationId } = useAccommodation();
+  const { logAction } = useAuditLog();
   const [isSaving, setIsSaving] = useState(false);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   
@@ -640,6 +642,17 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             .eq("id", orderData.id);
         }
       }
+
+      // Log the action
+      await logAction({
+        actionType: "create",
+        actionCategory: "order",
+        entityType: "order",
+        entityId: orderData?.id || "",
+        entityName: orderNumber,
+        accommodationId: currentAccommodationId,
+        details: { guest_name: form.guest_name, check_in: form.check_in_date, check_out: form.check_out_date, final_price: finalPriceWithAddons }
+      });
 
       toast({
         title: "新增成功",
