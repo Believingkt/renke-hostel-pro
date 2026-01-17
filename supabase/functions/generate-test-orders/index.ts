@@ -157,6 +157,7 @@ Deno.serve(async (req) => {
         meal_plan: mealPlans[Math.floor(Math.random() * mealPlans.length)],
         pet_count: Math.random() > 0.8 ? Math.floor(Math.random() * 2) + 1 : 0,
         notes: Math.random() > 0.8 ? '測試訂單資料' : null,
+        order_source: 'test', // 標記為測試訂單，允許歷史日期
         confirmed_at: orderStatus !== 'pending' ? orderDate.toISOString() : null,
         checked_in_at: ['checked_in', 'checked_out'].includes(orderStatus) ? checkInDate.toISOString() : null,
         checked_out_at: orderStatus === 'checked_out' ? checkOutDate.toISOString() : null,
