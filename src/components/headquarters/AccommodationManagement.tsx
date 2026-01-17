@@ -700,7 +700,6 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
                     <TableHead className="font-semibold w-12">Logo</TableHead>
                     <TableHead className="font-semibold">民宿名稱</TableHead>
                     <TableHead className="font-semibold w-24">主題配色</TableHead>
-                    <TableHead className="font-semibold">子網域</TableHead>
                     <TableHead className="font-semibold">自訂網域</TableHead>
                     <TableHead className="font-semibold">狀態</TableHead>
                     <TableHead className="font-semibold">建立時間</TableHead>
@@ -741,34 +740,6 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
                             {theme.label}
                           </span>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        {acc.short_url_alias ? (
-                          <div className="flex items-center gap-1">
-                            <a
-                              href={`https://${acc.short_url_alias}.lakeze.com`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-primary hover:underline text-sm"
-                            >
-                              {acc.short_url_alias}.lakeze.com
-                            </a>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => {
-                                navigator.clipboard.writeText(`https://${acc.short_url_alias}.lakeze.com`);
-                                toast.success("已複製連結");
-                              }}
-                              title="複製連結"
-                            >
-                              <Copy className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">未設定</span>
-                        )}
                       </TableCell>
                       <TableCell>
                         {acc.custom_domain ? (
