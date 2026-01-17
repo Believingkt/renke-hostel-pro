@@ -39,7 +39,8 @@ export function ConditionalLayout() {
     } else if (isHQAuthPage) {
       document.title = "登入 - 總部管理系統";
     } else {
-      document.title = "森山寫照 - 山間的寧靜時光";
+      // 前台預設用中性標題，避免在住宿資料載入前顯示錯誤品牌
+      document.title = "旅宿官網";
     }
   }, [isAdminPage, isHQPage, isAuthPage, isHQAuthPage, isFrontendPage]);
 
