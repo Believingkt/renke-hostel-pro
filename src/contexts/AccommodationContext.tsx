@@ -1,7 +1,7 @@
 import * as React from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-const { createContext, useContext, useState, useEffect } = React;
+const { createContext, useContext, useState, useEffect, useRef } = React;
 
 interface AccommodationContextType {
   currentAccommodationId: string | null;
@@ -25,6 +25,8 @@ const LAST_ACCOMMODATION_KEY = 'lastSelectedAccommodation';
 
 export function AccommodationProvider({ children }: { children: React.ReactNode }) {
   const [currentAccommodationId, setCurrentAccommodationIdState] = useState<string | null>(null);
+  const currentAccommodationIdRef = useRef<string | null>(null);
+
   const [userAccommodations, setUserAccommodations] = useState<Array<{
     accommodation_id: string;
     role: string;
@@ -36,6 +38,7 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
 
   // Wrapper to save to localStorage when setting accommodation
   const setCurrentAccommodationId = (id: string | null) => {
+    currentAccommodationIdRef.current = id;
     setCurrentAccommodationIdState(id);
     if (id) {
       try {
@@ -94,34 +97,35 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
       setUserAccommodations(data || []);
 
       // 只在 forceAutoSelect 時才自動選擇，否則保留現有選擇
-      // 優先使用 localStorage 儲存的選擇
+      // 目標：使用者手動切換後，不要被任何重新載入流程覆蓋回預設民宿
       if (data && data.length > 0 && forceAutoSelect) {
-        // First, check if there's a saved selection in localStorage
-        let savedAccommodationId: string | null = null;
-        try {
-          savedAccommodationId = localStorage.getItem(LAST_ACCOMMODATION_KEY);
-        } catch (e) {
-          console.error('[AccommodationContext] Failed to read from localStorage:', e);
-        }
-        
-        // Verify the saved accommodation is still accessible to the user
-        const savedAccommodation = savedAccommodationId 
-          ? data.find(acc => acc.accommodation_id === savedAccommodationId)
-          : null;
-        
-        if (savedAccommodation) {
-          console.log('[AccommodationContext] Restoring last selected accommodation:', savedAccommodationId);
-          setCurrentAccommodationId(savedAccommodationId);
+        const currentId = currentAccommodationIdRef.current;
+        const currentStillAccessible = currentId
+          ? data.some(acc => acc.accommodation_id === currentId)
+          : false;
+
+        // 若目前已選擇且仍有權限，永遠不要覆蓋（避免自動切回）
+        if (currentStillAccessible) {
+          console.log('[AccommodationContext] Keeping current accommodation (do not override):', currentId);
         } else {
-          // Fall back to 森山寫照 (Sensan) or first accommodation
-          const sensanId = '5f764d55-ae11-4631-80fe-2e611853deae';
-          const sensanAccommodation = data.find(acc => acc.accommodation_id === sensanId);
-          
-          if (sensanAccommodation) {
-            console.log('[AccommodationContext] Auto-selecting 森山寫照:', sensanId);
-            setCurrentAccommodationId(sensanId);
+          // 否則優先使用 localStorage 儲存的選擇
+          let savedAccommodationId: string | null = null;
+          try {
+            savedAccommodationId = localStorage.getItem(LAST_ACCOMMODATION_KEY);
+          } catch (e) {
+            console.error('[AccommodationContext] Failed to read from localStorage:', e);
+          }
+
+          const savedAccommodation = savedAccommodationId
+            ? data.find(acc => acc.accommodation_id === savedAccommodationId)
+            : null;
+
+          if (savedAccommodation) {
+            console.log('[AccommodationContext] Restoring last selected accommodation:', savedAccommodationId);
+            setCurrentAccommodationId(savedAccommodationId);
           } else {
-            console.log('[AccommodationContext] Auto-selecting first accommodation:', data[0].accommodation_id);
+            // 若沒有可用的 saved 值，僅選第一個可用民宿（不再硬編碼回森山寫照）
+            console.log('[AccommodationContext] Auto-selecting first available accommodation:', data[0].accommodation_id);
             setCurrentAccommodationId(data[0].accommodation_id);
           }
         }
