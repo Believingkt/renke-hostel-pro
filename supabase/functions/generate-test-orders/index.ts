@@ -41,10 +41,10 @@ Deno.serve(async (req) => {
 
     console.log(`Generating ${count} test orders for accommodation ${accommodationId}, years: ${targetYears.length > 0 ? targetYears.join(', ') : 'default (past 6 months)'}`);
 
-    // 獲取現有房型
+    // 獲取現有房型（包含容量資訊）
     const { data: roomTypes, error: roomTypesError } = await supabaseClient
       .from('room_types')
-      .select('id, name, base_price')
+      .select('id, name, base_price, capacity')
       .eq('accommodation_id', accommodationId);
 
     if (roomTypesError) throw roomTypesError;
@@ -117,7 +117,9 @@ Deno.serve(async (req) => {
       const checkOutDate = new Date(checkInDate);
       checkOutDate.setDate(checkOutDate.getDate() + Math.floor(Math.random() * 4) + 1);
       
-      const guestCount = Math.floor(Math.random() * 4) + 1;
+      // 住客人數不超過房型容量
+      const roomCapacity = roomType.capacity || 4;
+      const guestCount = Math.floor(Math.random() * roomCapacity) + 1;
       const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
       
       // 計算價格
