@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, forwardRef, useImperativeHandle } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { HQAccommodationSkeleton } from "@/components/skeletons/HQSkeleton";
 import { Button } from "@/components/ui/button";
@@ -75,11 +75,15 @@ interface AccommodationManagementProps {
   loading: boolean;
 }
 
-export function AccommodationManagement({
+export interface AccommodationManagementRef {
+  openAddDialog: () => void;
+}
+
+export const AccommodationManagement = forwardRef<AccommodationManagementRef, AccommodationManagementProps>(({
   accommodations,
   onRefresh,
   loading,
-}: AccommodationManagementProps) {
+}, ref) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAccommodation, setEditingAccommodation] = useState<Accommodation | null>(null);
   const [toggleDialogOpen, setToggleDialogOpen] = useState(false);
@@ -93,6 +97,14 @@ export function AccommodationManagement({
   const [isCloning, setIsCloning] = useState(false);
   const [cloneProgress, setCloneProgress] = useState(0);
   const [cloneStep, setCloneStep] = useState("");
+
+  // Expose openAddDialog to parent
+  useImperativeHandle(ref, () => ({
+    openAddDialog: () => {
+      setEditingAccommodation(null);
+      setDialogOpen(true);
+    }
+  }));
 
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState("");
@@ -595,16 +607,7 @@ export function AccommodationManagement({
   return (
     <>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-end pb-4">
-          <Button onClick={() => {
-            setEditingAccommodation(null);
-            setDialogOpen(true);
-          }} className="gap-2">
-            <Plus className="h-4 w-4" />
-            新增民宿
-          </Button>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-6">
           {/* Search and Filter */}
           {!loading && accommodations.length > 0 && (
             <div className="flex flex-col sm:flex-row gap-3">
@@ -989,4 +992,4 @@ export function AccommodationManagement({
       )}
     </>
   );
-}
+});

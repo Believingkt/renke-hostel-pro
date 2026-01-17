@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -42,7 +42,8 @@ import {
   ClipboardList,
   Calculator,
   Clock,
-  Database
+  Database,
+  Plus
 } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
@@ -67,7 +68,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
-import { AccommodationManagement } from "@/components/headquarters/AccommodationManagement";
+import { AccommodationManagement, AccommodationManagementRef } from "@/components/headquarters/AccommodationManagement";
 import { OperationalOverview } from "@/components/headquarters/OperationalOverview";
 
 import { SystemManagement } from "@/components/headquarters/SystemManagement";
@@ -141,6 +142,9 @@ const Headquarters = () => {
   const [selectedAccommodation, setSelectedAccommodation] = useState("");
   const [selectedOverviewAccommodation, setSelectedOverviewAccommodation] = useState("all");
   const [selectedRole, setSelectedRole] = useState<"super_admin" | "hotel_admin" | "staff">("staff");
+  
+  // Ref for AccommodationManagement
+  const accommodationManagementRef = useRef<AccommodationManagementRef>(null);
 
   // Backup states
   const [backups, setBackups] = useState<BackupLog[]>([]);
@@ -691,6 +695,7 @@ const Headquarters = () => {
       case 'accommodations':
         return (
           <AccommodationManagement
+            ref={accommodationManagementRef}
             accommodations={accommodations as any}
             onRefresh={loadAccommodations}
             loading={loading}
@@ -966,24 +971,34 @@ const Headquarters = () => {
           title={getPageTitle()}
           description={currentTab === 'accommodations' ? '新增、編輯或停用民宿' : undefined}
           icon={getPageIcon()}
-          action={currentTab === 'overview' && (
-            <div className="flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-              <Select value={selectedOverviewAccommodation} onValueChange={setSelectedOverviewAccommodation}>
-                <SelectTrigger className="w-[160px] bg-background">
-                  <SelectValue placeholder="選擇民宿" />
-                </SelectTrigger>
-                <SelectContent className="bg-background border shadow-lg z-50">
-                  <SelectItem value="all">全部民宿</SelectItem>
-                  {accommodations.map((acc) => (
-                    <SelectItem key={acc.id} value={acc.id}>
-                      {acc.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          action={
+            currentTab === 'overview' ? (
+              <div className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-muted-foreground" />
+                <Select value={selectedOverviewAccommodation} onValueChange={setSelectedOverviewAccommodation}>
+                  <SelectTrigger className="w-[160px] bg-background">
+                    <SelectValue placeholder="選擇民宿" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border shadow-lg z-50">
+                    <SelectItem value="all">全部民宿</SelectItem>
+                    {accommodations.map((acc) => (
+                      <SelectItem key={acc.id} value={acc.id}>
+                        {acc.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : currentTab === 'accommodations' ? (
+              <Button 
+                onClick={() => accommodationManagementRef.current?.openAddDialog()} 
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                新增民宿
+              </Button>
+            ) : undefined
+          }
         />
       </div>
 
