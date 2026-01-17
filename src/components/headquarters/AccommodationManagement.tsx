@@ -41,11 +41,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Building2, Plus, Pencil, Power, PowerOff, Loader2, ExternalLink, Copy, Search, X, Globe, Link2, Image, Palette } from "lucide-react";
+import { Building2, Plus, Pencil, Power, PowerOff, Loader2, ExternalLink, Copy, Search, X, Globe, Link2, Palette } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { AccommodationDialog } from "./AccommodationDialog";
 import { DnsSettingsDialog } from "./DnsSettingsDialog";
 import { CustomDomainDialog } from "./CustomDomainDialog";
+import { AccommodationHoverCard } from "./AccommodationHoverCard";
 import { THEME_COLORS } from "@/constants/themes";
 import { useAuditLog } from "@/hooks/use-audit-log";
 
@@ -710,7 +711,13 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
                     const theme = THEME_COLORS[acc.theme_preset || "default"] || THEME_COLORS.default;
                     return (
                     <TableRow key={acc.id} className={!acc.is_active ? "opacity-60" : ""}>
-                      <TableCell className="font-medium">{acc.name}</TableCell>
+                      <TableCell className="font-medium">
+                        <AccommodationHoverCard accommodation={acc}>
+                          <span className="cursor-pointer hover:text-primary hover:underline underline-offset-2 transition-colors">
+                            {acc.name}
+                          </span>
+                        </AccommodationHoverCard>
+                      </TableCell>
                       {/* 主題配色預覽 */}
                       <TableCell className="w-24">
                         <div className="flex items-center gap-2">
