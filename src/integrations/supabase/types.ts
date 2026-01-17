@@ -142,6 +142,7 @@ export type Database = {
           created_at: string
           custom_domain: string | null
           description: string | null
+          display_order: number | null
           email: string | null
           facebook_url: string | null
           footer_logo_url: string | null
@@ -183,6 +184,7 @@ export type Database = {
           created_at?: string
           custom_domain?: string | null
           description?: string | null
+          display_order?: number | null
           email?: string | null
           facebook_url?: string | null
           footer_logo_url?: string | null
@@ -224,6 +226,7 @@ export type Database = {
           created_at?: string
           custom_domain?: string | null
           description?: string | null
+          display_order?: number | null
           email?: string | null
           facebook_url?: string | null
           footer_logo_url?: string | null

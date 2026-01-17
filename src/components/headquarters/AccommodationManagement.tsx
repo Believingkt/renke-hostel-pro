@@ -1,4 +1,4 @@
-import { useState, useMemo, forwardRef, useImperativeHandle } from "react";
+import { useState, useMemo, forwardRef, useImperativeHandle, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { HQAccommodationSkeleton } from "@/components/skeletons/HQSkeleton";
 import { Button } from "@/components/ui/button";
@@ -41,14 +41,33 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Building2, Plus, Pencil, Power, PowerOff, Loader2, ExternalLink, Copy, Search, X, Globe, Link2, Palette } from "lucide-react";
+import { Building2, Plus, Pencil, Power, PowerOff, Loader2, ExternalLink, Copy, Search, X, Globe, Link2, Palette, GripVertical } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { AccommodationDialog } from "./AccommodationDialog";
 import { DnsSettingsDialog } from "./DnsSettingsDialog";
 import { CustomDomainDialog } from "./CustomDomainDialog";
+import { DraggableAccommodationRow } from "./DraggableAccommodationRow";
 import { AccommodationHoverCard } from "./AccommodationHoverCard";
 import { THEME_COLORS } from "@/constants/themes";
 import { useAuditLog } from "@/hooks/use-audit-log";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import {
+  restrictToVerticalAxis,
+  restrictToParentElement,
+} from "@dnd-kit/modifiers";
 
 interface Accommodation {
   id: string;
@@ -131,9 +150,27 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
     setCustomDomainDialogOpen(true);
   };
 
-  // Filtered accommodations
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Saving order state
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
+
+  // Check if drag is disabled (when searching or filtering)
+  const isDragDisabled = searchQuery.trim() !== "" || statusFilter !== "all";
+
+  // Filtered and sorted accommodations
   const filteredAccommodations = useMemo(() => {
-    return accommodations.filter((acc) => {
+    let result = accommodations.filter((acc) => {
       // Status filter
       if (statusFilter === "active" && !acc.is_active) return false;
       if (statusFilter === "inactive" && acc.is_active) return false;
@@ -151,7 +188,62 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
 
       return true;
     });
-  }, [accommodations, searchQuery, statusFilter]);
+
+    // Sort by display_order when not filtering/searching
+    if (!isDragDisabled) {
+      result = [...result].sort((a, b) => {
+        const orderA = (a as any).display_order ?? 0;
+        const orderB = (b as any).display_order ?? 0;
+        return orderA - orderB;
+      });
+    }
+
+    return result;
+  }, [accommodations, searchQuery, statusFilter, isDragDisabled]);
+
+  // Handle drag end
+  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = filteredAccommodations.findIndex(acc => acc.id === active.id);
+    const newIndex = filteredAccommodations.findIndex(acc => acc.id === over.id);
+    
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    // Calculate new order for all items
+    const reorderedItems = [...filteredAccommodations];
+    const [movedItem] = reorderedItems.splice(oldIndex, 1);
+    reorderedItems.splice(newIndex, 0, movedItem);
+
+    // Update display_order in database
+    setIsSavingOrder(true);
+    try {
+      const updates = reorderedItems.map((acc, index) => ({
+        id: acc.id,
+        display_order: index + 1,
+      }));
+
+      // Batch update using multiple calls
+      for (const update of updates) {
+        const { error } = await supabase
+          .from("accommodation_info")
+          .update({ display_order: update.display_order })
+          .eq("id", update.id);
+        
+        if (error) throw error;
+      }
+
+      toast.success("排序已更新");
+      onRefresh();
+    } catch (error) {
+      console.error("Failed to update order:", error);
+      toast.error("更新排序失敗");
+    } finally {
+      setIsSavingOrder(false);
+    }
+  }, [filteredAccommodations, onRefresh]);
 
   const handleCreate = async (data: any) => {
     try {
@@ -694,158 +786,62 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
               description="嘗試調整搜尋條件或篩選狀態"
             />
           ) : (
-            <div className="overflow-x-auto rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="font-semibold">民宿名稱</TableHead>
-                    <TableHead className="font-semibold w-24">主題配色</TableHead>
-                    <TableHead className="font-semibold">自訂網域</TableHead>
-                    <TableHead className="font-semibold">狀態</TableHead>
-                    <TableHead className="font-semibold">建立時間</TableHead>
-                    <TableHead className="text-right font-semibold">操作</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredAccommodations.map((acc) => {
-                    const theme = THEME_COLORS[acc.theme_preset || "default"] || THEME_COLORS.default;
-                    return (
-                    <TableRow key={acc.id} className={!acc.is_active ? "opacity-60" : ""}>
-                      <TableCell className="font-medium">
-                        <AccommodationHoverCard accommodation={acc}>
-                          <span className="cursor-pointer hover:text-primary hover:underline underline-offset-2 transition-colors">
-                            {acc.name}
-                          </span>
-                        </AccommodationHoverCard>
-                      </TableCell>
-                      {/* 主題配色預覽 */}
-                      <TableCell className="w-24">
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-5 h-5 rounded-full border-2 border-background shadow-sm"
-                            style={{ backgroundColor: theme.primary }}
-                            title={theme.label}
-                          />
-                          <span className="text-xs text-muted-foreground hidden sm:inline">
-                            {theme.label}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {acc.custom_domain ? (
-                          <div className="flex items-center gap-1">
-                            <a
-                              href={`https://${acc.custom_domain}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-primary hover:underline text-sm"
-                            >
-                              {acc.custom_domain}
-                            </a>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => {
-                                navigator.clipboard.writeText(`https://${acc.custom_domain}`);
-                                toast.success("已複製連結");
-                              }}
-                              title="複製連結"
-                            >
-                              <Copy className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 text-xs text-muted-foreground hover:text-primary"
-                            onClick={() => openCustomDomainDialog(acc)}
-                          >
-                            <Link2 className="h-3 w-3 mr-1" />
-                            設定網域
-                          </Button>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={acc.is_active ? "default" : "secondary"}>
-                          {acc.is_active ? "營運中" : "已停用"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(acc.created_at).toLocaleDateString("zh-TW")}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openEditDialog(acc)}
-                            title="編輯"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          {acc.custom_domain && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => openCustomDomainDialog(acc)}
-                              title="自訂網域設定"
-                            >
-                              <Link2 className="h-4 w-4 text-primary" />
-                            </Button>
-                          )}
-                          {acc.short_url_alias && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => openDnsDialog(acc)}
-                              title="子網域 DNS 設定"
-                            >
-                              <Globe className="h-4 w-4 text-blue-600" />
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openCloneDialog(acc)}
-                            title="複製"
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openToggleDialog(acc)}
-                            title={acc.is_active ? "停用" : "啟用"}
-                          >
-                            {acc.is_active ? (
-                              <PowerOff className="h-4 w-4 text-destructive" />
-                            ) : (
-                              <Power className="h-4 w-4 text-primary" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            asChild
-                            title="前往後台"
-                          >
-                            <a
-                              href={`/admin?accommodation=${acc.id}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </a>
-                          </Button>
-                        </div>
-                      </TableCell>
+            <div className="overflow-x-auto rounded-md border relative">
+              {isSavingOrder && (
+                <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    儲存排序中...
+                  </div>
+                </div>
+              )}
+              {isDragDisabled && (
+                <div className="bg-muted/50 px-4 py-2 text-xs text-muted-foreground border-b flex items-center gap-2">
+                  <GripVertical className="h-3 w-3" />
+                  搜尋或篩選時無法拖曳排序，請清除條件後再進行排序
+                </div>
+              )}
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+                modifiers={[restrictToVerticalAxis]}
+              >
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead className="w-10 px-2">
+                        <GripVertical className="h-4 w-4 text-muted-foreground mx-auto" />
+                      </TableHead>
+                      <TableHead className="font-semibold">民宿名稱</TableHead>
+                      <TableHead className="font-semibold w-24">主題配色</TableHead>
+                      <TableHead className="font-semibold">自訂網域</TableHead>
+                      <TableHead className="font-semibold">狀態</TableHead>
+                      <TableHead className="font-semibold">建立時間</TableHead>
+                      <TableHead className="text-right font-semibold">操作</TableHead>
                     </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    <SortableContext
+                      items={filteredAccommodations.map(acc => acc.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {filteredAccommodations.map((acc) => (
+                        <DraggableAccommodationRow
+                          key={acc.id}
+                          accommodation={acc}
+                          onEdit={openEditDialog}
+                          onClone={openCloneDialog}
+                          onToggle={openToggleDialog}
+                          onDnsSettings={openDnsDialog}
+                          onCustomDomain={openCustomDomainDialog}
+                          isDragDisabled={isDragDisabled}
+                        />
+                      ))}
+                    </SortableContext>
+                  </TableBody>
+                </Table>
+              </DndContext>
             </div>
           )}
         </CardContent>
