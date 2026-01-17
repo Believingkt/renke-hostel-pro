@@ -8,6 +8,7 @@ import { useAccommodation } from "@/contexts/AccommodationContext";
 import { format, addDays } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useOrderNotifications } from "@/hooks/use-order-notifications";
+import { useAuditLog } from "@/hooks/use-audit-log";
 import { Order, QuickFilterType, CustomMealPlan } from "@/types/order";
 import { QuickFilters } from "@/components/orders/QuickFilters";
 import { OrderFilters } from "@/components/orders/OrderFilters";
@@ -50,6 +51,7 @@ const Orders = () => {
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "list");
   const { currentAccommodationId: accommodationId } = useAccommodation();
   const { toast } = useToast();
+  const { logAction } = useAuditLog();
   
   // Enable real-time order notifications
   useOrderNotifications(true);
@@ -505,9 +507,36 @@ const Orders = () => {
       // 重新載入訂單
       await fetchOrders();
 
+      // 記錄操作日誌
+      const isCancelled = form.order_status === "cancelled" && editingOrder.order_status !== "cancelled";
+      await logAction({
+        actionType: isCancelled ? "delete" : "update",
+        actionCategory: "order",
+        entityType: "order",
+        entityId: editingOrder.id,
+        entityName: editingOrder.order_number,
+        accommodationId: accommodationId,
+        details: isCancelled ? {
+          reason: "訂單已取消",
+          guest_name: editingOrder.guest_name,
+          check_in_date: form.check_in_date,
+          check_out_date: form.check_out_date,
+          final_price: form.final_price,
+        } : {
+          changes: {
+            order_status: statusChanged ? { from: editingOrder.order_status, to: form.order_status } : undefined,
+            payment_status: editingOrder.payment_status !== form.payment_status ? { from: editingOrder.payment_status, to: form.payment_status } : undefined,
+            check_in_date: editingOrder.check_in_date !== form.check_in_date ? { from: editingOrder.check_in_date, to: form.check_in_date } : undefined,
+            check_out_date: editingOrder.check_out_date !== form.check_out_date ? { from: editingOrder.check_out_date, to: form.check_out_date } : undefined,
+            final_price: editingOrder.final_price !== form.final_price ? { from: editingOrder.final_price, to: form.final_price } : undefined,
+          },
+          guest_name: editingOrder.guest_name,
+        },
+      });
+
       toast({
-        title: "更新成功",
-        description: "訂單資訊已更新",
+        title: isCancelled ? "訂單已取消" : "更新成功",
+        description: isCancelled ? "訂單已成功取消" : "訂單資訊已更新",
       });
 
       // 使用新的關閉處理函數
