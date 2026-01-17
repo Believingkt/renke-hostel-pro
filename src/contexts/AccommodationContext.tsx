@@ -1,7 +1,10 @@
 import * as React from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useSearchParams } from "react-router-dom";
 
 const { createContext, useContext, useState, useEffect, useRef } = React;
+
+const ACCOMMODATION_ID_PARAM = 'accId';
 
 interface AccommodationContextType {
   currentAccommodationId: string | null;
@@ -24,6 +27,7 @@ const AccommodationContext = createContext<AccommodationContextType | undefined>
 const LAST_ACCOMMODATION_KEY = 'lastSelectedAccommodation';
 
 export function AccommodationProvider({ children }: { children: React.ReactNode }) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [currentAccommodationId, setCurrentAccommodationIdState] = useState<string | null>(null);
   const currentAccommodationIdRef = useRef<string | null>(null);
 
@@ -36,7 +40,7 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
   const [checkOutDate, setCheckOutDate] = useState<Date | undefined>();
   const [guests, setGuests] = useState({ adults: 2, children: 0 });
 
-  // Wrapper to save to localStorage when setting accommodation
+  // Wrapper to save to localStorage AND URL when setting accommodation
   const setCurrentAccommodationId = (id: string | null) => {
     currentAccommodationIdRef.current = id;
     setCurrentAccommodationIdState(id);
@@ -46,6 +50,12 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
       } catch (e) {
         console.error('[AccommodationContext] Failed to save to localStorage:', e);
       }
+      // 同步寫入 URL query 參數
+      setSearchParams(prev => {
+        const newParams = new URLSearchParams(prev);
+        newParams.set(ACCOMMODATION_ID_PARAM, id);
+        return newParams;
+      }, { replace: true });
     }
   };
 
@@ -96,19 +106,37 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
       console.log('[AccommodationContext] Loaded accommodations:', data);
       setUserAccommodations(data || []);
 
-      // 只在 forceAutoSelect 時才自動選擇，否則保留現有選擇
-      // 目標：使用者手動切換後，不要被任何重新載入流程覆蓋回預設民宿
+      // 優先順序：URL query > ref > localStorage > 第一個可用民宿
       if (data && data.length > 0 && forceAutoSelect) {
+        // 1. 優先從 URL query 讀取
+        const urlAccommodationId = searchParams.get(ACCOMMODATION_ID_PARAM);
+        const urlAccommodation = urlAccommodationId
+          ? data.find(acc => acc.accommodation_id === urlAccommodationId)
+          : null;
+
+        if (urlAccommodation) {
+          console.log('[AccommodationContext] Restoring from URL query:', urlAccommodationId);
+          currentAccommodationIdRef.current = urlAccommodationId;
+          setCurrentAccommodationIdState(urlAccommodationId);
+          try {
+            localStorage.setItem(LAST_ACCOMMODATION_KEY, urlAccommodationId);
+          } catch (e) {
+            console.error('[AccommodationContext] Failed to save to localStorage:', e);
+          }
+          setIsLoading(false);
+          return;
+        }
+
+        // 2. 若目前已選擇且仍有權限，不要覆蓋
         const currentId = currentAccommodationIdRef.current;
         const currentStillAccessible = currentId
           ? data.some(acc => acc.accommodation_id === currentId)
           : false;
 
-        // 若目前已選擇且仍有權限，永遠不要覆蓋（避免自動切回）
         if (currentStillAccessible) {
           console.log('[AccommodationContext] Keeping current accommodation (do not override):', currentId);
         } else {
-          // 否則優先使用 localStorage 儲存的選擇
+          // 3. 優先使用 localStorage 儲存的選擇
           let savedAccommodationId: string | null = null;
           try {
             savedAccommodationId = localStorage.getItem(LAST_ACCOMMODATION_KEY);
@@ -124,7 +152,7 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
             console.log('[AccommodationContext] Restoring last selected accommodation:', savedAccommodationId);
             setCurrentAccommodationId(savedAccommodationId);
           } else {
-            // 若沒有可用的 saved 值，僅選第一個可用民宿（不再硬編碼回森山寫照）
+            // 4. 若沒有可用的 saved 值，選第一個可用民宿
             console.log('[AccommodationContext] Auto-selecting first available accommodation:', data[0].accommodation_id);
             setCurrentAccommodationId(data[0].accommodation_id);
           }
