@@ -617,7 +617,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
                   placeholder="搜尋民宿名稱、地區、電話..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 pr-9"
+                  className="pl-10 pr-9"
                 />
                 {searchQuery && (
                   <Button
