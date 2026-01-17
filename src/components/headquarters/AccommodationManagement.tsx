@@ -47,6 +47,7 @@ import { AccommodationDialog } from "./AccommodationDialog";
 import { DnsSettingsDialog } from "./DnsSettingsDialog";
 import { CustomDomainDialog } from "./CustomDomainDialog";
 import { THEME_COLORS } from "@/constants/themes";
+import { useAuditLog } from "@/hooks/use-audit-log";
 
 interface Accommodation {
   id: string;
@@ -84,6 +85,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
   onRefresh,
   loading,
 }, ref) => {
+  const { logAction } = useAuditLog();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAccommodation, setEditingAccommodation] = useState<Accommodation | null>(null);
   const [toggleDialogOpen, setToggleDialogOpen] = useState(false);
@@ -273,6 +275,17 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
         }
       });
 
+      // Log the action
+      await logAction({
+        actionType: "create",
+        actionCategory: "accommodation",
+        entityType: "accommodation",
+        entityId: accommodationId,
+        entityName: data.name,
+        accommodationId: accommodationId,
+        details: { type: data.type, region: `${data.region_1 || ''} ${data.region_2 || ''}`.trim() }
+      });
+
       toast.success("民宿新增成功", {
         description: "已自動建立預設房型、預訂設定、價格模板等基礎資料",
       });
@@ -308,6 +321,17 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
 
       if (error) throw error;
 
+      // Log the action
+      await logAction({
+        actionType: "update",
+        actionCategory: "accommodation",
+        entityType: "accommodation",
+        entityId: editingAccommodation.id,
+        entityName: data.name,
+        accommodationId: editingAccommodation.id,
+        details: { updated_fields: Object.keys(data) }
+      });
+
       toast.success("民宿資訊已更新");
       setEditingAccommodation(null);
       onRefresh();
@@ -330,6 +354,17 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
         .eq("id", togglingAccommodation.id);
 
       if (error) throw error;
+
+      // Log the action
+      await logAction({
+        actionType: newStatus ? "enable" : "disable",
+        actionCategory: "accommodation",
+        entityType: "accommodation",
+        entityId: togglingAccommodation.id,
+        entityName: togglingAccommodation.name,
+        accommodationId: togglingAccommodation.id,
+        details: { new_status: newStatus }
+      });
 
       toast.success(newStatus ? "民宿已啟用" : "民宿已停用");
       setToggleDialogOpen(false);

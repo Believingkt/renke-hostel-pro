@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccommodation } from "@/contexts/AccommodationContext";
+import { useAuditLog } from "@/hooks/use-audit-log";
 import { toast } from "sonner";
 import {
   Breadcrumb,
@@ -55,6 +56,7 @@ interface UserRole {
 
 export default function UserRoles() {
   const { currentAccommodationId } = useAccommodation();
+  const { logAction } = useAuditLog();
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -156,6 +158,17 @@ export default function UserRoles() {
 
       if (error) throw error;
 
+      // Log the action
+      await logAction({
+        actionType: "create",
+        actionCategory: "user",
+        entityType: "user_role",
+        entityId: user.id,
+        entityName: newUserEmail,
+        accommodationId: currentAccommodationId,
+        details: { role: newUserRole }
+      });
+
       toast.success('成功新增用戶權限');
       setNewUserEmail('');
       loadUserRoles();
@@ -195,6 +208,16 @@ export default function UserRoles() {
         .eq('id', deletingRoleId);
 
       if (error) throw error;
+
+      // Log the action
+      await logAction({
+        actionType: "delete",
+        actionCategory: "user",
+        entityType: "user_role",
+        entityId: deletingRoleId,
+        entityName: "用戶權限",
+        accommodationId: currentAccommodationId,
+      });
 
       toast.success('成功刪除用戶權限');
       loadUserRoles();
