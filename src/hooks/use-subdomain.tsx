@@ -87,33 +87,38 @@ export function useSubdomain() {
         ? domainToCheck.substring(4) 
         : domainToCheck;
       
-      // 查詢自訂網域（同時比對有無 www 的版本）
-      const { data: domainData } = await supabase
-        .from('accommodation_info')
-        .select('id, short_url_alias, theme_preset')
-        .or(`custom_domain.eq.${normalizedDomain},custom_domain.eq.www.${normalizedDomain}`)
-        .maybeSingle();
-      
-      if (domainData) {
-        cacheTheme(domainData);
-        setAccommodationId(domainData.id);
-        setIsLoading(false);
-        return;
-      }
-
-      // 2. 嘗試用子網域查詢（例如 sensaninn.yourdomain.com）
+      // 同時查詢自訂網域和子網域，減少查詢次數
       const subdomain = parts.length > 2 ? parts[0] : null;
-
+      
+      // 合併查詢：自訂網域 OR 子網域
+      let queryFilter = `custom_domain.eq.${normalizedDomain},custom_domain.eq.www.${normalizedDomain}`;
       if (subdomain) {
-        const { data: subdomainData } = await supabase
-          .from('accommodation_info')
-          .select('id, short_url_alias, theme_preset')
-          .eq('short_url_alias', subdomain)
-          .maybeSingle();
-
-        if (subdomainData) {
-          cacheTheme(subdomainData);
-          setAccommodationId(subdomainData.id);
+        queryFilter += `,short_url_alias.eq.${subdomain}`;
+      }
+      
+      const { data: matchedData, error: queryError } = await supabase
+        .from('accommodation_info')
+        .select('id, short_url_alias, theme_preset, custom_domain')
+        .or(queryFilter);
+      
+      if (queryError) {
+        throw queryError;
+      }
+      
+      if (matchedData && matchedData.length > 0) {
+        // 優先匹配自訂網域，其次匹配子網域
+        const domainMatch = matchedData.find(
+          d => d.custom_domain === normalizedDomain || d.custom_domain === `www.${normalizedDomain}`
+        );
+        const subdomainMatch = subdomain 
+          ? matchedData.find(d => d.short_url_alias === subdomain)
+          : null;
+        
+        const finalMatch = domainMatch || subdomainMatch;
+        
+        if (finalMatch) {
+          cacheTheme(finalMatch);
+          setAccommodationId(finalMatch.id);
           setIsLoading(false);
           return;
         }

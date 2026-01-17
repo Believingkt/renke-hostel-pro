@@ -56,6 +56,7 @@ interface AccommodationData {
 const Index = () => {
   const [data, setData] = useState<AccommodationData | null>(null);
   const [loadTimeout, setLoadTimeout] = useState(false);
+  const [lastLoadedAccId, setLastLoadedAccId] = useState<string | null>(null);
   const { accommodationId, isLoading: subdomainLoading, error: subdomainError } = useSubdomain();
   const { setCurrentAccommodationId } = useAccommodation();
 
@@ -83,8 +84,11 @@ const Index = () => {
   useEffect(() => {
     if (subdomainLoading || !accommodationId) return;
 
-    // 清除舊資料，避免顯示過時內容
-    setData(null);
+    // 如果 accommodationId 改變了，清除舊資料避免顯示錯誤內容
+    if (lastLoadedAccId !== accommodationId) {
+      setData(null);
+      setLastLoadedAccId(accommodationId);
+    }
 
     const loadData = async () => {
       try {
