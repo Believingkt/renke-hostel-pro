@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import AccommodationLogo from "@/components/AccommodationLogo";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { useAccommodationLogo } from "@/hooks/use-accommodation-logo";
+import lokezeLogo from "@/assets/lokeze-logo.png";
 
 export function Header() {
   const navigate = useNavigate();
@@ -124,15 +125,9 @@ export function Header() {
       <div className="flex h-16 md:h-16 items-center justify-between px-4 md:px-6 gap-2">
         <div className="flex items-center gap-3">
           <SidebarTrigger className="h-10 w-10" />
-          {/* Sidebar 收起時顯示住宿 logo */}
+          {/* Sidebar 收起時顯示 Lakeze logo（與電腦版一致） */}
           {(!open || isMobile) && (
-            <AccommodationLogo
-              variant="header"
-              accommodationName={accommodationName}
-              imgClassName="h-8 md:h-9 w-auto object-contain"
-              skeletonClassName="h-8 md:h-9 w-24 bg-muted/30 animate-pulse rounded"
-              textClassName="text-sm md:text-base font-semibold"
-            />
+            <img src={lokezeLogo} alt="Lokeze" className="h-7 md:h-8 object-contain" />
           )}
         </div>
         
