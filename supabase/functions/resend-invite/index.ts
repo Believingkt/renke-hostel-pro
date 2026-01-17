@@ -1,23 +1,12 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 
-// Allowed origins for CORS
-const allowedOrigins = [
-  'https://sensan.lovable.app',
-  'https://dmafqwfynatdvnaeovhz.lovableproject.com',
-];
-
-function getCorsHeaders(req: Request) {
-  const origin = req.headers.get('origin') || '';
-  const allowedOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
-  return {
-    'Access-Control-Allow-Origin': allowedOrigin,
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  };
-}
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req);
   
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -127,11 +116,11 @@ serve(async (req) => {
     try {
       const inviteLink = resetData?.properties?.action_link || `${siteUrl}/auth`;
       
-      await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-invite-email`, {
+      const emailResponse = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-invite-email`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
+          'Authorization': authHeader, // Pass original user's auth header
         },
         body: JSON.stringify({
           email: targetUser.user.email,
@@ -139,6 +128,12 @@ serve(async (req) => {
           recipientName
         })
       });
+      
+      if (!emailResponse.ok) {
+        const errorData = await emailResponse.json().catch(() => ({}));
+        console.error("發送邀請郵件失敗:", emailResponse.status, errorData);
+        throw new Error(errorData.error || `HTTP ${emailResponse.status}`);
+      }
       
       console.log("已重新發送中文邀請郵件至:", targetUser.user.email);
     } catch (emailError) {
