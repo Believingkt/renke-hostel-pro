@@ -595,14 +595,7 @@ export function AccommodationManagement({
   return (
     <>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
-              民宿管理
-            </CardTitle>
-            <CardDescription>新增、編輯或停用民宿</CardDescription>
-          </div>
+        <CardHeader className="flex flex-row items-center justify-end pb-4">
           <Button onClick={() => {
             setEditingAccommodation(null);
             setDialogOpen(true);

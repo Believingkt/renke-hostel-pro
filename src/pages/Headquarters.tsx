@@ -964,6 +964,7 @@ const Headquarters = () => {
         </Breadcrumb>
         <PageHeader
           title={getPageTitle()}
+          description={currentTab === 'accommodations' ? '新增、編輯或停用民宿' : undefined}
           icon={getPageIcon()}
           action={currentTab === 'overview' && (
             <div className="flex items-center gap-2">
