@@ -4,6 +4,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App.tsx";
 import "./index.css";
 
+// 在應用啟動時初始化圖片格式偵測
+import { initFormatDetection } from "./utils/imageFormatHelper";
+initFormatDetection();
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

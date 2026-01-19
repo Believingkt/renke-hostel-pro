@@ -1,9 +1,16 @@
 /**
  * CDN 圖片加速工具
- * 支援多種 CDN 提供商
+ * 支援多種 CDN 提供商和智能格式轉換
  */
 
-export type CDNProvider = 'cloudflare' | 'imgix' | 'cloudimage' | 'bunny' | 'none';
+import { getBestFormatSync, initFormatDetection, type ImageFormat } from './imageFormatHelper';
+
+// 初始化格式偵測
+if (typeof window !== 'undefined') {
+  initFormatDetection();
+}
+
+export type CDNProvider = 'cloudflare' | 'imgix' | 'cloudimage' | 'bunny' | 'supabase' | 'none';
 
 export interface CDNConfig {
   provider: CDNProvider;
@@ -14,11 +21,25 @@ export interface CDNConfig {
 
 // 從環境變數或配置中讀取 CDN 設定
 const getCDNConfig = (): CDNConfig => {
+  // 自動偵測 Supabase Storage
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  if (supabaseUrl) {
+    return {
+      provider: 'supabase',
+      baseUrl: supabaseUrl,
+      enabled: true,
+    };
+  }
+  
   // 這裡可以從 localStorage 或後端 API 讀取配置
   const storedConfig = localStorage.getItem('cdn_config');
   
   if (storedConfig) {
-    return JSON.parse(storedConfig);
+    try {
+      return JSON.parse(storedConfig);
+    } catch {
+      return { provider: 'none', enabled: false };
+    }
   }
   
   return {
@@ -28,7 +49,7 @@ const getCDNConfig = (): CDNConfig => {
 };
 
 /**
- * 轉換圖片 URL 為 CDN URL
+ * 轉換圖片 URL 為 CDN URL，自動選擇最佳格式
  */
 export const getCDNUrl = (
   imageUrl: string,
@@ -39,21 +60,77 @@ export const getCDNUrl = (
 ): string => {
   const config = getCDNConfig();
   
+  // 自動選擇最佳格式
+  const effectiveFormat: ImageFormat = format === 'auto' ? getBestFormatSync() : format;
+  
   if (!config.enabled || config.provider === 'none') {
+    // 即使沒有 CDN，也嘗試使用 Supabase 原生轉換
+    if (imageUrl.includes('supabase.co/storage')) {
+      return getSupabaseTransformUrl(imageUrl, width, height, quality, effectiveFormat);
+    }
     return imageUrl;
   }
   
   switch (config.provider) {
+    case 'supabase':
+      return getSupabaseTransformUrl(imageUrl, width, height, quality, effectiveFormat);
     case 'cloudflare':
-      return getCloudflareImageUrl(imageUrl, config, width, height, quality, format);
+      return getCloudflareImageUrl(imageUrl, config, width, height, quality, effectiveFormat);
     case 'imgix':
-      return getImgixUrl(imageUrl, config, width, height, quality, format);
+      return getImgixUrl(imageUrl, config, width, height, quality, effectiveFormat);
     case 'cloudimage':
-      return getCloudImageUrl(imageUrl, config, width, height, quality, format);
+      return getCloudImageUrl(imageUrl, config, width, height, quality, effectiveFormat);
     case 'bunny':
-      return getBunnyUrl(imageUrl, config, width, height, quality, format);
+      return getBunnyUrl(imageUrl, config, width, height, quality, effectiveFormat);
     default:
       return imageUrl;
+  }
+};
+
+/**
+ * Supabase Storage 原生圖片轉換
+ * 文檔: https://supabase.com/docs/guides/storage/serving/image-transformations
+ */
+const getSupabaseTransformUrl = (
+  imageUrl: string,
+  width?: number,
+  height?: number,
+  quality: number = 85,
+  format: ImageFormat = 'auto'
+): string => {
+  // 只處理 Supabase Storage URL
+  if (!imageUrl.includes('supabase.co/storage')) {
+    return imageUrl;
+  }
+  
+  try {
+    const urlObj = new URL(imageUrl);
+    
+    // 將 /object/public/ 替換為 /render/image/public/ 以啟用轉換
+    if (urlObj.pathname.includes('/storage/v1/object/')) {
+      urlObj.pathname = urlObj.pathname.replace(
+        '/storage/v1/object/',
+        '/storage/v1/render/image/'
+      );
+    }
+    
+    // 添加轉換參數
+    if (width) urlObj.searchParams.set('width', width.toString());
+    if (height) urlObj.searchParams.set('height', height.toString());
+    urlObj.searchParams.set('quality', quality.toString());
+    
+    // 設定格式（Supabase 支援 origin, webp）
+    if (format === 'webp') {
+      urlObj.searchParams.set('format', 'webp');
+    }
+    // 注意：Supabase 目前不支援 AVIF，回退到 WebP
+    if (format === 'avif') {
+      urlObj.searchParams.set('format', 'webp');
+    }
+    
+    return urlObj.toString();
+  } catch {
+    return imageUrl;
   }
 };
 

@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
 import { ImageOff, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { calculateOptimalImageSize } from "@/utils/responsiveImageHelper";
 import { getCDNUrl } from "@/utils/cdnHelper";
 import { useNetworkStatus } from "@/hooks/use-network-status";
-import { generateSrcSet, generateResponsiveSrcSet, STANDARD_RESPONSIVE_WIDTHS } from "@/utils/responsiveSrcSetHelper";
+import { generateResponsiveSrcSet, STANDARD_RESPONSIVE_WIDTHS } from "@/utils/responsiveSrcSetHelper";
+import { getBestFormatSync, type ImageFormat } from "@/utils/imageFormatHelper";
 
 interface OptimizedImageProps {
   src: string;
@@ -66,7 +66,7 @@ export const OptimizedImage = ({
   const { speed: networkSpeed } = useNetworkStatus();
   const prevNetworkSpeedRef = useRef(networkSpeed);
 
-  // 計算最佳圖片尺寸並應用 CDN
+  // 計算最佳圖片尺寸並應用 CDN 和格式轉換
   useEffect(() => {
     if (!imgRef.current) return;
 
@@ -75,16 +75,22 @@ export const OptimizedImage = ({
       const optimalWidth = responsive ? calculateOptimalImageSize(containerWidth) : parseInt(width);
       const optimalHeight = responsive ? Math.round((optimalWidth * parseInt(height)) / parseInt(width)) : parseInt(height);
       
-      // 根據網路速度調整圖片品質
+      // 根據網路速度和瀏覽器支援調整圖片品質和格式
       let quality = 85;
-      let format: 'auto' | 'webp' | 'avif' | 'jpg' | 'png' = 'auto';
+      let format: ImageFormat = getBestFormatSync(); // 自動選擇最佳格式
       
       if (networkSpeed === 'slow') {
         quality = 60; // 慢速網路降低品質到 60
-        format = 'webp'; // 強制使用 WebP 格式以減小檔案大小
+        // 慢速網路優先使用 WebP（檔案較小，解碼較快）
+        format = 'webp';
       } else if (networkSpeed === 'offline') {
         quality = 40; // 離線時使用極低品質
         format = 'webp';
+      } else {
+        // 正常網路：AVIF 可以用更低品質達到同等視覺效果
+        if (format === 'avif') {
+          quality = 80;
+        }
       }
       
       // 應用 CDN 轉換
