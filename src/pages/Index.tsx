@@ -279,77 +279,56 @@ const Index = () => {
           heroPhotos={data.photos.filter(p => p.photo_type === 'hero')}
         />
         
-        {/* 非首屏內容 - 懶加載 */}
+        {/* 非首屏內容 - 懶加載（viewport-based，不使用 Suspense / dynamic import） */}
         <LazySection fallback={<AboutSkeleton />} minHeight="400px">
-          <Suspense fallback={<AboutSkeleton />}>
-            <AboutSection description={data.info.description} accommodationId={data.info.id} />
-          </Suspense>
+          <AboutSection description={data.info.description} accommodationId={data.info.id} />
         </LazySection>
-        
+
         <LazySection fallback={<RoomsSkeleton />} minHeight="600px">
-          <Suspense fallback={<RoomsSkeleton />}>
-            <RoomsSection roomTypes={data.roomTypes || []} />
-          </Suspense>
+          <RoomsSection roomTypes={data.roomTypes || []} />
         </LazySection>
-        
+
         <LazySection fallback={<FacilitiesSkeleton />} minHeight="400px">
-          <Suspense fallback={<FacilitiesSkeleton />}>
-            <FacilitiesSection facilities={data.facilities || []} />
-          </Suspense>
+          <FacilitiesSection facilities={data.facilities || []} />
         </LazySection>
-        
+
         <LazySection fallback={<PhotoGallerySkeleton />} minHeight="500px">
-          <Suspense fallback={<PhotoGallerySkeleton />}>
-            <PhotoGallerySection photos={(data.photos || []).filter(p => p.photo_type !== 'hero')} />
-          </Suspense>
+          <PhotoGallerySection photos={(data.photos || []).filter((p) => p.photo_type !== "hero")} />
         </LazySection>
-        
+
         <LazySection fallback={<LocationSkeleton />} minHeight="500px">
-          <Suspense fallback={<LocationSkeleton />}>
-            <LocationSection
-              address={data.info.address}
-              locationInfo={data.locationInfo}
-            />
-          </Suspense>
+          <LocationSection address={data.info.address} locationInfo={data.locationInfo} />
         </LazySection>
-        
+
         <LazySection fallback={<BookingInfoSkeleton />} minHeight="400px">
-          <Suspense fallback={<BookingInfoSkeleton />}>
-            <BookingInfoSection 
-              bookingSettings={data.bookingSettings}
-              checkInNotice={data.info.check_in_notice}
-            />
-          </Suspense>
+          <BookingInfoSection
+            bookingSettings={data.bookingSettings}
+            checkInNotice={data.info.check_in_notice}
+          />
         </LazySection>
-        
+
         <LazySection fallback={<ReviewsSkeleton />} minHeight="400px">
-          <Suspense fallback={<ReviewsSkeleton />}>
-            <ReviewsSection accommodationId={data.info.id} />
-          </Suspense>
+          <ReviewsSection accommodationId={data.info.id} />
         </LazySection>
-        
+
         <LazySection fallback={<FaqSkeleton />} minHeight="300px">
-          <Suspense fallback={<FaqSkeleton />}>
-            <FaqSection />
-          </Suspense>
+          <FaqSection />
         </LazySection>
       </main>
-      
+
       <LazySection fallback={<FooterSkeleton />} minHeight="200px">
-        <Suspense fallback={<FooterSkeleton />}>
-          <Footer 
-            accommodationName={data.info.name}
-            address={data.info.address}
-            phone={data.info.phone}
-            email={data.info.email}
-            lineId={data.info.line_id}
-            facebookUrl={data.info.facebook_url}
-            instagramUrl={data.info.instagram_url}
-            threadsUrl={data.info.threads_url}
-            youtubeUrl={data.info.youtube_url}
-            tiktokUrl={data.info.tiktok_url}
-          />
-        </Suspense>
+        <Footer
+          accommodationName={data.info.name}
+          address={data.info.address}
+          phone={data.info.phone}
+          email={data.info.email}
+          lineId={data.info.line_id}
+          facebookUrl={data.info.facebook_url}
+          instagramUrl={data.info.instagram_url}
+          threadsUrl={data.info.threads_url}
+          youtubeUrl={data.info.youtube_url}
+          tiktokUrl={data.info.tiktok_url}
+        />
       </LazySection>
       
       {/* 開發環境住宿切換器 */}
