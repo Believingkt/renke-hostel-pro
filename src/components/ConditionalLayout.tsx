@@ -30,6 +30,7 @@ export function ConditionalLayout() {
   useOrderNotifications((isAdminPage || isHQPage) && !!session);
 
   useEffect(() => {
+    // 僅針對後台/登入頁面設定標題，前台由 SEOHead 組件負責（避免覆蓋民宿名稱）
     if (isAdminPage) {
       document.title = "人客多 PMS 管理系統";
     } else if (isHQPage) {
@@ -38,11 +39,9 @@ export function ConditionalLayout() {
       document.title = "登入 - 人客多 PMS 管理系統";
     } else if (isHQAuthPage) {
       document.title = "登入 - 總部管理系統";
-    } else {
-      // 前台預設用中性標題，避免在住宿資料載入前顯示錯誤品牌
-      document.title = "旅宿官網";
     }
-  }, [isAdminPage, isHQPage, isAuthPage, isHQAuthPage, isFrontendPage]);
+    // 前台不在此設定標題，保留 index.html 的預設值，由 SEOHead 組件載入民宿名稱後更新
+  }, [isAdminPage, isHQPage, isAuthPage, isHQAuthPage]);
 
   useEffect(() => {
     console.log('[ConditionalLayout] Initial load, isAdminPage:', isAdminPage, 'isHQPage:', isHQPage);
