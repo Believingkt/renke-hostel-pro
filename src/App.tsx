@@ -14,7 +14,7 @@ import { ChunkErrorBoundary } from "@/components/ChunkErrorBoundary";
 const { lazy, Suspense } = React;
 
 // 路由懶加載 - 前台頁面
-const Index = lazy(() => import("./pages/Index"));
+// NOTE: 首頁在自訂網域上偶發 chunk 快取不一致導致載入失敗，改為 eager import（見下方 import Index）
 const BookingFlow = lazy(() => import("./pages/BookingFlow"));
 const LinePayConfirm = lazy(() => import("./pages/LinePayConfirm"));
 const AIBooking = lazy(() => import("./pages/AIBooking"));
@@ -48,6 +48,7 @@ const EmailTest = lazy(() => import("./pages/EmailTest"));
 const Settlement = lazy(() => import("./pages/Settlement"));
 
 // Auth 頁面保持即時載入（關鍵路徑）
+import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import HQAuth from "./pages/HQAuth";
 import ChangePassword from "./pages/ChangePassword";

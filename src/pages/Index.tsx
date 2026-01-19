@@ -1,20 +1,20 @@
-import { useEffect, useState, lazy, Suspense } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubdomain } from "@/hooks/use-subdomain";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import Navigation from "@/components/Navigation";
 import HeroSection from "@/components/HeroSection";
 import { FrontendSkeleton } from "@/components/skeletons/FrontendSkeleton";
-import { 
-  AboutSkeleton, 
-  RoomsSkeleton, 
-  FacilitiesSkeleton, 
+import {
+  AboutSkeleton,
+  RoomsSkeleton,
+  FacilitiesSkeleton,
   PhotoGallerySkeleton,
   LocationSkeleton,
   BookingInfoSkeleton,
   ReviewsSkeleton,
   FaqSkeleton,
-  FooterSkeleton
+  FooterSkeleton,
 } from "@/components/skeletons/FrontendSkeleton";
 import { StructuredData } from "@/components/StructuredData";
 import { SEOHead } from "@/components/SEOHead";
@@ -22,16 +22,16 @@ import { DevAccommodationSwitcher } from "@/components/DevAccommodationSwitcher"
 import { getThemeClass, cacheAccommodationTheme } from "@/constants/themes";
 import { LazySection } from "@/components/LazySection";
 
-// 懶加載非首屏組件
-const AboutSection = lazy(() => import("@/components/AboutSection"));
-const RoomsSection = lazy(() => import("@/components/RoomsSection"));
-const FacilitiesSection = lazy(() => import("@/components/FacilitiesSection"));
-const PhotoGallerySection = lazy(() => import("@/components/PhotoGallerySection"));
-const LocationSection = lazy(() => import("@/components/LocationSection"));
-const BookingInfoSection = lazy(() => import("@/components/BookingInfoSection"));
-const ReviewsSection = lazy(() => import("@/components/ReviewsSection"));
-const FaqSection = lazy(() => import("@/components/FaqSection"));
-const Footer = lazy(() => import("@/components/Footer"));
+// NOTE: 為避免自訂網域上 chunk 快取不一致造成的載入失敗，首屏與區塊組件改為 eager import。
+import AboutSection from "@/components/AboutSection";
+import RoomsSection from "@/components/RoomsSection";
+import FacilitiesSection from "@/components/FacilitiesSection";
+import PhotoGallerySection from "@/components/PhotoGallerySection";
+import LocationSection from "@/components/LocationSection";
+import BookingInfoSection from "@/components/BookingInfoSection";
+import ReviewsSection from "@/components/ReviewsSection";
+import FaqSection from "@/components/FaqSection";
+import Footer from "@/components/Footer";
 
 interface AccommodationData {
   info: {
