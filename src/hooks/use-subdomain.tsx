@@ -44,11 +44,15 @@ export function useSubdomain() {
         
         if (accToUse) {
           // 先嘗試用 short_url_alias 查詢
-          const { data: aliasData } = await supabase
+          const { data: aliasData, error: aliasError } = await supabase
             .from('accommodation_info')
             .select('id, short_url_alias, theme_preset')
             .eq('short_url_alias', accToUse)
             .maybeSingle();
+          
+          if (aliasError) {
+            console.error('Error fetching by alias:', aliasError);
+          }
           
           if (aliasData) {
             cacheTheme(aliasData);
@@ -58,11 +62,15 @@ export function useSubdomain() {
           }
           
           // 再嘗試用 ID 查詢
-          const { data: idData } = await supabase
+          const { data: idData, error: idError } = await supabase
             .from('accommodation_info')
             .select('id, short_url_alias, theme_preset')
             .eq('id', accToUse)
             .maybeSingle();
+          
+          if (idError) {
+            console.error('Error fetching by id:', idError);
+          }
           
           if (idData) {
             cacheTheme(idData);

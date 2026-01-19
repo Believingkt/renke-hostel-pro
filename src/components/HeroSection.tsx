@@ -277,7 +277,7 @@ const HeroSection = ({
 
     setCurrent(carouselApi.selectedScrollSnap());
 
-    carouselApi.on("select", () => {
+    const handleSelect = () => {
       const index = carouselApi.selectedScrollSnap();
       setCurrent(index);
       
@@ -301,8 +301,10 @@ const HeroSection = ({
           img.src = slides[prevIndex].photo_url;
           setLoadedImages(prev => new Set([...prev, prevIndex]));
         }
-      }, 300); // 減少延遲
-    });
+      }, 300);
+    };
+    
+    carouselApi.on("select", handleSelect);
     
     // 首次載入時快速預載入第二和第三張圖片
     const preloadTimer = setTimeout(() => {
@@ -324,9 +326,9 @@ const HeroSection = ({
           }, 500);
         }
       }
-    }, 300); // 大幅減少延遲，從 1500ms 降到 300ms
+    }, 300);
     
-    // 監聽圖片查看器事件，停止/恢復輪播
+    // 監聯圖片查看器事件，停止/恢復輪播
     const handleViewerOpened = () => {
       setAutoplayEnabled(false);
     };
@@ -340,10 +342,11 @@ const HeroSection = ({
     
     return () => {
       clearTimeout(preloadTimer);
+      carouselApi.off("select", handleSelect);
       window.removeEventListener('viewer-opened', handleViewerOpened);
       window.removeEventListener('viewer-closed', handleViewerClosed);
     };
-  }, [carouselApi, slides.length, autoplayEnabled]);
+  }, [carouselApi, slides.length, autoplayEnabled, loadedImages]);
 
   // 自訂自動播放功能，使用全局延遲時間
   useEffect(() => {
