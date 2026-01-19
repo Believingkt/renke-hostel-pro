@@ -17,9 +17,16 @@ export const SEOHead = ({
   type = "website",
   keywords = ["豪華露營", "民宿", "住宿", "日式", "山林", "度假", "台灣旅遊"]
 }: SEOHeadProps) => {
-  useEffect(() => {
-    // 設置標題
+  // 立即同步更新標題，無需等待 useEffect（減少閃爍）
+  if (typeof document !== 'undefined' && document.title !== title) {
     document.title = title;
+  }
+
+  useEffect(() => {
+    // 確保標題已設定（雙重保險）
+    if (document.title !== title) {
+      document.title = title;
+    }
 
     // 設置或更新 meta 標籤
     const setMetaTag = (name: string, content: string, property?: boolean) => {
