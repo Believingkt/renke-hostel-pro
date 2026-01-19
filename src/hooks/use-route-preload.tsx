@@ -1,55 +1,19 @@
-import { useCallback, useRef } from "react";
+import { useCallback } from "react";
 
-// 預載入路由對應的組件
-const routePreloadMap: Record<string, () => Promise<any>> = {
-  '/booking': () => import('@/pages/BookingFlow'),
-  '/order-search': () => import('@/pages/OrderSearch'),
-  '/admin': () => import('@/pages/Dashboard'),
-  '/admin/website-content': () => import('@/pages/WebsiteContent'),
-  '/admin/orders': () => import('@/pages/Orders'),
-  '/admin/pricing': () => import('@/pages/Pricing'),
-  '/admin/accounts': () => import('@/pages/Accounts'),
-  '/admin/kol-discount': () => import('@/pages/KolDiscount'),
-  '/admin/customers': () => import('@/pages/Customers'),
-  '/admin/faq': () => import('@/pages/Faq'),
-  '/admin/public-holidays': () => import('@/pages/PublicHolidays'),
-  '/admin/notifications': () => import('@/pages/Notifications'),
-  '/admin/data-backup': () => import('@/pages/DataBackup'),
-};
-
+/**
+ * 路由預載入（已停用）
+ *
+ * 原本用於 hover 預抓 routes（dynamic import）。
+ * 但在自訂網域/手機端容易遇到「index.html 與 chunk 快取不同步」導致 chunk 404，
+ * 進而觸發 ChunkErrorBoundary。
+ *
+ * 目前改為 eager import routes，因此此 hook 保留 API 但不再做任何 preload。
+ */
 export const useRoutePreload = () => {
-  const preloadedRoutes = useRef<Set<string>>(new Set());
-
-  const preloadRoute = useCallback((path: string) => {
-    // 避免重複預載入
-    if (preloadedRoutes.current.has(path)) {
-      return;
-    }
-
-    const preloadFn = routePreloadMap[path];
-    if (preloadFn) {
-      preloadedRoutes.current.add(path);
-      
-      // 使用 requestIdleCallback 在瀏覽器空閒時預載入
-      if ('requestIdleCallback' in window) {
-        requestIdleCallback(() => {
-          preloadFn().catch((error) => {
-            console.warn(`Failed to preload route ${path}:`, error);
-            // 預載入失敗時從集合中移除，允許重試
-            preloadedRoutes.current.delete(path);
-          });
-        });
-      } else {
-        // 降級方案：使用 setTimeout
-        setTimeout(() => {
-          preloadFn().catch((error) => {
-            console.warn(`Failed to preload route ${path}:`, error);
-            preloadedRoutes.current.delete(path);
-          });
-        }, 0);
-      }
-    }
+  const preloadRoute = useCallback((_path: string) => {
+    // no-op
   }, []);
 
   return { preloadRoute };
 };
+

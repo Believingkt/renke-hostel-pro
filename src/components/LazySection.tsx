@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, ReactNode, Suspense, lazy, ComponentType } from "react";
+import { useState, useEffect, useRef, ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface LazySectionProps {
@@ -60,11 +60,7 @@ export const LazySection = ({
   // 還沒進入視口，顯示佔位符
   if (!isInView) {
     return (
-      <div
-        ref={sectionRef}
-        className={className}
-        style={{ minHeight }}
-      >
+      <div ref={sectionRef} className={className} style={{ minHeight }}>
         {fallback || (
           <div className="flex items-center justify-center h-full py-12">
             <div className="animate-pulse space-y-4 w-full max-w-4xl mx-auto px-4">
@@ -87,23 +83,24 @@ export const LazySection = ({
 };
 
 /**
- * 創建懶加載組件的工廠函數
- * 用於動態導入較大的組件
+ * 通用的區塊載入中佔位符
  */
-export function createLazyComponent<T extends ComponentType<any>>(
-  importFn: () => Promise<{ default: T }>,
-  fallback?: ReactNode
-) {
-  const LazyComponent = lazy(importFn);
-  
-  return function WrappedLazyComponent(props: React.ComponentProps<T>) {
-    return (
-      <Suspense fallback={fallback || <SectionLoadingFallback />}>
-        <LazyComponent {...props} />
-      </Suspense>
-    );
-  };
-}
+export const SectionLoadingFallback = ({ height = "300px" }: { height?: string }) => (
+  <div className="flex items-center justify-center bg-muted/20 animate-pulse" style={{ minHeight: height }}>
+    <div className="space-y-4 w-full max-w-4xl mx-auto px-4 py-12">
+      <Skeleton className="h-8 w-48 mx-auto" />
+      <Skeleton className="h-4 w-64 mx-auto" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+        <Skeleton className="h-24" />
+        <Skeleton className="h-24" />
+        <Skeleton className="h-24 hidden md:block" />
+        <Skeleton className="h-24 hidden md:block" />
+      </div>
+    </div>
+  </div>
+);
+
+export default LazySection;
 
 /**
  * 通用的區塊載入中佔位符

@@ -68,12 +68,29 @@ export class ChunkErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      const debugInfo = {
+        message: this.state.errorMessage || "(no message)",
+        url: typeof window !== "undefined" ? window.location.href : "",
+        ua: typeof navigator !== "undefined" ? navigator.userAgent : "",
+        time: new Date().toISOString(),
+      };
+
       return (
         <div className="flex items-center justify-center min-h-screen bg-background">
-          <div className="text-center space-y-3 px-6">
+          <div className="text-center space-y-3 px-6 max-w-md">
             <h2 className="text-xl font-semibold">載入失敗</h2>
             <p className="text-muted-foreground">偵測到檔案更新或快取衝突，請重新整理。</p>
-            <div className="flex items-center justify-center gap-3">
+
+            {this.state.errorMessage ? (
+              <div className="text-left rounded-md border border-border bg-muted/20 p-3">
+                <p className="text-xs text-muted-foreground mb-1">錯誤訊息（可複製回報）</p>
+                <pre className="text-xs whitespace-pre-wrap break-words text-foreground">
+                  {this.state.errorMessage}
+                </pre>
+              </div>
+            ) : null}
+
+            <div className="flex items-center justify-center gap-3 flex-wrap">
               <button
                 type="button"
                 onClick={() => {
@@ -93,6 +110,19 @@ export class ChunkErrorBoundary extends Component<Props, State> {
                 className="px-4 py-2 rounded-md border border-border bg-background hover:bg-muted"
               >
                 清除快取重試
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(JSON.stringify(debugInfo, null, 2));
+                  } catch {
+                    // ignore
+                  }
+                }}
+                className="px-4 py-2 rounded-md border border-border bg-background hover:bg-muted"
+              >
+                複製錯誤資訊
               </button>
             </div>
           </div>
