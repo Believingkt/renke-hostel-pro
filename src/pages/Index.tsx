@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useLayoutEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubdomain } from "@/hooks/use-subdomain";
 import { useAccommodation } from "@/contexts/AccommodationContext";
@@ -75,6 +75,16 @@ const Index = () => {
 
   // 從資料庫讀取的主題設定
   const themeClass = data?.info?.theme_preset ? getThemeClass(data.info.theme_preset) : '';
+
+  // 使用 useLayoutEffect 在 DOM 更新前立即更新標題，減少視覺閃爍
+  useLayoutEffect(() => {
+    if (data?.info) {
+      const title = data.info.og_title || data.info.name;
+      if (title && document.title !== title) {
+        document.title = title;
+      }
+    }
+  }, [data?.info?.og_title, data?.info?.name]);
 
   // 同步 subdomain 解析的 accommodationId 到 AccommodationContext
   useEffect(() => {
