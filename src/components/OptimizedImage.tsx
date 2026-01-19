@@ -119,7 +119,14 @@ export const OptimizedImage = ({
   }, [src, width, height, responsive, useCDN, networkSpeed, autoSrcSet, imageType, srcSet]);
 
   useEffect(() => {
-    if (priority) return; // 優先圖片立即載入
+    if (priority) {
+      setIsInView(true);
+      return;
+    }
+
+    // 手機版使用更激進的預載入距離
+    const isMobile = window.innerWidth < 768;
+    const effectiveRootMargin = isMobile ? "300px" : "200px";
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -131,7 +138,7 @@ export const OptimizedImage = ({
         });
       },
       {
-        rootMargin: "200px", // 提前 200px 開始載入，提升體驗
+        rootMargin: effectiveRootMargin,
         threshold: 0.01,
       }
     );
