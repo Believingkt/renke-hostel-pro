@@ -6,6 +6,7 @@ interface AccommodationData {
   id: string;
   short_url_alias: string | null;
   theme_preset: string | null;
+  custom_domain?: string | null;
 }
 
 export function useSubdomain() {
@@ -13,16 +14,33 @@ export function useSubdomain() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadAccommodationFromSubdomain();
-  }, []);
-
   // 輔助函數：快取主題設定
   const cacheTheme = (data: AccommodationData) => {
     if (data.theme_preset) {
       cacheAccommodationTheme(data.id, data.short_url_alias, data.theme_preset);
     }
   };
+
+  const finishSuccess = (data: AccommodationData) => {
+    cacheTheme(data);
+    setError(null);
+    setAccommodationId(data.id);
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    // 防止特定網路/瀏覽器情況下請求長時間 pending 造成無限 loading
+    const timeoutId = window.setTimeout(() => {
+      setError((prev) => prev ?? "載入旅館資訊逾時，請重新整理");
+      setIsLoading(false);
+    }, 8000);
+
+    void loadAccommodationFromSubdomain().finally(() => {
+      window.clearTimeout(timeoutId);
+    });
+
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   const loadAccommodationFromSubdomain = async () => {
     try {
@@ -55,9 +73,7 @@ export function useSubdomain() {
           }
           
           if (aliasData) {
-            cacheTheme(aliasData);
-            setAccommodationId(aliasData.id);
-            setIsLoading(false);
+            finishSuccess(aliasData);
             return;
           }
           
@@ -73,9 +89,7 @@ export function useSubdomain() {
           }
           
           if (idData) {
-            cacheTheme(idData);
-            setAccommodationId(idData.id);
-            setIsLoading(false);
+            finishSuccess(idData);
             return;
           }
         }
@@ -125,9 +139,7 @@ export function useSubdomain() {
         const finalMatch = domainMatch || subdomainMatch;
         
         if (finalMatch) {
-          cacheTheme(finalMatch);
-          setAccommodationId(finalMatch.id);
-          setIsLoading(false);
+          finishSuccess(finalMatch);
           return;
         }
       }
@@ -167,11 +179,7 @@ export function useSubdomain() {
       return;
     }
 
-    // 快取主題設定
-    cacheTheme(data);
-
-    setAccommodationId(data.id);
-    setIsLoading(false);
+    finishSuccess(data);
   };
 
   return { accommodationId, isLoading, error };
