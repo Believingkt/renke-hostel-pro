@@ -101,26 +101,3 @@ export const SectionLoadingFallback = ({ height = "300px" }: { height?: string }
 );
 
 export default LazySection;
-
-/**
- * 通用的區塊載入中佔位符
- */
-export const SectionLoadingFallback = ({ height = "300px" }: { height?: string }) => (
-  <div 
-    className="flex items-center justify-center bg-muted/20 animate-pulse"
-    style={{ minHeight: height }}
-  >
-    <div className="space-y-4 w-full max-w-4xl mx-auto px-4 py-12">
-      <Skeleton className="h-8 w-48 mx-auto" />
-      <Skeleton className="h-4 w-64 mx-auto" />
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-        <Skeleton className="h-24" />
-        <Skeleton className="h-24" />
-        <Skeleton className="h-24 hidden md:block" />
-        <Skeleton className="h-24 hidden md:block" />
-      </div>
-    </div>
-  </div>
-);
-
-export default LazySection;
