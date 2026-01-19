@@ -2,7 +2,7 @@ import * as React from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSearchParams } from "react-router-dom";
 
-const { createContext, useContext, useState, useEffect, useRef } = React;
+const { createContext, useContext, useState, useEffect, useRef, useCallback } = React;
 
 const ACCOMMODATION_ID_PARAM = 'accId';
 
@@ -41,23 +41,35 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
   const [guests, setGuests] = useState({ adults: 2, children: 0 });
 
   // Wrapper to save to localStorage AND URL when setting accommodation
-  const setCurrentAccommodationId = (id: string | null) => {
+  const setCurrentAccommodationId = useCallback((id: string | null) => {
+    const isSame = currentAccommodationIdRef.current === id;
     currentAccommodationIdRef.current = id;
-    setCurrentAccommodationIdState(id);
+
+    // 避免重複 setState 造成無限 re-render
+    if (!isSame) {
+      setCurrentAccommodationIdState(id);
+    }
+
     if (id) {
       try {
         localStorage.setItem(LAST_ACCOMMODATION_KEY, id);
       } catch (e) {
         console.error('[AccommodationContext] Failed to save to localStorage:', e);
       }
-      // 同步寫入 URL query 參數
-      setSearchParams(prev => {
-        const newParams = new URLSearchParams(prev);
-        newParams.set(ACCOMMODATION_ID_PARAM, id);
-        return newParams;
-      }, { replace: true });
+
+      // 同步寫入 URL query 參數（若已相同則不觸發 replaceState）
+      setSearchParams(
+        (prev) => {
+          const current = prev.get(ACCOMMODATION_ID_PARAM);
+          if (current === id) return prev;
+          const next = new URLSearchParams(prev);
+          next.set(ACCOMMODATION_ID_PARAM, id);
+          return next;
+        },
+        { replace: true }
+      );
     }
-  };
+  }, [setSearchParams]);
 
   useEffect(() => {
     // 初始載入時自動選擇民宿
