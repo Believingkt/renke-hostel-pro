@@ -36,7 +36,12 @@ export class ChunkErrorBoundary extends Component<Props, State> {
     }
 
     const url = new URL(window.location.href);
-    url.searchParams.set("__cb", Date.now().toString());
+
+    // 部分 CDN/瀏覽器可能忽略 query cache key，改用「不同 path」來確保拿到最新 index.html
+    url.pathname = `/__cb/${Date.now()}`;
+    url.search = "";
+    url.hash = "";
+
     window.location.replace(url.toString());
   }
 
@@ -71,7 +76,10 @@ export class ChunkErrorBoundary extends Component<Props, State> {
             <div className="flex items-center justify-center gap-3">
               <button
                 type="button"
-                onClick={() => window.location.reload()}
+                onClick={() => {
+                  sessionStorage.removeItem("chunk_reload_attempted");
+                  void this.cleanupAndReload();
+                }}
                 className="px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 重新整理

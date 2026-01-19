@@ -63,12 +63,9 @@ function App() {
           <ChunkErrorBoundary>
             <Routes>
               <Route element={<ConditionalLayout />}>
-                {/* 前台頁面 - 使用 FrontendSkeleton */}
-                <Route path="/" element={
-                  <Suspense fallback={<FrontendSkeleton />}>
-                    <Index />
-                  </Suspense>
-                } />
+                {/* 前台頁面 */}
+                <Route path="/__cb/:ts" element={<Index />} />
+                <Route path="/" element={<Index />} />
                 <Route path="/booking" element={
                   <Suspense fallback={<FrontendSkeleton />}>
                     <BookingFlow />
