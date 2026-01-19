@@ -1,48 +1,51 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { getThemeClassFromContext } from "@/constants/themes";
-// Navigation Skeleton
+
+// Navigation Skeleton - 手機版優化
 export const NavigationSkeleton = () => (
   <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
     <div className="container mx-auto px-4">
-      <div className="flex h-16 items-center justify-between">
-        <Skeleton className="h-10 w-32" />
+      <div className="flex h-14 md:h-16 items-center justify-between">
+        <Skeleton className="h-8 md:h-10 w-24 md:w-32" />
         <div className="hidden md:flex gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <Skeleton 
               key={i} 
               className="h-4 w-16"
+              style={{ animationDelay: `${i * 100}ms` }}
             />
           ))}
         </div>
-        <div className="flex gap-3">
-          <Skeleton className="h-9 w-24" />
-          <Skeleton className="h-9 w-9 md:hidden" />
+        <div className="flex gap-2 md:gap-3">
+          <Skeleton className="h-8 md:h-9 w-20 md:w-24" />
+          <Skeleton className="h-8 md:h-9 w-8 md:w-9 md:hidden" />
         </div>
       </div>
     </div>
   </header>
 );
 
-// Hero Skeleton
+// Hero Skeleton - 手機版高度調整和動畫優化
 export const HeroSkeleton = () => (
-  <section className="relative h-[400px] md:h-[600px] lg:h-[700px]">
+  <section className="relative h-[400px] md:h-[580px] lg:h-[700px] pt-14 md:pt-16">
     <Skeleton className="absolute inset-0" />
     <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/20 to-background/90" />
     <div className="absolute inset-0 flex items-center justify-center">
-      <div className="text-center space-y-4 px-4">
-        <Skeleton className="h-12 md:h-16 w-64 md:w-96 mx-auto" />
-        <Skeleton className="h-6 w-48 md:w-64 mx-auto" />
+      <div className="text-center space-y-3 md:space-y-4 px-4">
+        <Skeleton className="h-8 md:h-12 lg:h-16 w-48 md:w-64 lg:w-96 mx-auto" />
+        <Skeleton className="h-5 md:h-6 w-36 md:w-48 lg:w-64 mx-auto" />
       </div>
     </div>
-    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-full max-w-4xl px-4">
-      <Card className="shadow-2xl">
-        <CardContent className="p-4 md:p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+    {/* 搜索卡片 - 手機版簡化 */}
+    <div className="absolute bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 w-full max-w-4xl px-4">
+      <Card className="shadow-xl md:shadow-2xl">
+        <CardContent className="p-3 md:p-4 lg:p-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
             {[1, 2, 3, 4].map((i) => (
               <Skeleton 
                 key={i} 
-                className="h-10 md:h-12"
+                className={`h-9 md:h-10 lg:h-12 ${i > 2 ? 'hidden md:block' : ''}`}
               />
             ))}
           </div>
@@ -292,9 +295,29 @@ export const FooterSkeleton = () => (
   </footer>
 );
 
-// Complete Frontend Skeleton
+// Complete Frontend Skeleton - 手機版優化：只顯示首屏內容
 export const FrontendSkeleton = () => {
   // 使用同步方式判斷主題，避免閃爍
+  const themeClass = getThemeClassFromContext();
+
+  return (
+    <div className={`min-h-screen ${themeClass}`}>
+      <NavigationSkeleton />
+      <main>
+        {/* 手機版只渲染首屏骨架，加快顯示速度 */}
+        <HeroSkeleton />
+        {/* 桌面版顯示更多骨架 */}
+        <div className="hidden md:block">
+          <AboutSkeleton />
+          <RoomsSkeleton />
+        </div>
+      </main>
+    </div>
+  );
+};
+
+// 完整版骨架屏（用於特定場景）
+export const FullFrontendSkeleton = () => {
   const themeClass = getThemeClassFromContext();
 
   return (

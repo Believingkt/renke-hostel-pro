@@ -1,24 +1,37 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubdomain } from "@/hooks/use-subdomain";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import Navigation from "@/components/Navigation";
 import HeroSection from "@/components/HeroSection";
-import AboutSection from "@/components/AboutSection";
-import RoomsSection from "@/components/RoomsSection";
-import FacilitiesSection from "@/components/FacilitiesSection";
-import PhotoGallerySection from "@/components/PhotoGallerySection";
-import BookingInfoSection from "@/components/BookingInfoSection";
-import LocationSection from "@/components/LocationSection";
-import FaqSection from "@/components/FaqSection";
-import ReviewsSection from "@/components/ReviewsSection";
-import Footer from "@/components/Footer";
 import { FrontendSkeleton } from "@/components/skeletons/FrontendSkeleton";
+import { 
+  AboutSkeleton, 
+  RoomsSkeleton, 
+  FacilitiesSkeleton, 
+  PhotoGallerySkeleton,
+  LocationSkeleton,
+  BookingInfoSkeleton,
+  ReviewsSkeleton,
+  FaqSkeleton,
+  FooterSkeleton
+} from "@/components/skeletons/FrontendSkeleton";
 import { StructuredData } from "@/components/StructuredData";
 import { SEOHead } from "@/components/SEOHead";
-import { FloatingChat } from "@/components/FloatingChat";
 import { DevAccommodationSwitcher } from "@/components/DevAccommodationSwitcher";
 import { getThemeClass, cacheAccommodationTheme } from "@/constants/themes";
+import { LazySection } from "@/components/LazySection";
+
+// 懶加載非首屏組件
+const AboutSection = lazy(() => import("@/components/AboutSection"));
+const RoomsSection = lazy(() => import("@/components/RoomsSection"));
+const FacilitiesSection = lazy(() => import("@/components/FacilitiesSection"));
+const PhotoGallerySection = lazy(() => import("@/components/PhotoGallerySection"));
+const LocationSection = lazy(() => import("@/components/LocationSection"));
+const BookingInfoSection = lazy(() => import("@/components/BookingInfoSection"));
+const ReviewsSection = lazy(() => import("@/components/ReviewsSection"));
+const FaqSection = lazy(() => import("@/components/FaqSection"));
+const Footer = lazy(() => import("@/components/Footer"));
 
 interface AccommodationData {
   info: {
@@ -255,6 +268,7 @@ const Index = () => {
         onNavigate={scrollToSection} 
       />
       <main>
+        {/* 首屏內容 - 直接載入 */}
         <HeroSection 
           accommodationName={data.info.name}
           heroMainTitle={data.info.hero_main_title}
@@ -264,33 +278,79 @@ const Index = () => {
           heroAutoplayDelay={data.info.hero_autoplay_delay}
           heroPhotos={data.photos.filter(p => p.photo_type === 'hero')}
         />
-        <AboutSection description={data.info.description} accommodationId={data.info.id} />
-        <RoomsSection roomTypes={data.roomTypes || []} />
-        <FacilitiesSection facilities={data.facilities || []} />
-        <PhotoGallerySection photos={(data.photos || []).filter(p => p.photo_type !== 'hero')} />
-        <LocationSection
-          address={data.info.address}
-          locationInfo={data.locationInfo}
-        />
-        <BookingInfoSection 
-          bookingSettings={data.bookingSettings}
-          checkInNotice={data.info.check_in_notice}
-        />
-        <ReviewsSection accommodationId={data.info.id} />
-        <FaqSection />
+        
+        {/* 非首屏內容 - 懶加載 */}
+        <LazySection fallback={<AboutSkeleton />} minHeight="400px">
+          <Suspense fallback={<AboutSkeleton />}>
+            <AboutSection description={data.info.description} accommodationId={data.info.id} />
+          </Suspense>
+        </LazySection>
+        
+        <LazySection fallback={<RoomsSkeleton />} minHeight="600px">
+          <Suspense fallback={<RoomsSkeleton />}>
+            <RoomsSection roomTypes={data.roomTypes || []} />
+          </Suspense>
+        </LazySection>
+        
+        <LazySection fallback={<FacilitiesSkeleton />} minHeight="400px">
+          <Suspense fallback={<FacilitiesSkeleton />}>
+            <FacilitiesSection facilities={data.facilities || []} />
+          </Suspense>
+        </LazySection>
+        
+        <LazySection fallback={<PhotoGallerySkeleton />} minHeight="500px">
+          <Suspense fallback={<PhotoGallerySkeleton />}>
+            <PhotoGallerySection photos={(data.photos || []).filter(p => p.photo_type !== 'hero')} />
+          </Suspense>
+        </LazySection>
+        
+        <LazySection fallback={<LocationSkeleton />} minHeight="500px">
+          <Suspense fallback={<LocationSkeleton />}>
+            <LocationSection
+              address={data.info.address}
+              locationInfo={data.locationInfo}
+            />
+          </Suspense>
+        </LazySection>
+        
+        <LazySection fallback={<BookingInfoSkeleton />} minHeight="400px">
+          <Suspense fallback={<BookingInfoSkeleton />}>
+            <BookingInfoSection 
+              bookingSettings={data.bookingSettings}
+              checkInNotice={data.info.check_in_notice}
+            />
+          </Suspense>
+        </LazySection>
+        
+        <LazySection fallback={<ReviewsSkeleton />} minHeight="400px">
+          <Suspense fallback={<ReviewsSkeleton />}>
+            <ReviewsSection accommodationId={data.info.id} />
+          </Suspense>
+        </LazySection>
+        
+        <LazySection fallback={<FaqSkeleton />} minHeight="300px">
+          <Suspense fallback={<FaqSkeleton />}>
+            <FaqSection />
+          </Suspense>
+        </LazySection>
       </main>
-      <Footer 
-        accommodationName={data.info.name}
-        address={data.info.address}
-        phone={data.info.phone}
-        email={data.info.email}
-        lineId={data.info.line_id}
-        facebookUrl={data.info.facebook_url}
-        instagramUrl={data.info.instagram_url}
-        threadsUrl={data.info.threads_url}
-        youtubeUrl={data.info.youtube_url}
-        tiktokUrl={data.info.tiktok_url}
-      />
+      
+      <LazySection fallback={<FooterSkeleton />} minHeight="200px">
+        <Suspense fallback={<FooterSkeleton />}>
+          <Footer 
+            accommodationName={data.info.name}
+            address={data.info.address}
+            phone={data.info.phone}
+            email={data.info.email}
+            lineId={data.info.line_id}
+            facebookUrl={data.info.facebook_url}
+            instagramUrl={data.info.instagram_url}
+            threadsUrl={data.info.threads_url}
+            youtubeUrl={data.info.youtube_url}
+            tiktokUrl={data.info.tiktok_url}
+          />
+        </Suspense>
+      </LazySection>
       
       {/* 開發環境住宿切換器 */}
       <DevAccommodationSwitcher />
