@@ -26,6 +26,7 @@ interface OptimizedImageProps {
   imageType?: 'thumbnail' | 'small' | 'medium' | 'large' | 'hero';
   fallbackSrc?: string;
   onError?: () => void;
+  autoRetry?: boolean; // 是否自動重試（預設 false，只保留手動重試）
   maxRetries?: number; // 最大重試次數
   retryDelay?: number; // 重試延遲（毫秒）
 }
@@ -49,6 +50,7 @@ export const OptimizedImage = ({
   imageType = 'medium',
   fallbackSrc,
   onError,
+  autoRetry = false,
   maxRetries = 3,
   retryDelay = 2000,
 }: OptimizedImageProps) => {
@@ -158,10 +160,11 @@ export const OptimizedImage = ({
     };
   }, [priority]);
 
-  // 監聽網路狀態變化，自動重試
+  // 監聽網路狀態變化，自動重試（僅當 autoRetry 開啟時）
   useEffect(() => {
+    if (!autoRetry) return;
     const prevSpeed = prevNetworkSpeedRef.current;
-    
+
     // 網路從 offline/slow 恢復到 fast 時，自動重試失敗的圖片
     if (hasError && !isRetrying && retryCount < maxRetries) {
       if (
@@ -171,9 +174,9 @@ export const OptimizedImage = ({
         handleRetry();
       }
     }
-    
+
     prevNetworkSpeedRef.current = networkSpeed;
-  }, [networkSpeed, hasError, isRetrying, retryCount, maxRetries]);
+  }, [networkSpeed, hasError, isRetrying, retryCount, maxRetries, autoRetry]);
 
   // 清理重試計時器
   useEffect(() => {
@@ -208,15 +211,15 @@ export const OptimizedImage = ({
       return;
     }
     
-    // 如果還有重試次數，自動重試
-    if (retryCount < maxRetries) {
+    // 如果開啟自動重試且還有重試次數，排入自動重試
+    if (autoRetry && retryCount < maxRetries) {
       setIsRetrying(true);
-      
+
       retryTimeoutRef.current = setTimeout(() => {
         handleRetry();
       }, retryDelay);
     } else {
-      // 重試次數用完，顯示錯誤狀態
+      // 否則直接顯示錯誤狀態（使用者可手動重試）
       setHasError(true);
     }
   };
