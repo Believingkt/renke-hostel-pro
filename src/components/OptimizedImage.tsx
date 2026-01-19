@@ -26,9 +26,8 @@ interface OptimizedImageProps {
   imageType?: 'thumbnail' | 'small' | 'medium' | 'large' | 'hero';
   fallbackSrc?: string;
   onError?: () => void;
-  autoRetry?: boolean; // 是否自動重試（預設 false，只保留手動重試）
-  maxRetries?: number; // 最大重試次數
-  retryDelay?: number; // 重試延遲（毫秒）
+  autoRetryOnReconnect?: boolean; // 是否在網路恢復時自動重試一次（預設 true）
+  maxRetries?: number; // 最大手動重試次數
 }
 
 export const OptimizedImage = ({
@@ -50,9 +49,8 @@ export const OptimizedImage = ({
   imageType = 'medium',
   fallbackSrc,
   onError,
-  autoRetry = false,
+  autoRetryOnReconnect = true,
   maxRetries = 3,
-  retryDelay = 2000,
 }: OptimizedImageProps) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInView, setIsInView] = useState(priority);
@@ -160,23 +158,27 @@ export const OptimizedImage = ({
     };
   }, [priority]);
 
-  // 監聽網路狀態變化，自動重試（僅當 autoRetry 開啟時）
+  // 監聽網路狀態變化：僅當網路從離線恢復時自動重試一次
+  const hasAutoRetriedRef = useRef(false);
+  
   useEffect(() => {
-    if (!autoRetry) return;
+    if (!autoRetryOnReconnect) return;
     const prevSpeed = prevNetworkSpeedRef.current;
 
-    // 網路從 offline/slow 恢復到 fast 時，自動重試失敗的圖片
-    if (hasError && !isRetrying && retryCount < maxRetries) {
-      if (
-        (prevSpeed === 'offline' && networkSpeed !== 'offline') ||
-        (prevSpeed === 'slow' && networkSpeed === 'fast')
-      ) {
-        handleRetry();
-      }
+    // 網路從 offline 恢復到 online 時，自動重試一次（且尚未自動重試過）
+    if (
+      hasError &&
+      !isRetrying &&
+      !hasAutoRetriedRef.current &&
+      prevSpeed === 'offline' &&
+      networkSpeed !== 'offline'
+    ) {
+      hasAutoRetriedRef.current = true;
+      handleRetry();
     }
 
     prevNetworkSpeedRef.current = networkSpeed;
-  }, [networkSpeed, hasError, isRetrying, retryCount, maxRetries, autoRetry]);
+  }, [networkSpeed, hasError, isRetrying, autoRetryOnReconnect]);
 
   // 清理重試計時器
   useEffect(() => {
@@ -211,17 +213,8 @@ export const OptimizedImage = ({
       return;
     }
     
-    // 如果開啟自動重試且還有重試次數，排入自動重試
-    if (autoRetry && retryCount < maxRetries) {
-      setIsRetrying(true);
-
-      retryTimeoutRef.current = setTimeout(() => {
-        handleRetry();
-      }, retryDelay);
-    } else {
-      // 否則直接顯示錯誤狀態（使用者可手動重試）
-      setHasError(true);
-    }
+    // 載入失敗直接顯示錯誤狀態（使用者可手動重試，或等待網路恢復自動重試一次）
+    setHasError(true);
   };
 
   const handleRetry = () => {
