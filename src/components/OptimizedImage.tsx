@@ -61,6 +61,7 @@ export const OptimizedImage = ({
   const [optimalSrc, setOptimalSrc] = useState(src);
   const [generatedSrcSet, setGeneratedSrcSet] = useState<string>("");
   const [generatedSrcSetFormat, setGeneratedSrcSetFormat] = useState<'auto' | 'webp'>('auto');
+  const [useFallbackUrl, setUseFallbackUrl] = useState(false); // 當 CDN 轉換失敗時回退到原始 URL
   const imgRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const { speed: networkSpeed } = useNetworkStatus();
@@ -71,10 +72,18 @@ export const OptimizedImage = ({
     if (!imgRef.current) return;
 
     const updateOptimalSize = () => {
+      // 如果已回退到原始 URL，不再嘗試 CDN 轉換
+      if (useFallbackUrl) {
+        setOptimalSrc(src);
+        setGeneratedSrcSet("");
+        setGeneratedSrcSetFormat('auto');
+        return;
+      }
+
       const containerWidth = imgRef.current?.offsetWidth || parseInt(width);
       const optimalWidth = responsive ? calculateOptimalImageSize(containerWidth) : parseInt(width);
       const optimalHeight = responsive ? Math.round((optimalWidth * parseInt(height)) / parseInt(width)) : parseInt(height);
-      
+
       // 根據網路速度和瀏覽器支援調整圖片品質和格式
       let quality = 85;
 
@@ -83,15 +92,15 @@ export const OptimizedImage = ({
       let format: ImageFormat = bestFormat === 'avif' ? 'webp' : bestFormat;
 
       if (networkSpeed === 'slow') {
-        quality = 60; // 慢速網路降低品質到 60
+        quality = 60;
         format = 'webp';
       } else if (networkSpeed === 'offline') {
-        quality = 40; // 離線時使用極低品質
+        quality = 40;
         format = 'webp';
       }
 
       const srcSetFormat: 'auto' | 'webp' = format === 'webp' ? 'webp' : 'auto';
-      
+
       // 應用 CDN 轉換
       if (useCDN) {
         const cdnUrl = getCDNUrl(src, optimalWidth, optimalHeight, quality, format);
@@ -107,6 +116,11 @@ export const OptimizedImage = ({
           setGeneratedSrcSetFormat('auto');
           setGeneratedSrcSet("");
         }
+      } else {
+        setOptimalSrc(src);
+        setGeneratedSrcSetFormat('auto');
+        setGeneratedSrcSet("");
+      }
     };
 
     updateOptimalSize();
@@ -122,7 +136,7 @@ export const OptimizedImage = ({
         resizeObserver.disconnect();
       };
     }
-  }, [src, width, height, responsive, useCDN, networkSpeed, autoSrcSet, imageType, srcSet]);
+  }, [src, width, height, responsive, useCDN, networkSpeed, autoSrcSet, imageType, srcSet, useFallbackUrl]);
 
   useEffect(() => {
     if (priority) {
@@ -187,6 +201,7 @@ export const OptimizedImage = ({
     setIsRetrying(false);
     setRetryCount(0);
     hasAutoRetriedRef.current = false;
+    // 不重置 useFallbackUrl，保留回退狀態避免再次嘗試失敗的 CDN
     setTimeout(() => {
       setShowBlur(false);
     }, 300);
@@ -194,19 +209,28 @@ export const OptimizedImage = ({
   };
 
   const handleError = () => {
-    setIsLoaded(true);
-    setShowBlur(false);
     setIsRetrying(false);
     onError?.();
-    
+
+    // 如果正在使用 CDN 轉換 URL（render/image），嘗試回退到原始 URL
+    if (!useFallbackUrl && optimalSrc.includes('/render/image/')) {
+      console.warn('[OptimizedImage] CDN transform failed, falling back to original URL');
+      setUseFallbackUrl(true);
+      setIsLoaded(false);
+      return;
+    }
+
     // 如果有後備圖片且還沒嘗試過，使用後備圖片
     if (fallbackSrc && optimalSrc !== fallbackSrc && retryCount === 0) {
       setOptimalSrc(fallbackSrc);
       setRetryCount(retryCount + 1);
+      setIsLoaded(false);
       return;
     }
-    
+
     // 載入失敗直接顯示錯誤狀態（使用者可手動重試，或等待網路恢復自動重試一次）
+    setIsLoaded(true);
+    setShowBlur(false);
     setHasError(true);
   };
 
