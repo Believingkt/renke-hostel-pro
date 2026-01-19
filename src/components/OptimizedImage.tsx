@@ -60,9 +60,9 @@ export const OptimizedImage = ({
   const [isRetrying, setIsRetrying] = useState(false);
   const [optimalSrc, setOptimalSrc] = useState(src);
   const [generatedSrcSet, setGeneratedSrcSet] = useState<string>("");
+  const [generatedSrcSetFormat, setGeneratedSrcSetFormat] = useState<'auto' | 'webp'>('auto');
   const imgRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
-  const retryTimeoutRef = useRef<NodeJS.Timeout>();
   const { speed: networkSpeed } = useNetworkStatus();
   const prevNetworkSpeedRef = useRef(networkSpeed);
 
@@ -77,36 +77,36 @@ export const OptimizedImage = ({
       
       // 根據網路速度和瀏覽器支援調整圖片品質和格式
       let quality = 85;
-      let format: ImageFormat = getBestFormatSync(); // 自動選擇最佳格式
-      
+
+      const bestFormat = getBestFormatSync();
+      // 目前後端圖片轉換僅穩定支援 WebP，因此即使瀏覽器支援 AVIF 也先回退為 WebP
+      let format: ImageFormat = bestFormat === 'avif' ? 'webp' : bestFormat;
+
       if (networkSpeed === 'slow') {
         quality = 60; // 慢速網路降低品質到 60
-        // 慢速網路優先使用 WebP（檔案較小，解碼較快）
         format = 'webp';
       } else if (networkSpeed === 'offline') {
         quality = 40; // 離線時使用極低品質
         format = 'webp';
-      } else {
-        // 正常網路：AVIF 可以用更低品質達到同等視覺效果
-        if (format === 'avif') {
-          quality = 80;
-        }
       }
+
+      const srcSetFormat: 'auto' | 'webp' = format === 'webp' ? 'webp' : 'auto';
       
       // 應用 CDN 轉換
       if (useCDN) {
         const cdnUrl = getCDNUrl(src, optimalWidth, optimalHeight, quality, format);
         setOptimalSrc(cdnUrl);
-        
+
         // 自動生成響應式 srcset
         if (autoSrcSet && !srcSet) {
           const widths = STANDARD_RESPONSIVE_WIDTHS[imageType];
           const responsiveSrcSet = generateResponsiveSrcSet(src, widths, quality, format);
+          setGeneratedSrcSetFormat(srcSetFormat);
           setGeneratedSrcSet(responsiveSrcSet);
+        } else {
+          setGeneratedSrcSetFormat('auto');
+          setGeneratedSrcSet("");
         }
-      } else {
-        setOptimalSrc(src);
-      }
     };
 
     updateOptimalSize();
@@ -180,20 +180,13 @@ export const OptimizedImage = ({
     prevNetworkSpeedRef.current = networkSpeed;
   }, [networkSpeed, hasError, isRetrying, autoRetryOnReconnect]);
 
-  // 清理重試計時器
-  useEffect(() => {
-    return () => {
-      if (retryTimeoutRef.current) {
-        clearTimeout(retryTimeoutRef.current);
-      }
-    };
-  }, []);
 
   const handleLoad = () => {
     setIsLoaded(true);
     setHasError(false);
     setIsRetrying(false);
     setRetryCount(0);
+    hasAutoRetriedRef.current = false;
     setTimeout(() => {
       setShowBlur(false);
     }, 300);
@@ -241,8 +234,16 @@ export const OptimizedImage = ({
       const optimalHeight = responsive ? Math.round((optimalWidth * parseInt(height)) / parseInt(width)) : parseInt(height);
       
       let quality = 85;
-      let format: 'auto' | 'webp' | 'avif' | 'jpg' | 'png' = 'auto';
-      
+      const bestFormat = getBestFormatSync();
+      let format: 'auto' | 'webp' | 'jpg' | 'png' =
+        bestFormat === 'webp' || bestFormat === 'avif'
+          ? 'webp'
+          : bestFormat === 'png'
+            ? 'png'
+            : bestFormat === 'jpg'
+              ? 'jpg'
+              : 'auto';
+
       if (networkSpeed === 'slow') {
         quality = 60;
         format = 'webp';
@@ -318,27 +319,16 @@ export const OptimizedImage = ({
       {/* 主圖片 */}
       {isInView && !hasError && !isRetrying && (
         <picture>
-          {/* 使用生成的 srcSet 或提供的 srcSet */}
-          {(generatedSrcSet || srcSet) && (
-            <>
-              <source 
-                type="image/webp" 
-                srcSet={generatedSrcSet || srcSet} 
-                sizes={sizes} 
-              />
-              <source 
-                type="image/avif" 
-                srcSet={generatedSrcSet || srcSet} 
-                sizes={sizes} 
-              />
-            </>
+          {/* 使用生成的 srcSet（僅在確認為 WebP 時才提供 <source type>，避免型別與實際格式不一致） */}
+          {!srcSet && generatedSrcSet && generatedSrcSetFormat === 'webp' && (
+            <source type="image/webp" srcSet={generatedSrcSet} sizes={sizes} />
           )}
           
           {/* 回退到原始圖片 */}
           <img
             ref={imageRef}
             src={optimalSrc}
-            srcSet={generatedSrcSet || srcSet}
+            srcSet={srcSet || generatedSrcSet || undefined}
             alt={alt}
             className={`${className} ${
               isLoaded 
