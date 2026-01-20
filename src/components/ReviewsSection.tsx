@@ -67,7 +67,7 @@ const ReviewsSection = ({ accommodationId }: ReviewsSectionProps) => {
   // 如果沒有評價，顯示空值佔位符
   if (reviews.length === 0) {
     return (
-      <section id="reviews" className="py-12 md:py-16 lg:py-20 bg-background">
+      <section id="reviews" className="py-12 md:py-16 lg:py-20 bg-secondary/20">
         <div className="container mx-auto px-4 md:px-6">
           <div className="max-w-lg mx-auto text-center">
             <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground/40">
