@@ -170,11 +170,10 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Verify discount code exists AND API key matches
-    // Use explicit column selection to avoid exposing sensitive data
+    // Verify discount code exists (without sensitive data - api_key is now in secrets table)
     const { data: discountData, error: discountError } = await supabase
       .from('discount_codes')
-      .select('id, code, name, discount_type, discount_value, used_count, usage_limit, is_active, commission_rate, api_key')
+      .select('id, code, name, discount_type, discount_value, used_count, usage_limit, is_active, commission_rate')
       .eq('code', discountCode.toUpperCase())
       .single();
 
@@ -188,8 +187,21 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify API key matches the discount code's API key
-    if (!discountData.api_key) {
+    // Fetch API key from the secure secrets table
+    const { data: secrets, error: secretsError } = await supabase
+      .from('discount_code_secrets')
+      .select('api_key')
+      .eq('discount_code_id', discountData.id)
+      .single();
+
+    if (secretsError) {
+      console.error('[KOL-API] Error fetching secrets:', secretsError);
+    }
+
+    const storedApiKey = secrets?.api_key;
+
+    // Verify API key matches
+    if (!storedApiKey) {
       console.log('[KOL-API] No API key configured for discount code:', discountCode);
       // Record failed attempt for enumeration protection
       recordFailedAttempt(discountCode);
@@ -199,7 +211,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (discountData.api_key !== apiKey) {
+    if (storedApiKey !== apiKey) {
       console.log('[KOL-API] Invalid API key attempt for code:', discountCode);
       // Record failed attempt for enumeration protection
       recordFailedAttempt(discountCode);

@@ -708,6 +708,51 @@ export type Database = {
           },
         ]
       }
+      discount_code_secrets: {
+        Row: {
+          api_key: string | null
+          created_at: string
+          discount_code_id: string
+          id: string
+          updated_at: string
+          webhook_secret: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          api_key?: string | null
+          created_at?: string
+          discount_code_id: string
+          id?: string
+          updated_at?: string
+          webhook_secret?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          api_key?: string | null
+          created_at?: string
+          discount_code_id?: string
+          id?: string
+          updated_at?: string
+          webhook_secret?: string | null
+          webhook_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discount_code_secrets_discount_code_id_fkey"
+            columns: ["discount_code_id"]
+            isOneToOne: true
+            referencedRelation: "discount_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discount_code_secrets_discount_code_id_fkey"
+            columns: ["discount_code_id"]
+            isOneToOne: true
+            referencedRelation: "discount_codes_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       discount_codes: {
         Row: {
           accommodation_id: string
@@ -1899,6 +1944,14 @@ export type Database = {
           blocked_by_room_name: string
           date_value: string
           is_blocked: boolean
+        }[]
+      }
+      get_discount_code_secrets: {
+        Args: { p_discount_code_id: string }
+        Returns: {
+          api_key: string
+          webhook_secret: string
+          webhook_url: string
         }[]
       }
       get_public_discount_code_info:
