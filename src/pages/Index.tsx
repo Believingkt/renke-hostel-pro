@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useSubdomain } from "@/hooks/use-subdomain";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { useAccommodationCache } from "@/hooks/use-accommodation-cache";
@@ -21,8 +22,14 @@ import FaqSection from "@/components/FaqSection";
 import Footer from "@/components/Footer";
 
 const Index = () => {
-  const { accommodationId, isLoading: subdomainLoading, error: subdomainError } = useSubdomain();
+  const [searchParams] = useSearchParams();
+  const urlAccId = searchParams.get('accId');
+  
+  const { accommodationId: subdomainAccId, isLoading: subdomainLoading, error: subdomainError } = useSubdomain();
   const { setCurrentAccommodationId } = useAccommodation();
+  
+  // 優先使用 URL 中的 accId，否則使用 subdomain 解析結果
+  const accommodationId = urlAccId || subdomainAccId;
   
   // 使用快取 hook 管理資料
   const {
@@ -48,14 +55,15 @@ const Index = () => {
     }
   }, [info?.og_title, info?.name]);
 
-  // 同步 subdomain 解析的 accommodationId 到 AccommodationContext
+  // 同步 accommodationId 到 AccommodationContext（不再覆蓋 URL 參數）
   useEffect(() => {
     if (accommodationId) {
       setCurrentAccommodationId(accommodationId);
     }
   }, [accommodationId, setCurrentAccommodationId]);
 
-  if (subdomainLoading || isLoading) {
+  // 如果有 URL accId，不需等待 subdomain 解析完成
+  if ((!urlAccId && subdomainLoading) || isLoading) {
     return <div className="min-h-screen" />;
   }
 
