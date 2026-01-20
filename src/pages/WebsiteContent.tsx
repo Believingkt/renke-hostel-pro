@@ -1869,79 +1869,106 @@ const WebsiteContent = () => {
       return;
     }
 
+    const files = Array.from(event.target.files);
+    const totalFiles = files.length;
+    
     setUploadingPhoto(true);
+    
     try {
-      const file = event.target.files[0];
-
-      // 驗證文件
-      const validation = validateImageFile(file, 10 * 1024 * 1024); // 10MB 上限
-      if (!validation.valid) {
-        toast.error(validation.error);
-        event.target.value = '';
-        setUploadingPhoto(false);
-        return;
+      // 驗證所有文件
+      for (const file of files) {
+        const validation = validateImageFile(file, 10 * 1024 * 1024); // 10MB 上限
+        if (!validation.valid) {
+          toast.error(`${file.name}: ${validation.error}`);
+          event.target.value = '';
+          setUploadingPhoto(false);
+          return;
+        }
       }
 
-      // 壓縮圖片
-      toast.info('正在優化圖片...');
-      const { blob, originalSize, compressedSize, compressionRatio } = await compressImage(file, {
-        maxWidth: 1600,
-        maxHeight: 1200,
-        quality: 0.85
-      });
-
-      // 顯示壓縮信息
-      if (compressionRatio > 5) {
-        toast.success(
-          `圖片已優化為 WebP 格式！\n原始：${formatFileSize(originalSize)} → 優化後：${formatFileSize(compressedSize)}\n節省：${compressionRatio.toFixed(1)}%`,
-          { duration: 4000 }
-        );
-      }
-
-      const fileName = `gallery-${Date.now()}.webp`;
-      const filePath = `${accommodationId}/${fileName}`;
-
-      const { error: uploadError, data } = await supabase.storage
-        .from('room-photos')
-        .upload(filePath, blob, {
-          contentType: 'image/webp',
-          cacheControl: '3600'
-        });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('room-photos')
-        .getPublicUrl(filePath);
-
-      const maxOrder = photos.length > 0 
+      toast.info(`正在優化 ${totalFiles} 張圖片...`);
+      
+      const uploadedPhotos: typeof photos = [];
+      let currentMaxOrder = photos.length > 0 
         ? Math.max(...photos.map(p => p.display_order)) 
         : 0;
+      
+      let successCount = 0;
+      let failCount = 0;
 
-      const { error: insertError, data: newPhoto } = await supabase
-        .from('accommodation_photos')
-        .insert([
-          {
-            accommodation_id: accommodationId,
-            photo_url: publicUrl,
-            display_order: maxOrder + 1,
-            photo_type: 'gallery'
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        
+        try {
+          // 壓縮圖片
+          const { blob, originalSize, compressedSize, compressionRatio } = await compressImage(file, {
+            maxWidth: 1600,
+            maxHeight: 1200,
+            quality: 0.85
+          });
+
+          const fileName = `gallery-${Date.now()}-${i}.webp`;
+          const filePath = `${accommodationId}/${fileName}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from('room-photos')
+            .upload(filePath, blob, {
+              contentType: 'image/webp',
+              cacheControl: '3600'
+            });
+
+          if (uploadError) throw uploadError;
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('room-photos')
+            .getPublicUrl(filePath);
+
+          currentMaxOrder++;
+
+          const { error: insertError, data: newPhoto } = await supabase
+            .from('accommodation_photos')
+            .insert([
+              {
+                accommodation_id: accommodationId,
+                photo_url: publicUrl,
+                display_order: currentMaxOrder,
+                photo_type: 'gallery'
+              }
+            ])
+            .select()
+            .single();
+
+          if (insertError) throw insertError;
+
+          uploadedPhotos.push(newPhoto);
+          successCount++;
+        } catch (error) {
+          failCount++;
+          if (import.meta.env.DEV) {
+            console.error(`Error uploading photo ${file.name}:`, error);
           }
-        ])
-        .select()
-        .single();
+        }
+      }
 
-      if (insertError) throw insertError;
+      if (uploadedPhotos.length > 0) {
+        setPhotos([...photos, ...uploadedPhotos]);
+      }
 
-      setPhotos([...photos, newPhoto]);
-      toast.success('照片已上傳');
+      if (successCount > 0 && failCount === 0) {
+        toast.success(`已成功上傳 ${successCount} 張照片`);
+      } else if (successCount > 0 && failCount > 0) {
+        toast.warning(`已上傳 ${successCount} 張照片，${failCount} 張失敗`);
+      } else {
+        toast.error('所有照片上傳失敗');
+      }
     } catch (error) {
       if (import.meta.env.DEV) {
-        console.error('Error uploading photo:', error);
+        console.error('Error uploading photos:', error);
       }
       toast.error('上傳失敗，請稍後再試');
     } finally {
       setUploadingPhoto(false);
+      event.target.value = '';
     }
   };
 
@@ -3091,6 +3118,7 @@ const WebsiteContent = () => {
             id="photo-upload"
             type="file"
             accept="image/*"
+            multiple
             onChange={handlePhotoUpload}
             className="hidden"
           />
