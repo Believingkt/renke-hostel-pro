@@ -104,22 +104,36 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
               </CardContent>
             </Card>
 
-            <Card className="group hover:shadow-lg transition-all duration-300 border border-border/50 bg-card md:col-span-2 lg:col-span-1">
-              <CardContent className="p-5 md:p-6 lg:p-6">
-                <div className="flex items-center gap-2.5 mb-3 md:mb-4">
-                  <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <FileText className="h-5 w-5 md:h-5 md:w-5 lg:h-6 lg:w-6 text-primary" />
+            {hasCancellationPolicy && (
+              <Card className="group hover:shadow-lg transition-all duration-300 border border-border/50 bg-card flex flex-col">
+                <CardContent className="p-5 md:p-6 flex flex-col flex-1">
+                  <div className="flex items-center gap-2.5 mb-3 md:mb-4">
+                    <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                      <FileText className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+                    </div>
+                    <h3 className="font-semibold text-base md:text-lg">取消政策</h3>
                   </div>
-                  <h3 className="font-semibold text-base md:text-base lg:text-lg">取消政策</h3>
-                </div>
-                <div className="space-y-0.5 text-sm md:text-sm text-muted-foreground">
-                  <div 
-                    className="py-1.5 leading-relaxed prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={createSanitizedHtml(bookingSettings?.cancellation_policy)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="flex-1 flex flex-col">
+                    <div className="space-y-0.5 text-sm md:text-sm text-muted-foreground overflow-hidden" style={{ maxHeight: "180px" }}>
+                      <div 
+                        className="prose prose-sm max-w-none"
+                        dangerouslySetInnerHTML={createSanitizedHtml(bookingSettings.cancellation_policy)}
+                      />
+                    </div>
+                    {bookingSettings.cancellation_policy && bookingSettings.cancellation_policy.length > 200 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-3 w-full text-foreground hover:bg-primary hover:text-primary-foreground border-primary/20"
+                        onClick={() => openDialog("取消政策", bookingSettings.cancellation_policy)}
+                      >
+                        查看完整內容
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             <Card className="group hover:shadow-lg transition-all duration-300 border border-border/50 bg-card flex flex-col">
               <CardContent className="p-5 md:p-6 flex flex-col flex-1">
