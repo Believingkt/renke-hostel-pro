@@ -10,6 +10,7 @@ import { useFormDraft } from "@/hooks/use-form-draft";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { headerFooterSchema, validateField } from "@/utils/websiteValidation";
+import { invalidateAccommodationCache } from "@/hooks/use-accommodation-cache";
 
 interface HeaderFooterSectionProps {
   accommodationId: string;
@@ -157,6 +158,8 @@ export const HeaderFooterSection = ({
       // 清除草稿
       clearDraft();
 
+      // 清除前台快取
+      invalidateAccommodationCache(accommodationId);
       toast.success('網頁資訊已儲存');
       setErrors({});
       onUpdate();

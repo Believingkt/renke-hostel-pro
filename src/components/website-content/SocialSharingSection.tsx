@@ -11,6 +11,7 @@ import { useFormDraft } from "@/hooks/use-form-draft";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { socialSharingSchema } from "@/utils/websiteValidation";
+import { invalidateAccommodationCache } from "@/hooks/use-accommodation-cache";
 
 interface SocialSharingSectionProps {
   accommodationId: string;
@@ -110,6 +111,8 @@ export const SocialSharingSection = ({
       // 清除草稿
       clearDraft();
 
+      // 清除前台快取
+      invalidateAccommodationCache(accommodationId);
       toast.success('社群分享資訊已儲存');
       setErrors({});
       onUpdate();
