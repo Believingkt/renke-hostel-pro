@@ -532,6 +532,10 @@ const WebsiteContent = () => {
     try {
       // 使用傳入的 ID 或從 context 取得的 ID
       const accIdToUse = targetAccommodationId || currentAccommodationId;
+      if (!accIdToUse) {
+        toast.error('請先選擇旅宿');
+        return;
+      }
       
       // 構建查詢
       let query = supabase
@@ -762,7 +766,8 @@ const WebsiteContent = () => {
 
   // 初始載入資料和當 currentAccommodationId 變化時重新載入
   useEffect(() => {
-    loadData(currentAccommodationId || undefined);
+    if (!currentAccommodationId) return;
+    loadData(currentAccommodationId);
   }, [currentAccommodationId]);
 
   // 當切換 tab 時重新載入對應資料
