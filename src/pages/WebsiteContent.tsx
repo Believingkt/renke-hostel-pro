@@ -478,6 +478,7 @@ const WebsiteContent = () => {
   // Gallery state
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
 
   // Hero carousel state
   const [heroPhotos, setHeroPhotos] = useState<Photo[]>([]);
@@ -1873,6 +1874,7 @@ const WebsiteContent = () => {
     const totalFiles = files.length;
     
     setUploadingPhoto(true);
+    setUploadProgress({ current: 0, total: totalFiles });
     
     try {
       // 驗證所有文件
@@ -1882,11 +1884,10 @@ const WebsiteContent = () => {
           toast.error(`${file.name}: ${validation.error}`);
           event.target.value = '';
           setUploadingPhoto(false);
+          setUploadProgress({ current: 0, total: 0 });
           return;
         }
       }
-
-      toast.info(`正在優化 ${totalFiles} 張圖片...`);
       
       const uploadedPhotos: typeof photos = [];
       let currentMaxOrder = photos.length > 0 
@@ -1898,6 +1899,7 @@ const WebsiteContent = () => {
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
+        setUploadProgress({ current: i + 1, total: totalFiles });
         
         try {
           // 壓縮圖片
@@ -1968,6 +1970,7 @@ const WebsiteContent = () => {
       toast.error('上傳失敗，請稍後再試');
     } finally {
       setUploadingPhoto(false);
+      setUploadProgress({ current: 0, total: 0 });
       event.target.value = '';
     }
   };
@@ -3110,7 +3113,11 @@ const WebsiteContent = () => {
                 className="gap-2 h-11 sm:h-10 touch-manipulation"
               >
                 <Upload className="h-4 w-4" />
-                {uploadingPhoto ? '上傳中...' : '上傳照片'}
+                {uploadingPhoto 
+                  ? uploadProgress.total > 0 
+                    ? `上傳中 ${uploadProgress.current}/${uploadProgress.total}` 
+                    : '上傳中...'
+                  : '上傳照片'}
               </Button>
             }
           />
