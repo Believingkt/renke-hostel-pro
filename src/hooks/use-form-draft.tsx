@@ -39,21 +39,51 @@ export function useFormDraft<T extends Record<string, any>>({
     initialDataRef.current = initialData;
   }, [initialData]);
 
-  // 檢查是否有草稿
+  // 檢查草稿是否與初始資料有實質差異
+  const hasMeaningfulDifference = useCallback((draftData: T, currentInitialData: T): boolean => {
+    return Object.keys(draftData).some(key => {
+      const draftValue = draftData[key];
+      const initialValue = currentInitialData[key];
+      
+      // 處理不同類型的比較
+      if (typeof draftValue === 'string' && typeof initialValue === 'string') {
+        const draftTrimmed = draftValue.trim();
+        const initialTrimmed = initialValue.trim();
+        // 計算變更長度，必須超過閾值才算有差異
+        const changeLength = Math.abs(draftTrimmed.length - initialTrimmed.length);
+        if (draftTrimmed !== initialTrimmed && changeLength >= minChangeThreshold) {
+          return true;
+        }
+        return false;
+      }
+      if (Array.isArray(draftValue) && Array.isArray(initialValue)) {
+        return JSON.stringify(draftValue) !== JSON.stringify(initialValue);
+      }
+      return draftValue !== initialValue;
+    });
+  }, [minChangeThreshold]);
+
+  // 檢查是否有草稿（需要與初始資料比較）
   useEffect(() => {
     const draft = localStorage.getItem(key);
     if (draft) {
       try {
-        const parsedDraft = JSON.parse(draft);
-        setHasDraft(true);
-        // 不自動恢復，讓用戶決定
+        const parsedDraft = JSON.parse(draft) as T;
+        // 只有當草稿與初始資料有實質差異時才顯示恢復提示
+        if (hasMeaningfulDifference(parsedDraft, initialData)) {
+          setHasDraft(true);
+        } else {
+          // 草稿與初始資料相同，清除無效草稿
+          localStorage.removeItem(key);
+          setHasDraft(false);
+        }
       } catch (error) {
         console.error('Failed to parse draft:', error);
         localStorage.removeItem(key);
       }
     }
     isInitialMount.current = false;
-  }, [key]);
+  }, [key, initialData, hasMeaningfulDifference]);
 
   // 自動儲存草稿（優化版）
   useEffect(() => {
