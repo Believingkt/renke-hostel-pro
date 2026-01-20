@@ -917,25 +917,25 @@ const WebsiteContent = () => {
               .eq("accommodation_id", accommodationId)
               .maybeSingle();
 
-            if (bookingSettings) {
-              const { data: checkInNotice } = await supabase
-                .from("accommodation_info")
-                .select("check_in_notice")
-                .eq("id", accommodationId)
-                .maybeSingle();
+            // 同時載入 check_in_notice（不論 bookingSettings 是否存在）
+            const { data: checkInNoticeData } = await supabase
+              .from("accommodation_info")
+              .select("check_in_notice")
+              .eq("id", accommodationId)
+              .maybeSingle();
 
-              setBookingInfo({
-                checkInTime: bookingSettings.check_in_time || "15:00",
-                checkOutTime: bookingSettings.check_out_time || "11:00",
-                paymentMethods: Array.isArray(bookingSettings.payment_methods) 
-                  ? (bookingSettings.payment_methods as string[])
-                  : [],
-                cancellationPolicy: bookingSettings.cancellation_policy || "",
-                checkInNotice: checkInNotice?.check_in_notice || "",
-                petPolicy: bookingSettings.pet_policy || "",
-                otherNotes: bookingSettings.other_notes || ""
-              });
-            }
+            // 即使 bookingSettings 為 null 也要初始化表單（使用預設值）
+            setBookingInfo({
+              checkInTime: bookingSettings?.check_in_time || "15:00",
+              checkOutTime: bookingSettings?.check_out_time || "11:00",
+              paymentMethods: Array.isArray(bookingSettings?.payment_methods) 
+                ? (bookingSettings.payment_methods as string[])
+                : [],
+              cancellationPolicy: bookingSettings?.cancellation_policy || "",
+              checkInNotice: checkInNoticeData?.check_in_notice || "",
+              petPolicy: bookingSettings?.pet_policy || "",
+              otherNotes: bookingSettings?.other_notes || ""
+            });
             break;
 
           case 'faq':
@@ -1109,10 +1109,11 @@ const WebsiteContent = () => {
 
     setIsSaving(true);
     try {
-      // 更新 booking_settings
+      // 使用 upsert 確保無資料時會建立新資料列
       const { error: bookingError } = await supabase
         .from("booking_settings")
-        .update({
+        .upsert({
+          accommodation_id: accommodationId,
           check_in_time: bookingInfo.checkInTime,
           check_out_time: bookingInfo.checkOutTime,
           payment_methods: bookingInfo.paymentMethods,
@@ -1120,8 +1121,9 @@ const WebsiteContent = () => {
           pet_policy: bookingInfo.petPolicy,
           other_notes: bookingInfo.otherNotes,
           updated_at: new Date().toISOString()
-        })
-        .eq("accommodation_id", accommodationId);
+        }, {
+          onConflict: 'accommodation_id'
+        });
 
       if (bookingError) throw bookingError;
 
