@@ -4,23 +4,10 @@ import { useSubdomain } from "@/hooks/use-subdomain";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import Navigation from "@/components/Navigation";
 import HeroSection from "@/components/HeroSection";
-import { FrontendSkeleton } from "@/components/skeletons/FrontendSkeleton";
-import {
-  AboutSkeleton,
-  RoomsSkeleton,
-  FacilitiesSkeleton,
-  PhotoGallerySkeleton,
-  LocationSkeleton,
-  BookingInfoSkeleton,
-  ReviewsSkeleton,
-  FaqSkeleton,
-  FooterSkeleton,
-} from "@/components/skeletons/FrontendSkeleton";
 import { StructuredData } from "@/components/StructuredData";
 import { SEOHead } from "@/components/SEOHead";
 import { DevAccommodationSwitcher } from "@/components/DevAccommodationSwitcher";
 import { getThemeClass, cacheAccommodationTheme } from "@/constants/themes";
-import { LazySection } from "@/components/LazySection";
 
 // NOTE: 為避免自訂網域上 chunk 快取不一致造成的載入失敗，首屏與區塊組件改為 eager import。
 import AboutSection from "@/components/AboutSection";
@@ -201,7 +188,7 @@ const Index = () => {
   }, [accommodationId, subdomainLoading]);
 
   if (subdomainLoading) {
-    return <FrontendSkeleton />;
+    return <div className="min-h-screen" />;
   }
 
   if (subdomainError) {
@@ -241,7 +228,7 @@ const Index = () => {
 
   // 只等待數據載入完成即顯示
   if (!data) {
-    return <FrontendSkeleton />;
+    return <div className="min-h-screen" />;
   }
 
   return (
@@ -290,56 +277,31 @@ const Index = () => {
         />
         
         {/* 非首屏內容 - 懶加載（viewport-based，不使用 Suspense / dynamic import） */}
-        <LazySection fallback={<AboutSkeleton />} minHeight="400px">
-          <AboutSection description={data.info.description} accommodationId={data.info.id} />
-        </LazySection>
-
-        <LazySection fallback={<RoomsSkeleton />} minHeight="600px">
-          <RoomsSection roomTypes={data.roomTypes || []} />
-        </LazySection>
-
-        <LazySection fallback={<FacilitiesSkeleton />} minHeight="400px">
-          <FacilitiesSection facilities={data.facilities || []} />
-        </LazySection>
-
-        <LazySection fallback={<PhotoGallerySkeleton />} minHeight="500px">
-          <PhotoGallerySection photos={(data.photos || []).filter((p) => p.photo_type !== "hero")} />
-        </LazySection>
-
-        <LazySection fallback={<LocationSkeleton />} minHeight="500px">
-          <LocationSection address={data.info.address} locationInfo={data.locationInfo} />
-        </LazySection>
-
-        <LazySection fallback={<BookingInfoSkeleton />} minHeight="400px">
-          <BookingInfoSection
-            bookingSettings={data.bookingSettings}
-            checkInNotice={data.info.check_in_notice}
-          />
-        </LazySection>
-
-        <LazySection fallback={<ReviewsSkeleton />} minHeight="400px">
-          <ReviewsSection accommodationId={data.info.id} />
-        </LazySection>
-
-        <LazySection fallback={<FaqSkeleton />} minHeight="300px">
-          <FaqSection />
-        </LazySection>
+        <AboutSection description={data.info.description} accommodationId={data.info.id} />
+        <RoomsSection roomTypes={data.roomTypes || []} />
+        <FacilitiesSection facilities={data.facilities || []} />
+        <PhotoGallerySection photos={(data.photos || []).filter((p) => p.photo_type !== "hero")} />
+        <LocationSection address={data.info.address} locationInfo={data.locationInfo} />
+        <BookingInfoSection
+          bookingSettings={data.bookingSettings}
+          checkInNotice={data.info.check_in_notice}
+        />
+        <ReviewsSection accommodationId={data.info.id} />
+        <FaqSection />
       </main>
 
-      <LazySection fallback={<FooterSkeleton />} minHeight="200px">
-        <Footer
-          accommodationName={data.info.name}
-          address={data.info.address}
-          phone={data.info.phone}
-          email={data.info.email}
-          lineId={data.info.line_id}
-          facebookUrl={data.info.facebook_url}
-          instagramUrl={data.info.instagram_url}
-          threadsUrl={data.info.threads_url}
-          youtubeUrl={data.info.youtube_url}
-          tiktokUrl={data.info.tiktok_url}
-        />
-      </LazySection>
+      <Footer
+        accommodationName={data.info.name}
+        address={data.info.address}
+        phone={data.info.phone}
+        email={data.info.email}
+        lineId={data.info.line_id}
+        facebookUrl={data.info.facebook_url}
+        instagramUrl={data.info.instagram_url}
+        threadsUrl={data.info.threads_url}
+        youtubeUrl={data.info.youtube_url}
+        tiktokUrl={data.info.tiktok_url}
+      />
       
       {/* 開發環境住宿切換器 */}
       <DevAccommodationSwitcher />
