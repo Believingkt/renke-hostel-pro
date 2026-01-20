@@ -111,9 +111,10 @@ Deno.serve(async (req) => {
     if (test_mode && discount_code_id) {
       console.log(`[KOL-Webhook] Test mode for discount code: ${discount_code_id}`);
       
+      // Fetch discount code info (without sensitive data)
       const { data: discountCode, error: dcError } = await supabase
         .from('discount_codes')
-        .select('webhook_url, webhook_secret, webhook_enabled, code, commission_rate, name')
+        .select('id, code, commission_rate, name')
         .eq('id', discount_code_id)
         .single();
 
@@ -124,7 +125,21 @@ Deno.serve(async (req) => {
         );
       }
 
-      if (!discountCode.webhook_enabled || !discountCode.webhook_url) {
+      // Fetch secrets from the secure table
+      const { data: secrets, error: secretsError } = await supabase
+        .from('discount_code_secrets')
+        .select('webhook_url, webhook_secret')
+        .eq('discount_code_id', discount_code_id)
+        .single();
+
+      if (secretsError) {
+        console.error('[KOL-Webhook] Error fetching secrets:', secretsError);
+      }
+
+      const webhookUrl = secrets?.webhook_url;
+      const webhookSecret = secrets?.webhook_secret;
+
+      if (!webhookUrl) {
         return new Response(
           JSON.stringify({ error: 'Webhook 未啟用或未設定 URL' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -152,8 +167,8 @@ Deno.serve(async (req) => {
       };
 
       const result = await sendWebhook(
-        discountCode.webhook_url, 
-        discountCode.webhook_secret, 
+        webhookUrl, 
+        webhookSecret, 
         testPayload
       );
 
@@ -218,10 +233,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get discount code with webhook settings
+    // Get discount code info (without sensitive data)
     const { data: discountCode, error: dcError } = await supabase
       .from('discount_codes')
-      .select('id, webhook_url, webhook_secret, webhook_enabled, commission_rate')
+      .select('id, commission_rate')
       .eq('code', order.discount_code.toUpperCase())
       .single();
 
@@ -233,8 +248,22 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Fetch secrets from the secure table
+    const { data: secrets, error: secretsError } = await supabase
+      .from('discount_code_secrets')
+      .select('webhook_url, webhook_secret')
+      .eq('discount_code_id', discountCode.id)
+      .single();
+
+    if (secretsError) {
+      console.error('[KOL-Webhook] Error fetching secrets:', secretsError);
+    }
+
+    const webhookUrl = secrets?.webhook_url;
+    const webhookSecret = secrets?.webhook_secret;
+
     // Check if webhook is enabled
-    if (!discountCode.webhook_enabled || !discountCode.webhook_url) {
+    if (!webhookUrl) {
       console.log('[KOL-Webhook] Webhook not enabled for this discount code');
       return new Response(
         JSON.stringify({ success: true, message: 'Webhook 未啟用' }),
@@ -272,8 +301,8 @@ Deno.serve(async (req) => {
 
     // Send webhook
     const result = await sendWebhook(
-      discountCode.webhook_url,
-      discountCode.webhook_secret,
+      webhookUrl,
+      webhookSecret,
       payload
     );
 
