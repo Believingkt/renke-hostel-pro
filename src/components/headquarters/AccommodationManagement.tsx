@@ -1,5 +1,6 @@
 import { useState, useMemo, forwardRef, useImperativeHandle, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { invalidateAccommodationCache } from "@/hooks/use-accommodation-cache";
 import { HQAccommodationSkeleton } from "@/components/skeletons/HQSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -414,6 +415,8 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
         details: { updated_fields: Object.keys(data) }
       });
 
+      // 清除前台快取
+      invalidateAccommodationCache(editingAccommodation.id);
       toast.success("民宿資訊已更新");
       setEditingAccommodation(null);
       onRefresh();
@@ -448,6 +451,8 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
         details: { new_status: newStatus }
       });
 
+      // 清除前台快取
+      invalidateAccommodationCache(togglingAccommodation.id);
       toast.success(newStatus ? "民宿已啟用" : "民宿已停用");
       setToggleDialogOpen(false);
       setTogglingAccommodation(null);

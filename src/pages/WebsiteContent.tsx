@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { Globe, Plus, Trash2, Edit2, GripVertical, MapPin, Image as ImageIcon, Upload, Info, Wrench, Package, HelpCircle, Navigation, icons, AlertCircle, BookOpen, Home, Clock } from "lucide-react";
+import { invalidateAccommodationCache } from "@/hooks/use-accommodation-cache";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -1061,6 +1062,8 @@ const WebsiteContent = () => {
         setPricingTypes(pricing);
       }
 
+      // 清除前台快取
+      if (accommodationId) invalidateAccommodationCache(accommodationId);
       toast.success('設施資料已儲存');
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -1157,6 +1160,8 @@ const WebsiteContent = () => {
         });
       }
 
+      // 清除前台快取
+      if (accommodationId) invalidateAccommodationCache(accommodationId);
       toast.success('訂房須知已儲存');
       setBookingErrors({});
     } catch (error) {
@@ -1555,6 +1560,8 @@ const WebsiteContent = () => {
         setBasicInfo(prev => ({ ...prev, footer_logo_url: publicUrl }));
       }
 
+      // 清除前台快取
+      if (accommodationId) invalidateAccommodationCache(accommodationId);
       toast.success(`${cropLogoType === 'header' ? '頁首' : '頁尾'} Logo 已上傳`);
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -1829,6 +1836,8 @@ const WebsiteContent = () => {
         document.title = basicInfo.name;
       }
 
+      // 清除前台快取
+      if (accommodationId) invalidateAccommodationCache(accommodationId);
       toast.success('網頁設定已儲存');
     } catch (error) {
       if (import.meta.env.DEV) {
