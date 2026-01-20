@@ -21,6 +21,7 @@ import { ValidatedInput } from "@/components/ui/validated-input";
 import { ValidatedTextarea } from "@/components/ui/validated-textarea";
 import { ValidatedNumberInput } from "@/components/ui/validated-number-input";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { TimePicker, CheckOutTimePicker } from "@/components/ui/time-picker";
 import { compressImage, validateImageFile, formatFileSize } from "@/utils/imageCompression";
 import {
   DndContext,
@@ -3202,13 +3203,13 @@ const WebsiteContent = () => {
                     <Clock className="h-4 w-4 text-primary" />
                     入住時間
                   </Label>
-                  <ValidatedInput
-                    type="time"
+                  <TimePicker
                     value={bookingInfo.checkInTime}
                     error={bookingErrors.check_in_time}
-                    onChange={(value) => setBookingInfo(prev => ({ ...prev, checkInTime: value }))}
-                    onValidate={(value) => validateBookingField("check_in_time", value)}
-                    className="h-12 text-base"
+                    onChange={(value) => {
+                      setBookingInfo(prev => ({ ...prev, checkInTime: value }));
+                      validateBookingField("check_in_time", value);
+                    }}
                   />
                   <p className="text-xs text-muted-foreground">訪客可在此時間之後辦理入住</p>
                 </div>
@@ -3217,13 +3218,13 @@ const WebsiteContent = () => {
                     <Clock className="h-4 w-4 text-primary" />
                     退房時間
                   </Label>
-                  <ValidatedInput
-                    type="time"
+                  <CheckOutTimePicker
                     value={bookingInfo.checkOutTime}
                     error={bookingErrors.check_out_time}
-                    onChange={(value) => setBookingInfo(prev => ({ ...prev, checkOutTime: value }))}
-                    onValidate={(value) => validateBookingField("check_out_time", value)}
-                    className="h-12 text-base"
+                    onChange={(value) => {
+                      setBookingInfo(prev => ({ ...prev, checkOutTime: value }));
+                      validateBookingField("check_out_time", value);
+                    }}
                   />
                   <p className="text-xs text-muted-foreground">訪客須在此時間之前退房</p>
                 </div>
