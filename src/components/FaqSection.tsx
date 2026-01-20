@@ -51,7 +51,7 @@ const FaqSection = () => {
   // 如果沒有 FAQ，顯示空值佔位符
   if (faqs.length === 0) {
     return (
-      <section id="faq" className="py-12 md:py-16 lg:py-20 bg-background">
+      <section id="faq" className="py-12 md:py-16 lg:py-20 bg-secondary/20">
         <div className="container mx-auto px-4 md:px-6">
           <div className="max-w-lg mx-auto text-center">
             <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground/40">
@@ -66,7 +66,7 @@ const FaqSection = () => {
   }
 
   return (
-    <section id="faq" className="py-12 md:py-16 lg:py-20 bg-background">
+    <section id="faq" className="py-12 md:py-16 lg:py-20 bg-secondary/20">
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center mb-10 md:mb-12 lg:mb-16">
           <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-3 lg:mb-4">常見問題</h2>
