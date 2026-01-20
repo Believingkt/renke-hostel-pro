@@ -40,6 +40,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -3129,6 +3130,22 @@ const WebsiteContent = () => {
             onChange={handlePhotoUpload}
             className="hidden"
           />
+          {uploadingPhoto && uploadProgress.total > 0 && (
+            <Card className="border-primary/20 bg-primary/5">
+              <CardContent className="py-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">正在上傳照片...</span>
+                    <span className="font-medium">{uploadProgress.current}/{uploadProgress.total}</span>
+                  </div>
+                  <Progress value={(uploadProgress.current / uploadProgress.total) * 100} className="h-2" />
+                  <p className="text-xs text-muted-foreground">
+                    已完成 {Math.round((uploadProgress.current / uploadProgress.total) * 100)}%
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           <Card>
             <CardContent className="pt-6 space-y-6">
 
