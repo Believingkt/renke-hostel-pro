@@ -1,7 +1,15 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, Car, Bus } from "lucide-react";
 import { createSanitizedHtml } from "@/utils/sanitizeHtml";
 import EmptySectionPlaceholder from "./EmptySectionPlaceholder";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface LocationSectionProps {
   address: string;
@@ -18,7 +26,16 @@ interface LocationSectionProps {
   };
 }
 
+// 景點描述字數閾值
+const ATTRACTION_DESCRIPTION_THRESHOLD = 200;
+
 const LocationSection = ({ address, locationInfo }: LocationSectionProps) => {
+  const [selectedAttraction, setSelectedAttraction] = useState<{
+    name: string;
+    distance: string;
+    description: string;
+  } | null>(null);
+
   // 檢查是否有任何資料設定
   const hasAddress = address && address.trim() !== '';
   const hasLocationDescription = locationInfo?.location_description && locationInfo.location_description.trim() !== '';
@@ -154,21 +171,56 @@ const LocationSection = ({ address, locationInfo }: LocationSectionProps) => {
               <CardContent className="p-5 md:p-6">
                 <h3 className="text-lg md:text-xl font-semibold mb-5 md:mb-6 text-foreground">周邊景點</h3>
                 <div className="grid md:grid-cols-3 gap-6 md:gap-8">
-                  {nearbyAttractions.map((attraction, index) => (
-                    <div key={index}>
-                      <h4 className="font-semibold text-base md:text-lg mb-2 text-foreground">{attraction.name}</h4>
-                      <p className="text-xs md:text-sm text-muted-foreground mb-2">{attraction.distance}</p>
-                      <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
-                        {attraction.description}
-                      </p>
-                    </div>
-                  ))}
+                  {nearbyAttractions.map((attraction, index) => {
+                    const isLongDescription = attraction.description.length > ATTRACTION_DESCRIPTION_THRESHOLD;
+                    const displayDescription = isLongDescription
+                      ? attraction.description.slice(0, ATTRACTION_DESCRIPTION_THRESHOLD) + "..."
+                      : attraction.description;
+
+                    return (
+                      <div key={index} className="flex flex-col">
+                        <h4 className="font-semibold text-base md:text-lg mb-2 text-foreground">{attraction.name}</h4>
+                        <p className="text-xs md:text-sm text-muted-foreground mb-2">{attraction.distance}</p>
+                        <p 
+                          className="text-xs md:text-sm text-muted-foreground leading-relaxed flex-1"
+                          style={{ maxHeight: isLongDescription ? '120px' : 'none', overflow: 'hidden' }}
+                        >
+                          {displayDescription}
+                        </p>
+                        {isLongDescription && (
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="mt-2 p-0 h-auto text-primary hover:text-primary/80 justify-start"
+                            onClick={() => setSelectedAttraction(attraction)}
+                          >
+                            查看完整內容
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
           )}
         </div>
       </div>
+
+      {/* 景點詳情彈窗 */}
+      <Dialog open={!!selectedAttraction} onOpenChange={() => setSelectedAttraction(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl">{selectedAttraction?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">{selectedAttraction?.distance}</p>
+            <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+              {selectedAttraction?.description}
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 };
