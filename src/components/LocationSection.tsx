@@ -189,9 +189,9 @@ const LocationSection = ({ address, locationInfo }: LocationSectionProps) => {
                         </p>
                         {isLongDescription && (
                           <Button
-                            variant="link"
+                            variant="outline"
                             size="sm"
-                            className="mt-2 p-0 h-auto text-primary hover:text-primary/80 justify-start"
+                            className="mt-3 w-full border-border/60 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                             onClick={() => setSelectedAttraction(attraction)}
                           >
                             查看完整內容
