@@ -167,6 +167,7 @@ export type Database = {
           region_2: string | null
           registration_number: string | null
           short_url_alias: string | null
+          show_reviews_section: boolean
           star_rating: string | null
           theme_preset: string | null
           threads_url: string | null
@@ -209,6 +210,7 @@ export type Database = {
           region_2?: string | null
           registration_number?: string | null
           short_url_alias?: string | null
+          show_reviews_section?: boolean
           star_rating?: string | null
           theme_preset?: string | null
           threads_url?: string | null
@@ -251,6 +253,7 @@ export type Database = {
           region_2?: string | null
           registration_number?: string | null
           short_url_alias?: string | null
+          show_reviews_section?: boolean
           star_rating?: string | null
           theme_preset?: string | null
           threads_url?: string | null
