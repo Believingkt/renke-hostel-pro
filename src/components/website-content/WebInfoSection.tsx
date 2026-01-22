@@ -39,6 +39,7 @@ interface WebInfoSectionProps {
   showGallerySection: boolean;
   showFaqSection: boolean;
   showLocationSection: boolean;
+  showBookingInfoSection: boolean;
   onUpdate: () => void;
   onHeroPhotoUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onDeleteHeroPhoto: (photoId: string) => void;
@@ -51,6 +52,7 @@ interface WebInfoSectionProps {
   onShowGallerySectionChange: (value: boolean) => void;
   onShowFaqSectionChange: (value: boolean) => void;
   onShowLocationSectionChange: (value: boolean) => void;
+  onShowBookingInfoSectionChange: (value: boolean) => void;
   uploadingHeroPhoto: boolean;
   onSave: () => Promise<void>;
   isSaving?: boolean;
@@ -130,6 +132,7 @@ export const WebInfoSection = ({
   showGallerySection,
   showFaqSection,
   showLocationSection,
+  showBookingInfoSection,
   onUpdate,
   onHeroPhotoUpload,
   onDeleteHeroPhoto,
@@ -142,6 +145,7 @@ export const WebInfoSection = ({
   onShowGallerySectionChange,
   onShowFaqSectionChange,
   onShowLocationSectionChange,
+  onShowBookingInfoSectionChange,
   uploadingHeroPhoto,
   onSave,
   isSaving = false
@@ -450,7 +454,7 @@ export const WebInfoSection = ({
                   </div>
                   
                   {/* 地點交通區塊 */}
-                  <div className="flex items-center justify-between py-2">
+                  <div className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
                     <div className="space-y-1">
                       <Label htmlFor="show-location-section" className="text-base font-medium">地點交通區塊</Label>
                       <p className="text-xs text-muted-foreground">
@@ -461,6 +465,21 @@ export const WebInfoSection = ({
                       id="show-location-section"
                       checked={showLocationSection}
                       onCheckedChange={onShowLocationSectionChange}
+                    />
+                  </div>
+                  
+                  {/* 訂房須知區塊 */}
+                  <div className="flex items-center justify-between py-2">
+                    <div className="space-y-1">
+                      <Label htmlFor="show-booking-info-section" className="text-base font-medium">訂房須知區塊</Label>
+                      <p className="text-xs text-muted-foreground">
+                        控制首頁是否顯示訂房須知區塊
+                      </p>
+                    </div>
+                    <Switch
+                      id="show-booking-info-section"
+                      checked={showBookingInfoSection}
+                      onCheckedChange={onShowBookingInfoSectionChange}
                     />
                   </div>
                 </div>
