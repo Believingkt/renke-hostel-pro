@@ -366,10 +366,10 @@ export const WebInfoSection = ({
                 </div>
               </div>
 
-              {/* 首頁區塊顯示設定 */}
+              {/* 旅客評價區塊顯示設定 */}
               <div className="space-y-5">
                 <div className="flex items-center gap-2 pb-3 border-b border-border/50">
-                  <h4 className="font-semibold text-base text-foreground">首頁區塊顯示</h4>
+                  <h4 className="font-semibold text-base text-foreground">旅客評價區塊顯示</h4>
                 </div>
                 
                 <div className="space-y-3 p-4 rounded-lg bg-background/50 border">
