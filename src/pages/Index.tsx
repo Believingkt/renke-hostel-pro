@@ -162,10 +162,13 @@ const Index = () => {
         {info.show_location_section !== false && (
           <LocationSection address={info.address} locationInfo={secondaryData?.locationInfo} />
         )}
-        <BookingInfoSection
-          bookingSettings={secondaryData?.bookingSettings}
-          checkInNotice={info.check_in_notice}
-        />
+        {/* 訂房須知區塊（可透過後台開關控制顯示） */}
+        {info.show_booking_info_section !== false && (
+          <BookingInfoSection
+            bookingSettings={secondaryData?.bookingSettings}
+            checkInNotice={info.check_in_notice}
+          />
+        )}
         {/* 旅客評價區塊（可透過後台開關控制顯示） */}
         {info.show_reviews_section !== false && (
           <ReviewsSection accommodationId={info.id} />
