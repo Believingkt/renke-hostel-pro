@@ -423,7 +423,8 @@ const WebsiteContent = () => {
     hero_subtitle: "",
     hero_description: "",
     hero_overlay_opacity: 40,
-    hero_autoplay_delay: 8
+    hero_autoplay_delay: 8,
+    show_reviews_section: true
   });
   const [uploadingHeaderLogo, setUploadingHeaderLogo] = useState(false);
   const [uploadingFooterLogo, setUploadingFooterLogo] = useState(false);
@@ -540,7 +541,7 @@ const WebsiteContent = () => {
       // 構建查詢
       let query = supabase
         .from("accommodation_info")
-        .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url, og_title, og_description, og_image_url, website_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay");
+        .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url, og_title, og_description, og_image_url, website_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay, show_reviews_section");
       
       // 如果有指定 accommodation ID，則使用它來過濾
       if (accIdToUse) {
@@ -575,7 +576,8 @@ const WebsiteContent = () => {
           hero_subtitle: infoData.hero_subtitle || "",
           hero_description: infoData.hero_description || "",
           hero_overlay_opacity: infoData.hero_overlay_opacity ?? 40,
-          hero_autoplay_delay: infoData.hero_autoplay_delay ?? 8
+          hero_autoplay_delay: infoData.hero_autoplay_delay ?? 8,
+          show_reviews_section: infoData.show_reviews_section ?? true
         });
 
         // 更新瀏覽器標題
@@ -808,7 +810,8 @@ const WebsiteContent = () => {
                 hero_subtitle: infoData.hero_subtitle || "",
                 hero_description: infoData.hero_description || "",
                 hero_overlay_opacity: infoData.hero_overlay_opacity ?? 40,
-                hero_autoplay_delay: infoData.hero_autoplay_delay ?? 8
+                hero_autoplay_delay: infoData.hero_autoplay_delay ?? 8,
+                show_reviews_section: infoData.show_reviews_section ?? true
               });
 
               // 重新載入首頁輪播圖
@@ -1801,7 +1804,8 @@ const WebsiteContent = () => {
           hero_subtitle: basicInfo.hero_subtitle,
           hero_description: basicInfo.hero_description,
           hero_overlay_opacity: basicInfo.hero_overlay_opacity,
-          hero_autoplay_delay: basicInfo.hero_autoplay_delay
+          hero_autoplay_delay: basicInfo.hero_autoplay_delay,
+          show_reviews_section: basicInfo.show_reviews_section
         })
         .eq("id", accommodationId);
 
@@ -1810,7 +1814,7 @@ const WebsiteContent = () => {
       // 重新載入網頁設定資料
       const { data: updatedInfo } = await supabase
         .from("accommodation_info")
-        .select("id, name, description, address, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url, og_title, og_description, og_image_url, website_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay")
+        .select("id, name, description, address, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url, og_title, og_description, og_image_url, website_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay, show_reviews_section")
         .eq("id", accommodationId)
         .maybeSingle();
 
@@ -1837,7 +1841,8 @@ const WebsiteContent = () => {
           hero_subtitle: updatedInfo.hero_subtitle || "",
           hero_description: updatedInfo.hero_description || "",
           hero_overlay_opacity: updatedInfo.hero_overlay_opacity ?? 40,
-          hero_autoplay_delay: updatedInfo.hero_autoplay_delay ?? 8
+          hero_autoplay_delay: updatedInfo.hero_autoplay_delay ?? 8,
+          show_reviews_section: updatedInfo.show_reviews_section ?? true
         });
       }
 
@@ -2668,6 +2673,7 @@ const WebsiteContent = () => {
             heroDescription={basicInfo.hero_description}
             heroOverlayOpacity={basicInfo.hero_overlay_opacity}
             heroAutoplayDelay={basicInfo.hero_autoplay_delay}
+            showReviewsSection={basicInfo.show_reviews_section}
             onUpdate={loadData}
             onHeroPhotoUpload={handleHeroPhotoUpload}
             onDeleteHeroPhoto={handleDeleteHeroPhotoClick}
@@ -2678,6 +2684,9 @@ const WebsiteContent = () => {
             }}
             onHeroSettingChange={(field, value) => {
               setBasicInfo(prev => ({ ...prev, [field]: value }));
+            }}
+            onShowReviewsSectionChange={(value) => {
+              setBasicInfo(prev => ({ ...prev, show_reviews_section: value }));
             }}
             uploadingHeroPhoto={uploadingHeroPhoto}
             onSave={handleSaveBasicInfo}

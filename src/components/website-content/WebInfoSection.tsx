@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -33,6 +34,7 @@ interface WebInfoSectionProps {
   heroDescription: string;
   heroOverlayOpacity: number;
   heroAutoplayDelay: number;
+  showReviewsSection: boolean;
   onUpdate: () => void;
   onHeroPhotoUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onDeleteHeroPhoto: (photoId: string) => void;
@@ -40,6 +42,7 @@ interface WebInfoSectionProps {
   onPreviewCarousel: () => void;
   onHeroTitleChange: (field: 'hero_main_title' | 'hero_subtitle' | 'hero_description', value: string) => void;
   onHeroSettingChange: (field: 'hero_overlay_opacity' | 'hero_autoplay_delay', value: number) => void;
+  onShowReviewsSectionChange: (value: boolean) => void;
   uploadingHeroPhoto: boolean;
   onSave: () => Promise<void>;
   isSaving?: boolean;
@@ -114,6 +117,7 @@ export const WebInfoSection = ({
   heroDescription,
   heroOverlayOpacity,
   heroAutoplayDelay,
+  showReviewsSection,
   onUpdate,
   onHeroPhotoUpload,
   onDeleteHeroPhoto,
@@ -121,6 +125,7 @@ export const WebInfoSection = ({
   onPreviewCarousel,
   onHeroTitleChange,
   onHeroSettingChange,
+  onShowReviewsSectionChange,
   uploadingHeroPhoto,
   onSave,
   isSaving = false
@@ -357,6 +362,29 @@ export const WebInfoSection = ({
                     <p className="text-xs text-muted-foreground leading-relaxed">
                       每張輪播圖停留時間，建議 5-10 秒。太短會讓訪客無法完整瀏覽，太長則可能失去注意力
                     </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 首頁區塊顯示設定 */}
+              <div className="space-y-5">
+                <div className="flex items-center gap-2 pb-3 border-b border-border/50">
+                  <h4 className="font-semibold text-base text-foreground">首頁區塊顯示</h4>
+                </div>
+                
+                <div className="space-y-3 p-4 rounded-lg bg-background/50 border">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Label htmlFor="show-reviews-section" className="text-base font-medium">旅客評價區塊</Label>
+                      <p className="text-xs text-muted-foreground">
+                        控制首頁是否顯示旅客評價區塊
+                      </p>
+                    </div>
+                    <Switch
+                      id="show-reviews-section"
+                      checked={showReviewsSection}
+                      onCheckedChange={onShowReviewsSectionChange}
+                    />
                   </div>
                 </div>
               </div>
