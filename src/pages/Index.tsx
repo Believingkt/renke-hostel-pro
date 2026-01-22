@@ -148,7 +148,10 @@ const Index = () => {
         />
         
         {/* 非首屏內容 */}
-        <AboutSection description={info.description} accommodationId={info.id} />
+        {/* 關於我們區塊（可透過後台開關控制顯示） */}
+        {info.show_about_section !== false && (
+          <AboutSection description={info.description} accommodationId={info.id} />
+        )}
         <RoomsSection roomTypes={secondaryData?.roomTypes || []} />
         {/* 設施服務區塊（可透過後台開關控制顯示） */}
         {info.show_facilities_section !== false && (

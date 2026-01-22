@@ -40,6 +40,7 @@ interface WebInfoSectionProps {
   showFaqSection: boolean;
   showLocationSection: boolean;
   showBookingInfoSection: boolean;
+  showAboutSection: boolean;
   onUpdate: () => void;
   onHeroPhotoUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onDeleteHeroPhoto: (photoId: string) => void;
@@ -53,6 +54,7 @@ interface WebInfoSectionProps {
   onShowFaqSectionChange: (value: boolean) => void;
   onShowLocationSectionChange: (value: boolean) => void;
   onShowBookingInfoSectionChange: (value: boolean) => void;
+  onShowAboutSectionChange: (value: boolean) => void;
   uploadingHeroPhoto: boolean;
   onSave: () => Promise<void>;
   isSaving?: boolean;
@@ -133,6 +135,7 @@ export const WebInfoSection = ({
   showFaqSection,
   showLocationSection,
   showBookingInfoSection,
+  showAboutSection,
   onUpdate,
   onHeroPhotoUpload,
   onDeleteHeroPhoto,
@@ -146,6 +149,7 @@ export const WebInfoSection = ({
   onShowFaqSectionChange,
   onShowLocationSectionChange,
   onShowBookingInfoSectionChange,
+  onShowAboutSectionChange,
   uploadingHeroPhoto,
   onSave,
   isSaving = false
@@ -393,6 +397,21 @@ export const WebInfoSection = ({
                 </div>
                 
                 <div className="space-y-3 p-4 rounded-lg bg-background/50 border">
+                  {/* 關於我們區塊 */}
+                  <div className="flex items-center justify-between py-2 border-b border-border/30">
+                    <div className="space-y-1">
+                      <Label htmlFor="show-about-section" className="text-base font-medium">關於我們區塊</Label>
+                      <p className="text-xs text-muted-foreground">
+                        控制首頁是否顯示關於我們區塊
+                      </p>
+                    </div>
+                    <Switch
+                      id="show-about-section"
+                      checked={showAboutSection}
+                      onCheckedChange={onShowAboutSectionChange}
+                    />
+                  </div>
+                  
                   {/* 設施服務區塊 */}
                   <div className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
                     <div className="space-y-1">
