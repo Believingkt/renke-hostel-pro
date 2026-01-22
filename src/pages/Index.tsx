@@ -157,7 +157,8 @@ const Index = () => {
           bookingSettings={secondaryData?.bookingSettings}
           checkInNotice={info.check_in_notice}
         />
-        <ReviewsSection accommodationId={info.id} />
+        {/* 暫時隱藏旅客評價區塊 */}
+        {/* <ReviewsSection accommodationId={info.id} /> */}
         <FaqSection />
       </main>
 
