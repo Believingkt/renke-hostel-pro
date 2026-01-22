@@ -38,6 +38,7 @@ interface WebInfoSectionProps {
   showFacilitiesSection: boolean;
   showGallerySection: boolean;
   showFaqSection: boolean;
+  showLocationSection: boolean;
   onUpdate: () => void;
   onHeroPhotoUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onDeleteHeroPhoto: (photoId: string) => void;
@@ -49,6 +50,7 @@ interface WebInfoSectionProps {
   onShowFacilitiesSectionChange: (value: boolean) => void;
   onShowGallerySectionChange: (value: boolean) => void;
   onShowFaqSectionChange: (value: boolean) => void;
+  onShowLocationSectionChange: (value: boolean) => void;
   uploadingHeroPhoto: boolean;
   onSave: () => Promise<void>;
   isSaving?: boolean;
@@ -127,6 +129,7 @@ export const WebInfoSection = ({
   showFacilitiesSection,
   showGallerySection,
   showFaqSection,
+  showLocationSection,
   onUpdate,
   onHeroPhotoUpload,
   onDeleteHeroPhoto,
@@ -138,6 +141,7 @@ export const WebInfoSection = ({
   onShowFacilitiesSectionChange,
   onShowGallerySectionChange,
   onShowFaqSectionChange,
+  onShowLocationSectionChange,
   uploadingHeroPhoto,
   onSave,
   isSaving = false
@@ -431,7 +435,7 @@ export const WebInfoSection = ({
                   </div>
                   
                   {/* 常見問題區塊 */}
-                  <div className="flex items-center justify-between py-2">
+                  <div className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
                     <div className="space-y-1">
                       <Label htmlFor="show-faq-section" className="text-base font-medium">常見問題區塊</Label>
                       <p className="text-xs text-muted-foreground">
@@ -442,6 +446,21 @@ export const WebInfoSection = ({
                       id="show-faq-section"
                       checked={showFaqSection}
                       onCheckedChange={onShowFaqSectionChange}
+                    />
+                  </div>
+                  
+                  {/* 地點交通區塊 */}
+                  <div className="flex items-center justify-between py-2">
+                    <div className="space-y-1">
+                      <Label htmlFor="show-location-section" className="text-base font-medium">地點交通區塊</Label>
+                      <p className="text-xs text-muted-foreground">
+                        控制首頁是否顯示地點交通區塊
+                      </p>
+                    </div>
+                    <Switch
+                      id="show-location-section"
+                      checked={showLocationSection}
+                      onCheckedChange={onShowLocationSectionChange}
                     />
                   </div>
                 </div>

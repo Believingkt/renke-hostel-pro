@@ -158,7 +158,10 @@ const Index = () => {
         {info.show_gallery_section !== false && (
           <PhotoGallerySection photos={galleryPhotos} />
         )}
-        <LocationSection address={info.address} locationInfo={secondaryData?.locationInfo} />
+        {/* 地點交通區塊（可透過後台開關控制顯示） */}
+        {info.show_location_section !== false && (
+          <LocationSection address={info.address} locationInfo={secondaryData?.locationInfo} />
+        )}
         <BookingInfoSection
           bookingSettings={secondaryData?.bookingSettings}
           checkInNotice={info.check_in_notice}
