@@ -174,6 +174,7 @@ export type Database = {
           show_gallery_section: boolean
           show_location_section: boolean
           show_reviews_section: boolean
+          show_rooms_section: boolean
           star_rating: string | null
           theme_preset: string | null
           threads_url: string | null
@@ -223,6 +224,7 @@ export type Database = {
           show_gallery_section?: boolean
           show_location_section?: boolean
           show_reviews_section?: boolean
+          show_rooms_section?: boolean
           star_rating?: string | null
           theme_preset?: string | null
           threads_url?: string | null
@@ -272,6 +274,7 @@ export type Database = {
           show_gallery_section?: boolean
           show_location_section?: boolean
           show_reviews_section?: boolean
+          show_rooms_section?: boolean
           star_rating?: string | null
           theme_preset?: string | null
           threads_url?: string | null
