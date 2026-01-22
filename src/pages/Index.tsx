@@ -150,8 +150,14 @@ const Index = () => {
         {/* 非首屏內容 */}
         <AboutSection description={info.description} accommodationId={info.id} />
         <RoomsSection roomTypes={secondaryData?.roomTypes || []} />
-        <FacilitiesSection facilities={secondaryData?.facilities || []} />
-        <PhotoGallerySection photos={galleryPhotos} />
+        {/* 設施服務區塊（可透過後台開關控制顯示） */}
+        {info.show_facilities_section !== false && (
+          <FacilitiesSection facilities={secondaryData?.facilities || []} />
+        )}
+        {/* 精選照片區塊（可透過後台開關控制顯示） */}
+        {info.show_gallery_section !== false && (
+          <PhotoGallerySection photos={galleryPhotos} />
+        )}
         <LocationSection address={info.address} locationInfo={secondaryData?.locationInfo} />
         <BookingInfoSection
           bookingSettings={secondaryData?.bookingSettings}
@@ -161,7 +167,10 @@ const Index = () => {
         {info.show_reviews_section !== false && (
           <ReviewsSection accommodationId={info.id} />
         )}
-        <FaqSection />
+        {/* 常見問題區塊（可透過後台開關控制顯示） */}
+        {info.show_faq_section !== false && (
+          <FaqSection />
+        )}
       </main>
 
       <Footer

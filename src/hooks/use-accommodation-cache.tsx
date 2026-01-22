@@ -35,6 +35,9 @@ export interface AccommodationInfo {
   theme_preset?: string;
   short_url_alias?: string;
   show_reviews_section?: boolean;
+  show_facilities_section?: boolean;
+  show_gallery_section?: boolean;
+  show_faq_section?: boolean;
 }
 
 export interface SecondaryData {
@@ -101,7 +104,7 @@ export const useAccommodationCache = (accommodationId: string | null) => {
       const [infoRes, photosRes] = await Promise.all([
         supabase
           .from("accommodation_info")
-          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, og_title, og_description, og_image_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay, theme_preset, short_url_alias, show_reviews_section")
+          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, og_title, og_description, og_image_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay, theme_preset, short_url_alias, show_reviews_section, show_facilities_section, show_gallery_section, show_faq_section")
           .eq("id", accId)
           .maybeSingle(),
         supabase
