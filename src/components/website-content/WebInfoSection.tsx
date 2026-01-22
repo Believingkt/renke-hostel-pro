@@ -41,6 +41,7 @@ interface WebInfoSectionProps {
   showLocationSection: boolean;
   showBookingInfoSection: boolean;
   showAboutSection: boolean;
+  showRoomsSection: boolean;
   onUpdate: () => void;
   onHeroPhotoUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onDeleteHeroPhoto: (photoId: string) => void;
@@ -55,6 +56,7 @@ interface WebInfoSectionProps {
   onShowLocationSectionChange: (value: boolean) => void;
   onShowBookingInfoSectionChange: (value: boolean) => void;
   onShowAboutSectionChange: (value: boolean) => void;
+  onShowRoomsSectionChange: (value: boolean) => void;
   uploadingHeroPhoto: boolean;
   onSave: () => Promise<void>;
   isSaving?: boolean;
@@ -136,6 +138,7 @@ export const WebInfoSection = ({
   showLocationSection,
   showBookingInfoSection,
   showAboutSection,
+  showRoomsSection,
   onUpdate,
   onHeroPhotoUpload,
   onDeleteHeroPhoto,
@@ -150,6 +153,7 @@ export const WebInfoSection = ({
   onShowLocationSectionChange,
   onShowBookingInfoSectionChange,
   onShowAboutSectionChange,
+  onShowRoomsSectionChange,
   uploadingHeroPhoto,
   onSave,
   isSaving = false
@@ -409,6 +413,21 @@ export const WebInfoSection = ({
                       id="show-about-section"
                       checked={showAboutSection}
                       onCheckedChange={onShowAboutSectionChange}
+                    />
+                  </div>
+                  
+                  {/* 房型介紹區塊 */}
+                  <div className="flex items-center justify-between py-2 border-b border-border/30">
+                    <div className="space-y-1">
+                      <Label htmlFor="show-rooms-section" className="text-base font-medium">房型介紹區塊</Label>
+                      <p className="text-xs text-muted-foreground">
+                        控制首頁是否顯示房型介紹區塊
+                      </p>
+                    </div>
+                    <Switch
+                      id="show-rooms-section"
+                      checked={showRoomsSection}
+                      onCheckedChange={onShowRoomsSectionChange}
                     />
                   </div>
                   

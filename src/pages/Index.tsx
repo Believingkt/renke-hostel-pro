@@ -152,7 +152,10 @@ const Index = () => {
         {info.show_about_section !== false && (
           <AboutSection description={info.description} accommodationId={info.id} />
         )}
-        <RoomsSection roomTypes={secondaryData?.roomTypes || []} />
+        {/* 房型介紹區塊（可透過後台開關控制顯示） */}
+        {info.show_rooms_section !== false && (
+          <RoomsSection roomTypes={secondaryData?.roomTypes || []} />
+        )}
         {/* 設施服務區塊（可透過後台開關控制顯示） */}
         {info.show_facilities_section !== false && (
           <FacilitiesSection facilities={secondaryData?.facilities || []} />
