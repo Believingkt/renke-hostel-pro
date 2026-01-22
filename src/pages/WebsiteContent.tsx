@@ -424,7 +424,10 @@ const WebsiteContent = () => {
     hero_description: "",
     hero_overlay_opacity: 40,
     hero_autoplay_delay: 8,
-    show_reviews_section: true
+    show_reviews_section: true,
+    show_facilities_section: true,
+    show_gallery_section: true,
+    show_faq_section: true
   });
   const [uploadingHeaderLogo, setUploadingHeaderLogo] = useState(false);
   const [uploadingFooterLogo, setUploadingFooterLogo] = useState(false);
@@ -541,7 +544,7 @@ const WebsiteContent = () => {
       // 構建查詢
       let query = supabase
         .from("accommodation_info")
-        .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url, og_title, og_description, og_image_url, website_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay, show_reviews_section");
+        .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url, og_title, og_description, og_image_url, website_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay, show_reviews_section, show_facilities_section, show_gallery_section, show_faq_section");
       
       // 如果有指定 accommodation ID，則使用它來過濾
       if (accIdToUse) {
@@ -577,7 +580,10 @@ const WebsiteContent = () => {
           hero_description: infoData.hero_description || "",
           hero_overlay_opacity: infoData.hero_overlay_opacity ?? 40,
           hero_autoplay_delay: infoData.hero_autoplay_delay ?? 8,
-          show_reviews_section: infoData.show_reviews_section ?? true
+          show_reviews_section: infoData.show_reviews_section ?? true,
+          show_facilities_section: infoData.show_facilities_section ?? true,
+          show_gallery_section: infoData.show_gallery_section ?? true,
+          show_faq_section: infoData.show_faq_section ?? true
         });
 
         // 更新瀏覽器標題
@@ -811,7 +817,10 @@ const WebsiteContent = () => {
                 hero_description: infoData.hero_description || "",
                 hero_overlay_opacity: infoData.hero_overlay_opacity ?? 40,
                 hero_autoplay_delay: infoData.hero_autoplay_delay ?? 8,
-                show_reviews_section: infoData.show_reviews_section ?? true
+                show_reviews_section: infoData.show_reviews_section ?? true,
+                show_facilities_section: infoData.show_facilities_section ?? true,
+                show_gallery_section: infoData.show_gallery_section ?? true,
+                show_faq_section: infoData.show_faq_section ?? true
               });
 
               // 重新載入首頁輪播圖
@@ -1805,7 +1814,10 @@ const WebsiteContent = () => {
           hero_description: basicInfo.hero_description,
           hero_overlay_opacity: basicInfo.hero_overlay_opacity,
           hero_autoplay_delay: basicInfo.hero_autoplay_delay,
-          show_reviews_section: basicInfo.show_reviews_section
+          show_reviews_section: basicInfo.show_reviews_section,
+          show_facilities_section: basicInfo.show_facilities_section,
+          show_gallery_section: basicInfo.show_gallery_section,
+          show_faq_section: basicInfo.show_faq_section
         })
         .eq("id", accommodationId);
 
@@ -1814,7 +1826,7 @@ const WebsiteContent = () => {
       // 重新載入網頁設定資料
       const { data: updatedInfo } = await supabase
         .from("accommodation_info")
-        .select("id, name, description, address, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url, og_title, og_description, og_image_url, website_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay, show_reviews_section")
+        .select("id, name, description, address, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url, og_title, og_description, og_image_url, website_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay, show_reviews_section, show_facilities_section, show_gallery_section, show_faq_section")
         .eq("id", accommodationId)
         .maybeSingle();
 
@@ -1842,7 +1854,10 @@ const WebsiteContent = () => {
           hero_description: updatedInfo.hero_description || "",
           hero_overlay_opacity: updatedInfo.hero_overlay_opacity ?? 40,
           hero_autoplay_delay: updatedInfo.hero_autoplay_delay ?? 8,
-          show_reviews_section: updatedInfo.show_reviews_section ?? true
+          show_reviews_section: updatedInfo.show_reviews_section ?? true,
+          show_facilities_section: updatedInfo.show_facilities_section ?? true,
+          show_gallery_section: updatedInfo.show_gallery_section ?? true,
+          show_faq_section: updatedInfo.show_faq_section ?? true
         });
       }
 
@@ -2674,6 +2689,9 @@ const WebsiteContent = () => {
             heroOverlayOpacity={basicInfo.hero_overlay_opacity}
             heroAutoplayDelay={basicInfo.hero_autoplay_delay}
             showReviewsSection={basicInfo.show_reviews_section}
+            showFacilitiesSection={basicInfo.show_facilities_section}
+            showGallerySection={basicInfo.show_gallery_section}
+            showFaqSection={basicInfo.show_faq_section}
             onUpdate={loadData}
             onHeroPhotoUpload={handleHeroPhotoUpload}
             onDeleteHeroPhoto={handleDeleteHeroPhotoClick}
@@ -2687,6 +2705,15 @@ const WebsiteContent = () => {
             }}
             onShowReviewsSectionChange={(value) => {
               setBasicInfo(prev => ({ ...prev, show_reviews_section: value }));
+            }}
+            onShowFacilitiesSectionChange={(value) => {
+              setBasicInfo(prev => ({ ...prev, show_facilities_section: value }));
+            }}
+            onShowGallerySectionChange={(value) => {
+              setBasicInfo(prev => ({ ...prev, show_gallery_section: value }));
+            }}
+            onShowFaqSectionChange={(value) => {
+              setBasicInfo(prev => ({ ...prev, show_faq_section: value }));
             }}
             uploadingHeroPhoto={uploadingHeroPhoto}
             onSave={handleSaveBasicInfo}

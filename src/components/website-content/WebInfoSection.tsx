@@ -35,6 +35,9 @@ interface WebInfoSectionProps {
   heroOverlayOpacity: number;
   heroAutoplayDelay: number;
   showReviewsSection: boolean;
+  showFacilitiesSection: boolean;
+  showGallerySection: boolean;
+  showFaqSection: boolean;
   onUpdate: () => void;
   onHeroPhotoUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onDeleteHeroPhoto: (photoId: string) => void;
@@ -43,6 +46,9 @@ interface WebInfoSectionProps {
   onHeroTitleChange: (field: 'hero_main_title' | 'hero_subtitle' | 'hero_description', value: string) => void;
   onHeroSettingChange: (field: 'hero_overlay_opacity' | 'hero_autoplay_delay', value: number) => void;
   onShowReviewsSectionChange: (value: boolean) => void;
+  onShowFacilitiesSectionChange: (value: boolean) => void;
+  onShowGallerySectionChange: (value: boolean) => void;
+  onShowFaqSectionChange: (value: boolean) => void;
   uploadingHeroPhoto: boolean;
   onSave: () => Promise<void>;
   isSaving?: boolean;
@@ -118,6 +124,9 @@ export const WebInfoSection = ({
   heroOverlayOpacity,
   heroAutoplayDelay,
   showReviewsSection,
+  showFacilitiesSection,
+  showGallerySection,
+  showFaqSection,
   onUpdate,
   onHeroPhotoUpload,
   onDeleteHeroPhoto,
@@ -126,6 +135,9 @@ export const WebInfoSection = ({
   onHeroTitleChange,
   onHeroSettingChange,
   onShowReviewsSectionChange,
+  onShowFacilitiesSectionChange,
+  onShowGallerySectionChange,
+  onShowFaqSectionChange,
   uploadingHeroPhoto,
   onSave,
   isSaving = false
@@ -366,14 +378,45 @@ export const WebInfoSection = ({
                 </div>
               </div>
 
-              {/* 旅客評價區塊顯示設定 */}
+              {/* 首頁區塊顯示設定 */}
               <div className="space-y-5">
                 <div className="flex items-center gap-2 pb-3 border-b border-border/50">
-                  <h4 className="font-semibold text-base text-foreground">旅客評價區塊顯示</h4>
+                  <h4 className="font-semibold text-base text-foreground">首頁區塊顯示</h4>
                 </div>
                 
                 <div className="space-y-3 p-4 rounded-lg bg-background/50 border">
-                  <div className="flex items-center justify-between">
+                  {/* 設施服務區塊 */}
+                  <div className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
+                    <div className="space-y-1">
+                      <Label htmlFor="show-facilities-section" className="text-base font-medium">設施服務區塊</Label>
+                      <p className="text-xs text-muted-foreground">
+                        控制首頁是否顯示設施服務區塊
+                      </p>
+                    </div>
+                    <Switch
+                      id="show-facilities-section"
+                      checked={showFacilitiesSection}
+                      onCheckedChange={onShowFacilitiesSectionChange}
+                    />
+                  </div>
+                  
+                  {/* 精選照片區塊 */}
+                  <div className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
+                    <div className="space-y-1">
+                      <Label htmlFor="show-gallery-section" className="text-base font-medium">精選照片區塊</Label>
+                      <p className="text-xs text-muted-foreground">
+                        控制首頁是否顯示精選照片區塊
+                      </p>
+                    </div>
+                    <Switch
+                      id="show-gallery-section"
+                      checked={showGallerySection}
+                      onCheckedChange={onShowGallerySectionChange}
+                    />
+                  </div>
+                  
+                  {/* 旅客評價區塊 */}
+                  <div className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
                     <div className="space-y-1">
                       <Label htmlFor="show-reviews-section" className="text-base font-medium">旅客評價區塊</Label>
                       <p className="text-xs text-muted-foreground">
@@ -384,6 +427,21 @@ export const WebInfoSection = ({
                       id="show-reviews-section"
                       checked={showReviewsSection}
                       onCheckedChange={onShowReviewsSectionChange}
+                    />
+                  </div>
+                  
+                  {/* 常見問題區塊 */}
+                  <div className="flex items-center justify-between py-2">
+                    <div className="space-y-1">
+                      <Label htmlFor="show-faq-section" className="text-base font-medium">常見問題區塊</Label>
+                      <p className="text-xs text-muted-foreground">
+                        控制首頁是否顯示常見問題區塊
+                      </p>
+                    </div>
+                    <Switch
+                      id="show-faq-section"
+                      checked={showFaqSection}
+                      onCheckedChange={onShowFaqSectionChange}
                     />
                   </div>
                 </div>
