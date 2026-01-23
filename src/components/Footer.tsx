@@ -242,7 +242,7 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
           <div className="flex flex-col items-center justify-center gap-2 text-white/50 text-xs md:text-sm">
             <div className="flex flex-wrap items-center justify-center gap-1.5 md:gap-2">
               <span>PRESENTED BY</span>
-              <a href="https://lakeze.com" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity inline-flex items-center">
+              <a href="https://lakeze.co/" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity inline-flex items-center">
                 <img src={lakezeLogoWhite} alt="Lakeze" className="h-4 md:h-5 w-auto -translate-y-0.5" loading="lazy" />
               </a>
               <span>2025 © All Rights Reserved.</span>
