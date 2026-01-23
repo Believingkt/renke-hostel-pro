@@ -55,6 +55,7 @@ interface AddonPlansSectionProps {
   onDelete: (addonType: string) => void;
   errors: Record<string, Record<string, string>>;
   onValidate: (addonType: string, fieldName: string, value: string) => void;
+  onToggleEnabled?: (addonType: string, enabled: boolean) => Promise<void>;
 }
 
 const defaultNewPlan: Omit<AddonPlan, 'addon_type'> = {
@@ -73,6 +74,7 @@ export const AddonPlansSection = ({
   onDelete,
   errors,
   onValidate,
+  onToggleEnabled,
 }: AddonPlansSectionProps) => {
   const isMobile = useIsMobile();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -253,9 +255,11 @@ export const AddonPlansSection = ({
                       <Switch
                         id={`${plan.addon_type}-enabled`}
                         checked={plan.enabled}
-                        onCheckedChange={(checked) =>
-                          handleUpdatePlan(index, { enabled: checked })
-                        }
+                        onCheckedChange={(checked) => {
+                          handleUpdatePlan(index, { enabled: checked });
+                          // 如果有即時儲存回調，則呼叫
+                          onToggleEnabled?.(plan.addon_type, checked);
+                        }}
                         className="touch-manipulation"
                       />
                     </div>
