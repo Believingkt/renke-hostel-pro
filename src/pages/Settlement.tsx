@@ -281,7 +281,7 @@ export default function Settlement() {
       return;
     }
 
-    const headers = ["訂單編號", "入住日期", "退房日期", "訂單金額", "總部分潤", "民宿分潤", "狀態", "請款日期", "撥款日期"];
+    const headers = ["訂單編號", "入住日期", "退房日期", "訂單金額", "手續費", "實付金額", "狀態", "請款日期", "撥款日期"];
     const rows = splitRecords.map(r => [
       r.orders?.order_number || "",
       r.orders?.check_in_date || "",
@@ -394,19 +394,15 @@ export default function Settlement() {
       </div>
 
       {/* Split Rule Info */}
-      {splitRule && (
+      {splitRule && splitRule.transaction_fee_percentage > 0 && (
         <Card className="border-dashed">
           <CardContent className="pt-4">
             <div className="flex items-center gap-4">
-              <Building2 className="h-5 w-5 text-muted-foreground" />
-              <span className="text-sm">目前拆帳比例：</span>
-              <Badge variant="outline">總部 {splitRule.hq_percentage}%</Badge>
-              <Badge variant="secondary">民宿 {splitRule.accommodation_percentage}%</Badge>
-              {splitRule.transaction_fee_percentage > 0 && (
-                <Badge variant="destructive" className="ml-2">
-                  手續費 {splitRule.transaction_fee_percentage}%
-                </Badge>
-              )}
+              <CreditCard className="h-5 w-5 text-muted-foreground" />
+              <span className="text-sm">請款手續費：</span>
+              <Badge variant="destructive">
+                {splitRule.transaction_fee_percentage}%
+              </Badge>
             </div>
           </CardContent>
         </Card>
@@ -484,8 +480,8 @@ export default function Settlement() {
                           <TableHead>訂單編號</TableHead>
                           <TableHead>入住日期</TableHead>
                           <TableHead className="text-right">訂單金額</TableHead>
-                          <TableHead className="text-right">總部分潤</TableHead>
-                          <TableHead className="text-right">民宿分潤</TableHead>
+                          <TableHead className="text-right">手續費</TableHead>
+                          <TableHead className="text-right">實付金額</TableHead>
                           <TableHead>付款狀態</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -507,17 +503,11 @@ export default function Settlement() {
                             <TableCell className="text-right font-medium">
                               NT$ {record.order_amount.toLocaleString()}
                             </TableCell>
-                            <TableCell className="text-right text-blue-600">
-                              NT$ {record.hq_amount.toLocaleString()}
-                              <span className="text-xs text-muted-foreground ml-1">
-                                ({record.hq_percentage}%)
-                              </span>
+                            <TableCell className="text-right text-red-600">
+                              -NT$ {record.hq_amount.toLocaleString()}
                             </TableCell>
                             <TableCell className="text-right text-primary font-medium">
                               NT$ {record.accommodation_amount.toLocaleString()}
-                              <span className="text-xs text-muted-foreground ml-1">
-                                ({record.accommodation_percentage}%)
-                              </span>
                             </TableCell>
                             <TableCell>
                               {record.orders?.payment_status === "paid" ? (
@@ -557,7 +547,7 @@ export default function Settlement() {
                       <TableRow className="bg-muted/50">
                         <TableHead>訂單編號</TableHead>
                         <TableHead>入住日期</TableHead>
-                        <TableHead className="text-right">民宿分潤</TableHead>
+                        <TableHead className="text-right">實付金額</TableHead>
                         <TableHead>請款日期</TableHead>
                         <TableHead>狀態</TableHead>
                       </TableRow>
@@ -610,7 +600,7 @@ export default function Settlement() {
                       <TableRow className="bg-muted/50">
                         <TableHead>訂單編號</TableHead>
                         <TableHead>入住日期</TableHead>
-                        <TableHead className="text-right">民宿分潤</TableHead>
+                        <TableHead className="text-right">實付金額</TableHead>
                         <TableHead>請款日期</TableHead>
                         <TableHead>撥款日期</TableHead>
                         <TableHead>付款方式</TableHead>
