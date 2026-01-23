@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useSubdomain } from "@/hooks/use-subdomain";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { useAccommodationCache, DEFAULT_SECTIONS_ORDER } from "@/hooks/use-accommodation-cache";
+import { usePageAnalytics } from "@/hooks/use-page-analytics";
 import Navigation from "@/components/Navigation";
 import HeroSection from "@/components/HeroSection";
 import { StructuredData } from "@/components/StructuredData";
@@ -44,7 +45,9 @@ const Index = () => {
 
   // 從資料庫讀取的主題設定
   const themeClass = info?.theme_preset ? getThemeClass(info.theme_preset) : '';
-
+  
+  // 追蹤頁面瀏覽
+  usePageAnalytics({ accommodationId, enabled: !!accommodationId && !!info });
   // 使用 useLayoutEffect 在 DOM 更新前立即更新標題，減少視覺閃爍
   useLayoutEffect(() => {
     if (info) {

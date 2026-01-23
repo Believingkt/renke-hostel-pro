@@ -1,0 +1,54 @@
+import { Link } from "react-router-dom";
+import { useSubdomain } from "@/hooks/use-subdomain";
+import { AnalyticsDashboard } from "@/components/analytics/AnalyticsDashboard";
+import { PageHeader } from "@/components/PageHeader";
+import { BarChart3, Home } from "lucide-react";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+
+const Analytics = () => {
+  const { accommodationId } = useSubdomain();
+
+  if (!accommodationId) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <p className="text-muted-foreground">請先選擇住宿</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 md:space-y-8">
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link to="/admin" className="flex items-center hover:opacity-70 transition-opacity">
+                <Home className="h-4 w-4" />
+              </Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>網站流量分析</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
+      <PageHeader
+        title="網站流量分析"
+        icon={BarChart3}
+      />
+
+      <AnalyticsDashboard accommodationId={accommodationId} />
+    </div>
+  );
+};
+
+export default Analytics;

@@ -46,6 +46,7 @@ import Notifications from "./pages/Notifications";
 import DataBackup from "./pages/DataBackup";
 import EmailTest from "./pages/EmailTest";
 import Settlement from "./pages/Settlement";
+import Analytics from "./pages/Analytics";
 
 // Auth 頁面 - 關鍵路徑
 import Auth from "./pages/Auth";
@@ -257,6 +258,14 @@ function App() {
                   element={
                     <Suspense fallback={<DashboardSkeleton />}>
                       <EmailTest />
+                    </Suspense>
+                  } 
+                />
+                <Route 
+                  path="/admin/analytics" 
+                  element={
+                    <Suspense fallback={<DashboardSkeleton />}>
+                      <Analytics />
                     </Suspense>
                   } 
                 />

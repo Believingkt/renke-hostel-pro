@@ -1129,6 +1129,62 @@ export type Database = {
           },
         ]
       }
+      page_analytics: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          device_type: string | null
+          id: string
+          page_path: string
+          page_url: string
+          referrer: string | null
+          referrer_domain: string | null
+          session_id: string
+          user_agent: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          device_type?: string | null
+          id?: string
+          page_path: string
+          page_url: string
+          referrer?: string | null
+          referrer_domain?: string | null
+          session_id: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          device_type?: string | null
+          id?: string
+          page_path?: string
+          page_url?: string
+          referrer?: string | null
+          referrer_domain?: string | null
+          session_id?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "page_analytics_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       password_reset_tokens: {
         Row: {
           created_at: string
@@ -1971,6 +2027,21 @@ export type Database = {
           blocked_by_room_name: string
           date_value: string
           is_blocked: boolean
+        }[]
+      }
+      get_analytics_summary: {
+        Args: {
+          p_accommodation_id: string
+          p_end_date?: string
+          p_start_date?: string
+        }
+        Returns: {
+          daily_views: Json
+          top_pages: Json
+          top_referrers: Json
+          total_pageviews: number
+          traffic_sources: Json
+          unique_visitors: number
         }[]
       }
       get_discount_code_secrets: {

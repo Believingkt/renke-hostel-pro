@@ -3,6 +3,7 @@ import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubdomain } from "@/hooks/use-subdomain";
 import { useAccommodation } from "@/contexts/AccommodationContext";
+import { usePageAnalytics } from "@/hooks/use-page-analytics";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -174,6 +175,9 @@ const BookingFlow = () => {
 
   // 使用共用主題常數
   const themeClass = getThemeClassByAccommodation(accommodationId);
+  
+  // 追蹤頁面瀏覽
+  usePageAnalytics({ accommodationId, enabled: !!accommodationId });
   
   const [currentStep, setCurrentStep] = useState<BookingStep>("dates");
   const [bookingSettings, setBookingSettings] = useState<BookingSettings | null>(null);
