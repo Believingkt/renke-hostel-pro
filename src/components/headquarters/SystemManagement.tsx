@@ -590,7 +590,7 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
 
         {/* Facilities Tab */}
         <TabsContent value="facilities" className="space-y-4">
-          <FacilityManagement accommodations={accommodations} />
+          <FacilityManagement />
         </TabsContent>
 
         {/* Settings Tab */}
