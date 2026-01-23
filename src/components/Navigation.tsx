@@ -1,22 +1,75 @@
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, Search } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { PreloadLink } from "@/components/PreloadLink";
 import AccommodationLogo from "@/components/AccommodationLogo";
+
+// Define section navigation config
+const SECTION_NAV_CONFIG: Record<string, { sectionId: string; label: string }> = {
+  about: { sectionId: 'about', label: '關於我們' },
+  rooms: { sectionId: 'rooms', label: '房型導覽' },
+  facilities: { sectionId: 'facilities', label: '設施服務' },
+  gallery: { sectionId: 'gallery', label: '精選照片' },
+  location: { sectionId: 'location', label: '交通地圖' },
+  booking_info: { sectionId: 'booking-info', label: '訂房須知' },
+  reviews: { sectionId: 'reviews', label: '旅客評價' },
+  faq: { sectionId: 'faq', label: '常見問題' },
+};
+
+interface SectionVisibility {
+  show_about_section?: boolean;
+  show_rooms_section?: boolean;
+  show_facilities_section?: boolean;
+  show_gallery_section?: boolean;
+  show_location_section?: boolean;
+  show_booking_info_section?: boolean;
+  show_reviews_section?: boolean;
+  show_faq_section?: boolean;
+}
 
 interface NavigationProps {
   accommodationName?: string;
   onNavigate: (sectionId: string) => void;
+  sectionsOrder?: string[];
+  sectionVisibility?: SectionVisibility;
 }
 
-const Navigation = ({ accommodationName = "", onNavigate }: NavigationProps) => {
+const Navigation = ({ 
+  accommodationName = "", 
+  onNavigate,
+  sectionsOrder = ['about', 'rooms', 'facilities', 'gallery', 'location', 'booking_info', 'reviews', 'faq'],
+  sectionVisibility = {}
+}: NavigationProps) => {
   const [open, setOpen] = useState(false);
 
   const handleNavigate = (sectionId: string) => {
     onNavigate(sectionId);
     setOpen(false);
   };
+
+  // Build visible navigation items based on order and visibility
+  const visibleNavItems = useMemo(() => {
+    const visibilityMap: Record<string, boolean | undefined> = {
+      about: sectionVisibility.show_about_section,
+      rooms: sectionVisibility.show_rooms_section,
+      facilities: sectionVisibility.show_facilities_section,
+      gallery: sectionVisibility.show_gallery_section,
+      location: sectionVisibility.show_location_section,
+      booking_info: sectionVisibility.show_booking_info_section,
+      reviews: sectionVisibility.show_reviews_section,
+      faq: sectionVisibility.show_faq_section,
+    };
+
+    return sectionsOrder
+      .filter(key => {
+        const config = SECTION_NAV_CONFIG[key];
+        if (!config) return false;
+        // Default to true if visibility is undefined
+        return visibilityMap[key] !== false;
+      })
+      .map(key => SECTION_NAV_CONFIG[key]);
+  }, [sectionsOrder, sectionVisibility]);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b">
@@ -30,24 +83,15 @@ const Navigation = ({ accommodationName = "", onNavigate }: NavigationProps) => 
         
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-2 lg:gap-4 xl:gap-6">
-          <button onClick={() => onNavigate("rooms")} className="text-xs lg:text-sm hover:text-primary transition-colors whitespace-nowrap px-1 lg:px-2">
-            房型導覽
-          </button>
-          <button onClick={() => onNavigate("facilities")} className="text-xs lg:text-sm hover:text-primary transition-colors whitespace-nowrap px-1 lg:px-2">
-            設施服務
-          </button>
-          <button onClick={() => onNavigate("gallery")} className="text-xs lg:text-sm hover:text-primary transition-colors whitespace-nowrap px-1 lg:px-2">
-            精選照片
-          </button>
-          <button onClick={() => onNavigate("location")} className="text-xs lg:text-sm hover:text-primary transition-colors whitespace-nowrap px-1 lg:px-2">
-            交通地圖
-          </button>
-          <button onClick={() => onNavigate("booking-info")} className="text-xs lg:text-sm hover:text-primary transition-colors whitespace-nowrap px-1 lg:px-2">
-            訂房須知
-          </button>
-          <button onClick={() => onNavigate("faq")} className="text-xs lg:text-sm hover:text-primary transition-colors whitespace-nowrap px-1 lg:px-2">
-            常見問題
-          </button>
+          {visibleNavItems.map(({ sectionId, label }) => (
+            <button 
+              key={sectionId}
+              onClick={() => onNavigate(sectionId)} 
+              className="text-xs lg:text-sm hover:text-primary transition-colors whitespace-nowrap px-1 lg:px-2"
+            >
+              {label}
+            </button>
+          ))}
           <PreloadLink to="/order-search">
             <Button variant="outline" className="text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4">
               <Search className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2" />
@@ -72,42 +116,15 @@ const Navigation = ({ accommodationName = "", onNavigate }: NavigationProps) => 
             <div className="flex flex-col h-full">
               {/* 選單項目 */}
               <nav className="flex-1 flex flex-col px-6 pt-20">
-                <button 
-                  onClick={() => handleNavigate("rooms")} 
-                  className="text-lg font-medium text-foreground hover:text-primary transition-colors text-left py-4 border-b border-border/50"
-                >
-                  房型導覽
-                </button>
-                <button 
-                  onClick={() => handleNavigate("facilities")} 
-                  className="text-lg font-medium text-foreground hover:text-primary transition-colors text-left py-4 border-b border-border/50"
-                >
-                  設施服務
-                </button>
-                <button 
-                  onClick={() => handleNavigate("gallery")} 
-                  className="text-lg font-medium text-foreground hover:text-primary transition-colors text-left py-4 border-b border-border/50"
-                >
-                  精選照片
-                </button>
-                <button 
-                  onClick={() => handleNavigate("location")} 
-                  className="text-lg font-medium text-foreground hover:text-primary transition-colors text-left py-4 border-b border-border/50"
-                >
-                  交通地圖
-                </button>
-                <button 
-                  onClick={() => handleNavigate("booking-info")} 
-                  className="text-lg font-medium text-foreground hover:text-primary transition-colors text-left py-4 border-b border-border/50"
-                >
-                  訂房須知
-                </button>
-                <button 
-                  onClick={() => handleNavigate("faq")} 
-                  className="text-lg font-medium text-foreground hover:text-primary transition-colors text-left py-4 border-b border-border/50"
-                >
-                  常見問題
-                </button>
+                {visibleNavItems.map(({ sectionId, label }) => (
+                  <button 
+                    key={sectionId}
+                    onClick={() => handleNavigate(sectionId)} 
+                    className="text-lg font-medium text-foreground hover:text-primary transition-colors text-left py-4 border-b border-border/50"
+                  >
+                    {label}
+                  </button>
+                ))}
               </nav>
               
               {/* 底部按鈕 */}
