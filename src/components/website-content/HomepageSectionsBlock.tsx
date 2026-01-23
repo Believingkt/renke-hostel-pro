@@ -19,14 +19,14 @@ import { LayoutGrid } from "lucide-react";
 
 // Section key to label mapping
 const SECTION_LABELS: Record<string, { label: string; description: string }> = {
-  about: { label: '關於我們區塊', description: '控制首頁是否顯示關於我們區塊' },
-  rooms: { label: '房型介紹區塊', description: '控制首頁是否顯示房型介紹區塊' },
-  facilities: { label: '設施服務區塊', description: '控制首頁是否顯示設施服務區塊' },
-  gallery: { label: '精選照片區塊', description: '控制首頁是否顯示精選照片區塊' },
-  reviews: { label: '旅客評價區塊', description: '控制首頁是否顯示旅客評價區塊' },
-  faq: { label: '常見問題區塊', description: '控制首頁是否顯示常見問題區塊' },
-  location: { label: '地點交通區塊', description: '控制首頁是否顯示地點交通區塊' },
-  booking_info: { label: '訂房須知區塊', description: '控制首頁是否顯示訂房須知區塊' },
+  about: { label: '關於我們', description: '控制首頁是否顯示關於我們區塊' },
+  rooms: { label: '房型介紹', description: '控制首頁是否顯示房型介紹區塊' },
+  facilities: { label: '設施服務', description: '控制首頁是否顯示設施服務區塊' },
+  gallery: { label: '精選照片', description: '控制首頁是否顯示精選照片區塊' },
+  reviews: { label: '旅客評價', description: '控制首頁是否顯示旅客評價區塊' },
+  faq: { label: '常見問題', description: '控制首頁是否顯示常見問題區塊' },
+  location: { label: '地點交通', description: '控制首頁是否顯示地點交通區塊' },
+  booking_info: { label: '訂房須知', description: '控制首頁是否顯示訂房須知區塊' },
 };
 
 interface HomepageSectionsBlockProps {
