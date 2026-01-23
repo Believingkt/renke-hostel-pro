@@ -407,7 +407,7 @@ export default function Settlement() {
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
           <TabsList>
             <TabsTrigger value="pending" className="gap-2">
               <Clock className="h-4 w-4" />
@@ -423,13 +423,13 @@ export default function Settlement() {
             </TabsTrigger>
           </TabsList>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <MonthPicker
               value={monthFilter}
               onChange={setMonthFilter}
-              className="w-[180px]"
+              className="w-[160px]"
             />
-            <Button variant="outline" size="icon" onClick={handleExportCSV}>
+            <Button variant="outline" size="icon" onClick={handleExportCSV} title="匯出 CSV">
               <Download className="h-4 w-4" />
             </Button>
           </div>
@@ -448,18 +448,26 @@ export default function Settlement() {
             </Card>
           ) : (
             <>
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">
-                  已選擇 {selectedRecords.length} 筆，金額 NT$ {selectedAmount.toLocaleString()}
-                </p>
-                <Button 
-                  onClick={() => setShowRequestDialog(true)}
-                  disabled={selectedRecords.length === 0}
-                >
-                  <Send className="h-4 w-4 mr-2" />
-                  提交請款申請
-                </Button>
-              </div>
+              <Card className="bg-muted/30 border-dashed">
+                <CardContent className="py-3 px-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-muted-foreground">已選擇</span>
+                      <span className="font-semibold text-foreground">{selectedRecords.length} 筆</span>
+                      <span className="text-muted-foreground">，金額</span>
+                      <span className="font-semibold text-primary">NT$ {selectedAmount.toLocaleString()}</span>
+                    </div>
+                    <Button 
+                      onClick={() => setShowRequestDialog(true)}
+                      disabled={selectedRecords.length === 0}
+                      className="shrink-0"
+                    >
+                      <Send className="h-4 w-4 mr-2" />
+                      提交請款申請
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
 
               <Card>
                 <CardContent className="p-0">
