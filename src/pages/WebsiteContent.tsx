@@ -2997,6 +2997,27 @@ const WebsiteContent = () => {
             onDelete={handleDeleteAddonPlan}
             errors={addonPlanErrors}
             onValidate={validateAddonField}
+            onToggleEnabled={async (addonType: string, enabled: boolean) => {
+              // 即時儲存啟用狀態
+              if (!accommodationId) return;
+              try {
+                const { error } = await supabase
+                  .from("addon_settings")
+                  .update({ enabled })
+                  .eq("accommodation_id", accommodationId)
+                  .eq("addon_type", addonType);
+                
+                if (error) throw error;
+                toast.success(enabled ? "已啟用" : "已停用");
+              } catch (error) {
+                console.error("Error toggling addon enabled:", error);
+                toast.error("更新失敗");
+                // 還原 state
+                setAddonPlans(prev => prev.map(p => 
+                  p.addon_type === addonType ? { ...p, enabled: !enabled } : p
+                ));
+              }
+            }}
           />
 
           <SaveButtonContainer 
