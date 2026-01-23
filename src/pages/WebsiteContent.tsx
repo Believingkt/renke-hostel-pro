@@ -2727,6 +2727,7 @@ const WebsiteContent = () => {
           
           {/* 首頁區塊顯示設定 - 獨立區塊，放在第一個位置 */}
           <HomepageSectionsBlock
+            accommodationId={accommodationId}
             sectionsOrder={basicInfo.homepage_sections_order}
             showAboutSection={basicInfo.show_about_section}
             showRoomsSection={basicInfo.show_rooms_section}
