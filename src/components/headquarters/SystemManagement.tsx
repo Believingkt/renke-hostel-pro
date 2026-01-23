@@ -3,7 +3,6 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { HQSystemSkeleton } from "@/components/skeletons/HQSkeleton";
-import { FacilityManagement } from "./FacilityManagement";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -586,11 +585,6 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
-
-        {/* Facilities Tab */}
-        <TabsContent value="facilities" className="space-y-4">
-          <FacilityManagement />
         </TabsContent>
 
         {/* Settings Tab */}

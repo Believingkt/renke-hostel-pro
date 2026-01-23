@@ -43,7 +43,8 @@ import {
   Calculator,
   Clock,
   Database,
-  Plus
+  Plus,
+  Utensils
 } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
@@ -73,6 +74,7 @@ import { OperationalOverview } from "@/components/headquarters/OperationalOvervi
 
 import { SystemManagement } from "@/components/headquarters/SystemManagement";
 import { SplitManagement } from "@/components/headquarters/SplitManagement";
+import { FacilityManagement } from "@/components/headquarters/FacilityManagement";
 import { HQUsersSkeleton } from "@/components/skeletons/HQSkeleton";
 
 interface UserRole {
@@ -642,6 +644,7 @@ const Headquarters = () => {
       case 'overview': return '營運分析';
       case 'split': return '金流拆帳';
       case 'accommodations': return '民宿管理';
+      case 'facilities': return '設施管理';
       case 'users': return '帳號管理';
       case 'system': return '系統管理';
       default: return '營運分析';
@@ -673,6 +676,7 @@ const Headquarters = () => {
       case 'performance': return TrendingUp;
       case 'split': return DollarSign;
       case 'accommodations': return Building2;
+      case 'facilities': return Utensils;
       case 'users': return Users;
       case 'system': return Settings;
       default: return BarChart3;
@@ -703,6 +707,7 @@ const Headquarters = () => {
       case 'overview': return '查看全平台營運數據與分析趨勢';
       case 'split': return '設定各民宿分潤比例與管理請款結算記錄';
       case 'accommodations': return '新增、編輯或停用民宿';
+      case 'facilities': return '管理全民宿共用的設施服務項目';
       case 'users': return '邀請新用戶並管理所有帳號的權限設定';
       case 'system': return '查看系統操作日誌與進行全平台系統設定';
       default: return undefined;
@@ -731,6 +736,8 @@ const Headquarters = () => {
             loading={loading}
           />
         );
+      case 'facilities':
+        return <FacilityManagement />;
       case 'users':
         return (
           <div className="space-y-6">
