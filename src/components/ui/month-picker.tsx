@@ -26,6 +26,11 @@ const months = [
   "9月", "10月", "11月", "12月"
 ];
 
+// 後台標準藍色
+const ADMIN_BLUE = "hsl(203, 78%, 43%)";
+const ADMIN_BLUE_HOVER = "hsl(203, 78%, 38%)";
+const ADMIN_BLUE_LIGHT = "hsl(203, 78%, 95%)";
+
 export function MonthPicker({ 
   value, 
   onChange, 
@@ -106,9 +111,13 @@ export function MonthPicker({
           className={cn(
             "justify-start text-left font-normal",
             !value && "text-muted-foreground",
-            value && "bg-blue-600 text-white hover:bg-blue-700 border-blue-600",
             className
           )}
+          style={value ? { 
+            backgroundColor: ADMIN_BLUE, 
+            color: "white", 
+            borderColor: ADMIN_BLUE 
+          } : undefined}
         >
           <Calendar className="mr-2 h-4 w-4" />
           {displayText}
@@ -121,10 +130,11 @@ export function MonthPicker({
             <Button
               variant={isAllSelected ? "default" : "outline"}
               size="sm"
-              className={cn(
-                "w-full mb-3",
-                isAllSelected && "bg-blue-600 text-white hover:bg-blue-700"
-              )}
+              className="w-full mb-3"
+              style={isAllSelected ? { 
+                backgroundColor: ADMIN_BLUE, 
+                color: "white" 
+              } : undefined}
               onClick={handleSelectAll}
             >
               {allLabel}
@@ -167,9 +177,15 @@ export function MonthPicker({
                   size="sm"
                   className={cn(
                     "h-10",
-                    isSelected && "bg-blue-600 text-white hover:bg-blue-700",
-                    !isSelected && isCurrentMonth && "border border-blue-600 text-blue-600"
+                    !isSelected && isCurrentMonth && "border"
                   )}
+                  style={
+                    isSelected 
+                      ? { backgroundColor: ADMIN_BLUE, color: "white" }
+                      : isCurrentMonth 
+                        ? { borderColor: ADMIN_BLUE, color: ADMIN_BLUE }
+                        : undefined
+                  }
                   onClick={() => handleMonthSelect(index)}
                 >
                   {month}
@@ -191,7 +207,7 @@ export function MonthPicker({
             <Button
               variant="ghost"
               size="sm"
-              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+              style={{ color: ADMIN_BLUE }}
               onClick={handleToday}
             >
               本月
