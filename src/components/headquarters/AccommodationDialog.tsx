@@ -169,6 +169,10 @@ export function AccommodationDialog({
   const [linePayEnabled, setLinePayEnabled] = useState(false);
   const [loadingLinePay, setLoadingLinePay] = useState(false);
 
+  // Deposit percentage state
+  const [depositPercentage, setDepositPercentage] = useState<number>(30);
+  const [loadingDeposit, setLoadingDeposit] = useState(false);
+
   useEffect(() => {
     if (initialData) {
       setFormData({
@@ -210,18 +214,18 @@ export function AccommodationDialog({
     }
   }, [initialData, open]);
 
-  // Load LINE Pay setting when editing
+  // Load LINE Pay setting and deposit percentage when editing
   useEffect(() => {
     if (isEditing && initialData?.id && open) {
-      loadLinePaySetting(initialData.id);
+      loadPaymentSettings(initialData.id);
     }
   }, [isEditing, initialData?.id, open]);
 
-  const loadLinePaySetting = async (accommodationId: string) => {
+  const loadPaymentSettings = async (accommodationId: string) => {
     try {
       const { data, error } = await supabase
         .from("booking_settings")
-        .select("payment_methods")
+        .select("payment_methods, deposit_percentage")
         .eq("accommodation_id", accommodationId)
         .single();
 
@@ -229,8 +233,35 @@ export function AccommodationDialog({
 
       const paymentMethods = Array.isArray(data?.payment_methods) ? data.payment_methods : [];
       setLinePayEnabled(paymentMethods.includes("LINE Pay"));
+      setDepositPercentage(data?.deposit_percentage ?? 30);
     } catch (error) {
-      console.error("Error loading LINE Pay setting:", error);
+      console.error("Error loading payment settings:", error);
+    }
+  };
+
+  const handleDepositPercentageChange = async (value: number) => {
+    if (!initialData?.id) return;
+    if (value < 0 || value > 100) return;
+
+    setLoadingDeposit(true);
+    try {
+      const { error } = await supabase
+        .from("booking_settings")
+        .update({ 
+          deposit_percentage: value,
+          updated_at: new Date().toISOString()
+        })
+        .eq("accommodation_id", initialData.id);
+
+      if (error) throw error;
+
+      setDepositPercentage(value);
+      toast.success(`訂金比例已更新為 ${value}%`);
+    } catch (error: any) {
+      console.error("Error updating deposit percentage:", error);
+      toast.error("更新失敗", { description: error.message });
+    } finally {
+      setLoadingDeposit(false);
     }
   };
 
@@ -723,7 +754,7 @@ export function AccommodationDialog({
                         </div>
                       </div>
 
-                      {/* LINE Pay 設定 */}
+                      {/* 付款設定 */}
                       <div className="pt-4 border-t">
                         <div className="space-y-1 mb-4">
                           <h3 className="font-semibold text-base flex items-center gap-2">
@@ -731,32 +762,76 @@ export function AccommodationDialog({
                             付款設定
                           </h3>
                         </div>
-                        <div className="border rounded-lg p-4 bg-muted/30">
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
+                        <div className="space-y-3">
+                          {/* 訂金比例設定 */}
+                          <div className="border rounded-lg p-4 bg-muted/30">
+                            <div className="flex items-center justify-between">
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-2">
+                                  <CreditCard className="h-4 w-4 text-muted-foreground" />
+                                  <span className="font-medium text-sm">訂金比例</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  線上付款時收取的訂金百分比
+                                </p>
+                              </div>
                               <div className="flex items-center gap-2">
-                                <CreditCard className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-medium text-sm">LINE Pay</span>
-                                {linePayEnabled && (
-                                  <Badge variant="secondary" className="text-xs">已啟用</Badge>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  max={100}
+                                  value={depositPercentage}
+                                  onChange={(e) => {
+                                    const val = parseInt(e.target.value) || 0;
+                                    if (val >= 0 && val <= 100) {
+                                      setDepositPercentage(val);
+                                    }
+                                  }}
+                                  onBlur={(e) => {
+                                    const val = parseInt(e.target.value) || 0;
+                                    if (val !== depositPercentage) {
+                                      handleDepositPercentageChange(val);
+                                    }
+                                  }}
+                                  disabled={loadingDeposit || isSubmitting}
+                                  className="w-20 h-9 text-center"
+                                />
+                                <span className="text-sm text-muted-foreground">%</span>
+                                {loadingDeposit && (
+                                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                                 )}
                               </div>
-                              <p className="text-xs text-muted-foreground">
-                                啟用後可使用 LINE Pay 線上付款
-                              </p>
                             </div>
-                            <Switch
-                              checked={linePayEnabled}
-                              onCheckedChange={handleLinePayToggle}
-                              disabled={loadingLinePay || isSubmitting}
-                            />
                           </div>
-                          {loadingLinePay && (
-                            <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                              更新中...
+
+                          {/* LINE Pay 設定 */}
+                          <div className="border rounded-lg p-4 bg-muted/30">
+                            <div className="flex items-center justify-between">
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-2">
+                                  <CreditCard className="h-4 w-4 text-muted-foreground" />
+                                  <span className="font-medium text-sm">LINE Pay</span>
+                                  {linePayEnabled && (
+                                    <Badge variant="secondary" className="text-xs">已啟用</Badge>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  啟用後可使用 LINE Pay 線上付款
+                                </p>
+                              </div>
+                              <Switch
+                                checked={linePayEnabled}
+                                onCheckedChange={handleLinePayToggle}
+                                disabled={loadingLinePay || isSubmitting}
+                              />
                             </div>
-                          )}
+                            {loadingLinePay && (
+                              <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                                更新中...
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </>
