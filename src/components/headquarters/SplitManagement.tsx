@@ -795,40 +795,51 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
             <MonthPicker
               value={monthFilter}
               onChange={setMonthFilter}
-              className="w-[180px]"
+              className="w-[160px]"
             />
           </div>
 
           {requestedRecords.length > 0 && (
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                已選擇 {selectedRecords.length} 筆，
-                金額 NT$ {selectedAmount.gross.toLocaleString()}
-                {selectedAmount.fee > 0 && (
-                  <span className="text-red-500 ml-1">
-                    (手續費 -NT$ {selectedAmount.fee.toLocaleString()}，撥款 NT$ {selectedAmount.net.toLocaleString()})
-                  </span>
-                )}
-              </p>
-              <Button 
-                onClick={() => setShowApproveDialog(true)}
-                disabled={selectedRecords.length === 0}
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                審核通過
-              </Button>
-            </div>
+            <Card className="bg-muted/30 border-dashed">
+              <CardContent className="py-3 px-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-sm flex-wrap">
+                    <Send className="h-4 w-4 text-blue-500" />
+                    <span className="text-muted-foreground">待審核</span>
+                    <span className="font-semibold text-foreground">{requestedRecords.length} 筆</span>
+                    <span className="text-muted-foreground">｜已選擇</span>
+                    <span className="font-semibold text-foreground">{selectedRecords.length} 筆</span>
+                    <span className="font-semibold text-primary">
+                      NT$ {selectedAmount.gross.toLocaleString()}
+                    </span>
+                    {selectedAmount.fee > 0 && (
+                      <span className="text-xs text-red-500">
+                        (手續費 -NT$ {selectedAmount.fee.toLocaleString()})
+                      </span>
+                    )}
+                  </div>
+                  <Button 
+                    onClick={() => setShowApproveDialog(true)}
+                    disabled={selectedRecords.length === 0}
+                    className="shrink-0"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    審核通過
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
                 <Send className="h-5 w-5" />
                 待審核請款
               </CardTitle>
               <CardDescription>民宿提交的請款申請</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0">
               {requestedRecords.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                   <CheckCircle className="h-12 w-12 mb-4 opacity-50" />
@@ -914,40 +925,51 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
             <MonthPicker
               value={monthFilter}
               onChange={setMonthFilter}
-              className="w-[180px]"
+              className="w-[160px]"
             />
           </div>
 
           {approvedRecords.length > 0 && (
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                已選擇 {selectedRecords.length} 筆，
-                金額 NT$ {selectedAmount.gross.toLocaleString()}
-                {selectedAmount.fee > 0 && (
-                  <span className="text-red-500 ml-1">
-                    (手續費 -NT$ {selectedAmount.fee.toLocaleString()}，撥款 NT$ {selectedAmount.net.toLocaleString()})
-                  </span>
-                )}
-              </p>
-              <Button 
-                onClick={() => setShowPayDialog(true)}
-                disabled={selectedRecords.length === 0}
-              >
-                <Banknote className="h-4 w-4 mr-2" />
-                確認撥款
-              </Button>
-            </div>
+            <Card className="bg-muted/30 border-dashed">
+              <CardContent className="py-3 px-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-sm flex-wrap">
+                    <Banknote className="h-4 w-4 text-purple-500" />
+                    <span className="text-muted-foreground">待撥款</span>
+                    <span className="font-semibold text-foreground">{approvedRecords.length} 筆</span>
+                    <span className="text-muted-foreground">｜已選擇</span>
+                    <span className="font-semibold text-foreground">{selectedRecords.length} 筆</span>
+                    <span className="font-semibold text-primary">
+                      NT$ {selectedAmount.gross.toLocaleString()}
+                    </span>
+                    {selectedAmount.fee > 0 && (
+                      <span className="text-xs text-red-500">
+                        (手續費 -NT$ {selectedAmount.fee.toLocaleString()})
+                      </span>
+                    )}
+                  </div>
+                  <Button 
+                    onClick={() => setShowPayDialog(true)}
+                    disabled={selectedRecords.length === 0}
+                    className="shrink-0"
+                  >
+                    <Banknote className="h-4 w-4 mr-2" />
+                    確認撥款
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
                 <Banknote className="h-5 w-5" />
                 待撥款記錄
               </CardTitle>
               <CardDescription>已審核通過，待撥款給民宿</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0">
               {approvedRecords.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                   <Banknote className="h-12 w-12 mb-4 opacity-50" />
