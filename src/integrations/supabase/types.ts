@@ -1701,12 +1701,10 @@ export type Database = {
         Row: {
           accommodation_amount: number
           accommodation_id: string
-          accommodation_percentage: number
           approved_at: string | null
           approved_by: string | null
           created_at: string
           hq_amount: number
-          hq_percentage: number
           id: string
           order_amount: number
           order_id: string
@@ -1725,12 +1723,10 @@ export type Database = {
         Insert: {
           accommodation_amount: number
           accommodation_id: string
-          accommodation_percentage: number
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
           hq_amount: number
-          hq_percentage: number
           id?: string
           order_amount: number
           order_id: string
@@ -1749,12 +1745,10 @@ export type Database = {
         Update: {
           accommodation_amount?: number
           accommodation_id?: string
-          accommodation_percentage?: number
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
           hq_amount?: number
-          hq_percentage?: number
           id?: string
           order_amount?: number
           order_id?: string
@@ -1797,12 +1791,10 @@ export type Database = {
       split_rules: {
         Row: {
           accommodation_id: string
-          accommodation_percentage: number
           created_at: string
           description: string | null
           effective_from: string
           effective_to: string | null
-          hq_percentage: number
           id: string
           is_active: boolean
           transaction_fee_percentage: number
@@ -1810,12 +1802,10 @@ export type Database = {
         }
         Insert: {
           accommodation_id: string
-          accommodation_percentage?: number
           created_at?: string
           description?: string | null
           effective_from?: string
           effective_to?: string | null
-          hq_percentage?: number
           id?: string
           is_active?: boolean
           transaction_fee_percentage?: number
@@ -1823,12 +1813,10 @@ export type Database = {
         }
         Update: {
           accommodation_id?: string
-          accommodation_percentage?: number
           created_at?: string
           description?: string | null
           effective_from?: string
           effective_to?: string | null
-          hq_percentage?: number
           id?: string
           is_active?: boolean
           transaction_fee_percentage?: number
