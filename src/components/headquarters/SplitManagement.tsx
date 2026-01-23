@@ -152,8 +152,7 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
   // Form state
   const [ruleForm, setRuleForm] = useState({
     accommodation_id: "",
-    hq_percentage: 10,
-    accommodation_percentage: 90,
+    transaction_fee_percentage: 2.5,
     effective_from: format(new Date(), "yyyy-MM-dd"),
     effective_to: "",
     description: "",
@@ -245,8 +244,8 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
       return;
     }
 
-    if (ruleForm.hq_percentage + ruleForm.accommodation_percentage !== 100) {
-      toast.error("拆帳比例總和必須為 100%");
+    if (ruleForm.transaction_fee_percentage < 0 || ruleForm.transaction_fee_percentage > 100) {
+      toast.error("手續費比例必須在 0% 到 100% 之間");
       return;
     }
 
@@ -261,8 +260,9 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
 
       const { error } = await supabase.from("split_rules").insert([{
         accommodation_id: ruleForm.accommodation_id,
-        hq_percentage: ruleForm.hq_percentage,
-        accommodation_percentage: ruleForm.accommodation_percentage,
+        hq_percentage: 0,
+        accommodation_percentage: 100,
+        transaction_fee_percentage: ruleForm.transaction_fee_percentage,
         effective_from: ruleForm.effective_from,
         effective_to: ruleForm.effective_to || null,
         description: ruleForm.description || null,
@@ -270,7 +270,7 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
 
       if (error) throw error;
 
-      toast.success(editingRule ? "拆帳規則已更新" : "拆帳規則已建立");
+      toast.success(editingRule ? "手續費規則已更新" : "手續費規則已建立");
       setShowRuleDialog(false);
       setEditingRule(null);
       resetRuleForm();
@@ -377,8 +377,7 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
   const resetRuleForm = () => {
     setRuleForm({
       accommodation_id: "",
-      hq_percentage: 10,
-      accommodation_percentage: 90,
+      transaction_fee_percentage: 2.5,
       effective_from: format(new Date(), "yyyy-MM-dd"),
       effective_to: "",
       description: "",
@@ -389,8 +388,7 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
     setEditingRule(rule);
     setRuleForm({
       accommodation_id: rule.accommodation_id,
-      hq_percentage: Number(rule.hq_percentage),
-      accommodation_percentage: Number(rule.accommodation_percentage),
+      transaction_fee_percentage: Number(rule.transaction_fee_percentage),
       effective_from: format(new Date(), "yyyy-MM-dd"),
       effective_to: "",
       description: rule.description || "",
@@ -536,7 +534,7 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
       return;
     }
 
-    const headers = ["民宿", "訂單編號", "入住日期", "訂單金額", "總部分潤", "民宿分潤", "狀態", "請款日期", "審核日期", "撥款日期", "付款方式"];
+    const headers = ["民宿", "訂單編號", "入住日期", "訂單金額", "手續費", "實付金額", "狀態", "請款日期", "審核日期", "撥款日期", "付款方式"];
     const rows = splitRecords.map(r => [
       getAccommodationName(r.accommodation_id),
       r.orders?.order_number || "",
@@ -616,17 +614,17 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Percent className="h-5 w-5" />
-                拆帳規則設定
+                <CreditCard className="h-5 w-5" />
+                手續費設定
               </CardTitle>
-              <CardDescription>設定總部與各民宿的分潤比例</CardDescription>
+              <CardDescription>設定各民宿的請款手續費比例</CardDescription>
             </CardHeader>
             <CardContent>
               {splitRules.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                  <Percent className="h-12 w-12 mb-4 opacity-50" />
-                  <p>尚無拆帳規則</p>
-                  <p className="text-sm">請點擊「新增規則」建立拆帳設定</p>
+                  <CreditCard className="h-12 w-12 mb-4 opacity-50" />
+                  <p>尚無手續費規則</p>
+                  <p className="text-sm">請點擊「新增規則」建立手續費設定</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto rounded-md border">
@@ -634,9 +632,7 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
                     <TableHeader>
                       <TableRow className="bg-muted/50">
                         <TableHead>民宿</TableHead>
-                        <TableHead>總部比例</TableHead>
-                        <TableHead>民宿比例</TableHead>
-                        <TableHead>手續費</TableHead>
+                        <TableHead>手續費比例</TableHead>
                         <TableHead>生效日期</TableHead>
                         <TableHead>狀態</TableHead>
                         <TableHead className="text-right">操作</TableHead>
@@ -652,17 +648,7 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline">{rule.hq_percentage}%</Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">{rule.accommodation_percentage}%</Badge>
-                          </TableCell>
-                          <TableCell>
-                            {rule.transaction_fee_percentage > 0 ? (
-                              <Badge variant="destructive">{rule.transaction_fee_percentage}%</Badge>
-                            ) : (
-                              <span className="text-muted-foreground text-sm">-</span>
-                            )}
+                            <Badge variant="destructive">{rule.transaction_fee_percentage}%</Badge>
                           </TableCell>
                           <TableCell className="text-sm">
                             {format(new Date(rule.effective_from), "yyyy/MM/dd")}
@@ -759,8 +745,8 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
                         <TableHead>訂單編號</TableHead>
                         <TableHead>民宿</TableHead>
                         <TableHead className="text-right">訂單金額</TableHead>
-                        <TableHead className="text-right">總部分潤</TableHead>
-                        <TableHead className="text-right">民宿分潤</TableHead>
+                        <TableHead className="text-right">手續費</TableHead>
+                        <TableHead className="text-right">實付金額</TableHead>
                         <TableHead>狀態</TableHead>
                         <TableHead>建立時間</TableHead>
                       </TableRow>
@@ -775,24 +761,11 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
                           <TableCell className="text-right font-medium">
                             NT$ {record.order_amount.toLocaleString()}
                           </TableCell>
-                          <TableCell className="text-right text-blue-600">
-                            NT$ {record.hq_amount.toLocaleString()}
-                            <span className="text-xs text-muted-foreground ml-1">
-                              ({record.hq_percentage}%)
-                            </span>
+                          <TableCell className="text-right text-red-600">
+                            -NT$ {record.hq_amount.toLocaleString()}
                           </TableCell>
-                          <TableCell className="text-right">
-                            <div className="text-primary">
-                              NT$ {record.accommodation_amount.toLocaleString()}
-                              <span className="text-xs text-muted-foreground ml-1">
-                                ({record.accommodation_percentage}%)
-                              </span>
-                            </div>
-                            {getTransactionFeePercentage(record.accommodation_id) > 0 && (
-                              <div className="text-xs text-muted-foreground">
-                                扣手續費後 <span className="text-primary font-medium">NT$ {calculateNetAmount(record.accommodation_amount, record.accommodation_id).toLocaleString()}</span>
-                              </div>
-                            )}
+                          <TableCell className="text-right text-primary font-medium">
+                            NT$ {record.accommodation_amount.toLocaleString()}
                           </TableCell>
                           <TableCell>
                             {getStatusBadge(record.settlement_status)}
@@ -882,7 +855,7 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
                         <TableHead>民宿</TableHead>
                         <TableHead>訂單編號</TableHead>
                         <TableHead>入住日期</TableHead>
-                        <TableHead className="text-right">民宿分潤</TableHead>
+                        <TableHead className="text-right">實付金額</TableHead>
                         <TableHead>請款日期</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1001,7 +974,7 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
                         </TableHead>
                         <TableHead>民宿</TableHead>
                         <TableHead>訂單編號</TableHead>
-                        <TableHead className="text-right">民宿分潤</TableHead>
+                        <TableHead className="text-right">實付金額</TableHead>
                         <TableHead>審核日期</TableHead>
                         <TableHead>狀態</TableHead>
                       </TableRow>
@@ -1138,8 +1111,8 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
       <Dialog open={showRuleDialog} onOpenChange={setShowRuleDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingRule ? "編輯拆帳規則" : "新增拆帳規則"}</DialogTitle>
-            <DialogDescription>設定民宿的分潤比例</DialogDescription>
+            <DialogTitle>{editingRule ? "編輯手續費規則" : "新增手續費規則"}</DialogTitle>
+            <DialogDescription>設定民宿的請款手續費比例</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -1160,41 +1133,23 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>總部比例 (%)</Label>
-                <Input
-                  type="number"
-                  value={ruleForm.hq_percentage}
-                  onChange={(e) => {
-                    const hq = parseInt(e.target.value) || 0;
-                    setRuleForm(prev => ({
-                      ...prev,
-                      hq_percentage: hq,
-                      accommodation_percentage: 100 - hq,
-                    }));
-                  }}
-                  min={0}
-                  max={100}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>民宿比例 (%)</Label>
-                <Input
-                  type="number"
-                  value={ruleForm.accommodation_percentage}
-                  onChange={(e) => {
-                    const acc = parseInt(e.target.value) || 0;
-                    setRuleForm(prev => ({
-                      ...prev,
-                      accommodation_percentage: acc,
-                      hq_percentage: 100 - acc,
-                    }));
-                  }}
-                  min={0}
-                  max={100}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label>手續費比例 (%)</Label>
+              <Input
+                type="number"
+                step="0.1"
+                value={ruleForm.transaction_fee_percentage}
+                onChange={(e) => {
+                  const fee = parseFloat(e.target.value) || 0;
+                  setRuleForm(prev => ({
+                    ...prev,
+                    transaction_fee_percentage: fee,
+                  }));
+                }}
+                min={0}
+                max={100}
+              />
+              <p className="text-xs text-muted-foreground">民宿請款時將扣除此比例作為手續費</p>
             </div>
 
             <div className="space-y-2">
