@@ -35,7 +35,10 @@ const DialogContent = React.forwardRef<
   }
 >(({ className, children, hideCloseButton = false, ...props }, ref) => {
   // Check if we're in admin context by looking at the current path
-  const isAdminContext = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+  const isAdminContext = typeof window !== 'undefined' && (
+    window.location.pathname.startsWith('/admin') || 
+    window.location.pathname.startsWith('/hq')
+  );
   
   // 獲取主題 class
   const themeClass = useThemeClass();
