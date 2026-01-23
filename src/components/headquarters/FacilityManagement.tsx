@@ -43,7 +43,6 @@ import {
   Plus,
   Edit,
   Trash2,
-  Building2,
   Loader2,
   Utensils,
   Search,
@@ -52,16 +51,12 @@ import { toast } from "sonner";
 
 interface Facility {
   id: string;
-  accommodation_id: string;
+  accommodation_id: string | null;
   category: string;
   facility_name: string;
   is_available: boolean;
   pricing_type: string | null;
   created_at: string;
-}
-
-interface FacilityManagementProps {
-  accommodations: { id: string; name: string }[];
 }
 
 const CATEGORY_OPTIONS = [
@@ -78,10 +73,9 @@ const PRICING_TYPE_OPTIONS = [
   { value: "paid", label: "需額外付費" },
 ];
 
-export function FacilityManagement({ accommodations }: FacilityManagementProps) {
+export function FacilityManagement() {
   const [loading, setLoading] = useState(true);
   const [facilities, setFacilities] = useState<Facility[]>([]);
-  const [accommodationFilter, setAccommodationFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -93,7 +87,6 @@ export function FacilityManagement({ accommodations }: FacilityManagementProps) 
 
   // Form state
   const [formData, setFormData] = useState({
-    accommodation_id: "",
     category: "public",
     facility_name: "",
     is_available: true,
@@ -102,7 +95,7 @@ export function FacilityManagement({ accommodations }: FacilityManagementProps) 
 
   useEffect(() => {
     loadFacilities();
-  }, [accommodationFilter, categoryFilter]);
+  }, [categoryFilter]);
 
   const loadFacilities = async () => {
     setLoading(true);
@@ -112,10 +105,6 @@ export function FacilityManagement({ accommodations }: FacilityManagementProps) 
         .select("*")
         .order("category")
         .order("facility_name");
-
-      if (accommodationFilter !== "all") {
-        query = query.eq("accommodation_id", accommodationFilter);
-      }
 
       if (categoryFilter !== "all") {
         query = query.eq("category", categoryFilter);
@@ -134,7 +123,6 @@ export function FacilityManagement({ accommodations }: FacilityManagementProps) 
 
   const resetForm = () => {
     setFormData({
-      accommodation_id: accommodationFilter !== "all" ? accommodationFilter : "",
       category: "public",
       facility_name: "",
       is_available: true,
@@ -151,7 +139,6 @@ export function FacilityManagement({ accommodations }: FacilityManagementProps) 
   const openEditDialog = (facility: Facility) => {
     setEditingFacility(facility);
     setFormData({
-      accommodation_id: facility.accommodation_id,
       category: facility.category,
       facility_name: facility.facility_name,
       is_available: facility.is_available,
@@ -161,11 +148,6 @@ export function FacilityManagement({ accommodations }: FacilityManagementProps) 
   };
 
   const handleSave = async () => {
-    if (!formData.accommodation_id) {
-      toast.error("請選擇民宿");
-      return;
-    }
-
     if (!formData.facility_name.trim()) {
       toast.error("請輸入設施名稱");
       return;
@@ -188,11 +170,11 @@ export function FacilityManagement({ accommodations }: FacilityManagementProps) 
         if (error) throw error;
         toast.success("設施已更新");
       } else {
-        // Create new
+        // Create new - 共用設施不需要 accommodation_id
         const { error } = await supabase
           .from("accommodation_facilities")
           .insert({
-            accommodation_id: formData.accommodation_id,
+            accommodation_id: null, // 共用設施
             category: formData.category,
             facility_name: formData.facility_name.trim(),
             is_available: formData.is_available,
@@ -233,10 +215,6 @@ export function FacilityManagement({ accommodations }: FacilityManagementProps) 
     }
   };
 
-  const getAccommodationName = (id: string) => {
-    return accommodations.find(a => a.id === id)?.name || "未知";
-  };
-
   const getCategoryLabel = (value: string) => {
     return CATEGORY_OPTIONS.find(c => c.value === value)?.label || value;
   };
@@ -251,12 +229,12 @@ export function FacilityManagement({ accommodations }: FacilityManagementProps) 
     f.facility_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Group by accommodation for display
-  const groupedByAccommodation = filteredFacilities.reduce((acc, facility) => {
-    if (!acc[facility.accommodation_id]) {
-      acc[facility.accommodation_id] = [];
+  // Group by category for display
+  const groupedByCategory = filteredFacilities.reduce((acc, facility) => {
+    if (!acc[facility.category]) {
+      acc[facility.category] = [];
     }
-    acc[facility.accommodation_id].push(facility);
+    acc[facility.category].push(facility);
     return acc;
   }, {} as Record<string, Facility[]>);
 
@@ -264,18 +242,6 @@ export function FacilityManagement({ accommodations }: FacilityManagementProps) 
     <div className="space-y-4">
       {/* Filters */}
       <div className="flex items-center gap-4 flex-wrap">
-        <Select value={accommodationFilter} onValueChange={setAccommodationFilter}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="全部民宿" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">全部民宿</SelectItem>
-            {accommodations.map(acc => (
-              <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="全部類別" />
@@ -312,7 +278,7 @@ export function FacilityManagement({ accommodations }: FacilityManagementProps) 
             設施管理
           </CardTitle>
           <CardDescription>
-            管理各民宿的設施服務項目，共 {filteredFacilities.length} 項
+            管理全民宿共用的設施服務項目，共 {filteredFacilities.length} 項
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -328,34 +294,27 @@ export function FacilityManagement({ accommodations }: FacilityManagementProps) 
             </div>
           ) : (
             <div className="space-y-6">
-              {Object.entries(groupedByAccommodation).map(([accId, accFacilities]) => (
-                <div key={accId} className="space-y-3">
+              {Object.entries(groupedByCategory).map(([category, categoryFacilities]) => (
+                <div key={category} className="space-y-3">
                   <div className="flex items-center gap-2 pb-2 border-b">
-                    <Building2 className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-semibold">{getAccommodationName(accId)}</span>
-                    <Badge variant="outline">{accFacilities.length} 項</Badge>
+                    <Badge variant="secondary">{getCategoryLabel(category)}</Badge>
+                    <span className="text-sm text-muted-foreground">{categoryFacilities.length} 項</span>
                   </div>
                   <div className="overflow-x-auto rounded-md border">
                     <Table>
                       <TableHeader>
                         <TableRow className="bg-muted/50">
                           <TableHead>設施名稱</TableHead>
-                          <TableHead>類別</TableHead>
                           <TableHead>計費方式</TableHead>
                           <TableHead>狀態</TableHead>
                           <TableHead className="text-right">操作</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {accFacilities.map(facility => (
+                        {categoryFacilities.map(facility => (
                           <TableRow key={facility.id}>
                             <TableCell className="font-medium">
                               {facility.facility_name}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="secondary">
-                                {getCategoryLabel(facility.category)}
-                              </Badge>
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
                               {getPricingTypeLabel(facility.pricing_type)}
@@ -403,29 +362,11 @@ export function FacilityManagement({ accommodations }: FacilityManagementProps) 
           <DialogHeader>
             <DialogTitle>{editingFacility ? "編輯設施" : "新增設施"}</DialogTitle>
             <DialogDescription>
-              {editingFacility ? "修改設施資訊" : "新增設施項目到指定民宿"}
+              {editingFacility ? "修改設施資訊" : "新增共用設施項目"}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>民宿 *</Label>
-              <Select
-                value={formData.accommodation_id}
-                onValueChange={(v) => setFormData(prev => ({ ...prev, accommodation_id: v }))}
-                disabled={!!editingFacility}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="選擇民宿" />
-                </SelectTrigger>
-                <SelectContent>
-                  {accommodations.map(acc => (
-                    <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
             <div className="space-y-2">
               <Label>設施名稱 *</Label>
               <Input
