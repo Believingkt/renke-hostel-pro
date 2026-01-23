@@ -27,19 +27,6 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-import { SortableSectionItem } from './SortableSectionItem';
-
-// Section key to label mapping
-const SECTION_LABELS: Record<string, { label: string; description: string }> = {
-  about: { label: '關於我們區塊', description: '控制首頁是否顯示關於我們區塊' },
-  rooms: { label: '房型介紹區塊', description: '控制首頁是否顯示房型介紹區塊' },
-  facilities: { label: '設施服務區塊', description: '控制首頁是否顯示設施服務區塊' },
-  gallery: { label: '精選照片區塊', description: '控制首頁是否顯示精選照片區塊' },
-  reviews: { label: '旅客評價區塊', description: '控制首頁是否顯示旅客評價區塊' },
-  faq: { label: '常見問題區塊', description: '控制首頁是否顯示常見問題區塊' },
-  location: { label: '地點交通區塊', description: '控制首頁是否顯示地點交通區塊' },
-  booking_info: { label: '訂房須知區塊', description: '控制首頁是否顯示訂房須知區塊' },
-};
 
 interface WebInfoSectionProps {
   accommodationId: string;
@@ -49,15 +36,6 @@ interface WebInfoSectionProps {
   heroDescription: string;
   heroOverlayOpacity: number;
   heroAutoplayDelay: number;
-  showReviewsSection: boolean;
-  showFacilitiesSection: boolean;
-  showGallerySection: boolean;
-  showFaqSection: boolean;
-  showLocationSection: boolean;
-  showBookingInfoSection: boolean;
-  showAboutSection: boolean;
-  showRoomsSection: boolean;
-  sectionsOrder: string[];
   onUpdate: () => void;
   onHeroPhotoUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onDeleteHeroPhoto: (photoId: string) => void;
@@ -65,15 +43,6 @@ interface WebInfoSectionProps {
   onPreviewCarousel: () => void;
   onHeroTitleChange: (field: 'hero_main_title' | 'hero_subtitle' | 'hero_description', value: string) => void;
   onHeroSettingChange: (field: 'hero_overlay_opacity' | 'hero_autoplay_delay', value: number) => void;
-  onShowReviewsSectionChange: (value: boolean) => void;
-  onShowFacilitiesSectionChange: (value: boolean) => void;
-  onShowGallerySectionChange: (value: boolean) => void;
-  onShowFaqSectionChange: (value: boolean) => void;
-  onShowLocationSectionChange: (value: boolean) => void;
-  onShowBookingInfoSectionChange: (value: boolean) => void;
-  onShowAboutSectionChange: (value: boolean) => void;
-  onShowRoomsSectionChange: (value: boolean) => void;
-  onSectionsOrderChange: (newOrder: string[]) => void;
   uploadingHeroPhoto: boolean;
   onSave: () => Promise<void>;
   isSaving?: boolean;
@@ -148,15 +117,6 @@ export const WebInfoSection = ({
   heroDescription,
   heroOverlayOpacity,
   heroAutoplayDelay,
-  showReviewsSection,
-  showFacilitiesSection,
-  showGallerySection,
-  showFaqSection,
-  showLocationSection,
-  showBookingInfoSection,
-  showAboutSection,
-  showRoomsSection,
-  sectionsOrder,
   onUpdate,
   onHeroPhotoUpload,
   onDeleteHeroPhoto,
@@ -164,15 +124,6 @@ export const WebInfoSection = ({
   onPreviewCarousel,
   onHeroTitleChange,
   onHeroSettingChange,
-  onShowReviewsSectionChange,
-  onShowFacilitiesSectionChange,
-  onShowGallerySectionChange,
-  onShowFaqSectionChange,
-  onShowLocationSectionChange,
-  onShowBookingInfoSectionChange,
-  onShowAboutSectionChange,
-  onShowRoomsSectionChange,
-  onSectionsOrderChange,
   uploadingHeroPhoto,
   onSave,
   isSaving = false
@@ -198,49 +149,6 @@ export const WebInfoSection = ({
       const newOrder = arrayMove(heroPhotos, oldIndex, newIndex);
       onHeroPhotoReorder(newOrder);
     }
-  };
-
-  // Handle section reorder
-  const handleSectionDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-
-    if (over && active.id !== over.id) {
-      const oldIndex = sectionsOrder.indexOf(active.id as string);
-      const newIndex = sectionsOrder.indexOf(over.id as string);
-
-      if (oldIndex !== -1 && newIndex !== -1) {
-        const newOrder = arrayMove(sectionsOrder, oldIndex, newIndex);
-        onSectionsOrderChange(newOrder);
-      }
-    }
-  };
-
-  // Map section keys to their visibility state and handlers
-  const getSectionConfig = (key: string) => {
-    const config = SECTION_LABELS[key];
-    if (!config) return null;
-
-    const visibilityMap: Record<string, { checked: boolean; onChange: (v: boolean) => void }> = {
-      about: { checked: showAboutSection, onChange: onShowAboutSectionChange },
-      rooms: { checked: showRoomsSection, onChange: onShowRoomsSectionChange },
-      facilities: { checked: showFacilitiesSection, onChange: onShowFacilitiesSectionChange },
-      gallery: { checked: showGallerySection, onChange: onShowGallerySectionChange },
-      reviews: { checked: showReviewsSection, onChange: onShowReviewsSectionChange },
-      faq: { checked: showFaqSection, onChange: onShowFaqSectionChange },
-      location: { checked: showLocationSection, onChange: onShowLocationSectionChange },
-      booking_info: { checked: showBookingInfoSection, onChange: onShowBookingInfoSectionChange },
-    };
-
-    const visibility = visibilityMap[key];
-    if (!visibility) return null;
-
-    return {
-      key,
-      label: config.label,
-      description: config.description,
-      checked: visibility.checked,
-      onCheckedChange: visibility.onChange,
-    };
   };
 
   return (
@@ -460,41 +368,6 @@ export const WebInfoSection = ({
                 </div>
               </div>
 
-              {/* 首頁區塊顯示設定 */}
-              <div className="space-y-5">
-                <div className="flex items-center justify-between pb-3 border-b border-border/50">
-                  <h4 className="font-semibold text-base text-foreground">首頁區塊顯示</h4>
-                  <span className="text-xs text-muted-foreground">拖曳調整顯示順序</span>
-                </div>
-                
-                <div className="p-4 rounded-lg bg-background/50 border">
-                  <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={handleSectionDragEnd}
-                  >
-                    <SortableContext
-                      items={sectionsOrder}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      <div className="space-y-1">
-                        {sectionsOrder.map((key, index) => {
-                          const config = getSectionConfig(key);
-                          if (!config) return null;
-                          return (
-                            <SortableSectionItem
-                              key={key}
-                              section={config}
-                              isFirst={index === 0}
-                              isLast={index === sectionsOrder.length - 1}
-                            />
-                          );
-                        })}
-                      </div>
-                    </SortableContext>
-                  </DndContext>
-                </div>
-              </div>
             </div>
 
             {/* 右側：即時預覽 */}
