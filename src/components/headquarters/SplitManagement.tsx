@@ -55,6 +55,7 @@ import {
   Send,
   Banknote,
   Download,
+  CreditCard,
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { zhTW } from "date-fns/locale";
@@ -70,6 +71,7 @@ interface SplitRule {
   effective_to: string | null;
   description: string | null;
   created_at: string;
+  transaction_fee_percentage: number;
 }
 
 interface SplitRecord {
@@ -429,67 +431,104 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
     }
   };
 
+  // Get transaction fee for an accommodation
+  const getTransactionFeePercentage = (accommodationId: string): number => {
+    const rule = splitRules.find(r => r.accommodation_id === accommodationId && r.is_active);
+    return rule?.transaction_fee_percentage ?? 0;
+  };
+
+  // Calculate net amount after transaction fee
+  const calculateNetAmount = (amount: number, accommodationId: string): number => {
+    const feeRate = getTransactionFeePercentage(accommodationId);
+    const fee = Math.round(amount * feeRate / 100);
+    return amount - fee;
+  };
+
   // Calculate summary for reports
   const reportSummary = useMemo(() => {
     const byAccommodation: Record<string, {
       total: number;
       hqTotal: number;
       accTotal: number;
+      accNetTotal: number;
+      feeTotal: number;
+      feePercentage: number;
       pending: number;
+      pendingNet: number;
       requested: number;
+      requestedNet: number;
       approved: number;
+      approvedNet: number;
       paid: number;
+      paidNet: number;
       count: number;
     }> = {};
 
     splitRecords.forEach(record => {
       if (!byAccommodation[record.accommodation_id]) {
+        const feeRate = getTransactionFeePercentage(record.accommodation_id);
         byAccommodation[record.accommodation_id] = {
           total: 0,
           hqTotal: 0,
           accTotal: 0,
+          accNetTotal: 0,
+          feeTotal: 0,
+          feePercentage: feeRate,
           pending: 0,
+          pendingNet: 0,
           requested: 0,
+          requestedNet: 0,
           approved: 0,
+          approvedNet: 0,
           paid: 0,
+          paidNet: 0,
           count: 0,
         };
       }
 
       const acc = byAccommodation[record.accommodation_id];
+      const netAmount = calculateNetAmount(record.accommodation_amount, record.accommodation_id);
+      const fee = record.accommodation_amount - netAmount;
+      
       acc.total += record.order_amount;
       acc.hqTotal += record.hq_amount;
       acc.accTotal += record.accommodation_amount;
+      acc.accNetTotal += netAmount;
+      acc.feeTotal += fee;
       acc.count += 1;
 
       switch (record.settlement_status) {
         case "pending":
           acc.pending += record.accommodation_amount;
+          acc.pendingNet += netAmount;
           break;
         case "requested":
           acc.requested += record.accommodation_amount;
+          acc.requestedNet += netAmount;
           break;
         case "approved":
           acc.approved += record.accommodation_amount;
+          acc.approvedNet += netAmount;
           break;
         case "paid":
           acc.paid += record.accommodation_amount;
+          acc.paidNet += netAmount;
           break;
       }
     });
 
     return byAccommodation;
-  }, [splitRecords]);
+  }, [splitRecords, splitRules]);
 
   const requestedRecords = splitRecords.filter(r => r.settlement_status === "requested");
   const approvedRecords = splitRecords.filter(r => r.settlement_status === "approved");
 
-  const selectedAmount = useMemo(() => 
-    splitRecords
-      .filter(r => selectedRecords.includes(r.id))
-      .reduce((sum, r) => sum + r.accommodation_amount, 0),
-    [splitRecords, selectedRecords]
-  );
+  const selectedAmount = useMemo(() => {
+    const records = splitRecords.filter(r => selectedRecords.includes(r.id));
+    const gross = records.reduce((sum, r) => sum + r.accommodation_amount, 0);
+    const net = records.reduce((sum, r) => sum + calculateNetAmount(r.accommodation_amount, r.accommodation_id), 0);
+    return { gross, net, fee: gross - net };
+  }, [splitRecords, selectedRecords, splitRules]);
 
   const handleExportCSV = () => {
     if (splitRecords.length === 0) {
@@ -734,11 +773,18 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
                               ({record.hq_percentage}%)
                             </span>
                           </TableCell>
-                          <TableCell className="text-right text-primary">
-                            NT$ {record.accommodation_amount.toLocaleString()}
-                            <span className="text-xs text-muted-foreground ml-1">
-                              ({record.accommodation_percentage}%)
-                            </span>
+                          <TableCell className="text-right">
+                            <div className="text-primary">
+                              NT$ {record.accommodation_amount.toLocaleString()}
+                              <span className="text-xs text-muted-foreground ml-1">
+                                ({record.accommodation_percentage}%)
+                              </span>
+                            </div>
+                            {getTransactionFeePercentage(record.accommodation_id) > 0 && (
+                              <div className="text-xs text-muted-foreground">
+                                扣手續費後 <span className="text-primary font-medium">NT$ {calculateNetAmount(record.accommodation_amount, record.accommodation_id).toLocaleString()}</span>
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell>
                             {getStatusBadge(record.settlement_status)}
@@ -782,7 +828,13 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
           {requestedRecords.length > 0 && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                已選擇 {selectedRecords.length} 筆，金額 NT$ {selectedAmount.toLocaleString()}
+                已選擇 {selectedRecords.length} 筆，
+                金額 NT$ {selectedAmount.gross.toLocaleString()}
+                {selectedAmount.fee > 0 && (
+                  <span className="text-red-500 ml-1">
+                    (手續費 -NT$ {selectedAmount.fee.toLocaleString()}，實付 NT$ {selectedAmount.net.toLocaleString()})
+                  </span>
+                )}
               </p>
               <Button 
                 onClick={() => setShowApproveDialog(true)}
@@ -847,8 +899,15 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
                           <TableCell className="text-sm">
                             {record.orders?.check_in_date && format(new Date(record.orders.check_in_date), "yyyy/MM/dd")}
                           </TableCell>
-                          <TableCell className="text-right text-primary font-medium">
-                            NT$ {record.accommodation_amount.toLocaleString()}
+                          <TableCell className="text-right">
+                            <div className="text-primary font-medium">
+                              NT$ {record.accommodation_amount.toLocaleString()}
+                            </div>
+                            {getTransactionFeePercentage(record.accommodation_id) > 0 && (
+                              <div className="text-xs text-muted-foreground">
+                                實付 <span className="text-primary">NT$ {calculateNetAmount(record.accommodation_amount, record.accommodation_id).toLocaleString()}</span>
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell className="text-sm">
                             {record.requested_at && format(new Date(record.requested_at), "MM/dd HH:mm")}
@@ -889,7 +948,13 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
           {approvedRecords.length > 0 && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                已選擇 {selectedRecords.length} 筆，金額 NT$ {selectedAmount.toLocaleString()}
+                已選擇 {selectedRecords.length} 筆，
+                金額 NT$ {selectedAmount.gross.toLocaleString()}
+                {selectedAmount.fee > 0 && (
+                  <span className="text-red-500 ml-1">
+                    (手續費 -NT$ {selectedAmount.fee.toLocaleString()}，實付 NT$ {selectedAmount.net.toLocaleString()})
+                  </span>
+                )}
               </p>
               <Button 
                 onClick={() => setShowPayDialog(true)}
@@ -953,8 +1018,15 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
                           <TableCell className="font-mono text-sm">
                             {record.orders?.order_number}
                           </TableCell>
-                          <TableCell className="text-right text-primary font-medium">
-                            NT$ {record.accommodation_amount.toLocaleString()}
+                          <TableCell className="text-right">
+                            <div className="text-primary font-medium">
+                              NT$ {record.accommodation_amount.toLocaleString()}
+                            </div>
+                            {getTransactionFeePercentage(record.accommodation_id) > 0 && (
+                              <div className="text-xs text-muted-foreground">
+                                實付 <span className="text-primary">NT$ {calculateNetAmount(record.accommodation_amount, record.accommodation_id).toLocaleString()}</span>
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell className="text-sm">
                             {record.approved_at && format(new Date(record.approved_at), "MM/dd HH:mm")}
@@ -1013,26 +1085,35 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                           <div className="space-y-1">
                             <p className="text-sm text-muted-foreground">訂單總額</p>
                             <p className="text-xl font-bold">NT$ {summary.total.toLocaleString()}</p>
                           </div>
+                          {summary.feePercentage > 0 && (
+                            <div className="space-y-1">
+                              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                                <CreditCard className="h-3 w-3" />
+                                手續費 ({summary.feePercentage}%)
+                              </p>
+                              <p className="text-xl font-bold text-red-500">-NT$ {summary.feeTotal.toLocaleString()}</p>
+                            </div>
+                          )}
                           <div className="space-y-1">
                             <p className="text-sm text-muted-foreground">待請款</p>
-                            <p className="text-xl font-bold text-orange-500">NT$ {summary.pending.toLocaleString()}</p>
+                            <p className="text-xl font-bold text-orange-500">NT$ {summary.pendingNet.toLocaleString()}</p>
                           </div>
                           <div className="space-y-1">
                             <p className="text-sm text-muted-foreground">審核中</p>
-                            <p className="text-xl font-bold text-blue-500">NT$ {summary.requested.toLocaleString()}</p>
+                            <p className="text-xl font-bold text-blue-500">NT$ {summary.requestedNet.toLocaleString()}</p>
                           </div>
                           <div className="space-y-1">
                             <p className="text-sm text-muted-foreground">待撥款</p>
-                            <p className="text-xl font-bold text-purple-500">NT$ {summary.approved.toLocaleString()}</p>
+                            <p className="text-xl font-bold text-purple-500">NT$ {summary.approvedNet.toLocaleString()}</p>
                           </div>
                           <div className="space-y-1">
                             <p className="text-sm text-muted-foreground">已撥款</p>
-                            <p className="text-xl font-bold text-primary">NT$ {summary.paid.toLocaleString()}</p>
+                            <p className="text-xl font-bold text-primary">NT$ {summary.paidNet.toLocaleString()}</p>
                           </div>
                         </div>
                       </CardContent>
