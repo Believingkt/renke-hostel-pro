@@ -636,6 +636,7 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
                         <TableHead>民宿</TableHead>
                         <TableHead>總部比例</TableHead>
                         <TableHead>民宿比例</TableHead>
+                        <TableHead>手續費</TableHead>
                         <TableHead>生效日期</TableHead>
                         <TableHead>狀態</TableHead>
                         <TableHead className="text-right">操作</TableHead>
@@ -655,6 +656,13 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
                           </TableCell>
                           <TableCell>
                             <Badge variant="secondary">{rule.accommodation_percentage}%</Badge>
+                          </TableCell>
+                          <TableCell>
+                            {rule.transaction_fee_percentage > 0 ? (
+                              <Badge variant="destructive">{rule.transaction_fee_percentage}%</Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">-</span>
+                            )}
                           </TableCell>
                           <TableCell className="text-sm">
                             {format(new Date(rule.effective_from), "yyyy/MM/dd")}
