@@ -29,7 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Calendar } from "lucide-react";
+import { MonthPicker } from "@/components/ui/month-picker";
 
 interface CommissionRecord {
   id: string;
@@ -276,23 +276,14 @@ export const CommissionRecordsDialog = ({
         {/* Month Filter and Batch Settlement */}
         <div className="flex flex-col md:flex-row gap-4 mb-4">
           <div className="flex-1">
-            <Label className="text-sm font-medium mb-2 flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              選擇月份
-            </Label>
-            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              <SelectTrigger>
-                <SelectValue placeholder="選擇月份" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">全部月份</SelectItem>
-                {availableMonths.map((month) => (
-                  <SelectItem key={month} value={month}>
-                    {format(new Date(month + "-01"), "yyyy 年 MM 月")}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label className="text-sm font-medium mb-2 block">選擇月份</Label>
+            <MonthPicker
+              value={selectedMonth}
+              onChange={setSelectedMonth}
+              allowAll
+              allLabel="全部月份"
+              className="w-full"
+            />
           </div>
           
           {selectedMonth !== "all" && pendingCommission > 0 && (

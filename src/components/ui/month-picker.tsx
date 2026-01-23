@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useState, useEffect } from "react";
-import { format, startOfMonth } from "date-fns";
+import { format } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -12,10 +12,12 @@ import {
 } from "@/components/ui/popover";
 
 interface MonthPickerProps {
-  value: string; // format: "yyyy-MM"
+  value: string; // format: "yyyy-MM" or "all" if allowAll is true
   onChange: (value: string) => void;
   className?: string;
   placeholder?: string;
+  allowAll?: boolean; // 是否允許選擇「全部月份」
+  allLabel?: string; // 「全部月份」的標籤文字
 }
 
 const months = [
@@ -28,23 +30,26 @@ export function MonthPicker({
   value, 
   onChange, 
   className,
-  placeholder = "選擇月份" 
+  placeholder = "選擇月份",
+  allowAll = false,
+  allLabel = "全部月份"
 }: MonthPickerProps) {
   const [open, setOpen] = useState(false);
   const [viewYear, setViewYear] = useState(() => {
-    if (value) {
+    if (value && value !== "all") {
       return parseInt(value.split("-")[0], 10);
     }
     return new Date().getFullYear();
   });
 
   // Parse the current value
-  const selectedYear = value ? parseInt(value.split("-")[0], 10) : null;
-  const selectedMonth = value ? parseInt(value.split("-")[1], 10) : null;
+  const isAllSelected = value === "all";
+  const selectedYear = value && value !== "all" ? parseInt(value.split("-")[0], 10) : null;
+  const selectedMonth = value && value !== "all" ? parseInt(value.split("-")[1], 10) : null;
 
   // Update viewYear when value changes
   useEffect(() => {
-    if (value) {
+    if (value && value !== "all") {
       setViewYear(parseInt(value.split("-")[0], 10));
     }
   }, [value]);
@@ -64,7 +69,11 @@ export function MonthPicker({
   };
 
   const handleClear = () => {
-    onChange("");
+    if (allowAll) {
+      onChange("all");
+    } else {
+      onChange("");
+    }
     setOpen(false);
   };
 
@@ -76,10 +85,18 @@ export function MonthPicker({
     setOpen(false);
   };
 
+  const handleSelectAll = () => {
+    onChange("all");
+    setOpen(false);
+  };
+
   // Format display text
-  const displayText = value 
-    ? format(new Date(value + "-01"), "yyyy年MM月", { locale: zhTW })
-    : placeholder;
+  let displayText = placeholder;
+  if (isAllSelected) {
+    displayText = allLabel;
+  } else if (value) {
+    displayText = format(new Date(value + "-01"), "yyyy年MM月", { locale: zhTW });
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -98,6 +115,21 @@ export function MonthPicker({
       </PopoverTrigger>
       <PopoverContent className="w-[280px] p-0" align="start">
         <div className="p-3">
+          {/* All Months Option */}
+          {allowAll && (
+            <Button
+              variant={isAllSelected ? "default" : "outline"}
+              size="sm"
+              className={cn(
+                "w-full mb-3",
+                isAllSelected && "bg-primary text-primary-foreground"
+              )}
+              onClick={handleSelectAll}
+            >
+              {allLabel}
+            </Button>
+          )}
+
           {/* Year Navigation */}
           <div className="flex items-center justify-between mb-4">
             <Button
@@ -122,7 +154,7 @@ export function MonthPicker({
           {/* Month Grid */}
           <div className="grid grid-cols-4 gap-2">
             {months.map((month, index) => {
-              const isSelected = selectedYear === viewYear && selectedMonth === index + 1;
+              const isSelected = !isAllSelected && selectedYear === viewYear && selectedMonth === index + 1;
               const isCurrentMonth = 
                 new Date().getFullYear() === viewYear && 
                 new Date().getMonth() === index;
@@ -153,7 +185,7 @@ export function MonthPicker({
               className="text-muted-foreground hover:text-foreground"
               onClick={handleClear}
             >
-              清除
+              {allowAll ? allLabel : "清除"}
             </Button>
             <Button
               variant="ghost"
