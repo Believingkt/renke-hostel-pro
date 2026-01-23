@@ -60,6 +60,7 @@ import {
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { toast } from "sonner";
+import { MonthPicker } from "@/components/ui/month-picker";
 
 interface SplitRule {
   id: string;
@@ -703,10 +704,9 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
               </SelectContent>
             </Select>
 
-            <Input
-              type="month"
+            <MonthPicker
               value={monthFilter}
-              onChange={(e) => setMonthFilter(e.target.value)}
+              onChange={setMonthFilter}
               className="w-[180px]"
             />
 
@@ -792,10 +792,9 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
               </SelectContent>
             </Select>
 
-            <Input
-              type="month"
+            <MonthPicker
               value={monthFilter}
-              onChange={(e) => setMonthFilter(e.target.value)}
+              onChange={setMonthFilter}
               className="w-[180px]"
             />
           </div>
@@ -912,10 +911,9 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
               </SelectContent>
             </Select>
 
-            <Input
-              type="month"
+            <MonthPicker
               value={monthFilter}
-              onChange={(e) => setMonthFilter(e.target.value)}
+              onChange={setMonthFilter}
               className="w-[180px]"
             />
           </div>
@@ -1022,10 +1020,9 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
         {/* Reports Tab */}
         <TabsContent value="reports" className="space-y-4">
           <div className="flex items-center gap-4">
-            <Input
-              type="month"
+            <MonthPicker
               value={monthFilter}
-              onChange={(e) => setMonthFilter(e.target.value)}
+              onChange={setMonthFilter}
               className="w-[180px]"
             />
             <Button variant="outline" size="icon" onClick={handleExportCSV}>

@@ -57,6 +57,7 @@ import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { toast } from "sonner";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
+import { MonthPicker } from "@/components/ui/month-picker";
 
 interface SplitRecord {
   id: string;
@@ -423,10 +424,9 @@ export default function Settlement() {
           </TabsList>
 
           <div className="flex items-center gap-2">
-            <Input
-              type="month"
+            <MonthPicker
               value={monthFilter}
-              onChange={(e) => setMonthFilter(e.target.value)}
+              onChange={setMonthFilter}
               className="w-[180px]"
             />
             <Button variant="outline" size="icon" onClick={handleExportCSV}>
