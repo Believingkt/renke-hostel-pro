@@ -173,6 +173,10 @@ export function AccommodationDialog({
   const [depositPercentage, setDepositPercentage] = useState<number>(30);
   const [loadingDeposit, setLoadingDeposit] = useState(false);
 
+  // Transaction fee percentage state
+  const [transactionFeePercentage, setTransactionFeePercentage] = useState<number>(0);
+  const [loadingTransactionFee, setLoadingTransactionFee] = useState(false);
+
   useEffect(() => {
     if (initialData) {
       setFormData({
@@ -214,10 +218,11 @@ export function AccommodationDialog({
     }
   }, [initialData, open]);
 
-  // Load LINE Pay setting and deposit percentage when editing
+  // Load payment settings and transaction fee when editing
   useEffect(() => {
     if (isEditing && initialData?.id && open) {
       loadPaymentSettings(initialData.id);
+      loadTransactionFeeSetting(initialData.id);
     }
   }, [isEditing, initialData?.id, open]);
 
@@ -236,6 +241,50 @@ export function AccommodationDialog({
       setDepositPercentage(data?.deposit_percentage ?? 30);
     } catch (error) {
       console.error("Error loading payment settings:", error);
+    }
+  };
+
+  const loadTransactionFeeSetting = async (accommodationId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("split_rules")
+        .select("transaction_fee_percentage")
+        .eq("accommodation_id", accommodationId)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      setTransactionFeePercentage(data?.transaction_fee_percentage ?? 0);
+    } catch (error) {
+      console.error("Error loading transaction fee setting:", error);
+    }
+  };
+
+  const handleTransactionFeeChange = async (value: number) => {
+    if (!initialData?.id) return;
+    if (value < 0 || value > 100) return;
+
+    setLoadingTransactionFee(true);
+    try {
+      const { error } = await supabase
+        .from("split_rules")
+        .update({ 
+          transaction_fee_percentage: value,
+          updated_at: new Date().toISOString()
+        })
+        .eq("accommodation_id", initialData.id)
+        .eq("is_active", true);
+
+      if (error) throw error;
+
+      setTransactionFeePercentage(value);
+      toast.success(`請款手續費已更新為 ${value}%`);
+    } catch (error: any) {
+      console.error("Error updating transaction fee:", error);
+      toast.error("更新失敗", { description: error.message });
+    } finally {
+      setLoadingTransactionFee(false);
     }
   };
 
@@ -798,6 +847,48 @@ export function AccommodationDialog({
                                 />
                                 <span className="text-sm text-muted-foreground">%</span>
                                 {loadingDeposit && (
+                                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* 請款手續費設定 */}
+                          <div className="border rounded-lg p-4 bg-muted/30">
+                            <div className="flex items-center justify-between">
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-2">
+                                  <CreditCard className="h-4 w-4 text-muted-foreground" />
+                                  <span className="font-medium text-sm">請款手續費</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  請款時從民宿分潤扣除的手續費比例
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  max={100}
+                                  step={0.1}
+                                  value={transactionFeePercentage}
+                                  onChange={(e) => {
+                                    const val = parseFloat(e.target.value) || 0;
+                                    if (val >= 0 && val <= 100) {
+                                      setTransactionFeePercentage(val);
+                                    }
+                                  }}
+                                  onBlur={(e) => {
+                                    const val = parseFloat(e.target.value) || 0;
+                                    if (val !== transactionFeePercentage) {
+                                      handleTransactionFeeChange(val);
+                                    }
+                                  }}
+                                  disabled={loadingTransactionFee || isSubmitting}
+                                  className="w-20 h-9 text-center"
+                                />
+                                <span className="text-sm text-muted-foreground">%</span>
+                                {loadingTransactionFee && (
                                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                                 )}
                               </div>
