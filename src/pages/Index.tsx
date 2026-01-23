@@ -111,18 +111,23 @@ const Index = () => {
       <SEOHead
         title={info.og_title || info.name}
         description={info.og_description || info.description || "體驗山林中的寧靜時光，融合日式美學與自然的完美住宿空間。提供一泊二食、管家服務，打造專屬的度假體驗。"}
-        keywords={[
-          info.name,
-          "豪華露營",
-          "日式民宿",
-          "山林住宿",
-          "一泊二食",
-          "管家服務",
-          "度假",
-          "寫真拍攝",
-          info.address?.includes("南投") ? "南投住宿" : "台灣住宿",
-          info.address?.includes("南投") ? "南投民宿" : "民宿"
-        ]}
+        keywords={
+          // 優先使用資料庫中的自訂關鍵字
+          (info as any).meta_keywords 
+            ? (info as any).meta_keywords.split(',').map((k: string) => k.trim()).filter(Boolean)
+            : [
+                info.name,
+                "豪華露營",
+                "日式民宿",
+                "山林住宿",
+                "一泊二食",
+                "管家服務",
+                "度假",
+                "寫真拍攝",
+                info.address?.includes("南投") ? "南投住宿" : "台灣住宿",
+                info.address?.includes("南投") ? "南投民宿" : "民宿"
+              ]
+        }
         image={info.og_image_url}
       />
       

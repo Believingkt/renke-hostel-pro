@@ -159,6 +159,7 @@ export type Database = {
           latitude: number | null
           line_id: string | null
           longitude: number | null
+          meta_keywords: string | null
           name: string
           og_description: string | null
           og_image_url: string | null
@@ -210,6 +211,7 @@ export type Database = {
           latitude?: number | null
           line_id?: string | null
           longitude?: number | null
+          meta_keywords?: string | null
           name: string
           og_description?: string | null
           og_image_url?: string | null
@@ -261,6 +263,7 @@ export type Database = {
           latitude?: number | null
           line_id?: string | null
           longitude?: number | null
+          meta_keywords?: string | null
           name?: string
           og_description?: string | null
           og_image_url?: string | null

@@ -15,6 +15,7 @@ import { ResponsiveTabs, TabItem } from "@/components/ResponsiveTabs";
 import { WebInfoSection } from "@/components/website-content/WebInfoSection";
 import { AboutFeaturesSection } from "@/components/website-content/AboutFeaturesSection";
 import { SocialSharingSection } from "@/components/website-content/SocialSharingSection";
+import { SeoSettingsSection } from "@/components/website-content/SeoSettingsSection";
 import { HeaderFooterSection } from "@/components/website-content/HeaderFooterSection";
 import { HomepageSectionsBlock } from "@/components/website-content/HomepageSectionsBlock";
 import { AddonPlansSection, AddonPlan } from "@/components/website-content/AddonPlansSection";
@@ -420,6 +421,7 @@ const WebsiteContent = () => {
     og_title: "",
     og_description: "",
     og_image_url: "",
+    meta_keywords: "",
     website_url: "",
     hero_main_title: "",
     hero_subtitle: "",
@@ -571,6 +573,7 @@ const WebsiteContent = () => {
           og_title: infoData.og_title || "",
           og_description: infoData.og_description || "",
           og_image_url: infoData.og_image_url || "",
+          meta_keywords: (infoData as any).meta_keywords || "",
           website_url: infoData.website_url || "",
           hero_main_title: infoData.hero_main_title || "",
           hero_subtitle: infoData.hero_subtitle || "",
@@ -810,6 +813,7 @@ const WebsiteContent = () => {
                 og_title: infoData.og_title || "",
                 og_description: infoData.og_description || "",
                 og_image_url: infoData.og_image_url || "",
+                meta_keywords: (infoData as any).meta_keywords || "",
                 website_url: infoData.website_url || "",
                 hero_main_title: infoData.hero_main_title || "",
                 hero_subtitle: infoData.hero_subtitle || "",
@@ -1854,6 +1858,7 @@ const WebsiteContent = () => {
           og_title: updatedInfo.og_title || "",
           og_description: updatedInfo.og_description || "",
           og_image_url: updatedInfo.og_image_url || "",
+          meta_keywords: (updatedInfo as any).meta_keywords || "",
           website_url: updatedInfo.website_url || "",
           hero_main_title: updatedInfo.hero_main_title || "",
           hero_subtitle: updatedInfo.hero_subtitle || "",
@@ -2761,6 +2766,14 @@ const WebsiteContent = () => {
               setEditingFeature(null);
               setFeatureFormOpen(true);
             }}
+          />
+
+          <SeoSettingsSection
+            accommodationId={accommodationId || ''}
+            seoTitle={basicInfo.og_title}
+            metaDescription={basicInfo.og_description}
+            metaKeywords={basicInfo.meta_keywords}
+            onUpdate={loadData}
           />
 
           <SocialSharingSection
