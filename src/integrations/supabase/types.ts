@@ -1805,6 +1805,7 @@ export type Database = {
           hq_percentage: number
           id: string
           is_active: boolean
+          transaction_fee_percentage: number
           updated_at: string
         }
         Insert: {
@@ -1817,6 +1818,7 @@ export type Database = {
           hq_percentage?: number
           id?: string
           is_active?: boolean
+          transaction_fee_percentage?: number
           updated_at?: string
         }
         Update: {
@@ -1829,6 +1831,7 @@ export type Database = {
           hq_percentage?: number
           id?: string
           is_active?: boolean
+          transaction_fee_percentage?: number
           updated_at?: string
         }
         Relationships: [

@@ -51,6 +51,7 @@ import {
   Banknote,
   ClipboardList,
   Download,
+  CreditCard,
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { zhTW } from "date-fns/locale";
@@ -89,6 +90,7 @@ interface SplitRule {
   hq_percentage: number;
   accommodation_percentage: number;
   is_active: boolean;
+  transaction_fee_percentage: number;
 }
 
 export default function Settlement() {
@@ -119,7 +121,7 @@ export default function Settlement() {
       // Load split rule
       const { data: ruleData } = await supabase
         .from("split_rules")
-        .select("id, hq_percentage, accommodation_percentage, is_active")
+        .select("id, hq_percentage, accommodation_percentage, is_active, transaction_fee_percentage")
         .eq("accommodation_id", currentAccommodationId)
         .eq("is_active", true)
         .single();
@@ -223,21 +225,40 @@ export default function Settlement() {
     }
   };
 
-  // Calculate summary
+  // Calculate summary with transaction fee
   const summary = useMemo(() => {
+    const feeRate = splitRule?.transaction_fee_percentage ?? 0;
+    
+    const calculateNetAmount = (amount: number) => {
+      const fee = Math.round(amount * feeRate / 100);
+      return amount - fee;
+    };
+    
     const total = splitRecords.reduce((sum, r) => sum + r.accommodation_amount, 0);
+    const totalNet = splitRecords.reduce((sum, r) => sum + calculateNetAmount(r.accommodation_amount), 0);
     const pending = splitRecords
       .filter(r => r.settlement_status === "pending")
       .reduce((sum, r) => sum + r.accommodation_amount, 0);
+    const pendingNet = splitRecords
+      .filter(r => r.settlement_status === "pending")
+      .reduce((sum, r) => sum + calculateNetAmount(r.accommodation_amount), 0);
     const requested = splitRecords
       .filter(r => r.settlement_status === "requested")
       .reduce((sum, r) => sum + r.accommodation_amount, 0);
+    const requestedNet = splitRecords
+      .filter(r => r.settlement_status === "requested")
+      .reduce((sum, r) => sum + calculateNetAmount(r.accommodation_amount), 0);
     const paid = splitRecords
       .filter(r => r.settlement_status === "paid")
       .reduce((sum, r) => sum + r.accommodation_amount, 0);
+    const paidNet = splitRecords
+      .filter(r => r.settlement_status === "paid")
+      .reduce((sum, r) => sum + calculateNetAmount(r.accommodation_amount), 0);
     
-    return { total, pending, requested, paid };
-  }, [splitRecords]);
+    const totalFee = total - totalNet;
+    
+    return { total, totalNet, pending, pendingNet, requested, requestedNet, paid, paidNet, totalFee, feeRate };
+  }, [splitRecords, splitRule]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -293,7 +314,7 @@ export default function Settlement() {
       />
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
@@ -303,10 +324,31 @@ export default function Settlement() {
               <div>
                 <p className="text-sm text-muted-foreground">本月總分潤</p>
                 <p className="text-xl font-bold">NT$ {summary.total.toLocaleString()}</p>
+                {summary.feeRate > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    扣除手續費後：<span className="font-medium text-primary">NT$ {summary.totalNet.toLocaleString()}</span>
+                  </p>
+                )}
               </div>
             </div>
           </CardContent>
         </Card>
+
+        {summary.feeRate > 0 && (
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-full bg-red-100 text-red-600">
+                  <CreditCard className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">手續費 ({summary.feeRate}%)</p>
+                  <p className="text-xl font-bold text-red-600">-NT$ {summary.totalFee.toLocaleString()}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardContent className="pt-4">
@@ -316,7 +358,7 @@ export default function Settlement() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">待請款</p>
-                <p className="text-xl font-bold text-orange-600">NT$ {summary.pending.toLocaleString()}</p>
+                <p className="text-xl font-bold text-orange-600">NT$ {summary.pendingNet.toLocaleString()}</p>
               </div>
             </div>
           </CardContent>
@@ -330,7 +372,7 @@ export default function Settlement() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">審核中</p>
-                <p className="text-xl font-bold text-purple-600">NT$ {summary.requested.toLocaleString()}</p>
+                <p className="text-xl font-bold text-purple-600">NT$ {summary.requestedNet.toLocaleString()}</p>
               </div>
             </div>
           </CardContent>
@@ -344,7 +386,7 @@ export default function Settlement() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">已撥款</p>
-                <p className="text-xl font-bold text-primary">NT$ {summary.paid.toLocaleString()}</p>
+                <p className="text-xl font-bold text-primary">NT$ {summary.paidNet.toLocaleString()}</p>
               </div>
             </div>
           </CardContent>
@@ -360,6 +402,11 @@ export default function Settlement() {
               <span className="text-sm">目前拆帳比例：</span>
               <Badge variant="outline">總部 {splitRule.hq_percentage}%</Badge>
               <Badge variant="secondary">民宿 {splitRule.accommodation_percentage}%</Badge>
+              {splitRule.transaction_fee_percentage > 0 && (
+                <Badge variant="destructive" className="ml-2">
+                  手續費 {splitRule.transaction_fee_percentage}%
+                </Badge>
+              )}
             </div>
           </CardContent>
         </Card>
