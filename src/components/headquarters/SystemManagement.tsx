@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { HQSystemSkeleton } from "@/components/skeletons/HQSkeleton";
+import { FacilityManagement } from "./FacilityManagement";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -104,7 +105,7 @@ const ACTION_TYPE_LABELS: Record<string, string> = {
 export function SystemManagement({ accommodations }: SystemManagementProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const section = searchParams.get("section") || "logs";
-  const activeTab = section; // section values match tab values: logs, backup, settings
+  const activeTab = section; // section values match tab values: logs, facilities, backup, settings
   
   const [loading, setLoading] = useState(true);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
@@ -585,6 +586,11 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Facilities Tab */}
+        <TabsContent value="facilities" className="space-y-4">
+          <FacilityManagement accommodations={accommodations} />
         </TabsContent>
 
         {/* Settings Tab */}

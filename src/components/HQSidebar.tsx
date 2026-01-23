@@ -9,7 +9,8 @@ import {
   ClipboardList,
   Calculator,
   Clock,
-  Database
+  Database,
+  Utensils
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { PreloadLink } from "@/components/PreloadLink";
@@ -53,6 +54,7 @@ const menuItems = [
     tab: "system",
     subItems: [
       { title: "操作日誌", url: "/hq?tab=system&section=logs", icon: FileText },
+      { title: "設施管理", url: "/hq?tab=system&section=facilities", icon: Utensils },
       { title: "資料備份", url: "/hq?tab=system&section=backup", icon: Database },
       { title: "系統設定", url: "/hq?tab=system&section=settings", icon: Settings },
     ]
