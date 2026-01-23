@@ -318,7 +318,7 @@ export default function Settlement() {
                 <DollarSign className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">本月總分潤</p>
+                <p className="text-sm text-muted-foreground">本月總撥款</p>
                 <p className="text-xl font-bold">NT$ {summary.total.toLocaleString()}</p>
                 {summary.feeRate > 0 && (
                   <p className="text-xs text-muted-foreground">
