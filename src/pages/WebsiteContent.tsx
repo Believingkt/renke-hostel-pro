@@ -16,6 +16,7 @@ import { WebInfoSection } from "@/components/website-content/WebInfoSection";
 import { AboutFeaturesSection } from "@/components/website-content/AboutFeaturesSection";
 import { SocialSharingSection } from "@/components/website-content/SocialSharingSection";
 import { HeaderFooterSection } from "@/components/website-content/HeaderFooterSection";
+import { HomepageSectionsBlock } from "@/components/website-content/HomepageSectionsBlock";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { ValidatedInput } from "@/components/ui/validated-input";
 import { ValidatedTextarea } from "@/components/ui/validated-textarea";
@@ -2723,42 +2724,35 @@ const WebsiteContent = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsContent value="basic-info" className="space-y-6">
           <PageHeader title="網頁設定" icon={Info} />
-          <WebInfoSection
-            accommodationId={accommodationId || ''}
-            heroPhotos={heroPhotos}
-            heroMainTitle={basicInfo.hero_main_title}
-            heroSubtitle={basicInfo.hero_subtitle}
-            heroDescription={basicInfo.hero_description}
-            heroOverlayOpacity={basicInfo.hero_overlay_opacity}
-            heroAutoplayDelay={basicInfo.hero_autoplay_delay}
-            showReviewsSection={basicInfo.show_reviews_section}
+          
+          {/* 首頁區塊顯示設定 - 獨立區塊，放在第一個位置 */}
+          <HomepageSectionsBlock
+            sectionsOrder={basicInfo.homepage_sections_order}
+            showAboutSection={basicInfo.show_about_section}
+            showRoomsSection={basicInfo.show_rooms_section}
             showFacilitiesSection={basicInfo.show_facilities_section}
             showGallerySection={basicInfo.show_gallery_section}
+            showReviewsSection={basicInfo.show_reviews_section}
             showFaqSection={basicInfo.show_faq_section}
             showLocationSection={basicInfo.show_location_section}
             showBookingInfoSection={basicInfo.show_booking_info_section}
-            showAboutSection={basicInfo.show_about_section}
-            showRoomsSection={basicInfo.show_rooms_section}
-            sectionsOrder={basicInfo.homepage_sections_order}
-            onUpdate={loadData}
-            onHeroPhotoUpload={handleHeroPhotoUpload}
-            onDeleteHeroPhoto={handleDeleteHeroPhotoClick}
-            onHeroPhotoReorder={handleHeroPhotoReorder}
-            onPreviewCarousel={handlePreviewCarousel}
-            onHeroTitleChange={(field, value) => {
-              setBasicInfo(prev => ({ ...prev, [field]: value }));
+            onSectionsOrderChange={(newOrder) => {
+              setBasicInfo(prev => ({ ...prev, homepage_sections_order: newOrder }));
             }}
-            onHeroSettingChange={(field, value) => {
-              setBasicInfo(prev => ({ ...prev, [field]: value }));
+            onShowAboutSectionChange={(value) => {
+              setBasicInfo(prev => ({ ...prev, show_about_section: value }));
             }}
-            onShowReviewsSectionChange={(value) => {
-              setBasicInfo(prev => ({ ...prev, show_reviews_section: value }));
+            onShowRoomsSectionChange={(value) => {
+              setBasicInfo(prev => ({ ...prev, show_rooms_section: value }));
             }}
             onShowFacilitiesSectionChange={(value) => {
               setBasicInfo(prev => ({ ...prev, show_facilities_section: value }));
             }}
             onShowGallerySectionChange={(value) => {
               setBasicInfo(prev => ({ ...prev, show_gallery_section: value }));
+            }}
+            onShowReviewsSectionChange={(value) => {
+              setBasicInfo(prev => ({ ...prev, show_reviews_section: value }));
             }}
             onShowFaqSectionChange={(value) => {
               setBasicInfo(prev => ({ ...prev, show_faq_section: value }));
@@ -2769,14 +2763,26 @@ const WebsiteContent = () => {
             onShowBookingInfoSectionChange={(value) => {
               setBasicInfo(prev => ({ ...prev, show_booking_info_section: value }));
             }}
-            onShowAboutSectionChange={(value) => {
-              setBasicInfo(prev => ({ ...prev, show_about_section: value }));
+          />
+
+          <WebInfoSection
+            accommodationId={accommodationId || ''}
+            heroPhotos={heroPhotos}
+            heroMainTitle={basicInfo.hero_main_title}
+            heroSubtitle={basicInfo.hero_subtitle}
+            heroDescription={basicInfo.hero_description}
+            heroOverlayOpacity={basicInfo.hero_overlay_opacity}
+            heroAutoplayDelay={basicInfo.hero_autoplay_delay}
+            onUpdate={loadData}
+            onHeroPhotoUpload={handleHeroPhotoUpload}
+            onDeleteHeroPhoto={handleDeleteHeroPhotoClick}
+            onHeroPhotoReorder={handleHeroPhotoReorder}
+            onPreviewCarousel={handlePreviewCarousel}
+            onHeroTitleChange={(field, value) => {
+              setBasicInfo(prev => ({ ...prev, [field]: value }));
             }}
-            onShowRoomsSectionChange={(value) => {
-              setBasicInfo(prev => ({ ...prev, show_rooms_section: value }));
-            }}
-            onSectionsOrderChange={(newOrder) => {
-              setBasicInfo(prev => ({ ...prev, homepage_sections_order: newOrder }));
+            onHeroSettingChange={(field, value) => {
+              setBasicInfo(prev => ({ ...prev, [field]: value }));
             }}
             uploadingHeroPhoto={uploadingHeroPhoto}
             onSave={handleSaveBasicInfo}
