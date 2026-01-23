@@ -421,6 +421,8 @@ const WebsiteContent = () => {
     og_title: "",
     og_description: "",
     og_image_url: "",
+    seo_title: "",
+    seo_description: "",
     meta_keywords: "",
     website_url: "",
     hero_main_title: "",
@@ -573,6 +575,8 @@ const WebsiteContent = () => {
           og_title: infoData.og_title || "",
           og_description: infoData.og_description || "",
           og_image_url: infoData.og_image_url || "",
+          seo_title: (infoData as any).seo_title || "",
+          seo_description: (infoData as any).seo_description || "",
           meta_keywords: (infoData as any).meta_keywords || "",
           website_url: infoData.website_url || "",
           hero_main_title: infoData.hero_main_title || "",
@@ -813,6 +817,8 @@ const WebsiteContent = () => {
                 og_title: infoData.og_title || "",
                 og_description: infoData.og_description || "",
                 og_image_url: infoData.og_image_url || "",
+                seo_title: (infoData as any).seo_title || "",
+                seo_description: (infoData as any).seo_description || "",
                 meta_keywords: (infoData as any).meta_keywords || "",
                 website_url: infoData.website_url || "",
                 hero_main_title: infoData.hero_main_title || "",
@@ -1858,6 +1864,8 @@ const WebsiteContent = () => {
           og_title: updatedInfo.og_title || "",
           og_description: updatedInfo.og_description || "",
           og_image_url: updatedInfo.og_image_url || "",
+          seo_title: (updatedInfo as any).seo_title || "",
+          seo_description: (updatedInfo as any).seo_description || "",
           meta_keywords: (updatedInfo as any).meta_keywords || "",
           website_url: updatedInfo.website_url || "",
           hero_main_title: updatedInfo.hero_main_title || "",
@@ -2770,8 +2778,8 @@ const WebsiteContent = () => {
 
           <SeoSettingsSection
             accommodationId={accommodationId || ''}
-            seoTitle={basicInfo.og_title}
-            metaDescription={basicInfo.og_description}
+            seoTitle={basicInfo.seo_title}
+            metaDescription={basicInfo.seo_description}
             metaKeywords={basicInfo.meta_keywords}
             onUpdate={loadData}
           />

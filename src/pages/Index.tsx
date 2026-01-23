@@ -51,12 +51,13 @@ const Index = () => {
   // 使用 useLayoutEffect 在 DOM 更新前立即更新標題，減少視覺閃爍
   useLayoutEffect(() => {
     if (info) {
-      const title = info.og_title || info.name;
+      // 優先使用 seo_title，再用 og_title，最後用 name
+      const title = (info as any).seo_title || info.og_title || info.name;
       if (title && document.title !== title) {
         document.title = title;
       }
     }
-  }, [info?.og_title, info?.name]);
+  }, [(info as any)?.seo_title, info?.og_title, info?.name]);
 
   // 同步 accommodationId 到 AccommodationContext（不再覆蓋 URL 參數）
   useEffect(() => {
@@ -109,8 +110,8 @@ const Index = () => {
     <div className={`min-h-screen ${themeClass}`}>
       {/* SEO Meta 標籤 */}
       <SEOHead
-        title={info.og_title || info.name}
-        description={info.og_description || info.description || "體驗山林中的寧靜時光，融合日式美學與自然的完美住宿空間。提供一泊二食、管家服務，打造專屬的度假體驗。"}
+        title={(info as any).seo_title || info.og_title || info.name}
+        description={(info as any).seo_description || info.og_description || info.description || "體驗山林中的寧靜時光，融合日式美學與自然的完美住宿空間。提供一泊二食、管家服務，打造專屬的度假體驗。"}
         keywords={
           // 優先使用資料庫中的自訂關鍵字
           (info as any).meta_keywords 

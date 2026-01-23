@@ -168,6 +168,8 @@ export type Database = {
           region_1: string | null
           region_2: string | null
           registration_number: string | null
+          seo_description: string | null
+          seo_title: string | null
           short_url_alias: string | null
           show_about_section: boolean
           show_booking_info_section: boolean
@@ -220,6 +222,8 @@ export type Database = {
           region_1?: string | null
           region_2?: string | null
           registration_number?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
           short_url_alias?: string | null
           show_about_section?: boolean
           show_booking_info_section?: boolean
@@ -272,6 +276,8 @@ export type Database = {
           region_1?: string | null
           region_2?: string | null
           registration_number?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
           short_url_alias?: string | null
           show_about_section?: boolean
           show_booking_info_section?: boolean

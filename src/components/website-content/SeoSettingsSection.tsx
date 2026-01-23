@@ -101,8 +101,8 @@ export const SeoSettingsSection = ({
       const { error } = await supabase
         .from("accommodation_info")
         .update({
-          og_title: formData.seoTitle,
-          og_description: formData.metaDescription,
+          seo_title: formData.seoTitle,
+          seo_description: formData.metaDescription,
           meta_keywords: formData.metaKeywords,
         })
         .eq("id", accommodationId);
