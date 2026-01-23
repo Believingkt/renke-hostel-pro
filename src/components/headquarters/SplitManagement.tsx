@@ -64,8 +64,6 @@ import { toast } from "sonner";
 interface SplitRule {
   id: string;
   accommodation_id: string;
-  hq_percentage: number;
-  accommodation_percentage: number;
   is_active: boolean;
   effective_from: string;
   effective_to: string | null;
@@ -81,8 +79,6 @@ interface SplitRecord {
   order_amount: number;
   hq_amount: number;
   accommodation_amount: number;
-  hq_percentage: number;
-  accommodation_percentage: number;
   settlement_status: string;
   settlement_date: string | null;
   settlement_note: string | null;
@@ -260,8 +256,6 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
 
       const { error } = await supabase.from("split_rules").insert([{
         accommodation_id: ruleForm.accommodation_id,
-        hq_percentage: 0,
-        accommodation_percentage: 100,
         transaction_fee_percentage: ruleForm.transaction_fee_percentage,
         effective_from: ruleForm.effective_from,
         effective_to: ruleForm.effective_to || null,

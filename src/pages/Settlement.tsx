@@ -65,8 +65,6 @@ interface SplitRecord {
   order_amount: number;
   hq_amount: number;
   accommodation_amount: number;
-  hq_percentage: number;
-  accommodation_percentage: number;
   settlement_status: string;
   settlement_date: string | null;
   settlement_note: string | null;
@@ -87,8 +85,6 @@ interface SplitRecord {
 
 interface SplitRule {
   id: string;
-  hq_percentage: number;
-  accommodation_percentage: number;
   is_active: boolean;
   transaction_fee_percentage: number;
 }
@@ -121,7 +117,7 @@ export default function Settlement() {
       // Load split rule
       const { data: ruleData } = await supabase
         .from("split_rules")
-        .select("id, hq_percentage, accommodation_percentage, is_active, transaction_fee_percentage")
+        .select("id, is_active, transaction_fee_percentage")
         .eq("accommodation_id", currentAccommodationId)
         .eq("is_active", true)
         .single();
