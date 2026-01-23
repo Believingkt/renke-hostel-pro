@@ -528,7 +528,7 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
       return;
     }
 
-    const headers = ["民宿", "訂單編號", "入住日期", "訂單金額", "手續費", "實付金額", "狀態", "請款日期", "審核日期", "撥款日期", "付款方式"];
+    const headers = ["民宿", "訂單編號", "入住日期", "訂單金額", "手續費", "撥款金額", "狀態", "請款日期", "審核日期", "撥款日期", "付款方式"];
     const rows = splitRecords.map(r => [
       getAccommodationName(r.accommodation_id),
       r.orders?.order_number || "",
@@ -740,7 +740,7 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
                         <TableHead>民宿</TableHead>
                         <TableHead className="text-right">訂單金額</TableHead>
                         <TableHead className="text-right">手續費</TableHead>
-                        <TableHead className="text-right">實付金額</TableHead>
+                        <TableHead className="text-right">撥款金額</TableHead>
                         <TableHead>狀態</TableHead>
                         <TableHead>建立時間</TableHead>
                       </TableRow>
@@ -807,7 +807,7 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
                 金額 NT$ {selectedAmount.gross.toLocaleString()}
                 {selectedAmount.fee > 0 && (
                   <span className="text-red-500 ml-1">
-                    (手續費 -NT$ {selectedAmount.fee.toLocaleString()}，實付 NT$ {selectedAmount.net.toLocaleString()})
+                    (手續費 -NT$ {selectedAmount.fee.toLocaleString()}，撥款 NT$ {selectedAmount.net.toLocaleString()})
                   </span>
                 )}
               </p>
@@ -849,7 +849,7 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
                         <TableHead>民宿</TableHead>
                         <TableHead>訂單編號</TableHead>
                         <TableHead>入住日期</TableHead>
-                        <TableHead className="text-right">實付金額</TableHead>
+                        <TableHead className="text-right">撥款金額</TableHead>
                         <TableHead>請款日期</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -880,7 +880,7 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
                             </div>
                             {getTransactionFeePercentage(record.accommodation_id) > 0 && (
                               <div className="text-xs text-muted-foreground">
-                                實付 <span className="text-primary">NT$ {calculateNetAmount(record.accommodation_amount, record.accommodation_id).toLocaleString()}</span>
+                                撥款 <span className="text-primary">NT$ {calculateNetAmount(record.accommodation_amount, record.accommodation_id).toLocaleString()}</span>
                               </div>
                             )}
                           </TableCell>
@@ -927,7 +927,7 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
                 金額 NT$ {selectedAmount.gross.toLocaleString()}
                 {selectedAmount.fee > 0 && (
                   <span className="text-red-500 ml-1">
-                    (手續費 -NT$ {selectedAmount.fee.toLocaleString()}，實付 NT$ {selectedAmount.net.toLocaleString()})
+                    (手續費 -NT$ {selectedAmount.fee.toLocaleString()}，撥款 NT$ {selectedAmount.net.toLocaleString()})
                   </span>
                 )}
               </p>
@@ -968,7 +968,7 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
                         </TableHead>
                         <TableHead>民宿</TableHead>
                         <TableHead>訂單編號</TableHead>
-                        <TableHead className="text-right">實付金額</TableHead>
+                        <TableHead className="text-right">撥款金額</TableHead>
                         <TableHead>審核日期</TableHead>
                         <TableHead>狀態</TableHead>
                       </TableRow>
@@ -999,7 +999,7 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
                             </div>
                             {getTransactionFeePercentage(record.accommodation_id) > 0 && (
                               <div className="text-xs text-muted-foreground">
-                                實付 <span className="text-primary">NT$ {calculateNetAmount(record.accommodation_amount, record.accommodation_id).toLocaleString()}</span>
+                                撥款 <span className="text-primary">NT$ {calculateNetAmount(record.accommodation_amount, record.accommodation_id).toLocaleString()}</span>
                               </div>
                             )}
                           </TableCell>
