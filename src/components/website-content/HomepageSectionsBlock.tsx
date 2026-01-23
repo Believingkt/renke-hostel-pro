@@ -1,3 +1,4 @@
+import { useState, useCallback, useRef, useEffect } from "react";
 import {
   DndContext,
   closestCenter,
@@ -15,7 +16,10 @@ import {
 } from '@dnd-kit/sortable';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SortableSectionItem } from './SortableSectionItem';
-import { LayoutGrid } from "lucide-react";
+import { LayoutGrid, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { invalidateAccommodationCache } from "@/hooks/use-accommodation-cache";
 
 // Section key to label mapping
 const SECTION_LABELS: Record<string, { label: string; description: string }> = {
@@ -30,6 +34,7 @@ const SECTION_LABELS: Record<string, { label: string; description: string }> = {
 };
 
 interface HomepageSectionsBlockProps {
+  accommodationId: string | null;
   sectionsOrder: string[];
   showAboutSection: boolean;
   showRoomsSection: boolean;
@@ -51,6 +56,7 @@ interface HomepageSectionsBlockProps {
 }
 
 export const HomepageSectionsBlock = ({
+  accommodationId,
   sectionsOrder,
   showAboutSection,
   showRoomsSection,
@@ -70,6 +76,9 @@ export const HomepageSectionsBlock = ({
   onShowLocationSectionChange,
   onShowBookingInfoSectionChange,
 }: HomepageSectionsBlockProps) => {
+  const [isSaving, setIsSaving] = useState(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -81,6 +90,48 @@ export const HomepageSectionsBlock = ({
     })
   );
 
+  // Auto-save function
+  const autoSave = useCallback(async (updates: Record<string, any>) => {
+    if (!accommodationId) return;
+
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from("accommodation_info")
+        .update(updates)
+        .eq("id", accommodationId);
+
+      if (error) throw error;
+
+      // Invalidate cache to ensure frontend gets updated data
+      invalidateAccommodationCache(accommodationId);
+    } catch (error) {
+      console.error('Auto-save failed:', error);
+      toast.error('自動儲存失敗');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [accommodationId]);
+
+  // Debounced save for order changes
+  const debouncedSaveOrder = useCallback((newOrder: string[]) => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = setTimeout(() => {
+      autoSave({ homepage_sections_order: newOrder });
+    }, 500);
+  }, [autoSave]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleSectionDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
@@ -91,8 +142,20 @@ export const HomepageSectionsBlock = ({
       if (oldIndex !== -1 && newIndex !== -1) {
         const newOrder = arrayMove(sectionsOrder, oldIndex, newIndex);
         onSectionsOrderChange(newOrder);
+        debouncedSaveOrder(newOrder);
       }
     }
+  };
+
+  // Handler wrappers that auto-save
+  const createToggleHandler = (
+    fieldName: string,
+    onChange: (value: boolean) => void
+  ) => {
+    return (value: boolean) => {
+      onChange(value);
+      autoSave({ [fieldName]: value });
+    };
   };
 
   const getSectionConfig = (key: string) => {
@@ -100,14 +163,14 @@ export const HomepageSectionsBlock = ({
     if (!config) return null;
 
     const visibilityMap: Record<string, { checked: boolean; onChange: (v: boolean) => void }> = {
-      about: { checked: showAboutSection, onChange: onShowAboutSectionChange },
-      rooms: { checked: showRoomsSection, onChange: onShowRoomsSectionChange },
-      facilities: { checked: showFacilitiesSection, onChange: onShowFacilitiesSectionChange },
-      gallery: { checked: showGallerySection, onChange: onShowGallerySectionChange },
-      reviews: { checked: showReviewsSection, onChange: onShowReviewsSectionChange },
-      faq: { checked: showFaqSection, onChange: onShowFaqSectionChange },
-      location: { checked: showLocationSection, onChange: onShowLocationSectionChange },
-      booking_info: { checked: showBookingInfoSection, onChange: onShowBookingInfoSectionChange },
+      about: { checked: showAboutSection, onChange: createToggleHandler('show_about_section', onShowAboutSectionChange) },
+      rooms: { checked: showRoomsSection, onChange: createToggleHandler('show_rooms_section', onShowRoomsSectionChange) },
+      facilities: { checked: showFacilitiesSection, onChange: createToggleHandler('show_facilities_section', onShowFacilitiesSectionChange) },
+      gallery: { checked: showGallerySection, onChange: createToggleHandler('show_gallery_section', onShowGallerySectionChange) },
+      reviews: { checked: showReviewsSection, onChange: createToggleHandler('show_reviews_section', onShowReviewsSectionChange) },
+      faq: { checked: showFaqSection, onChange: createToggleHandler('show_faq_section', onShowFaqSectionChange) },
+      location: { checked: showLocationSection, onChange: createToggleHandler('show_location_section', onShowLocationSectionChange) },
+      booking_info: { checked: showBookingInfoSection, onChange: createToggleHandler('show_booking_info_section', onShowBookingInfoSectionChange) },
     };
 
     const visibility = visibilityMap[key];
@@ -129,10 +192,18 @@ export const HomepageSectionsBlock = ({
           <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
             <LayoutGrid className="h-5 w-5 text-primary" />
           </div>
-          <div>
-            <CardTitle>首頁區塊顯示</CardTitle>
+          <div className="flex-1">
+            <CardTitle className="flex items-center gap-2">
+              首頁區塊顯示
+              {isSaving && (
+                <span className="flex items-center gap-1 text-sm font-normal text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  儲存中...
+                </span>
+              )}
+            </CardTitle>
             <CardDescription>
-              設定首頁各區塊的顯示與否及排列順序
+              設定首頁各區塊的顯示與否及排列順序（自動儲存）
             </CardDescription>
           </div>
         </div>
