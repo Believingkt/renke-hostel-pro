@@ -133,7 +133,18 @@ const Index = () => {
 
       <Navigation 
         accommodationName={info.name}
-        onNavigate={scrollToSection} 
+        onNavigate={scrollToSection}
+        sectionsOrder={info.homepage_sections_order || DEFAULT_SECTIONS_ORDER}
+        sectionVisibility={{
+          show_about_section: info.show_about_section,
+          show_rooms_section: info.show_rooms_section,
+          show_facilities_section: info.show_facilities_section,
+          show_gallery_section: info.show_gallery_section,
+          show_location_section: info.show_location_section,
+          show_booking_info_section: info.show_booking_info_section,
+          show_reviews_section: info.show_reviews_section,
+          show_faq_section: info.show_faq_section,
+        }}
       />
       <main>
         {/* 首屏內容 - 直接載入 */}
