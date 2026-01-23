@@ -277,7 +277,7 @@ export default function Settlement() {
       return;
     }
 
-    const headers = ["訂單編號", "入住日期", "退房日期", "訂單金額", "手續費", "實付金額", "狀態", "請款日期", "撥款日期"];
+    const headers = ["訂單編號", "入住日期", "退房日期", "訂單金額", "手續費", "撥款金額", "狀態", "請款日期", "撥款日期"];
     const rows = splitRecords.map(r => [
       r.orders?.order_number || "",
       r.orders?.check_in_date || "",
