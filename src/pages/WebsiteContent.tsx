@@ -17,6 +17,7 @@ import { AboutFeaturesSection } from "@/components/website-content/AboutFeatures
 import { SocialSharingSection } from "@/components/website-content/SocialSharingSection";
 import { HeaderFooterSection } from "@/components/website-content/HeaderFooterSection";
 import { HomepageSectionsBlock } from "@/components/website-content/HomepageSectionsBlock";
+import { AddonPlansSection, AddonPlan } from "@/components/website-content/AddonPlansSection";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { ValidatedInput } from "@/components/ui/validated-input";
 import { ValidatedTextarea } from "@/components/ui/validated-textarea";
@@ -498,28 +499,12 @@ const WebsiteContent = () => {
   const [isCarouselPreviewOpen, setIsCarouselPreviewOpen] = useState(false);
   const MAX_HERO_PHOTOS = 5;
 
-  // Addon plans state
-  const [petPlan, setPetPlan] = useState({
-    enabled: true,
-    pricePerUnit: 600,
-    maxQuantity: 2,
-    description: "每隻寵物",
-    detailedDescription: ""
-  });
-
-  const [mealPlan, setMealPlan] = useState({
-    enabled: true,
-    pricePerUnit: 900,
-    weekdayMinQuantity: 12,
-    weekendMinQuantity: 18,
-    maxQuantity: 30,
-    description: "每人每日",
-    detailedDescription: ""
-  });
-
+  // Addon plans state - unified array
+  const [addonPlans, setAddonPlans] = useState<AddonPlan[]>([]);
+  const [addonPlansToDelete, setAddonPlansToDelete] = useState<string[]>([]);
+  
   // 加購方案驗證錯誤
-  const [petPlanErrors, setPetPlanErrors] = useState<Record<string, string>>({});
-  const [mealPlanErrors, setMealPlanErrors] = useState<Record<string, string>>({});
+  const [addonPlanErrors, setAddonPlanErrors] = useState<Record<string, Record<string, string>>>({});
 
   // About section state
   const [aboutSection, setAboutSection] = useState({
@@ -730,30 +715,21 @@ const WebsiteContent = () => {
           .eq("accommodation_id", infoData.id);
 
         if (addonData) {
-          const petData = addonData.find(a => a.addon_type === 'pet');
-          const mealData = addonData.find(a => a.addon_type === 'meal');
-
-          if (petData) {
-            setPetPlan({
-              enabled: petData.enabled || true,
-              pricePerUnit: petData.price_per_unit,
-              maxQuantity: petData.max_quantity,
-              description: petData.unit_label || "每隻寵物",
-              detailedDescription: petData.detailed_description || ""
-            });
-          }
-
-          if (mealData) {
-            setMealPlan({
-              enabled: mealData.enabled || true,
-              pricePerUnit: mealData.price_per_unit,
-              weekdayMinQuantity: mealData.weekday_min_quantity || 12,
-              weekendMinQuantity: mealData.weekend_min_quantity || 18,
-              maxQuantity: mealData.max_quantity,
-              description: mealData.unit_label || "每人每日",
-              detailedDescription: mealData.detailed_description || ""
-            });
-          }
+          const plans: AddonPlan[] = addonData.map(item => ({
+            id: item.id,
+            addon_type: item.addon_type,
+            enabled: item.enabled ?? true,
+            price_per_unit: item.price_per_unit,
+            min_quantity: item.min_quantity ?? 0,
+            max_quantity: item.max_quantity,
+            weekday_min_quantity: item.weekday_min_quantity ?? undefined,
+            weekend_min_quantity: item.weekend_min_quantity ?? undefined,
+            unit_label: item.unit_label,
+            description: item.description ?? undefined,
+            detailed_description: item.detailed_description ?? undefined
+          }));
+          setAddonPlans(plans);
+          setAddonPlansToDelete([]);
         }
 
         // 加載特色說明
@@ -915,30 +891,21 @@ const WebsiteContent = () => {
               .eq("accommodation_id", accommodationId);
 
             if (addonData) {
-              const petData = addonData.find(a => a.addon_type === 'pet');
-              const mealData = addonData.find(a => a.addon_type === 'meal');
-
-              if (petData) {
-                setPetPlan({
-                  enabled: petData.enabled || true,
-                  pricePerUnit: petData.price_per_unit,
-                  maxQuantity: petData.max_quantity,
-                  description: petData.unit_label || "每隻寵物",
-                  detailedDescription: petData.detailed_description || ""
-                });
-              }
-
-              if (mealData) {
-                setMealPlan({
-                  enabled: mealData.enabled || true,
-                  pricePerUnit: mealData.price_per_unit,
-                  weekdayMinQuantity: mealData.weekday_min_quantity || 12,
-                  weekendMinQuantity: mealData.weekend_min_quantity || 18,
-                  maxQuantity: mealData.max_quantity,
-                  description: mealData.unit_label || "每人每日",
-                  detailedDescription: mealData.detailed_description || ""
-                });
-              }
+              const plans: AddonPlan[] = addonData.map(item => ({
+                id: item.id,
+                addon_type: item.addon_type,
+                enabled: item.enabled ?? true,
+                price_per_unit: item.price_per_unit,
+                min_quantity: item.min_quantity ?? 0,
+                max_quantity: item.max_quantity,
+                weekday_min_quantity: item.weekday_min_quantity ?? undefined,
+                weekend_min_quantity: item.weekend_min_quantity ?? undefined,
+                unit_label: item.unit_label,
+                description: item.description ?? undefined,
+                detailed_description: item.detailed_description ?? undefined
+              }));
+              setAddonPlans(plans);
+              setAddonPlansToDelete([]);
             }
             break;
 
@@ -2327,41 +2294,39 @@ const WebsiteContent = () => {
 
   // 加購方案單一欄位驗證
   const validateAddonField = (
-    planType: 'pet' | 'meal',
+    addonType: string,
     fieldName: string,
     value: string
   ) => {
     const result = addonSettingsSchema.shape[fieldName as keyof typeof addonSettingsSchema.shape]?.safeParse(value);
     
     if (result && !result.success) {
-      if (planType === 'pet') {
-        setPetPlanErrors(prev => ({
-          ...prev,
+      setAddonPlanErrors(prev => ({
+        ...prev,
+        [addonType]: {
+          ...prev[addonType],
           [fieldName]: result.error.errors[0]?.message || "驗證失敗"
-        }));
-      } else {
-        setMealPlanErrors(prev => ({
-          ...prev,
-          [fieldName]: result.error.errors[0]?.message || "驗證失敗"
-        }));
-      }
+        }
+      }));
       return false;
     } else {
-      if (planType === 'pet') {
-        setPetPlanErrors(prev => {
-          const newErrors = { ...prev };
-          delete newErrors[fieldName];
-          return newErrors;
-        });
-      } else {
-        setMealPlanErrors(prev => {
-          const newErrors = { ...prev };
-          delete newErrors[fieldName];
-          return newErrors;
-        });
-      }
+      setAddonPlanErrors(prev => {
+        const addonErrors = { ...prev[addonType] };
+        delete addonErrors[fieldName];
+        return {
+          ...prev,
+          [addonType]: addonErrors
+        };
+      });
       return true;
     }
+  };
+
+  const handleDeleteAddonPlan = (addonType: string) => {
+    // Mark for deletion
+    setAddonPlansToDelete(prev => [...prev, addonType]);
+    // Remove from current state
+    setAddonPlans(prev => prev.filter(plan => plan.addon_type !== addonType));
   };
 
   const handleSaveAddonPlans = async () => {
@@ -2370,134 +2335,115 @@ const WebsiteContent = () => {
       return;
     }
 
-    // 驗證寵物方案
-    const petData = {
-      description: petPlan.description,
-      detailed_description: petPlan.detailedDescription,
-      unit_label: petPlan.description,
-      price_per_unit: petPlan.pricePerUnit.toString(),
-      max_quantity: petPlan.maxQuantity.toString(),
-      min_quantity: "0"
-    };
+    // Validate all enabled addon plans
+    let hasErrors = false;
+    const newErrors: Record<string, Record<string, string>> = {};
 
-    const petResult = addonSettingsSchema.safeParse(petData);
-    
-    if (!petResult.success && petPlan.enabled) {
-      const newErrors: Record<string, string> = {};
-      petResult.error.errors.forEach((err) => {
-        if (err.path[0]) {
-          newErrors[err.path[0].toString()] = err.message;
-        }
-      });
-      setPetPlanErrors(newErrors);
-      toast.error('請檢查寵物方案表單欄位');
-      return;
+    for (const plan of addonPlans) {
+      if (!plan.enabled) continue;
+      
+      const planData = {
+        description: plan.unit_label,
+        detailed_description: plan.detailed_description || "",
+        unit_label: plan.unit_label,
+        price_per_unit: plan.price_per_unit.toString(),
+        max_quantity: plan.max_quantity.toString(),
+        min_quantity: (plan.min_quantity || 0).toString(),
+        ...(plan.weekday_min_quantity !== undefined && { weekday_min_quantity: plan.weekday_min_quantity.toString() }),
+        ...(plan.weekend_min_quantity !== undefined && { weekend_min_quantity: plan.weekend_min_quantity.toString() })
+      };
+
+      const result = addonSettingsSchema.safeParse(planData);
+      
+      if (!result.success) {
+        const planErrors: Record<string, string> = {};
+        result.error.errors.forEach((err) => {
+          if (err.path[0]) {
+            planErrors[err.path[0].toString()] = err.message;
+          }
+        });
+        newErrors[plan.addon_type] = planErrors;
+        hasErrors = true;
+      }
     }
 
-    // 驗證餐食方案
-    const mealData = {
-      description: mealPlan.description,
-      detailed_description: mealPlan.detailedDescription,
-      unit_label: mealPlan.description,
-      price_per_unit: mealPlan.pricePerUnit.toString(),
-      max_quantity: mealPlan.maxQuantity.toString(),
-      min_quantity: "0",
-      weekday_min_quantity: mealPlan.weekdayMinQuantity.toString(),
-      weekend_min_quantity: mealPlan.weekendMinQuantity.toString()
-    };
-
-    const mealResult = addonSettingsSchema.safeParse(mealData);
-    
-    if (!mealResult.success && mealPlan.enabled) {
-      const newErrors: Record<string, string> = {};
-      mealResult.error.errors.forEach((err) => {
-        if (err.path[0]) {
-          newErrors[err.path[0].toString()] = err.message;
-        }
-      });
-      setMealPlanErrors(newErrors);
-      toast.error('請檢查餐食方案表單欄位');
+    if (hasErrors) {
+      setAddonPlanErrors(newErrors);
+      toast.error('請檢查加購方案表單欄位');
       return;
     }
 
     setIsSaving(true);
     try {
-      // 保存寵物方案
-      const { error: petError } = await supabase
-        .from("addon_settings")
-        .upsert({
-          accommodation_id: accommodationId,
-          addon_type: 'pet',
-          enabled: petPlan.enabled,
-          price_per_unit: petPlan.pricePerUnit,
-          min_quantity: 0,
-          max_quantity: petPlan.maxQuantity,
-          unit_label: petPlan.description,
-          description: `每隻 NT$ ${petPlan.pricePerUnit} / 每晚`,
-          detailed_description: petPlan.detailedDescription
-        }, {
-          onConflict: 'accommodation_id,addon_type'
-        });
+      // Delete removed plans
+      for (const addonType of addonPlansToDelete) {
+        const { error: deleteError } = await supabase
+          .from("addon_settings")
+          .delete()
+          .eq("accommodation_id", accommodationId)
+          .eq("addon_type", addonType);
+        
+        if (deleteError) throw deleteError;
+      }
 
-      if (petError) throw petError;
+      // Save all addon plans
+      for (const plan of addonPlans) {
+        const getDescriptionText = (plan: AddonPlan) => {
+          if (plan.addon_type === 'pet') {
+            return `每隻 NT$ ${plan.price_per_unit} / 每晚`;
+          } else if (plan.addon_type === 'meal') {
+            return `每人 NT$ ${plan.price_per_unit} / 每日`;
+          }
+          return `NT$ ${plan.price_per_unit} / ${plan.unit_label}`;
+        };
 
-      // 保存餐食方案
-      const { error: mealError } = await supabase
-        .from("addon_settings")
-        .upsert({
-          accommodation_id: accommodationId,
-          addon_type: 'meal',
-          enabled: mealPlan.enabled,
-          price_per_unit: mealPlan.pricePerUnit,
-          min_quantity: 0,
-          max_quantity: mealPlan.maxQuantity,
-          weekday_min_quantity: mealPlan.weekdayMinQuantity,
-          weekend_min_quantity: mealPlan.weekendMinQuantity,
-          unit_label: mealPlan.description,
-          description: `每人 NT$ ${mealPlan.pricePerUnit} / 每日`,
-          detailed_description: mealPlan.detailedDescription
-        }, {
-          onConflict: 'accommodation_id,addon_type'
-        });
+        const { error } = await supabase
+          .from("addon_settings")
+          .upsert({
+            accommodation_id: accommodationId,
+            addon_type: plan.addon_type,
+            enabled: plan.enabled,
+            price_per_unit: plan.price_per_unit,
+            min_quantity: plan.min_quantity || 0,
+            max_quantity: plan.max_quantity,
+            weekday_min_quantity: plan.weekday_min_quantity,
+            weekend_min_quantity: plan.weekend_min_quantity,
+            unit_label: plan.unit_label,
+            description: getDescriptionText(plan),
+            detailed_description: plan.detailed_description
+          }, {
+            onConflict: 'accommodation_id,addon_type'
+          });
 
-      if (mealError) throw mealError;
+        if (error) throw error;
+      }
 
-      // 重新載入加購方案資料
+      // Reload addon plans
       const { data: updatedAddonData } = await supabase
         .from("addon_settings")
         .select("*")
         .eq("accommodation_id", accommodationId);
 
       if (updatedAddonData) {
-        const petData = updatedAddonData.find(a => a.addon_type === 'pet');
-        const mealData = updatedAddonData.find(a => a.addon_type === 'meal');
-
-        if (petData) {
-          setPetPlan({
-            enabled: petData.enabled || true,
-            pricePerUnit: petData.price_per_unit,
-            maxQuantity: petData.max_quantity,
-            description: petData.unit_label || "每隻寵物",
-            detailedDescription: petData.detailed_description || ""
-          });
-        }
-
-        if (mealData) {
-          setMealPlan({
-            enabled: mealData.enabled || true,
-            pricePerUnit: mealData.price_per_unit,
-            maxQuantity: mealData.max_quantity,
-            weekdayMinQuantity: mealData.weekday_min_quantity || 0,
-            weekendMinQuantity: mealData.weekend_min_quantity || 0,
-            description: mealData.unit_label || "每人每日",
-            detailedDescription: mealData.detailed_description || ""
-          });
-        }
+        const plans: AddonPlan[] = updatedAddonData.map(item => ({
+          id: item.id,
+          addon_type: item.addon_type,
+          enabled: item.enabled ?? true,
+          price_per_unit: item.price_per_unit,
+          min_quantity: item.min_quantity ?? 0,
+          max_quantity: item.max_quantity,
+          weekday_min_quantity: item.weekday_min_quantity ?? undefined,
+          weekend_min_quantity: item.weekend_min_quantity ?? undefined,
+          unit_label: item.unit_label,
+          description: item.description ?? undefined,
+          detailed_description: item.detailed_description ?? undefined
+        }));
+        setAddonPlans(plans);
+        setAddonPlansToDelete([]);
       }
 
       toast.success('加購方案設定已儲存');
-      setPetPlanErrors({});
-      setMealPlanErrors({});
+      setAddonPlanErrors({});
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error saving addon plans:', error);
@@ -3044,169 +2990,14 @@ const WebsiteContent = () => {
 
         <TabsContent value="addon-plans" className="space-y-6">
           <PageHeader title="加購方案" icon={Package} />
-          {/* 寵物方案 */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>寵物方案</span>
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="pet-enabled" className="text-sm font-normal">啟用</Label>
-                  <Switch
-                    id="pet-enabled"
-                    checked={petPlan.enabled}
-                    onCheckedChange={(checked) => setPetPlan({ ...petPlan, enabled: checked })}
-                    className="touch-manipulation"
-                  />
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-2 gap-6">
-                <ValidatedNumberInput
-                  label="價格 (每隻/每晚)"
-                  prefix="NT$"
-                  value={petPlan.pricePerUnit}
-                  error={petPlanErrors.price_per_unit}
-                  min="0"
-                  disabled={!petPlan.enabled}
-                  onChange={(value) => {
-                    setPetPlan({ ...petPlan, pricePerUnit: value });
-                  }}
-                  onValidate={(value) => validateAddonField('pet', 'price_per_unit', value)}
-                />
-                <ValidatedNumberInput
-                  label="數量上限 (隻)"
-                  value={petPlan.maxQuantity}
-                  error={petPlanErrors.max_quantity}
-                  min="1"
-                  disabled={!petPlan.enabled}
-                  onChange={(value) => {
-                    setPetPlan({ ...petPlan, maxQuantity: value });
-                  }}
-                  onValidate={(value) => validateAddonField('pet', 'max_quantity', value)}
-                />
-              </div>
-              <ValidatedInput
-                label="簡短說明"
-                placeholder="例如：每隻寵物"
-                value={petPlan.description}
-                error={petPlanErrors.description}
-                maxLength={100}
-                showCharCount
-                disabled={!petPlan.enabled}
-                onChange={(value) => {
-                  setPetPlan({ ...petPlan, description: value });
-                }}
-                onValidate={(value) => validateAddonField('pet', 'description', value)}
-              />
-              <div className="space-y-2">
-                <Label>詳細說明（顯示在前台「詳細內容」按鈕中）</Label>
-                <RichTextEditor
-                  value={petPlan.detailedDescription}
-                  onChange={(value) => {
-                    setPetPlan({ ...petPlan, detailedDescription: value });
-                    validateAddonField('pet', 'detailed_description', value);
-                  }}
-                  placeholder="請輸入寵物方案的詳細說明，包含注意事項、規則等..."
-                  error={petPlanErrors.detailed_description}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 餐食方案 */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>餐食方案</span>
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="meal-enabled" className="text-sm font-normal">啟用</Label>
-                  <Switch
-                    id="meal-enabled"
-                    checked={mealPlan.enabled}
-                    onCheckedChange={(checked) => setMealPlan({ ...mealPlan, enabled: checked })}
-                    className="touch-manipulation"
-                  />
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-2 gap-6">
-                <ValidatedNumberInput
-                  label="價格 (每人/每日)"
-                  prefix="NT$"
-                  value={mealPlan.pricePerUnit}
-                  error={mealPlanErrors.price_per_unit}
-                  min="0"
-                  disabled={!mealPlan.enabled}
-                  onChange={(value) => {
-                    setMealPlan({ ...mealPlan, pricePerUnit: value });
-                  }}
-                  onValidate={(value) => validateAddonField('meal', 'price_per_unit', value)}
-                />
-                <ValidatedNumberInput
-                  label="數量上限 (人)"
-                  value={mealPlan.maxQuantity}
-                  error={mealPlanErrors.max_quantity}
-                  min="1"
-                  disabled={!mealPlan.enabled}
-                  onChange={(value) => {
-                    setMealPlan({ ...mealPlan, maxQuantity: value });
-                  }}
-                  onValidate={(value) => validateAddonField('meal', 'max_quantity', value)}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-6">
-                <ValidatedNumberInput
-                  label="平日基本人數"
-                  value={mealPlan.weekdayMinQuantity}
-                  error={mealPlanErrors.weekday_min_quantity}
-                  min="0"
-                  disabled={!mealPlan.enabled}
-                  onChange={(value) => {
-                    setMealPlan({ ...mealPlan, weekdayMinQuantity: value });
-                  }}
-                  onValidate={(value) => validateAddonField('meal', 'weekday_min_quantity', value)}
-                />
-                <ValidatedNumberInput
-                  label="假日基本人數"
-                  value={mealPlan.weekendMinQuantity}
-                  error={mealPlanErrors.weekend_min_quantity}
-                  min="0"
-                  disabled={!mealPlan.enabled}
-                  onChange={(value) => {
-                    setMealPlan({ ...mealPlan, weekendMinQuantity: value });
-                  }}
-                  onValidate={(value) => validateAddonField('meal', 'weekend_min_quantity', value)}
-                />
-              </div>
-              <ValidatedInput
-                label="簡短說明"
-                placeholder="例如：每人每日"
-                value={mealPlan.description}
-                error={mealPlanErrors.description}
-                maxLength={100}
-                showCharCount
-                disabled={!mealPlan.enabled}
-                onChange={(value) => {
-                  setMealPlan({ ...mealPlan, description: value });
-                }}
-                onValidate={(value) => validateAddonField('meal', 'description', value)}
-              />
-              <div className="space-y-2">
-                <Label>詳細說明（顯示在前台「詳細內容」按鈕中）</Label>
-                <RichTextEditor
-                  value={mealPlan.detailedDescription}
-                  onChange={(value) => {
-                    setMealPlan({ ...mealPlan, detailedDescription: value });
-                    validateAddonField('meal', 'detailed_description', value);
-                  }}
-                  placeholder="請輸入餐食方案的詳細說明，包含菜單內容、用餐時間等..."
-                  error={mealPlanErrors.detailed_description}
-                />
-              </div>
-            </CardContent>
-          </Card>
+          
+          <AddonPlansSection
+            addonPlans={addonPlans}
+            onUpdate={setAddonPlans}
+            onDelete={handleDeleteAddonPlan}
+            errors={addonPlanErrors}
+            onValidate={validateAddonField}
+          />
 
           <SaveButtonContainer 
             onSave={handleSaveAddonPlans} 
