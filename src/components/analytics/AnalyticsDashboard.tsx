@@ -70,39 +70,28 @@ export const AnalyticsDashboard = ({ accommodationId }: AnalyticsDashboardProps)
   return (
     <div className="space-y-6">
       {/* Header with controls */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
-            網站流量分析
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            追蹤網站訪問來源與頁面瀏覽
-          </p>
+      <div className="flex justify-end items-center gap-2">
+        <div className="flex bg-muted rounded-lg p-1">
+          {(['7', '14', '30'] as DateRange[]).map((range) => (
+            <Button
+              key={range}
+              variant={dateRange === range ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setDateRange(range)}
+              className="px-3"
+            >
+              {range}天
+            </Button>
+          ))}
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex bg-muted rounded-lg p-1">
-            {(['7', '14', '30'] as DateRange[]).map((range) => (
-              <Button
-                key={range}
-                variant={dateRange === range ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setDateRange(range)}
-                className="px-3"
-              >
-                {range}天
-              </Button>
-            ))}
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refetch()}
-            disabled={isFetching}
-          >
-            <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => refetch()}
+          disabled={isFetching}
+        >
+          <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+        </Button>
       </div>
 
       {/* Key metrics */}

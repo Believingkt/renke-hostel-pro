@@ -43,6 +43,7 @@ const Analytics = () => {
 
       <PageHeader
         title="網站流量分析"
+        description="追蹤網站訪問來源與頁面瀏覽"
         icon={BarChart3}
       />
 
