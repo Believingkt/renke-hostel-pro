@@ -106,6 +106,7 @@ export function MonthPicker({
           className={cn(
             "justify-start text-left font-normal",
             !value && "text-muted-foreground",
+            value && "bg-blue-600 text-white hover:bg-blue-700 border-blue-600",
             className
           )}
         >
@@ -122,7 +123,7 @@ export function MonthPicker({
               size="sm"
               className={cn(
                 "w-full mb-3",
-                isAllSelected && "bg-primary text-primary-foreground"
+                isAllSelected && "bg-blue-600 text-white hover:bg-blue-700"
               )}
               onClick={handleSelectAll}
             >
@@ -166,8 +167,8 @@ export function MonthPicker({
                   size="sm"
                   className={cn(
                     "h-10",
-                    isSelected && "bg-primary text-primary-foreground",
-                    !isSelected && isCurrentMonth && "border border-primary text-primary"
+                    isSelected && "bg-blue-600 text-white hover:bg-blue-700",
+                    !isSelected && isCurrentMonth && "border border-blue-600 text-blue-600"
                   )}
                   onClick={() => handleMonthSelect(index)}
                 >
@@ -190,7 +191,7 @@ export function MonthPicker({
             <Button
               variant="ghost"
               size="sm"
-              className="text-primary hover:text-primary"
+              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
               onClick={handleToday}
             >
               本月
