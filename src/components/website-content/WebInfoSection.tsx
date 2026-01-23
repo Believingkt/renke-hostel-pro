@@ -23,8 +23,23 @@ import {
   sortableKeyboardCoordinates,
   useSortable,
   rectSortingStrategy,
+  verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+
+import { SortableSectionItem } from './SortableSectionItem';
+
+// Section key to label mapping
+const SECTION_LABELS: Record<string, { label: string; description: string }> = {
+  about: { label: '關於我們區塊', description: '控制首頁是否顯示關於我們區塊' },
+  rooms: { label: '房型介紹區塊', description: '控制首頁是否顯示房型介紹區塊' },
+  facilities: { label: '設施服務區塊', description: '控制首頁是否顯示設施服務區塊' },
+  gallery: { label: '精選照片區塊', description: '控制首頁是否顯示精選照片區塊' },
+  reviews: { label: '旅客評價區塊', description: '控制首頁是否顯示旅客評價區塊' },
+  faq: { label: '常見問題區塊', description: '控制首頁是否顯示常見問題區塊' },
+  location: { label: '地點交通區塊', description: '控制首頁是否顯示地點交通區塊' },
+  booking_info: { label: '訂房須知區塊', description: '控制首頁是否顯示訂房須知區塊' },
+};
 
 interface WebInfoSectionProps {
   accommodationId: string;
@@ -42,6 +57,7 @@ interface WebInfoSectionProps {
   showBookingInfoSection: boolean;
   showAboutSection: boolean;
   showRoomsSection: boolean;
+  sectionsOrder: string[];
   onUpdate: () => void;
   onHeroPhotoUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onDeleteHeroPhoto: (photoId: string) => void;
@@ -57,6 +73,7 @@ interface WebInfoSectionProps {
   onShowBookingInfoSectionChange: (value: boolean) => void;
   onShowAboutSectionChange: (value: boolean) => void;
   onShowRoomsSectionChange: (value: boolean) => void;
+  onSectionsOrderChange: (newOrder: string[]) => void;
   uploadingHeroPhoto: boolean;
   onSave: () => Promise<void>;
   isSaving?: boolean;
@@ -139,6 +156,7 @@ export const WebInfoSection = ({
   showBookingInfoSection,
   showAboutSection,
   showRoomsSection,
+  sectionsOrder,
   onUpdate,
   onHeroPhotoUpload,
   onDeleteHeroPhoto,
@@ -154,12 +172,17 @@ export const WebInfoSection = ({
   onShowBookingInfoSectionChange,
   onShowAboutSectionChange,
   onShowRoomsSectionChange,
+  onSectionsOrderChange,
   uploadingHeroPhoto,
   onSave,
   isSaving = false
 }: WebInfoSectionProps) => {
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -175,6 +198,49 @@ export const WebInfoSection = ({
       const newOrder = arrayMove(heroPhotos, oldIndex, newIndex);
       onHeroPhotoReorder(newOrder);
     }
+  };
+
+  // Handle section reorder
+  const handleSectionDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = sectionsOrder.indexOf(active.id as string);
+      const newIndex = sectionsOrder.indexOf(over.id as string);
+
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const newOrder = arrayMove(sectionsOrder, oldIndex, newIndex);
+        onSectionsOrderChange(newOrder);
+      }
+    }
+  };
+
+  // Map section keys to their visibility state and handlers
+  const getSectionConfig = (key: string) => {
+    const config = SECTION_LABELS[key];
+    if (!config) return null;
+
+    const visibilityMap: Record<string, { checked: boolean; onChange: (v: boolean) => void }> = {
+      about: { checked: showAboutSection, onChange: onShowAboutSectionChange },
+      rooms: { checked: showRoomsSection, onChange: onShowRoomsSectionChange },
+      facilities: { checked: showFacilitiesSection, onChange: onShowFacilitiesSectionChange },
+      gallery: { checked: showGallerySection, onChange: onShowGallerySectionChange },
+      reviews: { checked: showReviewsSection, onChange: onShowReviewsSectionChange },
+      faq: { checked: showFaqSection, onChange: onShowFaqSectionChange },
+      location: { checked: showLocationSection, onChange: onShowLocationSectionChange },
+      booking_info: { checked: showBookingInfoSection, onChange: onShowBookingInfoSectionChange },
+    };
+
+    const visibility = visibilityMap[key];
+    if (!visibility) return null;
+
+    return {
+      key,
+      label: config.label,
+      description: config.description,
+      checked: visibility.checked,
+      onCheckedChange: visibility.onChange,
+    };
   };
 
   return (
@@ -396,130 +462,37 @@ export const WebInfoSection = ({
 
               {/* 首頁區塊顯示設定 */}
               <div className="space-y-5">
-                <div className="flex items-center gap-2 pb-3 border-b border-border/50">
+                <div className="flex items-center justify-between pb-3 border-b border-border/50">
                   <h4 className="font-semibold text-base text-foreground">首頁區塊顯示</h4>
+                  <span className="text-xs text-muted-foreground">拖曳調整顯示順序</span>
                 </div>
                 
-                <div className="space-y-3 p-4 rounded-lg bg-background/50 border">
-                  {/* 關於我們區塊 */}
-                  <div className="flex items-center justify-between py-2 border-b border-border/30">
-                    <div className="space-y-1">
-                      <Label htmlFor="show-about-section" className="text-base font-medium">關於我們區塊</Label>
-                      <p className="text-xs text-muted-foreground">
-                        控制首頁是否顯示關於我們區塊
-                      </p>
-                    </div>
-                    <Switch
-                      id="show-about-section"
-                      checked={showAboutSection}
-                      onCheckedChange={onShowAboutSectionChange}
-                    />
-                  </div>
-                  
-                  {/* 房型介紹區塊 */}
-                  <div className="flex items-center justify-between py-2 border-b border-border/30">
-                    <div className="space-y-1">
-                      <Label htmlFor="show-rooms-section" className="text-base font-medium">房型介紹區塊</Label>
-                      <p className="text-xs text-muted-foreground">
-                        控制首頁是否顯示房型介紹區塊
-                      </p>
-                    </div>
-                    <Switch
-                      id="show-rooms-section"
-                      checked={showRoomsSection}
-                      onCheckedChange={onShowRoomsSectionChange}
-                    />
-                  </div>
-                  
-                  {/* 設施服務區塊 */}
-                  <div className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
-                    <div className="space-y-1">
-                      <Label htmlFor="show-facilities-section" className="text-base font-medium">設施服務區塊</Label>
-                      <p className="text-xs text-muted-foreground">
-                        控制首頁是否顯示設施服務區塊
-                      </p>
-                    </div>
-                    <Switch
-                      id="show-facilities-section"
-                      checked={showFacilitiesSection}
-                      onCheckedChange={onShowFacilitiesSectionChange}
-                    />
-                  </div>
-                  
-                  {/* 精選照片區塊 */}
-                  <div className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
-                    <div className="space-y-1">
-                      <Label htmlFor="show-gallery-section" className="text-base font-medium">精選照片區塊</Label>
-                      <p className="text-xs text-muted-foreground">
-                        控制首頁是否顯示精選照片區塊
-                      </p>
-                    </div>
-                    <Switch
-                      id="show-gallery-section"
-                      checked={showGallerySection}
-                      onCheckedChange={onShowGallerySectionChange}
-                    />
-                  </div>
-                  
-                  {/* 旅客評價區塊 */}
-                  <div className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
-                    <div className="space-y-1">
-                      <Label htmlFor="show-reviews-section" className="text-base font-medium">旅客評價區塊</Label>
-                      <p className="text-xs text-muted-foreground">
-                        控制首頁是否顯示旅客評價區塊
-                      </p>
-                    </div>
-                    <Switch
-                      id="show-reviews-section"
-                      checked={showReviewsSection}
-                      onCheckedChange={onShowReviewsSectionChange}
-                    />
-                  </div>
-                  
-                  {/* 常見問題區塊 */}
-                  <div className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
-                    <div className="space-y-1">
-                      <Label htmlFor="show-faq-section" className="text-base font-medium">常見問題區塊</Label>
-                      <p className="text-xs text-muted-foreground">
-                        控制首頁是否顯示常見問題區塊
-                      </p>
-                    </div>
-                    <Switch
-                      id="show-faq-section"
-                      checked={showFaqSection}
-                      onCheckedChange={onShowFaqSectionChange}
-                    />
-                  </div>
-                  
-                  {/* 地點交通區塊 */}
-                  <div className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
-                    <div className="space-y-1">
-                      <Label htmlFor="show-location-section" className="text-base font-medium">地點交通區塊</Label>
-                      <p className="text-xs text-muted-foreground">
-                        控制首頁是否顯示地點交通區塊
-                      </p>
-                    </div>
-                    <Switch
-                      id="show-location-section"
-                      checked={showLocationSection}
-                      onCheckedChange={onShowLocationSectionChange}
-                    />
-                  </div>
-                  
-                  {/* 訂房須知區塊 */}
-                  <div className="flex items-center justify-between py-2">
-                    <div className="space-y-1">
-                      <Label htmlFor="show-booking-info-section" className="text-base font-medium">訂房須知區塊</Label>
-                      <p className="text-xs text-muted-foreground">
-                        控制首頁是否顯示訂房須知區塊
-                      </p>
-                    </div>
-                    <Switch
-                      id="show-booking-info-section"
-                      checked={showBookingInfoSection}
-                      onCheckedChange={onShowBookingInfoSectionChange}
-                    />
-                  </div>
+                <div className="p-4 rounded-lg bg-background/50 border">
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleSectionDragEnd}
+                  >
+                    <SortableContext
+                      items={sectionsOrder}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="space-y-1">
+                        {sectionsOrder.map((key, index) => {
+                          const config = getSectionConfig(key);
+                          if (!config) return null;
+                          return (
+                            <SortableSectionItem
+                              key={key}
+                              section={config}
+                              isFirst={index === 0}
+                              isLast={index === sectionsOrder.length - 1}
+                            />
+                          );
+                        })}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
                 </div>
               </div>
             </div>

@@ -431,7 +431,8 @@ const WebsiteContent = () => {
     show_location_section: true,
     show_booking_info_section: true,
     show_about_section: true,
-    show_rooms_section: true
+    show_rooms_section: true,
+    homepage_sections_order: ["about", "rooms", "facilities", "gallery", "location", "booking_info", "reviews", "faq"]
   });
   const [uploadingHeaderLogo, setUploadingHeaderLogo] = useState(false);
   const [uploadingFooterLogo, setUploadingFooterLogo] = useState(false);
@@ -548,7 +549,7 @@ const WebsiteContent = () => {
       // 構建查詢
       let query = supabase
         .from("accommodation_info")
-        .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url, og_title, og_description, og_image_url, website_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay, show_reviews_section, show_facilities_section, show_gallery_section, show_faq_section, show_location_section, show_booking_info_section, show_about_section, show_rooms_section");
+        .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url, og_title, og_description, og_image_url, website_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay, show_reviews_section, show_facilities_section, show_gallery_section, show_faq_section, show_location_section, show_booking_info_section, show_about_section, show_rooms_section, homepage_sections_order");
       
       // 如果有指定 accommodation ID，則使用它來過濾
       if (accIdToUse) {
@@ -559,6 +560,12 @@ const WebsiteContent = () => {
 
       if (infoData) {
         setAccommodationId(infoData.id);
+        
+        // Parse homepage_sections_order from JSONB
+        const defaultOrder = ["about", "rooms", "facilities", "gallery", "location", "booking_info", "reviews", "faq"];
+        const sectionsOrder = Array.isArray(infoData.homepage_sections_order) 
+          ? infoData.homepage_sections_order as string[]
+          : defaultOrder;
         
         // 設置基本資料
         setBasicInfo({
@@ -591,7 +598,8 @@ const WebsiteContent = () => {
           show_location_section: infoData.show_location_section ?? true,
           show_booking_info_section: infoData.show_booking_info_section ?? true,
           show_about_section: infoData.show_about_section ?? true,
-          show_rooms_section: infoData.show_rooms_section ?? true
+          show_rooms_section: infoData.show_rooms_section ?? true,
+          homepage_sections_order: sectionsOrder
         });
 
         // 更新瀏覽器標題
@@ -802,6 +810,12 @@ const WebsiteContent = () => {
               .maybeSingle();
 
             if (infoData) {
+              // Parse homepage_sections_order from JSONB
+              const defaultOrder = ["about", "rooms", "facilities", "gallery", "location", "booking_info", "reviews", "faq"];
+              const sectionsOrder = Array.isArray(infoData.homepage_sections_order) 
+                ? infoData.homepage_sections_order as string[]
+                : defaultOrder;
+              
               setBasicInfo({
                 name: infoData.name || "",
                 description: infoData.description || "",
@@ -832,7 +846,8 @@ const WebsiteContent = () => {
                 show_location_section: infoData.show_location_section ?? true,
                 show_booking_info_section: infoData.show_booking_info_section ?? true,
                 show_about_section: infoData.show_about_section ?? true,
-                show_rooms_section: infoData.show_rooms_section ?? true
+                show_rooms_section: infoData.show_rooms_section ?? true,
+                homepage_sections_order: sectionsOrder
               });
 
               // 重新載入首頁輪播圖
@@ -1833,7 +1848,8 @@ const WebsiteContent = () => {
           show_location_section: basicInfo.show_location_section,
           show_booking_info_section: basicInfo.show_booking_info_section,
           show_about_section: basicInfo.show_about_section,
-          show_rooms_section: basicInfo.show_rooms_section
+          show_rooms_section: basicInfo.show_rooms_section,
+          homepage_sections_order: basicInfo.homepage_sections_order
         })
         .eq("id", accommodationId);
 
@@ -1842,11 +1858,17 @@ const WebsiteContent = () => {
       // 重新載入網頁設定資料
       const { data: updatedInfo } = await supabase
         .from("accommodation_info")
-        .select("id, name, description, address, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url, og_title, og_description, og_image_url, website_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay, show_reviews_section, show_facilities_section, show_gallery_section, show_faq_section, show_location_section, show_booking_info_section, show_about_section, show_rooms_section")
+        .select("id, name, description, address, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url, og_title, og_description, og_image_url, website_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay, show_reviews_section, show_facilities_section, show_gallery_section, show_faq_section, show_location_section, show_booking_info_section, show_about_section, show_rooms_section, homepage_sections_order")
         .eq("id", accommodationId)
         .maybeSingle();
 
       if (updatedInfo) {
+        // Parse homepage_sections_order from JSONB
+        const defaultOrder = ["about", "rooms", "facilities", "gallery", "location", "booking_info", "reviews", "faq"];
+        const sectionsOrder = Array.isArray(updatedInfo.homepage_sections_order) 
+          ? updatedInfo.homepage_sections_order as string[]
+          : defaultOrder;
+        
         setBasicInfo({
           name: updatedInfo.name || "",
           description: updatedInfo.description || "",
@@ -1877,7 +1899,8 @@ const WebsiteContent = () => {
           show_location_section: updatedInfo.show_location_section ?? true,
           show_booking_info_section: updatedInfo.show_booking_info_section ?? true,
           show_about_section: updatedInfo.show_about_section ?? true,
-          show_rooms_section: updatedInfo.show_rooms_section ?? true
+          show_rooms_section: updatedInfo.show_rooms_section ?? true,
+          homepage_sections_order: sectionsOrder
         });
       }
 
@@ -2716,6 +2739,7 @@ const WebsiteContent = () => {
             showBookingInfoSection={basicInfo.show_booking_info_section}
             showAboutSection={basicInfo.show_about_section}
             showRoomsSection={basicInfo.show_rooms_section}
+            sectionsOrder={basicInfo.homepage_sections_order}
             onUpdate={loadData}
             onHeroPhotoUpload={handleHeroPhotoUpload}
             onDeleteHeroPhoto={handleDeleteHeroPhotoClick}
@@ -2750,6 +2774,9 @@ const WebsiteContent = () => {
             }}
             onShowRoomsSectionChange={(value) => {
               setBasicInfo(prev => ({ ...prev, show_rooms_section: value }));
+            }}
+            onSectionsOrderChange={(newOrder) => {
+              setBasicInfo(prev => ({ ...prev, homepage_sections_order: newOrder }));
             }}
             uploadingHeroPhoto={uploadingHeroPhoto}
             onSave={handleSaveBasicInfo}
