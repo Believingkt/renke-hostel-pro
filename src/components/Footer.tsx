@@ -247,7 +247,7 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
               </a>
               <span>2025 © All Rights Reserved.</span>
             </div>
-            <div className="text-xs md:text-sm">人客多股份有限公司　統一編號：00224568</div>
+            
           </div>
         </div>
       </div>
