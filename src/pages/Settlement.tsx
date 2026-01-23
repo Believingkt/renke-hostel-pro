@@ -543,44 +543,65 @@ export default function Settlement() {
               </CardContent>
             </Card>
           ) : (
-            <Card>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50">
-                        <TableHead>訂單編號</TableHead>
-                        <TableHead>入住日期</TableHead>
-                        <TableHead className="text-right">撥款金額</TableHead>
-                        <TableHead>請款日期</TableHead>
-                        <TableHead>狀態</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {splitRecords.map(record => (
-                        <TableRow key={record.id}>
-                          <TableCell className="font-mono text-sm">
-                            {record.orders?.order_number}
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {record.orders?.check_in_date && format(new Date(record.orders.check_in_date), "yyyy/MM/dd")}
-                          </TableCell>
-                          <TableCell className="text-right text-primary font-medium">
-                            NT$ {record.accommodation_amount.toLocaleString()}
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {record.requested_at && format(new Date(record.requested_at), "yyyy/MM/dd HH:mm")}
-                          </TableCell>
-                          <TableCell>
-                            {getStatusBadge(record.settlement_status)}
-                          </TableCell>
+            <>
+              <Card className="bg-muted/30 border-dashed">
+                <CardContent className="py-3 px-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Send className="h-4 w-4 text-blue-500" />
+                      <span className="text-muted-foreground">審核中</span>
+                      <span className="font-semibold text-foreground">{splitRecords.length} 筆</span>
+                      <span className="text-muted-foreground">，總金額</span>
+                      <span className="font-semibold text-primary">
+                        NT$ {splitRecords.reduce((sum, r) => sum + r.accommodation_amount, 0).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      請款申請已送出，請等待總部審核
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50">
+                          <TableHead>訂單編號</TableHead>
+                          <TableHead>入住日期</TableHead>
+                          <TableHead className="text-right">撥款金額</TableHead>
+                          <TableHead>請款日期</TableHead>
+                          <TableHead>狀態</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
+                      </TableHeader>
+                      <TableBody>
+                        {splitRecords.map(record => (
+                          <TableRow key={record.id}>
+                            <TableCell className="font-mono text-sm">
+                              {record.orders?.order_number}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {record.orders?.check_in_date && format(new Date(record.orders.check_in_date), "yyyy/MM/dd")}
+                            </TableCell>
+                            <TableCell className="text-right text-primary font-medium">
+                              NT$ {record.accommodation_amount.toLocaleString()}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {record.requested_at && format(new Date(record.requested_at), "yyyy/MM/dd HH:mm")}
+                            </TableCell>
+                            <TableCell>
+                              {getStatusBadge(record.settlement_status)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
           )}
         </TabsContent>
 
@@ -596,52 +617,73 @@ export default function Settlement() {
               </CardContent>
             </Card>
           ) : (
-            <Card>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50">
-                        <TableHead>訂單編號</TableHead>
-                        <TableHead>入住日期</TableHead>
-                        <TableHead className="text-right">撥款金額</TableHead>
-                        <TableHead>請款日期</TableHead>
-                        <TableHead>撥款日期</TableHead>
-                        <TableHead>付款方式</TableHead>
-                        <TableHead>狀態</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {splitRecords.map(record => (
-                        <TableRow key={record.id}>
-                          <TableCell className="font-mono text-sm">
-                            {record.orders?.order_number}
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {record.orders?.check_in_date && format(new Date(record.orders.check_in_date), "yyyy/MM/dd")}
-                          </TableCell>
-                          <TableCell className="text-right text-primary font-medium">
-                            NT$ {record.accommodation_amount.toLocaleString()}
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {record.requested_at && format(new Date(record.requested_at), "yyyy/MM/dd")}
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {record.paid_at && format(new Date(record.paid_at), "yyyy/MM/dd")}
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {record.payment_method || "-"}
-                          </TableCell>
-                          <TableCell>
-                            {getStatusBadge(record.settlement_status)}
-                          </TableCell>
+            <>
+              <Card className="bg-muted/30 border-dashed">
+                <CardContent className="py-3 px-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="h-4 w-4 text-primary" />
+                      <span className="text-muted-foreground">已撥款</span>
+                      <span className="font-semibold text-foreground">{splitRecords.length} 筆</span>
+                      <span className="text-muted-foreground">，總金額</span>
+                      <span className="font-semibold text-primary">
+                        NT$ {splitRecords.reduce((sum, r) => sum + r.accommodation_amount, 0).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {monthFilter ? format(new Date(monthFilter + "-01"), "yyyy年M月", { locale: zhTW }) : ""}撥款紀錄
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50">
+                          <TableHead>訂單編號</TableHead>
+                          <TableHead>入住日期</TableHead>
+                          <TableHead className="text-right">撥款金額</TableHead>
+                          <TableHead>請款日期</TableHead>
+                          <TableHead>撥款日期</TableHead>
+                          <TableHead>付款方式</TableHead>
+                          <TableHead>狀態</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
+                      </TableHeader>
+                      <TableBody>
+                        {splitRecords.map(record => (
+                          <TableRow key={record.id}>
+                            <TableCell className="font-mono text-sm">
+                              {record.orders?.order_number}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {record.orders?.check_in_date && format(new Date(record.orders.check_in_date), "yyyy/MM/dd")}
+                            </TableCell>
+                            <TableCell className="text-right text-primary font-medium">
+                              NT$ {record.accommodation_amount.toLocaleString()}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {record.requested_at && format(new Date(record.requested_at), "yyyy/MM/dd")}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {record.paid_at && format(new Date(record.paid_at), "yyyy/MM/dd")}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {record.payment_method || "-"}
+                            </TableCell>
+                            <TableCell>
+                              {getStatusBadge(record.settlement_status)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
           )}
         </TabsContent>
       </Tabs>
