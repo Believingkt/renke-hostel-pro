@@ -539,7 +539,7 @@ const WebsiteContent = () => {
       // 構建查詢
       let query = supabase
         .from("accommodation_info")
-        .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url, og_title, og_description, og_image_url, website_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay, show_reviews_section, show_facilities_section, show_gallery_section, show_faq_section, show_location_section, show_booking_info_section, show_about_section, show_rooms_section, homepage_sections_order");
+        .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url, og_title, og_description, og_image_url, seo_title, seo_description, meta_keywords, website_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay, show_reviews_section, show_facilities_section, show_gallery_section, show_faq_section, show_location_section, show_booking_info_section, show_about_section, show_rooms_section, homepage_sections_order");
       
       // 如果有指定 accommodation ID，則使用它來過濾
       if (accIdToUse) {
