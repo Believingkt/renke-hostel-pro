@@ -322,7 +322,7 @@ export default function Settlement() {
                 <p className="text-xl font-bold">NT$ {summary.total.toLocaleString()}</p>
                 {summary.feeRate > 0 && (
                   <p className="text-xs text-muted-foreground">
-                    扣除手續費後：<span className="font-medium text-primary">NT$ {summary.totalNet.toLocaleString()}</span>
+                    扣除手續費後實際撥款：<span className="font-medium text-primary">NT$ {summary.totalNet.toLocaleString()}</span>
                   </p>
                 )}
               </div>
@@ -477,7 +477,7 @@ export default function Settlement() {
                           <TableHead>入住日期</TableHead>
                           <TableHead className="text-right">訂單金額</TableHead>
                           <TableHead className="text-right">手續費</TableHead>
-                          <TableHead className="text-right">實付金額</TableHead>
+                          <TableHead className="text-right">撥款金額</TableHead>
                           <TableHead>付款狀態</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -543,7 +543,7 @@ export default function Settlement() {
                       <TableRow className="bg-muted/50">
                         <TableHead>訂單編號</TableHead>
                         <TableHead>入住日期</TableHead>
-                        <TableHead className="text-right">實付金額</TableHead>
+                        <TableHead className="text-right">撥款金額</TableHead>
                         <TableHead>請款日期</TableHead>
                         <TableHead>狀態</TableHead>
                       </TableRow>
@@ -596,7 +596,7 @@ export default function Settlement() {
                       <TableRow className="bg-muted/50">
                         <TableHead>訂單編號</TableHead>
                         <TableHead>入住日期</TableHead>
-                        <TableHead className="text-right">實付金額</TableHead>
+                        <TableHead className="text-right">撥款金額</TableHead>
                         <TableHead>請款日期</TableHead>
                         <TableHead>撥款日期</TableHead>
                         <TableHead>付款方式</TableHead>
