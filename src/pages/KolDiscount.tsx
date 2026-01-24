@@ -110,12 +110,15 @@ interface DiscountCode {
   applicable_date_to: string | null;
   display_order: number;
   commission_rate: number;
-  api_key: string | null;
-  webhook_url: string | null;
-  webhook_secret: string | null;
   webhook_enabled: boolean;
   created_at: string;
   updated_at: string;
+}
+
+interface DiscountCodeSecrets {
+  api_key: string | null;
+  webhook_url: string | null;
+  webhook_secret: string | null;
 }
 
 const KolDiscount = () => {
@@ -152,8 +155,10 @@ const KolDiscount = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [regeneratingApiKeyId, setRegeneratingApiKeyId] = useState<string | null>(null);
   const [webhookUrl, setWebhookUrl] = useState("");
+  const [webhookSecret, setWebhookSecret] = useState<string | null>(null);
   const [webhookEnabled, setWebhookEnabled] = useState(false);
   const [testingWebhook, setTestingWebhook] = useState(false);
+  const [editingCodeSecrets, setEditingCodeSecrets] = useState<DiscountCodeSecrets | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -184,9 +189,16 @@ const KolDiscount = () => {
     if (!accommodationId) return;
 
     try {
+      // Fetch discount codes WITHOUT sensitive fields (api_key, webhook_url, webhook_secret)
       const { data, error } = await supabase
         .from("discount_codes")
-        .select("*")
+        .select(`
+          id, accommodation_id, name, code, discount_type, discount_value,
+          usage_limit, used_count, valid_from, valid_until, is_active,
+          min_order_amount, applicable_room_types, applicable_date_from,
+          applicable_date_to, display_order, commission_rate, webhook_enabled,
+          created_at, updated_at
+        `)
         .eq("accommodation_id", accommodationId)
         .order("display_order", { ascending: true })
         .order("created_at", { ascending: false });
@@ -236,10 +248,11 @@ const KolDiscount = () => {
     setRegeneratingApiKeyId(discountCodeId);
     try {
       const newApiKey = generateApiKey();
+      // Update API key in the secure secrets table
       const { error } = await supabase
-        .from("discount_codes")
-        .update({ api_key: newApiKey })
-        .eq("id", discountCodeId);
+        .from("discount_code_secrets")
+        .update({ api_key: newApiKey, updated_at: new Date().toISOString() })
+        .eq("discount_code_id", discountCodeId);
 
       if (error) throw error;
 
@@ -309,7 +322,8 @@ const KolDiscount = () => {
     const apiKey = generateApiKey();
 
     try {
-      const { error } = await supabase.from("discount_codes").insert({
+      // Insert discount code WITHOUT sensitive fields
+      const { data: newCode, error } = await supabase.from("discount_codes").insert({
         accommodation_id: accommodationId,
         name,
         code,
@@ -323,10 +337,22 @@ const KolDiscount = () => {
         applicable_date_from: applicableDateFrom?.toISOString().split('T')[0] || null,
         applicable_date_to: applicableDateTo?.toISOString().split('T')[0] || null,
         commission_rate: commissionRate ? parseFloat(commissionRate) : 0,
-        api_key: apiKey,
-      });
+      }).select("id").single();
 
       if (error) throw error;
+
+      // Insert API key into the secure secrets table
+      // Note: There's a trigger that auto-creates the secrets record, but we need to update it with the API key
+      if (newCode) {
+        const { error: secretsError } = await supabase
+          .from("discount_code_secrets")
+          .update({ api_key: apiKey, updated_at: new Date().toISOString() })
+          .eq("discount_code_id", newCode.id);
+        
+        if (secretsError) {
+          console.error("Error updating secrets:", secretsError);
+        }
+      }
 
       toast({
         title: "折扣碼新增成功",
@@ -415,7 +441,7 @@ const KolDiscount = () => {
     return type === "percentage" ? `${value}%` : `NT$ ${value}`;
   };
 
-  const handleOpenEdit = (code: DiscountCode) => {
+  const handleOpenEdit = async (code: DiscountCode) => {
     setEditingCode(code);
     setName(code.name);
     setDiscountType(code.discount_type);
@@ -428,8 +454,32 @@ const KolDiscount = () => {
     setApplicableDateFrom(code.applicable_date_from ? new Date(code.applicable_date_from) : undefined);
     setApplicableDateTo(code.applicable_date_to ? new Date(code.applicable_date_to) : undefined);
     setCommissionRate(code.commission_rate?.toString() || "0");
-    setWebhookUrl(code.webhook_url || "");
     setWebhookEnabled(code.webhook_enabled || false);
+    
+    // Fetch secrets from the secure table
+    try {
+      const { data: secrets, error } = await supabase
+        .from("discount_code_secrets")
+        .select("webhook_url, webhook_secret, api_key")
+        .eq("discount_code_id", code.id)
+        .single();
+      
+      if (!error && secrets) {
+        setWebhookUrl(secrets.webhook_url || "");
+        setWebhookSecret(secrets.webhook_secret);
+        setEditingCodeSecrets(secrets as DiscountCodeSecrets);
+      } else {
+        setWebhookUrl("");
+        setWebhookSecret(null);
+        setEditingCodeSecrets(null);
+      }
+    } catch (error) {
+      console.error("Error fetching secrets:", error);
+      setWebhookUrl("");
+      setWebhookSecret(null);
+      setEditingCodeSecrets(null);
+    }
+    
     setEditOpen(true);
   };
 
@@ -470,14 +520,15 @@ const KolDiscount = () => {
     }
 
     try {
-      // Generate webhook secret if webhook is enabled and URL is provided
-      let webhookSecret = editingCode.webhook_secret;
-      if (webhookEnabled && webhookUrl && !webhookSecret) {
-        webhookSecret = `whsec_${Array.from(crypto.getRandomValues(new Uint8Array(24)))
+      // Generate webhook secret if webhook is enabled and URL is provided but no secret exists
+      let newWebhookSecret = webhookSecret;
+      if (webhookEnabled && webhookUrl && !newWebhookSecret) {
+        newWebhookSecret = `whsec_${Array.from(crypto.getRandomValues(new Uint8Array(24)))
           .map(b => b.toString(16).padStart(2, '0'))
           .join('')}`;
       }
 
+      // Update discount code WITHOUT sensitive fields
       const { error } = await supabase
         .from("discount_codes")
         .update({
@@ -492,13 +543,25 @@ const KolDiscount = () => {
           applicable_date_from: applicableDateFrom?.toISOString().split('T')[0] || null,
           applicable_date_to: applicableDateTo?.toISOString().split('T')[0] || null,
           commission_rate: commissionRate ? parseFloat(commissionRate) : 0,
-          webhook_url: webhookUrl || null,
           webhook_enabled: webhookEnabled,
-          webhook_secret: webhookSecret,
         })
         .eq("id", editingCode.id);
 
       if (error) throw error;
+
+      // Update secrets in the secure table
+      const { error: secretsError } = await supabase
+        .from("discount_code_secrets")
+        .update({
+          webhook_url: webhookUrl || null,
+          webhook_secret: newWebhookSecret,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("discount_code_id", editingCode.id);
+
+      if (secretsError) {
+        console.error("Error updating secrets:", secretsError);
+      }
 
       toast({
         title: "折扣碼更新成功",
@@ -506,6 +569,7 @@ const KolDiscount = () => {
 
       setEditOpen(false);
       setEditingCode(null);
+      setEditingCodeSecrets(null);
       setName("");
       setDiscountValue("");
       setUsageLimit("");
@@ -518,6 +582,7 @@ const KolDiscount = () => {
       setApplicableDateTo(undefined);
       setCommissionRate("");
       setWebhookUrl("");
+      setWebhookSecret(null);
       setWebhookEnabled(false);
       fetchDiscountCodes();
     } catch (error) {
@@ -1789,11 +1854,11 @@ const KolDiscount = () => {
                   </p>
                 </div>
                 
-                {editingCode?.webhook_secret && (
+                {webhookSecret && (
                   <div className="grid gap-2">
                     <Label>Webhook Secret</Label>
                     <div className="p-2 bg-muted rounded text-xs font-mono break-all">
-                      {editingCode.webhook_secret}
+                      {webhookSecret}
                     </div>
                     <p className="text-xs text-muted-foreground">
                       用於驗證 webhook 請求的簽名（X-Webhook-Signature header）
@@ -1801,7 +1866,7 @@ const KolDiscount = () => {
                   </div>
                 )}
                 
-                {editingCode?.id && editingCode.webhook_url && (
+                {editingCode?.id && webhookUrl && (
                   <Button
                     type="button"
                     variant="outline"
@@ -2253,11 +2318,11 @@ const KolDiscount = () => {
                       </p>
                     </div>
                     
-                    {editingCode?.webhook_secret && (
+                    {webhookSecret && (
                       <div className="grid gap-2">
                         <Label>Webhook Secret</Label>
                         <div className="p-2 bg-muted rounded text-xs font-mono break-all">
-                          {editingCode.webhook_secret}
+                          {webhookSecret}
                         </div>
                         <p className="text-xs text-muted-foreground">
                           用於驗證 webhook 請求的簽名（X-Webhook-Signature header）
@@ -2265,7 +2330,7 @@ const KolDiscount = () => {
                       </div>
                     )}
                     
-                    {editingCode?.id && editingCode.webhook_url && (
+                    {editingCode?.id && webhookUrl && (
                       <Button
                         type="button"
                         variant="outline"
@@ -3503,7 +3568,6 @@ function verifyWebhook(payload, signature, timestamp, secret) {
           discountCodeName={selectedCodeForCommission.name}
           discountCode={selectedCodeForCommission.code}
           accommodationId={accommodationId || ''}
-          apiKey={selectedCodeForCommission.api_key}
           onApiKeyRegenerated={fetchDiscountCodes}
         />
       )}

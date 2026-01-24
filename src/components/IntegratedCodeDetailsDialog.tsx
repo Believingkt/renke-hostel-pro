@@ -90,7 +90,6 @@ interface IntegratedCodeDetailsDialogProps {
   discountCodeName: string;
   discountCode: string;
   accommodationId: string;
-  apiKey?: string | null;
   onApiKeyRegenerated?: () => void;
 }
 
@@ -101,7 +100,6 @@ export const IntegratedCodeDetailsDialog = ({
   discountCodeName,
   discountCode,
   accommodationId,
-  apiKey,
   onApiKeyRegenerated,
 }: IntegratedCodeDetailsDialogProps) => {
   const [commissionRecords, setCommissionRecords] = useState<CommissionRecord[]>([]);
@@ -116,6 +114,8 @@ export const IntegratedCodeDetailsDialog = ({
   const [showApiKey, setShowApiKey] = useState(false);
   const [regenerateDialogOpen, setRegenerateDialogOpen] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [isLoadingApiKey, setIsLoadingApiKey] = useState(false);
   const { toast } = useToast();
 
   const generateApiKey = () => {
@@ -142,13 +142,15 @@ export const IntegratedCodeDetailsDialog = ({
     setIsRegenerating(true);
     try {
       const newApiKey = generateApiKey();
+      // Update API key in the secure secrets table
       const { error } = await supabase
-        .from("discount_codes")
-        .update({ api_key: newApiKey })
-        .eq("id", discountCodeId);
+        .from("discount_code_secrets")
+        .update({ api_key: newApiKey, updated_at: new Date().toISOString() })
+        .eq("discount_code_id", discountCodeId);
 
       if (error) throw error;
 
+      setApiKey(newApiKey);
       toast({
         title: "API 金鑰已重新產生",
         description: "請複製新的 API 金鑰並更新您的應用程式",
@@ -166,10 +168,30 @@ export const IntegratedCodeDetailsDialog = ({
     }
   };
 
+  const fetchApiKey = async () => {
+    setIsLoadingApiKey(true);
+    try {
+      const { data, error } = await supabase
+        .from("discount_code_secrets")
+        .select("api_key")
+        .eq("discount_code_id", discountCodeId)
+        .single();
+
+      if (!error && data) {
+        setApiKey(data.api_key);
+      }
+    } catch (error) {
+      console.error("Error fetching API key:", error);
+    } finally {
+      setIsLoadingApiKey(false);
+    }
+  };
+
   useEffect(() => {
     if (open && discountCodeId) {
       fetchCommissionRecords();
       fetchOrders();
+      fetchApiKey();
     }
   }, [open, discountCodeId]);
 
