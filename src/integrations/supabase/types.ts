@@ -1982,6 +1982,36 @@ export type Database = {
           },
         ]
       }
+      profiles_safe: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          force_password_change: boolean | null
+          id: string | null
+          last_sign_in_at: string | null
+          name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: never
+          force_password_change?: boolean | null
+          id?: string | null
+          last_sign_in_at?: string | null
+          name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: never
+          force_password_change?: boolean | null
+          id?: string | null
+          last_sign_in_at?: string | null
+          name?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       can_view_user_roles: {
@@ -2085,6 +2115,7 @@ export type Database = {
         }[]
       }
       is_admin: { Args: { user_id_param: string }; Returns: boolean }
+      is_super_admin: { Args: { user_uuid: string }; Returns: boolean }
       is_user_admin: { Args: { _user_id: string }; Returns: boolean }
       user_has_access_to_accommodation: {
         Args: { _accommodation_id: string; _user_id: string }
