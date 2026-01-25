@@ -4,19 +4,80 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.0";
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// Allowed origins for CORS
+// CORS
+// Note: CORS is not a security boundary. We still enforce token validation.
 const allowedOrigins = [
-  'https://sensan.lovable.app',
-  'https://dmafqwfynatdvnaeovhz.lovableproject.com',
+  "https://sensan.lovable.app",
+  "https://dmafqwfynatdvnaeovhz.lovableproject.com",
 ];
 
+function isAllowedOrigin(origin: string) {
+  if (!origin) return false;
+  if (allowedOrigins.includes(origin)) return true;
+  // Allow Lovable hosted environments
+  try {
+    const url = new URL(origin);
+    return (
+      url.hostname.endsWith(".lovable.app") ||
+      url.hostname.endsWith(".lovableproject.com") ||
+      url.hostname === "localhost" ||
+      url.hostname === "127.0.0.1"
+    );
+  } catch {
+    return false;
+  }
+}
+
 function getCorsHeaders(req: Request) {
-  const origin = req.headers.get('origin') || '';
-  const allowedOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+  const origin = req.headers.get("origin") || "";
+  const allowOrigin = isAllowedOrigin(origin) ? origin : allowedOrigins[0];
   return {
-    'Access-Control-Allow-Origin': allowedOrigin,
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    "Access-Control-Allow-Origin": allowOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   };
+}
+
+async function sha1HexUpper(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input);
+  const digest = await crypto.subtle.digest("SHA-1", data);
+  const bytes = new Uint8Array(digest);
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
+    .toUpperCase();
+}
+
+async function isLeakedPassword(password: string): Promise<{ leaked: boolean; count?: number }> {
+  // Have I Been Pwned Pwned Passwords API (k-anonymity). We never send the password.
+  const hash = await sha1HexUpper(password);
+  const prefix = hash.slice(0, 5);
+  const suffix = hash.slice(5);
+
+  const res = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, {
+    headers: {
+      // Required by HIBP ToS
+      "User-Agent": "LovableCloudPasswordCheck/1.0",
+      // Recommended to improve privacy
+      "Add-Padding": "true",
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Password leak check failed (${res.status})`);
+  }
+
+  const body = await res.text();
+  // Each line: SUFFIX:COUNT
+  const lines = body.split("\n");
+  for (const line of lines) {
+    const [hashSuffix, countStr] = line.trim().split(":");
+    if (!hashSuffix) continue;
+    if (hashSuffix.toUpperCase() === suffix) {
+      const count = Number(countStr || "0");
+      return { leaked: true, count: Number.isFinite(count) ? count : undefined };
+    }
+  }
+  return { leaked: false };
 }
 
 // Rate limiting: 5 attempts per token per 15 minutes
@@ -170,6 +231,25 @@ const handler = async (req: Request): Promise<Response> => {
           headers: { "Content-Type": "application/json", ...corsHeaders },
         }
       );
+    }
+
+    // Leaked password protection (application-level mitigation)
+    // If the upstream platform toggle is disabled, we still block known-compromised passwords here.
+    try {
+      const leaked = await isLeakedPassword(newPassword);
+      if (leaked.leaked) {
+        return new Response(
+          JSON.stringify({ error: "此密碼曾出現在已外洩的密碼清單中，請更換為其他密碼" }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
+      }
+    } catch (e) {
+      // Fail-open to avoid blocking password resets during temporary network issues.
+      // Strength validation still applies.
+      console.warn("Leaked password check failed (continuing):", e);
     }
 
     const { error: updateError } = await supabase.auth.admin.updateUserById(

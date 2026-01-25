@@ -214,15 +214,16 @@ export default function Auth() {
     setIsLoading(true);
 
     try {
-      // Update password and clear force_password_change from metadata
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: newPassword,
-        data: {
-          force_password_change: false,
-        }
+      // Update password via backend function (adds server-side leaked-password check)
+      const { data, error } = await supabase.functions.invoke("update-own-password", {
+        body: {
+          newPassword,
+          clearForcePasswordChange: true,
+        },
       });
 
-      if (updateError) throw updateError;
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       // Update profile to remove force_password_change flag
       const { data: { session } } = await supabase.auth.getSession();

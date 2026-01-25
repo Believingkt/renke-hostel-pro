@@ -136,12 +136,18 @@ export default function ChangePassword() {
     setIsLoading(true);
 
     try {
-      // Update password
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: newPassword,
+      // Update password via backend function (adds server-side leaked-password check)
+      const { data, error } = await supabase.functions.invoke("update-own-password", {
+        body: {
+          newPassword,
+          // Only the "first login" flows require clearing the metadata flag,
+          // but doing so is harmless for normal password changes.
+          clearForcePasswordChange: true,
+        },
       });
 
-      if (updateError) throw updateError;
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       if (isAdminRoute) {
         // 從後台主動修改密碼：不登出，直接返回後台
