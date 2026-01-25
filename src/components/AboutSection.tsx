@@ -1,9 +1,9 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Mountain, Sparkles, UserCheck, Camera, Info } from "lucide-react";
+import { icons, Info, Mountain } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import EmptySectionPlaceholder from "./EmptySectionPlaceholder";
-
+import type { LucideIcon } from "lucide-react";
 interface AboutSectionProps {
   description?: string;
   accommodationId?: string;
@@ -101,14 +101,13 @@ const AboutSection = ({ description, accommodationId }: AboutSectionProps) => {
     );
   }
 
-  const IconComponent = (iconName: string) => {
-    switch (iconName) {
-      case 'Mountain': return Mountain;
-      case 'Sparkles': return Sparkles;
-      case 'UserCheck': return UserCheck;
-      case 'Camera': return Camera;
-      default: return Mountain;
+  const getIconComponent = (iconName: string): LucideIcon => {
+    const IconComp = icons[iconName as keyof typeof icons];
+    // 確保返回的是有效的圖示組件
+    if (IconComp && typeof IconComp === 'function') {
+      return IconComp as LucideIcon;
     }
+    return Mountain;
   };
 
   return (
@@ -124,7 +123,7 @@ const AboutSection = ({ description, accommodationId }: AboutSectionProps) => {
 
           <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 lg:gap-8">
             {features.map((item, index) => {
-              const Icon = item.icon || IconComponent(item.icon_name);
+              const Icon = item.icon || getIconComponent(item.icon_name);
               return (
                 <Card key={index} className="hover:shadow-lg transition-all duration-300 border border-border/50 bg-card">
                   <CardContent className="p-5 md:p-6 lg:p-8 text-center">
