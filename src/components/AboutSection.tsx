@@ -102,10 +102,14 @@ const AboutSection = ({ description, accommodationId }: AboutSectionProps) => {
   }
 
   const getIconComponent = (iconName: string): LucideIcon => {
-    const IconComp = icons[iconName as keyof typeof icons];
-    // 確保返回的是有效的圖示組件
-    if (IconComp && typeof IconComp === 'function') {
-      return IconComp as LucideIcon;
+   try {
+     // 使用 any 類型來避免 TypeScript 的嚴格檢查
+     const IconComp = (icons as any)[iconName];
+     if (IconComp) {
+       return IconComp as LucideIcon;
+     }
+   } catch (error) {
+     console.error('[AboutSection] Error loading icon:', iconName, error);
     }
     return Mountain;
   };
