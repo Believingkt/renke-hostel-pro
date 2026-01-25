@@ -41,7 +41,10 @@ export function useFormDraft<T extends Record<string, any>>({
 
   // 檢查草稿是否與初始資料有實質差異
   const hasMeaningfulDifference = useCallback((draftData: T, currentInitialData: T): boolean => {
-    return Object.keys(draftData).some(key => {
+    // 計算所有欄位的總變更量
+    let totalMeaningfulChange = 0;
+    
+    for (const key of Object.keys(draftData)) {
       const draftValue = draftData[key];
       const initialValue = currentInitialData[key];
       
@@ -49,18 +52,23 @@ export function useFormDraft<T extends Record<string, any>>({
       if (typeof draftValue === 'string' && typeof initialValue === 'string') {
         const draftTrimmed = draftValue.trim();
         const initialTrimmed = initialValue.trim();
-        // 計算變更長度，必須超過閾值才算有差異
-        const changeLength = Math.abs(draftTrimmed.length - initialTrimmed.length);
-        if (draftTrimmed !== initialTrimmed && changeLength >= minChangeThreshold) {
-          return true;
+        
+        if (draftTrimmed !== initialTrimmed) {
+          // 計算實際內容變更量（取兩者長度差或最小1）
+          const changeLength = Math.max(1, Math.abs(draftTrimmed.length - initialTrimmed.length));
+          totalMeaningfulChange += changeLength;
         }
-        return false;
+      } else if (Array.isArray(draftValue) && Array.isArray(initialValue)) {
+        if (JSON.stringify(draftValue) !== JSON.stringify(initialValue)) {
+          totalMeaningfulChange += minChangeThreshold; // 陣列變更視為達到閾值
+        }
+      } else if (draftValue !== initialValue) {
+        totalMeaningfulChange += minChangeThreshold; // 其他類型變更視為達到閾值
       }
-      if (Array.isArray(draftValue) && Array.isArray(initialValue)) {
-        return JSON.stringify(draftValue) !== JSON.stringify(initialValue);
-      }
-      return draftValue !== initialValue;
-    });
+    }
+    
+    // 只有總變更量達到閾值才算有實質差異
+    return totalMeaningfulChange >= minChangeThreshold;
   }, [minChangeThreshold]);
 
   // 檢查是否有草稿（需要與初始資料比較）
