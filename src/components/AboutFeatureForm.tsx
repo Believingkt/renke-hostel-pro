@@ -9,7 +9,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from "
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { DraftRestoreBanner } from "@/components/ui/draft-restore-banner";
-import { Mountain, Sparkles, UserCheck, Camera, Home, Heart, Star, Wifi, Coffee, Car } from "lucide-react";
+import { Mountain, Sparkles, UserCheck, Camera, Home, Heart, Star, Wifi, Coffee, Car, Users, PartyPopper, Utensils, Flame, Baby } from "lucide-react";
 import { Upload, Trash2 } from "lucide-react";
 import { featureSchema } from "@/utils/websiteValidation";
 import { useFormDraft } from "@/hooks/use-form-draft";
@@ -43,6 +43,11 @@ const BUILT_IN_ICONS = [
   { name: 'Wifi', icon: Wifi, label: 'WiFi' },
   { name: 'Coffee', icon: Coffee, label: '咖啡' },
   { name: 'Car', icon: Car, label: '汽車' },
+  { name: 'Users', icon: Users, label: '朋友' },
+  { name: 'PartyPopper', icon: PartyPopper, label: '聚會' },
+  { name: 'Utensils', icon: Utensils, label: '食物' },
+  { name: 'Flame', icon: Flame, label: '烤肉' },
+  { name: 'Baby', icon: Baby, label: '小孩' },
 ];
 
 // 定義在組件外部以保持穩定引用
