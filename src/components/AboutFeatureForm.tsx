@@ -96,9 +96,11 @@ export function AboutFeatureForm({ open, onOpenChange, feature, onSave }: AboutF
         resetInitialDataRef(editData);
         clearDraft();
       } else {
-        // 新增模式：使用初始資料
+        // 新增模式：使用初始資料，並清除可能殘留的舊草稿
         setFormData(initialFormData);
         resetInitialDataRef(initialFormData);
+        // 延遲清除草稿，確保 hasDraft 狀態不會在初始化時觸發
+        setTimeout(() => clearDraft(), 0);
       }
       setErrors({});
     }
