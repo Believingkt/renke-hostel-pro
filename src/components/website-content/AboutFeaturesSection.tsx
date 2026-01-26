@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit2, Trash2, GripVertical } from "lucide-react";
+import { Plus, Edit2, Trash2, GripVertical, Mountain, Sparkles, UserCheck, Camera, Home, Heart, Star, Wifi, Coffee, Car, Users, PartyPopper, Utensils, Flame, Baby, type LucideIcon } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
@@ -27,8 +27,26 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { icons } from "lucide-react";
 import { aboutSectionSchema } from "@/utils/websiteValidation";
+
+// 圖示對照表
+const ICON_MAP: Record<string, LucideIcon> = {
+  Mountain,
+  Sparkles,
+  UserCheck,
+  Camera,
+  Home,
+  Heart,
+  Star,
+  Wifi,
+  Coffee,
+  Car,
+  Users,
+  PartyPopper,
+  Utensils,
+  Flame,
+  Baby,
+};
 
 interface AboutFeaturesSectionProps {
   accommodationId: string;
@@ -59,13 +77,13 @@ const SortableFeatureItem = ({ feature, onEdit, onDelete }: any) => {
 
   const getIconComponent = () => {
     if (feature.icon_type === 'lucide' && feature.icon_name) {
-      // 使用 any 類型來避免 TypeScript 的嚴格檢查
-      const IconComponent = (icons as any)[feature.icon_name];
-      if (IconComponent && typeof IconComponent === 'function') {
+      const IconComponent = ICON_MAP[feature.icon_name];
+      if (IconComponent) {
         return <IconComponent className="w-6 h-6 text-primary" />;
       }
     }
-    return null;
+    // 預設顯示 Mountain 圖示
+    return <Mountain className="w-6 h-6 text-primary" />;
   };
 
   return (
@@ -81,11 +99,11 @@ const SortableFeatureItem = ({ feature, onEdit, onDelete }: any) => {
           </div>
           <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
             {feature.icon_type === 'lucide' ? (
-              getIconComponent() || <span className="text-primary text-sm">{feature.icon_name}</span>
+              getIconComponent()
             ) : feature.icon_url ? (
               <img src={feature.icon_url} alt="圖示" className="w-6 h-6 object-contain" />
             ) : (
-              <span className="text-muted-foreground text-xs">無</span>
+              <Mountain className="w-6 h-6 text-primary" />
             )}
           </div>
           <div className="flex-1 min-w-0">
