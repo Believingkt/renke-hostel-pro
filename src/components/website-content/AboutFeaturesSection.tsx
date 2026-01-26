@@ -59,8 +59,9 @@ const SortableFeatureItem = ({ feature, onEdit, onDelete }: any) => {
 
   const getIconComponent = () => {
     if (feature.icon_type === 'lucide' && feature.icon_name) {
-      const IconComponent = icons[feature.icon_name as keyof typeof icons];
-      if (IconComponent) {
+      // 使用 any 類型來避免 TypeScript 的嚴格檢查
+      const IconComponent = (icons as any)[feature.icon_name];
+      if (IconComponent && typeof IconComponent === 'function') {
         return <IconComponent className="w-6 h-6 text-primary" />;
       }
     }
