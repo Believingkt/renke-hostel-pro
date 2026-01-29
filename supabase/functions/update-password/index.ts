@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.0";
+import { isLeakedPassword } from "../_shared/hibp.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -37,48 +38,6 @@ function getCorsHeaders(req: Request) {
   };
 }
 
-async function sha1HexUpper(input: string): Promise<string> {
-  const data = new TextEncoder().encode(input);
-  const digest = await crypto.subtle.digest("SHA-1", data);
-  const bytes = new Uint8Array(digest);
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("")
-    .toUpperCase();
-}
-
-async function isLeakedPassword(password: string): Promise<{ leaked: boolean; count?: number }> {
-  // Have I Been Pwned Pwned Passwords API (k-anonymity). We never send the password.
-  const hash = await sha1HexUpper(password);
-  const prefix = hash.slice(0, 5);
-  const suffix = hash.slice(5);
-
-  const res = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, {
-    headers: {
-      // Required by HIBP ToS
-      "User-Agent": "LovableCloudPasswordCheck/1.0",
-      // Recommended to improve privacy
-      "Add-Padding": "true",
-    },
-  });
-
-  if (!res.ok) {
-    throw new Error(`Password leak check failed (${res.status})`);
-  }
-
-  const body = await res.text();
-  // Each line: SUFFIX:COUNT
-  const lines = body.split("\n");
-  for (const line of lines) {
-    const [hashSuffix, countStr] = line.trim().split(":");
-    if (!hashSuffix) continue;
-    if (hashSuffix.toUpperCase() === suffix) {
-      const count = Number(countStr || "0");
-      return { leaked: true, count: Number.isFinite(count) ? count : undefined };
-    }
-  }
-  return { leaked: false };
-}
 
 // Rate limiting: 5 attempts per token per 15 minutes
 const tokenAttemptMap = new Map<string, { count: number; resetAt: number }>();
@@ -237,7 +196,7 @@ const handler = async (req: Request): Promise<Response> => {
     // If the upstream platform toggle is disabled, we still block known-compromised passwords here.
     try {
       const leaked = await isLeakedPassword(newPassword);
-      if (leaked.leaked) {
+      if (leaked) {
         return new Response(
           JSON.stringify({ error: "此密碼曾出現在已外洩的密碼清單中，請更換為其他密碼" }),
           {

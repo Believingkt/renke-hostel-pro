@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.0";
+import { isLeakedPassword } from "../_shared/hibp.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -114,34 +115,7 @@ function validatePasswordStrength(
   return { valid: true, message: "" };
 }
 
-async function sha1HexUpper(input: string): Promise<string> {
-  const data = new TextEncoder().encode(input);
-  const digest = await crypto.subtle.digest("SHA-1", data);
-  const bytes = new Uint8Array(digest);
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("")
-    .toUpperCase();
-}
-
-async function isLeakedPassword(password: string): Promise<boolean> {
-  const hash = await sha1HexUpper(password);
-  const prefix = hash.slice(0, 5);
-  const suffix = hash.slice(5);
-  const res = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, {
-    headers: {
-      "User-Agent": "LovableCloudPasswordCheck/1.0",
-      "Add-Padding": "true",
-    },
-  });
-  if (!res.ok) throw new Error(`Password leak check failed (${res.status})`);
-  const body = await res.text();
-  for (const line of body.split("\n")) {
-    const [hashSuffix] = line.trim().split(":");
-    if (hashSuffix && hashSuffix.toUpperCase() === suffix) return true;
-  }
-  return false;
-}
+// NOTE: leaked-password check is shared in ../_shared/hibp.ts (adds timeout + retries)
 
 interface UpdateOwnPasswordRequest {
   newPassword: string;
