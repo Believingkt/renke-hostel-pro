@@ -177,7 +177,7 @@ interface PricingTemplateManagerProps {
 }
 
 const templateSchema = z.object({
-  template_name: z.string().trim().min(1, "模板名稱不能為空").max(50, "模板名稱最多50字"),
+  template_name: z.string().trim().min(1, "專案模板名稱不能為空").max(50, "專案模板名稱最多50字"),
   description: z.string().trim().max(200, "描述最多200字").optional(),
   meal_plans: z.array(z.object({
     id: z.string(),
@@ -298,8 +298,8 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       
       setTemplates(templatesWithMealPlans);
     } catch (error) {
-      console.error('載入房價庫存模板失敗:', error);
-      toast.error('載入房價庫存模板失敗');
+      console.error('載入專案模板失敗:', error);
+      toast.error('載入專案模板失敗');
     } finally {
       setLoading(false);
     }
@@ -427,22 +427,22 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
           .eq('id', editingTemplate.id);
 
         if (error) throw error;
-        toast.success('房價庫存模板已更新');
+        toast.success('專案模板已更新');
       } else {
         const { error } = await supabase
           .from('pricing_templates')
           .insert(dataToSave);
 
         if (error) throw error;
-        toast.success('房價庫存模板已創建');
+        toast.success('專案模板已創建');
       }
 
       setShowForm(false);
       setEditingTemplate(null);
       loadTemplates();
     } catch (error) {
-      console.error('儲存房價庫存模板失敗:', error);
-      toast.error('儲存房價庫存模板失敗');
+      console.error('儲存專案模板失敗:', error);
+      toast.error('儲存專案模板失敗');
     }
   };
 
@@ -461,11 +461,11 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
         .eq('id', deletingTemplate.id);
 
       if (error) throw error;
-      toast.success('房價庫存模板已刪除');
+      toast.success('專案模板已刪除');
       loadTemplates();
     } catch (error) {
-      console.error('刪除房價庫存模板失敗:', error);
-      toast.error('刪除房價庫存模板失敗');
+      console.error('刪除專案模板失敗:', error);
+      toast.error('刪除專案模板失敗');
     } finally {
       setDeleteDialogOpen(false);
       setDeletingTemplate(null);
@@ -756,8 +756,8 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       setApplyingTemplate(null);
       loadTemplateApplications();
     } catch (error) {
-      console.error('套用房價庫存模板失敗:', error);
-      toast.error(`套用房價庫存模板失敗：${error.message || '未知錯誤'}`);
+      console.error('套用專案模板失敗:', error);
+      toast.error(`套用專案模板失敗：${error.message || '未知錯誤'}`);
     } finally {
       setApplying(false);
       setApplyProgress({ current: 0, total: 0, currentRoom: '' });
@@ -1038,19 +1038,19 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
     return (
       <Card>
         <CardHeader>
-          <CardTitle>{editingTemplate ? '編輯' : '新增'}房價庫存模板</CardTitle>
+          <CardTitle>{editingTemplate ? '編輯' : '新增'}專案模板</CardTitle>
           <CardDescription>
-            建立可重複使用的房價庫存專案，快速套用到不同房型
+            建立可重複使用的專案模板，快速套用到不同房型
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="template_name">模板名稱 *</Label>
+            <Label htmlFor="template_name">專案模板名稱 *</Label>
             <Input
               id="template_name"
               value={formData.template_name}
               onChange={(e) => setFormData({ ...formData, template_name: e.target.value })}
-              placeholder="例如：平日專案、假日專案"
+              placeholder="例如：暑假旺季、春節連假"
               className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
             />
             {errors.template_name && (
@@ -1064,7 +1064,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
               id="description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="描述此房價庫存模板的用途"
+              placeholder="描述此專案模板的用途"
               rows={2}
               className="min-h-[48px] text-base sm:text-sm touch-manipulation"
             />
@@ -1227,14 +1227,14 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="space-y-1">
-              <CardTitle>房價庫存模板</CardTitle>
+              <CardTitle>專案模板</CardTitle>
               <CardDescription>
-                建立並管理可重複使用的房價庫存專案
+                建立並管理可重複使用的專案模板
               </CardDescription>
             </div>
             <Button onClick={handleAddNew} className="flex items-center justify-center gap-2 w-full sm:w-auto h-11 sm:h-10 touch-manipulation">
               <Plus className="h-4 w-4" />
-              新增模板
+              新增專案模板
             </Button>
           </div>
         </CardHeader>
@@ -1251,8 +1251,8 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
           ) : templates.length === 0 ? (
             <div className="flex items-center justify-center min-h-[200px] text-muted-foreground animate-fade-in">
               <div className="text-center space-y-2">
-                <p className="text-base sm:text-lg font-medium">尚無房價庫存模板</p>
-                <p className="text-xs sm:text-sm">建立第一個房價庫存模板，快速套用到房型</p>
+                <p className="text-base sm:text-lg font-medium">尚無專案模板</p>
+                <p className="text-xs sm:text-sm">建立第一個專案模板，快速套用到房型</p>
               </div>
             </div>
           ) : (
@@ -1292,7 +1292,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
           <AlertDialogHeader>
             <AlertDialogTitle>確認刪除</AlertDialogTitle>
             <AlertDialogDescription>
-              確定要刪除房價庫存模板「{deletingTemplate?.template_name}」嗎？此操作無法復原。
+              確定要刪除專案模板「{deletingTemplate?.template_name}」嗎？此操作無法復原。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1311,7 +1311,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
         <Drawer open={applyDialogOpen} onOpenChange={setApplyDialogOpen}>
           <DrawerContent className="max-h-[95vh]">
             <DrawerHeader>
-              <DrawerTitle>套用房價庫存模板</DrawerTitle>
+              <DrawerTitle>套用專案模板</DrawerTitle>
               <DrawerDescription>
                 將「{applyingTemplate?.template_name}」套用到選定的房型和日期範圍
               </DrawerDescription>
@@ -1579,7 +1579,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
         <Dialog open={applyDialogOpen} onOpenChange={setApplyDialogOpen}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>套用房價庫存模板</DialogTitle>
+              <DialogTitle>套用專案模板</DialogTitle>
               <DialogDescription>
                 將「{applyingTemplate?.template_name}」套用到選定的房型和日期範圍
               </DialogDescription>
