@@ -1654,6 +1654,8 @@ export type Database = {
           display_order: number | null
           double_room_count: number | null
           id: string
+          is_bound_to_exclusive: boolean
+          is_exclusive_package: boolean
           name: string
           name_en: string | null
           quad_room_count: number | null
@@ -1671,6 +1673,8 @@ export type Database = {
           display_order?: number | null
           double_room_count?: number | null
           id?: string
+          is_bound_to_exclusive?: boolean
+          is_exclusive_package?: boolean
           name: string
           name_en?: string | null
           quad_room_count?: number | null
@@ -1688,6 +1692,8 @@ export type Database = {
           display_order?: number | null
           double_room_count?: number | null
           id?: string
+          is_bound_to_exclusive?: boolean
+          is_exclusive_package?: boolean
           name?: string
           name_en?: string | null
           quad_room_count?: number | null

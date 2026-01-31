@@ -2,16 +2,18 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, GripVertical } from "lucide-react";
+import { Plus, Trash2, GripVertical, Info } from "lucide-react";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { ValidatedInput } from "@/components/ui/validated-input";
 import { ValidatedTextarea } from "@/components/ui/validated-textarea";
 import { ValidatedNumberInput } from "@/components/ui/validated-number-input";
 import { DraftRestoreBanner } from "@/components/ui/draft-restore-banner";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { roomTypeSchema } from "@/utils/roomValidation";
 import { useFormDraft } from "@/hooks/use-form-draft";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DndContext,
   closestCenter,
@@ -108,6 +110,8 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
     quad_room_count: "0",
     triple_room_count: "0",
     double_room_count: "0",
+    is_exclusive_package: false,
+    is_bound_to_exclusive: false,
   };
 
   const {
@@ -143,6 +147,8 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         quad_room_count: roomType.quad_room_count?.toString() || "0",
         triple_room_count: roomType.triple_room_count?.toString() || "0",
         double_room_count: roomType.double_room_count?.toString() || "0",
+        is_exclusive_package: roomType.is_exclusive_package || false,
+        is_bound_to_exclusive: roomType.is_bound_to_exclusive || false,
       });
       loadPhotos(roomType.id);
       // 編輯模式時清除草稿，避免顯示草稿恢復提示
@@ -281,6 +287,8 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         double_room_count: formData.double_room_count ? parseInt(formData.double_room_count) : null,
         base_price: 0,
         display_order: displayOrder,
+        is_exclusive_package: formData.is_exclusive_package,
+        is_bound_to_exclusive: formData.is_bound_to_exclusive,
       };
 
       let savedRoomId = roomType?.id;
@@ -485,6 +493,99 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
             min={0}
             max={100}
           />
+        </CardContent>
+      </Card>
+
+      {/* 包棟設定 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>包棟預訂設定</CardTitle>
+          <CardDescription>設定此房型與包棟預訂的關聯邏輯</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="is_exclusive_package" className="text-base font-medium">
+                  此為包棟房型
+                </Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>開啟後，當此房型被預訂時，其他所有「包棟房型」和「綁定包棟的房型」在同一天都無法被預訂。</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                預訂後會鎖定其他包棟/綁定包棟的房型
+              </p>
+            </div>
+            <Switch
+              id="is_exclusive_package"
+              checked={formData.is_exclusive_package}
+              onCheckedChange={(checked) => {
+                setFormData(prev => ({ 
+                  ...prev, 
+                  is_exclusive_package: checked,
+                  // 如果設為包棟，則自動取消綁定包棟（二者互斥）
+                  is_bound_to_exclusive: checked ? false : prev.is_bound_to_exclusive
+                }));
+              }}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="is_bound_to_exclusive" className="text-base font-medium">
+                  綁定包棟
+                </Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>開啟後，當任何「包棟房型」被預訂時，此房型在同一天也無法被預訂。適合那些屬於包棟範圍內的單間房型。</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                當包棟被預訂時，此房型也無法預訂
+              </p>
+            </div>
+            <Switch
+              id="is_bound_to_exclusive"
+              checked={formData.is_bound_to_exclusive}
+              disabled={formData.is_exclusive_package} // 包棟房型不能同時設為綁定包棟
+              onCheckedChange={(checked) => {
+                setFormData(prev => ({ ...prev, is_bound_to_exclusive: checked }));
+              }}
+            />
+          </div>
+
+          {formData.is_exclusive_package && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+              <strong>提示：</strong>此房型為包棟房型。預訂後，其他設為「包棟房型」或「綁定包棟」的房型在同一天都會被鎖定。
+            </div>
+          )}
+
+          {formData.is_bound_to_exclusive && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+              <strong>提示：</strong>此房型已綁定包棟。當任何「包棟房型」被預訂時，此房型在同一天無法被預訂。但此房型可以單獨預訂（不會影響其他房型）。
+            </div>
+          )}
+
+          {!formData.is_exclusive_package && !formData.is_bound_to_exclusive && (
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-600">
+              <strong>目前設定：</strong>此房型與包棟互斥邏輯無關，可獨立預訂且不受包棟預訂影響。
+            </div>
+          )}
         </CardContent>
       </Card>
 

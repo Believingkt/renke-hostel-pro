@@ -143,6 +143,8 @@ interface RoomType {
   room_count?: number;
   quad_room_count?: number;
   double_room_count?: number;
+  is_exclusive_package?: boolean;
+  is_bound_to_exclusive?: boolean;
   weekdayPricing?: { type: string; price: number }[];
   weekendPricing?: { type: string; price: number }[];
   room_photos?: { photo_url: string; display_order: number }[];
@@ -1658,8 +1660,8 @@ const BookingFlow = () => {
         // This is a fallback to prevent blocking orders if the validation service fails
       }
 
-      // 檢查包區互斥邏輯
-      const isExclusiveRoom = ['12人包區', '14人包區', '16人包區', '18人包區'].includes(selectedRoom.name);
+      // 檢查包棟互斥邏輯（使用資料庫欄位而非硬編碼名稱）
+      const isExclusiveRoom = selectedRoom.is_exclusive_package === true || selectedRoom.is_bound_to_exclusive === true;
       if (isExclusiveRoom) {
         const nights = calculateNights();
         const start = new Date(checkInDateStr);
@@ -1678,7 +1680,7 @@ const BookingFlow = () => {
           if (bookingCheck && bookingCheck[0]?.has_booking) {
             toast({
               title: "預訂失敗",
-              description: `${dateStr} 已被 ${bookingCheck[0].booked_room_type_name} 預訂，包區互斥無法重複預訂`,
+              description: `${dateStr} 已被 ${bookingCheck[0].booked_room_type_name} 預訂，包棟互斥無法重複預訂`,
               variant: "destructive",
             });
             setIsSubmitting(false);
