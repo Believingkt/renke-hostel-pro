@@ -57,96 +57,15 @@ import { DateRange } from "react-day-picker";
 import { eachDayOfInterval, format } from "date-fns";
 import { z } from "zod";
 
-interface MealPlan {
-  id: string;
-  name: string;
-  description: string;
-  weekday_price: number | null;
-  weekend_price: number | null;
-}
-
-interface SortableMealPlanItemProps {
-  plan: MealPlan;
-  index: number;
-  onUpdate: (id: string, field: 'name' | 'description' | 'weekday_price' | 'weekend_price', value: string | number | null) => void;
-  onRemove: (id: string) => void;
-}
-
-const SortableMealPlanItem = ({ plan, index, onUpdate, onRemove }: SortableMealPlanItemProps) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: plan.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  return (
-    <div 
-      ref={setNodeRef} 
-      style={style}
-      className="border rounded-lg p-3 bg-background space-y-3"
-    >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground"
-            {...attributes}
-            {...listeners}
-          >
-            <GripVertical className="h-4 w-4" />
-          </button>
-          <span className="text-sm font-medium text-muted-foreground">專案 {index + 1}</span>
-        </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={() => onRemove(plan.id)}
-          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <Label className="text-xs">專案名稱</Label>
-          <Input
-            value={plan.name}
-            onChange={(e) => onUpdate(plan.id, 'name', e.target.value)}
-            placeholder="例如：一泊二食"
-            className="h-10 text-sm touch-manipulation"
-          />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">專案說明</Label>
-          <Input
-            value={plan.description}
-            onChange={(e) => onUpdate(plan.id, 'description', e.target.value)}
-            placeholder="例如：含早餐、晚餐"
-            className="h-10 text-sm touch-manipulation"
-          />
-        </div>
-      </div>
-    </div>
-  );
-};
-
 interface PricingTemplate {
   id: string;
   template_name: string;
   description: string | null;
   project_name: string | null;
   project_description: string | null;
-  meal_plans: MealPlan[];
+  weekday_price: number | null;
+  weekend_price: number | null;
+  meal_plans: any[]; // 保留向後兼容
   is_default: boolean;
   display_order: number;
 }
@@ -158,7 +77,7 @@ interface TemplateApplication {
   date_to: string;
   selected_days: number[];
   room_type_ids: string[];
-  price_type: '2meals' | '3meals';
+  price_type: string;
   affected_dates_count: number;
   applied_by: string | null;
   available_rooms: number;
@@ -179,20 +98,16 @@ interface PricingTemplateManagerProps {
 const templateSchema = z.object({
   template_name: z.string().trim().min(1, "專案模板名稱不能為空").max(50, "專案模板名稱最多50字"),
   description: z.string().trim().max(200, "描述最多200字").optional(),
-  meal_plans: z.array(z.object({
-    id: z.string(),
-    name: z.string(),
-    description: z.string(),
-    weekday_price: z.number().int().min(0).optional().nullable(),
-    weekend_price: z.number().int().min(0).optional().nullable(),
-  })),
+  project_name: z.string().trim().min(1, "專案名稱不能為空").max(50, "專案名稱最多50字"),
+  project_description: z.string().trim().max(200, "專案說明最多200字").optional(),
+  weekday_price: z.number().int().min(0, "平日價格不能為負數").optional().nullable(),
+  weekend_price: z.number().int().min(0, "假日價格不能為負數").optional().nullable(),
 }).refine((data) => {
-  // 至少要有一個專案且至少有一個價格
-  if (data.meal_plans.length === 0) return false;
-  return data.meal_plans.some(mp => mp.weekday_price != null || mp.weekend_price != null);
+  // 至少要有一個價格
+  return data.weekday_price != null || data.weekend_price != null;
 }, {
-  message: "至少要有一個專案，且設定至少一個價格",
-  path: ["meal_plans"],
+  message: "請至少設定一個價格（平日或假日）",
+  path: ["weekday_price"],
 });
 
 export function PricingTemplateManager({ accommodationId }: PricingTemplateManagerProps) {
@@ -210,7 +125,6 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [availableRooms, setAvailableRooms] = useState<number>(1);
   const [applying, setApplying] = useState(false);
-  const [selectedMealPlanId, setSelectedMealPlanId] = useState<string>('');
   const [selectedDays, setSelectedDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]); // 0=日, 1=一, ..., 6=六
   const [includePublicHolidays, setIncludePublicHolidays] = useState(true); // 是否包含國定假日和補休日
   const [templateApplications, setTemplateApplications] = useState<Record<string, TemplateApplication[]>>({});
@@ -226,47 +140,9 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
     description: "",
     project_name: "",
     project_description: "",
-    meal_plans: [] as MealPlan[],
+    weekday_price: null as number | null,
+    weekend_price: null as number | null,
   });
-
-  const generateId = () => Math.random().toString(36).substring(2, 9);
-
-  const addMealPlan = () => {
-    setFormData(prev => ({
-      ...prev,
-      meal_plans: [...prev.meal_plans, { id: generateId(), name: "", description: "", weekday_price: null, weekend_price: null }]
-    }));
-  };
-
-  const removeMealPlan = (id: string) => {
-    setFormData(prev => ({
-      ...prev,
-      meal_plans: prev.meal_plans.filter(mp => mp.id !== id)
-    }));
-  };
-
-  const updateMealPlan = (id: string, field: 'name' | 'description' | 'weekday_price' | 'weekend_price', value: string | number | null) => {
-    setFormData(prev => ({
-      ...prev,
-      meal_plans: prev.meal_plans.map(mp => 
-        mp.id === id ? { ...mp, [field]: value } : mp
-      )
-    }));
-  };
-
-  const handleMealPlanDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (over && active.id !== over.id) {
-      setFormData(prev => {
-        const oldIndex = prev.meal_plans.findIndex(mp => mp.id === active.id);
-        const newIndex = prev.meal_plans.findIndex(mp => mp.id === over.id);
-        return {
-          ...prev,
-          meal_plans: arrayMove(prev.meal_plans, oldIndex, newIndex)
-        };
-      });
-    }
-  };
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -290,13 +166,13 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
 
       if (error) throw error;
       
-      // Cast meal_plans from JSON to MealPlan[]
-      const templatesWithMealPlans = (data || []).map(t => ({
+      // 轉換資料
+      const templatesData = (data || []).map(t => ({
         ...t,
-        meal_plans: Array.isArray(t.meal_plans) ? (t.meal_plans as unknown as MealPlan[]) : []
+        meal_plans: Array.isArray(t.meal_plans) ? t.meal_plans : []
       }));
       
-      setTemplates(templatesWithMealPlans);
+      setTemplates(templatesData);
     } catch (error) {
       console.error('載入專案模板失敗:', error);
       toast.error('載入專案模板失敗');
@@ -366,7 +242,8 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       description: "",
       project_name: "",
       project_description: "",
-      meal_plans: [],
+      weekday_price: null,
+      weekend_price: null,
     });
     setErrors({});
     setShowForm(true);
@@ -379,7 +256,8 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       description: template.description || "",
       project_name: template.project_name || "",
       project_description: template.project_description || "",
-      meal_plans: template.meal_plans || [],
+      weekday_price: template.weekday_price,
+      weekend_price: template.weekend_price,
     });
     setErrors({});
     setShowForm(true);
@@ -416,7 +294,8 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
         description: formData.description || null,
         project_name: formData.project_name || null,
         project_description: formData.project_description || null,
-        meal_plans: JSON.parse(JSON.stringify(formData.meal_plans)),
+        weekday_price: formData.weekday_price,
+        weekend_price: formData.weekend_price,
         accommodation_id: accommodationId,
       };
 
@@ -479,9 +358,6 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
     setAvailableRooms(1);
     setSelectedDays([0, 1, 2, 3, 4, 5, 6]); // 預設全選
     setIncludePublicHolidays(true); // 預設包含國定假日
-    // 預設選擇第一個有價格的專案
-    const firstValidPlan = template.meal_plans?.find(mp => mp.weekday_price || mp.weekend_price);
-    setSelectedMealPlanId(firstValidPlan?.id || '');
     setApplyDialogOpen(true);
   };
 
@@ -543,10 +419,12 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       return;
     }
 
-    // 找到選中的專案
-    const selectedMealPlan = applyingTemplate.meal_plans?.find(mp => mp.id === selectedMealPlanId);
-    if (!selectedMealPlan) {
-      toast.error('請選擇價格專案');
+    // 使用模板直接的價格（一對一模式）
+    const weekdayPrice = applyingTemplate.weekday_price;
+    const weekendPrice = applyingTemplate.weekend_price;
+    
+    if (!weekdayPrice && !weekendPrice) {
+      toast.error('此模板尚未設定價格');
       return;
     }
 
@@ -564,7 +442,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
           .select('holiday_date, holiday_type')
           .eq('accommodation_id', accommodationId)
           .in('holiday_date', allDateStrings)
-          .in('holiday_type', ['holiday', 'compensatory_day_off']); // 只包含國定假日和補休日
+          .in('holiday_type', ['holiday', 'compensatory_day_off']);
           
         if (holidayQueryError) {
           console.error('查詢國定假日失敗:', holidayQueryError);
@@ -659,49 +537,31 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
           
           // 根據國定假日類型調整價格判斷並統計
           if (holidayType === 'work_on_weekend') {
-            // 補班日：即使是週末也使用平日價格
             isHolidayPricing = false;
-            if (i === 0) workOnWeekendCount++; // 只計算一次，不重複計算每個房型
+            if (i === 0) workOnWeekendCount++;
           } else if (holidayType === 'holiday' || holidayType === 'compensatory_day_off') {
-            // 國定假日或補休日：使用假日價格
             isHolidayPricing = true;
-            if (!isWeekendDay && i === 0) holidayAffectedCount++; // 只計算原本是平日但因國定假日改為假日價格的天數
+            if (!isWeekendDay && i === 0) holidayAffectedCount++;
           }
           
-          // 從選中的專案中取得價格
-          const mealPlanPrice = isHolidayPricing 
-            ? selectedMealPlan.weekend_price 
-            : selectedMealPlan.weekday_price;
+          // 直接使用模板的價格
+          const price = isHolidayPricing ? weekendPrice : weekdayPrice;
           
-          if (!mealPlanPrice) {
-            console.warn(`專案「${selectedMealPlan.name}」缺少${isHolidayPricing ? '假日' : '平日'}價格`);
+          if (!price) {
+            console.warn(`缺少${isHolidayPricing ? '假日' : '平日'}價格`);
             continue;
           }
-          
-          // 決定基礎價格（使用專案價格）
-          const basePrice = mealPlanPrice;
           
           // 準備 upsert 數據
           const upsertData: any = {
             room_type_id: roomTypeId,
             date: dateStr,
-            price: basePrice,
+            price: price,
             available_rooms: existing?.available_rooms ?? availableRooms,
             is_available: true,
-            // 根據專案索引決定存入哪個欄位
-            price_2_meals: null,
-            price_3_meals: null,
+            price_2_meals: price,
+            price_3_meals: existing?.price_3_meals || null,
           };
-          
-          // 根據專案在 meal_plans 中的索引來決定欄位
-          const mealPlanIndex = applyingTemplate.meal_plans?.findIndex(mp => mp.id === selectedMealPlanId) ?? 0;
-          if (mealPlanIndex === 0) {
-            upsertData.price_2_meals = mealPlanPrice;
-            upsertData.price_3_meals = existing?.price_3_meals || null;
-          } else {
-            upsertData.price_2_meals = existing?.price_2_meals || null;
-            upsertData.price_3_meals = mealPlanPrice;
-          }
           
           upsertRecords.push(upsertData);
         }
@@ -730,6 +590,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       
       // 記錄套用歷史
       const { data: { user } } = await supabase.auth.getUser();
+      const projectName = applyingTemplate.project_name || applyingTemplate.template_name;
       const { error: applicationError } = await supabase
         .from('pricing_template_applications')
         .insert({
@@ -740,7 +601,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
           date_to: format(dateRange.to, 'yyyy-MM-dd'),
           selected_days: selectedDays,
           room_type_ids: selectedRoomTypes,
-          price_type: selectedMealPlan.name,
+          price_type: projectName,
           available_rooms: availableRooms,
           affected_dates_count: upsertRecords.length,
           holiday_affected_count: holidayAffectedCount,
@@ -751,11 +612,11 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
         console.error('記錄套用歷史失敗:', applicationError);
       }
       
-      toast.success(`已成功套用「${selectedMealPlan.name}」價格到 ${selectedRoomTypes.length} 個房型的 ${upsertRecords.length} 天`);
+      toast.success(`已成功套用「${projectName}」價格到 ${selectedRoomTypes.length} 個房型的 ${upsertRecords.length} 天`);
       setApplyDialogOpen(false);
       setApplyingTemplate(null);
       loadTemplateApplications();
-    } catch (error) {
+    } catch (error: any) {
       console.error('套用專案模板失敗:', error);
       toast.error(`套用專案模板失敗：${error.message || '未知錯誤'}`);
     } finally {
@@ -874,46 +735,50 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                 )}
               </div>
 
-              {/* 價格專案顯示 */}
+              {/* 專案資訊顯示 */}
               <div className="space-y-2">
-                {/* 表格式價格顯示 - 優先顯示 meal_plans，沒有的話才顯示舊欄位 */}
-                {template.meal_plans && template.meal_plans.length > 0 ? (
+                {/* 專案名稱 */}
+                {template.project_name && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary"></span>
+                    <span className="font-medium">{template.project_name}</span>
+                    {template.project_description && (
+                      <span className="text-muted-foreground">({template.project_description})</span>
+                    )}
+                  </div>
+                )}
+                
+                {/* 價格顯示 */}
+                {(template.weekday_price || template.weekend_price) ? (
                   <div className="border rounded-lg overflow-hidden">
-                    <div className="grid grid-cols-3 bg-muted/30">
-                      <div className="px-3 py-2 text-xs font-medium text-muted-foreground border-r">專案</div>
+                    <div className="grid grid-cols-2 bg-muted/30">
                       <div className="px-3 py-2 text-xs font-medium text-muted-foreground text-center border-r">平日</div>
                       <div className="px-3 py-2 text-xs font-medium text-muted-foreground text-center">假日</div>
                     </div>
-                    {template.meal_plans.map((plan: MealPlan, index: number) => (
-                      <div key={plan.id || index} className="grid grid-cols-3 border-t">
-                        <div className="px-3 py-2.5 text-sm font-medium border-r bg-background flex items-center gap-2">
-                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary"></span>
-                          {plan.name}
-                        </div>
-                        <div className="px-3 py-2.5 text-sm text-center border-r bg-background">
-                          {plan.weekday_price ? (
-                            <span className="font-semibold text-foreground">
-                              NT$ {plan.weekday_price.toLocaleString()}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </div>
-                        <div className="px-3 py-2.5 text-sm text-center bg-background">
-                          {plan.weekend_price ? (
-                            <span className="font-semibold text-foreground">
-                              NT$ {plan.weekend_price.toLocaleString()}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </div>
+                    <div className="grid grid-cols-2 border-t">
+                      <div className="px-3 py-2.5 text-sm text-center border-r bg-background">
+                        {template.weekday_price ? (
+                          <span className="font-semibold text-foreground">
+                            NT$ {template.weekday_price.toLocaleString()}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
                       </div>
-                    ))}
+                      <div className="px-3 py-2.5 text-sm text-center bg-background">
+                        {template.weekend_price ? (
+                          <span className="font-semibold text-foreground">
+                            NT$ {template.weekend_price.toLocaleString()}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <p className="text-xs text-muted-foreground text-center py-4">
-                    尚未設定任何價格專案
+                    尚未設定價格
                   </p>
                 )}
               </div>
@@ -952,7 +817,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                   size="sm"
                   onClick={() => onApply(template)}
                   className="flex-1 gap-2 h-10 sm:h-9 touch-manipulation"
-                  disabled={!template.meal_plans?.some(mp => mp.weekday_price || mp.weekend_price)}
+                  disabled={!template.weekday_price && !template.weekend_price}
                 >
                   <CalendarCheck className="h-4 w-4" />
                   套用
@@ -1075,129 +940,91 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
 
           {/* 專案設定區塊 */}
           <div className="border rounded-lg p-4 bg-primary/5 space-y-4">
-            <div className="flex items-center justify-between">
-              <h4 className="font-medium flex items-center gap-2">
-                <span>🍽️</span>
-                專案設定
-              </h4>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addMealPlan}
-                className="h-9 touch-manipulation"
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                新增專案
-              </Button>
+            <h4 className="font-medium flex items-center gap-2">
+              <span>🍽️</span>
+              專案設定
+            </h4>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="project_name">專案名稱 *</Label>
+                <Input
+                  id="project_name"
+                  value={formData.project_name}
+                  onChange={(e) => setFormData({ ...formData, project_name: e.target.value })}
+                  placeholder="例如：一泊二食"
+                  className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
+                />
+                {errors.project_name && (
+                  <p className="text-sm text-destructive">{errors.project_name}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="project_description">專案說明</Label>
+                <Input
+                  id="project_description"
+                  value={formData.project_description}
+                  onChange={(e) => setFormData({ ...formData, project_description: e.target.value })}
+                  placeholder="例如：含早餐、晚餐"
+                  className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
+                />
+              </div>
             </div>
             
-            {formData.meal_plans.length === 0 ? (
-              <div className="text-center py-6 text-muted-foreground border border-dashed rounded-lg">
-                <p className="text-sm">尚未新增專案</p>
-                <p className="text-xs mt-1">點擊「新增專案」按鈕開始設定</p>
-              </div>
-            ) : (
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleMealPlanDragEnd}
-              >
-                <SortableContext
-                  items={formData.meal_plans.map(mp => mp.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <div className="space-y-3">
-                    {formData.meal_plans.map((plan, index) => (
-                      <SortableMealPlanItem
-                        key={plan.id}
-                        plan={plan}
-                        index={index}
-                        onUpdate={updateMealPlan}
-                        onRemove={removeMealPlan}
-                      />
-                    ))}
-                  </div>
-                </SortableContext>
-              </DndContext>
-            )}
-            
             <p className="text-xs text-muted-foreground">
-              專案名稱顯示於價格設定；專案說明顯示於訂房流程餐食選項下方。可拖曳調整順序。
+              專案名稱顯示於價格設定；專案說明顯示於訂房流程餐食選項下方。
             </p>
           </div>
 
-          {/* 價格設定 - 根據專案動態顯示 */}
-          {formData.meal_plans.length > 0 && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h4 className="font-medium">價格設定</h4>
-                <p className="text-sm text-muted-foreground">根據專案設定價格</p>
+          {/* 價格設定 */}
+          <div className="space-y-4">
+            <h4 className="font-medium">價格設定</h4>
+            
+            <div className="border rounded-lg p-4 bg-muted/50">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="weekday_price">平日價格</Label>
+                  <Input
+                    id="weekday_price"
+                    type="number"
+                    min="0"
+                    value={formData.weekday_price ?? ""}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      weekday_price: e.target.value ? parseInt(e.target.value) : null
+                    })}
+                    placeholder="選填"
+                    className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
+                    inputMode="numeric"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="weekend_price">假日價格</Label>
+                  <Input
+                    id="weekend_price"
+                    type="number"
+                    min="0"
+                    value={formData.weekend_price ?? ""}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      weekend_price: e.target.value ? parseInt(e.target.value) : null
+                    })}
+                    placeholder="選填"
+                    className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
+                    inputMode="numeric"
+                  />
+                </div>
               </div>
-              
-              <div className="space-y-4">
-                {formData.meal_plans.map((plan, index) => (
-                  <div key={plan.id} className="border rounded-lg p-4 bg-muted/50">
-                    <h5 className="font-medium mb-3 text-center">
-                      {plan.name || `專案 ${index + 1}`}
-                      {plan.description && (
-                        <span className="text-xs text-muted-foreground ml-2 font-normal">
-                          ({plan.description})
-                        </span>
-                      )}
-                    </h5>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor={`weekday_price_${plan.id}`}>平日價格</Label>
-                        <Input
-                          id={`weekday_price_${plan.id}`}
-                          type="number"
-                          min="0"
-                          value={plan.weekday_price ?? ""}
-                          onChange={(e) => updateMealPlan(
-                            plan.id, 
-                            'weekday_price', 
-                            e.target.value ? parseInt(e.target.value) : null
-                          )}
-                          placeholder="選填"
-                          className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
-                          inputMode="numeric"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor={`weekend_price_${plan.id}`}>假日價格</Label>
-                        <Input
-                          id={`weekend_price_${plan.id}`}
-                          type="number"
-                          min="0"
-                          value={plan.weekend_price ?? ""}
-                          onChange={(e) => updateMealPlan(
-                            plan.id, 
-                            'weekend_price', 
-                            e.target.value ? parseInt(e.target.value) : null
-                          )}
-                          placeholder="選填"
-                          className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
-                          inputMode="numeric"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
-              {errors.meal_plans && (
-                <p className="text-sm text-destructive">{errors.meal_plans}</p>
-              )}
             </div>
-          )}
-          
-          {formData.meal_plans.length === 0 && (
-            <div className="text-center py-6 text-muted-foreground border border-dashed rounded-lg">
-              <p className="text-sm">請先新增專案</p>
-              <p className="text-xs mt-1">新增專案後即可設定對應的價格</p>
-            </div>
-          )}
+            
+            {errors.weekday_price && (
+              <p className="text-sm text-destructive">{errors.weekday_price}</p>
+            )}
+            
+            <p className="text-xs text-muted-foreground">
+              請至少設定一個價格（平日或假日）
+            </p>
+          </div>
 
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
             <Button onClick={handleSubmit} className="flex items-center justify-center gap-2 w-full sm:w-auto h-11 sm:h-10 touch-manipulation">
@@ -1420,61 +1247,31 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
               </div>
             </div>
 
-            {/* 價格專案選擇 */}
+            {/* 專案資訊顯示 */}
             <div className="space-y-2">
-              <Label>選擇價格專案 *</Label>
-              {applyingTemplate?.meal_plans && applyingTemplate.meal_plans.length > 0 ? (
-                <div className="grid grid-cols-1 gap-3">
-                  {applyingTemplate.meal_plans.map((plan) => {
-                    const hasPrice = plan.weekday_price || plan.weekend_price;
-                    const isSelected = selectedMealPlanId === plan.id;
-                    return (
-                      <button
-                        key={plan.id}
-                        type="button"
-                        onClick={() => setSelectedMealPlanId(plan.id)}
-                        disabled={!hasPrice}
-                        className={`
-                          p-4 rounded-lg border-2 transition-all text-left group touch-manipulation
-                          ${isSelected 
-                            ? 'border-primary bg-primary text-primary-foreground' 
-                            : 'border-border hover:border-primary hover:bg-primary hover:text-primary-foreground'
-                          }
-                          ${!hasPrice ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                        `}
-                      >
-                        <div className="font-medium mb-1 group-hover:text-primary-foreground">{plan.name}</div>
-                        {plan.description && (
-                          <div className={`text-xs mb-2 ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground group-hover:text-primary-foreground/70'}`}>
-                            {plan.description}
-                          </div>
-                        )}
-                        <div className="text-sm space-y-1">
-                          {plan.weekday_price && (
-                            <div className={isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground group-hover:text-primary-foreground/80'}>
-                              平日：<span className={`font-medium ${isSelected ? 'text-primary-foreground' : 'text-foreground group-hover:text-primary-foreground'}`}>
-                                NT$ {plan.weekday_price.toLocaleString()}
-                              </span>
-                            </div>
-                          )}
-                          {plan.weekend_price && (
-                            <div className={isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground group-hover:text-primary-foreground/80'}>
-                              假日：<span className={`font-medium ${isSelected ? 'text-primary-foreground' : 'text-foreground group-hover:text-primary-foreground'}`}>
-                                NT$ {plan.weekend_price.toLocaleString()}
-                              </span>
-                            </div>
-                          )}
-                          {!hasPrice && (
-                            <div className="text-xs text-muted-foreground">未設定價格</div>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
+              <Label>套用專案</Label>
+              {applyingTemplate && (applyingTemplate.weekday_price || applyingTemplate.weekend_price) ? (
+                <div className="p-4 rounded-lg border-2 border-primary bg-primary/5">
+                  <div className="font-medium mb-1">{applyingTemplate.project_name || applyingTemplate.template_name}</div>
+                  {applyingTemplate.project_description && (
+                    <div className="text-xs text-muted-foreground mb-2">{applyingTemplate.project_description}</div>
+                  )}
+                  <div className="text-sm space-y-1">
+                    {applyingTemplate.weekday_price && (
+                      <div className="text-muted-foreground">
+                        平日：<span className="font-medium text-foreground">NT$ {applyingTemplate.weekday_price.toLocaleString()}</span>
+                      </div>
+                    )}
+                    {applyingTemplate.weekend_price && (
+                      <div className="text-muted-foreground">
+                        假日：<span className="font-medium text-foreground">NT$ {applyingTemplate.weekend_price.toLocaleString()}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="p-4 border rounded-lg text-center text-muted-foreground">
-                  此模板尚未設定價格專案
+                  此模板尚未設定價格
                 </div>
               )}
             </div>
@@ -1687,61 +1484,31 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                 </div>
               </div>
 
-              {/* 價格專案選擇 */}
+              {/* 專案資訊顯示 */}
               <div className="space-y-2">
-                <Label>選擇價格專案 *</Label>
-                {applyingTemplate?.meal_plans && applyingTemplate.meal_plans.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-3">
-                    {applyingTemplate.meal_plans.map((plan) => {
-                      const hasPrice = plan.weekday_price || plan.weekend_price;
-                      const isSelected = selectedMealPlanId === plan.id;
-                      return (
-                        <button
-                          key={plan.id}
-                          type="button"
-                          onClick={() => setSelectedMealPlanId(plan.id)}
-                          disabled={!hasPrice}
-                          className={`
-                            p-4 rounded-lg border-2 transition-all text-left group touch-manipulation
-                            ${isSelected 
-                              ? 'border-primary bg-primary text-primary-foreground' 
-                              : 'border-border hover:border-primary hover:bg-primary hover:text-primary-foreground'
-                            }
-                            ${!hasPrice ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                          `}
-                        >
-                          <div className="font-medium mb-1 group-hover:text-primary-foreground">{plan.name}</div>
-                          {plan.description && (
-                            <div className={`text-xs mb-2 ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground group-hover:text-primary-foreground/70'}`}>
-                              {plan.description}
-                            </div>
-                          )}
-                          <div className="text-sm space-y-1">
-                            {plan.weekday_price && (
-                              <div className={isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground group-hover:text-primary-foreground/80'}>
-                                平日：<span className={`font-medium ${isSelected ? 'text-primary-foreground' : 'text-foreground group-hover:text-primary-foreground'}`}>
-                                  NT$ {plan.weekday_price.toLocaleString()}
-                                </span>
-                              </div>
-                            )}
-                            {plan.weekend_price && (
-                              <div className={isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground group-hover:text-primary-foreground/80'}>
-                                假日：<span className={`font-medium ${isSelected ? 'text-primary-foreground' : 'text-foreground group-hover:text-primary-foreground'}`}>
-                                  NT$ {plan.weekend_price.toLocaleString()}
-                                </span>
-                              </div>
-                            )}
-                            {!hasPrice && (
-                              <div className="text-xs text-muted-foreground">未設定價格</div>
-                            )}
-                          </div>
-                        </button>
-                      );
-                    })}
+                <Label>套用專案</Label>
+                {applyingTemplate && (applyingTemplate.weekday_price || applyingTemplate.weekend_price) ? (
+                  <div className="p-4 rounded-lg border-2 border-primary bg-primary/5">
+                    <div className="font-medium mb-1">{applyingTemplate.project_name || applyingTemplate.template_name}</div>
+                    {applyingTemplate.project_description && (
+                      <div className="text-xs text-muted-foreground mb-2">{applyingTemplate.project_description}</div>
+                    )}
+                    <div className="text-sm grid grid-cols-2 gap-2">
+                      {applyingTemplate.weekday_price && (
+                        <div className="text-muted-foreground">
+                          平日：<span className="font-medium text-foreground">NT$ {applyingTemplate.weekday_price.toLocaleString()}</span>
+                        </div>
+                      )}
+                      {applyingTemplate.weekend_price && (
+                        <div className="text-muted-foreground">
+                          假日：<span className="font-medium text-foreground">NT$ {applyingTemplate.weekend_price.toLocaleString()}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <div className="p-4 border rounded-lg text-center text-muted-foreground">
-                    此模板尚未設定價格專案
+                    此模板尚未設定價格
                   </div>
                 )}
               </div>
