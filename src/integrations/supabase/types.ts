@@ -1369,6 +1369,8 @@ export type Database = {
           project_name: string | null
           template_name: string
           updated_at: string
+          weekday_price: number | null
+          weekend_price: number | null
         }
         Insert: {
           accommodation_id: string
@@ -1382,6 +1384,8 @@ export type Database = {
           project_name?: string | null
           template_name: string
           updated_at?: string
+          weekday_price?: number | null
+          weekend_price?: number | null
         }
         Update: {
           accommodation_id?: string
@@ -1395,6 +1399,8 @@ export type Database = {
           project_name?: string | null
           template_name?: string
           updated_at?: string
+          weekday_price?: number | null
+          weekend_price?: number | null
         }
         Relationships: [
           {
