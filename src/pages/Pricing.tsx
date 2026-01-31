@@ -326,7 +326,7 @@ const Pricing = () => {
       case "facilities":
         return "房間設施";
       case "basic":
-        return "批次設定";
+        return "專案設定";
       case "holidays":
         return "國定假日";
       default:
@@ -494,7 +494,7 @@ const Pricing = () => {
 
         <TabsContent value="basic" className="space-y-4">
           <PageHeader
-            title="批次設定"
+            title="專案設定"
             icon={DollarSign}
           />
           <PricingTemplateManager accommodationId={currentAccommodationId || ""} />
