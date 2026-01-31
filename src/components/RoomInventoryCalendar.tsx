@@ -685,7 +685,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
       const selectedDatesArray = Array.from(selectedBlockedDates);
       const { data: orders, error } = await supabase
         .from("orders")
-        .select("*, room_types(name)")
+        .select("*, room_types(name, is_exclusive_package)")
         .eq("accommodation_id", accommodationId)
         .neq("order_status", "cancelled");
 
@@ -703,12 +703,11 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
         });
       }) || [];
 
-      // 只顯示互斥房型的訂單
-      const exclusiveOrders = relevantOrders.filter(order => 
-        ["12人包區", "14人包區", "16人包區", "18人包區"].includes(
-          (order.room_types as any)?.name
-        )
-      );
+      // 只顯示包棟房型的訂單（使用資料庫欄位而非硬編碼名稱）
+      const exclusiveOrders = relevantOrders.filter(order => {
+        const roomType = order.room_types as any;
+        return roomType?.is_exclusive_package === true;
+      });
 
       setOrdersToCancel(exclusiveOrders);
       setUnlockDialogOpen(true);
@@ -1528,8 +1527,8 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                 <div className="flex items-start gap-2">
                   <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-bold">包區互斥規則：</span>
-                    <p className="mt-1">12人、14人、16人、18人包區互斥。當其中一個包區被預訂時，其他包區當日庫存將自動鎖定（顯示為 <Lock className="inline h-3 w-3 mx-0.5" /> 已鎖定），無法再被預訂。</p>
+                    <span className="font-bold">包棟互斥規則：</span>
+                    <p className="mt-1">標記為「包棟房型」的房型互斥。當其中一個包棟房型被預訂時，其他包棟房型及「綁定包棟」的房型當日庫存將自動鎖定（顯示為 <Lock className="inline h-3 w-3 mx-0.5" /> 已鎖定），無法再被預訂。</p>
                   </div>
                 </div>
               </div>
