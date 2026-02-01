@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -101,6 +101,9 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
 
+  // 記住「進入編輯時」的房間數量，避免儲存時 roomType 已被外層 state 更新而比對不到差異
+  const originalRoomCountRef = useRef<number | null>(roomType?.room_count ?? null);
+
   const initialFormData = {
     name: "",
     description: "",
@@ -135,6 +138,7 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
 
   useEffect(() => {
     if (roomType) {
+      originalRoomCountRef.current = roomType.room_count ?? null;
       setFormData({
         name: roomType.name || "",
         description: roomType.description || "",
@@ -293,13 +297,29 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         
         // 若房間數量有變更，同步更新庫存表
         const newRoomCount = roomData.room_count;
-        const oldRoomCount = roomType.room_count;
-        if (newRoomCount != null && newRoomCount !== oldRoomCount) {
-          // 更新所有該房型的庫存記錄
-          await supabase
-            .from("room_inventory_pricing")
-            .update({ available_rooms: newRoomCount })
-            .eq("room_type_id", roomType.id);
+        const oldRoomCount = originalRoomCountRef.current;
+
+        if (newRoomCount != null && oldRoomCount != null && newRoomCount !== oldRoomCount) {
+          // 變更規則：
+          // - 若變小：把庫存中「大於新房數」的數字降到新值（避免出現超過上限的庫存）
+          // - 若變大：僅把「等於舊房數」的列更新成新值（保留手動調整過的日期）
+          const inventoryUpdateQuery =
+            newRoomCount < oldRoomCount
+              ? supabase
+                  .from("room_inventory_pricing")
+                  .update({ available_rooms: newRoomCount })
+                  .eq("room_type_id", roomType.id)
+                  .gt("available_rooms", newRoomCount)
+              : supabase
+                  .from("room_inventory_pricing")
+                  .update({ available_rooms: newRoomCount })
+                  .eq("room_type_id", roomType.id)
+                  .eq("available_rooms", oldRoomCount);
+
+          const { error: inventoryError } = await inventoryUpdateQuery;
+          if (inventoryError) throw inventoryError;
+
+          originalRoomCountRef.current = newRoomCount;
         }
       } else {
         const { data, error } = await supabase
