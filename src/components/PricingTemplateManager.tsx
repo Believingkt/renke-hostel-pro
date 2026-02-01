@@ -731,7 +731,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
         {templatePrice ? (
           <div className="bg-background px-4 py-3 flex items-center justify-between border-b border-border/40">
             <span className="text-sm font-medium text-muted-foreground">價格</span>
-            <span className="font-bold text-2xl tracking-tight text-primary">
+            <span className="font-bold text-lg tracking-tight text-primary">
               NT$ {templatePrice.toLocaleString()}
             </span>
           </div>
