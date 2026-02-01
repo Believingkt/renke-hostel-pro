@@ -28,6 +28,7 @@ interface RoomType {
   name: string;
   is_exclusive_package: boolean;
   base_price: number;
+  room_count: number | null;
 }
 
 interface PricingTemplate {
@@ -108,7 +109,7 @@ export default function RoomPriceCalendar() {
       const [roomTypesResult, templatesResult, inventoryResult, holidaysResult] = await Promise.all([
         supabase
           .from('room_types')
-          .select('id, name, is_exclusive_package, base_price')
+          .select('id, name, is_exclusive_package, base_price, room_count')
           .eq('accommodation_id', currentAccommodationId)
           .order('display_order', { ascending: true }),
         supabase
@@ -522,9 +523,10 @@ function RoomTypeRows({
               <span className={cn(
                 "inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium",
                 cellData?.available_rooms === 0 && "bg-red-100 text-red-600",
-                cellData?.available_rooms && cellData.available_rooms > 0 && "bg-green-100 text-green-600"
+                (cellData?.available_rooms ?? roomType.room_count ?? 0) > 0 && "bg-green-100 text-green-600",
+                !cellData && "bg-muted text-muted-foreground"
               )}>
-                {cellData?.available_rooms ?? '-'}
+                {cellData?.available_rooms ?? roomType.room_count ?? '-'}
               </span>
             </td>
           );
