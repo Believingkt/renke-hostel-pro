@@ -376,12 +376,18 @@ export default function RoomPriceCalendar() {
                         </td>
                       </tr>
                       {groupedRoomTypes.exclusive.map(roomType => {
-                        // 只顯示名稱包含該房型名稱的專案模板（移除空格後比對）
+                        // 嘗試匹配名稱包含該房型名稱的專案模板（移除空格後比對）
                         const normalizedRoomName = roomType.name.replace(/\s+/g, '');
-                        const roomTemplates = filteredTemplates.filter(t => {
+                        let roomTemplates = filteredTemplates.filter(t => {
                           const templateName = (t.project_name || t.template_name).replace(/\s+/g, '');
                           return templateName.includes(normalizedRoomName);
                         });
+                        
+                        // 如果沒有匹配的專案，顯示所有專案（適用於共享專案的包棟房型）
+                        if (roomTemplates.length === 0) {
+                          roomTemplates = filteredTemplates;
+                        }
+                        
                         return (
                           <RoomTypeRows
                             key={roomType.id}
@@ -400,12 +406,18 @@ export default function RoomPriceCalendar() {
 
                   {/* 一般房型區塊 */}
                   {groupedRoomTypes.regular.map(roomType => {
-                    // 只顯示名稱包含該房型名稱的專案模板（移除空格後比對）
+                    // 嘗試匹配名稱包含該房型名稱的專案模板（移除空格後比對）
                     const normalizedRoomName = roomType.name.replace(/\s+/g, '');
-                    const roomTemplates = filteredTemplates.filter(t => {
+                    let roomTemplates = filteredTemplates.filter(t => {
                       const templateName = (t.project_name || t.template_name).replace(/\s+/g, '');
                       return templateName.includes(normalizedRoomName);
                     });
+                    
+                    // 如果沒有匹配的專案，顯示所有專案（適用於包棟模式下的子房型）
+                    if (roomTemplates.length === 0) {
+                      roomTemplates = filteredTemplates;
+                    }
+                    
                     return (
                       <RoomTypeRows
                         key={roomType.id}
