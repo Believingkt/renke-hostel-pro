@@ -30,20 +30,6 @@ export const roomTypeSchema = z.object({
     },
     { message: "房間數量必須介於 1-100 之間" }
   ),
-  quad_room_count: z.string().trim().refine(
-    (val) => {
-      const num = parseInt(val);
-      return !isNaN(num) && num >= 0 && num <= 10;
-    },
-    { message: "四人房數量必須介於 0-10 之間" }
-  ).optional(),
-  double_room_count: z.string().trim().refine(
-    (val) => {
-      const num = parseInt(val);
-      return !isNaN(num) && num >= 0 && num <= 10;
-    },
-    { message: "雙人房數量必須介於 0-10 之間" }
-  ).optional(),
 });
 
 // 訂房設定驗證
