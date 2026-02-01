@@ -375,35 +375,49 @@ export default function RoomPriceCalendar() {
                           包棟
                         </td>
                       </tr>
-                      {groupedRoomTypes.exclusive.map(roomType => (
-                        <RoomTypeRows
-                          key={roomType.id}
-                          roomType={roomType}
-                          templates={filteredTemplates}
-                          monthDays={monthDays}
-                          holidays={holidays}
-                          getCellData={getCellData}
-                          getDayType={getDayType}
-                          onCellClick={handleCellClick}
-                        />
-                      ))}
+                      {groupedRoomTypes.exclusive.map(roomType => {
+                        // 只顯示名稱包含該房型名稱的專案模板
+                        const roomTemplates = filteredTemplates.filter(t => {
+                          const templateName = t.project_name || t.template_name;
+                          return templateName.includes(roomType.name);
+                        });
+                        return (
+                          <RoomTypeRows
+                            key={roomType.id}
+                            roomType={roomType}
+                            templates={roomTemplates}
+                            monthDays={monthDays}
+                            holidays={holidays}
+                            getCellData={getCellData}
+                            getDayType={getDayType}
+                            onCellClick={handleCellClick}
+                          />
+                        );
+                      })}
                     </>
                   )}
 
                   {/* 一般房型區塊 */}
-                  {groupedRoomTypes.regular.map(roomType => (
-                    <RoomTypeRows
-                      key={roomType.id}
-                      roomType={roomType}
-                      templates={filteredTemplates}
-                      monthDays={monthDays}
-                      holidays={holidays}
-                      getCellData={getCellData}
-                      getDayType={getDayType}
-                      onCellClick={handleCellClick}
-                      showCategoryHeader={true}
-                    />
-                  ))}
+                  {groupedRoomTypes.regular.map(roomType => {
+                    // 只顯示名稱包含該房型名稱的專案模板
+                    const roomTemplates = filteredTemplates.filter(t => {
+                      const templateName = t.project_name || t.template_name;
+                      return templateName.includes(roomType.name);
+                    });
+                    return (
+                      <RoomTypeRows
+                        key={roomType.id}
+                        roomType={roomType}
+                        templates={roomTemplates}
+                        monthDays={monthDays}
+                        holidays={holidays}
+                        getCellData={getCellData}
+                        getDayType={getDayType}
+                        onCellClick={handleCellClick}
+                        showCategoryHeader={true}
+                      />
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
