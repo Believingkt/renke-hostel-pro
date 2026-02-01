@@ -2770,64 +2770,6 @@ const BookingFlow = () => {
                         </p>
                       )}
                     </div>
-                    <div className="space-y-2">
-                      <Label className="flex items-center gap-2">
-                        選擇專案 <span className="text-destructive">*</span>
-                      </Label>
-                      <div className={`grid gap-3 ${customMealPlans.length > 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2'}`}>
-                        {customMealPlans.length > 0 ? (
-                          // 顯示自訂餐食方案
-                          customMealPlans.map((plan) => (
-                            <Card 
-                              key={plan.id}
-                              className={`cursor-pointer transition-all ${
-                                selectedMealPlan === plan.id
-                                  ? "border-2 border-primary shadow-md bg-primary/5"
-                                  : "border hover:border-primary/50"
-                              }`}
-                              onClick={() => setSelectedMealPlan(plan.id)}
-                            >
-                              <CardContent className="p-4 text-center">
-                                <p className="font-semibold mb-1">{plan.name}</p>
-                                {plan.description && (
-                                  <p className="text-xs text-muted-foreground">{plan.description}</p>
-                                )}
-                              </CardContent>
-                            </Card>
-                          ))
-                        ) : (
-                          // 預設餐食方案
-                          <>
-                            <Card 
-                              className={`cursor-pointer transition-all ${
-                                selectedMealPlan === "2_meals"
-                                  ? "border-2 border-primary shadow-md bg-primary/5"
-                                  : "border hover:border-primary/50"
-                              }`}
-                              onClick={() => setSelectedMealPlan("2_meals")}
-                            >
-                              <CardContent className="p-4 text-center">
-                                <p className="font-semibold mb-1">一泊二食</p>
-                                <p className="text-xs text-muted-foreground">含早餐、下午茶</p>
-                              </CardContent>
-                            </Card>
-                            <Card 
-                              className={`cursor-pointer transition-all ${
-                                selectedMealPlan === "3_meals"
-                                  ? "border-2 border-primary shadow-md bg-primary/5"
-                                  : "border hover:border-primary/50"
-                              }`}
-                              onClick={() => setSelectedMealPlan("3_meals")}
-                            >
-                              <CardContent className="p-4 text-center">
-                                <p className="font-semibold mb-1">一泊三食</p>
-                                <p className="text-xs text-muted-foreground">含早餐、下午茶、晚餐</p>
-                              </CardContent>
-                            </Card>
-                          </>
-                        )}
-                      </div>
-                    </div>
                     {checkInDate && checkOutDate && (
                       <Card className="bg-muted/50">
                         <CardContent className="p-4">
