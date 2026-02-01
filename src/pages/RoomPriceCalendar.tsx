@@ -135,12 +135,65 @@ export default function RoomPriceCalendar() {
       if (inventoryResult.error) throw inventoryResult.error;
       if (holidaysResult.error) throw holidaysResult.error;
 
-      setRoomTypes(roomTypesResult.data || []);
-      setTemplates(templatesResult.data || []);
+      const loadedRoomTypes = (roomTypesResult.data || []) as RoomType[];
+      const loadedTemplates = (templatesResult.data || []) as PricingTemplate[];
+      let loadedInventory = (inventoryResult.data || []) as InventoryData[];
+
+      // 同步：若「整月庫存都一致」且與房型房間數量不同，則以房型房間數量為準
+      // 目的：避免套用模板/初始化時把庫存寫死為 1，導致與房型管理不一致
+      const roomCountById = new Map<string, number>();
+      loadedRoomTypes.forEach(rt => {
+        if (rt.room_count != null) roomCountById.set(rt.id, rt.room_count);
+      });
+
+      const uniqueAvailByRoom = new Map<string, Set<number>>();
+      loadedInventory.forEach(row => {
+        if (!uniqueAvailByRoom.has(row.room_type_id)) uniqueAvailByRoom.set(row.room_type_id, new Set());
+        uniqueAvailByRoom.get(row.room_type_id)!.add(row.available_rooms);
+      });
+
+      const syncTargets: Array<{ roomTypeId: string; fromValue: number; toValue: number }> = [];
+      uniqueAvailByRoom.forEach((set, roomTypeId) => {
+        const toValue = roomCountById.get(roomTypeId);
+        if (toValue == null) return;
+        if (set.size !== 1) return;
+        const fromValue = Array.from(set)[0];
+        if (fromValue === toValue) return;
+        // 僅在「整月都固定為 1」且房型設定 > 1 時才自動同步，避免覆寫刻意調整
+        if (fromValue === 1 && toValue > 1) {
+          syncTargets.push({ roomTypeId, fromValue, toValue });
+        }
+      });
+
+      if (syncTargets.length > 0) {
+        // 以月份區間更新，並只更新那些仍維持在舊值(通常是 1)的列
+        await Promise.all(
+          syncTargets.map(t =>
+            supabase
+              .from('room_inventory_pricing')
+              .update({ available_rooms: t.toValue })
+              .eq('room_type_id', t.roomTypeId)
+              .gte('date', monthStart)
+              .lte('date', monthEnd)
+              .eq('available_rooms', t.fromValue)
+          )
+        );
+
+        const syncMap = new Map(syncTargets.map(t => [t.roomTypeId, t] as const));
+        loadedInventory = loadedInventory.map(row => {
+          const t = syncMap.get(row.room_type_id);
+          if (!t) return row;
+          if (row.available_rooms !== t.fromValue) return row;
+          return { ...row, available_rooms: t.toValue };
+        });
+      }
+
+      setRoomTypes(loadedRoomTypes);
+      setTemplates(loadedTemplates);
 
       // 建立庫存查找表
       const invMap = new Map<string, InventoryData>();
-      (inventoryResult.data || []).forEach(item => {
+      loadedInventory.forEach(item => {
         const key = `${item.room_type_id}_${item.date}`;
         invMap.set(key, item);
       });
