@@ -527,8 +527,8 @@ function RoomTypeRows({
             const isWeekend = dayType === 'weekend' || dayType === 'holiday';
             const cellData = getCellData(roomType.id, dateStr);
             
-            // 根據日期類型選擇價格
-            const price = cellData?.price || (isWeekend ? template.weekend_price : template.weekday_price);
+            // 只顯示實際套用過的庫存價格，不使用模板價格作為預設值
+            const price = cellData?.price;
             
             return (
               <td
