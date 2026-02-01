@@ -63,6 +63,8 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [amenities, setAmenities] = useState<string[]>([]);
   const [inventoryPricing, setInventoryPricing] = useState<{
+    weekday_price?: number;
+    weekend_price?: number;
     weekday_2_meals?: number;
     weekday_3_meals?: number;
     weekend_2_meals?: number;
@@ -120,8 +122,8 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
         const holidayDates = new Set(holidays?.map(h => h.holiday_date) || []);
 
         // 分類平日和假日的價格
-        const weekdayPrices = { meals2: [] as number[], meals3: [] as number[] };
-        const weekendPrices = { meals2: [] as number[], meals3: [] as number[] };
+        const weekdayPrices = { base: [] as number[], meals2: [] as number[], meals3: [] as number[] };
+        const weekendPrices = { base: [] as number[], meals2: [] as number[], meals3: [] as number[] };
 
         data.forEach(item => {
           const date = new Date(item.date);
@@ -129,9 +131,11 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
           const isWeekend = dayOfWeek === 0 || dayOfWeek === 6 || holidayDates.has(item.date);
 
           if (isWeekend) {
+            if (item.price) weekendPrices.base.push(item.price);
             if (item.price_2_meals) weekendPrices.meals2.push(item.price_2_meals);
             if (item.price_3_meals) weekendPrices.meals3.push(item.price_3_meals);
           } else {
+            if (item.price) weekdayPrices.base.push(item.price);
             if (item.price_2_meals) weekdayPrices.meals2.push(item.price_2_meals);
             if (item.price_3_meals) weekdayPrices.meals3.push(item.price_3_meals);
           }
@@ -139,6 +143,8 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
 
         // 取最低價格顯示
         setInventoryPricing({
+          weekday_price: weekdayPrices.base.length > 0 ? Math.min(...weekdayPrices.base) : undefined,
+          weekend_price: weekendPrices.base.length > 0 ? Math.min(...weekendPrices.base) : undefined,
           weekday_2_meals: weekdayPrices.meals2.length > 0 ? Math.min(...weekdayPrices.meals2) : undefined,
           weekday_3_meals: weekdayPrices.meals3.length > 0 ? Math.min(...weekdayPrices.meals3) : undefined,
           weekend_2_meals: weekendPrices.meals2.length > 0 ? Math.min(...weekendPrices.meals2) : undefined,
@@ -267,10 +273,16 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
         
         <div className="pt-3 border-t mt-3">
           <div className="space-y-2 md:space-y-3 md:min-h-[180px] lg:min-h-[200px]">
-            {(inventoryPricing.weekday_2_meals || inventoryPricing.weekday_3_meals) && (
+            {(inventoryPricing.weekday_price || inventoryPricing.weekday_2_meals || inventoryPricing.weekday_3_meals) && (
               <div>
                 <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">平日</p>
                 <div className="space-y-1">
+                  {inventoryPricing.weekday_price && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs md:text-sm text-muted-foreground">一泊一食</span>
+                      <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekday_price.toLocaleString()}</span>
+                    </div>
+                  )}
                   {inventoryPricing.weekday_2_meals && (
                     <div className="flex justify-between items-center">
                       <span className="text-xs md:text-sm text-muted-foreground">一泊二食</span>
@@ -286,10 +298,16 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
                 </div>
               </div>
             )}
-            {(inventoryPricing.weekend_2_meals || inventoryPricing.weekend_3_meals) && (
+            {(inventoryPricing.weekend_price || inventoryPricing.weekend_2_meals || inventoryPricing.weekend_3_meals) && (
               <div>
                 <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">假日</p>
                 <div className="space-y-1">
+                  {inventoryPricing.weekend_price && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs md:text-sm text-muted-foreground">一泊一食</span>
+                      <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekend_price.toLocaleString()}</span>
+                    </div>
+                  )}
                   {inventoryPricing.weekend_2_meals && (
                     <div className="flex justify-between items-center">
                       <span className="text-xs md:text-sm text-muted-foreground">一泊二食</span>
