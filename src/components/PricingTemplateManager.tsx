@@ -707,94 +707,91 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
         style={style} 
         className="group hover:shadow-lg transition-all duration-200 border-border/60 hover:border-primary/30 overflow-hidden"
       >
-        {/* 頂部價格橫幅 */}
+        {/* 頂部標題橫幅 */}
+        <div className="bg-muted/50 px-4 py-2.5 flex items-center gap-2 border-b border-border/40">
+          {/* 拖曳手把 */}
+          <button
+            className="cursor-grab active:cursor-grabbing touch-none opacity-40 group-hover:opacity-70 transition-opacity"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="h-4 w-4 text-muted-foreground" />
+          </button>
+          <div className="flex-1 min-w-0">
+            <h4 className="font-semibold text-base leading-tight truncate" title={template.template_name}>
+              {template.template_name}
+            </h4>
+            {template.description && template.description !== template.template_name && (
+              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{template.description}</p>
+            )}
+          </div>
+        </div>
+        
+        {/* 價格區塊 */}
         {templatePrice ? (
-          <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground px-4 py-2.5 flex items-center justify-between">
+          <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground px-4 py-3 flex items-center justify-between">
             <span className="text-sm font-medium opacity-90">價格</span>
-            <span className="font-bold text-xl tracking-tight">
+            <span className="font-bold text-2xl tracking-tight">
               NT$ {templatePrice.toLocaleString()}
             </span>
           </div>
         ) : (
-          <div className="bg-muted px-4 py-2.5 flex items-center justify-between">
+          <div className="bg-muted px-4 py-3 flex items-center justify-between">
             <span className="text-sm font-medium text-muted-foreground">價格</span>
             <span className="text-muted-foreground font-medium">未設定</span>
           </div>
         )}
         
         <CardContent className="p-4">
-          <div className="flex items-start gap-2">
-            {/* 拖曳手把 */}
-            <button
-              className="mt-0.5 cursor-grab active:cursor-grabbing touch-none opacity-40 group-hover:opacity-70 transition-opacity"
-              {...attributes}
-              {...listeners}
-            >
-              <GripVertical className="h-4 w-4 text-muted-foreground" />
-            </button>
-
-            <div className="flex-1 min-w-0">
-              {/* 標題和描述 */}
-              <div className="mb-2">
-                <h4 className="font-semibold text-base leading-tight truncate" title={template.template_name}>
-                  {template.template_name}
-                </h4>
-                {template.description && template.description !== template.template_name && (
-                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{template.description}</p>
-                )}
+          {/* 套用記錄 */}
+          {hasApplications && (
+            <div className="flex items-center justify-between text-xs text-muted-foreground mb-3 py-2 px-2.5 bg-muted/30 rounded-md">
+              <div className="flex items-center gap-1.5">
+                <Clock className="h-3 w-3" />
+                <span>
+                  {format(new Date(applications[0].applied_at), 'MM/dd HH:mm')} • {applications[0].affected_dates_count}天
+                </span>
               </div>
-
-              {/* 套用記錄 */}
-              {hasApplications && (
-                <div className="flex items-center justify-between text-xs text-muted-foreground mb-3 py-2 px-2.5 bg-muted/30 rounded-md">
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="h-3 w-3" />
-                    <span>
-                      {format(new Date(applications[0].applied_at), 'MM/dd HH:mm')} • {applications[0].affected_dates_count}天
-                    </span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onViewApplications(template)}
-                    className="h-6 px-2 text-xs text-primary hover:text-primary"
-                  >
-                    <History className="h-3 w-3 mr-1" />
-                    {applications.length} 筆記錄
-                  </Button>
-                </div>
-              )}
-
-              {/* 操作按鈕 */}
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() => onApply(template)}
-                  className="flex-1 gap-1.5 h-9 touch-manipulation font-medium"
-                  disabled={!templatePrice}
-                >
-                  <CalendarCheck className="h-4 w-4" />
-                  套用
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => onEdit(template)}
-                  className="h-9 w-9 touch-manipulation shrink-0"
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onDelete(template)}
-                  className="h-9 w-9 touch-manipulation shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onViewApplications(template)}
+                className="h-6 px-2 text-xs text-primary hover:text-primary"
+              >
+                <History className="h-3 w-3 mr-1" />
+                {applications.length} 筆記錄
+              </Button>
             </div>
+          )}
+
+          {/* 操作按鈕 */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => onApply(template)}
+              className="flex-1 gap-1.5 h-9 touch-manipulation font-medium"
+              disabled={!templatePrice}
+            >
+              <CalendarCheck className="h-4 w-4" />
+              套用
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => onEdit(template)}
+              className="h-9 w-9 touch-manipulation shrink-0"
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onDelete(template)}
+              className="h-9 w-9 touch-manipulation shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
         </CardContent>
       </Card>
