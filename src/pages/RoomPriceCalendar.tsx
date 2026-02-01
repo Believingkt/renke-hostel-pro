@@ -152,32 +152,40 @@ export default function RoomPriceCalendar() {
         uniqueAvailByRoom.get(row.room_type_id)!.add(row.available_rooms);
       });
 
-      const syncTargets: Array<{ roomTypeId: string; fromValue: number; toValue: number }> = [];
+       const syncTargets: Array<{ roomTypeId: string; fromValue: number; toValue: number }> = [];
       uniqueAvailByRoom.forEach((set, roomTypeId) => {
         const toValue = roomCountById.get(roomTypeId);
         if (toValue == null) return;
         if (set.size !== 1) return;
         const fromValue = Array.from(set)[0];
         if (fromValue === toValue) return;
-        // 僅在「整月都固定為 1」且房型設定 > 1 時才自動同步，避免覆寫刻意調整
-        if (fromValue === 1 && toValue > 1) {
+         // 僅在「整月庫存都固定同一個數」且是典型的預設錯置情境才自動同步：
+         // - 由 1 -> 大於 1（初始化/套用模板造成的預設值錯誤）
+         // - 由 大於 1 -> 1（房型房間數量調整為 1，但庫存仍維持舊值）
+         const shouldSync =
+           (fromValue === 1 && toValue > 1) ||
+           (fromValue > 1 && toValue === 1);
+
+         if (shouldSync) {
           syncTargets.push({ roomTypeId, fromValue, toValue });
         }
       });
 
       if (syncTargets.length > 0) {
         // 以月份區間更新，並只更新那些仍維持在舊值(通常是 1)的列
-        await Promise.all(
-          syncTargets.map(t =>
-            supabase
-              .from('room_inventory_pricing')
-              .update({ available_rooms: t.toValue })
-              .eq('room_type_id', t.roomTypeId)
-              .gte('date', monthStart)
-              .lte('date', monthEnd)
-              .eq('available_rooms', t.fromValue)
-          )
-        );
+         await Promise.all(
+           syncTargets.map(async (t) => {
+             const { error: syncError } = await supabase
+               .from('room_inventory_pricing')
+               .update({ available_rooms: t.toValue })
+               .eq('room_type_id', t.roomTypeId)
+               .gte('date', monthStart)
+               .lte('date', monthEnd)
+               .eq('available_rooms', t.fromValue);
+
+             if (syncError) throw syncError;
+           })
+         );
 
         const syncMap = new Map(syncTargets.map(t => [t.roomTypeId, t] as const));
         loadedInventory = loadedInventory.map(row => {
