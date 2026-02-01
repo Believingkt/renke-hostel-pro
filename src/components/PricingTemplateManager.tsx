@@ -1054,7 +1054,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                       flex flex-col items-center justify-center gap-0.5 px-3 py-2 h-auto min-h-[44px] sm:min-h-[36px] rounded-md border transition-all touch-manipulation
                       ${selectedDays.length === 7
                         ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border hover:bg-accent hover:text-white'
+                        : 'border-border hover:bg-accent hover:text-accent-foreground'
                       }
                     `}
                   >
@@ -1068,7 +1068,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                       flex flex-col items-center justify-center gap-0.5 px-3 py-2 h-auto min-h-[44px] sm:min-h-[36px] rounded-md border transition-all touch-manipulation
                       ${JSON.stringify(selectedDays) === JSON.stringify([0, 1, 2, 3, 4, 5])
                         ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border hover:bg-accent hover:text-white'
+                        : 'border-border hover:bg-accent hover:text-accent-foreground'
                       }
                     `}
                   >
@@ -1082,7 +1082,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                       flex flex-col items-center justify-center gap-0.5 px-3 py-2 h-auto min-h-[44px] sm:min-h-[36px] rounded-md border transition-all touch-manipulation
                       ${JSON.stringify(selectedDays) === JSON.stringify([6]) && includePublicHolidays
                         ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border hover:bg-accent hover:text-white'
+                        : 'border-border hover:bg-accent hover:text-accent-foreground'
                       }
                     `}
                   >
@@ -1164,14 +1164,14 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                       className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors touch-manipulation group ${
                         selectedRoomTypes.includes(roomType.id)
                           ? 'bg-primary text-primary-foreground'
-                          : 'hover:bg-accent hover:text-white'
+                          : 'hover:bg-accent hover:text-accent-foreground'
                       }`}
                       onClick={() => toggleRoomType(roomType.id)}
                     >
                       {selectedRoomTypes.includes(roomType.id) ? (
                         <CheckSquare className="h-5 w-5" />
                       ) : (
-                        <Square className="h-5 w-5 text-muted-foreground group-hover:text-white" />
+                        <Square className="h-5 w-5 text-muted-foreground group-hover:text-accent-foreground" />
                       )}
                       <div className="flex-1">
                         <p className="font-medium">{roomType.name}</p>
@@ -1280,7 +1280,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                       flex flex-col items-center justify-center gap-0.5 px-3 py-2 h-auto min-h-[44px] sm:min-h-[36px] rounded-md border transition-all touch-manipulation
                       ${selectedDays.length === 7
                         ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border hover:bg-accent hover:text-white'
+                        : 'border-border hover:bg-accent hover:text-accent-foreground'
                       }
                     `}
                   >
@@ -1294,7 +1294,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                       flex flex-col items-center justify-center gap-0.5 px-3 py-2 h-auto min-h-[44px] sm:min-h-[36px] rounded-md border transition-all touch-manipulation
                       ${JSON.stringify(selectedDays) === JSON.stringify([0, 1, 2, 3, 4, 5])
                         ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border hover:bg-accent hover:text-white'
+                        : 'border-border hover:bg-accent hover:text-accent-foreground'
                       }
                     `}
                   >
@@ -1308,7 +1308,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                       flex flex-col items-center justify-center gap-0.5 px-3 py-2 h-auto min-h-[44px] sm:min-h-[36px] rounded-md border transition-all touch-manipulation
                       ${JSON.stringify(selectedDays) === JSON.stringify([6]) && includePublicHolidays
                         ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border hover:bg-accent hover:text-white'
+                        : 'border-border hover:bg-accent hover:text-accent-foreground'
                       }
                     `}
                   >
@@ -1389,14 +1389,14 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                         className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors touch-manipulation group ${
                           selectedRoomTypes.includes(roomType.id)
                             ? 'bg-primary text-primary-foreground'
-                            : 'hover:bg-accent hover:text-white'
+                            : 'hover:bg-accent hover:text-accent-foreground'
                         }`}
                         onClick={() => toggleRoomType(roomType.id)}
                       >
                         {selectedRoomTypes.includes(roomType.id) ? (
                           <CheckSquare className="h-5 w-5" />
                         ) : (
-                          <Square className="h-5 w-5 text-muted-foreground group-hover:text-white" />
+                          <Square className="h-5 w-5 text-muted-foreground group-hover:text-accent-foreground" />
                         )}
                         <div className="flex-1">
                           <p className="font-medium">{roomType.name}</p>
