@@ -376,11 +376,19 @@ export default function RoomPriceCalendar() {
                         </td>
                       </tr>
                       {groupedRoomTypes.exclusive.map(roomType => {
-                        // 只顯示名稱包含該房型名稱的專案模板（移除空格後比對）
+                        // 匹配專案模板：
+                        // 1. 模板名稱包含該房型名稱，或
+                        // 2. 模板是通用模板（不包含任何房型名稱）
                         const normalizedRoomName = roomType.name.replace(/\s+/g, '');
+                        const allRoomNames = roomTypes.map(r => r.name.replace(/\s+/g, ''));
+                        
                         const roomTemplates = filteredTemplates.filter(t => {
                           const templateName = (t.project_name || t.template_name).replace(/\s+/g, '');
-                          return templateName.includes(normalizedRoomName);
+                          // 檢查是否包含當前房型名稱
+                          const matchesCurrentRoom = templateName.includes(normalizedRoomName);
+                          // 檢查是否為通用模板（不包含任何房型名稱）
+                          const isGenericTemplate = !allRoomNames.some(name => templateName.includes(name));
+                          return matchesCurrentRoom || isGenericTemplate;
                         });
                         return (
                           <RoomTypeRows
@@ -400,11 +408,19 @@ export default function RoomPriceCalendar() {
 
                   {/* 一般房型區塊 */}
                   {groupedRoomTypes.regular.map(roomType => {
-                    // 只顯示名稱包含該房型名稱的專案模板（移除空格後比對）
+                    // 匹配專案模板：
+                    // 1. 模板名稱包含該房型名稱，或
+                    // 2. 模板是通用模板（不包含任何房型名稱）
                     const normalizedRoomName = roomType.name.replace(/\s+/g, '');
+                    const allRoomNames = roomTypes.map(r => r.name.replace(/\s+/g, ''));
+                    
                     const roomTemplates = filteredTemplates.filter(t => {
                       const templateName = (t.project_name || t.template_name).replace(/\s+/g, '');
-                      return templateName.includes(normalizedRoomName);
+                      // 檢查是否包含當前房型名稱
+                      const matchesCurrentRoom = templateName.includes(normalizedRoomName);
+                      // 檢查是否為通用模板（不包含任何房型名稱）
+                      const isGenericTemplate = !allRoomNames.some(name => templateName.includes(name));
+                      return matchesCurrentRoom || isGenericTemplate;
                     });
                     return (
                       <RoomTypeRows
