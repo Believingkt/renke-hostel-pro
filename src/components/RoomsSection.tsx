@@ -32,6 +32,7 @@ interface RoomType {
   base_price: number;
   room_count?: number;
   quad_room_count?: number;
+  triple_room_count?: number;
   double_room_count?: number;
   weekdayPricing?: PricingOption[];
   weekendPricing?: PricingOption[];
@@ -218,14 +219,16 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
         <h3 className="text-lg md:text-xl lg:text-2xl font-bold mb-2 text-foreground">{room.name}</h3>
         
         <div className="space-y-2 md:space-y-3 mb-4 md:mb-5">
-          {(room.room_count || room.quad_room_count || room.double_room_count) && (
+        {(room.room_count || room.quad_room_count || room.triple_room_count || room.double_room_count) && (
             <div className="text-sm md:text-base text-foreground/80 font-medium leading-relaxed">
               {room.room_count && room.room_count > 0 && <span className="font-semibold">{room.room_count} 間房</span>}
-              {((room.quad_room_count && room.quad_room_count > 0) || (room.double_room_count && room.double_room_count > 0)) && (
+              {((room.quad_room_count && room.quad_room_count > 0) || (room.triple_room_count && room.triple_room_count > 0) || (room.double_room_count && room.double_room_count > 0)) && (
                 <span className="ml-2 text-muted-foreground text-xs md:text-sm">
                   (
                   {room.quad_room_count && room.quad_room_count > 0 && <span>四人房 {room.quad_room_count} 間</span>}
-                  {room.quad_room_count && room.quad_room_count > 0 && room.double_room_count && room.double_room_count > 0 && <span>、</span>}
+                  {room.quad_room_count && room.quad_room_count > 0 && (room.triple_room_count && room.triple_room_count > 0 || room.double_room_count && room.double_room_count > 0) && <span>、</span>}
+                  {room.triple_room_count && room.triple_room_count > 0 && <span>三人房 {room.triple_room_count} 間</span>}
+                  {room.triple_room_count && room.triple_room_count > 0 && room.double_room_count && room.double_room_count > 0 && <span>、</span>}
                   {room.double_room_count && room.double_room_count > 0 && <span>雙人房 {room.double_room_count} 間</span>}
                   )
                 </span>
@@ -336,6 +339,7 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
     base_price: room.base_price,
     room_count: room.room_count,
     quad_room_count: room.quad_room_count,
+    triple_room_count: room.triple_room_count,
     double_room_count: room.double_room_count,
     room_photos: room.room_photos || [],
   }));
