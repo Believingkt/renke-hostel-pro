@@ -376,6 +376,8 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
     );
   }
 
+  const shouldUseCarousel = displayRooms.length > 4;
+
   return (
     <section id="rooms" className="py-12 md:py-16 lg:py-20 bg-secondary/20">
       <div className="container mx-auto px-4 md:px-6">
@@ -385,11 +387,31 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
             精心設計的客房空間，讓您在山林間享受寧靜舒適的住宿體驗
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6 lg:gap-6 items-stretch">
-            {displayRooms.map((room, index) => (
-              <RoomCard key={room.id} room={room} isFirstRoom={index === 0} />
-            ))}
-          </div>
+          {shouldUseCarousel ? (
+            <Carousel
+              opts={{
+                align: "start",
+                loop: false,
+              }}
+              className="w-full"
+            >
+              <CarouselContent className="-ml-4">
+                {displayRooms.map((room, index) => (
+                  <CarouselItem key={room.id} className="pl-4 basis-full sm:basis-1/2 lg:basis-1/4">
+                    <RoomCard room={room} isFirstRoom={index === 0} />
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious className="hidden md:flex -left-4 lg:-left-6" />
+              <CarouselNext className="hidden md:flex -right-4 lg:-right-6" />
+            </Carousel>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6 lg:gap-6 items-stretch">
+              {displayRooms.map((room, index) => (
+                <RoomCard key={room.id} room={room} isFirstRoom={index === 0} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </section>
