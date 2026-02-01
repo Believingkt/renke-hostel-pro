@@ -34,6 +34,7 @@ import Orders from "./pages/Orders";
 import OrderDetail from "./pages/OrderDetail";
 import Pricing from "./pages/Pricing";
 import RoomInventory from "./pages/RoomInventory";
+import RoomPriceCalendar from "./pages/RoomPriceCalendar";
 import Accounts from "./pages/Accounts";
 import KolDiscount from "./pages/KolDiscount";
 import DiscountCodeOrders from "./pages/DiscountCodeOrders";
@@ -170,6 +171,14 @@ function App() {
                   element={
                     <Suspense fallback={<FormSkeleton fields={6} />}>
                       <RoomInventory />
+                    </Suspense>
+                  } 
+                />
+                <Route 
+                  path="/admin/room-price-calendar" 
+                  element={
+                    <Suspense fallback={<TableSkeleton rows={8} columns={15} />}>
+                      <RoomPriceCalendar />
                     </Suspense>
                   } 
                 />
