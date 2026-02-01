@@ -584,7 +584,7 @@ function RoomTypeRows({
               <span className={cn(
                 "inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium",
                 cellData?.available_rooms === 0 && "bg-red-100 text-red-600",
-                (cellData?.available_rooms ?? roomType.room_count ?? 0) > 0 && "bg-green-100 text-green-600",
+                (cellData?.available_rooms ?? roomType.room_count ?? 0) > 0 && "bg-blue-100 text-blue-600",
                 !cellData && "bg-muted text-muted-foreground"
               )}>
                 {cellData?.available_rooms ?? roomType.room_count ?? '-'}
