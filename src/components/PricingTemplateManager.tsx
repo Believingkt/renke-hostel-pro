@@ -501,7 +501,9 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       
       for (let i = 0; i < selectedRoomTypes.length; i++) {
         const roomTypeId = selectedRoomTypes[i];
-        const roomTypeName = roomTypes.find(r => r.id === roomTypeId)?.name || '未知房型';
+          const selectedRoomType = roomTypes.find(r => r.id === roomTypeId);
+          const roomTypeName = selectedRoomType?.name || '未知房型';
+          const roomTypeDefaultRooms = selectedRoomType?.room_count ?? null;
         setApplyProgress(prev => ({ 
           ...prev, 
           currentRoom: `處理 ${roomTypeName} (${i + 1}/${selectedRoomTypes.length})` 
@@ -540,7 +542,8 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
             room_type_id: roomTypeId,
             date: dateStr,
             price: templatePrice,
-            available_rooms: existing?.available_rooms ?? availableRooms,
+            // 預設庫存優先採用房型設定的房間數量，避免被固定寫成 1
+            available_rooms: existing?.available_rooms ?? roomTypeDefaultRooms ?? availableRooms,
             is_available: true,
             price_2_meals: templatePrice,
             price_3_meals: existing?.price_3_meals || null,
