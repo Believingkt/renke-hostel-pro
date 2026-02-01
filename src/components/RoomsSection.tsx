@@ -122,34 +122,25 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
 
         const holidayDates = new Set(holidays?.map(h => h.holiday_date) || []);
 
-        // 分類平日和假日的價格
-        const weekdayPrices = { base: [] as number[], meals2: [] as number[], meals3: [] as number[] };
-        const weekendPrices = { base: [] as number[], meals2: [] as number[], meals3: [] as number[] };
-
-        data.forEach(item => {
-          const date = new Date(item.date);
-          const dayOfWeek = date.getDay();
-          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6 || holidayDates.has(item.date);
-
-          if (isWeekend) {
-            if (item.price) weekendPrices.base.push(item.price);
-            if (item.price_2_meals) weekendPrices.meals2.push(item.price_2_meals);
-            if (item.price_3_meals) weekendPrices.meals3.push(item.price_3_meals);
-          } else {
-            if (item.price) weekdayPrices.base.push(item.price);
-            if (item.price_2_meals) weekdayPrices.meals2.push(item.price_2_meals);
-            if (item.price_3_meals) weekdayPrices.meals3.push(item.price_3_meals);
-          }
-        });
-
-        // 取最低價格顯示
+        // 分類平日和假日的價格（使用價格差異來區分，而非星期幾）
+        // 先收集所有不同的價格
+        const allPrices = data.map(item => item.price).filter((p): p is number => p != null);
+        const allPrices2Meals = data.map(item => item.price_2_meals).filter((p): p is number => p != null);
+        const allPrices3Meals = data.map(item => item.price_3_meals).filter((p): p is number => p != null);
+        
+        // 使用價格值來區分平日和假日（較低價格為平日，較高價格為假日）
+        const uniquePrices = [...new Set(allPrices)].sort((a, b) => a - b);
+        const uniquePrices2Meals = [...new Set(allPrices2Meals)].sort((a, b) => a - b);
+        const uniquePrices3Meals = [...new Set(allPrices3Meals)].sort((a, b) => a - b);
+        
+        // 設定價格：如果只有一種價格則平日假日相同，如果有多種則最低為平日、最高為假日
         setInventoryPricing({
-          weekday_price: weekdayPrices.base.length > 0 ? Math.min(...weekdayPrices.base) : undefined,
-          weekend_price: weekendPrices.base.length > 0 ? Math.min(...weekendPrices.base) : undefined,
-          weekday_2_meals: weekdayPrices.meals2.length > 0 ? Math.min(...weekdayPrices.meals2) : undefined,
-          weekday_3_meals: weekdayPrices.meals3.length > 0 ? Math.min(...weekdayPrices.meals3) : undefined,
-          weekend_2_meals: weekendPrices.meals2.length > 0 ? Math.min(...weekendPrices.meals2) : undefined,
-          weekend_3_meals: weekendPrices.meals3.length > 0 ? Math.min(...weekendPrices.meals3) : undefined,
+          weekday_price: uniquePrices.length > 0 ? uniquePrices[0] : undefined,
+          weekend_price: uniquePrices.length > 1 ? uniquePrices[uniquePrices.length - 1] : (uniquePrices.length > 0 ? uniquePrices[0] : undefined),
+          weekday_2_meals: uniquePrices2Meals.length > 0 ? uniquePrices2Meals[0] : undefined,
+          weekday_3_meals: uniquePrices3Meals.length > 0 ? uniquePrices3Meals[0] : undefined,
+          weekend_2_meals: uniquePrices2Meals.length > 1 ? uniquePrices2Meals[uniquePrices2Meals.length - 1] : (uniquePrices2Meals.length > 0 ? uniquePrices2Meals[0] : undefined),
+          weekend_3_meals: uniquePrices3Meals.length > 1 ? uniquePrices3Meals[uniquePrices3Meals.length - 1] : (uniquePrices3Meals.length > 0 ? uniquePrices3Meals[0] : undefined),
         });
       }
     } catch (error) {
