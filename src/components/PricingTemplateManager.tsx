@@ -729,14 +729,14 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
         
         {/* 價格區塊 */}
         {templatePrice ? (
-          <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground px-4 py-3 flex items-center justify-between">
-            <span className="text-sm font-medium opacity-90">價格</span>
-            <span className="font-bold text-2xl tracking-tight">
+          <div className="bg-background px-4 py-3 flex items-center justify-between border-b border-border/40">
+            <span className="text-sm font-medium text-muted-foreground">價格</span>
+            <span className="font-bold text-2xl tracking-tight text-primary">
               NT$ {templatePrice.toLocaleString()}
             </span>
           </div>
         ) : (
-          <div className="bg-muted px-4 py-3 flex items-center justify-between">
+          <div className="bg-background px-4 py-3 flex items-center justify-between border-b border-border/40">
             <span className="text-sm font-medium text-muted-foreground">價格</span>
             <span className="text-muted-foreground font-medium">未設定</span>
           </div>
