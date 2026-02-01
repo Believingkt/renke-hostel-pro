@@ -226,22 +226,6 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
         <h3 className="text-lg md:text-xl lg:text-2xl font-bold mb-2 text-foreground">{room.name}</h3>
         
         <div className="space-y-2 md:space-y-3 mb-4 md:mb-5">
-        {(room.room_count || room.quad_room_count || room.triple_room_count || room.double_room_count) && (
-            <div className="text-sm md:text-base text-foreground/80 font-medium leading-relaxed">
-              {room.room_count && room.room_count > 0 && <span className="font-semibold">{room.room_count} 間房</span>}
-              {((room.quad_room_count && room.quad_room_count > 0) || (room.triple_room_count && room.triple_room_count > 0) || (room.double_room_count && room.double_room_count > 0)) && (
-                <span className="ml-2 text-muted-foreground text-xs md:text-sm">
-                  (
-                  {room.quad_room_count && room.quad_room_count > 0 && <span>四人房 {room.quad_room_count} 間</span>}
-                  {room.quad_room_count && room.quad_room_count > 0 && (room.triple_room_count && room.triple_room_count > 0 || room.double_room_count && room.double_room_count > 0) && <span>、</span>}
-                  {room.triple_room_count && room.triple_room_count > 0 && <span>三人房 {room.triple_room_count} 間</span>}
-                  {room.triple_room_count && room.triple_room_count > 0 && room.double_room_count && room.double_room_count > 0 && <span>、</span>}
-                  {room.double_room_count && room.double_room_count > 0 && <span>雙人房 {room.double_room_count} 間</span>}
-                  )
-                </span>
-              )}
-            </div>
-          )}
           <div className="flex items-center gap-3 md:gap-4 text-xs md:text-sm text-muted-foreground">
             <div className="flex items-center gap-1.5">
               <Users className="h-3.5 w-3.5 md:h-4 md:w-4" />
