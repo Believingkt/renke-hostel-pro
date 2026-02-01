@@ -5,6 +5,7 @@ import { zhTW } from "date-fns/locale";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, DollarSign, Home } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccommodation } from "@/contexts/AccommodationContext";
@@ -68,6 +69,10 @@ export default function RoomPriceCalendar() {
   const [inventory, setInventory] = useState<Map<string, InventoryData>>(new Map());
   const [holidays, setHolidays] = useState<Map<string, PublicHoliday>>(new Map());
   const [loading, setLoading] = useState(true);
+  
+  // 篩選器狀態
+  const [selectedRoomTypeId, setSelectedRoomTypeId] = useState<string>('all');
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('all');
   
   // 編輯對話框狀態
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -205,12 +210,24 @@ export default function RoomPriceCalendar() {
     setSelectedCell(null);
   };
 
+  // 篩選後的房型
+  const filteredRoomTypes = useMemo(() => {
+    if (selectedRoomTypeId === 'all') return roomTypes;
+    return roomTypes.filter(r => r.id === selectedRoomTypeId);
+  }, [roomTypes, selectedRoomTypeId]);
+
+  // 篩選後的專案
+  const filteredTemplates = useMemo(() => {
+    if (selectedTemplateId === 'all') return templates;
+    return templates.filter(t => t.id === selectedTemplateId);
+  }, [templates, selectedTemplateId]);
+
   // 按房型分組
   const groupedRoomTypes = useMemo(() => {
-    const exclusive = roomTypes.filter(r => r.is_exclusive_package);
-    const regular = roomTypes.filter(r => !r.is_exclusive_package);
+    const exclusive = filteredRoomTypes.filter(r => r.is_exclusive_package);
+    const regular = filteredRoomTypes.filter(r => !r.is_exclusive_package);
     return { exclusive, regular };
-  }, [roomTypes]);
+  }, [filteredRoomTypes]);
 
   if (loading) {
     return (
@@ -266,9 +283,44 @@ export default function RoomPriceCalendar() {
 
       <Card>
         <CardContent className="p-4">
-          {/* 月份選擇器 */}
-          <div className="flex items-center justify-between mb-4">
+          {/* 篩選器區域 */}
+          <div className="flex flex-wrap items-center gap-4 mb-4">
+            {/* 房型篩選 */}
             <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground whitespace-nowrap">選擇房型</span>
+              <Select value={selectedRoomTypeId} onValueChange={setSelectedRoomTypeId}>
+                <SelectTrigger className="w-[180px] bg-background">
+                  <SelectValue placeholder="全部房型" />
+                </SelectTrigger>
+                <SelectContent className="bg-background border z-50">
+                  <SelectItem value="all">全部房型</SelectItem>
+                  {roomTypes.map(rt => (
+                    <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* 專案篩選 */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground whitespace-nowrap">選擇專案</span>
+              <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+                <SelectTrigger className="w-[180px] bg-background">
+                  <SelectValue placeholder="全部專案" />
+                </SelectTrigger>
+                <SelectContent className="bg-background border z-50">
+                  <SelectItem value="all">全部專案</SelectItem>
+                  {templates.map(t => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.project_name || t.template_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* 月份選擇器 */}
+            <div className="flex items-center gap-2 ml-auto">
               <Button variant="outline" size="icon" onClick={handlePrevMonth}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -327,7 +379,7 @@ export default function RoomPriceCalendar() {
                         <RoomTypeRows
                           key={roomType.id}
                           roomType={roomType}
-                          templates={templates}
+                          templates={filteredTemplates}
                           monthDays={monthDays}
                           holidays={holidays}
                           getCellData={getCellData}
@@ -343,7 +395,7 @@ export default function RoomPriceCalendar() {
                     <RoomTypeRows
                       key={roomType.id}
                       roomType={roomType}
-                      templates={templates}
+                      templates={filteredTemplates}
                       monthDays={monthDays}
                       holidays={holidays}
                       getCellData={getCellData}
