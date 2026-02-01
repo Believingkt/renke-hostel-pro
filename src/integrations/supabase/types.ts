@@ -1365,6 +1365,7 @@ export type Database = {
           id: string
           is_default: boolean | null
           meal_plans: Json | null
+          price: number | null
           project_description: string | null
           project_name: string | null
           template_name: string
@@ -1380,6 +1381,7 @@ export type Database = {
           id?: string
           is_default?: boolean | null
           meal_plans?: Json | null
+          price?: number | null
           project_description?: string | null
           project_name?: string | null
           template_name: string
@@ -1395,6 +1397,7 @@ export type Database = {
           id?: string
           is_default?: boolean | null
           meal_plans?: Json | null
+          price?: number | null
           project_description?: string | null
           project_name?: string | null
           template_name?: string
