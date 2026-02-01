@@ -130,7 +130,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
   });
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [isEditDatePickerOpen, setIsEditDatePickerOpen] = useState(false);
-  const [selectedYear, setSelectedYear] = useState<string>("all");
+  const [selectedYear, setSelectedYear] = useState<string>(String(new Date().getFullYear()));
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
   const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
   const currentYear = new Date().getFullYear();
