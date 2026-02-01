@@ -247,8 +247,8 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
           )}
         </div>
         
-        <div className="pt-3 border-t mt-3">
-          <div className="space-y-2 md:space-y-3 md:min-h-[180px] lg:min-h-[200px]">
+        <div className="pt-3 border-t mt-3 flex flex-col flex-1">
+          <div className="space-y-2 md:space-y-3 flex-1">
             {/* 一般房型（雙人房、四人房）：顯示一泊一食 */}
             {!room.is_exclusive_package && (
               <>
@@ -320,8 +320,8 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
               </>
             )}
           </div>
-          <Link to={`/booking?roomId=${room.id}&step=dates`}>
-            <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg h-9 md:h-10 font-medium mt-3 md:mt-4 text-sm md:text-base">
+          <Link to={`/booking?roomId=${room.id}&step=dates`} className="mt-auto pt-4">
+            <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg h-9 md:h-10 font-medium text-sm md:text-base">
               立即預訂
             </Button>
           </Link>
