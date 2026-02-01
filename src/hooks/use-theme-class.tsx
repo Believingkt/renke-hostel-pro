@@ -10,6 +10,12 @@ export function useThemeClass() {
   React.useEffect(() => {
     // 尋找帶有主題 class 的元素
     const findThemeClass = () => {
+      // 先檢查是否有 admin-theme
+      const adminThemeElement = document.querySelector('.admin-theme');
+      if (adminThemeElement) {
+        return 'admin-theme';
+      }
+      
       const themeElement = document.querySelector('[class*="theme-"]');
       if (themeElement instanceof HTMLElement) {
         const foundClass = themeElement.className
