@@ -107,9 +107,6 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
     size_sqm: "",
     capacity: "",
     room_count: "1",
-    quad_room_count: "0",
-    triple_room_count: "0",
-    double_room_count: "0",
     is_exclusive_package: false,
     is_bound_to_exclusive: false,
   };
@@ -144,9 +141,6 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         size_sqm: roomType.size_sqm?.toString() || "",
         capacity: roomType.capacity?.toString() || "",
         room_count: roomType.room_count?.toString() || "1",
-        quad_room_count: roomType.quad_room_count?.toString() || "0",
-        triple_room_count: roomType.triple_room_count?.toString() || "0",
-        double_room_count: roomType.double_room_count?.toString() || "0",
         is_exclusive_package: roomType.is_exclusive_package || false,
         is_bound_to_exclusive: roomType.is_bound_to_exclusive || false,
       });
@@ -282,9 +276,6 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         size_sqm: formData.size_sqm ? parseInt(formData.size_sqm) : null,
         capacity: parseInt(formData.capacity),
         room_count: formData.room_count ? parseInt(formData.room_count) : null,
-        quad_room_count: formData.quad_room_count ? parseInt(formData.quad_room_count) : null,
-        triple_room_count: formData.triple_room_count ? parseInt(formData.triple_room_count) : null,
-        double_room_count: formData.double_room_count ? parseInt(formData.double_room_count) : null,
         base_price: 0,
         display_order: displayOrder,
         is_exclusive_package: formData.is_exclusive_package,
@@ -433,13 +424,13 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
       <Card>
         <CardHeader>
           <CardTitle>房間數量</CardTitle>
-          <CardDescription>設定各種房型的數量</CardDescription>
+          <CardDescription>設定此房型的可用房間數量，此數量將作為房價庫存日曆的預設庫存</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-3 gap-4">
+        <CardContent>
+          <div className="max-w-xs">
             <ValidatedNumberInput
               id="room_count"
-              label="總房數"
+              label="房間數量"
               value={formData.room_count ? parseInt(formData.room_count) : 1}
               onChange={(value) => {
                 setFormData(prev => ({ ...prev, room_count: value.toString() }));
@@ -450,49 +441,9 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
               required
               min={1}
               max={100}
-            />
-
-            <ValidatedNumberInput
-              id="quad_room_count"
-              label="四人房數"
-              value={formData.quad_room_count ? parseInt(formData.quad_room_count) : 0}
-              onChange={(value) => {
-                setFormData(prev => ({ ...prev, quad_room_count: value.toString() }));
-                validateField('quad_room_count', value.toString());
-              }}
-              onValidate={(value) => validateField('quad_room_count', value)}
-              error={errors.quad_room_count}
-              min={0}
-              max={100}
-            />
-
-            <ValidatedNumberInput
-              id="triple_room_count"
-              label="三人房數"
-              value={formData.triple_room_count ? parseInt(formData.triple_room_count) : 0}
-              onChange={(value) => {
-                setFormData(prev => ({ ...prev, triple_room_count: value.toString() }));
-                validateField('triple_room_count', value.toString());
-              }}
-              onValidate={(value) => validateField('triple_room_count', value)}
-              error={errors.triple_room_count}
-              min={0}
-              max={100}
+              suffix="間"
             />
           </div>
-          <ValidatedNumberInput
-            id="double_room_count"
-            label="雙人房數"
-            value={formData.double_room_count ? parseInt(formData.double_room_count) : 0}
-            onChange={(value) => {
-              setFormData(prev => ({ ...prev, double_room_count: value.toString() }));
-              validateField('double_room_count', value.toString());
-            }}
-            onValidate={(value) => validateField('double_room_count', value)}
-            error={errors.double_room_count}
-            min={0}
-            max={100}
-          />
         </CardContent>
       </Card>
 
