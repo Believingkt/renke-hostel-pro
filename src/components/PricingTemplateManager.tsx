@@ -705,8 +705,23 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       <Card 
         ref={setNodeRef} 
         style={style} 
-        className="group hover:shadow-lg transition-all duration-200 border-border/60 hover:border-primary/30"
+        className="group hover:shadow-lg transition-all duration-200 border-border/60 hover:border-primary/30 overflow-hidden"
       >
+        {/* 頂部價格橫幅 */}
+        {templatePrice ? (
+          <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground px-4 py-2.5 flex items-center justify-between">
+            <span className="text-sm font-medium opacity-90">價格</span>
+            <span className="font-bold text-xl tracking-tight">
+              NT$ {templatePrice.toLocaleString()}
+            </span>
+          </div>
+        ) : (
+          <div className="bg-muted px-4 py-2.5 flex items-center justify-between">
+            <span className="text-sm font-medium text-muted-foreground">價格</span>
+            <span className="text-muted-foreground font-medium">未設定</span>
+          </div>
+        )}
+        
         <CardContent className="p-4">
           <div className="flex items-start gap-2">
             {/* 拖曳手把 */}
@@ -719,28 +734,13 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
             </button>
 
             <div className="flex-1 min-w-0">
-              {/* 標題行：名稱 + 價格 */}
-              <div className="flex items-start justify-between gap-3 mb-2">
-                <div className="min-w-0 flex-1">
-                  <h4 className="font-semibold text-base leading-tight truncate" title={template.template_name}>
-                    {template.template_name}
-                  </h4>
-                  {template.description && template.description !== template.template_name && (
-                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{template.description}</p>
-                  )}
-                </div>
-                
-                {/* 價格徽章 */}
-                {templatePrice ? (
-                  <div className="shrink-0 bg-primary/10 text-primary px-3 py-1.5 rounded-lg">
-                    <span className="font-bold text-lg">
-                      ${templatePrice.toLocaleString()}
-                    </span>
-                  </div>
-                ) : (
-                  <div className="shrink-0 bg-muted text-muted-foreground px-3 py-1.5 rounded-lg text-xs">
-                    未設定
-                  </div>
+              {/* 標題和描述 */}
+              <div className="mb-2">
+                <h4 className="font-semibold text-base leading-tight truncate" title={template.template_name}>
+                  {template.template_name}
+                </h4>
+                {template.description && template.description !== template.template_name && (
+                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{template.description}</p>
                 )}
               </div>
 
