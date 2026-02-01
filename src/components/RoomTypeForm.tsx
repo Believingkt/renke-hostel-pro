@@ -290,6 +290,17 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
           .update(roomData)
           .eq("id", roomType.id);
         if (error) throw error;
+        
+        // 若房間數量有變更，同步更新庫存表
+        const newRoomCount = roomData.room_count;
+        const oldRoomCount = roomType.room_count;
+        if (newRoomCount != null && newRoomCount !== oldRoomCount) {
+          // 更新所有該房型的庫存記錄
+          await supabase
+            .from("room_inventory_pricing")
+            .update({ available_rooms: newRoomCount })
+            .eq("room_type_id", roomType.id);
+        }
       } else {
         const { data, error } = await supabase
           .from("room_types")
