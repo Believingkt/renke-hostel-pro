@@ -276,10 +276,10 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
                 )}
               </>
             )}
-            {/* 包區房型（12~18人包區）：顯示一泊二食、一泊三食 */}
+            {/* 包區房型（12~18人包區）：顯示一泊二食，18人包區不顯示一泊三食 */}
             {room.is_exclusive_package && (
               <>
-                {(inventoryPricing.weekday_2_meals || inventoryPricing.weekday_3_meals) && (
+                {(inventoryPricing.weekday_2_meals || (inventoryPricing.weekday_3_meals && room.capacity !== 18)) && (
                   <div>
                     <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">平日</p>
                     <div className="space-y-1">
@@ -289,7 +289,7 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
                           <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekday_2_meals.toLocaleString()}</span>
                         </div>
                       )}
-                      {inventoryPricing.weekday_3_meals && (
+                      {inventoryPricing.weekday_3_meals && room.capacity !== 18 && (
                         <div className="flex justify-between items-center">
                           <span className="text-xs md:text-sm text-muted-foreground">一泊三食</span>
                           <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekday_3_meals.toLocaleString()}</span>
@@ -298,7 +298,7 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
                     </div>
                   </div>
                 )}
-                {(inventoryPricing.weekend_2_meals || inventoryPricing.weekend_3_meals) && (
+                {(inventoryPricing.weekend_2_meals || (inventoryPricing.weekend_3_meals && room.capacity !== 18)) && (
                   <div>
                     <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">假日</p>
                     <div className="space-y-1">
@@ -308,7 +308,7 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
                           <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekend_2_meals.toLocaleString()}</span>
                         </div>
                       )}
-                      {inventoryPricing.weekend_3_meals && (
+                      {inventoryPricing.weekend_3_meals && room.capacity !== 18 && (
                         <div className="flex justify-between items-center">
                           <span className="text-xs md:text-sm text-muted-foreground">一泊三食</span>
                           <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekend_3_meals.toLocaleString()}</span>
