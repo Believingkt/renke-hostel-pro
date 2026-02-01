@@ -376,10 +376,11 @@ export default function RoomPriceCalendar() {
                         </td>
                       </tr>
                       {groupedRoomTypes.exclusive.map(roomType => {
-                        // 只顯示名稱包含該房型名稱的專案模板
+                        // 只顯示名稱包含該房型名稱的專案模板（移除空格後比對）
+                        const normalizedRoomName = roomType.name.replace(/\s+/g, '');
                         const roomTemplates = filteredTemplates.filter(t => {
-                          const templateName = t.project_name || t.template_name;
-                          return templateName.includes(roomType.name);
+                          const templateName = (t.project_name || t.template_name).replace(/\s+/g, '');
+                          return templateName.includes(normalizedRoomName);
                         });
                         return (
                           <RoomTypeRows
@@ -399,10 +400,11 @@ export default function RoomPriceCalendar() {
 
                   {/* 一般房型區塊 */}
                   {groupedRoomTypes.regular.map(roomType => {
-                    // 只顯示名稱包含該房型名稱的專案模板
+                    // 只顯示名稱包含該房型名稱的專案模板（移除空格後比對）
+                    const normalizedRoomName = roomType.name.replace(/\s+/g, '');
                     const roomTemplates = filteredTemplates.filter(t => {
-                      const templateName = t.project_name || t.template_name;
-                      return templateName.includes(roomType.name);
+                      const templateName = (t.project_name || t.template_name).replace(/\s+/g, '');
+                      return templateName.includes(normalizedRoomName);
                     });
                     return (
                       <RoomTypeRows
