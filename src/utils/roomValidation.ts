@@ -14,7 +14,7 @@ export const roomTypeSchema = z.object({
       const num = parseFloat(val);
       return !isNaN(num) && num >= 0 && num <= 1000;
     },
-    { message: "坪數必須介於 0-1000 之間的數字" }
+    { message: "坪數必須介於 0-1000 坪之間" }
   ).optional(),
   capacity: z.string().trim().refine(
     (val) => {
