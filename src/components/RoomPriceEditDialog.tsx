@@ -61,21 +61,18 @@ export function RoomPriceEditDialog({
   const [selectedDays, setSelectedDays] = useState<Set<string>>(new Set(['0', '1', '2', '3', '4', '5', '6']));
   const [excludeHolidays, setExcludeHolidays] = useState(false);
   const [changePrice, setChangePrice] = useState(false);
-  const [priceMode, setPriceMode] = useState<'custom' | 'base'>('custom');
   const [customPrice, setCustomPrice] = useState(currentPrice?.toString() || '');
   const [changeAvailability, setChangeAvailability] = useState(false);
   const [isAvailable, setIsAvailable] = useState(true);
   const [saving, setSaving] = useState(false);
   const [holidays, setHolidays] = useState<Set<string>>(new Set());
-  const [basePrice, setBasePrice] = useState<number>(0);
 
-  // 載入假日和基本價格
+  // 載入假日
   useEffect(() => {
     if (open && accommodationId) {
       loadHolidays();
-      loadBasePrice();
     }
-  }, [open, accommodationId, roomTypeId]);
+  }, [open, accommodationId]);
 
   // 重置狀態
   useEffect(() => {
@@ -85,7 +82,6 @@ export function RoomPriceEditDialog({
       setSelectedDays(new Set(['0', '1', '2', '3', '4', '5', '6']));
       setExcludeHolidays(false);
       setChangePrice(false);
-      setPriceMode('custom');
       setCustomPrice(currentPrice?.toString() || '');
       setChangeAvailability(false);
       setIsAvailable(true);
@@ -104,21 +100,6 @@ export function RoomPriceEditDialog({
       setHolidays(new Set(data?.map(h => h.holiday_date) || []));
     } catch (error) {
       console.error('載入假日失敗:', error);
-    }
-  };
-
-  const loadBasePrice = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('room_types')
-        .select('base_price')
-        .eq('id', roomTypeId)
-        .single();
-
-      if (error) throw error;
-      setBasePrice(data?.base_price || 0);
-    } catch (error) {
-      console.error('載入基本價格失敗:', error);
     }
   };
 
@@ -147,7 +128,7 @@ export function RoomPriceEditDialog({
       return;
     }
 
-    if (changePrice && priceMode === 'custom' && !customPrice) {
+    if (changePrice && !customPrice) {
       toast.error('請輸入價格');
       return;
     }
@@ -192,7 +173,7 @@ export function RoomPriceEditDialog({
         };
 
         if (changePrice) {
-          updateData.price = priceMode === 'custom' ? parseInt(customPrice) : basePrice;
+          updateData.price = parseInt(customPrice);
         }
 
         if (changeAvailability) {
@@ -217,7 +198,7 @@ export function RoomPriceEditDialog({
       const toUpdate = updates.filter(u => existingDates.has(u.date));
       const toInsert = updates.filter(u => !existingDates.has(u.date)).map(u => ({
         ...u,
-        price: u.price || basePrice,
+        price: u.price || parseInt(customPrice) || currentPrice || 0,
         available_rooms: 1,
         is_available: u.is_available ?? true,
       }));
@@ -375,29 +356,18 @@ export function RoomPriceEditDialog({
               </div>
 
               {changePrice && (
-                <div className="ml-6 space-y-3">
-                  <RadioGroup value={priceMode} onValueChange={(v) => setPriceMode(v as 'custom' | 'base')}>
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="custom" id="custom" />
-                      <label htmlFor="custom" className="text-sm cursor-pointer">
-                        價格設定
-                      </label>
-                      <Input
-                        type="number"
-                        value={customPrice}
-                        onChange={(e) => setCustomPrice(e.target.value)}
-                        className="w-32"
-                        placeholder={currentPrice?.toString()}
-                        disabled={priceMode !== 'custom'}
-                      />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="base" id="base" />
-                      <label htmlFor="base" className="text-sm cursor-pointer">
-                        套用基本定價 (NT$ {basePrice.toLocaleString()})
-                      </label>
-                    </div>
-                  </RadioGroup>
+                <div className="ml-6 flex items-center gap-2">
+                  <Label htmlFor="customPrice" className="text-sm">
+                    價格設定
+                  </Label>
+                  <Input
+                    id="customPrice"
+                    type="number"
+                    value={customPrice}
+                    onChange={(e) => setCustomPrice(e.target.value)}
+                    className="w-32"
+                    placeholder={currentPrice?.toString()}
+                  />
                 </div>
               )}
             </div>
