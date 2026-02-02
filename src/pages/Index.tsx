@@ -9,7 +9,8 @@ import HeroSection from "@/components/HeroSection";
 import { StructuredData } from "@/components/StructuredData";
 import { SEOHead } from "@/components/SEOHead";
 import { DevAccommodationSwitcher } from "@/components/DevAccommodationSwitcher";
-import { getThemeClass } from "@/constants/themes";
+import { getThemeClass, getCachedThemePreset } from "@/constants/themes";
+import { FrontendSkeleton } from "@/components/skeletons/FrontendSkeleton";
 
 // NOTE: 為避免自訂網域上 chunk 快取不一致造成的載入失敗，首屏與區塊組件改為 eager import。
 import AboutSection from "@/components/AboutSection";
@@ -67,8 +68,12 @@ const Index = () => {
   }, [accommodationId, setCurrentAccommodationId]);
 
   // 如果有 URL accId，不需等待 subdomain 解析完成
+  // 嘗試從快取取得主題（用於載入畫面）
+  const cachedTheme = accommodationId ? getCachedThemePreset(accommodationId) : null;
+  const loadingThemeClass = cachedTheme ? getThemeClass(cachedTheme) : '';
+  
   if ((!urlAccId && subdomainLoading) || isLoading) {
-    return <div className="min-h-screen" />;
+    return <FrontendSkeleton themeClass={loadingThemeClass} />;
   }
 
   if (subdomainError) {
