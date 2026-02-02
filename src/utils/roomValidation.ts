@@ -10,9 +10,9 @@ export const roomTypeSchema = z.object({
     .optional(),
   size_sqm: z.string().trim().refine(
     (val) => {
-      if (!val) return true;
+      if (!val || val === '0') return true;
       const num = parseFloat(val);
-      return !isNaN(num) && num > 0 && num <= 1000;
+      return !isNaN(num) && num >= 0 && num <= 1000;
     },
     { message: "坪數必須介於 0-1000 之間的數字" }
   ).optional(),
