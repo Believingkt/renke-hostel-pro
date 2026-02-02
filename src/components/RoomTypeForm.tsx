@@ -451,17 +451,17 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         </CardContent>
       </Card>
 
-      {/* 房間數量 */}
+      {/* 房型數量 */}
       <Card>
         <CardHeader>
-          <CardTitle>房間數量</CardTitle>
-          <CardDescription>設定此房型的可用房間數量，此數量將作為房價庫存日曆的預設庫存</CardDescription>
+          <CardTitle>房型數量</CardTitle>
+          <CardDescription>設定此房型可用數量，此數量將作為房價庫存日曆的預設庫存</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="max-w-xs">
             <ValidatedNumberInput
               id="room_count"
-              label="房間數量"
+              label="房型數量"
               value={formData.room_count ? parseInt(formData.room_count) : 1}
               onChange={(value) => {
                 setFormData(prev => ({ ...prev, room_count: value.toString() }));
