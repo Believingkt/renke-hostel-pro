@@ -209,8 +209,6 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
                 </CarouselItem>
               ))}
             </CarouselContent>
-            <CarouselPrevious className="left-2" />
-            <CarouselNext className="right-2" />
           </Carousel>
         </div>
       <CardContent className="p-4 md:p-5 lg:p-6 flex flex-col flex-1 min-h-0">
