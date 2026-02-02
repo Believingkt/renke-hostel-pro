@@ -10,6 +10,7 @@ import { FrontendSkeleton } from "@/components/skeletons/FrontendSkeleton";
 import { NetworkIndicator } from "@/components/NetworkIndicator";
 import { PageTransition } from "@/components/PageTransition";
 import { ChunkErrorBoundary } from "@/components/ChunkErrorBoundary";
+import { HQDomainRedirect } from "@/components/HQDomainRedirect";
 
 const { Suspense } = React;
 
@@ -59,11 +60,12 @@ function App() {
   return (
     <BrowserRouter>
       <AccommodationProvider>
-        <NetworkIndicator />
-        <PageTransition>
-          <ChunkErrorBoundary>
-            <Routes>
-              <Route element={<ConditionalLayout />}>
+        <HQDomainRedirect>
+          <NetworkIndicator />
+          <PageTransition>
+            <ChunkErrorBoundary>
+              <Routes>
+                <Route element={<ConditionalLayout />}>
                 {/* 前台頁面 */}
                 <Route path="/__cb/:ts" element={<Index />} />
                 <Route path="/" element={<Index />} />
@@ -290,10 +292,11 @@ function App() {
                     <NotFound />
                   </Suspense>
                 } />
-              </Route>
-            </Routes>
-          </ChunkErrorBoundary>
-        </PageTransition>
+                </Route>
+              </Routes>
+            </ChunkErrorBoundary>
+          </PageTransition>
+        </HQDomainRedirect>
       </AccommodationProvider>
     </BrowserRouter>
   );
