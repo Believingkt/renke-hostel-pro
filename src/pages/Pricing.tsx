@@ -101,7 +101,7 @@ const SortableRoomCard = ({ roomType, onEdit, onDelete }: SortableRoomCardProps)
               <div>
                 <span className="text-muted-foreground">坪數：</span>
                 <span className="font-medium">
-                  {roomType.size_sqm ? `${roomType.size_sqm} m²` : '未設定'}
+                  {roomType.size_sqm ? `${roomType.size_sqm} 坪` : '未設定'}
                 </span>
               </div>
               <div>
