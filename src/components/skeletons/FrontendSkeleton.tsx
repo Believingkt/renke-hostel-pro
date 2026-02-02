@@ -2,7 +2,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { getThemeClassFromContext } from "@/constants/themes";
 
-// Navigation Skeleton - 手機版優化
+interface FrontendSkeletonProps {
+  themeClass?: string;
+}
 export const NavigationSkeleton = () => (
   <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
     <div className="container mx-auto px-4">
@@ -296,9 +298,9 @@ export const FooterSkeleton = () => (
 );
 
 // Complete Frontend Skeleton - 手機版優化：只顯示首屏內容
-export const FrontendSkeleton = () => {
-  // 使用同步方式判斷主題，避免閃爍
-  const themeClass = getThemeClassFromContext();
+export const FrontendSkeleton = ({ themeClass: propThemeClass }: FrontendSkeletonProps = {}) => {
+  // 優先使用傳入的主題類別，否則從 context 同步判斷
+  const themeClass = propThemeClass ?? getThemeClassFromContext();
 
   return (
     <div className={`min-h-screen ${themeClass}`}>
@@ -317,8 +319,8 @@ export const FrontendSkeleton = () => {
 };
 
 // 完整版骨架屏（用於特定場景）
-export const FullFrontendSkeleton = () => {
-  const themeClass = getThemeClassFromContext();
+export const FullFrontendSkeleton = ({ themeClass: propThemeClass }: FrontendSkeletonProps = {}) => {
+  const themeClass = propThemeClass ?? getThemeClassFromContext();
 
   return (
     <div className={`min-h-screen ${themeClass}`}>
