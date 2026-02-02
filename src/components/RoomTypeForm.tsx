@@ -8,7 +8,7 @@ import { ValidatedInput } from "@/components/ui/validated-input";
 import { ValidatedTextarea } from "@/components/ui/validated-textarea";
 import { ValidatedNumberInput } from "@/components/ui/validated-number-input";
 import { DraftRestoreBanner } from "@/components/ui/draft-restore-banner";
-import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { roomTypeSchema } from "@/utils/roomValidation";
@@ -477,94 +477,165 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         </CardContent>
       </Card>
 
-      {/* 包棟設定 */}
+      {/* 關聯設定 */}
       <Card>
         <CardHeader>
-          <CardTitle>包棟預訂設定</CardTitle>
-          <CardDescription>設定此房型與包棟預訂的關聯邏輯</CardDescription>
+          <CardTitle>關聯設定</CardTitle>
+          <CardDescription>設定此房型與其他房型的預訂關聯邏輯</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
+          {/* 主要類型選擇：包棟 or 房間 */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Label className="text-base font-medium">房型類型</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p>選擇此房型是「包棟」類型還是「房間」類型，再進一步設定關聯邏輯。</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <RadioGroup
+              value={formData.is_exclusive_package ? "exclusive" : "room"}
+              onValueChange={(value) => {
+                if (value === "exclusive") {
+                  setFormData(prev => ({ 
+                    ...prev, 
+                    is_exclusive_package: true,
+                    is_bound_to_exclusive: false // 預設為獨立包棟
+                  }));
+                } else {
+                  setFormData(prev => ({ 
+                    ...prev, 
+                    is_exclusive_package: false,
+                    is_bound_to_exclusive: false // 預設為獨立房間
+                  }));
+                }
+              }}
+              className="flex gap-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="exclusive" id="type-exclusive" />
+                <Label htmlFor="type-exclusive" className="cursor-pointer">包棟</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="room" id="type-room" />
+                <Label htmlFor="type-room" className="cursor-pointer">房間</Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          {/* 次要選擇：根據主要類型顯示不同選項 */}
+          {formData.is_exclusive_package ? (
+            <div className="space-y-3 pl-4 border-l-2 border-primary/20">
               <div className="flex items-center gap-2">
-                <Label htmlFor="is_exclusive_package" className="text-base font-medium">
-                  此為共用包棟房型
-                </Label>
+                <Label className="text-base font-medium">包棟類型</Label>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs">
-                      <p>開啟後，當此房型被預訂時，其他所有「包棟房型」和「綁定包棟的房型」在同一天都無法被預訂。</p>
+                      <p>獨立包棟：預訂後不影響其他房型。<br/>共用包棟：預訂後會鎖定其他共用包棟及綁定包棟的房型。</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               </div>
-              <p className="text-sm text-muted-foreground">
-                預訂後會鎖定其他包棟/綁定包棟的房型
-              </p>
+              <RadioGroup
+                value={formData.is_bound_to_exclusive ? "shared" : "independent"}
+                onValueChange={(value) => {
+                  setFormData(prev => ({ 
+                    ...prev, 
+                    is_bound_to_exclusive: value === "shared"
+                  }));
+                }}
+                className="space-y-2"
+              >
+                <div className="flex items-start space-x-2">
+                  <RadioGroupItem value="independent" id="exclusive-independent" className="mt-1" />
+                  <div>
+                    <Label htmlFor="exclusive-independent" className="cursor-pointer font-medium">獨立包棟</Label>
+                    <p className="text-sm text-muted-foreground">預訂後不會鎖定其他包棟/綁定包棟的房型</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-2">
+                  <RadioGroupItem value="shared" id="exclusive-shared" className="mt-1" />
+                  <div>
+                    <Label htmlFor="exclusive-shared" className="cursor-pointer font-medium">共用包棟</Label>
+                    <p className="text-sm text-muted-foreground">預訂後會鎖定其他共用包棟及綁定包棟的房型</p>
+                  </div>
+                </div>
+              </RadioGroup>
             </div>
-            <Switch
-              id="is_exclusive_package"
-              checked={formData.is_exclusive_package}
-              onCheckedChange={(checked) => {
-                setFormData(prev => ({ 
-                  ...prev, 
-                  is_exclusive_package: checked,
-                  // 如果設為包棟，則自動取消綁定包棟（二者互斥）
-                  is_bound_to_exclusive: checked ? false : prev.is_bound_to_exclusive
-                }));
-              }}
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
+          ) : (
+            <div className="space-y-3 pl-4 border-l-2 border-primary/20">
               <div className="flex items-center gap-2">
-                <Label htmlFor="is_bound_to_exclusive" className="text-base font-medium">
-                  綁定包棟
-                </Label>
+                <Label className="text-base font-medium">房間類型</Label>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs">
-                      <p>開啟後，此房型與包棟會互相鎖定：當此房型被預訂時，包棟無法預訂；當包棟被預訂時，此房型也無法預訂。</p>
+                      <p>獨立房間：預訂後不影響其他房型。<br/>綁定包棟：與共用包棟互相鎖定。</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               </div>
-              <p className="text-sm text-muted-foreground">
-                當此房型被預訂時，包棟就無法預訂。當包棟被預訂時，此房型也無法預訂
-              </p>
-            </div>
-            <Switch
-              id="is_bound_to_exclusive"
-              checked={formData.is_bound_to_exclusive}
-              disabled={formData.is_exclusive_package} // 包棟房型不能同時設為綁定包棟
-              onCheckedChange={(checked) => {
-                setFormData(prev => ({ ...prev, is_bound_to_exclusive: checked }));
-              }}
-            />
-          </div>
-
-          {formData.is_exclusive_package && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
-              <strong>提示：</strong>此房型為包棟房型。預訂後，其他設為「包棟房型」或「綁定包棟」的房型在同一天都會被鎖定。
+              <RadioGroup
+                value={formData.is_bound_to_exclusive ? "bound" : "independent"}
+                onValueChange={(value) => {
+                  setFormData(prev => ({ 
+                    ...prev, 
+                    is_bound_to_exclusive: value === "bound"
+                  }));
+                }}
+                className="space-y-2"
+              >
+                <div className="flex items-start space-x-2">
+                  <RadioGroupItem value="independent" id="room-independent" className="mt-1" />
+                  <div>
+                    <Label htmlFor="room-independent" className="cursor-pointer font-medium">獨立房間</Label>
+                    <p className="text-sm text-muted-foreground">預訂後不會鎖定其他包棟/綁定包棟的房型</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-2">
+                  <RadioGroupItem value="bound" id="room-bound" className="mt-1" />
+                  <div>
+                    <Label htmlFor="room-bound" className="cursor-pointer font-medium">綁定包棟</Label>
+                    <p className="text-sm text-muted-foreground">當此房型被預訂時，共用包棟無法預訂；當共用包棟被預訂時，此房型也無法預訂</p>
+                  </div>
+                </div>
+              </RadioGroup>
             </div>
           )}
 
-          {formData.is_bound_to_exclusive && (
+          {/* 狀態提示 */}
+          {formData.is_exclusive_package && formData.is_bound_to_exclusive && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+              <strong>共用包棟：</strong>預訂後，其他「共用包棟」及「綁定包棟」的房型在同一天都會被鎖定。
+            </div>
+          )}
+
+          {formData.is_exclusive_package && !formData.is_bound_to_exclusive && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-800">
+              <strong>獨立包棟：</strong>此房型可獨立預訂，不會影響其他房型的可用狀態。
+            </div>
+          )}
+
+          {!formData.is_exclusive_package && formData.is_bound_to_exclusive && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
-              <strong>提示：</strong>此房型已綁定包棟。當此房型被預訂時，包棟無法預訂；當包棟被預訂時，此房型也無法預訂。
+              <strong>綁定包棟：</strong>此房型與共用包棟互相鎖定。當此房型被預訂時，共用包棟無法預訂；當共用包棟被預訂時，此房型也無法預訂。
             </div>
           )}
 
           {!formData.is_exclusive_package && !formData.is_bound_to_exclusive && (
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-600">
-              <strong>目前設定：</strong>此房型與包棟互斥邏輯無關，可獨立預訂且不受包棟預訂影響。
+              <strong>獨立房間：</strong>此房型可獨立預訂，不會影響其他房型的可用狀態。
             </div>
           )}
         </CardContent>
