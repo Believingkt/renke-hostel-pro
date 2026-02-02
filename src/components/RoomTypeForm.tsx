@@ -531,7 +531,7 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
                       <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs">
-                      <p>開啟後，當任何「包棟房型」被預訂時，此房型在同一天也無法被預訂。適合那些屬於包棟範圍內的單間房型。</p>
+                      <p>開啟後，此房型與包棟會互相鎖定：當此房型被預訂時，包棟無法預訂；當包棟被預訂時，此房型也無法預訂。</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
