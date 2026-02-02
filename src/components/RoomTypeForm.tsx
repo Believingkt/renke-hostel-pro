@@ -537,7 +537,7 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
                 </TooltipProvider>
               </div>
               <p className="text-sm text-muted-foreground">
-                當包棟被預訂時，此房型也無法預訂
+                當此房型被預訂時，包棟就無法預訂。當包棟被預訂時，此房型也無法預訂
               </p>
             </div>
             <Switch
