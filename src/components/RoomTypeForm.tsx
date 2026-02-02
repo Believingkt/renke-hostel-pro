@@ -558,7 +558,7 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
 
           {formData.is_bound_to_exclusive && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
-              <strong>提示：</strong>此房型已綁定包棟。當任何「包棟房型」被預訂時，此房型在同一天無法被預訂。但此房型可以單獨預訂（不會影響其他房型）。
+              <strong>提示：</strong>此房型已綁定包棟。當此房型被預訂時，包棟無法預訂；當包棟被預訂時，此房型也無法預訂。
             </div>
           )}
 
