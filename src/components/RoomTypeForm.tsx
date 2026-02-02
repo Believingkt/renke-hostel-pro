@@ -488,7 +488,7 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <Label htmlFor="is_exclusive_package" className="text-base font-medium">
-                  此為包棟房型
+                  此為共用包棟房型
                 </Label>
                 <TooltipProvider>
                   <Tooltip>
