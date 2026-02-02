@@ -1657,6 +1657,7 @@ export type Database = {
         Row: {
           accommodation_id: string | null
           base_price: number
+          bound_exclusive_ids: string[] | null
           capacity: number
           created_at: string
           description: string | null
@@ -1676,6 +1677,7 @@ export type Database = {
         Insert: {
           accommodation_id?: string | null
           base_price: number
+          bound_exclusive_ids?: string[] | null
           capacity: number
           created_at?: string
           description?: string | null
@@ -1695,6 +1697,7 @@ export type Database = {
         Update: {
           accommodation_id?: string | null
           base_price?: number
+          bound_exclusive_ids?: string[] | null
           capacity?: number
           created_at?: string
           description?: string | null

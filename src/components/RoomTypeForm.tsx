@@ -2,13 +2,14 @@ import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, GripVertical, Info } from "lucide-react";
+import { Plus, Trash2, GripVertical, Info, Check } from "lucide-react";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { ValidatedInput } from "@/components/ui/validated-input";
 import { ValidatedTextarea } from "@/components/ui/validated-textarea";
 import { ValidatedNumberInput } from "@/components/ui/validated-number-input";
 import { DraftRestoreBanner } from "@/components/ui/draft-restore-banner";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { roomTypeSchema } from "@/utils/roomValidation";
@@ -100,6 +101,7 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [exclusivePackages, setExclusivePackages] = useState<Array<{ id: string; name: string }>>([]);
 
   // 記住「進入編輯時」的房間數量，避免儲存時 roomType 已被外層 state 更新而比對不到差異
   const originalRoomCountRef = useRef<number | null>(roomType?.room_count ?? null);
@@ -112,6 +114,8 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
     room_count: "1",
     is_exclusive_package: false,
     is_bound_to_exclusive: false,
+    bound_exclusive_ids: [] as string[],
+    bind_all_exclusives: true, // 預設綁定全部
   };
 
   const {
@@ -136,9 +140,29 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
     })
   );
 
+  // 載入包棟房型列表
+  useEffect(() => {
+    const loadExclusivePackages = async () => {
+      const { data } = await supabase
+        .from("room_types")
+        .select("id, name")
+        .eq("accommodation_id", accommodationId)
+        .eq("is_exclusive_package", true)
+        .order("display_order", { ascending: true });
+      
+      // 編輯時排除當前房型
+      const filtered = roomType?.id 
+        ? (data || []).filter(r => r.id !== roomType.id)
+        : (data || []);
+      setExclusivePackages(filtered);
+    };
+    loadExclusivePackages();
+  }, [accommodationId, roomType?.id]);
+
   useEffect(() => {
     if (roomType) {
       originalRoomCountRef.current = roomType.room_count ?? null;
+      const boundIds = roomType.bound_exclusive_ids || [];
       setFormData({
         name: roomType.name || "",
         description: roomType.description || "",
@@ -147,6 +171,8 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         room_count: roomType.room_count?.toString() || "1",
         is_exclusive_package: roomType.is_exclusive_package || false,
         is_bound_to_exclusive: roomType.is_bound_to_exclusive || false,
+        bound_exclusive_ids: boundIds,
+        bind_all_exclusives: boundIds.length === 0, // 空陣列表示綁定全部
       });
       loadPhotos(roomType.id);
       // 編輯模式時清除草稿，避免顯示草稿恢復提示
@@ -284,6 +310,10 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         display_order: displayOrder,
         is_exclusive_package: formData.is_exclusive_package,
         is_bound_to_exclusive: formData.is_bound_to_exclusive,
+        // 只有在「房間 + 綁定包棟」且選擇個別包棟時才儲存 ID 列表
+        bound_exclusive_ids: (!formData.is_exclusive_package && formData.is_bound_to_exclusive && !formData.bind_all_exclusives)
+          ? formData.bound_exclusive_ids
+          : [],
       };
 
       let savedRoomId = roomType?.id;
@@ -591,7 +621,9 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
                 onValueChange={(value) => {
                   setFormData(prev => ({ 
                     ...prev, 
-                    is_bound_to_exclusive: value === "bound"
+                    is_bound_to_exclusive: value === "bound",
+                    bind_all_exclusives: true, // 切換時重設為全部
+                    bound_exclusive_ids: [],
                   }));
                 }}
                 className="space-y-2"
@@ -611,6 +643,71 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
                   </div>
                 </div>
               </RadioGroup>
+
+              {/* 綁定包棟選擇：當選擇「綁定包棟」時顯示 */}
+              {formData.is_bound_to_exclusive && exclusivePackages.length > 0 && (
+                <div className="mt-4 p-4 bg-muted/50 rounded-lg space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm font-medium">選擇綁定的包棟房型</Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p>選擇此房間要綁定哪些包棟房型。選擇「全部包棟」表示與所有共用包棟互相鎖定。</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  
+                  {/* 全部選項 */}
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="bind-all"
+                      checked={formData.bind_all_exclusives}
+                      onCheckedChange={(checked) => {
+                        setFormData(prev => ({
+                          ...prev,
+                          bind_all_exclusives: !!checked,
+                          bound_exclusive_ids: checked ? [] : [],
+                        }));
+                      }}
+                    />
+                    <Label htmlFor="bind-all" className="cursor-pointer">全部包棟房型</Label>
+                  </div>
+                  
+                  {/* 個別選擇 */}
+                  {!formData.bind_all_exclusives && (
+                    <div className="space-y-2 pl-4 border-l-2 border-primary/20">
+                      {exclusivePackages.map((pkg) => (
+                        <div key={pkg.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`bind-${pkg.id}`}
+                            checked={formData.bound_exclusive_ids.includes(pkg.id)}
+                            onCheckedChange={(checked) => {
+                              setFormData(prev => ({
+                                ...prev,
+                                bound_exclusive_ids: checked
+                                  ? [...prev.bound_exclusive_ids, pkg.id]
+                                  : prev.bound_exclusive_ids.filter(id => id !== pkg.id),
+                              }));
+                            }}
+                          />
+                          <Label htmlFor={`bind-${pkg.id}`} className="cursor-pointer">{pkg.name}</Label>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 沒有包棟房型時的提示 */}
+              {formData.is_bound_to_exclusive && exclusivePackages.length === 0 && (
+                <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                  <strong>提示：</strong>目前沒有設定任何包棟房型。請先新增包棟房型後，再設定綁定關係。
+                </div>
+              )}
             </div>
           )}
 
