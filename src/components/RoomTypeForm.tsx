@@ -457,7 +457,7 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
               }}
               onValidate={(value) => validateField('size_sqm', value)}
               error={errors.size_sqm}
-              suffix="平方公尺"
+              suffix="坪"
               min={0}
               max={1000}
             />
