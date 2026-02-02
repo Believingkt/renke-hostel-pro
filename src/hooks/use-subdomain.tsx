@@ -44,8 +44,17 @@ export function useSubdomain() {
 
   const loadAccommodationFromSubdomain = async () => {
     try {
-      const hostname = window.location.hostname;
+      const hostname = window.location.hostname.toLowerCase();
       const parts = hostname.split('.');
+      
+      // ========== HQ 專屬網域檢測 ==========
+      // 若為 hq.lakeze.com，跳過住宿識別邏輯
+      const isHQDomain = hostname === 'hq.lakeze.com' || hostname === 'www.hq.lakeze.com';
+      if (isHQDomain) {
+        // HQ 網域不需要載入住宿資料，直接結束
+        setIsLoading(false);
+        return;
+      }
       
       // 判斷是否為開發環境或 Lovable 預覽環境
       const isDevOrPreview = hostname === 'localhost' || 
