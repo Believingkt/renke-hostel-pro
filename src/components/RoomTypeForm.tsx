@@ -472,7 +472,6 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
               required
               min={1}
               max={100}
-              suffix="間"
             />
           </div>
         </CardContent>
