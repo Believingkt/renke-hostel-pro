@@ -646,7 +646,6 @@ const Headquarters = () => {
     if (currentTab === 'system' && section) {
       switch (section) {
         case 'logs': return '操作日誌';
-        case 'backup': return '資料備份';
         case 'settings': return '系統設定';
       }
     }
@@ -709,7 +708,6 @@ const Headquarters = () => {
     if (currentTab === 'system' && section) {
       switch (section) {
         case 'logs': return '記錄系統重要操作，包含用戶、時間和詳細資訊';
-        case 'backup': return '備份與還原系統資料';
         case 'settings': return '設定全平台系統參數';
       }
     }
