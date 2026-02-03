@@ -702,66 +702,6 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Database className="h-5 w-5" />
-                備份保留設定
-              </CardTitle>
-              <CardDescription>
-                設定備份檔案的保留期限和數量限制
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {(() => {
-                const setting = systemSettings.find(s => s.setting_key === "backup_retention");
-                const value = setting?.setting_value as { days?: number; max_backups_per_accommodation?: number } || {};
-                
-                return (
-                  <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>備份保留天數</Label>
-                        <Input
-                          type="number"
-                          value={value.days ?? 90}
-                          onChange={(e) => {
-                            const days = parseInt(e.target.value) || 90;
-                            updateSetting("backup_retention", { ...value, days });
-                          }}
-                          min={7}
-                          max={365}
-                          disabled={savingSettings}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          超過此天數的備份將自動刪除
-                        </p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>每民宿最大備份數</Label>
-                        <Input
-                          type="number"
-                          value={value.max_backups_per_accommodation ?? 10}
-                          onChange={(e) => {
-                            const max = parseInt(e.target.value) || 10;
-                            updateSetting("backup_retention", { ...value, max_backups_per_accommodation: max });
-                          }}
-                          min={1}
-                          max={50}
-                          disabled={savingSettings}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          超過此數量時將刪除最舊的備份
-                        </p>
-                      </div>
-                    </div>
-                  </>
-                );
-              })()}
-            </CardContent>
-          </Card>
-
           {/* Notification Settings */}
           <Card>
             <CardHeader>
