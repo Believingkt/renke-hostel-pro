@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
 /**
@@ -26,7 +26,7 @@ export function useHQDomainRedirect() {
  * HQ 網域重導向元件
  * 放置於 App 頂層，在 HQ 網域時自動導向 /hq
  */
-export function HQDomainRedirect({ children }: { children: React.ReactNode }) {
+export function HQDomainRedirect({ children }: { children: ReactNode }) {
   const { isHQDomain, isChecking } = useHQDomainRedirect();
   const navigate = useNavigate();
   const location = useLocation();
