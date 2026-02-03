@@ -197,44 +197,31 @@ const Accounts = () => {
     }
   };
 
-  const checkEmailExists = async (email: string): Promise<boolean> => {
+  const checkEmailInAccommodation = async (email: string): Promise<{ exists: boolean; hasRole: boolean; existingRole?: string; userName?: string }> => {
     try {
       const { data, error } = await supabase.functions.invoke("check-email-exists", {
-        body: { email: email.trim() },
+        body: { email: email.trim(), accommodationId },
       });
 
       if (error) {
         console.error("Error checking email:", error);
-        
-        if (import.meta.env.DEV) {
-          console.error("Email check error details:", {
-            error,
-            email: email.trim()
-          });
-        }
-        
-        return false;
+        return { exists: false, hasRole: false };
       }
 
       if (!data?.success) {
         console.error("Email check failed:", data?.error);
-        
-        if (import.meta.env.DEV) {
-          console.error("Email check response:", data);
-        }
-        
-        return false;
+        return { exists: false, hasRole: false };
       }
 
-      return data.exists === true;
+      return { 
+        exists: data.exists === true, 
+        hasRole: data.hasRoleInAccommodation === true,
+        existingRole: data.existingRole || undefined,
+        userName: data.userName || undefined,
+      };
     } catch (error: any) {
       console.error("Unexpected error checking email:", error);
-      
-      if (import.meta.env.DEV) {
-        console.error("Full error:", error);
-      }
-      
-      return false;
+      return { exists: false, hasRole: false };
     }
   };
 
@@ -259,12 +246,17 @@ const Accounts = () => {
     }
 
     setIsCheckingEmail(true);
-    const exists = await checkEmailExists(value.trim());
+    const result = await checkEmailInAccommodation(value.trim());
     setIsCheckingEmail(false);
 
-    if (exists) {
-      setEmailError("此 Email 已被註冊");
+    // Only show error if user already has role in THIS accommodation
+    if (result.hasRole) {
+      const roleLabel = result.existingRole === 'hotel_admin' ? '民宿管理員' : 
+                        result.existingRole === 'staff' ? '現場營運' : 
+                        result.existingRole === 'super_admin' ? '總部管理員' : result.existingRole;
+      setEmailError(`此用戶已在本民宿擁有「${roleLabel}」權限`);
     }
+    // If user exists but not in this accommodation, that's OK - they can be invited
   };
 
   const handleSubmit = async () => {
@@ -299,10 +291,10 @@ const Accounts = () => {
 
     setIsLoading(true);
 
-    // Double-check email before final submission
-    const emailExists = await checkEmailExists(email.trim());
-    if (emailExists) {
-      toast.error("此 Email 已被註冊，請使用其他 Email");
+    // Double-check if user already has role in this accommodation
+    const emailCheck = await checkEmailInAccommodation(email.trim());
+    if (emailCheck.hasRole) {
+      toast.error("此用戶已在本民宿擁有權限");
       setIsLoading(false);
       return;
     }

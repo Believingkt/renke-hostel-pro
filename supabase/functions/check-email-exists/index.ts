@@ -43,7 +43,7 @@ serve(async (req) => {
       );
     }
 
-    const { email } = await req.json();
+    const { email, accommodationId } = await req.json();
 
     if (!email) {
       return new Response(
@@ -52,13 +52,12 @@ serve(async (req) => {
       );
     }
 
-    // Efficient existence check (case-insensitive) using profiles table.
-    // Using auth.admin.listUsers() without pagination can miss users when there are many accounts.
-    const { data: profiles, error: profileError } = await supabaseAdmin
+    // Check if email exists in profiles
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('id')
+      .select('id, name, email')
       .ilike('email', email)
-      .limit(1);
+      .maybeSingle();
 
     if (profileError) {
       console.error("Error checking profiles email:", profileError);
@@ -68,12 +67,33 @@ serve(async (req) => {
       );
     }
 
-    const emailExists = (profiles?.length ?? 0) > 0;
+    const emailExists = !!profile;
+
+    // If accommodationId is provided, also check if user already has role in that accommodation
+    let hasRoleInAccommodation = false;
+    let existingRole: string | null = null;
+
+    if (emailExists && accommodationId && profile) {
+      const { data: roleData, error: roleError } = await supabaseAdmin
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', profile.id)
+        .eq('accommodation_id', accommodationId)
+        .maybeSingle();
+
+      if (!roleError && roleData) {
+        hasRoleInAccommodation = true;
+        existingRole = roleData.role;
+      }
+    }
 
     return new Response(
       JSON.stringify({
         success: true,
         exists: emailExists,
+        hasRoleInAccommodation,
+        existingRole,
+        userName: profile?.name || null,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
