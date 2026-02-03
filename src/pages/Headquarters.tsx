@@ -73,7 +73,7 @@ import { AccommodationManagement, AccommodationManagementRef } from "@/component
 import { OperationalOverview } from "@/components/headquarters/OperationalOverview";
 
 import { SystemManagement } from "@/components/headquarters/SystemManagement";
-import { SplitManagement } from "@/components/headquarters/SplitManagement";
+import { SplitManagement, SplitManagementRef } from "@/components/headquarters/SplitManagement";
 import { FacilityManagement } from "@/components/headquarters/FacilityManagement";
 import { HQUsersSkeleton } from "@/components/skeletons/HQSkeleton";
 import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
@@ -135,6 +135,7 @@ const Headquarters = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTab = searchParams.get('tab') || 'overview';
+  const currentSection = searchParams.get('section') || '';
   
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [accommodations, setAccommodations] = useState<AccommodationInfo[]>([]);
@@ -148,6 +149,8 @@ const Headquarters = () => {
   
   // Ref for AccommodationManagement
   const accommodationManagementRef = useRef<AccommodationManagementRef>(null);
+  // Ref for SplitManagement
+  const splitManagementRef = useRef<SplitManagementRef>(null);
 
   // Backup states
   const [backups, setBackups] = useState<BackupLog[]>([]);
@@ -732,7 +735,7 @@ const Headquarters = () => {
           />
         );
       case 'split':
-        return <SplitManagement accommodations={accommodations} />;
+        return <SplitManagement ref={splitManagementRef} accommodations={accommodations} />;
       case 'accommodations':
         return (
           <AccommodationManagement
@@ -1039,6 +1042,14 @@ const Headquarters = () => {
               >
                 <Plus className="h-4 w-4" />
                 新增民宿
+              </Button>
+            ) : currentTab === 'split' && (currentSection === 'rules' || !currentSection) ? (
+              <Button 
+                onClick={() => splitManagementRef.current?.openAddRuleDialog()} 
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                新增規則
               </Button>
             ) : undefined
           }
