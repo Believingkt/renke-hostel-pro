@@ -74,7 +74,7 @@ import { OperationalOverview } from "@/components/headquarters/OperationalOvervi
 
 import { SystemManagement } from "@/components/headquarters/SystemManagement";
 import { SplitManagement, SplitManagementRef } from "@/components/headquarters/SplitManagement";
-import { FacilityManagement } from "@/components/headquarters/FacilityManagement";
+import { FacilityManagement, FacilityManagementRef } from "@/components/headquarters/FacilityManagement";
 import { HQUsersSkeleton } from "@/components/skeletons/HQSkeleton";
 import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
 
@@ -151,6 +151,8 @@ const Headquarters = () => {
   const accommodationManagementRef = useRef<AccommodationManagementRef>(null);
   // Ref for SplitManagement
   const splitManagementRef = useRef<SplitManagementRef>(null);
+  // Ref for FacilityManagement
+  const facilityManagementRef = useRef<FacilityManagementRef>(null);
 
   // Backup states
   const [backups, setBackups] = useState<BackupLog[]>([]);
@@ -746,7 +748,7 @@ const Headquarters = () => {
           />
         );
       case 'facilities':
-        return <FacilityManagement />;
+        return <FacilityManagement ref={facilityManagementRef} />;
       case 'users':
         return (
           <div className="space-y-6">
@@ -1050,6 +1052,14 @@ const Headquarters = () => {
               >
                 <Plus className="h-4 w-4" />
                 新增規則
+              </Button>
+            ) : currentTab === 'facilities' ? (
+              <Button 
+                onClick={() => facilityManagementRef.current?.openAddDialog()} 
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                新增設施
               </Button>
             ) : undefined
           }
