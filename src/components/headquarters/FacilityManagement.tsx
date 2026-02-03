@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -73,7 +73,11 @@ const PRICING_TYPE_OPTIONS = [
   { value: "paid", label: "需額外付費" },
 ];
 
-export function FacilityManagement() {
+export interface FacilityManagementRef {
+  openAddDialog: () => void;
+}
+
+export const FacilityManagement = forwardRef<FacilityManagementRef, object>((_, ref) => {
   const [loading, setLoading] = useState(true);
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -135,6 +139,11 @@ export function FacilityManagement() {
     setEditingFacility(null);
     setShowDialog(true);
   };
+
+  // Expose methods via ref
+  useImperativeHandle(ref, () => ({
+    openAddDialog,
+  }));
 
   const openEditDialog = (facility: Facility) => {
     setEditingFacility(facility);
@@ -263,11 +272,6 @@ export function FacilityManagement() {
             className="pl-9"
           />
         </div>
-
-        <Button onClick={openAddDialog} className="ml-auto">
-          <Plus className="h-4 w-4 mr-2" />
-          新增設施
-        </Button>
       </div>
 
       {/* Facilities List */}
@@ -450,4 +454,6 @@ export function FacilityManagement() {
       </AlertDialog>
     </div>
   );
-}
+});
+
+FacilityManagement.displayName = "FacilityManagement";
