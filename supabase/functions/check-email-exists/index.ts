@@ -1,24 +1,12 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 
-// Allowed origins for CORS
-const allowedOrigins = [
-  'https://sensan.lovable.app',
-  'https://dmafqwfynatdvnaeovhz.lovableproject.com',
-];
-
-function getCorsHeaders(req: Request) {
-  const origin = req.headers.get('origin') || '';
-  const allowedOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
-  return {
-    'Access-Control-Allow-Origin': allowedOrigin,
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  };
-}
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+};
 
 serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req);
-  
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -64,21 +52,23 @@ serve(async (req) => {
       );
     }
 
-    // Check if email exists in auth system using admin API
-    const { data: existingUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+    // Efficient existence check (case-insensitive) using profiles table.
+    // Using auth.admin.listUsers() without pagination can miss users when there are many accounts.
+    const { data: profiles, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('id')
+      .ilike('email', email)
+      .limit(1);
 
-    if (listError) {
-      console.error("Error listing users:", listError);
+    if (profileError) {
+      console.error("Error checking profiles email:", profileError);
       return new Response(
         JSON.stringify({ success: false, error: '檢查失敗', exists: false }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Check if email exists (case-insensitive)
-    const emailExists = existingUsers.users.some(
-      u => u.email?.toLowerCase() === email.toLowerCase()
-    );
+    const emailExists = (profiles?.length ?? 0) > 0;
 
     return new Response(
       JSON.stringify({
