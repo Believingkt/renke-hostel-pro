@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { HQSplitSkeleton } from "@/components/skeletons/HQSkeleton";
@@ -103,6 +103,10 @@ interface SplitManagementProps {
   accommodations: { id: string; name: string }[];
 }
 
+export interface SplitManagementRef {
+  openAddRuleDialog: () => void;
+}
+
 // Map URL section to internal tab value
 const sectionToTab: Record<string, string> = {
   rules: "rules",
@@ -122,7 +126,7 @@ const tabToSection: Record<string, string> = {
   approved: "approved",
 };
 
-export function SplitManagement({ accommodations }: SplitManagementProps) {
+export const SplitManagement = forwardRef<SplitManagementRef, SplitManagementProps>(({ accommodations }, ref) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const section = searchParams.get("section") || "rules";
   const activeTab = sectionToTab[section] || "rules";
@@ -155,6 +159,15 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
     description: "",
   });
   const [saving, setSaving] = useState(false);
+
+  // Expose methods via ref
+  useImperativeHandle(ref, () => ({
+    openAddRuleDialog: () => {
+      resetRuleForm();
+      setEditingRule(null);
+      setShowRuleDialog(true);
+    },
+  }));
 
   const handleTabChange = (value: string) => {
     const newSection = tabToSection[value] || "rules";
@@ -567,7 +580,7 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
 
         {/* Rules Tab */}
         <TabsContent value="rules" className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center">
             <Select value={accommodationFilter} onValueChange={setAccommodationFilter}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="全部民宿" />
@@ -579,11 +592,6 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
                 ))}
               </SelectContent>
             </Select>
-
-            <Button onClick={() => { resetRuleForm(); setEditingRule(null); setShowRuleDialog(true); }}>
-              <Plus className="h-4 w-4 mr-2" />
-              新增規則
-            </Button>
           </div>
 
           <Card>
@@ -1283,4 +1291,6 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
       </Dialog>
     </div>
   );
-}
+});
+
+SplitManagement.displayName = "SplitManagement";
