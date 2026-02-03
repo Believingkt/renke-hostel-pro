@@ -34,13 +34,14 @@ export default function HQAuth() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN" && session) {
-        // Check if user is super_admin
+        // Check if user is super_admin (in any accommodation)
         const { data: userRole } = await supabase
           .from("user_roles")
           .select("role")
           .eq("user_id", session.user.id)
           .eq("role", "super_admin")
-          .single();
+          .limit(1)
+          .maybeSingle();
 
         if (userRole) {
           navigate("/headquarters");
@@ -54,14 +55,14 @@ export default function HQAuth() {
     // Check for existing session on mount
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
-        const { data: userRole } = await supabase
+        const { data: userRoles } = await supabase
           .from("user_roles")
           .select("role")
           .eq("user_id", session.user.id)
           .eq("role", "super_admin")
-          .single();
+          .limit(1);
 
-        if (userRole) {
+        if (userRoles && userRoles.length > 0) {
           navigate("/headquarters");
         }
       }
@@ -89,16 +90,16 @@ export default function HQAuth() {
         return;
       }
 
-      // Check if user is super_admin
+      // Check if user is super_admin (in any accommodation)
       if (data.user) {
-        const { data: userRole } = await supabase
+        const { data: userRoles } = await supabase
           .from("user_roles")
           .select("role")
           .eq("user_id", data.user.id)
           .eq("role", "super_admin")
-          .single();
+          .limit(1);
 
-        if (!userRole) {
+        if (!userRoles || userRoles.length === 0) {
           toast.error("您沒有總部後台的存取權限");
           await supabase.auth.signOut();
           return;
