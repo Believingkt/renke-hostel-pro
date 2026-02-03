@@ -3,7 +3,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { GripVertical, Pencil, Copy, Globe, Link2, Power, PowerOff, ExternalLink } from "lucide-react";
+import { GripVertical, Pencil, Copy, Globe, Link2, Power, PowerOff, ExternalLink, Trash2 } from "lucide-react";
 import { THEME_COLORS } from "@/constants/themes";
 import { AccommodationHoverCard } from "./AccommodationHoverCard";
 import { toast } from "sonner";
@@ -34,6 +34,7 @@ interface DraggableAccommodationRowProps {
   onEdit: (acc: Accommodation) => void;
   onClone: (acc: Accommodation) => void;
   onToggle: (acc: Accommodation) => void;
+  onDelete: (acc: Accommodation) => void;
   onDnsSettings: (acc: Accommodation) => void;
   onCustomDomain: (acc: Accommodation) => void;
   isDragDisabled?: boolean;
@@ -44,6 +45,7 @@ export function DraggableAccommodationRow({
   onEdit,
   onClone,
   onToggle,
+  onDelete,
   onDnsSettings,
   onCustomDomain,
   isDragDisabled = false,
@@ -213,6 +215,14 @@ export function DraggableAccommodationRow({
             ) : (
               <Power className="h-4 w-4 text-green-600" />
             )}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onDelete(accommodation)}
+            title="刪除"
+          >
+            <Trash2 className="h-4 w-4 text-destructive" />
           </Button>
           <Button
             variant="ghost"

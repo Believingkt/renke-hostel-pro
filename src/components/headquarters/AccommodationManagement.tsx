@@ -42,7 +42,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Building2, Plus, Pencil, Power, PowerOff, Loader2, ExternalLink, Copy, Search, X, Globe, Link2, Palette, GripVertical } from "lucide-react";
+import { Building2, Plus, Pencil, Power, PowerOff, Loader2, ExternalLink, Copy, Search, X, Globe, Link2, Palette, GripVertical, Trash2 } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { AccommodationDialog } from "./AccommodationDialog";
 import { DnsSettingsDialog } from "./DnsSettingsDialog";
@@ -120,6 +120,12 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
   const [isCloning, setIsCloning] = useState(false);
   const [cloneProgress, setCloneProgress] = useState(0);
   const [cloneStep, setCloneStep] = useState("");
+
+  // Delete states
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingAccommodation, setDeletingAccommodation] = useState<Accommodation | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteConfirmName, setDeleteConfirmName] = useState("");
 
   // Expose openAddDialog to parent
   useImperativeHandle(ref, () => ({
@@ -481,6 +487,55 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
     setCloneDialogOpen(true);
   };
 
+  const openDeleteDialog = (accommodation: Accommodation) => {
+    setDeletingAccommodation(accommodation);
+    setDeleteConfirmName("");
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!deletingAccommodation) return;
+    if (deleteConfirmName !== deletingAccommodation.name) {
+      toast.error("請輸入正確的民宿名稱以確認刪除");
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      // Delete the accommodation (cascade will handle related data)
+      const { error } = await supabase
+        .from("accommodation_info")
+        .delete()
+        .eq("id", deletingAccommodation.id);
+
+      if (error) throw error;
+
+      // Log the action
+      await logAction({
+        actionType: "delete",
+        actionCategory: "accommodation",
+        entityType: "accommodation",
+        entityId: deletingAccommodation.id,
+        entityName: deletingAccommodation.name,
+        accommodationId: deletingAccommodation.id,
+        details: { name: deletingAccommodation.name }
+      });
+
+      // Clear cache
+      invalidateAccommodationCache(deletingAccommodation.id);
+      toast.success("民宿已刪除");
+      setDeleteDialogOpen(false);
+      setDeletingAccommodation(null);
+      setDeleteConfirmName("");
+      onRefresh();
+    } catch (error: any) {
+      console.error("Error deleting accommodation:", error);
+      toast.error("刪除失敗", { description: error.message });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleClone = async () => {
     if (!cloningAccommodation || !cloneName.trim()) return;
 
@@ -827,6 +882,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
                           onEdit={openEditDialog}
                           onClone={openCloneDialog}
                           onToggle={openToggleDialog}
+                          onDelete={openDeleteDialog}
                           onDnsSettings={openDnsDialog}
                           onCustomDomain={openCustomDomainDialog}
                           isDragDisabled={isDragDisabled}
@@ -950,6 +1006,68 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
             >
               {isCloning && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isCloning ? "複製中..." : "確認複製"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={(open) => {
+        setDeleteDialogOpen(open);
+        if (!open) {
+          setDeletingAccommodation(null);
+          setDeleteConfirmName("");
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              刪除民宿
+            </DialogTitle>
+            <DialogDescription>
+              此操作將永久刪除「{deletingAccommodation?.name}」及其所有相關資料，包括訂單、客戶、房型、價格設定等。此操作無法復原。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg text-sm space-y-2">
+              <p className="font-medium text-destructive">⚠️ 警告：以下資料將被永久刪除</p>
+              <ul className="list-disc list-inside space-y-0.5 ml-2 text-muted-foreground">
+                <li>所有訂單紀錄</li>
+                <li>客戶資料</li>
+                <li>房型與價格設定</li>
+                <li>照片與內容設定</li>
+                <li>使用者權限設定</li>
+              </ul>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="deleteConfirm">
+                請輸入民宿名稱「<span className="font-semibold">{deletingAccommodation?.name}</span>」以確認刪除
+              </Label>
+              <Input
+                id="deleteConfirm"
+                value={deleteConfirmName}
+                onChange={(e) => setDeleteConfirmName(e.target.value)}
+                placeholder="請輸入民宿名稱"
+                disabled={isDeleting}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={isDeleting}
+            >
+              取消
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isDeleting || deleteConfirmName !== deletingAccommodation?.name}
+            >
+              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isDeleting ? "刪除中..." : "確認刪除"}
             </Button>
           </DialogFooter>
         </DialogContent>
