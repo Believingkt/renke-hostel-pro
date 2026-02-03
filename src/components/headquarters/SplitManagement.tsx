@@ -564,26 +564,6 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <div className="flex items-center gap-4 flex-wrap mb-4">
-          <TabsList className="flex-wrap">
-            <TabsTrigger value="rules">拆帳規則</TabsTrigger>
-            <TabsTrigger value="records">明細記錄</TabsTrigger>
-            <TabsTrigger value="requested" className="gap-1">
-              <Send className="h-3.5 w-3.5" />
-              待審核
-              {requestedRecords.length > 0 && (
-                <Badge variant="destructive" className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs">
-                  {requestedRecords.length}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="approved" className="gap-1">
-              <CheckCircle className="h-3.5 w-3.5" />
-              待撥款
-            </TabsTrigger>
-            <TabsTrigger value="reports">結算報表</TabsTrigger>
-          </TabsList>
-        </div>
 
         {/* Rules Tab */}
         <TabsContent value="rules" className="space-y-4">
