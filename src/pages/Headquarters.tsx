@@ -76,6 +76,7 @@ import { SystemManagement } from "@/components/headquarters/SystemManagement";
 import { SplitManagement } from "@/components/headquarters/SplitManagement";
 import { FacilityManagement } from "@/components/headquarters/FacilityManagement";
 import { HQUsersSkeleton } from "@/components/skeletons/HQSkeleton";
+import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
 
 interface UserRole {
   id: string;
@@ -270,7 +271,12 @@ const Headquarters = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        const parsed = await parseFunctionInvokeError(error);
+        const msg = parsed.backendError || parsed.message;
+        toast.error(msg);
+        return;
+      }
 
       if (data?.error) {
         toast.error(data.error);

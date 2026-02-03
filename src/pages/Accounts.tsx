@@ -55,6 +55,7 @@ import { toast } from "sonner";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { format } from "date-fns";
 import { z } from 'zod';
+import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
 
 interface User {
   id: string;
@@ -328,35 +329,11 @@ const Accounts = () => {
       // Handle Supabase function invocation errors
       if (error) {
         console.error("Edge function invocation error:", error);
-        
-        // Try to extract detailed error message
-        let errorMessage = "系統錯誤";
-        let errorDetails = "";
-        
-        // Extract error information from different possible formats
-        if (error.message) {
-          errorMessage = error.message;
-        } else if (typeof error === 'string') {
-          errorMessage = error;
-        }
-        
-        // Try to parse error context if available
-        if (error.context) {
-          try {
-            const context = typeof error.context === 'string' 
-              ? JSON.parse(error.context) 
-              : error.context;
-            
-            if (context.error) {
-              errorDetails = context.error;
-            }
-            if (context.status) {
-              errorDetails += ` (狀態碼: ${context.status})`;
-            }
-          } catch (e) {
-            // Ignore JSON parse errors
-          }
-        }
+
+        const parsed = await parseFunctionInvokeError(error);
+        const backendMsg = parsed.backendError;
+        const status = parsed.status;
+        const errorMessage = backendMsg || parsed.message;
         
         // Log full error for debugging
         if (import.meta.env.DEV) {
@@ -376,9 +353,6 @@ const Accounts = () => {
         
         // Build user-friendly error message
         let displayMessage = errorMessage;
-        if (errorDetails) {
-          displayMessage += `\n詳細資訊: ${errorDetails}`;
-        }
         
         // Add helpful suggestions based on error type
         if (errorMessage.includes("already") || errorMessage.includes("已被註冊")) {
@@ -390,12 +364,13 @@ const Accounts = () => {
         } else if (errorMessage.includes("timeout") || errorMessage.includes("逾時")) {
           displayMessage = "請求逾時，請稍後再試。";
         } else {
+          displayMessage += status ? `\n（狀態碼: ${status}）` : "";
           displayMessage += "\n\n請稍後再試或聯繫系統管理員。";
         }
         
         toast.error(displayMessage, {
           duration: 6000,
-          description: import.meta.env.DEV ? errorDetails : undefined
+          description: import.meta.env.DEV ? backendMsg : undefined
         });
         return;
       }
