@@ -539,54 +539,6 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
             </CardContent>
           </Card>
         </TabsContent>
-
-        {/* Backup Tab */}
-        <TabsContent value="backup" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Database className="h-5 w-5" />
-                資料備份管理
-              </CardTitle>
-              <CardDescription>
-                管理所有民宿的資料備份與還原功能
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {accommodations.map((acc) => (
-                  <Card key={acc.id} className="border-dashed">
-                    <CardContent className="pt-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Building2 className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">{acc.name}</span>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            window.location.href = `/data-backup?accommodation=${acc.id}`;
-                          }}
-                        >
-                          管理備份
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-
-              {accommodations.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                  <Database className="h-12 w-12 mb-4 opacity-50" />
-                  <p>尚無民宿資料</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         {/* Settings Tab */}
         <TabsContent value="settings" className="space-y-4">
           {/* Holiday Sync Settings */}
