@@ -1200,7 +1200,7 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
           <DialogHeader>
             <DialogTitle>審核請款申請</DialogTitle>
             <DialogDescription>
-              即將審核通過 {selectedRecords.length} 筆請款，總計 NT$ {selectedAmount.toLocaleString()}
+              即將審核通過 {selectedRecords.length} 筆請款，總計 NT$ {selectedAmount.gross.toLocaleString()}
             </DialogDescription>
           </DialogHeader>
 
@@ -1212,7 +1212,7 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
               </div>
               <div className="flex justify-between items-center mt-2">
                 <span className="text-sm text-muted-foreground">請款金額</span>
-                <span className="text-xl font-bold text-primary">NT$ {selectedAmount.toLocaleString()}</span>
+                <span className="text-xl font-bold text-primary">NT$ {selectedAmount.gross.toLocaleString()}</span>
               </div>
             </div>
 
@@ -1242,7 +1242,7 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
           <DialogHeader>
             <DialogTitle>確認撥款</DialogTitle>
             <DialogDescription>
-              即將撥款 {selectedRecords.length} 筆，總計 NT$ {selectedAmount.toLocaleString()}
+              即將撥款 {selectedRecords.length} 筆，總計 NT$ {selectedAmount.gross.toLocaleString()}
             </DialogDescription>
           </DialogHeader>
 
@@ -1254,7 +1254,7 @@ export function SplitManagement({ accommodations }: SplitManagementProps) {
               </div>
               <div className="flex justify-between items-center mt-2">
                 <span className="text-sm text-muted-foreground">撥款金額</span>
-                <span className="text-xl font-bold text-primary">NT$ {selectedAmount.toLocaleString()}</span>
+                <span className="text-xl font-bold text-primary">NT$ {selectedAmount.gross.toLocaleString()}</span>
               </div>
             </div>
 
