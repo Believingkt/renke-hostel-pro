@@ -233,20 +233,27 @@ serve(async (req) => {
 
       targetUserId = userData.user.id;
 
-      // Generate password reset link for the new user
-      const { data: resetData, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
-        type: 'recovery',
-        email: email,
-        options: {
-          redirectTo: `${siteUrl}/auth`,
-        },
-      });
+      // Create our own password setup token so password changes go through our reset flow
+      // (which enforces server-side password strength + leaked-password checks).
+      const token = crypto.randomUUID() + crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-      if (resetError) {
-        console.error("生成重設密碼連結失敗:", resetError);
+      const { error: tokenInsertError } = await supabaseAdmin
+        .from("password_reset_tokens")
+        .insert({
+          user_id: targetUserId,
+          email: email.toLowerCase(),
+          token,
+          expires_at: expiresAt.toISOString(),
+        });
+
+      if (tokenInsertError) {
+        console.error("Failed to create password setup token:", tokenInsertError);
+        // Fallback to login page. (User may still need manual password assistance.)
+        inviteLink = `${siteUrl}/auth`;
+      } else {
+        inviteLink = `${siteUrl}/reset-password?token=${token}`;
       }
-
-      inviteLink = resetData?.properties?.action_link || `${siteUrl}/auth`;
     }
 
     // Create user role
