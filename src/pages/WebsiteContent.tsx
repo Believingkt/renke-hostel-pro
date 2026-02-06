@@ -2223,22 +2223,26 @@ const WebsiteContent = () => {
 
   const handleHeroPhotoReorder = async (newOrder: any[]) => {
     try {
-      // 更新本地狀態
-      setHeroPhotos(newOrder);
-
-      // 批量更新數據庫中的 display_order
-      const updates = newOrder.map((photo, index) => ({
-        id: photo.id,
+      // 更新 display_order 並更新本地狀態
+      const updatedPhotos = newOrder.map((photo, index) => ({
+        ...photo,
         display_order: index + 1
       }));
+      setHeroPhotos(updatedPhotos);
 
-      for (const update of updates) {
-        const { error } = await supabase
+      // 批量更新數據庫中的 display_order
+      const updatePromises = updatedPhotos.map((photo) =>
+        supabase
           .from('accommodation_photos')
-          .update({ display_order: update.display_order })
-          .eq('id', update.id);
+          .update({ display_order: photo.display_order })
+          .eq('id', photo.id)
+      );
 
-        if (error) throw error;
+      const results = await Promise.all(updatePromises);
+      const hasError = results.some(result => result.error);
+      
+      if (hasError) {
+        throw new Error('部分更新失敗');
       }
 
       toast.success('輪播圖順序已更新');
@@ -2247,6 +2251,14 @@ const WebsiteContent = () => {
         console.error('Error reordering hero photos:', error);
       }
       toast.error('更新順序失敗，請稍後再試');
+      // 重新載入資料以恢復正確狀態
+      const { data } = await supabase
+        .from('accommodation_photos')
+        .select('*')
+        .eq('accommodation_id', accommodationId!)
+        .eq('photo_type', 'hero')
+        .order('display_order');
+      if (data) setHeroPhotos(data);
     }
   };
 
