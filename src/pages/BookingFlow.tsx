@@ -512,16 +512,16 @@ const BookingFlow = () => {
         const dateStr = currentDate.toISOString().split('T')[0];
 
         try {
-          // 獲取價格和可用房間數
+          // 獲取價格、可用房間數與販售狀態
           const { data: priceData, error: priceError } = await supabase
             .from('room_inventory_pricing')
-            .select('price, available_rooms')
+            .select('price, available_rooms, is_available')
             .eq('room_type_id', selectedRoom.id)
             .eq('date', dateStr)
             .maybeSingle();
 
           if (priceError) throw priceError;
-          
+
           // 檢查是否有設定價格
           if (!priceData || priceData.price === null || priceData.price === undefined) {
             hasMissingPricing = true;
@@ -529,11 +529,18 @@ const BookingFlow = () => {
             pricing[dateStr] = 0; // 標記為無價格
           } else {
             pricing[dateStr] = priceData.price;
-            
-            // 檢查可用房間數
-            if (priceData.available_rooms !== null && priceData.available_rooms <= 0) {
+
+            // 關閉販售：前台視為不可預訂
+            const isClosed = priceData.is_available === false;
+            if (isClosed) {
               hasNoAvailability = true;
-              unavailableDates.push(dateStr);
+              if (!unavailableDates.includes(dateStr)) unavailableDates.push(dateStr);
+            }
+
+            // 庫存為 0：視為無空房（僅在未關閉販售時判斷，避免重複）
+            if (!isClosed && priceData.available_rooms !== null && priceData.available_rooms <= 0) {
+              hasNoAvailability = true;
+              if (!unavailableDates.includes(dateStr)) unavailableDates.push(dateStr);
             }
           }
 
@@ -644,32 +651,36 @@ const BookingFlow = () => {
       // 取得所有房型ID
       const roomTypeIds = roomTypes.map(r => r.id);
 
-      try {
-        // 批次查詢：一次取得所有房型在日期範圍內的價格和庫存
-        const { data: allPricingData, error: pricingError } = await supabase
-          .from('room_inventory_pricing')
-          .select('room_type_id, date, price, available_rooms')
-          .in('room_type_id', roomTypeIds)
-          .gte('date', checkInDateStr)
-          .lt('date', checkOutDateStr);
+        try {
+          // 批次查詢：一次取得所有房型在日期範圍內的價格、庫存與販售狀態
+          const { data: allPricingData, error: pricingError } = await supabase
+            .from('room_inventory_pricing')
+            .select('room_type_id, date, price, available_rooms, is_available')
+            .in('room_type_id', roomTypeIds)
+            .gte('date', checkInDateStr)
+            .lt('date', checkOutDateStr);
 
-        if (pricingError) {
-          console.error('Error fetching pricing data:', pricingError);
-        }
-
-        // 建立價格資料索引 (room_id -> date -> data)
-        const pricingIndex: Record<string, Record<string, { price: number | null; available_rooms: number | null }>> = {};
-        if (allPricingData) {
-          for (const item of allPricingData) {
-            if (!pricingIndex[item.room_type_id]) {
-              pricingIndex[item.room_type_id] = {};
-            }
-            pricingIndex[item.room_type_id][item.date] = {
-              price: item.price,
-              available_rooms: item.available_rooms
-            };
+          if (pricingError) {
+            console.error('Error fetching pricing data:', pricingError);
           }
-        }
+
+          // 建立價格資料索引 (room_id -> date -> data)
+          const pricingIndex: Record<
+            string,
+            Record<string, { price: number | null; available_rooms: number | null; is_available: boolean | null }>
+          > = {};
+          if (allPricingData) {
+            for (const item of allPricingData) {
+              if (!pricingIndex[item.room_type_id]) {
+                pricingIndex[item.room_type_id] = {};
+              }
+              pricingIndex[item.room_type_id][item.date] = {
+                price: item.price,
+                available_rooms: item.available_rooms,
+                is_available: item.is_available,
+              };
+            }
+          }
 
         // 並行檢查所有房型的互斥邏輯（只需檢查第一天，因為是包區預訂）
         const blockCheckPromises = roomTypes.map(async (room) => {
@@ -713,9 +724,13 @@ const BookingFlow = () => {
             if (!priceData || priceData.price === null || priceData.price === undefined) {
               hasMissingPricing = true;
               missingDates.push(dateStr);
+            } else if (priceData.is_available === false) {
+              // 關閉販售：前台視為無空房
+              hasNoAvailability = true;
+              if (!unavailableDates.includes(dateStr)) unavailableDates.push(dateStr);
             } else if (priceData.available_rooms !== null && priceData.available_rooms <= 0) {
               hasNoAvailability = true;
-              unavailableDates.push(dateStr);
+              if (!unavailableDates.includes(dateStr)) unavailableDates.push(dateStr);
             }
           }
 
