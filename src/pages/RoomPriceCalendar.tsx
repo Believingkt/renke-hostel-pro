@@ -586,30 +586,23 @@ function RoomTypeRows({
                 dayType === 'holiday' && "bg-red-50/50",
               )}
             >
-              <div className="flex flex-col items-center gap-0.5">
-                {isUnavailable && (
-                  <span className="text-[10px] font-semibold text-destructive leading-none">
-                    無法預定
-                  </span>
+              <span
+                className={cn(
+                  "inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium leading-none",
+                  // 無法預定：以 destructive 標示
+                  isUnavailable && "bg-destructive/10 text-destructive",
+                  // 售完（庫存 0）
+                  !isUnavailable && isZeroRooms && "bg-destructive/10 text-destructive",
+                  // 有庫存
+                  !isUnavailable && !isZeroRooms && "bg-primary/10 text-primary",
+                  // 未設定：維持中性顯示
+                  !cellData && "bg-muted text-muted-foreground",
                 )}
-                <span
-                  className={cn(
-                    "inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium leading-none",
-                    // 無法預定：以 destructive 標示
-                    isUnavailable && "bg-destructive/10 text-destructive",
-                    // 售完（庫存 0）
-                    !isUnavailable && isZeroRooms && "bg-destructive/10 text-destructive",
-                    // 有庫存
-                    !isUnavailable && !isZeroRooms && "bg-primary/10 text-primary",
-                    // 未設定：維持中性顯示
-                    !cellData && "bg-muted text-muted-foreground",
-                  )}
-                  aria-label={isUnavailable ? '無法預定' : undefined}
-                  title={isUnavailable ? '無法預定' : undefined}
-                >
-                  {displayRooms ?? '-'}
-                </span>
-              </div>
+                aria-label={isUnavailable ? '無法預定' : undefined}
+                title={isUnavailable ? '無法預定' : undefined}
+              >
+                {displayRooms ?? '-'}
+              </span>
             </td>
           );
         })}
@@ -628,6 +621,8 @@ function RoomTypeRows({
             const cellData = getCellData(roomType.id, dateStr);
 
             // 只顯示實際套用過的庫存價格，不使用模板價格作為預設值
+            // 關閉販售時，價格欄位顯示為空白
+            const isUnavailable = cellData?.is_available === false;
             const price = cellData?.price;
 
             return (
@@ -639,12 +634,12 @@ function RoomTypeRows({
                   dayType === 'holiday' && "bg-red-50/50 hover:bg-red-100/50",
                   !isWeekend && "hover:bg-muted/50",
                   // 關閉販售：在價格列做淡化提示（仍可點擊編輯以重新開啟）
-                  cellData?.is_available === false && "opacity-60",
+                  isUnavailable && "opacity-60",
                 )}
                 onClick={() => onCellClick(roomType, template, dateStr, price || undefined)}
-                title={cellData?.is_available === false ? '無法預定（已關閉販售）' : undefined}
+                title={isUnavailable ? '無法預定（已關閉販售）' : undefined}
               >
-                <span className="text-sm">{formatPrice(price)}</span>
+                <span className="text-sm">{isUnavailable ? '' : formatPrice(price)}</span>
               </td>
             );
           })}
