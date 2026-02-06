@@ -226,7 +226,8 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         const file = files[i];
         const fileExt = file.name.split('.').pop();
         const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-        const filePath = fileName;
+        // RLS 政策要求路徑格式為 accommodation_id/filename
+        const filePath = `${accommodationId}/${fileName}`;
 
         const { error } = await supabase.storage
           .from('room-photos')
