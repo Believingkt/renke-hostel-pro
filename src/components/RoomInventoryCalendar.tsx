@@ -1240,6 +1240,15 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                             <Check className="h-3.5 w-3.5" />
                             <span className="text-xs font-semibold">已預訂</span>
                           </Badge>
+                        ) : !dayInventory.isBlocked && !dayInventory.isAvailable ? (
+                          /* 無法預定標記 - 當 is_available 為 false 時顯示 */
+                          <Badge 
+                            variant="secondary" 
+                            className="w-full justify-center gap-1.5 py-1.5 bg-red-100 text-red-800 border-red-300"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                            <span className="text-xs font-semibold">無法預定</span>
+                          </Badge>
                         ) : (
                           /* 可預訂標記 - 僅在無預訂時顯示 */
                           !dayInventory.isBlocked && dayInventory.availableRooms > 0 && dayInventory.isAvailable && (
@@ -1398,6 +1407,12 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                           <Check className="h-2.5 w-2.5 text-primary flex-shrink-0" />
                           <span className="text-[8px] sm:text-[9px] text-primary font-bold leading-none">已預訂</span>
                         </div>
+                      ) : !dayInventory.isBlocked && !dayInventory.isAvailable ? (
+                        /* 無法預定標籤 - 當 is_available 為 false 時顯示 */
+                        <div className="flex items-center justify-center gap-1 bg-red-100 border border-red-300 rounded px-1.5 py-0.5">
+                          <X className="h-2.5 w-2.5 text-red-600 flex-shrink-0" />
+                          <span className="text-[8px] sm:text-[9px] text-red-700 font-bold leading-none">無法預定</span>
+                        </div>
                       ) : (
                         /* 可預訂標籤 - 僅在無預訂時顯示 */
                         !dayInventory.isBlocked && dayInventory.availableRooms > 0 && dayInventory.isAvailable && (
@@ -1473,6 +1488,12 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                 <Check className="h-2.5 w-2.5 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary" />
               </div>
               <span className="font-medium">已預訂</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 sm:w-4 sm:h-4 bg-red-100 border border-red-300 rounded flex-shrink-0 relative">
+                <X className="h-2.5 w-2.5 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-red-600" />
+              </div>
+              <span className="font-medium">無法預定</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 sm:w-4 sm:h-4 bg-gray-100 border rounded flex-shrink-0"></div>
