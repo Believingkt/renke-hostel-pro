@@ -116,7 +116,7 @@ serve(async (req) => {
 
     const { data: pricingData, error: pricingError } = await supabase
       .from("room_inventory_pricing")
-      .select("date, price, price_2_meals, price_3_meals")
+      .select("date, price, price_2_meals, price_3_meals, is_available, available_rooms")
       .eq("room_type_id", roomTypeId)
       .in("date", dates);
 
@@ -134,8 +134,17 @@ serve(async (req) => {
 
     // Calculate server-side room price
     let calculatedRoomTotal = 0;
-    const pricingMap = new Map<string, { price: number; price_2_meals: number | null; price_3_meals: number | null }>();
-    
+    const pricingMap = new Map<
+      string,
+      {
+        price: number;
+        price_2_meals: number | null;
+        price_3_meals: number | null;
+        is_available: boolean | null;
+        available_rooms: number | null;
+      }
+    >();
+
     if (pricingData) {
       for (const p of pricingData) {
         pricingMap.set(p.date, p);
@@ -154,6 +163,14 @@ serve(async (req) => {
     for (const date of dates) {
       const pricing = pricingMap.get(date);
       if (pricing) {
+        // 關閉販售/無庫存：不可預訂
+        if (pricing.is_available === false) {
+          errors.push(`Room is unavailable on ${date}`);
+        }
+        if (typeof pricing.available_rooms === 'number' && pricing.available_rooms <= 0) {
+          errors.push(`No availability on ${date}`);
+        }
+
         // Use meal plan price if applicable
         if (mealPlan === "2_meals" && pricing.price_2_meals) {
           calculatedRoomTotal += pricing.price_2_meals;
@@ -280,9 +297,10 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify(result),
-      { 
-        status: result.isValid ? 200 : 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      {
+        // 一律回傳 200，讓前台能讀到 isValid/errors 並顯示正確訊息
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
 
