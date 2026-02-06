@@ -250,9 +250,10 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
             {/* 一般房型（雙人房、四人房）：顯示一泊一食 */}
             {!room.is_exclusive_package && (
               <>
-                {inventoryPricing.weekday_price && (
+                {inventoryPricing.weekday_price && inventoryPricing.weekend_price && inventoryPricing.weekday_price === inventoryPricing.weekend_price ? (
+                  // 平日假日價格相同，合併顯示
                   <div>
-                    <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">平日</p>
+                    <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">平日/假日</p>
                     <div className="space-y-1">
                       <div className="flex justify-between items-center">
                         <span className="text-xs md:text-sm text-muted-foreground">一泊一食</span>
@@ -260,26 +261,49 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
                       </div>
                     </div>
                   </div>
-                )}
-                {inventoryPricing.weekend_price && (
-                  <div>
-                    <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">假日</p>
-                    <div className="space-y-1">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs md:text-sm text-muted-foreground">一泊一食</span>
-                        <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekend_price.toLocaleString()}</span>
+                ) : (
+                  // 平日假日價格不同，分開顯示
+                  <>
+                    {inventoryPricing.weekday_price && (
+                      <div>
+                        <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">平日</p>
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs md:text-sm text-muted-foreground">一泊一食</span>
+                            <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekday_price.toLocaleString()}</span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
+                    )}
+                    {inventoryPricing.weekend_price && (
+                      <div>
+                        <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">假日</p>
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs md:text-sm text-muted-foreground">一泊一食</span>
+                            <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekend_price.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </>
             )}
             {/* 包區房型（12~18人包區）：顯示一泊二食，18人包區不顯示一泊三食 */}
-            {room.is_exclusive_package && (
-              <>
-                {(inventoryPricing.weekday_2_meals || (inventoryPricing.weekday_3_meals && room.capacity !== 18)) && (
+            {room.is_exclusive_package && (() => {
+              // 判斷二食和三食的平日假日價格是否相同
+              const is2MealsSamePrice = inventoryPricing.weekday_2_meals && inventoryPricing.weekend_2_meals && inventoryPricing.weekday_2_meals === inventoryPricing.weekend_2_meals;
+              const is3MealsSamePrice = inventoryPricing.weekday_3_meals && inventoryPricing.weekend_3_meals && inventoryPricing.weekday_3_meals === inventoryPricing.weekend_3_meals;
+              const show3Meals = room.capacity !== 18;
+              
+              // 如果兩者都相同或只有一種且相同，則合併顯示
+              const allSamePrice = is2MealsSamePrice && (!show3Meals || !inventoryPricing.weekday_3_meals || is3MealsSamePrice);
+              
+              if (allSamePrice) {
+                return (
                   <div>
-                    <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">平日</p>
+                    <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">平日/假日</p>
                     <div className="space-y-1">
                       {inventoryPricing.weekday_2_meals && (
                         <div className="flex justify-between items-center">
@@ -287,7 +311,7 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
                           <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekday_2_meals.toLocaleString()}</span>
                         </div>
                       )}
-                      {inventoryPricing.weekday_3_meals && room.capacity !== 18 && (
+                      {inventoryPricing.weekday_3_meals && show3Meals && (
                         <div className="flex justify-between items-center">
                           <span className="text-xs md:text-sm text-muted-foreground">一泊三食</span>
                           <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekday_3_meals.toLocaleString()}</span>
@@ -295,28 +319,52 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
                       )}
                     </div>
                   </div>
-                )}
-                {(inventoryPricing.weekend_2_meals || (inventoryPricing.weekend_3_meals && room.capacity !== 18)) && (
-                  <div>
-                    <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">假日</p>
-                    <div className="space-y-1">
-                      {inventoryPricing.weekend_2_meals && (
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs md:text-sm text-muted-foreground">一泊二食</span>
-                          <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekend_2_meals.toLocaleString()}</span>
-                        </div>
-                      )}
-                      {inventoryPricing.weekend_3_meals && room.capacity !== 18 && (
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs md:text-sm text-muted-foreground">一泊三食</span>
-                          <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekend_3_meals.toLocaleString()}</span>
-                        </div>
-                      )}
+                );
+              }
+              
+              return (
+                <>
+                  {(inventoryPricing.weekday_2_meals || (inventoryPricing.weekday_3_meals && show3Meals)) && (
+                    <div>
+                      <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">平日</p>
+                      <div className="space-y-1">
+                        {inventoryPricing.weekday_2_meals && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs md:text-sm text-muted-foreground">一泊二食</span>
+                            <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekday_2_meals.toLocaleString()}</span>
+                          </div>
+                        )}
+                        {inventoryPricing.weekday_3_meals && show3Meals && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs md:text-sm text-muted-foreground">一泊三食</span>
+                            <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekday_3_meals.toLocaleString()}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </>
-            )}
+                  )}
+                  {(inventoryPricing.weekend_2_meals || (inventoryPricing.weekend_3_meals && show3Meals)) && (
+                    <div>
+                      <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">假日</p>
+                      <div className="space-y-1">
+                        {inventoryPricing.weekend_2_meals && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs md:text-sm text-muted-foreground">一泊二食</span>
+                            <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekend_2_meals.toLocaleString()}</span>
+                          </div>
+                        )}
+                        {inventoryPricing.weekend_3_meals && show3Meals && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs md:text-sm text-muted-foreground">一泊三食</span>
+                            <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekend_3_meals.toLocaleString()}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
           <Link to={`/booking?roomId=${room.id}&step=dates`} className="mt-auto pt-4">
             <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg h-9 md:h-10 font-medium text-sm md:text-base">
