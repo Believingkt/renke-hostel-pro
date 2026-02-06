@@ -566,49 +566,70 @@ function RoomTypeRows({
           {!showCategoryHeader && <span className="font-semibold">{roomType.name}</span>}
           {showCategoryHeader && <span className="text-muted-foreground text-xs">庫存</span>}
         </td>
-        {monthDays.map(day => {
+        {monthDays.map((day) => {
           const dateStr = format(day, 'yyyy-MM-dd');
           const dayType = getDayType(day, dateStr);
           const isWeekend = dayType === 'weekend' || dayType === 'holiday';
           const cellData = getCellData(roomType.id, dateStr);
-          
+
+          // 當日被「關閉販售」時，前台視為不可預定，因此表格庫存顯示為 0
+          const isUnavailable = cellData?.is_available === false;
+          const displayRooms = isUnavailable ? 0 : (cellData?.available_rooms ?? roomType.room_count);
+          const isZeroRooms = (displayRooms ?? 0) === 0;
+
           return (
             <td
               key={dateStr}
               className={cn(
                 "px-2 py-1 text-center border-r",
                 isWeekend && "bg-orange-50/50",
-                dayType === 'holiday' && "bg-red-50/50"
+                dayType === 'holiday' && "bg-red-50/50",
               )}
             >
-              <span className={cn(
-                "inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium",
-                cellData?.available_rooms === 0 && "bg-red-100 text-red-600",
-                (cellData?.available_rooms ?? roomType.room_count ?? 0) > 0 && "bg-blue-100 text-blue-600",
-                !cellData && "bg-muted text-muted-foreground"
-              )}>
-                {cellData?.available_rooms ?? roomType.room_count ?? '-'}
-              </span>
+              <div className="flex flex-col items-center gap-0.5">
+                {isUnavailable && (
+                  <span className="text-[10px] font-semibold text-destructive leading-none">
+                    無法預定
+                  </span>
+                )}
+                <span
+                  className={cn(
+                    "inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium leading-none",
+                    // 無法預定：以 destructive 標示
+                    isUnavailable && "bg-destructive/10 text-destructive",
+                    // 售完（庫存 0）
+                    !isUnavailable && isZeroRooms && "bg-destructive/10 text-destructive",
+                    // 有庫存
+                    !isUnavailable && !isZeroRooms && "bg-primary/10 text-primary",
+                    // 未設定：維持中性顯示
+                    !cellData && "bg-muted text-muted-foreground",
+                  )}
+                  aria-label={isUnavailable ? '無法預定' : undefined}
+                  title={isUnavailable ? '無法預定' : undefined}
+                >
+                  {displayRooms ?? '-'}
+                </span>
+              </div>
             </td>
           );
         })}
       </tr>
 
       {/* 專案價格行 */}
-      {templates.map(template => (
+      {templates.map((template) => (
         <tr key={`${roomType.id}_${template.id}`} className="border-b hover:bg-muted/20">
           <td className="sticky left-0 z-10 bg-background border-r px-3 py-2 text-sm text-muted-foreground">
             {template.project_name || template.template_name}
           </td>
-          {monthDays.map(day => {
+          {monthDays.map((day) => {
             const dateStr = format(day, 'yyyy-MM-dd');
             const dayType = getDayType(day, dateStr);
             const isWeekend = dayType === 'weekend' || dayType === 'holiday';
             const cellData = getCellData(roomType.id, dateStr);
-            
+
             // 只顯示實際套用過的庫存價格，不使用模板價格作為預設值
             const price = cellData?.price;
-            
+
             return (
               <td
                 key={dateStr}
@@ -616,13 +637,14 @@ function RoomTypeRows({
                   "px-1 py-1 text-center border-r cursor-pointer transition-colors",
                   isWeekend && "bg-orange-50/50 hover:bg-orange-100/50",
                   dayType === 'holiday' && "bg-red-50/50 hover:bg-red-100/50",
-                  !isWeekend && "hover:bg-muted/50"
+                  !isWeekend && "hover:bg-muted/50",
+                  // 關閉販售：在價格列做淡化提示（仍可點擊編輯以重新開啟）
+                  cellData?.is_available === false && "opacity-60",
                 )}
                 onClick={() => onCellClick(roomType, template, dateStr, price || undefined)}
+                title={cellData?.is_available === false ? '無法預定（已關閉販售）' : undefined}
               >
-                <span className="text-sm">
-                  {formatPrice(price)}
-                </span>
+                <span className="text-sm">{formatPrice(price)}</span>
               </td>
             );
           })}
