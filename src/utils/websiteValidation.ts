@@ -14,16 +14,8 @@ const urlSchema = z.string().trim().refine(
   { message: "請輸入有效的網址（需包含 http:// 或 https://）" }
 );
 
-// 電話號碼驗證（台灣格式）
-const phoneSchema = z.string().trim().refine(
-  (val) => {
-    if (!val) return true; // 允許空值
-    // 支援台灣手機號碼和市話格式
-    const phoneRegex = /^(\+?886-?)?0?[2-9]\d{7,9}$/;
-    return phoneRegex.test(val.replace(/[\s-]/g, ''));
-  },
-  { message: "請輸入有效的電話號碼（例：0912-345-678 或 02-2345-6789）" }
-);
+// 電話號碼（不驗證格式，允許任意字串）
+const phoneSchema = z.string().trim().max(50, { message: "電話不能超過 50 字元" });
 
 // Email 驗證
 const emailSchema = z.string().trim().email({ message: "請輸入有效的電子郵件地址" }).or(z.literal(""));
