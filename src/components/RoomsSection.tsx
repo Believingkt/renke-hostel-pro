@@ -41,6 +41,7 @@ interface RoomType {
 
 interface RoomsSectionProps {
   roomTypes: any[];
+  sectionDescription?: string;
 }
 
 const roomImages: Record<string, string[]> = {
@@ -384,7 +385,7 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
   );
 };
 
-const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
+const RoomsSection = ({ roomTypes, sectionDescription }: RoomsSectionProps) => {
   // 將資料庫的房型資料轉換為顯示格式，保留照片資料
   const displayRooms: RoomType[] = roomTypes.map(room => ({
     id: room.id,
@@ -427,7 +428,7 @@ const RoomsSection = ({ roomTypes }: RoomsSectionProps) => {
         <div className="max-w-7xl mx-auto">
           <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-3 lg:mb-4">房型導覽</h2>
           <p className="text-center text-muted-foreground text-base md:text-base lg:text-lg mb-8 md:mb-12 lg:mb-16 max-w-3xl mx-auto">
-            精心設計的客房空間，讓您在山林間享受寧靜舒適的住宿體驗
+            {sectionDescription || '精心設計的客房空間，讓您在山林間享受寧靜舒適的住宿體驗'}
           </p>
 
           {shouldUseCarousel ? (

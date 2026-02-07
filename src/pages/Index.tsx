@@ -181,7 +181,7 @@ const Index = () => {
               );
             case 'rooms':
               return info.show_rooms_section !== false && (
-                <RoomsSection key="rooms" roomTypes={secondaryData?.roomTypes || []} />
+                <RoomsSection key="rooms" roomTypes={secondaryData?.roomTypes || []} sectionDescription={info.description} />
               );
             case 'facilities':
               return info.show_facilities_section !== false && (
