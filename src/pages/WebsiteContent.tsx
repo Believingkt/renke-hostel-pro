@@ -596,9 +596,14 @@ const WebsiteContent = () => {
         
         // Parse homepage_sections_order from JSONB
         const defaultOrder = ["about", "rooms", "facilities", "gallery", "location", "booking_info", "reviews", "faq", "custom_images"];
-        const sectionsOrder = Array.isArray(infoData.homepage_sections_order) 
+        let sectionsOrder = Array.isArray(infoData.homepage_sections_order) 
           ? infoData.homepage_sections_order as string[]
           : defaultOrder;
+        
+        // Ensure custom_images is in the order array (for existing data without it)
+        if (!sectionsOrder.includes('custom_images')) {
+          sectionsOrder = [...sectionsOrder, 'custom_images'];
+        }
         
         // 設置基本資料
         setBasicInfo({
@@ -882,9 +887,14 @@ const WebsiteContent = () => {
             if (infoData) {
               // Parse homepage_sections_order from JSONB
               const defaultOrder = ["about", "rooms", "facilities", "gallery", "location", "booking_info", "reviews", "faq", "custom_images"];
-              const sectionsOrder = Array.isArray(infoData.homepage_sections_order) 
+              let sectionsOrder = Array.isArray(infoData.homepage_sections_order) 
                 ? infoData.homepage_sections_order as string[]
                 : defaultOrder;
+              
+              // Ensure custom_images is in the order array (for existing data without it)
+              if (!sectionsOrder.includes('custom_images')) {
+                sectionsOrder = [...sectionsOrder, 'custom_images'];
+              }
               
               setBasicInfo({
                 name: infoData.name || "",
@@ -2069,9 +2079,14 @@ const WebsiteContent = () => {
       if (updatedInfo) {
         // Parse homepage_sections_order from JSONB
         const defaultOrder = ["about", "rooms", "facilities", "gallery", "location", "booking_info", "reviews", "faq", "custom_images"];
-        const sectionsOrder = Array.isArray(updatedInfo.homepage_sections_order) 
+        let sectionsOrder = Array.isArray(updatedInfo.homepage_sections_order) 
           ? updatedInfo.homepage_sections_order as string[]
           : defaultOrder;
+        
+        // Ensure custom_images is in the order array (for existing data without it)
+        if (!sectionsOrder.includes('custom_images')) {
+          sectionsOrder = [...sectionsOrder, 'custom_images'];
+        }
         
         setBasicInfo({
           name: updatedInfo.name || "",
