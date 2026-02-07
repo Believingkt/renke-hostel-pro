@@ -274,8 +274,13 @@ const BookingFlow = () => {
   
   // TapPay 設定 - 從後端動態載入
   const shouldLoadTapPay = paymentMethod === '信用卡';
-  const { config: tappayConfig, loading: tappayConfigLoading, error: tappayConfigError } =
-    useTapPayConfig(shouldLoadTapPay);
+  const {
+    config: tappayConfig,
+    loading: tappayConfigLoading,
+    error: tappayConfigError,
+    reload: reloadTapPayConfig,
+  } = useTapPayConfig(shouldLoadTapPay);
+
 
   // TapPay 狀態
   const [isTapPayReady, setIsTapPayReady] = useState(false);
@@ -3406,7 +3411,28 @@ const BookingFlow = () => {
                               <p className="text-sm font-medium text-foreground mb-1">請輸入信用卡資訊</p>
                               <p className="text-xs text-muted-foreground">您的卡片資訊由 TapPay 安全加密處理</p>
                             </div>
-                            {!isTapPayReady ? (
+                            {tappayConfigLoading ? (
+                              <div className="flex items-center justify-center py-8">
+                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                                <span className="ml-2 text-sm text-muted-foreground">取得付款設定...</span>
+                              </div>
+                            ) : tappayConfigError ? (
+                              <Alert variant="destructive">
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertTitle>付款模組載入失敗</AlertTitle>
+                                <AlertDescription>
+                                  <p className="mb-3">{tappayConfigError}</p>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => reloadTapPayConfig()}
+                                  >
+                                    重新載入
+                                  </Button>
+                                </AlertDescription>
+                              </Alert>
+                            ) : !isTapPayReady ? (
                               <div className="flex items-center justify-center py-8">
                                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                                 <span className="ml-2 text-sm text-muted-foreground">載入付款表單...</span>
