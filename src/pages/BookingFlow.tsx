@@ -1349,8 +1349,11 @@ const BookingFlow = () => {
       setTappayPrime(null);
     }
 
-    // 切換到下一步
-    const steps: BookingStep[] = ["dates", "room", "addons", "guest", "payment", "confirm"];
+    // 切換到下一步 - 如果沒有加購方案則跳過 addons 步驟
+    const hasAddons = petPlanSettings.enabled || mealPlanSettings.enabled;
+    const steps: BookingStep[] = hasAddons 
+      ? ["dates", "room", "addons", "guest", "payment", "confirm"]
+      : ["dates", "room", "guest", "payment", "confirm"];
     const currentIndex = steps.indexOf(currentStep);
     if (currentIndex < steps.length - 1) {
       setCurrentStep(steps[currentIndex + 1]);
@@ -1358,7 +1361,11 @@ const BookingFlow = () => {
   };
 
   const handlePrevStep = () => {
-    const steps: BookingStep[] = ["dates", "room", "addons", "guest", "payment", "confirm"];
+    // 如果沒有加購方案則跳過 addons 步驟
+    const hasAddons = petPlanSettings.enabled || mealPlanSettings.enabled;
+    const steps: BookingStep[] = hasAddons 
+      ? ["dates", "room", "addons", "guest", "payment", "confirm"]
+      : ["dates", "room", "guest", "payment", "confirm"];
     const currentIndex = steps.indexOf(currentStep);
     if (currentIndex > 0) {
       setCurrentStep(steps[currentIndex - 1]);
@@ -2112,14 +2119,25 @@ const BookingFlow = () => {
     );
   }
 
-  const stepIndicators = [
-    { key: "dates", label: "選擇日期", icon: Calendar },
-    { key: "room", label: "選擇房型", icon: Home },
-    { key: "addons", label: "加購方案", icon: ShoppingBag },
-    { key: "guest", label: "填寫資訊", icon: User },
-    { key: "payment", label: "付款方式", icon: CreditCard },
-    { key: "confirm", label: "確認訂單", icon: CheckCircle },
-  ];
+  // 如果沒有加購方案則不顯示 addons 步驟
+  const hasAddons = petPlanSettings.enabled || mealPlanSettings.enabled;
+  
+  const stepIndicators = hasAddons 
+    ? [
+        { key: "dates", label: "選擇日期", icon: Calendar },
+        { key: "room", label: "選擇房型", icon: Home },
+        { key: "addons", label: "加購方案", icon: ShoppingBag },
+        { key: "guest", label: "填寫資訊", icon: User },
+        { key: "payment", label: "付款方式", icon: CreditCard },
+        { key: "confirm", label: "確認訂單", icon: CheckCircle },
+      ]
+    : [
+        { key: "dates", label: "選擇日期", icon: Calendar },
+        { key: "room", label: "選擇房型", icon: Home },
+        { key: "guest", label: "填寫資訊", icon: User },
+        { key: "payment", label: "付款方式", icon: CreditCard },
+        { key: "confirm", label: "確認訂單", icon: CheckCircle },
+      ];
 
   const currentStepIndex = stepIndicators.findIndex((s) => s.key === currentStep);
 
