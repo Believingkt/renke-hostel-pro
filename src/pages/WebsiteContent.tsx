@@ -19,6 +19,7 @@ import { SeoSettingsSection } from "@/components/website-content/SeoSettingsSect
 import { HeaderFooterSection } from "@/components/website-content/HeaderFooterSection";
 import { HomepageSectionsBlock } from "@/components/website-content/HomepageSectionsBlock";
 import { AddonPlansSection, AddonPlan } from "@/components/website-content/AddonPlansSection";
+import { CustomSectionsManager } from "@/components/website-content/CustomSectionsManager";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { ValidatedInput } from "@/components/ui/validated-input";
 import { ValidatedTextarea } from "@/components/ui/validated-textarea";
@@ -545,6 +546,21 @@ const WebsiteContent = () => {
   const [featureFormOpen, setFeatureFormOpen] = useState(false);
   const [editingFeature, setEditingFeature] = useState<any | null>(null);
 
+  // 自訂圖片區塊狀態
+  interface CustomImageSection {
+    id: string;
+    accommodation_id: string;
+    title: string | null;
+    subtitle: string | null;
+    image_url: string;
+    mobile_image_url: string | null;
+    display_order: number;
+    is_enabled: boolean;
+    link_url: string | null;
+    link_text: string | null;
+  }
+  const [customImageSections, setCustomImageSections] = useState<CustomImageSection[]>([]);
+
   useEffect(() => {
     const tab = searchParams.get("tab");
     if (tab) {
@@ -819,6 +835,17 @@ const WebsiteContent = () => {
             display_order: s.display_order,
             is_enabled: s.is_enabled
           })));
+        }
+
+        // 加載自訂圖片區塊
+        const { data: customImagesData } = await supabase
+          .from("custom_sections")
+          .select("*")
+          .eq("accommodation_id", infoData.id)
+          .order("display_order");
+
+        if (customImagesData) {
+          setCustomImageSections(customImagesData);
         }
       }
     } catch (error) {
@@ -3023,6 +3050,15 @@ const WebsiteContent = () => {
             uploadingHeaderLogo={uploadingHeaderLogo}
             uploadingFooterLogo={uploadingFooterLogo}
           />
+
+          {/* 自訂圖片區塊 */}
+          {accommodationId && (
+            <CustomSectionsManager
+              accommodationId={accommodationId}
+              sections={customImageSections}
+              onSectionsChange={setCustomImageSections}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="facilities" className="space-y-6">
