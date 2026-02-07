@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import {
   DndContext,
   closestCenter,
@@ -21,7 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { invalidateAccommodationCache } from "@/hooks/use-accommodation-cache";
 
-// Section key to label mapping
+// Section key to label mapping (built-in sections only)
 const SECTION_LABELS: Record<string, { label: string; description: string }> = {
   about: { label: '關於我們', description: '控制首頁是否顯示關於我們區塊' },
   rooms: { label: '房型介紹', description: '控制首頁是否顯示房型介紹區塊' },
@@ -31,8 +31,13 @@ const SECTION_LABELS: Record<string, { label: string; description: string }> = {
   faq: { label: '常見問題', description: '控制首頁是否顯示常見問題區塊' },
   location: { label: '地點交通', description: '控制首頁是否顯示地點交通區塊' },
   booking_info: { label: '訂房須知', description: '控制首頁是否顯示訂房須知區塊' },
-  custom_images: { label: '自訂圖片區塊', description: '控制首頁是否顯示自訂圖片區塊' },
 };
+
+interface CustomSection {
+  id: string;
+  title: string | null;
+  is_enabled: boolean;
+}
 
 interface HomepageSectionsBlockProps {
   accommodationId: string | null;
@@ -45,7 +50,7 @@ interface HomepageSectionsBlockProps {
   showFaqSection: boolean;
   showLocationSection: boolean;
   showBookingInfoSection: boolean;
-  showCustomImagesSection: boolean;
+  customSections?: CustomSection[];
   onSectionsOrderChange: (newOrder: string[]) => void;
   onShowAboutSectionChange: (value: boolean) => void;
   onShowRoomsSectionChange: (value: boolean) => void;
@@ -55,8 +60,12 @@ interface HomepageSectionsBlockProps {
   onShowFaqSectionChange: (value: boolean) => void;
   onShowLocationSectionChange: (value: boolean) => void;
   onShowBookingInfoSectionChange: (value: boolean) => void;
-  onShowCustomImagesSectionChange: (value: boolean) => void;
+  onCustomSectionToggle?: (id: string, enabled: boolean) => void;
 }
+
+// Helper to check if a key is a custom section key
+const isCustomSectionKey = (key: string) => key.startsWith('custom_');
+const getCustomSectionId = (key: string) => key.replace('custom_', '');
 
 export const HomepageSectionsBlock = ({
   accommodationId,
@@ -69,7 +78,7 @@ export const HomepageSectionsBlock = ({
   showFaqSection,
   showLocationSection,
   showBookingInfoSection,
-  showCustomImagesSection,
+  customSections = [],
   onSectionsOrderChange,
   onShowAboutSectionChange,
   onShowRoomsSectionChange,
@@ -79,10 +88,45 @@ export const HomepageSectionsBlock = ({
   onShowFaqSectionChange,
   onShowLocationSectionChange,
   onShowBookingInfoSectionChange,
-  onShowCustomImagesSectionChange,
+  onCustomSectionToggle,
 }: HomepageSectionsBlockProps) => {
   const [isSaving, setIsSaving] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Create a map of custom sections for quick lookup
+  const customSectionsMap = useMemo(() => {
+    const map = new Map<string, CustomSection>();
+    customSections.forEach(s => map.set(s.id, s));
+    return map;
+  }, [customSections]);
+
+  // Merge sectionsOrder with custom sections that might not be in the order yet
+  const mergedSectionsOrder = useMemo(() => {
+    const result = [...sectionsOrder];
+    
+    // Remove old 'custom_images' key if present
+    const customImagesIndex = result.indexOf('custom_images');
+    if (customImagesIndex !== -1) {
+      result.splice(customImagesIndex, 1);
+    }
+    
+    // Add any custom sections that are not in the order yet
+    customSections.forEach(section => {
+      const key = `custom_${section.id}`;
+      if (!result.includes(key)) {
+        result.push(key);
+      }
+    });
+    
+    // Remove custom section keys for deleted sections
+    return result.filter(key => {
+      if (isCustomSectionKey(key)) {
+        const id = getCustomSectionId(key);
+        return customSectionsMap.has(id);
+      }
+      return true;
+    });
+  }, [sectionsOrder, customSections, customSectionsMap]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -141,11 +185,11 @@ export const HomepageSectionsBlock = ({
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
-      const oldIndex = sectionsOrder.indexOf(active.id as string);
-      const newIndex = sectionsOrder.indexOf(over.id as string);
+      const oldIndex = mergedSectionsOrder.indexOf(active.id as string);
+      const newIndex = mergedSectionsOrder.indexOf(over.id as string);
 
       if (oldIndex !== -1 && newIndex !== -1) {
-        const newOrder = arrayMove(sectionsOrder, oldIndex, newIndex);
+        const newOrder = arrayMove(mergedSectionsOrder, oldIndex, newIndex);
         onSectionsOrderChange(newOrder);
         debouncedSaveOrder(newOrder);
       }
@@ -163,7 +207,49 @@ export const HomepageSectionsBlock = ({
     };
   };
 
+  // Handler for custom section toggle
+  const handleCustomSectionToggle = useCallback(async (sectionId: string, enabled: boolean) => {
+    if (!accommodationId) return;
+    
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from("custom_sections")
+        .update({ is_enabled: enabled })
+        .eq("id", sectionId);
+
+      if (error) throw error;
+
+      // Notify parent of the change
+      onCustomSectionToggle?.(sectionId, enabled);
+      
+      // Invalidate cache
+      invalidateAccommodationCache(accommodationId);
+    } catch (error) {
+      console.error('Toggle custom section failed:', error);
+      toast.error('更新失敗');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [accommodationId, onCustomSectionToggle]);
+
   const getSectionConfig = (key: string) => {
+    // Check if it's a custom section
+    if (isCustomSectionKey(key)) {
+      const id = getCustomSectionId(key);
+      const section = customSectionsMap.get(id);
+      if (!section) return null;
+      
+      return {
+        key,
+        label: section.title || '自訂區塊',
+        description: '自訂圖片區塊',
+        checked: section.is_enabled,
+        onCheckedChange: (value: boolean) => handleCustomSectionToggle(id, value),
+      };
+    }
+
+    // Built-in section
     const config = SECTION_LABELS[key];
     if (!config) return null;
 
@@ -176,7 +262,6 @@ export const HomepageSectionsBlock = ({
       faq: { checked: showFaqSection, onChange: createToggleHandler('show_faq_section', onShowFaqSectionChange) },
       location: { checked: showLocationSection, onChange: createToggleHandler('show_location_section', onShowLocationSectionChange) },
       booking_info: { checked: showBookingInfoSection, onChange: createToggleHandler('show_booking_info_section', onShowBookingInfoSectionChange) },
-      custom_images: { checked: showCustomImagesSection, onChange: createToggleHandler('show_custom_images_section', onShowCustomImagesSectionChange) },
     };
 
     const visibility = visibilityMap[key];
@@ -229,11 +314,11 @@ export const HomepageSectionsBlock = ({
               onDragEnd={handleSectionDragEnd}
             >
               <SortableContext
-                items={sectionsOrder}
+                items={mergedSectionsOrder}
                 strategy={verticalListSortingStrategy}
               >
                 <div className="space-y-1">
-                  {sectionsOrder.map((key, index) => {
+                  {mergedSectionsOrder.map((key, index) => {
                     const config = getSectionConfig(key);
                     if (!config) return null;
                     return (
@@ -241,7 +326,7 @@ export const HomepageSectionsBlock = ({
                         key={key}
                         section={config}
                         isFirst={index === 0}
-                        isLast={index === sectionsOrder.length - 1}
+                        isLast={index === mergedSectionsOrder.length - 1}
                       />
                     );
                   })}

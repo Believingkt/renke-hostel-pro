@@ -2950,6 +2950,11 @@ const WebsiteContent = () => {
             showFaqSection={basicInfo.show_faq_section}
             showLocationSection={basicInfo.show_location_section}
             showBookingInfoSection={basicInfo.show_booking_info_section}
+            customSections={customImageSections.map(s => ({
+              id: s.id,
+              title: s.title,
+              is_enabled: s.is_enabled,
+            }))}
             onSectionsOrderChange={(newOrder) => {
               setBasicInfo(prev => ({ ...prev, homepage_sections_order: newOrder }));
             }}
@@ -2977,9 +2982,10 @@ const WebsiteContent = () => {
             onShowBookingInfoSectionChange={(value) => {
               setBasicInfo(prev => ({ ...prev, show_booking_info_section: value }));
             }}
-            showCustomImagesSection={basicInfo.show_custom_images_section}
-            onShowCustomImagesSectionChange={(value) => {
-              setBasicInfo(prev => ({ ...prev, show_custom_images_section: value }));
+            onCustomSectionToggle={(id, enabled) => {
+              setCustomImageSections(prev => 
+                prev.map(s => s.id === id ? { ...s, is_enabled: enabled } : s)
+              );
             }}
           />
 
