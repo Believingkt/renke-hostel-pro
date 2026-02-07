@@ -459,7 +459,20 @@ const WebsiteContent = () => {
     cancellationPolicy: "",
     checkInNotice: "",
     petPolicy: "",
-    otherNotes: ""
+    otherNotes: "",
+    // 自訂區塊標題和副標題
+    checkInSectionTitle: "入住時間",
+    checkInSectionSubtitle: "",
+    paymentSectionTitle: "付款方式",
+    paymentSectionSubtitle: "",
+    cancellationSectionTitle: "取消政策",
+    cancellationSectionSubtitle: "",
+    importantSectionTitle: "重要事項",
+    importantSectionSubtitle: "",
+    petSectionTitle: "寵物入住守則",
+    petSectionSubtitle: "",
+    otherSectionTitle: "其他注意事項",
+    otherSectionSubtitle: ""
   });
   
   // 訂房設定驗證錯誤
@@ -639,7 +652,20 @@ const WebsiteContent = () => {
             cancellationPolicy: bookingSettings.cancellation_policy || "",
             checkInNotice: infoData.check_in_notice || "",
             petPolicy: bookingSettings.pet_policy || "",
-            otherNotes: bookingSettings.other_notes || ""
+            otherNotes: bookingSettings.other_notes || "",
+            // 自訂區塊標題和副標題
+            checkInSectionTitle: (bookingSettings as any).check_in_section_title || "入住時間",
+            checkInSectionSubtitle: (bookingSettings as any).check_in_section_subtitle || "",
+            paymentSectionTitle: (bookingSettings as any).payment_section_title || "付款方式",
+            paymentSectionSubtitle: (bookingSettings as any).payment_section_subtitle || "",
+            cancellationSectionTitle: (bookingSettings as any).cancellation_section_title || "取消政策",
+            cancellationSectionSubtitle: (bookingSettings as any).cancellation_section_subtitle || "",
+            importantSectionTitle: (bookingSettings as any).important_section_title || "重要事項",
+            importantSectionSubtitle: (bookingSettings as any).important_section_subtitle || "",
+            petSectionTitle: (bookingSettings as any).pet_section_title || "寵物入住守則",
+            petSectionSubtitle: (bookingSettings as any).pet_section_subtitle || "",
+            otherSectionTitle: (bookingSettings as any).other_section_title || "其他注意事項",
+            otherSectionSubtitle: (bookingSettings as any).other_section_subtitle || ""
           });
         } else {
           // 如果沒有設定，使用預設值但保留入住須知
@@ -956,7 +982,20 @@ const WebsiteContent = () => {
               cancellationPolicy: bookingSettings?.cancellation_policy || "",
               checkInNotice: checkInNoticeData?.check_in_notice || "",
               petPolicy: bookingSettings?.pet_policy || "",
-              otherNotes: bookingSettings?.other_notes || ""
+              otherNotes: bookingSettings?.other_notes || "",
+              // 自訂區塊標題和副標題
+              checkInSectionTitle: (bookingSettings as any)?.check_in_section_title || "入住時間",
+              checkInSectionSubtitle: (bookingSettings as any)?.check_in_section_subtitle || "",
+              paymentSectionTitle: (bookingSettings as any)?.payment_section_title || "付款方式",
+              paymentSectionSubtitle: (bookingSettings as any)?.payment_section_subtitle || "",
+              cancellationSectionTitle: (bookingSettings as any)?.cancellation_section_title || "取消政策",
+              cancellationSectionSubtitle: (bookingSettings as any)?.cancellation_section_subtitle || "",
+              importantSectionTitle: (bookingSettings as any)?.important_section_title || "重要事項",
+              importantSectionSubtitle: (bookingSettings as any)?.important_section_subtitle || "",
+              petSectionTitle: (bookingSettings as any)?.pet_section_title || "寵物入住守則",
+              petSectionSubtitle: (bookingSettings as any)?.pet_section_subtitle || "",
+              otherSectionTitle: (bookingSettings as any)?.other_section_title || "其他注意事項",
+              otherSectionSubtitle: (bookingSettings as any)?.other_section_subtitle || ""
             });
             break;
 
@@ -1142,6 +1181,19 @@ const WebsiteContent = () => {
           cancellation_policy: bookingInfo.cancellationPolicy,
           pet_policy: bookingInfo.petPolicy,
           other_notes: bookingInfo.otherNotes,
+          // 自訂區塊標題和副標題
+          check_in_section_title: bookingInfo.checkInSectionTitle,
+          check_in_section_subtitle: bookingInfo.checkInSectionSubtitle || null,
+          payment_section_title: bookingInfo.paymentSectionTitle,
+          payment_section_subtitle: bookingInfo.paymentSectionSubtitle || null,
+          cancellation_section_title: bookingInfo.cancellationSectionTitle,
+          cancellation_section_subtitle: bookingInfo.cancellationSectionSubtitle || null,
+          important_section_title: bookingInfo.importantSectionTitle,
+          important_section_subtitle: bookingInfo.importantSectionSubtitle || null,
+          pet_section_title: bookingInfo.petSectionTitle,
+          pet_section_subtitle: bookingInfo.petSectionSubtitle || null,
+          other_section_title: bookingInfo.otherSectionTitle,
+          other_section_subtitle: bookingInfo.otherSectionSubtitle || null,
           updated_at: new Date().toISOString()
         }, {
           onConflict: 'accommodation_id'
@@ -1183,7 +1235,20 @@ const WebsiteContent = () => {
           cancellationPolicy: updatedBookingSettings.cancellation_policy || "",
           checkInNotice: updatedInfo?.check_in_notice || "",
           petPolicy: updatedBookingSettings.pet_policy || "",
-          otherNotes: updatedBookingSettings.other_notes || ""
+          otherNotes: updatedBookingSettings.other_notes || "",
+          // 自訂區塊標題和副標題
+          checkInSectionTitle: (updatedBookingSettings as any).check_in_section_title || "入住時間",
+          checkInSectionSubtitle: (updatedBookingSettings as any).check_in_section_subtitle || "",
+          paymentSectionTitle: (updatedBookingSettings as any).payment_section_title || "付款方式",
+          paymentSectionSubtitle: (updatedBookingSettings as any).payment_section_subtitle || "",
+          cancellationSectionTitle: (updatedBookingSettings as any).cancellation_section_title || "取消政策",
+          cancellationSectionSubtitle: (updatedBookingSettings as any).cancellation_section_subtitle || "",
+          importantSectionTitle: (updatedBookingSettings as any).important_section_title || "重要事項",
+          importantSectionSubtitle: (updatedBookingSettings as any).important_section_subtitle || "",
+          petSectionTitle: (updatedBookingSettings as any).pet_section_title || "寵物入住守則",
+          petSectionSubtitle: (updatedBookingSettings as any).pet_section_subtitle || "",
+          otherSectionTitle: (updatedBookingSettings as any).other_section_title || "其他注意事項",
+          otherSectionSubtitle: (updatedBookingSettings as any).other_section_subtitle || ""
         });
       }
 
@@ -3148,9 +3213,25 @@ const WebsiteContent = () => {
             <CardHeader className="pb-4">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-1.5 bg-primary rounded-full" />
-                <div>
-                  <CardTitle className="text-xl">入住時間</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">設定入住與退房的時間</p>
+                <div className="flex-1 space-y-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">區塊標題</Label>
+                    <Input
+                      value={bookingInfo.checkInSectionTitle}
+                      onChange={(e) => setBookingInfo(prev => ({ ...prev, checkInSectionTitle: e.target.value }))}
+                      placeholder="入住時間"
+                      className="text-xl font-semibold h-10"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">區塊副標題（選填）</Label>
+                    <Input
+                      value={bookingInfo.checkInSectionSubtitle}
+                      onChange={(e) => setBookingInfo(prev => ({ ...prev, checkInSectionSubtitle: e.target.value }))}
+                      placeholder="例如：請於指定時間辦理入住手續"
+                      className="text-sm"
+                    />
+                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -3195,9 +3276,25 @@ const WebsiteContent = () => {
             <CardHeader className="pb-4">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-1.5 bg-primary rounded-full" />
-                <div>
-                  <CardTitle className="text-xl">付款方式</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">選擇接受的付款方式</p>
+                <div className="flex-1 space-y-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">區塊標題</Label>
+                    <Input
+                      value={bookingInfo.paymentSectionTitle}
+                      onChange={(e) => setBookingInfo(prev => ({ ...prev, paymentSectionTitle: e.target.value }))}
+                      placeholder="付款方式"
+                      className="text-xl font-semibold h-10"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">區塊副標題（選填）</Label>
+                    <Input
+                      value={bookingInfo.paymentSectionSubtitle}
+                      onChange={(e) => setBookingInfo(prev => ({ ...prev, paymentSectionSubtitle: e.target.value }))}
+                      placeholder="例如：我們接受以下付款方式"
+                      className="text-sm"
+                    />
+                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -3227,9 +3324,25 @@ const WebsiteContent = () => {
             <CardHeader className="pb-4">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-1.5 bg-primary rounded-full" />
-                <div>
-                  <CardTitle className="text-xl">取消政策</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">設定訂單取消的相關規定</p>
+                <div className="flex-1 space-y-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">區塊標題</Label>
+                    <Input
+                      value={bookingInfo.cancellationSectionTitle}
+                      onChange={(e) => setBookingInfo(prev => ({ ...prev, cancellationSectionTitle: e.target.value }))}
+                      placeholder="取消政策"
+                      className="text-xl font-semibold h-10"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">區塊副標題（選填）</Label>
+                    <Input
+                      value={bookingInfo.cancellationSectionSubtitle}
+                      onChange={(e) => setBookingInfo(prev => ({ ...prev, cancellationSectionSubtitle: e.target.value }))}
+                      placeholder="例如：請詳閱以下取消規定"
+                      className="text-sm"
+                    />
+                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -3251,9 +3364,25 @@ const WebsiteContent = () => {
             <CardHeader className="pb-4">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-1.5 bg-primary rounded-full" />
-                <div>
-                  <CardTitle className="text-xl">重要事項</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">提醒訪客入住時的重要注意事項</p>
+                <div className="flex-1 space-y-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">區塊標題</Label>
+                    <Input
+                      value={bookingInfo.importantSectionTitle}
+                      onChange={(e) => setBookingInfo(prev => ({ ...prev, importantSectionTitle: e.target.value }))}
+                      placeholder="重要事項"
+                      className="text-xl font-semibold h-10"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">區塊副標題（選填）</Label>
+                    <Input
+                      value={bookingInfo.importantSectionSubtitle}
+                      onChange={(e) => setBookingInfo(prev => ({ ...prev, importantSectionSubtitle: e.target.value }))}
+                      placeholder="例如：入住前請詳閱以下重要資訊"
+                      className="text-sm"
+                    />
+                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -3274,9 +3403,25 @@ const WebsiteContent = () => {
             <CardHeader className="pb-4">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-1.5 bg-primary rounded-full" />
-                <div>
-                  <CardTitle className="text-xl">寵物入住守則</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">說明寵物入住的規範與要求</p>
+                <div className="flex-1 space-y-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">區塊標題</Label>
+                    <Input
+                      value={bookingInfo.petSectionTitle}
+                      onChange={(e) => setBookingInfo(prev => ({ ...prev, petSectionTitle: e.target.value }))}
+                      placeholder="寵物入住守則"
+                      className="text-xl font-semibold h-10"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">區塊副標題（選填）</Label>
+                    <Input
+                      value={bookingInfo.petSectionSubtitle}
+                      onChange={(e) => setBookingInfo(prev => ({ ...prev, petSectionSubtitle: e.target.value }))}
+                      placeholder="例如：攜帶毛小孩入住請遵守以下規定"
+                      className="text-sm"
+                    />
+                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -3298,9 +3443,25 @@ const WebsiteContent = () => {
             <CardHeader className="pb-4">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-1.5 bg-primary rounded-full" />
-                <div>
-                  <CardTitle className="text-xl">其他注意事項</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">補充其他需要告知訪客的事項</p>
+                <div className="flex-1 space-y-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">區塊標題</Label>
+                    <Input
+                      value={bookingInfo.otherSectionTitle}
+                      onChange={(e) => setBookingInfo(prev => ({ ...prev, otherSectionTitle: e.target.value }))}
+                      placeholder="其他注意事項"
+                      className="text-xl font-semibold h-10"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">區塊副標題（選填）</Label>
+                    <Input
+                      value={bookingInfo.otherSectionSubtitle}
+                      onChange={(e) => setBookingInfo(prev => ({ ...prev, otherSectionSubtitle: e.target.value }))}
+                      placeholder="例如：其他補充說明"
+                      className="text-sm"
+                    />
+                  </div>
                 </div>
               </div>
             </CardHeader>
