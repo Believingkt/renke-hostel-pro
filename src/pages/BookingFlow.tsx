@@ -295,15 +295,15 @@ const BookingFlow = () => {
     setCardValid(false);
   }, [paymentMethod]);
 
-  // 加購方案設定
+  // 加購方案設定 - 預設為停用，只有資料庫有設定且啟用時才顯示
   const [petPlanSettings, setPetPlanSettings] = useState({
-    enabled: true,
+    enabled: false,
     pricePerUnit: 600,
     maxQuantity: 2,
     detailedDescription: ""
   });
   const [mealPlanSettings, setMealPlanSettings] = useState({
-    enabled: true,
+    enabled: false,
     pricePerUnit: 900,
     weekdayMinQuantity: 12,
     weekendMinQuantity: 18,
