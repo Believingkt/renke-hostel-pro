@@ -431,7 +431,8 @@ const RoomsSection = ({ roomTypes, sectionDescription }: RoomsSectionProps) => {
             {sectionDescription || '精心設計的客房空間，讓您在山林間享受寧靜舒適的住宿體驗'}
           </p>
 
-          {shouldUseCarousel ? (
+          {/* 手機版：永遠使用輪播並顯示箭頭 */}
+          <div className="md:hidden">
             <Carousel
               opts={{
                 align: "start",
@@ -441,21 +442,47 @@ const RoomsSection = ({ roomTypes, sectionDescription }: RoomsSectionProps) => {
             >
               <CarouselContent className="-ml-4">
                 {displayRooms.map((room, index) => (
-                  <CarouselItem key={room.id} className="pl-4 basis-full sm:basis-1/2 lg:basis-1/4">
+                  <CarouselItem key={room.id} className="pl-4 basis-full">
                     <RoomCard room={room} isFirstRoom={index === 0} />
                   </CarouselItem>
                 ))}
               </CarouselContent>
-              <CarouselPrevious className="hidden md:flex -left-4 lg:-left-6" />
-              <CarouselNext className="hidden md:flex -right-4 lg:-right-6" />
+              {/* 手機版左右箭頭 - 置於卡片下方 */}
+              <div className="flex justify-center items-center gap-4 mt-6">
+                <CarouselPrevious className="static translate-y-0 h-10 w-10 rounded-full border-2 border-primary bg-background hover:bg-primary hover:text-primary-foreground" />
+                <CarouselNext className="static translate-y-0 h-10 w-10 rounded-full border-2 border-primary bg-background hover:bg-primary hover:text-primary-foreground" />
+              </div>
             </Carousel>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6 lg:gap-6 items-stretch">
-              {displayRooms.map((room, index) => (
-                <RoomCard key={room.id} room={room} isFirstRoom={index === 0} />
-              ))}
-            </div>
-          )}
+          </div>
+
+          {/* 平板/桌面版：維持原有邏輯 */}
+          <div className="hidden md:block">
+            {shouldUseCarousel ? (
+              <Carousel
+                opts={{
+                  align: "start",
+                  loop: false,
+                }}
+                className="w-full"
+              >
+                <CarouselContent className="-ml-4">
+                  {displayRooms.map((room, index) => (
+                    <CarouselItem key={room.id} className="pl-4 basis-1/2 lg:basis-1/4">
+                      <RoomCard room={room} isFirstRoom={index === 0} />
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious className="-left-4 lg:-left-6" />
+                <CarouselNext className="-right-4 lg:-right-6" />
+              </Carousel>
+            ) : (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6 lg:gap-6 items-stretch">
+                {displayRooms.map((room, index) => (
+                  <RoomCard key={room.id} room={room} isFirstRoom={index === 0} />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </section>
