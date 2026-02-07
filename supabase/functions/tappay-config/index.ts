@@ -1,38 +1,18 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const allowedOrigins = [
-  "https://sensan.lovable.app",
-  "https://dmafqwfynatdvnaeovhz.lovableproject.com",
-  "https://sensaninn.lakeze.com",
-  "https://renke-hostel-pro.lovable.app",
-];
-
-function getCorsHeaders(req: Request) {
-  const origin = req.headers.get("origin") || "";
-
-  const isTrustedLovableOrigin =
-    origin.endsWith(".lovable.app") || origin.endsWith(".lovableproject.com");
-
-  const allowedOrigin =
-    !origin
-      ? allowedOrigins[0]
-      : allowedOrigins.includes(origin) || isTrustedLovableOrigin
-        ? origin
-        : allowedOrigins[0];
-
-  return {
-    "Access-Control-Allow-Origin": allowedOrigin,
-    "Access-Control-Allow-Headers":
-      "authorization, x-client-info, apikey, content-type",
-    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-  };
-}
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+};
 
 serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req);
+  // Basic request log for debugging (no sensitive data)
+  console.log("[tappay-config]", req.method, req.headers.get("origin") ?? "");
 
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {

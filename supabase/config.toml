@@ -95,3 +95,7 @@ verify_jwt = false
 
 [functions.tappay-refund-notify]
 verify_jwt = false
+
+[functions.tappay-config]
+verify_jwt = false
+
