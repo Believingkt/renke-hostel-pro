@@ -26,6 +26,7 @@ interface SectionVisibility {
   show_booking_info_section?: boolean;
   show_reviews_section?: boolean;
   show_faq_section?: boolean;
+  show_custom_images_section?: boolean;
 }
 
 interface NavigationProps {

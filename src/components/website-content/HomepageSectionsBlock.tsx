@@ -31,6 +31,7 @@ const SECTION_LABELS: Record<string, { label: string; description: string }> = {
   faq: { label: '常見問題', description: '控制首頁是否顯示常見問題區塊' },
   location: { label: '地點交通', description: '控制首頁是否顯示地點交通區塊' },
   booking_info: { label: '訂房須知', description: '控制首頁是否顯示訂房須知區塊' },
+  custom_images: { label: '自訂圖片區塊', description: '控制首頁是否顯示自訂圖片區塊' },
 };
 
 interface HomepageSectionsBlockProps {
@@ -44,6 +45,7 @@ interface HomepageSectionsBlockProps {
   showFaqSection: boolean;
   showLocationSection: boolean;
   showBookingInfoSection: boolean;
+  showCustomImagesSection: boolean;
   onSectionsOrderChange: (newOrder: string[]) => void;
   onShowAboutSectionChange: (value: boolean) => void;
   onShowRoomsSectionChange: (value: boolean) => void;
@@ -53,6 +55,7 @@ interface HomepageSectionsBlockProps {
   onShowFaqSectionChange: (value: boolean) => void;
   onShowLocationSectionChange: (value: boolean) => void;
   onShowBookingInfoSectionChange: (value: boolean) => void;
+  onShowCustomImagesSectionChange: (value: boolean) => void;
 }
 
 export const HomepageSectionsBlock = ({
@@ -66,6 +69,7 @@ export const HomepageSectionsBlock = ({
   showFaqSection,
   showLocationSection,
   showBookingInfoSection,
+  showCustomImagesSection,
   onSectionsOrderChange,
   onShowAboutSectionChange,
   onShowRoomsSectionChange,
@@ -75,6 +79,7 @@ export const HomepageSectionsBlock = ({
   onShowFaqSectionChange,
   onShowLocationSectionChange,
   onShowBookingInfoSectionChange,
+  onShowCustomImagesSectionChange,
 }: HomepageSectionsBlockProps) => {
   const [isSaving, setIsSaving] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -171,6 +176,7 @@ export const HomepageSectionsBlock = ({
       faq: { checked: showFaqSection, onChange: createToggleHandler('show_faq_section', onShowFaqSectionChange) },
       location: { checked: showLocationSection, onChange: createToggleHandler('show_location_section', onShowLocationSectionChange) },
       booking_info: { checked: showBookingInfoSection, onChange: createToggleHandler('show_booking_info_section', onShowBookingInfoSectionChange) },
+      custom_images: { checked: showCustomImagesSection, onChange: createToggleHandler('show_custom_images_section', onShowCustomImagesSectionChange) },
     };
 
     const visibility = visibilityMap[key];

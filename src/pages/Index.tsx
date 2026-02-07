@@ -159,6 +159,7 @@ const Index = () => {
           show_booking_info_section: info.show_booking_info_section,
           show_reviews_section: info.show_reviews_section,
           show_faq_section: info.show_faq_section,
+          show_custom_images_section: info.show_custom_images_section,
         }}
       />
       <main>
@@ -172,11 +173,6 @@ const Index = () => {
           heroAutoplayDelay={info.hero_autoplay_delay}
           heroPhotos={heroPhotos}
         />
-
-        {/* 自訂圖片區塊 - 顯示在 Hero 下方 */}
-        {secondaryData?.customImageSections && secondaryData.customImageSections.length > 0 && (
-          <CustomSectionDisplay sections={secondaryData.customImageSections} />
-        )}
         
         {/* 非首屏內容 - 根據後台設定的順序渲染 */}
         {(info.homepage_sections_order || DEFAULT_SECTIONS_ORDER).map((sectionKey) => {
@@ -217,6 +213,12 @@ const Index = () => {
             case 'faq':
               return info.show_faq_section !== false && (
                 <FaqSection key="faq" />
+              );
+            case 'custom_images':
+              return info.show_custom_images_section !== false && 
+                secondaryData?.customImageSections && 
+                secondaryData.customImageSections.length > 0 && (
+                <CustomSectionDisplay key="custom_images" sections={secondaryData.customImageSections} />
               );
             default:
               return null;

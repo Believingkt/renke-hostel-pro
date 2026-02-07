@@ -11,7 +11,7 @@ import { cacheAccommodationTheme } from "@/constants/themes";
 const CACHE_TTL = 5 * 60 * 1000;
 
 // Default section order for homepage
-export const DEFAULT_SECTIONS_ORDER = ["about", "rooms", "facilities", "gallery", "location", "booking_info", "reviews", "faq"];
+export const DEFAULT_SECTIONS_ORDER = ["about", "rooms", "facilities", "gallery", "location", "booking_info", "reviews", "faq", "custom_images"];
 
 export interface AccommodationInfo {
   id: string;
@@ -45,6 +45,7 @@ export interface AccommodationInfo {
   show_booking_info_section?: boolean;
   show_about_section?: boolean;
   show_rooms_section?: boolean;
+  show_custom_images_section?: boolean;
   homepage_sections_order?: string[];
 }
 
@@ -114,7 +115,7 @@ export const useAccommodationCache = (accommodationId: string | null) => {
       const [infoRes, photosRes] = await Promise.all([
         supabase
           .from("accommodation_info")
-          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, og_title, og_description, og_image_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay, theme_preset, short_url_alias, show_reviews_section, show_facilities_section, show_gallery_section, show_faq_section, show_location_section, show_booking_info_section, show_about_section, show_rooms_section, homepage_sections_order")
+          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, og_title, og_description, og_image_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay, theme_preset, short_url_alias, show_reviews_section, show_facilities_section, show_gallery_section, show_faq_section, show_location_section, show_booking_info_section, show_about_section, show_rooms_section, show_custom_images_section, homepage_sections_order")
           .eq("id", accId)
           .maybeSingle(),
         supabase
