@@ -49,11 +49,12 @@ export function DevAccommodationSwitcher() {
     loadAccommodations();
 
     // 從 URL 或 localStorage 獲取當前選擇
+    // 注意：前台使用 accId 參數，需同時檢查 accId 和 acc
     const urlParams = new URLSearchParams(window.location.search);
-    const accParam = urlParams.get('acc');
+    const accIdParam = urlParams.get('accId') || urlParams.get('acc');
     const savedAcc = localStorage.getItem(DEV_ACC_STORAGE_KEY);
     
-    setCurrentAccId(accParam || savedAcc || null);
+    setCurrentAccId(accIdParam || savedAcc || null);
   }, [isDevOrPreview]);
 
   if (!isDevOrPreview || accommodations.length === 0) {
@@ -68,9 +69,10 @@ export function DevAccommodationSwitcher() {
     localStorage.setItem(DEV_ACC_STORAGE_KEY, acc.short_url_alias || acc.id);
     localStorage.setItem('lastSelectedAccommodation', acc.id); // 後台 AccommodationContext 使用的正確 key
 
-    // 更新 URL 並刷新
+    // 更新 URL 並刷新 - 使用 accId 參數（與 Index.tsx 一致）
     const url = new URL(window.location.href);
-    url.searchParams.set('acc', acc.short_url_alias || acc.id);
+    url.searchParams.delete('acc'); // 移除舊參數
+    url.searchParams.set('accId', acc.id); // 使用 accommodation ID
     window.location.href = url.toString();
   };
 
