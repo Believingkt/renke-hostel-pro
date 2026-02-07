@@ -561,6 +561,50 @@ export type Database = {
           },
         ]
       }
+      booking_info_sections: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          display_order: number
+          id: string
+          is_enabled: boolean
+          section_content: string | null
+          section_subtitle: string | null
+          section_title: string
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_enabled?: boolean
+          section_content?: string | null
+          section_subtitle?: string | null
+          section_title: string
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_enabled?: boolean
+          section_content?: string | null
+          section_subtitle?: string | null
+          section_title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_info_sections_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_settings: {
         Row: {
           accommodation_id: string | null
