@@ -173,6 +173,7 @@ export type Database = {
           short_url_alias: string | null
           show_about_section: boolean
           show_booking_info_section: boolean
+          show_custom_images_section: boolean
           show_facilities_section: boolean
           show_faq_section: boolean
           show_gallery_section: boolean
@@ -227,6 +228,7 @@ export type Database = {
           short_url_alias?: string | null
           show_about_section?: boolean
           show_booking_info_section?: boolean
+          show_custom_images_section?: boolean
           show_facilities_section?: boolean
           show_faq_section?: boolean
           show_gallery_section?: boolean
@@ -281,6 +283,7 @@ export type Database = {
           short_url_alias?: string | null
           show_about_section?: boolean
           show_booking_info_section?: boolean
+          show_custom_images_section?: boolean
           show_facilities_section?: boolean
           show_faq_section?: boolean
           show_gallery_section?: boolean

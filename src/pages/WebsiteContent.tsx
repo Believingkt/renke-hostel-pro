@@ -439,7 +439,8 @@ const WebsiteContent = () => {
     show_booking_info_section: true,
     show_about_section: true,
     show_rooms_section: true,
-    homepage_sections_order: ["about", "rooms", "facilities", "gallery", "location", "booking_info", "reviews", "faq"]
+    show_custom_images_section: true,
+    homepage_sections_order: ["about", "rooms", "facilities", "gallery", "location", "booking_info", "reviews", "faq", "custom_images"]
   });
   const [uploadingHeaderLogo, setUploadingHeaderLogo] = useState(false);
   const [uploadingFooterLogo, setUploadingFooterLogo] = useState(false);
@@ -581,7 +582,7 @@ const WebsiteContent = () => {
       // 構建查詢
       let query = supabase
         .from("accommodation_info")
-        .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url, og_title, og_description, og_image_url, seo_title, seo_description, meta_keywords, website_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay, show_reviews_section, show_facilities_section, show_gallery_section, show_faq_section, show_location_section, show_booking_info_section, show_about_section, show_rooms_section, homepage_sections_order");
+        .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, header_logo_url, footer_logo_url, og_title, og_description, og_image_url, seo_title, seo_description, meta_keywords, website_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay, show_reviews_section, show_facilities_section, show_gallery_section, show_faq_section, show_location_section, show_booking_info_section, show_about_section, show_rooms_section, show_custom_images_section, homepage_sections_order");
       
       // 如果有指定 accommodation ID，則使用它來過濾
       if (accIdToUse) {
@@ -594,7 +595,7 @@ const WebsiteContent = () => {
         setAccommodationId(infoData.id);
         
         // Parse homepage_sections_order from JSONB
-        const defaultOrder = ["about", "rooms", "facilities", "gallery", "location", "booking_info", "reviews", "faq"];
+        const defaultOrder = ["about", "rooms", "facilities", "gallery", "location", "booking_info", "reviews", "faq", "custom_images"];
         const sectionsOrder = Array.isArray(infoData.homepage_sections_order) 
           ? infoData.homepage_sections_order as string[]
           : defaultOrder;
@@ -634,6 +635,7 @@ const WebsiteContent = () => {
           show_booking_info_section: infoData.show_booking_info_section ?? true,
           show_about_section: infoData.show_about_section ?? true,
           show_rooms_section: infoData.show_rooms_section ?? true,
+          show_custom_images_section: (infoData as any).show_custom_images_section ?? true,
           homepage_sections_order: sectionsOrder
         });
 
@@ -879,7 +881,7 @@ const WebsiteContent = () => {
 
             if (infoData) {
               // Parse homepage_sections_order from JSONB
-              const defaultOrder = ["about", "rooms", "facilities", "gallery", "location", "booking_info", "reviews", "faq"];
+              const defaultOrder = ["about", "rooms", "facilities", "gallery", "location", "booking_info", "reviews", "faq", "custom_images"];
               const sectionsOrder = Array.isArray(infoData.homepage_sections_order) 
                 ? infoData.homepage_sections_order as string[]
                 : defaultOrder;
@@ -918,6 +920,7 @@ const WebsiteContent = () => {
                 show_booking_info_section: infoData.show_booking_info_section ?? true,
                 show_about_section: infoData.show_about_section ?? true,
                 show_rooms_section: infoData.show_rooms_section ?? true,
+                show_custom_images_section: (infoData as any).show_custom_images_section ?? true,
                 homepage_sections_order: sectionsOrder
               });
 
@@ -2065,7 +2068,7 @@ const WebsiteContent = () => {
 
       if (updatedInfo) {
         // Parse homepage_sections_order from JSONB
-        const defaultOrder = ["about", "rooms", "facilities", "gallery", "location", "booking_info", "reviews", "faq"];
+        const defaultOrder = ["about", "rooms", "facilities", "gallery", "location", "booking_info", "reviews", "faq", "custom_images"];
         const sectionsOrder = Array.isArray(updatedInfo.homepage_sections_order) 
           ? updatedInfo.homepage_sections_order as string[]
           : defaultOrder;
@@ -2104,6 +2107,7 @@ const WebsiteContent = () => {
           show_booking_info_section: updatedInfo.show_booking_info_section ?? true,
           show_about_section: updatedInfo.show_about_section ?? true,
           show_rooms_section: updatedInfo.show_rooms_section ?? true,
+          show_custom_images_section: (updatedInfo as any).show_custom_images_section ?? true,
           homepage_sections_order: sectionsOrder
         });
       }
@@ -2957,6 +2961,10 @@ const WebsiteContent = () => {
             }}
             onShowBookingInfoSectionChange={(value) => {
               setBasicInfo(prev => ({ ...prev, show_booking_info_section: value }));
+            }}
+            showCustomImagesSection={basicInfo.show_custom_images_section}
+            onShowCustomImagesSectionChange={(value) => {
+              setBasicInfo(prev => ({ ...prev, show_custom_images_section: value }));
             }}
           />
 
