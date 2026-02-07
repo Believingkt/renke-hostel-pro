@@ -777,6 +777,59 @@ export type Database = {
           },
         ]
       }
+      custom_sections: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          display_order: number
+          id: string
+          image_url: string
+          is_enabled: boolean
+          link_text: string | null
+          link_url: string | null
+          mobile_image_url: string | null
+          subtitle: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          image_url: string
+          is_enabled?: boolean
+          link_text?: string | null
+          link_url?: string | null
+          mobile_image_url?: string | null
+          subtitle?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          image_url?: string
+          is_enabled?: boolean
+          link_text?: string | null
+          link_url?: string | null
+          mobile_image_url?: string | null
+          subtitle?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_sections_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           accommodation_id: string

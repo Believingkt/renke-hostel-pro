@@ -22,6 +22,7 @@ import BookingInfoSection from "@/components/BookingInfoSection";
 import ReviewsSection from "@/components/ReviewsSection";
 import FaqSection from "@/components/FaqSection";
 import Footer from "@/components/Footer";
+import { CustomSectionDisplay } from "@/components/CustomSectionDisplay";
 
 const Index = () => {
   const [searchParams] = useSearchParams();
@@ -171,6 +172,11 @@ const Index = () => {
           heroAutoplayDelay={info.hero_autoplay_delay}
           heroPhotos={heroPhotos}
         />
+
+        {/* 自訂圖片區塊 - 顯示在 Hero 下方 */}
+        {secondaryData?.customImageSections && secondaryData.customImageSections.length > 0 && (
+          <CustomSectionDisplay sections={secondaryData.customImageSections} />
+        )}
         
         {/* 非首屏內容 - 根據後台設定的順序渲染 */}
         {(info.homepage_sections_order || DEFAULT_SECTIONS_ORDER).map((sectionKey) => {

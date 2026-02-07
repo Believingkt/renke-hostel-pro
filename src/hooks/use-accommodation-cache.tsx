@@ -54,6 +54,7 @@ export interface SecondaryData {
   facilities: any[];
   locationInfo: any;
   customBookingSections: any[];
+  customImageSections: any[];
 }
 
 interface CacheEntry<T> {
@@ -187,7 +188,7 @@ export const useAccommodationCache = (accommodationId: string | null) => {
     }
 
     try {
-      const [roomTypesRes, bookingSettingsRes, facilitiesRes, locationInfoRes, customSectionsRes] = await Promise.all([
+      const [roomTypesRes, bookingSettingsRes, facilitiesRes, locationInfoRes, customSectionsRes, customImageSectionsRes] = await Promise.all([
         supabase
           .from("room_types")
           .select(`*, room_photos (photo_url, display_order)`)
@@ -213,6 +214,12 @@ export const useAccommodationCache = (accommodationId: string | null) => {
           .select("*")
           .eq("accommodation_id", accId)
           .eq("is_enabled", true)
+          .order("display_order"),
+        supabase
+          .from("custom_sections")
+          .select("*")
+          .eq("accommodation_id", accId)
+          .eq("is_enabled", true)
           .order("display_order")
       ]);
 
@@ -227,7 +234,8 @@ export const useAccommodationCache = (accommodationId: string | null) => {
         bookingSettings: bookingSettingsRes.data,
         facilities: facilitiesRes.data || [],
         locationInfo: locationInfoRes.data,
-        customBookingSections: customSectionsRes.data || []
+        customBookingSections: customSectionsRes.data || [],
+        customImageSections: customImageSectionsRes.data || []
       };
 
       // 儲存到快取
