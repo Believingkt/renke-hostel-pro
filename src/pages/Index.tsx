@@ -22,7 +22,7 @@ import BookingInfoSection from "@/components/BookingInfoSection";
 import ReviewsSection from "@/components/ReviewsSection";
 import FaqSection from "@/components/FaqSection";
 import Footer from "@/components/Footer";
-import { CustomSectionDisplay } from "@/components/CustomSectionDisplay";
+import { CustomSectionDisplay, SingleCustomSection, CustomSection } from "@/components/CustomSectionDisplay";
 
 const Index = () => {
   const [searchParams] = useSearchParams();
@@ -215,12 +215,23 @@ const Index = () => {
                 <FaqSection key="faq" />
               );
             case 'custom_images':
+              // Legacy support: render all custom sections together
               return info.show_custom_images_section !== false && 
                 secondaryData?.customImageSections && 
                 secondaryData.customImageSections.length > 0 && (
                 <CustomSectionDisplay key="custom_images" sections={secondaryData.customImageSections} />
               );
             default:
+              // Check if it's an individual custom section key (custom_<uuid>)
+              if (sectionKey.startsWith('custom_')) {
+                const sectionId = sectionKey.replace('custom_', '');
+                const section = secondaryData?.customImageSections?.find(
+                  (s: CustomSection) => s.id === sectionId
+                );
+                if (section && section.is_enabled) {
+                  return <SingleCustomSection key={sectionKey} section={section} />;
+                }
+              }
               return null;
           }
         })}
