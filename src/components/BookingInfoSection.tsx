@@ -10,6 +10,12 @@ interface BookingInfoSectionProps {
   checkInNotice: string;
 }
 
+// 定義標籤配置型別
+interface SectionLabel {
+  title: string;
+  subtitle?: string;
+}
+
 const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSectionProps) => {
   const hasPetPolicy = bookingSettings?.pet_policy && bookingSettings.pet_policy.trim() !== "";
   const hasOtherNotes = bookingSettings?.other_notes && bookingSettings.other_notes.trim() !== "";
@@ -18,6 +24,34 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
   const hasPaymentMethods = Array.isArray(bookingSettings?.payment_methods) && bookingSettings.payment_methods.length > 0;
   const hasCancellationPolicy = bookingSettings?.cancellation_policy && bookingSettings.cancellation_policy.trim() !== "";
   const hasCheckInNotice = checkInNotice && checkInNotice.trim() !== "";
+  
+  // 自訂區塊標題和副標題
+  const sectionLabels: Record<string, SectionLabel> = {
+    checkIn: {
+      title: bookingSettings?.check_in_section_title || "入住時間",
+      subtitle: bookingSettings?.check_in_section_subtitle || undefined
+    },
+    payment: {
+      title: bookingSettings?.payment_section_title || "付款方式",
+      subtitle: bookingSettings?.payment_section_subtitle || undefined
+    },
+    cancellation: {
+      title: bookingSettings?.cancellation_section_title || "取消政策",
+      subtitle: bookingSettings?.cancellation_section_subtitle || undefined
+    },
+    important: {
+      title: bookingSettings?.important_section_title || "重要事項",
+      subtitle: bookingSettings?.important_section_subtitle || undefined
+    },
+    pet: {
+      title: bookingSettings?.pet_section_title || "寵物入住守則",
+      subtitle: bookingSettings?.pet_section_subtitle || undefined
+    },
+    other: {
+      title: bookingSettings?.other_section_title || "其他注意事項",
+      subtitle: bookingSettings?.other_section_subtitle || undefined
+    }
+  };
   
   // 檢查是否有任何訂房須知資料
   const hasAnyData = hasCheckInTime || hasCheckOutTime || hasPaymentMethods || hasCancellationPolicy || hasCheckInNotice || hasPetPolicy || hasOtherNotes;
@@ -67,7 +101,12 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                   <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
                     <Clock className="h-5 w-5 md:h-5 md:w-5 lg:h-6 lg:w-6 text-primary" />
                   </div>
-                  <h3 className="font-semibold text-base md:text-base lg:text-lg">入住時間</h3>
+                  <div>
+                    <h3 className="font-semibold text-base md:text-base lg:text-lg">{sectionLabels.checkIn.title}</h3>
+                    {sectionLabels.checkIn.subtitle && (
+                      <p className="text-xs text-muted-foreground mt-0.5">{sectionLabels.checkIn.subtitle}</p>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-0.5 text-sm md:text-sm lg:text-sm text-muted-foreground">
                   <div className="flex items-center gap-2 py-1.5">
@@ -88,7 +127,12 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                   <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
                     <CreditCard className="h-5 w-5 md:h-5 md:w-5 lg:h-6 lg:w-6 text-primary" />
                   </div>
-                  <h3 className="font-semibold text-base md:text-base lg:text-lg">付款方式</h3>
+                  <div>
+                    <h3 className="font-semibold text-base md:text-base lg:text-lg">{sectionLabels.payment.title}</h3>
+                    {sectionLabels.payment.subtitle && (
+                      <p className="text-xs text-muted-foreground mt-0.5">{sectionLabels.payment.subtitle}</p>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-0.5 text-sm md:text-sm lg:text-sm text-muted-foreground">
                   {Array.isArray(bookingSettings?.payment_methods)
@@ -111,7 +155,12 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                     <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
                       <FileText className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                     </div>
-                    <h3 className="font-semibold text-base md:text-lg">取消政策</h3>
+                    <div>
+                      <h3 className="font-semibold text-base md:text-lg">{sectionLabels.cancellation.title}</h3>
+                      {sectionLabels.cancellation.subtitle && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{sectionLabels.cancellation.subtitle}</p>
+                      )}
+                    </div>
                   </div>
                   <div className="flex-1 flex flex-col">
                     <div className="space-y-0.5 text-sm md:text-sm text-muted-foreground overflow-hidden" style={{ maxHeight: "180px" }}>
@@ -125,7 +174,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                         variant="outline"
                         size="sm"
                         className="mt-3 w-full text-foreground hover:bg-primary hover:text-primary-foreground border-primary/20"
-                        onClick={() => openDialog("取消政策", bookingSettings.cancellation_policy)}
+                        onClick={() => openDialog(sectionLabels.cancellation.title, bookingSettings.cancellation_policy)}
                       >
                         查看完整內容
                       </Button>
@@ -141,7 +190,12 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                   <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
                     <AlertTriangle className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                   </div>
-                  <h3 className="font-semibold text-base md:text-lg">重要事項</h3>
+                  <div>
+                    <h3 className="font-semibold text-base md:text-lg">{sectionLabels.important.title}</h3>
+                    {sectionLabels.important.subtitle && (
+                      <p className="text-xs text-muted-foreground mt-0.5">{sectionLabels.important.subtitle}</p>
+                    )}
+                  </div>
                 </div>
                 <div className="flex-1 flex flex-col">
                   <div className="space-y-0.5 text-sm md:text-sm text-muted-foreground overflow-hidden" style={{ maxHeight: "180px" }}>
@@ -155,7 +209,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                       variant="outline"
                       size="sm"
                       className="mt-3 w-full text-foreground hover:bg-primary hover:text-primary-foreground border-primary/20"
-                      onClick={() => openDialog("重要事項", checkInNotice)}
+                      onClick={() => openDialog(sectionLabels.important.title, checkInNotice)}
                     >
                       查看完整內容
                     </Button>
@@ -171,7 +225,12 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                     <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
                       <PawPrint className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                     </div>
-                    <h3 className="font-semibold text-base md:text-lg">寵物入住守則</h3>
+                    <div>
+                      <h3 className="font-semibold text-base md:text-lg">{sectionLabels.pet.title}</h3>
+                      {sectionLabels.pet.subtitle && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{sectionLabels.pet.subtitle}</p>
+                      )}
+                    </div>
                   </div>
                   <div className="flex-1 flex flex-col">
                     <div className="space-y-0.5 text-sm md:text-sm text-muted-foreground overflow-hidden" style={{ maxHeight: "180px" }}>
@@ -185,7 +244,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                         variant="outline"
                         size="sm"
                         className="mt-3 w-full text-foreground hover:bg-primary hover:text-primary-foreground border-primary/20"
-                        onClick={() => openDialog("寵物入住守則", bookingSettings.pet_policy)}
+                        onClick={() => openDialog(sectionLabels.pet.title, bookingSettings.pet_policy)}
                       >
                         查看完整內容
                       </Button>
@@ -202,7 +261,12 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                     <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
                       <Info className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                     </div>
-                    <h3 className="font-semibold text-base md:text-lg">其他注意事項</h3>
+                    <div>
+                      <h3 className="font-semibold text-base md:text-lg">{sectionLabels.other.title}</h3>
+                      {sectionLabels.other.subtitle && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{sectionLabels.other.subtitle}</p>
+                      )}
+                    </div>
                   </div>
                   <div className="flex-1 flex flex-col">
                     <div className="space-y-0.5 text-sm md:text-sm text-muted-foreground overflow-hidden" style={{ maxHeight: "180px" }}>
@@ -216,7 +280,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                         variant="outline"
                         size="sm"
                         className="mt-3 w-full text-foreground hover:bg-primary hover:text-primary-foreground border-primary/20"
-                        onClick={() => openDialog("其他注意事項", bookingSettings.other_notes)}
+                        onClick={() => openDialog(sectionLabels.other.title, bookingSettings.other_notes)}
                       >
                         查看完整內容
                       </Button>

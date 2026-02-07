@@ -565,42 +565,78 @@ export type Database = {
         Row: {
           accommodation_id: string | null
           cancellation_policy: string | null
+          cancellation_section_subtitle: string | null
+          cancellation_section_title: string | null
+          check_in_section_subtitle: string | null
+          check_in_section_title: string | null
           check_in_time: string | null
           check_out_time: string | null
           created_at: string
           deposit_percentage: number | null
           id: string
+          important_section_subtitle: string | null
+          important_section_title: string | null
           other_notes: string | null
+          other_section_subtitle: string | null
+          other_section_title: string | null
           payment_methods: Json | null
+          payment_section_subtitle: string | null
+          payment_section_title: string | null
           pet_policy: string | null
+          pet_section_subtitle: string | null
+          pet_section_title: string | null
           updated_at: string
           use_deposit: boolean | null
         }
         Insert: {
           accommodation_id?: string | null
           cancellation_policy?: string | null
+          cancellation_section_subtitle?: string | null
+          cancellation_section_title?: string | null
+          check_in_section_subtitle?: string | null
+          check_in_section_title?: string | null
           check_in_time?: string | null
           check_out_time?: string | null
           created_at?: string
           deposit_percentage?: number | null
           id?: string
+          important_section_subtitle?: string | null
+          important_section_title?: string | null
           other_notes?: string | null
+          other_section_subtitle?: string | null
+          other_section_title?: string | null
           payment_methods?: Json | null
+          payment_section_subtitle?: string | null
+          payment_section_title?: string | null
           pet_policy?: string | null
+          pet_section_subtitle?: string | null
+          pet_section_title?: string | null
           updated_at?: string
           use_deposit?: boolean | null
         }
         Update: {
           accommodation_id?: string | null
           cancellation_policy?: string | null
+          cancellation_section_subtitle?: string | null
+          cancellation_section_title?: string | null
+          check_in_section_subtitle?: string | null
+          check_in_section_title?: string | null
           check_in_time?: string | null
           check_out_time?: string | null
           created_at?: string
           deposit_percentage?: number | null
           id?: string
+          important_section_subtitle?: string | null
+          important_section_title?: string | null
           other_notes?: string | null
+          other_section_subtitle?: string | null
+          other_section_title?: string | null
           payment_methods?: Json | null
+          payment_section_subtitle?: string | null
+          payment_section_title?: string | null
           pet_policy?: string | null
+          pet_section_subtitle?: string | null
+          pet_section_title?: string | null
           updated_at?: string
           use_deposit?: boolean | null
         }
