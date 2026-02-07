@@ -375,14 +375,19 @@ const HeroSection = ({
     return <HeroEmptyPlaceholder />;
   }
 
+  // 確保 current 索引在有效範圍內
+  const safeCurrentIndex = slides.length > 0 ? Math.min(current, slides.length - 1) : 0;
+  const currentSlide = slides[safeCurrentIndex];
+
   return (
     <section id="home" className="pt-16 relative">
       <div className="relative">
-      <Carousel
+        <Carousel
           opts={{ 
             loop: true,
             duration: 40, // 增加切換持續時間以實現更平滑的過渡
             align: "start",
+            startIndex: 0,
           }}
           className="w-full"
           setApi={setCarouselApi}
@@ -450,20 +455,20 @@ const HeroSection = ({
         </Carousel>
 
         {/* 固定的標題覆蓋層 - 不隨圖片移動 */}
-        {slides.length > 0 && slides[current] && (
+        {slides.length > 0 && currentSlide && (
           <div 
             className={`
               absolute left-1/2 -translate-x-1/2 pointer-events-none z-10
               w-full max-w-4xl px-4 pb-32 md:pb-56
               text-center
               ${
-                slides[current].text_position_y === 'top' ? 'flex items-start justify-center pt-32 top-0' :
-                slides[current].text_position_y === 'bottom' ? 'flex items-end justify-center pb-32 bottom-0' :
+                currentSlide.text_position_y === 'top' ? 'flex items-start justify-center pt-32 top-0' :
+                currentSlide.text_position_y === 'bottom' ? 'flex items-end justify-center pb-32 bottom-0' :
                 'flex items-center justify-center top-1/2 -translate-y-1/2'
               }
             `}
             style={{
-              color: slides[current].text_color === 'black' ? '#000' : slides[current].text_color === 'primary' ? 'hsl(var(--primary))' : '#fff'
+              color: currentSlide.text_color === 'black' ? '#000' : currentSlide.text_color === 'primary' ? 'hsl(var(--primary))' : '#fff'
             }}
           >
             <div className="w-full space-y-3 md:space-y-4">
@@ -476,34 +481,34 @@ const HeroSection = ({
                   fontWeight: 700
                 }}
               >
-                {slides[current].title || heroMainTitle || accommodationName}
+                {currentSlide.title || heroMainTitle || accommodationName}
               </h1>
               
               {/* 副標題：優先使用圖片副標題，否則使用全局副標題 */}
-              {(slides[current].subtitle || heroSubtitle) && (
+              {(currentSlide.subtitle || heroSubtitle) && (
                 <p 
                   className={`
                     drop-shadow-lg mt-3 md:mt-4 leading-relaxed transition-opacity duration-500
-                    ${(slides[current].subtitle_size || 'medium') === 'small' ? 'text-base md:text-2xl' : 
-                      (slides[current].subtitle_size || 'medium') === 'large' ? 'text-xl md:text-4xl' : 
+                    ${(currentSlide.subtitle_size || 'medium') === 'small' ? 'text-base md:text-2xl' : 
+                      (currentSlide.subtitle_size || 'medium') === 'large' ? 'text-xl md:text-4xl' : 
                       'text-lg md:text-3xl'}
                   `}
                 >
-                  {slides[current].subtitle || heroSubtitle}
+                  {currentSlide.subtitle || heroSubtitle}
                 </p>
               )}
               
               {/* 次標題：優先使用圖片次標題，否則使用全局次標題 */}
-              {(slides[current].secondary_subtitle || heroDescription) && (
+              {(currentSlide.secondary_subtitle || heroDescription) && (
                 <p 
                   className={`
                     drop-shadow-lg opacity-90 mt-2 md:mt-3 leading-relaxed transition-opacity duration-500
-                    ${(slides[current].secondary_subtitle_size || 'small') === 'small' ? 'text-sm md:text-xl' : 
-                      (slides[current].secondary_subtitle_size || 'small') === 'large' ? 'text-lg md:text-3xl' : 
+                    ${(currentSlide.secondary_subtitle_size || 'small') === 'small' ? 'text-sm md:text-xl' : 
+                      (currentSlide.secondary_subtitle_size || 'small') === 'large' ? 'text-lg md:text-3xl' : 
                       'text-base md:text-2xl'}
                   `}
                 >
-                  {slides[current].secondary_subtitle || heroDescription}
+                  {currentSlide.secondary_subtitle || heroDescription}
                 </p>
               )}
             </div>
