@@ -3347,15 +3347,12 @@ const WebsiteContent = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <Label>政策說明</Label>
-                <RichTextEditor
-                  value={bookingInfo.cancellationPolicy}
-                  onChange={(value) => setBookingInfo(prev => ({ ...prev, cancellationPolicy: value }))}
-                  placeholder="例如：入住前7天免費取消，7天內取消收取50%費用"
-                  error={bookingErrors.cancellation_policy}
-                />
-              </div>
+              <RichTextEditor
+                value={bookingInfo.cancellationPolicy}
+                onChange={(value) => setBookingInfo(prev => ({ ...prev, cancellationPolicy: value }))}
+                placeholder="例如：入住前7天免費取消，7天內取消收取50%費用"
+                error={bookingErrors.cancellation_policy}
+              />
             </CardContent>
           </Card>
 
@@ -3387,14 +3384,11 @@ const WebsiteContent = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <Label>入住須知</Label>
-                <RichTextEditor
-                  value={bookingInfo.checkInNotice}
-                  onChange={(value) => setBookingInfo(prev => ({ ...prev, checkInNotice: value }))}
-                  placeholder="例如：請出示身分證件、禁止吸菸、不可攜帶寵物"
-                />
-              </div>
+              <RichTextEditor
+                value={bookingInfo.checkInNotice}
+                onChange={(value) => setBookingInfo(prev => ({ ...prev, checkInNotice: value }))}
+                placeholder="例如：請出示身分證件、禁止吸菸、不可攜帶寵物"
+              />
             </CardContent>
           </Card>
 
@@ -3426,15 +3420,12 @@ const WebsiteContent = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <Label>守則說明</Label>
-                <RichTextEditor
-                  value={bookingInfo.petPolicy}
-                  onChange={(value) => setBookingInfo(prev => ({ ...prev, petPolicy: value }))}
-                  placeholder="例如：歡迎攜帶寵物入住、寵物需加收清潔費用、請主人隨時清理寵物排泄物、寵物不可上床"
-                  error={bookingErrors.pet_policy}
-                />
-              </div>
+              <RichTextEditor
+                value={bookingInfo.petPolicy}
+                onChange={(value) => setBookingInfo(prev => ({ ...prev, petPolicy: value }))}
+                placeholder="例如：歡迎攜帶寵物入住、寵物需加收清潔費用、請主人隨時清理寵物排泄物、寵物不可上床"
+                error={bookingErrors.pet_policy}
+              />
             </CardContent>
           </Card>
 
@@ -3466,15 +3457,12 @@ const WebsiteContent = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <Label>注意事項說明</Label>
-                <RichTextEditor
-                  value={bookingInfo.otherNotes}
-                  onChange={(value) => setBookingInfo(prev => ({ ...prev, otherNotes: value }))}
-                  placeholder="例如：房間內禁止吸菸、晚上10點後請降低音量、使用設施請遵守安全規範、貴重物品請自行保管"
-                  error={bookingErrors.other_notes}
-                />
-              </div>
+              <RichTextEditor
+                value={bookingInfo.otherNotes}
+                onChange={(value) => setBookingInfo(prev => ({ ...prev, otherNotes: value }))}
+                placeholder="例如：房間內禁止吸菸、晚上10點後請降低音量、使用設施請遵守安全規範、貴重物品請自行保管"
+                error={bookingErrors.other_notes}
+              />
             </CardContent>
           </Card>
 
