@@ -255,8 +255,7 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
                   <div>
                     <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">平日/假日</p>
                     <div className="space-y-1">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs md:text-sm text-muted-foreground">一泊一食</span>
+                      <div className="flex justify-end items-center">
                         <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekday_price.toLocaleString()}</span>
                       </div>
                     </div>
@@ -268,8 +267,7 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
                       <div>
                         <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">平日</p>
                         <div className="space-y-1">
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs md:text-sm text-muted-foreground">一泊一食</span>
+                          <div className="flex justify-end items-center">
                             <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekday_price.toLocaleString()}</span>
                           </div>
                         </div>
@@ -279,8 +277,7 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
                       <div>
                         <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">假日</p>
                         <div className="space-y-1">
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs md:text-sm text-muted-foreground">一泊一食</span>
+                          <div className="flex justify-end items-center">
                             <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekend_price.toLocaleString()}</span>
                           </div>
                         </div>
