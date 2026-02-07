@@ -1,13 +1,23 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Clock, CreditCard, FileText, Info, PawPrint, AlertTriangle, ClipboardList } from "lucide-react";
+import { Clock, CreditCard, FileText, Info, PawPrint, AlertTriangle, ClipboardList, LayoutList } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { createSanitizedHtml } from "@/utils/sanitizeHtml";
 
+interface CustomSection {
+  id: string;
+  section_title: string;
+  section_subtitle: string | null;
+  section_content: string | null;
+  display_order: number;
+  is_enabled: boolean;
+}
+
 interface BookingInfoSectionProps {
   bookingSettings: any;
   checkInNotice: string;
+  customSections?: CustomSection[];
 }
 
 // 定義標籤配置型別
@@ -16,7 +26,7 @@ interface SectionLabel {
   subtitle?: string;
 }
 
-const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSectionProps) => {
+const BookingInfoSection = ({ bookingSettings, checkInNotice, customSections = [] }: BookingInfoSectionProps) => {
   const hasPetPolicy = bookingSettings?.pet_policy && bookingSettings.pet_policy.trim() !== "";
   const hasOtherNotes = bookingSettings?.other_notes && bookingSettings.other_notes.trim() !== "";
   const hasCheckInTime = bookingSettings?.check_in_time && bookingSettings.check_in_time.trim() !== "";
@@ -24,6 +34,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
   const hasPaymentMethods = Array.isArray(bookingSettings?.payment_methods) && bookingSettings.payment_methods.length > 0;
   const hasCancellationPolicy = bookingSettings?.cancellation_policy && bookingSettings.cancellation_policy.trim() !== "";
   const hasCheckInNotice = checkInNotice && checkInNotice.trim() !== "";
+  const hasCustomSections = customSections.filter(s => s.is_enabled && s.section_content?.trim()).length > 0;
   
   // 自訂區塊標題和副標題
   const sectionLabels: Record<string, SectionLabel> = {
@@ -54,7 +65,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
   };
   
   // 檢查是否有任何訂房須知資料
-  const hasAnyData = hasCheckInTime || hasCheckOutTime || hasPaymentMethods || hasCancellationPolicy || hasCheckInNotice || hasPetPolicy || hasOtherNotes;
+  const hasAnyData = hasCheckInTime || hasCheckOutTime || hasPaymentMethods || hasCancellationPolicy || hasCheckInNotice || hasPetPolicy || hasOtherNotes || hasCustomSections;
   
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState({ title: "", content: "" });
@@ -80,6 +91,11 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
       </section>
     );
   }
+
+  // 過濾出啟用且有內容的自訂區塊
+  const enabledCustomSections = customSections
+    .filter(s => s.is_enabled && s.section_content?.trim())
+    .sort((a, b) => a.display_order - b.display_order);
 
   return (
     <section id="booking-info" className="py-12 md:py-16 lg:py-20 bg-background">
@@ -289,6 +305,43 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice }: BookingInfoSecti
                 </CardContent>
               </Card>
             )}
+
+            {/* 自訂區塊 */}
+            {enabledCustomSections.map((section) => (
+              <Card key={section.id} className="group hover:shadow-lg transition-all duration-300 border border-border/50 bg-card flex flex-col">
+                <CardContent className="p-5 md:p-6 flex flex-col flex-1">
+                  <div className="flex items-center gap-2.5 mb-3 md:mb-4">
+                    <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                      <LayoutList className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-base md:text-lg">{section.section_title}</h3>
+                      {section.section_subtitle && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{section.section_subtitle}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex-1 flex flex-col">
+                    <div className="space-y-0.5 text-sm md:text-sm text-muted-foreground overflow-hidden" style={{ maxHeight: "180px" }}>
+                      <div 
+                        className="prose prose-sm max-w-none"
+                        dangerouslySetInnerHTML={createSanitizedHtml(section.section_content || "")}
+                      />
+                    </div>
+                    {section.section_content && section.section_content.length > 200 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-3 w-full text-foreground hover:bg-primary hover:text-primary-foreground border-primary/20"
+                        onClick={() => openDialog(section.section_title, section.section_content || "")}
+                      >
+                        查看完整內容
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </div>

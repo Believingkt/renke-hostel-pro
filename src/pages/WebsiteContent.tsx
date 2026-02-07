@@ -523,6 +523,19 @@ const WebsiteContent = () => {
   // 加購方案驗證錯誤
   const [addonPlanErrors, setAddonPlanErrors] = useState<Record<string, Record<string, string>>>({});
 
+  // 自訂訂房須知區塊狀態
+  interface CustomBookingSection {
+    id: string;
+    section_title: string;
+    section_subtitle: string;
+    section_content: string;
+    display_order: number;
+    is_enabled: boolean;
+  }
+  const [customBookingSections, setCustomBookingSections] = useState<CustomBookingSection[]>([]);
+  const [deleteCustomSectionDialogOpen, setDeleteCustomSectionDialogOpen] = useState(false);
+  const [deletingCustomSectionId, setDeletingCustomSectionId] = useState<string | null>(null);
+
   // About section state
   const [aboutSection, setAboutSection] = useState({
     sectionTitle: "自然中的秘境 X 宿泊空間",
@@ -788,6 +801,24 @@ const WebsiteContent = () => {
 
         if (featuresData) {
           setAboutFeatures(featuresData);
+        }
+
+        // 加載自訂訂房須知區塊
+        const { data: customSectionsData } = await supabase
+          .from("booking_info_sections")
+          .select("*")
+          .eq("accommodation_id", infoData.id)
+          .order("display_order");
+
+        if (customSectionsData) {
+          setCustomBookingSections(customSectionsData.map(s => ({
+            id: s.id,
+            section_title: s.section_title,
+            section_subtitle: s.section_subtitle || "",
+            section_content: s.section_content || "",
+            display_order: s.display_order,
+            is_enabled: s.is_enabled
+          })));
         }
       }
     } catch (error) {
@@ -1273,6 +1304,106 @@ const WebsiteContent = () => {
         ? [...prev.paymentMethods, method]
         : prev.paymentMethods.filter(m => m !== method)
     }));
+  };
+
+  // 自訂區塊處理函數
+  const handleAddCustomSection = async () => {
+    if (!accommodationId) {
+      toast.error('找不到旅宿資訊');
+      return;
+    }
+
+    try {
+      const maxOrder = customBookingSections.length > 0 
+        ? Math.max(...customBookingSections.map(s => s.display_order)) 
+        : 0;
+
+      const { data, error } = await supabase
+        .from("booking_info_sections")
+        .insert({
+          accommodation_id: accommodationId,
+          section_title: "新區塊",
+          section_subtitle: "",
+          section_content: "",
+          display_order: maxOrder + 1,
+          is_enabled: true
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setCustomBookingSections(prev => [...prev, {
+        id: data.id,
+        section_title: data.section_title,
+        section_subtitle: data.section_subtitle || "",
+        section_content: data.section_content || "",
+        display_order: data.display_order,
+        is_enabled: data.is_enabled
+      }]);
+
+      toast.success('已新增區塊');
+    } catch (error) {
+      if (import.meta.env.DEV) console.error('Error adding custom section:', error);
+      toast.error('新增區塊失敗');
+    }
+  };
+
+  const handleDeleteCustomSection = async () => {
+    if (!deletingCustomSectionId) return;
+
+    try {
+      const { error } = await supabase
+        .from("booking_info_sections")
+        .delete()
+        .eq("id", deletingCustomSectionId);
+
+      if (error) throw error;
+
+      setCustomBookingSections(prev => prev.filter(s => s.id !== deletingCustomSectionId));
+      toast.success('區塊已刪除');
+    } catch (error) {
+      if (import.meta.env.DEV) console.error('Error deleting custom section:', error);
+      toast.error('刪除區塊失敗');
+    } finally {
+      setDeleteCustomSectionDialogOpen(false);
+      setDeletingCustomSectionId(null);
+    }
+  };
+
+  const handleUpdateCustomSection = (id: string, field: keyof CustomBookingSection, value: string | boolean) => {
+    setCustomBookingSections(prev => prev.map(s => 
+      s.id === id ? { ...s, [field]: value } : s
+    ));
+  };
+
+  const handleSaveCustomSections = async () => {
+    if (!accommodationId) return;
+
+    try {
+      for (const section of customBookingSections) {
+        const { error } = await supabase
+          .from("booking_info_sections")
+          .update({
+            section_title: section.section_title,
+            section_subtitle: section.section_subtitle || null,
+            section_content: section.section_content || null,
+            display_order: section.display_order,
+            is_enabled: section.is_enabled,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", section.id);
+
+        if (error) throw error;
+      }
+
+      // 清除前台快取
+      if (accommodationId) invalidateAccommodationCache(accommodationId);
+      toast.success('自訂區塊已儲存');
+    } catch (error) {
+      if (import.meta.env.DEV) console.error('Error saving custom sections:', error);
+      toast.error('儲存自訂區塊失敗');
+    }
   };
 
   // 訂房設定單一欄位驗證
@@ -3466,8 +3597,101 @@ const WebsiteContent = () => {
             </CardContent>
           </Card>
 
+          {/* 自訂區塊 */}
+          <Card>
+            <CardHeader className="pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-1.5 bg-primary rounded-full" />
+                  <div>
+                    <CardTitle className="text-xl font-semibold">自訂區塊</CardTitle>
+                    <CardDescription className="text-sm text-muted-foreground mt-1">
+                      新增您自訂的訂房須知區塊
+                    </CardDescription>
+                  </div>
+                </div>
+                <Button onClick={handleAddCustomSection} className="w-full sm:w-auto h-11 sm:h-10 touch-manipulation">
+                  <Plus className="mr-2 h-4 w-4" />
+                  新增區塊
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {customBookingSections.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  尚無自訂區塊，點擊上方按鈕新增
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {customBookingSections.map((section, index) => (
+                    <Card key={section.id} className="border border-border/50">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 space-y-3">
+                            <div className="space-y-1.5">
+                              <Label className="text-xs text-muted-foreground">區塊標題</Label>
+                              <Input
+                                value={section.section_title}
+                                onChange={(e) => handleUpdateCustomSection(section.id, 'section_title', e.target.value)}
+                                placeholder="區塊標題"
+                                className="text-lg font-semibold h-10"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label className="text-xs text-muted-foreground">區塊副標題（選填）</Label>
+                              <Input
+                                value={section.section_subtitle}
+                                onChange={(e) => handleUpdateCustomSection(section.id, 'section_subtitle', e.target.value)}
+                                placeholder="區塊副標題"
+                                className="text-sm"
+                              />
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2">
+                              <Label htmlFor={`enabled-${section.id}`} className="text-xs text-muted-foreground">
+                                {section.is_enabled ? "啟用" : "停用"}
+                              </Label>
+                              <Switch
+                                id={`enabled-${section.id}`}
+                                checked={section.is_enabled}
+                                onCheckedChange={(checked) => handleUpdateCustomSection(section.id, 'is_enabled', checked)}
+                              />
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost-destructive"
+                              size="icon"
+                              className="h-9 w-9"
+                              onClick={() => {
+                                setDeletingCustomSectionId(section.id);
+                                setDeleteCustomSectionDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <RichTextEditor
+                          value={section.section_content}
+                          onChange={(value) => handleUpdateCustomSection(section.id, 'section_content', value)}
+                          placeholder="輸入區塊內容..."
+                        />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <SaveButtonContainer 
-            onSave={handleSaveBookingInfo} 
+            onSave={async () => {
+              await handleSaveBookingInfo();
+              await handleSaveCustomSections();
+            }} 
             isSaving={isSaving}
             saveText="儲存變更"
           />
@@ -4037,6 +4261,27 @@ const WebsiteContent = () => {
             <AlertDialogCancel>取消</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteOgImage}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              確認刪除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* 自訂區塊刪除確認對話框 */}
+      <AlertDialog open={deleteCustomSectionDialogOpen} onOpenChange={setDeleteCustomSectionDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認刪除</AlertDialogTitle>
+            <AlertDialogDescription>
+              確定要刪除此自訂區塊嗎？此操作無法復原。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteCustomSection}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               確認刪除

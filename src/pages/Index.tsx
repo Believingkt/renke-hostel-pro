@@ -201,6 +201,7 @@ const Index = () => {
                   key="booking_info"
                   bookingSettings={secondaryData?.bookingSettings}
                   checkInNotice={info.check_in_notice}
+                  customSections={secondaryData?.customBookingSections}
                 />
               );
             case 'reviews':
