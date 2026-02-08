@@ -928,7 +928,6 @@ export type Database = {
       discount_codes: {
         Row: {
           accommodation_id: string
-          api_key: string | null
           applicable_date_from: string | null
           applicable_date_to: string | null
           applicable_room_types: Json | null
@@ -947,13 +946,9 @@ export type Database = {
           used_count: number
           valid_from: string
           valid_until: string | null
-          webhook_enabled: boolean | null
-          webhook_secret: string | null
-          webhook_url: string | null
         }
         Insert: {
           accommodation_id: string
-          api_key?: string | null
           applicable_date_from?: string | null
           applicable_date_to?: string | null
           applicable_room_types?: Json | null
@@ -972,13 +967,9 @@ export type Database = {
           used_count?: number
           valid_from?: string
           valid_until?: string | null
-          webhook_enabled?: boolean | null
-          webhook_secret?: string | null
-          webhook_url?: string | null
         }
         Update: {
           accommodation_id?: string
-          api_key?: string | null
           applicable_date_from?: string | null
           applicable_date_to?: string | null
           applicable_room_types?: Json | null
@@ -997,9 +988,6 @@ export type Database = {
           used_count?: number
           valid_from?: string
           valid_until?: string | null
-          webhook_enabled?: boolean | null
-          webhook_secret?: string | null
-          webhook_url?: string | null
         }
         Relationships: [
           {
