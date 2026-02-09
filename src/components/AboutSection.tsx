@@ -8,9 +8,10 @@ interface AboutSectionProps {
   description?: string;
   accommodationId?: string;
   customTitle?: string;
+  customSubtitle?: string;
 }
 
-const AboutSection = ({ description, accommodationId, customTitle }: AboutSectionProps) => {
+const AboutSection = ({ description, accommodationId, customTitle, customSubtitle }: AboutSectionProps) => {
   const [sectionData, setSectionData] = useState({
     title: "",
     description: ""
@@ -47,12 +48,10 @@ const AboutSection = ({ description, accommodationId, customTitle }: AboutSectio
 
         if (hasFeaturesData) {
           setHasData(true);
-          if (aboutData) {
-            setSectionData({
-              title: customTitle || aboutData.section_title || "關於我們",
-              description: aboutData.section_description || description || ""
-            });
-          }
+          setSectionData({
+            title: customTitle || (aboutData?.section_title) || "關於我們",
+            description: customSubtitle || (aboutData?.section_description) || description || ""
+          });
           setFeatures(featuresData);
         } else {
           setHasData(false);
@@ -66,7 +65,7 @@ const AboutSection = ({ description, accommodationId, customTitle }: AboutSectio
     };
 
     loadAboutSection();
-  }, [accommodationId, description]);
+  }, [accommodationId, description, customTitle, customSubtitle]);
 
   if (loading) {
     return (
