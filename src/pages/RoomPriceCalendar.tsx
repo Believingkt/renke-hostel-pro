@@ -567,6 +567,17 @@ function RoomTypeRows({
   onCellClick,
   showCategoryHeader = false,
 }: RoomTypeRowsProps) {
+  // 過濾掉在當月所有日期都沒有價格資料的專案
+  const visibleTemplates = useMemo(() => {
+    return templates.filter(template => {
+      return monthDays.some(day => {
+        const dateStr = format(day, 'yyyy-MM-dd');
+        const cellData = getCellData(roomType.id, dateStr);
+        return cellData?.price != null;
+      });
+    });
+  }, [templates, monthDays, roomType.id, getCellData]);
+
   return (
     <>
       {/* 房型名稱行 + 庫存數量 */}
@@ -630,7 +641,7 @@ function RoomTypeRows({
       </tr>
 
       {/* 專案價格行 */}
-      {templates.map((template) => (
+      {visibleTemplates.map((template) => (
         <tr key={`${roomType.id}_${template.id}`} className="border-b hover:bg-muted/20">
           <td className="sticky left-0 z-10 bg-background border-r px-3 py-2 text-sm text-muted-foreground">
             {template.project_name || template.template_name}
