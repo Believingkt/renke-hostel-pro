@@ -243,16 +243,8 @@ export const WebInfoSection = ({
 
         {/* 全局設定區塊 */}
         <div className="rounded-lg border-2 bg-gradient-to-br from-muted/30 to-muted/10 p-6 md:p-8 space-y-6 shadow-sm">
-          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 pb-6 border-b">
-            <div className="flex items-start gap-3">
-              <div className="h-10 w-1.5 bg-primary rounded-full flex-shrink-0 mt-1" />
-              <div className="space-y-2">
-                <h3 className="font-bold text-xl md:text-2xl">輪播圖全局設定</h3>
-                <p className="text-sm md:text-base text-muted-foreground leading-relaxed max-w-2xl">
-                  統一設定所有輪播圖的標題、視覺效果和播放行為。這些設定會套用到所有輪播圖上，確保視覺呈現的一致性。
-                </p>
-              </div>
-            </div>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b">
+            <h3 className="font-bold text-xl md:text-2xl">輪播圖全局設定</h3>
             {heroPhotos.length > 0 && (
               <Button
                 type="button"
