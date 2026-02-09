@@ -133,11 +133,14 @@ export const SocialSharingSection = ({
           <DraftRestoreBanner onRestore={restoreDraft} onDiscard={discardDraft} />
         </div>
       )}
-      <CardHeader>
-        <CardTitle>社群分享</CardTitle>
-        <CardDescription>
-          設定社群分享預覽
-        </CardDescription>
+      <CardHeader className="pb-4">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-1.5 bg-primary rounded-full" />
+          <div>
+            <CardTitle className="text-xl">社群分享</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">設定社群分享預覽</p>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* 社群媒體分享標題 */}

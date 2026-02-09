@@ -389,13 +389,14 @@ export const CustomSectionsManager = ({
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-lg">自訂圖片區塊</CardTitle>
-            <CardDescription>
-              新增滿版圖片區塊，電腦版寬螢幕顯示，手機版自適應比例
-            </CardDescription>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-1.5 bg-primary rounded-full" />
+            <div>
+              <CardTitle className="text-xl">自訂圖片區塊</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">新增滿版圖片區塊，電腦版寬螢幕顯示，手機版自適應比例</p>
+            </div>
           </div>
           <Button onClick={handleAddSection} disabled={isAdding}>
             {isAdding ? (

@@ -3775,20 +3775,26 @@ const WebsiteContent = () => {
         </TabsContent>
 
         <TabsContent value="faq" className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 md:pb-6 border-b border-primary/20 mb-4 md:mb-6">
-            <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-2 md:gap-3">
-              <HelpCircle className="h-6 w-6 md:h-7 md:w-7 text-primary" />
-              常見問題
-            </h2>
-            <Button onClick={() => setIsDialogOpen(true)} className="w-full sm:w-auto h-11 sm:h-10 touch-manipulation">
-              <Plus className="mr-2 h-4 w-4" />
-              新增問題
-            </Button>
-          </div>
+          <PageHeader 
+            title="常見問題" 
+            icon={HelpCircle}
+            action={
+              <Button onClick={() => setIsDialogOpen(true)} className="w-full sm:w-auto h-11 sm:h-10 touch-manipulation">
+                <Plus className="mr-2 h-4 w-4" />
+                新增問題
+              </Button>
+            }
+          />
 
           <Card>
-            <CardHeader>
-              <CardTitle>問題列表</CardTitle>
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-1.5 bg-primary rounded-full" />
+                <div>
+                  <CardTitle className="text-xl">問題列表</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">管理前台顯示的常見問題</p>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -3892,11 +3898,14 @@ const WebsiteContent = () => {
         <TabsContent value="location" className="space-y-6">
           <PageHeader title="交通地圖" icon={Navigation} />
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="h-5 w-5" />
-                交通地圖
-              </CardTitle>
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-1.5 bg-primary rounded-full" />
+                <div>
+                  <CardTitle className="text-xl">交通地圖</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">設定地址與交通資訊</p>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">

@@ -153,8 +153,14 @@ export const WebInfoSection = ({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>輪播圖設定</CardTitle>
+      <CardHeader className="pb-4">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-1.5 bg-primary rounded-full" />
+          <div>
+            <CardTitle className="text-xl">輪播圖設定</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">管理輪播圖片與全局顯示設定</p>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="space-y-8">
         {/* 輪播圖管理 */}
