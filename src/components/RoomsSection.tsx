@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, ZoomIn, Home } from "lucide-react";
@@ -55,6 +55,38 @@ const roomImages: Record<string, string[]> = {
   "豪華和室": [roomDeluxe, roomSuite, roomStandard, roomDeluxe, roomSuite],
   "精緻套房": [roomSuite, roomStandard, roomDeluxe, roomSuite, roomStandard],
   "標準客房": [roomStandard, roomDeluxe, roomSuite, roomStandard, roomDeluxe],
+};
+
+const ExpandableDescription = ({ text }: { text: string }) => {
+  const [expanded, setExpanded] = useState(false);
+  const [isClamped, setIsClamped] = useState(false);
+  const textRef = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    const el = textRef.current;
+    if (el) {
+      setIsClamped(el.scrollHeight > el.clientHeight);
+    }
+  }, [text]);
+
+  return (
+    <div className="mb-4 md:mb-5">
+      <p
+        ref={textRef}
+        className={`text-xs md:text-sm text-muted-foreground leading-relaxed ${expanded ? '' : 'line-clamp-2'}`}
+      >
+        {text}
+      </p>
+      {isClamped && (
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="text-xs text-primary hover:underline mt-1"
+        >
+          {expanded ? '收起' : '查看更多'}
+        </button>
+      )}
+    </div>
+  );
 };
 
 const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photos?: { photo_url: string; display_order: number }[] }, isFirstRoom?: boolean }) => {
@@ -273,9 +305,9 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
           </div>
         </div>
         
-        <p className="text-xs md:text-sm mb-4 md:mb-5 text-muted-foreground leading-relaxed h-10 md:h-12 overflow-hidden line-clamp-2">
-          {room.description}
-        </p>
+        {room.description && (
+          <ExpandableDescription text={room.description} />
+        )}
 
         <div className="flex flex-wrap gap-1.5 md:gap-2 h-14 md:h-16 content-start overflow-hidden">
           {amenities.length > 0 ? (
