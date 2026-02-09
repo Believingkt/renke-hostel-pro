@@ -176,26 +176,28 @@ const Index = () => {
         
         {/* 非首屏內容 - 根據後台設定的順序渲染 */}
         {(info.homepage_sections_order || DEFAULT_SECTIONS_ORDER).map((sectionKey) => {
+          const sectionTitles = (info as any).homepage_section_titles || {};
+          const titles = sectionTitles[sectionKey] || {};
           switch (sectionKey) {
             case 'about':
               return info.show_about_section !== false && (
-                <AboutSection key="about" description={info.description} accommodationId={info.id} />
+                <AboutSection key="about" description={info.description} accommodationId={info.id} customTitle={titles.title} />
               );
             case 'rooms':
               return info.show_rooms_section !== false && (
-                <RoomsSection key="rooms" roomTypes={secondaryData?.roomTypes || []} sectionDescription={info.description} />
+                <RoomsSection key="rooms" roomTypes={secondaryData?.roomTypes || []} sectionDescription={info.description} customTitle={titles.title} customSubtitle={titles.subtitle} />
               );
             case 'facilities':
               return info.show_facilities_section !== false && (
-                <FacilitiesSection key="facilities" facilities={secondaryData?.facilities || []} />
+                <FacilitiesSection key="facilities" facilities={secondaryData?.facilities || []} customTitle={titles.title} customSubtitle={titles.subtitle} />
               );
             case 'gallery':
               return info.show_gallery_section !== false && (
-                <PhotoGallerySection key="gallery" photos={galleryPhotos} />
+                <PhotoGallerySection key="gallery" photos={galleryPhotos} customTitle={titles.title} customSubtitle={titles.subtitle} />
               );
             case 'location':
               return info.show_location_section !== false && (
-                <LocationSection key="location" address={info.address} locationInfo={secondaryData?.locationInfo} />
+                <LocationSection key="location" address={info.address} locationInfo={secondaryData?.locationInfo} customTitle={titles.title} customSubtitle={titles.subtitle} />
               );
             case 'booking_info':
               return info.show_booking_info_section !== false && (
@@ -204,15 +206,17 @@ const Index = () => {
                   bookingSettings={secondaryData?.bookingSettings}
                   checkInNotice={info.check_in_notice}
                   customSections={secondaryData?.customBookingSections}
+                  customTitle={titles.title}
+                  customSubtitle={titles.subtitle}
                 />
               );
             case 'reviews':
               return info.show_reviews_section !== false && (
-                <ReviewsSection key="reviews" accommodationId={info.id} />
+                <ReviewsSection key="reviews" accommodationId={info.id} customTitle={titles.title} customSubtitle={titles.subtitle} />
               );
             case 'faq':
               return info.show_faq_section !== false && (
-                <FaqSection key="faq" />
+                <FaqSection key="faq" customTitle={titles.title} customSubtitle={titles.subtitle} />
               );
             case 'custom_images':
               // Legacy support: render all custom sections together

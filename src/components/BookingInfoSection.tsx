@@ -18,6 +18,8 @@ interface BookingInfoSectionProps {
   bookingSettings: any;
   checkInNotice: string;
   customSections?: CustomSection[];
+  customTitle?: string;
+  customSubtitle?: string;
 }
 
 // 定義標籤配置型別
@@ -26,7 +28,7 @@ interface SectionLabel {
   subtitle?: string;
 }
 
-const BookingInfoSection = ({ bookingSettings, checkInNotice, customSections = [] }: BookingInfoSectionProps) => {
+const BookingInfoSection = ({ bookingSettings, checkInNotice, customSections = [], customTitle, customSubtitle }: BookingInfoSectionProps) => {
   const hasPetPolicy = bookingSettings?.pet_policy && bookingSettings.pet_policy.trim() !== "";
   const hasOtherNotes = bookingSettings?.other_notes && bookingSettings.other_notes.trim() !== "";
   const hasCheckInTime = bookingSettings?.check_in_time && bookingSettings.check_in_time.trim() !== "";
@@ -103,10 +105,10 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice, customSections = [
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-10 md:mb-12 lg:mb-16">
             <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-3 lg:mb-4">
-              訂房須知
+              {customTitle || '訂房須知'}
             </h2>
             <p className="text-center text-muted-foreground text-base md:text-base lg:text-lg mb-0 max-w-2xl mx-auto">
-              為確保愉快的住宿體驗，請詳閱以下相關資訊
+              {customSubtitle || '為確保愉快的住宿體驗，請詳閱以下相關資訊'}
             </p>
           </div>
 

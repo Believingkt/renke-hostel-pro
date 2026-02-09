@@ -24,12 +24,14 @@ interface LocationSectionProps {
       description: string;
     }>;
   };
+  customTitle?: string;
+  customSubtitle?: string;
 }
 
 // 景點描述字數閾值
 const ATTRACTION_DESCRIPTION_THRESHOLD = 200;
 
-const LocationSection = ({ address, locationInfo }: LocationSectionProps) => {
+const LocationSection = ({ address, locationInfo, customTitle, customSubtitle }: LocationSectionProps) => {
   const [selectedAttraction, setSelectedAttraction] = useState<{
     name: string;
     distance: string;
@@ -62,9 +64,9 @@ const LocationSection = ({ address, locationInfo }: LocationSectionProps) => {
     <section id="location" className="py-12 md:py-16 lg:py-20 bg-secondary/20">
       <div className="container mx-auto px-4 md:px-6">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-3 lg:mb-4">交通地圖</h2>
+          <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-3 lg:mb-4">{customTitle || '交通地圖'}</h2>
           <p className="text-center text-muted-foreground text-base md:text-base lg:text-lg mb-8 md:mb-12 lg:mb-16 max-w-3xl mx-auto">
-            多種交通方式輕鬆抵達，讓您的旅程更加便利
+            {customSubtitle || '多種交通方式輕鬆抵達，讓您的旅程更加便利'}
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 lg:gap-6 mb-5 md:mb-6 lg:mb-8">

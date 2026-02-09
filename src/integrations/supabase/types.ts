@@ -152,6 +152,7 @@ export type Database = {
           hero_main_title: string | null
           hero_overlay_opacity: number | null
           hero_subtitle: string | null
+          homepage_section_titles: Json | null
           homepage_sections_order: Json | null
           id: string
           instagram_url: string | null
@@ -207,6 +208,7 @@ export type Database = {
           hero_main_title?: string | null
           hero_overlay_opacity?: number | null
           hero_subtitle?: string | null
+          homepage_section_titles?: Json | null
           homepage_sections_order?: Json | null
           id?: string
           instagram_url?: string | null
@@ -262,6 +264,7 @@ export type Database = {
           hero_main_title?: string | null
           hero_overlay_opacity?: number | null
           hero_subtitle?: string | null
+          homepage_section_titles?: Json | null
           homepage_sections_order?: Json | null
           id?: string
           instagram_url?: string | null

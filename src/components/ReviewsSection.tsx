@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface ReviewsSectionProps {
   accommodationId?: string;
+  customTitle?: string;
+  customSubtitle?: string;
 }
 
 interface Review {
@@ -14,7 +16,7 @@ interface Review {
   comment: string;
 }
 
-const ReviewsSection = ({ accommodationId }: ReviewsSectionProps) => {
+const ReviewsSection = ({ accommodationId, customTitle, customSubtitle }: ReviewsSectionProps) => {
   const { data: reviews = [], isLoading } = useQuery({
     queryKey: ['reviews', accommodationId],
     queryFn: async () => {
@@ -85,8 +87,8 @@ const ReviewsSection = ({ accommodationId }: ReviewsSectionProps) => {
     <section className="py-12 md:py-16 lg:py-20 bg-secondary/20">
       <div className="container mx-auto px-4 md:px-6">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-3 lg:mb-4">旅客評價</h2>
-          <p className="text-center text-muted-foreground text-base md:text-base lg:text-lg mb-8 md:mb-12 lg:mb-16 max-w-3xl mx-auto">來自真實旅客的住宿體驗分享</p>
+          <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-3 lg:mb-4">{customTitle || '旅客評價'}</h2>
+          <p className="text-center text-muted-foreground text-base md:text-base lg:text-lg mb-8 md:mb-12 lg:mb-16 max-w-3xl mx-auto">{customSubtitle || '來自真實旅客的住宿體驗分享'}</p>
           
           {/* Rating Summary */}
           <div className="text-center mb-6 md:mb-7 lg:mb-8">

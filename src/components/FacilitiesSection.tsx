@@ -10,9 +10,11 @@ interface Facility {
 
 interface FacilitiesSectionProps {
   facilities: Facility[];
+  customTitle?: string;
+  customSubtitle?: string;
 }
 
-const FacilitiesSection = ({ facilities }: FacilitiesSectionProps) => {
+const FacilitiesSection = ({ facilities, customTitle, customSubtitle }: FacilitiesSectionProps) => {
   // 如果沒有設施資料，顯示空值佔位符
   if (!facilities || facilities.length === 0) {
     return (
@@ -51,8 +53,8 @@ const FacilitiesSection = ({ facilities }: FacilitiesSectionProps) => {
     <section id="facilities" className="py-12 md:py-16 lg:py-20 bg-background">
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center mb-10 md:mb-12 lg:mb-16">
-          <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-3 lg:mb-4">設施服務</h2>
-          <p className="text-center text-muted-foreground mb-0 text-base md:text-base lg:text-lg max-w-3xl mx-auto">完善設施與貼心服務，讓您的住宿體驗更加舒適</p>
+          <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-3 lg:mb-4">{customTitle || '設施服務'}</h2>
+          <p className="text-center text-muted-foreground mb-0 text-base md:text-base lg:text-lg max-w-3xl mx-auto">{customSubtitle || '完善設施與貼心服務，讓您的住宿體驗更加舒適'}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 lg:gap-6 max-w-6xl mx-auto">
