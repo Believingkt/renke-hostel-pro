@@ -190,32 +190,25 @@ export const AboutFeaturesSection = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>特色說明</CardTitle>
-        <CardDescription>
-          設定特色區塊（最多 4 個），主標題與副標題請至「首頁區塊顯示」的關於我們區塊設定
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-
-        {/* 特色區塊列表 */}
-        <div className="space-y-4">
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <Label>特色區塊</Label>
-              <Button
-                size="sm"
-                onClick={onAddFeature}
-                disabled={localFeatures.length >= 4}
-                className="h-10 sm:h-9 touch-manipulation"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                新增特色
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              可拖曳調整順序
-            </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>特色說明</CardTitle>
+            <CardDescription>
+              最多 4 個特色區塊，可拖曳調整順序
+            </CardDescription>
           </div>
+          <Button
+            size="sm"
+            onClick={onAddFeature}
+            disabled={localFeatures.length >= 4}
+            className="h-10 sm:h-9 touch-manipulation"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            新增
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
 
           {localFeatures.length > 0 ? (
             <DndContext
@@ -246,9 +239,6 @@ export const AboutFeaturesSection = ({
               </CardContent>
             </Card>
           )}
-        </div>
-
-        
       </CardContent>
     </Card>
   );
