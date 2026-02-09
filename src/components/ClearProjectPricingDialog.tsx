@@ -61,6 +61,7 @@ export function ClearProjectPricingDialog({
   roomTypes,
   onComplete,
 }: ClearProjectPricingDialogProps) {
+  const [allDates, setAllDates] = useState(false);
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [endDate, setEndDate] = useState<Date>(new Date());
   const [selectedRoomTypeId, setSelectedRoomTypeId] = useState<string>("all");
@@ -73,6 +74,7 @@ export function ClearProjectPricingDialog({
 
   useEffect(() => {
     if (open) {
+      setAllDates(false);
       setStartDate(new Date());
       setEndDate(new Date());
       setSelectedRoomTypeId("all");
@@ -112,7 +114,8 @@ export function ClearProjectPricingDialog({
   };
 
   // 計算符合條件的日期
-  const getMatchingDates = (): string[] => {
+  const getMatchingDates = (): string[] | 'all' => {
+    if (allDates) return 'all';
     const dates: string[] = [];
     let currentDate = new Date(startDate);
 
@@ -131,46 +134,51 @@ export function ClearProjectPricingDialog({
   };
 
   const handlePreConfirm = () => {
-    const dates = getMatchingDates();
-    if (dates.length === 0) {
+    const result = getMatchingDates();
+    if (result !== 'all' && result.length === 0) {
       toast.error('沒有符合條件的日期');
       return;
     }
-    setAffectedCount(dates.length);
+    setAffectedCount(result === 'all' ? -1 : result.length);
     setConfirmOpen(true);
   };
 
   const handleClear = async () => {
     try {
       setSaving(true);
-      const datesToClear = getMatchingDates();
+      const result = getMatchingDates();
 
-      if (datesToClear.length === 0) {
-        toast.error('沒有符合條件的日期');
-        return;
-      }
-
-      // 取得要清除的房型 ID 列表
       const roomTypeIds = selectedRoomTypeId === "all"
         ? roomTypes.map(r => r.id)
         : [selectedRoomTypeId];
 
-      // 批次刪除：每個房型 × 日期區間
       for (const rtId of roomTypeIds) {
-        const { error } = await supabase
-          .from('room_inventory_pricing')
-          .delete()
-          .eq('room_type_id', rtId)
-          .in('date', datesToClear);
-
-        if (error) throw error;
+        if (result === 'all') {
+          const { error } = await supabase
+            .from('room_inventory_pricing')
+            .delete()
+            .eq('room_type_id', rtId);
+          if (error) throw error;
+        } else {
+          if (result.length === 0) {
+            toast.error('沒有符合條件的日期');
+            return;
+          }
+          const { error } = await supabase
+            .from('room_inventory_pricing')
+            .delete()
+            .eq('room_type_id', rtId)
+            .in('date', result);
+          if (error) throw error;
+        }
       }
 
       const roomLabel = selectedRoomTypeId === "all"
         ? "全部房型"
         : roomTypes.find(r => r.id === selectedRoomTypeId)?.name || "";
 
-      toast.success(`已清除「${roomLabel}」${datesToClear.length} 天的專案房價`);
+      const dateLabel = result === 'all' ? '所有日期' : `${result.length} 天`;
+      toast.success(`已清除「${roomLabel}」${dateLabel}的專案房價`);
       setConfirmOpen(false);
       onOpenChange(false);
       onComplete();
@@ -218,91 +226,110 @@ export function ClearProjectPricingDialog({
             </div>
 
             {/* 日期範圍 */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>開始日期</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !startDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(startDate, 'yyyy-MM-dd')}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={startDate}
-                      onSelect={(date) => date && setStartDate(date)}
-                      variant="backend"
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="allDates"
+                  checked={allDates}
+                  onCheckedChange={(checked) => setAllDates(checked === true)}
+                />
+                <label htmlFor="allDates" className="text-sm cursor-pointer font-medium">
+                  所有日期
+                </label>
               </div>
-              <div className="space-y-2">
-                <Label>結束日期</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !endDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(endDate, 'yyyy-MM-dd')}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={endDate}
-                      onSelect={(date) => date && setEndDate(date)}
-                      variant="backend"
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
+
+              {!allDates && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>開始日期</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !startDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {format(startDate, 'yyyy-MM-dd')}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={startDate}
+                          onSelect={(date) => date && setStartDate(date)}
+                          variant="backend"
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>結束日期</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !endDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {format(endDate, 'yyyy-MM-dd')}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={endDate}
+                          onSelect={(date) => date && setEndDate(date)}
+                          variant="backend"
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* 篩選星期 */}
-            <div className="space-y-2">
-              <Label>篩選星期</Label>
-              <div className="flex flex-wrap gap-2">
-                {weekDays.map(day => (
-                  <label
-                    key={day.id}
-                    className="flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Checkbox
-                      checked={day.id === 'all' ? selectedDays.size === 7 : selectedDays.has(day.id)}
-                      onCheckedChange={() => handleDayToggle(day.id)}
-                    />
-                    <span className="text-sm">{day.label}</span>
-                  </label>
-                ))}
+            {!allDates && (
+              <div className="space-y-2">
+                <Label>篩選星期</Label>
+                <div className="flex flex-wrap gap-2">
+                  {weekDays.map(day => (
+                    <label
+                      key={day.id}
+                      className="flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={day.id === 'all' ? selectedDays.size === 7 : selectedDays.has(day.id)}
+                        onCheckedChange={() => handleDayToggle(day.id)}
+                      />
+                      <span className="text-sm">{day.label}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* 排除國定假日 */}
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="clearExcludeHolidays"
-                checked={excludeHolidays}
-                onCheckedChange={(checked) => setExcludeHolidays(checked === true)}
-              />
-              <label htmlFor="clearExcludeHolidays" className="text-sm cursor-pointer">
-                排除國定假日
-              </label>
-            </div>
+            {!allDates && (
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="clearExcludeHolidays"
+                  checked={excludeHolidays}
+                  onCheckedChange={(checked) => setExcludeHolidays(checked === true)}
+                />
+                <label htmlFor="clearExcludeHolidays" className="text-sm cursor-pointer">
+                  排除國定假日
+                </label>
+              </div>
+            )}
           </div>
 
           <DialogFooter>
@@ -322,7 +349,10 @@ export function ClearProjectPricingDialog({
           <AlertDialogHeader>
             <AlertDialogTitle>確認清除專案房價</AlertDialogTitle>
             <AlertDialogDescription>
-              即將清除「{selectedRoomLabel}」在 {format(startDate, 'yyyy-MM-dd')} 至 {format(endDate, 'yyyy-MM-dd')} 期間共 {affectedCount} 天的庫存與價格資料。
+              {allDates
+                ? <>即將清除「{selectedRoomLabel}」所有日期的庫存與價格資料。</>
+                : <>即將清除「{selectedRoomLabel}」在 {format(startDate, 'yyyy-MM-dd')} 至 {format(endDate, 'yyyy-MM-dd')} 期間共 {affectedCount} 天的庫存與價格資料。</>
+              }
               <br /><br />
               <span className="text-destructive font-medium">此操作無法復原，請確認是否繼續？</span>
             </AlertDialogDescription>
