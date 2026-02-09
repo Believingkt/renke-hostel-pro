@@ -1040,6 +1040,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                 dateRange={dateRange} 
                 onDateRangeChange={setDateRange}
                 className="w-full"
+                allowFutureDates
               />
             </div>
 
@@ -1266,6 +1267,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
                   dateRange={dateRange} 
                   onDateRangeChange={setDateRange}
                   className="w-full"
+                  allowFutureDates
                 />
               </div>
 

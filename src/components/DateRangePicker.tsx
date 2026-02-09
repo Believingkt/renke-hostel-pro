@@ -16,9 +16,10 @@ interface DateRangePickerProps {
   dateRange: DateRange | undefined;
   onDateRangeChange: (range: DateRange | undefined) => void;
   className?: string;
+  allowFutureDates?: boolean;
 }
 
-export function DateRangePicker({ dateRange, onDateRangeChange, className }: DateRangePickerProps) {
+export function DateRangePicker({ dateRange, onDateRangeChange, className, allowFutureDates = false }: DateRangePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleReset = (e: React.MouseEvent) => {
@@ -132,7 +133,7 @@ export function DateRangePicker({ dateRange, onDateRangeChange, className }: Dat
             }}
             numberOfMonths={2}
             className={cn("p-3 pointer-events-auto")}
-            disabled={(date) => date > new Date()}
+            disabled={allowFutureDates ? undefined : (date) => date > new Date()}
           />
         </div>
       </PopoverContent>
