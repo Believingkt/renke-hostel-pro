@@ -110,7 +110,6 @@ interface DiscountCode {
   applicable_date_to: string | null;
   display_order: number;
   commission_rate: number;
-  webhook_enabled: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -196,7 +195,7 @@ const KolDiscount = () => {
           id, accommodation_id, name, code, discount_type, discount_value,
           usage_limit, used_count, valid_from, valid_until, is_active,
           min_order_amount, applicable_room_types, applicable_date_from,
-          applicable_date_to, display_order, commission_rate, webhook_enabled,
+          applicable_date_to, display_order, commission_rate,
           created_at, updated_at
         `)
         .eq("accommodation_id", accommodationId)
@@ -454,7 +453,6 @@ const KolDiscount = () => {
     setApplicableDateFrom(code.applicable_date_from ? new Date(code.applicable_date_from) : undefined);
     setApplicableDateTo(code.applicable_date_to ? new Date(code.applicable_date_to) : undefined);
     setCommissionRate(code.commission_rate?.toString() || "0");
-    setWebhookEnabled(code.webhook_enabled || false);
     
     // Fetch secrets from the secure table
     try {
@@ -543,7 +541,6 @@ const KolDiscount = () => {
           applicable_date_from: applicableDateFrom?.toISOString().split('T')[0] || null,
           applicable_date_to: applicableDateTo?.toISOString().split('T')[0] || null,
           commission_rate: commissionRate ? parseFloat(commissionRate) : 0,
-          webhook_enabled: webhookEnabled,
         })
         .eq("id", editingCode.id);
 
