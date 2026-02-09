@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Info } from "lucide-react";
+import { Info } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -127,10 +127,7 @@ export const SeoSettingsSection = ({
         <div className="flex items-center gap-3">
           <div className="h-10 w-1.5 bg-primary rounded-full" />
           <div>
-            <CardTitle className="text-xl flex items-center gap-2">
-              <Search className="h-5 w-5" />
-              SEO 設定
-            </CardTitle>
+            <CardTitle className="text-xl">SEO 設定</CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
               設定搜尋引擎顯示的標題、描述和關鍵字
             </p>
