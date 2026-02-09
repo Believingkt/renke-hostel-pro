@@ -567,17 +567,7 @@ function RoomTypeRows({
   onCellClick,
   showCategoryHeader = false,
 }: RoomTypeRowsProps) {
-  // 過濾掉在當月所有日期都沒有價格資料的專案
-  // 只有當該房型在整個月份都沒有任何庫存記錄時，才隱藏專案列
-  const hasAnyInventoryData = useMemo(() => {
-    return monthDays.some(day => {
-      const dateStr = format(day, 'yyyy-MM-dd');
-      const cellData = getCellData(roomType.id, dateStr);
-      return cellData != null;
-    });
-  }, [monthDays, roomType.id, getCellData]);
-
-  const visibleTemplates = hasAnyInventoryData ? templates : [];
+  const visibleTemplates = templates;
 
   return (
     <>
