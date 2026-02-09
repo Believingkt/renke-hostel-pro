@@ -458,13 +458,14 @@ export default function RoomPriceCalendar() {
                         </td>
                       </tr>
                       {groupedRoomTypes.exclusive.map(roomType => {
-                        // 包棟/包區房型：只顯示名稱「有包含該房型名稱」的專案模板
-                        // （不顯示「一泊一食-平日/假日」這種通用模板）
+                        // 包棟/包區房型：顯示名稱包含該房型名稱的專案，或通用模板
                         const normalizedRoomName = roomType.name.replace(/\s+/g, '');
                         
                         const roomTemplates = filteredTemplates.filter(t => {
                           const templateName = (t.project_name || t.template_name).replace(/\s+/g, '');
-                          return templateName.includes(normalizedRoomName);
+                          const matchesCurrentRoom = templateName.includes(normalizedRoomName);
+                          const isGenericTemplate = !allRoomNamesNormalized.some(name => templateName.includes(name));
+                          return matchesCurrentRoom || isGenericTemplate;
                         });
                         return (
                           <RoomTypeRows
