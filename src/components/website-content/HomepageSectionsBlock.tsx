@@ -14,7 +14,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SortableSectionItem } from './SortableSectionItem';
 import { LayoutGrid, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -323,11 +323,9 @@ export const HomepageSectionsBlock = ({
     <Card>
       <CardHeader>
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-            <LayoutGrid className="h-5 w-5 text-primary" />
-          </div>
+          <div className="h-10 w-1.5 bg-primary rounded-full" />
           <div className="flex-1">
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="text-xl flex items-center gap-2">
               首頁區塊顯示
               {isSaving && (
                 <span className="flex items-center gap-1 text-sm font-normal text-muted-foreground">
@@ -336,9 +334,9 @@ export const HomepageSectionsBlock = ({
                 </span>
               )}
             </CardTitle>
-            <CardDescription>
+            <p className="text-sm text-muted-foreground mt-1">
               設定首頁各區塊的顯示與否及排列順序（自動儲存）
-            </CardDescription>
+            </p>
           </div>
         </div>
       </CardHeader>

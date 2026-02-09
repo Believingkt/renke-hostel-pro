@@ -180,11 +180,14 @@ export const HeaderFooterSection = ({
           <DraftRestoreBanner onRestore={restoreDraft} onDiscard={discardDraft} />
         </div>
       )}
-      <CardHeader>
-        <CardTitle>網頁資訊</CardTitle>
-        <CardDescription>
-          設定網站頂部和底部的視覺元素與聯絡資訊
-        </CardDescription>
+      <CardHeader className="pb-4">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-1.5 bg-primary rounded-full" />
+          <div>
+            <CardTitle className="text-xl">網頁資訊</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">設定網站頂部和底部的視覺元素與聯絡資訊</p>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* 瀏覽器標題名稱 */}

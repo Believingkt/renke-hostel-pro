@@ -189,13 +189,14 @@ export const AboutFeaturesSection = ({
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>特色說明</CardTitle>
-            <CardDescription>
-              最多 4 個特色區塊，可拖曳調整順序
-            </CardDescription>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-1.5 bg-primary rounded-full" />
+            <div>
+              <CardTitle className="text-xl">特色說明</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">最多 4 個特色區塊，可拖曳調整順序</p>
+            </div>
           </div>
           <Button
             size="sm"
