@@ -3035,8 +3035,6 @@ const WebsiteContent = () => {
 
           <AboutFeaturesSection
             accommodationId={accommodationId || ''}
-            sectionTitle={aboutSection.sectionTitle}
-            sectionDescription={aboutSection.sectionDescription}
             features={aboutFeatures}
             onUpdate={loadData}
             onEditFeature={(feature) => {

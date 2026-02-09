@@ -471,7 +471,7 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
   );
 };
 
-const RoomsSection = ({ roomTypes, sectionDescription }: RoomsSectionProps) => {
+const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtitle }: RoomsSectionProps) => {
   // 將資料庫的房型資料轉換為顯示格式，保留照片資料
   const displayRooms: RoomType[] = roomTypes.map(room => ({
     id: room.id,

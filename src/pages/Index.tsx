@@ -181,7 +181,7 @@ const Index = () => {
           switch (sectionKey) {
             case 'about':
               return info.show_about_section !== false && (
-                <AboutSection key="about" description={info.description} accommodationId={info.id} customTitle={titles.title} />
+                <AboutSection key="about" description={info.description} accommodationId={info.id} customTitle={titles.title} customSubtitle={titles.subtitle} />
               );
             case 'rooms':
               return info.show_rooms_section !== false && (
