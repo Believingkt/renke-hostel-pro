@@ -201,7 +201,7 @@ export const AboutFeaturesSection = ({
         <div className="space-y-4">
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <Label>特色區塊（最多 4 個）</Label>
+              <Label>特色區塊</Label>
               <Button
                 size="sm"
                 onClick={onAddFeature}
