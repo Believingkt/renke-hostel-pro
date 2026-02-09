@@ -479,6 +479,7 @@ const RoomsSection = ({ roomTypes, sectionDescription }: RoomsSectionProps) => {
     capacity: room.capacity,
     size_sqm: room.size_sqm || 0,
     base_price: room.base_price,
+    accommodation_id: room.accommodation_id,
     room_count: room.room_count,
     quad_room_count: room.quad_room_count,
     triple_room_count: room.triple_room_count,
