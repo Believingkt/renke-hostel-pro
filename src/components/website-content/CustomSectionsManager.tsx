@@ -19,13 +19,10 @@ import {
   AlertDialogHeader, 
   AlertDialogTitle 
 } from "@/components/ui/alert-dialog";
-import { Plus, Trash2, Upload, Image as ImageIcon, Loader2, GripVertical, Monitor, Smartphone } from "lucide-react";
+import { Plus, Trash2, Upload, Image as ImageIcon, Loader2, Monitor, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { compressImage } from "@/utils/imageCompression";
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 
 interface CustomSection {
   id: string;
@@ -57,7 +54,7 @@ interface SortableSectionCardProps {
   uploadType: 'desktop' | 'mobile' | null;
 }
 
-const SortableSectionCard = ({ 
+const SectionCard = ({ 
   section, 
   accommodationId,
   onUpdate, 
@@ -67,23 +64,8 @@ const SortableSectionCard = ({
   uploadingId,
   uploadType
 }: SortableSectionCardProps) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: section.id });
-
   const desktopInputRef = useRef<HTMLInputElement>(null);
   const mobileInputRef = useRef<HTMLInputElement>(null);
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, type: 'desktop' | 'mobile') => {
     const file = e.target.files?.[0];
@@ -96,18 +78,8 @@ const SortableSectionCard = ({
   const isCurrentUploading = isUploading && uploadingId === section.id;
 
   return (
-    <div ref={setNodeRef} style={style} className="border rounded-lg p-4 bg-card">
-      <div className="flex items-start gap-3">
-        <button
-          type="button"
-          className="mt-1 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
-          {...attributes}
-          {...listeners}
-        >
-          <GripVertical className="h-5 w-5" />
-        </button>
-
-        <div className="flex-1 space-y-4">
+    <div className="border rounded-lg p-4 bg-card">
+      <div className="space-y-4">
           {/* 標題與啟用開關 */}
           <div className="flex items-center justify-between">
             <div className="flex-1 mr-4">
@@ -237,7 +209,6 @@ const SortableSectionCard = ({
           </div>
         </div>
       </div>
-    </div>
   );
 };
 
@@ -253,12 +224,8 @@ export const CustomSectionsManager = ({
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
+
+
 
   const handleAddSection = async () => {
     setIsAdding(true);
@@ -417,40 +384,8 @@ export const CustomSectionsManager = ({
     }
   };
 
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
 
-    if (over && active.id !== over.id) {
-      const oldIndex = sections.findIndex(s => s.id === active.id);
-      const newIndex = sections.findIndex(s => s.id === over.id);
-      
-      const newSections = arrayMove(sections, oldIndex, newIndex).map((s, i) => ({
-        ...s,
-        display_order: i,
-      }));
 
-      onSectionsChange(newSections);
-
-      // 批量更新順序
-      try {
-        const updates = newSections
-          .filter(s => !s.id.startsWith('temp-'))
-          .map(s => ({
-            id: s.id,
-            display_order: s.display_order,
-          }));
-
-        for (const update of updates) {
-          await supabase
-            .from('custom_sections')
-            .update({ display_order: update.display_order })
-            .eq('id', update.id);
-        }
-      } catch (error) {
-        console.error('Reorder error:', error);
-      }
-    }
-  };
 
   return (
     <Card>
@@ -480,32 +415,21 @@ export const CustomSectionsManager = ({
             <p className="text-sm mt-1">點擊「新增區塊」開始建立</p>
           </div>
         ) : (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext
-              items={sections.map(s => s.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              <div className="space-y-4">
-                {sections.map((section) => (
-                  <SortableSectionCard
-                    key={section.id}
-                    section={section}
-                    accommodationId={accommodationId}
-                    onUpdate={handleUpdate}
-                    onDelete={(id) => setDeleteId(id)}
-                    onImageUpload={handleImageUpload}
-                    isUploading={isUploading}
-                    uploadingId={uploadingId}
-                    uploadType={uploadType}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
+          <div className="space-y-4">
+            {sections.map((section) => (
+              <SectionCard
+                key={section.id}
+                section={section}
+                accommodationId={accommodationId}
+                onUpdate={handleUpdate}
+                onDelete={(id) => setDeleteId(id)}
+                onImageUpload={handleImageUpload}
+                isUploading={isUploading}
+                uploadingId={uploadingId}
+                uploadType={uploadType}
+              />
+            ))}
+          </div>
         )}
       </CardContent>
 
