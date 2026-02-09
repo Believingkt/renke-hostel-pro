@@ -30,6 +30,7 @@ interface RoomType {
   capacity: number;
   size_sqm: number;
   base_price: number;
+  accommodation_id?: string;
   room_count?: number;
   quad_room_count?: number;
   triple_room_count?: number;
@@ -64,6 +65,11 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
   
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [amenities, setAmenities] = useState<string[]>([]);
+  const [templateLabels, setTemplateLabels] = useState<{
+    priceLabel?: string;
+    price2MealsLabel?: string;
+    price3MealsLabel?: string;
+  }>({});
   const [inventoryPricing, setInventoryPricing] = useState<{
     weekday_price?: number;
     weekend_price?: number;
@@ -76,7 +82,8 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
   useEffect(() => {
     loadAmenities();
     loadInventoryPricing();
-  }, [room.id]);
+    loadTemplateLabels();
+  }, [room.id, room.accommodation_id]);
 
   const loadAmenities = async () => {
     try {
@@ -147,6 +154,42 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error loading inventory pricing:', error);
+      }
+    }
+  };
+
+  const loadTemplateLabels = async () => {
+    if (!room.accommodation_id) return;
+    try {
+      const { data: templates, error } = await supabase
+        .from('pricing_templates')
+        .select('template_name, price, display_order')
+        .eq('accommodation_id', room.accommodation_id)
+        .order('display_order', { ascending: true });
+
+      if (error || !templates || templates.length === 0) return;
+
+      const labels: typeof templateLabels = {};
+      
+      for (const t of templates) {
+        const name = t.template_name;
+        if (name.includes('三食') && !labels.price3MealsLabel) {
+          labels.price3MealsLabel = name;
+        } else if (name.includes('二食') && !labels.price2MealsLabel) {
+          labels.price2MealsLabel = name;
+        } else if (!labels.priceLabel) {
+          labels.priceLabel = name;
+        }
+      }
+
+      if (!labels.priceLabel && templates.length > 0) {
+        labels.priceLabel = templates[0].template_name;
+      }
+
+      setTemplateLabels(labels);
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error loading template labels:', error);
       }
     }
   };
@@ -256,7 +299,10 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
                   <div>
                     <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">平日/假日</p>
                     <div className="space-y-1">
-                      <div className="flex justify-end items-center">
+                      <div className="flex justify-between items-center">
+                        {templateLabels.priceLabel && (
+                          <span className="text-xs md:text-sm text-muted-foreground">{templateLabels.priceLabel}</span>
+                        )}
                         <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekday_price.toLocaleString()}</span>
                       </div>
                     </div>
@@ -268,7 +314,10 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
                       <div>
                         <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">平日</p>
                         <div className="space-y-1">
-                          <div className="flex justify-end items-center">
+                          <div className="flex justify-between items-center">
+                            {templateLabels.priceLabel && (
+                              <span className="text-xs md:text-sm text-muted-foreground">{templateLabels.priceLabel}</span>
+                            )}
                             <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekday_price.toLocaleString()}</span>
                           </div>
                         </div>
@@ -278,7 +327,10 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
                       <div>
                         <p className="text-xs font-semibold text-foreground mb-1.5 md:mb-2">假日</p>
                         <div className="space-y-1">
-                          <div className="flex justify-end items-center">
+                          <div className="flex justify-between items-center">
+                            {templateLabels.priceLabel && (
+                              <span className="text-xs md:text-sm text-muted-foreground">{templateLabels.priceLabel}</span>
+                            )}
                             <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekend_price.toLocaleString()}</span>
                           </div>
                         </div>
@@ -305,13 +357,13 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
                     <div className="space-y-1">
                       {inventoryPricing.weekday_2_meals && (
                         <div className="flex justify-between items-center">
-                          <span className="text-xs md:text-sm text-muted-foreground">一泊二食</span>
+                          <span className="text-xs md:text-sm text-muted-foreground">{templateLabels.price2MealsLabel || '一泊二食'}</span>
                           <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekday_2_meals.toLocaleString()}</span>
                         </div>
                       )}
                       {inventoryPricing.weekday_3_meals && show3Meals && (
                         <div className="flex justify-between items-center">
-                          <span className="text-xs md:text-sm text-muted-foreground">一泊三食</span>
+                          <span className="text-xs md:text-sm text-muted-foreground">{templateLabels.price3MealsLabel || '一泊三食'}</span>
                           <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekday_3_meals.toLocaleString()}</span>
                         </div>
                       )}
@@ -328,13 +380,13 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
                       <div className="space-y-1">
                         {inventoryPricing.weekday_2_meals && (
                           <div className="flex justify-between items-center">
-                            <span className="text-xs md:text-sm text-muted-foreground">一泊二食</span>
+                            <span className="text-xs md:text-sm text-muted-foreground">{templateLabels.price2MealsLabel || '一泊二食'}</span>
                             <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekday_2_meals.toLocaleString()}</span>
                           </div>
                         )}
                         {inventoryPricing.weekday_3_meals && show3Meals && (
                           <div className="flex justify-between items-center">
-                            <span className="text-xs md:text-sm text-muted-foreground">一泊三食</span>
+                            <span className="text-xs md:text-sm text-muted-foreground">{templateLabels.price3MealsLabel || '一泊三食'}</span>
                             <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekday_3_meals.toLocaleString()}</span>
                           </div>
                         )}
@@ -347,13 +399,13 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
                       <div className="space-y-1">
                         {inventoryPricing.weekend_2_meals && (
                           <div className="flex justify-between items-center">
-                            <span className="text-xs md:text-sm text-muted-foreground">一泊二食</span>
+                            <span className="text-xs md:text-sm text-muted-foreground">{templateLabels.price2MealsLabel || '一泊二食'}</span>
                             <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekend_2_meals.toLocaleString()}</span>
                           </div>
                         )}
                         {inventoryPricing.weekend_3_meals && show3Meals && (
                           <div className="flex justify-between items-center">
-                            <span className="text-xs md:text-sm text-muted-foreground">一泊三食</span>
+                            <span className="text-xs md:text-sm text-muted-foreground">{templateLabels.price3MealsLabel || '一泊三食'}</span>
                             <span className="font-semibold text-lg md:text-xl lg:text-xl text-primary">NT$ {inventoryPricing.weekend_3_meals.toLocaleString()}</span>
                           </div>
                         )}
