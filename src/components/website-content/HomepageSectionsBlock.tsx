@@ -22,15 +22,15 @@ import { toast } from "sonner";
 import { invalidateAccommodationCache } from "@/hooks/use-accommodation-cache";
 
 // Section key to label mapping (built-in sections only)
-const SECTION_LABELS: Record<string, { label: string; description: string }> = {
-  about: { label: '關於我們', description: '控制首頁是否顯示關於我們區塊' },
-  rooms: { label: '房型介紹', description: '控制首頁是否顯示房型介紹區塊' },
-  facilities: { label: '設施服務', description: '控制首頁是否顯示設施服務區塊' },
-  gallery: { label: '精選照片', description: '控制首頁是否顯示精選照片區塊' },
-  reviews: { label: '旅客評價', description: '控制首頁是否顯示旅客評價區塊' },
-  faq: { label: '常見問題', description: '控制首頁是否顯示常見問題區塊' },
-  location: { label: '地點交通', description: '控制首頁是否顯示地點交通區塊' },
-  booking_info: { label: '訂房須知', description: '控制首頁是否顯示訂房須知區塊' },
+const SECTION_LABELS: Record<string, { label: string; description: string; defaultTitle: string; defaultSubtitle: string }> = {
+  about: { label: '關於我們', description: '控制首頁是否顯示關於我們區塊', defaultTitle: '關於我們', defaultSubtitle: '' },
+  rooms: { label: '房型介紹', description: '控制首頁是否顯示房型介紹區塊', defaultTitle: '房型導覽', defaultSubtitle: '精心設計的客房空間，讓您在山林間享受寧靜舒適的住宿體驗' },
+  facilities: { label: '設施服務', description: '控制首頁是否顯示設施服務區塊', defaultTitle: '設施服務', defaultSubtitle: '完善設施與貼心服務，讓您的住宿體驗更加舒適' },
+  gallery: { label: '精選照片', description: '控制首頁是否顯示精選照片區塊', defaultTitle: '精選照片', defaultSubtitle: '探索更多精彩瞬間' },
+  reviews: { label: '旅客評價', description: '控制首頁是否顯示旅客評價區塊', defaultTitle: '旅客評價', defaultSubtitle: '來自真實旅客的住宿體驗分享' },
+  faq: { label: '常見問題', description: '控制首頁是否顯示常見問題區塊', defaultTitle: '常見問題', defaultSubtitle: '關於住宿的常見問題解答' },
+  location: { label: '地點交通', description: '控制首頁是否顯示地點交通區塊', defaultTitle: '交通地圖', defaultSubtitle: '多種交通方式輕鬆抵達，讓您的旅程更加便利' },
+  booking_info: { label: '訂房須知', description: '控制首頁是否顯示訂房須知區塊', defaultTitle: '訂房須知', defaultSubtitle: '為確保愉快的住宿體驗，請詳閱以下相關資訊' },
 };
 
 interface CustomSection {
@@ -42,6 +42,7 @@ interface CustomSection {
 interface HomepageSectionsBlockProps {
   accommodationId: string | null;
   sectionsOrder: string[];
+  sectionTitles: Record<string, { title?: string; subtitle?: string }>;
   showAboutSection: boolean;
   showRoomsSection: boolean;
   showFacilitiesSection: boolean;
@@ -52,6 +53,7 @@ interface HomepageSectionsBlockProps {
   showBookingInfoSection: boolean;
   customSections?: CustomSection[];
   onSectionsOrderChange: (newOrder: string[]) => void;
+  onSectionTitlesChange: (titles: Record<string, { title?: string; subtitle?: string }>) => void;
   onShowAboutSectionChange: (value: boolean) => void;
   onShowRoomsSectionChange: (value: boolean) => void;
   onShowFacilitiesSectionChange: (value: boolean) => void;
@@ -70,6 +72,7 @@ const getCustomSectionId = (key: string) => key.replace('custom_', '');
 export const HomepageSectionsBlock = ({
   accommodationId,
   sectionsOrder,
+  sectionTitles,
   showAboutSection,
   showRoomsSection,
   showFacilitiesSection,
@@ -80,6 +83,7 @@ export const HomepageSectionsBlock = ({
   showBookingInfoSection,
   customSections = [],
   onSectionsOrderChange,
+  onSectionTitlesChange,
   onShowAboutSectionChange,
   onShowRoomsSectionChange,
   onShowFacilitiesSectionChange,
@@ -172,11 +176,40 @@ export const HomepageSectionsBlock = ({
     }, 500);
   }, [autoSave]);
 
+  // Ref for title save timeout (separate from order save)
+  const titleSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounced save for title changes
+  const debouncedSaveTitles = useCallback((newTitles: Record<string, { title?: string; subtitle?: string }>) => {
+    if (titleSaveTimeoutRef.current) {
+      clearTimeout(titleSaveTimeoutRef.current);
+    }
+    titleSaveTimeoutRef.current = setTimeout(() => {
+      autoSave({ homepage_section_titles: newTitles });
+    }, 800);
+  }, [autoSave]);
+
+  // Helper to update a section's title or subtitle
+  const handleSectionTitleChange = useCallback((sectionKey: string, field: 'title' | 'subtitle', value: string) => {
+    const newTitles = {
+      ...sectionTitles,
+      [sectionKey]: {
+        ...sectionTitles[sectionKey],
+        [field]: value,
+      },
+    };
+    onSectionTitlesChange(newTitles);
+    debouncedSaveTitles(newTitles);
+  }, [sectionTitles, onSectionTitlesChange, debouncedSaveTitles]);
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
+      }
+      if (titleSaveTimeoutRef.current) {
+        clearTimeout(titleSaveTimeoutRef.current);
       }
     };
   }, []);
@@ -246,6 +279,7 @@ export const HomepageSectionsBlock = ({
         description: '自訂圖片區塊',
         checked: section.is_enabled,
         onCheckedChange: (value: boolean) => handleCustomSectionToggle(id, value),
+        editable: false,
       };
     }
 
@@ -267,12 +301,21 @@ export const HomepageSectionsBlock = ({
     const visibility = visibilityMap[key];
     if (!visibility) return null;
 
+    const titles = sectionTitles[key] || {};
+
     return {
       key,
       label: config.label,
       description: config.description,
       checked: visibility.checked,
       onCheckedChange: visibility.onChange,
+      editable: true,
+      customTitle: titles.title || '',
+      customSubtitle: titles.subtitle || '',
+      defaultTitle: config.defaultTitle,
+      defaultSubtitle: config.defaultSubtitle,
+      onTitleChange: (title: string) => handleSectionTitleChange(key, 'title', title),
+      onSubtitleChange: (subtitle: string) => handleSectionTitleChange(key, 'subtitle', subtitle),
     };
   };
 

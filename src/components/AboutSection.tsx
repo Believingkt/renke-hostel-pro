@@ -7,9 +7,10 @@ import type { LucideIcon } from "lucide-react";
 interface AboutSectionProps {
   description?: string;
   accommodationId?: string;
+  customTitle?: string;
 }
 
-const AboutSection = ({ description, accommodationId }: AboutSectionProps) => {
+const AboutSection = ({ description, accommodationId, customTitle }: AboutSectionProps) => {
   const [sectionData, setSectionData] = useState({
     title: "",
     description: ""
@@ -48,7 +49,7 @@ const AboutSection = ({ description, accommodationId }: AboutSectionProps) => {
           setHasData(true);
           if (aboutData) {
             setSectionData({
-              title: aboutData.section_title || "關於我們",
+              title: customTitle || aboutData.section_title || "關於我們",
               description: aboutData.section_description || description || ""
             });
           }

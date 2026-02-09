@@ -15,7 +15,7 @@ interface FaqItem {
   answer: string;
 }
 
-const FaqSection = () => {
+const FaqSection = ({ customTitle, customSubtitle }: { customTitle?: string; customSubtitle?: string }) => {
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
 
   useEffect(() => {
@@ -69,9 +69,9 @@ const FaqSection = () => {
     <section id="faq" className="py-12 md:py-16 lg:py-20 bg-secondary/20">
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center mb-10 md:mb-12 lg:mb-16">
-          <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-3 lg:mb-4">常見問題</h2>
+          <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-3 lg:mb-4">{customTitle || '常見問題'}</h2>
           <p className="text-center text-muted-foreground mb-0 text-base md:text-base lg:text-lg max-w-3xl mx-auto">
-            關於住宿的常見問題解答
+            {customSubtitle || '關於住宿的常見問題解答'}
           </p>
         </div>
 
