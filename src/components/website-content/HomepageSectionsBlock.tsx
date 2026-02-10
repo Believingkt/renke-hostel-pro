@@ -29,7 +29,7 @@ const SECTION_LABELS: Record<string, { label: string; description: string; defau
   gallery: { label: '精選照片', description: '控制首頁是否顯示精選照片區塊', defaultTitle: '精選照片', defaultSubtitle: '探索更多精彩瞬間' },
   reviews: { label: '旅客評價', description: '控制首頁是否顯示旅客評價區塊', defaultTitle: '旅客評價', defaultSubtitle: '來自真實旅客的住宿體驗分享' },
   faq: { label: '常見問題', description: '控制首頁是否顯示常見問題區塊', defaultTitle: '常見問題', defaultSubtitle: '關於住宿的常見問題解答' },
-  location: { label: '地點交通', description: '控制首頁是否顯示地點交通區塊', defaultTitle: '交通地圖', defaultSubtitle: '多種交通方式輕鬆抵達，讓您的旅程更加便利' },
+  location: { label: '交通地圖', description: '控制首頁是否顯示交通地圖區塊', defaultTitle: '交通地圖', defaultSubtitle: '多種交通方式輕鬆抵達，讓您的旅程更加便利' },
   booking_info: { label: '訂房須知', description: '控制首頁是否顯示訂房須知區塊', defaultTitle: '訂房須知', defaultSubtitle: '為確保愉快的住宿體驗，請詳閱以下相關資訊' },
 };
 
