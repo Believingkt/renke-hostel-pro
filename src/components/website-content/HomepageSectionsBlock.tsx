@@ -335,18 +335,13 @@ export const HomepageSectionsBlock = ({
               )}
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              設定首頁各區塊的顯示與否及排列順序（自動儲存）
+              開關控制區塊顯示，拖曳調整顯示順序（自動儲存）
             </p>
           </div>
         </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              開關控制區塊顯示，拖曳調整顯示順序
-            </p>
-          </div>
           
           <div className="p-4 rounded-lg bg-muted/30 border">
             <DndContext
