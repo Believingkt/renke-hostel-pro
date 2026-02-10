@@ -157,23 +157,14 @@ export const WebInfoSection = ({
         <div className="flex items-center gap-3">
           <div className="h-10 w-1.5 bg-primary rounded-full" />
           <div>
-            <CardTitle className="text-xl">輪播圖設定</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">管理輪播圖片與全局顯示設定</p>
+            <CardTitle className="text-xl">輪播圖管理</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">首頁輪播圖片（最多 5 張）與全局顯示設定</p>
           </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-8">
         {/* 輪播圖管理 */}
         <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-1 bg-primary rounded-full" />
-            <div>
-              <h3 className="font-semibold text-lg">輪播圖管理</h3>
-              <p className="text-sm text-muted-foreground">
-                首頁輪播圖片（最多 5 張）
-              </p>
-            </div>
-          </div>
           
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <Button
