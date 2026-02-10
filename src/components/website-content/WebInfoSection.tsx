@@ -243,8 +243,7 @@ export const WebInfoSection = ({
 
         {/* 全局設定區塊 */}
         <div className="rounded-lg border-2 bg-gradient-to-br from-muted/30 to-muted/10 p-6 md:p-8 space-y-6 shadow-sm">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b">
-            <h3 className="font-bold text-xl md:text-2xl">輪播圖全局設定</h3>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-end gap-4 pb-6 border-b">
             {heroPhotos.length > 0 && (
               <Button
                 type="button"
