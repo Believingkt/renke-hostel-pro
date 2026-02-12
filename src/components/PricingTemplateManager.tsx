@@ -547,6 +547,8 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
             is_available: true,
             price_2_meals: templatePrice,
             price_3_meals: existing?.price_3_meals || null,
+            // 記錄套用的模板名稱，用於房價庫存日曆過濾顯示
+            notes: applyingTemplate.template_name,
           };
           
           upsertRecords.push(upsertData);

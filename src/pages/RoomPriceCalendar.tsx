@@ -36,6 +36,7 @@ interface PricingTemplate {
   id: string;
   template_name: string;
   project_name: string | null;
+  price: number | null;
   weekday_price: number | null;
   weekend_price: number | null;
 }
@@ -46,11 +47,7 @@ interface InventoryData {
   price: number;
   available_rooms: number;
   is_available: boolean;
-}
-
-interface TemplateApplication {
-  template_id: string;
-  room_type_ids: string[];
+  notes: string | null;
 }
 
 interface PublicHoliday {
@@ -75,7 +72,6 @@ export default function RoomPriceCalendar() {
   const [templates, setTemplates] = useState<PricingTemplate[]>([]);
   const [inventory, setInventory] = useState<Map<string, InventoryData>>(new Map());
   const [holidays, setHolidays] = useState<Map<string, PublicHoliday>>(new Map());
-  const [templateApplications, setTemplateApplications] = useState<TemplateApplication[]>([]);
   const [loading, setLoading] = useState(true);
   
   // 篩選器狀態
@@ -114,7 +110,7 @@ export default function RoomPriceCalendar() {
       const monthEnd = format(endOfMonth(currentMonth), 'yyyy-MM-dd');
 
       // 並行載入所有數據
-      const [roomTypesResult, templatesResult, inventoryResult, holidaysResult, templateAppsResult] = await Promise.all([
+      const [roomTypesResult, templatesResult, inventoryResult, holidaysResult] = await Promise.all([
         supabase
           .from('room_types')
           .select('id, name, is_exclusive_package, base_price, room_count')
@@ -122,12 +118,12 @@ export default function RoomPriceCalendar() {
           .order('display_order', { ascending: true }),
         supabase
           .from('pricing_templates')
-          .select('id, template_name, project_name, weekday_price, weekend_price')
+          .select('id, template_name, project_name, price, weekday_price, weekend_price')
           .eq('accommodation_id', currentAccommodationId)
           .order('display_order', { ascending: true }),
         supabase
           .from('room_inventory_pricing')
-          .select('room_type_id, date, price, available_rooms, is_available')
+          .select('room_type_id, date, price, available_rooms, is_available, notes')
           .gte('date', monthStart)
           .lte('date', monthEnd),
         supabase
@@ -136,19 +132,12 @@ export default function RoomPriceCalendar() {
           .eq('accommodation_id', currentAccommodationId)
           .gte('holiday_date', monthStart)
           .lte('holiday_date', monthEnd),
-        supabase
-          .from('pricing_template_applications')
-          .select('template_id, room_type_ids')
-          .eq('accommodation_id', currentAccommodationId)
-          .lte('date_from', monthEnd)
-          .gte('date_to', monthStart),
       ]);
 
       if (roomTypesResult.error) throw roomTypesResult.error;
       if (templatesResult.error) throw templatesResult.error;
       if (inventoryResult.error) throw inventoryResult.error;
       if (holidaysResult.error) throw holidaysResult.error;
-      if (templateAppsResult.error) throw templateAppsResult.error;
       if (holidaysResult.error) throw holidaysResult.error;
 
       const loadedRoomTypes = (roomTypesResult.data || []) as RoomType[];
@@ -215,12 +204,7 @@ export default function RoomPriceCalendar() {
       setRoomTypes(loadedRoomTypes);
       setTemplates(loadedTemplates);
       
-      // 建立模板套用記錄
-      const loadedApps = (templateAppsResult.data || []).map(app => ({
-        template_id: app.template_id,
-        room_type_ids: Array.isArray(app.room_type_ids) ? app.room_type_ids as string[] : [],
-      }));
-      setTemplateApplications(loadedApps);
+      // 建立庫存查找表
 
       // 建立庫存查找表
       const invMap = new Map<string, InventoryData>();
@@ -493,7 +477,7 @@ export default function RoomPriceCalendar() {
                             key={roomType.id}
                             roomType={roomType}
                             templates={roomTemplates}
-                            templateApplications={templateApplications}
+                            inventory={inventory}
                             monthDays={monthDays}
                             holidays={holidays}
                             getCellData={getCellData}
@@ -525,7 +509,7 @@ export default function RoomPriceCalendar() {
                         key={roomType.id}
                         roomType={roomType}
                         templates={roomTemplates}
-                        templateApplications={templateApplications}
+                        inventory={inventory}
                         monthDays={monthDays}
                         holidays={holidays}
                         getCellData={getCellData}
@@ -573,7 +557,7 @@ export default function RoomPriceCalendar() {
 interface RoomTypeRowsProps {
   roomType: RoomType;
   templates: PricingTemplate[];
-  templateApplications: TemplateApplication[];
+  inventory: Map<string, InventoryData>;
   monthDays: Date[];
   holidays: Map<string, PublicHoliday>;
   getCellData: (roomTypeId: string, dateStr: string) => InventoryData | undefined;
@@ -585,7 +569,7 @@ interface RoomTypeRowsProps {
 function RoomTypeRows({
   roomType,
   templates,
-  templateApplications,
+  inventory,
   monthDays,
   holidays,
   getCellData,
@@ -602,17 +586,33 @@ function RoomTypeRows({
     });
   }, [monthDays, roomType.id, getCellData]);
 
-  // 進一步過濾：只顯示已實際套用到該房型的模板
+  // 收集該房型在當月的所有 notes 值，用於判斷哪些模板已被套用
+  const appliedTemplateNames = useMemo(() => {
+    const names = new Set<string>();
+    let hasAnyNotes = false;
+    monthDays.forEach(day => {
+      const dateStr = format(day, 'yyyy-MM-dd');
+      const key = `${roomType.id}_${dateStr}`;
+      const cellData = inventory.get(key);
+      if (cellData?.notes) {
+        hasAnyNotes = true;
+        names.add(cellData.notes);
+      }
+    });
+    // null 表示沒有 notes 記錄（舊資料）
+    return hasAnyNotes ? names : null;
+  }, [monthDays, roomType.id, inventory]);
+
+  // 過濾模板：
+  // 只顯示 notes 中出現的模板名稱；無 notes 記錄時不顯示模板列
   const visibleTemplates = useMemo(() => {
     if (!hasAnyInventoryData) return [];
+    if (appliedTemplateNames === null) return [];
     return templates.filter(t => {
-      // 檢查該模板是否已套用到此房型（在當月時間範圍內）
-      return templateApplications.some(app =>
-        app.template_id === t.id &&
-        app.room_type_ids.includes(roomType.id)
-      );
+      const name = t.project_name || t.template_name;
+      return appliedTemplateNames.has(name);
     });
-  }, [hasAnyInventoryData, templates, templateApplications, roomType.id]);
+  }, [hasAnyInventoryData, templates, appliedTemplateNames]);
 
   return (
     <>
