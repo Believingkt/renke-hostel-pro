@@ -642,7 +642,7 @@ function RoomTypeRows({
 
           // 當日被「關閉販售」時，前台視為不可預定，因此表格庫存顯示為 0
           const isUnavailable = cellData?.is_available === false;
-          const displayRooms = isUnavailable ? 0 : (cellData?.available_rooms ?? roomType.room_count);
+          const displayRooms = isUnavailable ? 0 : (cellData ? cellData.available_rooms : 0);
           const isZeroRooms = (displayRooms ?? 0) === 0;
 
           return (
