@@ -608,9 +608,14 @@ function RoomTypeRows({
   const visibleTemplates = useMemo(() => {
     if (!hasAnyInventoryData) return [];
     if (appliedTemplateNames === null) return [];
+    // Deduplicate by display name to avoid showing multiple rows with the same name
+    const seen = new Set<string>();
     return templates.filter(t => {
       const name = t.project_name || t.template_name;
-      return appliedTemplateNames.has(name);
+      if (!appliedTemplateNames.has(name)) return false;
+      if (seen.has(name)) return false;
+      seen.add(name);
+      return true;
     });
   }, [hasAnyInventoryData, templates, appliedTemplateNames]);
 
