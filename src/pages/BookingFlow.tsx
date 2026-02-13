@@ -1753,7 +1753,7 @@ const BookingFlow = () => {
             {
               body: {
                 prime,
-                amount: finalPrice,
+                amount: (bookingSettings?.use_deposit && depositAmount > 0) ? depositAmount : finalPrice,
                 orderId: `TEMP-${Date.now()}`, // 臨時訂單 ID
                 cardholder: {
                   phoneNumber: guestInfo.phone,
