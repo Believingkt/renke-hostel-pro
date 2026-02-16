@@ -851,8 +851,7 @@ const Headquarters = () => {
                           <TableHead className="font-semibold text-sm">用戶名稱</TableHead>
                           <TableHead className="font-semibold text-sm">Email</TableHead>
                           <TableHead className="font-semibold text-sm">狀態</TableHead>
-                          <TableHead className="font-semibold text-sm">旅館 / 角色</TableHead>
-                          <TableHead className="text-right font-semibold text-sm">操作</TableHead>
+                          <TableHead className="font-semibold text-sm" colSpan={2}>旅館 / 角色</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -888,10 +887,9 @@ const Headquarters = () => {
                                     {first.statusLabel}
                                   </Badge>
                                 </TableCell>
-                                <TableCell className="text-sm align-top">
-                                <div className="space-y-2">
+                                <TableCell className="text-sm align-top" colSpan={2}>
+                                  <div className="space-y-2">
                                     {(() => {
-                                      // For super_admin roles, only show one entry with "總部" as name
                                       const superAdminRoles = roles.filter(r => r.role === 'super_admin');
                                       const otherRoles = roles.filter(r => r.role !== 'super_admin');
                                       const displayRoles = [
@@ -899,11 +897,11 @@ const Headquarters = () => {
                                         ...otherRoles
                                       ];
                                       return displayRoles.map((r) => (
-                                        <div key={r.id} className="flex items-center gap-2">
-                                          <span className="min-w-[80px] text-muted-foreground">
+                                        <div key={r.id} className="flex items-center gap-3">
+                                          <span className="min-w-[80px] text-muted-foreground shrink-0">
                                             {r.role === 'super_admin' ? '總部' : getAccommodationName(r.accommodation_id)}
                                           </span>
-                                          <Badge variant={getRoleBadgeVariant(r.role)}>
+                                          <Badge variant={getRoleBadgeVariant(r.role)} className="shrink-0">
                                             {getRoleLabel(r.role)}
                                           </Badge>
                                           <Select
@@ -922,7 +920,7 @@ const Headquarters = () => {
                                           <Button
                                             variant="ghost-destructive"
                                             size="icon"
-                                            className="h-7 w-7"
+                                            className="h-7 w-7 shrink-0"
                                             onClick={() => handleDeleteRoleClick(r.id)}
                                           >
                                             <Trash2 className="h-3.5 w-3.5" />
@@ -930,19 +928,18 @@ const Headquarters = () => {
                                         </div>
                                       ));
                                     })()}
+                                    {roles.some(r => r.status === 'pending') && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="gap-1 text-xs"
+                                        onClick={() => handleResendInvite(first.user_id, first.user_name || "用戶", first.accommodation_id)}
+                                      >
+                                        <Mail className="h-3.5 w-3.5 text-primary" />
+                                        重新發送邀請
+                                      </Button>
+                                    )}
                                   </div>
-                                </TableCell>
-                                <TableCell className="text-right text-sm align-top">
-                                  {roles.some(r => r.status === 'pending') && (
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => handleResendInvite(first.user_id, first.user_name || "用戶", first.accommodation_id)}
-                                      title="重新發送邀請"
-                                    >
-                                      <Mail className="h-4 w-4 text-primary" />
-                                    </Button>
-                                  )}
                                 </TableCell>
                               </TableRow>
                             );
