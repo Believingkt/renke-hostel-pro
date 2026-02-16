@@ -264,12 +264,12 @@ export const FacilityManagement = forwardRef<FacilityManagementRef, object>((_, 
         </Select>
 
         <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
             placeholder="搜尋設施名稱..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
+            className="!pl-10"
           />
         </div>
       </div>
