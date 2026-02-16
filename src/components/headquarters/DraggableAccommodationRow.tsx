@@ -4,7 +4,7 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GripVertical, Pencil, Copy, Link2, Power, PowerOff, ExternalLink, Trash2 } from "lucide-react";
-import { THEME_COLORS } from "@/constants/themes";
+
 import { AccommodationHoverCard } from "./AccommodationHoverCard";
 import { toast } from "sonner";
 
@@ -65,7 +65,7 @@ export function DraggableAccommodationRow({
     transition,
   };
 
-  const theme = THEME_COLORS[accommodation.theme_preset || "default"] || THEME_COLORS.default;
+  
 
   return (
     <TableRow
@@ -99,19 +99,6 @@ export function DraggableAccommodationRow({
         </AccommodationHoverCard>
       </TableCell>
 
-      {/* Theme */}
-      <TableCell className="w-24">
-        <div className="flex items-center gap-2">
-          <div
-            className="w-5 h-5 rounded-full border-2 border-background shadow-sm"
-            style={{ backgroundColor: theme.primary }}
-            title={theme.label}
-          />
-          <span className="text-xs text-muted-foreground hidden sm:inline">
-            {theme.label}
-          </span>
-        </div>
-      </TableCell>
 
       {/* Custom Domain */}
       <TableCell>
