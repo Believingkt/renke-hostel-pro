@@ -3,7 +3,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { GripVertical, Pencil, Copy, Link2, Power, PowerOff, ExternalLink, Trash2 } from "lucide-react";
+import { GripVertical, Pencil, Copy, Link2, Power, PowerOff, Trash2 } from "lucide-react";
 
 import { AccommodationHoverCard } from "./AccommodationHoverCard";
 import { toast } from "sonner";
@@ -198,20 +198,6 @@ export function DraggableAccommodationRow({
             title="刪除"
           >
             <Trash2 className="h-4 w-4 text-destructive" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            asChild
-            title="前往後台"
-          >
-            <a
-              href={`/dashboard?accId=${accommodation.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <ExternalLink className="h-4 w-4" />
-            </a>
           </Button>
         </div>
       </TableCell>
