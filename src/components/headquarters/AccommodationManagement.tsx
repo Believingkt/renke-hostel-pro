@@ -817,7 +817,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
                         <GripVertical className="h-4 w-4 text-muted-foreground mx-auto" />
                       </TableHead>
                       <TableHead className="font-semibold">民宿名稱</TableHead>
-                      <TableHead className="font-semibold w-24">主題配色</TableHead>
+                      
                       <TableHead className="font-semibold">自訂網域</TableHead>
                       <TableHead className="font-semibold">狀態</TableHead>
                       <TableHead className="font-semibold">建立時間</TableHead>
