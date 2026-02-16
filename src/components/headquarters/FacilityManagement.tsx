@@ -276,15 +276,6 @@ export const FacilityManagement = forwardRef<FacilityManagementRef, object>((_, 
 
       {/* Facilities List */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Utensils className="h-5 w-5" />
-            設施管理
-          </CardTitle>
-          <CardDescription>
-            管理全民宿共用的設施服務項目，共 {filteredFacilities.length} 項
-          </CardDescription>
-        </CardHeader>
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center py-12">
