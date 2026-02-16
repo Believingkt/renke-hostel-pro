@@ -854,7 +854,6 @@ const Headquarters = () => {
                           <TableHead className="font-semibold text-sm">用戶 ID</TableHead>
                           <TableHead className="font-semibold text-sm">旅館</TableHead>
                           <TableHead className="font-semibold text-sm">角色</TableHead>
-                          <TableHead className="font-semibold text-sm">創建時間</TableHead>
                           <TableHead className="text-right font-semibold text-sm">操作</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -903,9 +902,6 @@ const Headquarters = () => {
                                   </SelectContent>
                                 </Select>
                               </div>
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              {new Date(userRole.created_at).toLocaleDateString("zh-TW")}
                             </TableCell>
                             <TableCell className="text-right text-sm">
                               <div className="flex items-center justify-end gap-2">
