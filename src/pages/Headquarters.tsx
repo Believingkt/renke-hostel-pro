@@ -171,6 +171,13 @@ const Headquarters = () => {
   const [deleteBackupDialogOpen, setDeleteBackupDialogOpen] = useState(false);
   const [deletingBackup, setDeletingBackup] = useState<BackupLog | null>(null);
 
+  // Add role to existing user states
+  const [addRoleDialogOpen, setAddRoleDialogOpen] = useState(false);
+  const [addRoleUserId, setAddRoleUserId] = useState("");
+  const [addRoleAccommodation, setAddRoleAccommodation] = useState("");
+  const [addRoleType, setAddRoleType] = useState<"super_admin" | "hotel_admin" | "staff">("staff");
+  const [addRoleSubmitting, setAddRoleSubmitting] = useState(false);
+
   useEffect(() => {
     loadAccommodations();
     loadUserRoles();
@@ -377,6 +384,71 @@ const Headquarters = () => {
         console.error("Error resending invite:", error);
       }
       toast.error(error.message || "重新發送失敗");
+    }
+  };
+
+  const handleAddRoleToExistingUser = async () => {
+    if (!addRoleUserId || !addRoleType) {
+      toast.error("請選擇用戶和角色");
+      return;
+    }
+
+    // super_admin doesn't need accommodation, others do
+    if (addRoleType !== "super_admin" && !addRoleAccommodation) {
+      toast.error("請選擇旅館");
+      return;
+    }
+
+    setAddRoleSubmitting(true);
+    try {
+      // Check if this role already exists
+      const query = supabase
+        .from("user_roles")
+        .select("id")
+        .eq("user_id", addRoleUserId)
+        .eq("role", addRoleType);
+
+      if (addRoleType === "super_admin") {
+        // For super_admin, check any existing super_admin role
+      } else {
+        query.eq("accommodation_id", addRoleAccommodation);
+      }
+
+      const { data: existing } = await query.limit(1);
+
+      if (existing && existing.length > 0) {
+        toast.error("此用戶已擁有該權限");
+        return;
+      }
+
+      // For super_admin, use the first accommodation as placeholder (required by DB)
+      const accommodationId = addRoleType === "super_admin" 
+        ? (accommodations[0]?.id || addRoleAccommodation)
+        : addRoleAccommodation;
+
+      const { error } = await supabase
+        .from("user_roles")
+        .insert({
+          user_id: addRoleUserId,
+          accommodation_id: accommodationId,
+          role: addRoleType,
+        });
+
+      if (error) {
+        toast.error("新增權限失敗");
+        return;
+      }
+
+      toast.success("權限已新增");
+      setAddRoleDialogOpen(false);
+      setAddRoleUserId("");
+      setAddRoleAccommodation("");
+      setAddRoleType("staff");
+      loadUserRoles();
+    } catch (error) {
+      toast.error("新增權限失敗");
+    } finally {
+      setAddRoleSubmitting(false);
     }
   };
 
@@ -823,6 +895,78 @@ const Headquarters = () => {
                     >
                       {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       發送邀請
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">為現有用戶新增權限</CardTitle>
+                <CardDescription>直接為已存在的帳號新增民宿權限或總部管理員權限，無需發送邀請信</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="space-y-2">
+                    <Label>選擇用戶</Label>
+                    <Select value={addRoleUserId} onValueChange={setAddRoleUserId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="選擇用戶" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(() => {
+                          const uniqueUsers = new Map<string, { id: string; name: string; email: string }>();
+                          userRoles.forEach((r) => {
+                            if (!uniqueUsers.has(r.user_id)) {
+                              uniqueUsers.set(r.user_id, { id: r.user_id, name: r.user_name || "未知", email: r.user_email || "" });
+                            }
+                          });
+                          return Array.from(uniqueUsers.values()).map((u) => (
+                            <SelectItem key={u.id} value={u.id}>
+                              {u.name} ({u.email})
+                            </SelectItem>
+                          ));
+                        })()}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>角色</Label>
+                    <Select value={addRoleType} onValueChange={(v) => setAddRoleType(v as "super_admin" | "hotel_admin" | "staff")}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="super_admin">總部管理員</SelectItem>
+                        <SelectItem value="hotel_admin">民宿管理員</SelectItem>
+                        <SelectItem value="staff">現場營運</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>旅館{addRoleType === "super_admin" && <span className="text-muted-foreground text-xs ml-1">(非必填)</span>}</Label>
+                    <Select value={addRoleAccommodation} onValueChange={setAddRoleAccommodation} disabled={addRoleType === "super_admin"}>
+                      <SelectTrigger>
+                        <SelectValue placeholder={addRoleType === "super_admin" ? "總部管理員無需選擇" : "選擇旅館"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {accommodations.map((acc) => (
+                          <SelectItem key={acc.id} value={acc.id}>
+                            {acc.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-end">
+                    <Button
+                      onClick={handleAddRoleToExistingUser}
+                      className="w-full"
+                      disabled={addRoleSubmitting}
+                    >
+                      {addRoleSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      新增權限
                     </Button>
                   </div>
                 </div>
