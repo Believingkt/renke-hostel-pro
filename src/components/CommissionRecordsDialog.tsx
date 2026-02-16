@@ -364,7 +364,7 @@ export const CommissionRecordsDialog = ({
                     <TableHead>佣金率</TableHead>
                     <TableHead>佣金金額</TableHead>
                     <TableHead>結算狀態</TableHead>
-                    <TableHead className="w-[140px]">操作</TableHead>
+                    <TableHead className="text-center w-[140px]">操作</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

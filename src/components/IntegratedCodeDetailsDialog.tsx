@@ -769,7 +769,7 @@ export const IntegratedCodeDetailsDialog = ({
                         <TableHead>佣金率</TableHead>
                         <TableHead>佣金金額</TableHead>
                         <TableHead>結算狀態</TableHead>
-                        <TableHead>操作</TableHead>
+                        <TableHead className="text-center">操作</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
