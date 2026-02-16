@@ -671,12 +671,12 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
-                    <TableHead className="font-semibold text-foreground text-sm">假日名稱</TableHead>
-                    <TableHead className="font-semibold text-foreground text-sm">類型</TableHead>
-                    <TableHead className="font-semibold text-foreground text-sm">日期</TableHead>
-                    <TableHead className="font-semibold text-foreground text-sm">星期</TableHead>
-                    <TableHead className="font-semibold text-foreground text-sm">年份</TableHead>
-                    <TableHead className="text-center font-semibold text-foreground text-sm">操作</TableHead>
+                    <TableHead className="text-foreground text-sm">假日名稱</TableHead>
+                    <TableHead className="text-foreground text-sm">類型</TableHead>
+                    <TableHead className="text-foreground text-sm">日期</TableHead>
+                    <TableHead className="text-foreground text-sm">星期</TableHead>
+                    <TableHead className="text-foreground text-sm">年份</TableHead>
+                    <TableHead className="text-center text-foreground text-sm">操作</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

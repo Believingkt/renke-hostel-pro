@@ -2408,15 +2408,15 @@ const KolDiscount = () => {
             <TableHeader>
               <TableRow className="bg-muted/50">
                 <TableHead className="w-12 text-foreground text-sm"></TableHead>
-                <TableHead className="text-foreground font-semibold text-sm">名稱</TableHead>
-                <TableHead className="text-foreground font-semibold text-sm">折扣碼</TableHead>
-                <TableHead className="text-foreground font-semibold text-sm">推薦連結</TableHead>
-                <TableHead className="text-foreground font-semibold text-sm">折扣</TableHead>
-                <TableHead className="text-foreground font-semibold text-sm">已使用</TableHead>
-                <TableHead className="text-foreground font-semibold text-sm">使用上限</TableHead>
-                <TableHead className="text-foreground font-semibold text-sm">有效期</TableHead>
-                <TableHead className="text-foreground font-semibold text-sm">狀態</TableHead>
-                <TableHead className="text-center text-foreground font-semibold text-sm w-[180px]">操作</TableHead>
+                <TableHead className="text-foreground text-sm">名稱</TableHead>
+                <TableHead className="text-foreground text-sm">折扣碼</TableHead>
+                <TableHead className="text-foreground text-sm">推薦連結</TableHead>
+                <TableHead className="text-foreground text-sm">折扣</TableHead>
+                <TableHead className="text-foreground text-sm">已使用</TableHead>
+                <TableHead className="text-foreground text-sm">使用上限</TableHead>
+                <TableHead className="text-foreground text-sm">有效期</TableHead>
+                <TableHead className="text-foreground text-sm">狀態</TableHead>
+                <TableHead className="text-center text-foreground text-sm w-[180px]">操作</TableHead>
               </TableRow>
             </TableHeader>
               <TableBody>

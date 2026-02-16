@@ -1115,13 +1115,13 @@ const Headquarters = () => {
                       <Table>
                         <TableHeader>
                           <TableRow className="bg-muted/50">
-                            <TableHead className="font-semibold text-sm w-10"></TableHead>
-                            <TableHead className="font-semibold text-sm">用戶名稱</TableHead>
-                            <TableHead className="font-semibold text-sm">Email</TableHead>
-                            <TableHead className="font-semibold text-sm">狀態</TableHead>
-                            <TableHead className="font-semibold text-sm">旅館 / 角色</TableHead>
-                            <TableHead className="font-semibold text-sm pl-2">切換角色</TableHead>
-                            <TableHead className="font-semibold text-sm text-center">操作</TableHead>
+                            <TableHead className="text-sm w-10"></TableHead>
+                            <TableHead className="text-sm">用戶名稱</TableHead>
+                            <TableHead className="text-sm">Email</TableHead>
+                            <TableHead className="text-sm">狀態</TableHead>
+                            <TableHead className="text-sm">旅館 / 角色</TableHead>
+                            <TableHead className="text-sm pl-2">切換角色</TableHead>
+                            <TableHead className="text-sm text-center">操作</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>

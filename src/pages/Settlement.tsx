@@ -483,9 +483,9 @@ export default function Settlement() {
                           </TableHead>
                           <TableHead>訂單編號</TableHead>
                           <TableHead>入住日期</TableHead>
-                          <TableHead>訂單金額</TableHead>
-                          <TableHead>手續費</TableHead>
-                          <TableHead>撥款金額</TableHead>
+                          <TableHead className="text-right">訂單金額</TableHead>
+                          <TableHead className="text-right">手續費</TableHead>
+                          <TableHead className="text-right">撥款金額</TableHead>
                           <TableHead>付款狀態</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -504,13 +504,13 @@ export default function Settlement() {
                             <TableCell className="text-sm">
                               {record.orders?.check_in_date && format(new Date(record.orders.check_in_date), "yyyy/MM/dd")}
                             </TableCell>
-                            <TableCell className="text-center font-medium">
+                            <TableCell className="text-right font-medium">
                               NT$ {record.order_amount.toLocaleString()}
                             </TableCell>
-                            <TableCell className="text-center text-red-600">
+                            <TableCell className="text-right text-red-600">
                               -NT$ {record.hq_amount.toLocaleString()}
                             </TableCell>
-                            <TableCell className="text-center text-primary font-medium">
+                            <TableCell className="text-right text-primary font-medium">
                               NT$ {record.accommodation_amount.toLocaleString()}
                             </TableCell>
                             <TableCell>
@@ -571,7 +571,7 @@ export default function Settlement() {
                         <TableRow className="bg-muted/50">
                           <TableHead>訂單編號</TableHead>
                           <TableHead>入住日期</TableHead>
-                          <TableHead>撥款金額</TableHead>
+                          <TableHead className="text-right">撥款金額</TableHead>
                           <TableHead>請款日期</TableHead>
                           <TableHead>狀態</TableHead>
                         </TableRow>
@@ -585,7 +585,7 @@ export default function Settlement() {
                             <TableCell className="text-sm">
                               {record.orders?.check_in_date && format(new Date(record.orders.check_in_date), "yyyy/MM/dd")}
                             </TableCell>
-                            <TableCell className="text-center text-primary font-medium">
+                            <TableCell className="text-right text-primary font-medium">
                               NT$ {record.accommodation_amount.toLocaleString()}
                             </TableCell>
                             <TableCell className="text-sm">
@@ -645,7 +645,7 @@ export default function Settlement() {
                         <TableRow className="bg-muted/50">
                           <TableHead>訂單編號</TableHead>
                           <TableHead>入住日期</TableHead>
-                          <TableHead>撥款金額</TableHead>
+                          <TableHead className="text-right">撥款金額</TableHead>
                           <TableHead>請款日期</TableHead>
                           <TableHead>撥款日期</TableHead>
                           <TableHead>付款方式</TableHead>
@@ -661,7 +661,7 @@ export default function Settlement() {
                             <TableCell className="text-sm">
                               {record.orders?.check_in_date && format(new Date(record.orders.check_in_date), "yyyy/MM/dd")}
                             </TableCell>
-                            <TableCell className="text-center text-primary font-medium">
+                            <TableCell className="text-right text-primary font-medium">
                               NT$ {record.accommodation_amount.toLocaleString()}
                             </TableCell>
                             <TableCell className="text-sm">

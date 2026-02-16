@@ -211,15 +211,15 @@ const DiscountCodeOrders = () => {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead className="text-foreground font-semibold text-sm">訂單編號</TableHead>
-                  <TableHead className="text-foreground font-semibold text-sm">顧客資訊</TableHead>
-                  <TableHead className="text-foreground font-semibold text-sm">房型</TableHead>
-                  <TableHead className="text-foreground font-semibold text-sm">入住日期</TableHead>
-                  <TableHead className="text-foreground font-semibold text-sm">金額</TableHead>
-                  <TableHead className="text-foreground font-semibold text-sm">折扣</TableHead>
-                  <TableHead className="text-foreground font-semibold text-sm">實收</TableHead>
-                  <TableHead className="text-foreground font-semibold text-sm">狀態</TableHead>
-                  <TableHead className="text-foreground font-semibold text-sm">訂單日期</TableHead>
+                  <TableHead className="text-foreground text-sm">訂單編號</TableHead>
+                  <TableHead className="text-foreground text-sm">顧客資訊</TableHead>
+                  <TableHead className="text-foreground text-sm">房型</TableHead>
+                  <TableHead className="text-foreground text-sm">入住日期</TableHead>
+                  <TableHead className="text-right text-foreground text-sm">金額</TableHead>
+                  <TableHead className="text-right text-foreground text-sm">折扣</TableHead>
+                  <TableHead className="text-right text-foreground text-sm">實收</TableHead>
+                  <TableHead className="text-foreground text-sm">狀態</TableHead>
+                  <TableHead className="text-foreground text-sm">訂單日期</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
