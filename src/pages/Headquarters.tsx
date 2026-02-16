@@ -852,7 +852,7 @@ const Headquarters = () => {
                           <TableHead className="font-semibold text-sm">Email</TableHead>
                           <TableHead className="font-semibold text-sm">狀態</TableHead>
                           <TableHead className="font-semibold text-sm">旅館 / 角色</TableHead>
-                          <TableHead className="font-semibold text-sm">切換角色</TableHead>
+                          <TableHead className="font-semibold text-sm pl-2">切換角色</TableHead>
                           <TableHead className="font-semibold text-sm text-center">操作</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -923,7 +923,7 @@ const Headquarters = () => {
                                           )}
                                         </div>
                                       </TableCell>
-                                      <TableCell className="text-sm align-top">
+                                      <TableCell className="text-sm align-top pl-2">
                                         <div className="flex flex-col gap-4">
                                           {displayRoles.map((r) => (
                                             <div key={r.id} className="h-10 flex items-center">
