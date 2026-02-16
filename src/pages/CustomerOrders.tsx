@@ -348,7 +348,7 @@ const CustomerOrders = () => {
                       <TableHead className="text-foreground font-semibold text-sm">房型</TableHead>
                       <TableHead className="text-foreground font-semibold text-sm">餐食方案</TableHead>
                       <TableHead className="text-center text-foreground font-semibold text-sm">人數</TableHead>
-                      <TableHead className="text-right text-foreground font-semibold text-sm">金額</TableHead>
+                      <TableHead className="text-foreground font-semibold text-sm">金額</TableHead>
                       <TableHead className="text-foreground font-semibold text-sm">訂單狀態</TableHead>
                       <TableHead className="text-foreground font-semibold text-sm">付款狀態</TableHead>
                       <TableHead className="text-foreground font-semibold text-sm">訂單來源</TableHead>
@@ -371,7 +371,7 @@ const CustomerOrders = () => {
                         <TableCell className="text-sm">{order.room_types?.name || "-"}</TableCell>
                         <TableCell className="text-sm">{getMealPlanDisplayName(order.meal_plan)}</TableCell>
                         <TableCell className="text-center text-sm">{order.guest_count}</TableCell>
-                        <TableCell className="text-right font-medium text-sm">
+                        <TableCell className="text-center font-medium text-sm">
                           ${order.final_price.toLocaleString()}
                         </TableCell>
                         <TableCell className="text-sm">{getStatusBadge(order.order_status)}</TableCell>

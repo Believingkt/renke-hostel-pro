@@ -726,9 +726,9 @@ export const SplitManagement = forwardRef<SplitManagementRef, SplitManagementPro
                       <TableRow className="bg-muted/50">
                         <TableHead>訂單編號</TableHead>
                         <TableHead>民宿</TableHead>
-                        <TableHead className="text-right">訂單金額</TableHead>
-                        <TableHead className="text-right">手續費</TableHead>
-                        <TableHead className="text-right">撥款金額</TableHead>
+                        <TableHead>訂單金額</TableHead>
+                        <TableHead>手續費</TableHead>
+                        <TableHead>撥款金額</TableHead>
                         <TableHead>狀態</TableHead>
                         <TableHead>建立時間</TableHead>
                       </TableRow>
@@ -740,13 +740,13 @@ export const SplitManagement = forwardRef<SplitManagementRef, SplitManagementPro
                             {record.orders?.order_number}
                           </TableCell>
                           <TableCell>{getAccommodationName(record.accommodation_id)}</TableCell>
-                          <TableCell className="text-right font-medium">
+                          <TableCell className="text-center font-medium">
                             NT$ {record.order_amount.toLocaleString()}
                           </TableCell>
-                          <TableCell className="text-right text-red-600">
+                          <TableCell className="text-center text-red-600">
                             -NT$ {record.hq_amount.toLocaleString()}
                           </TableCell>
-                          <TableCell className="text-right text-primary font-medium">
+                          <TableCell className="text-center text-primary font-medium">
                             NT$ {record.accommodation_amount.toLocaleString()}
                           </TableCell>
                           <TableCell>
@@ -847,7 +847,7 @@ export const SplitManagement = forwardRef<SplitManagementRef, SplitManagementPro
                         <TableHead>民宿</TableHead>
                         <TableHead>訂單編號</TableHead>
                         <TableHead>入住日期</TableHead>
-                        <TableHead className="text-right">撥款金額</TableHead>
+                        <TableHead>撥款金額</TableHead>
                         <TableHead>請款日期</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -872,7 +872,7 @@ export const SplitManagement = forwardRef<SplitManagementRef, SplitManagementPro
                           <TableCell className="text-sm">
                             {record.orders?.check_in_date && format(new Date(record.orders.check_in_date), "yyyy/MM/dd")}
                           </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-center">
                             <div className="text-primary font-medium">
                               NT$ {record.accommodation_amount.toLocaleString()}
                             </div>
@@ -976,7 +976,7 @@ export const SplitManagement = forwardRef<SplitManagementRef, SplitManagementPro
                         </TableHead>
                         <TableHead>民宿</TableHead>
                         <TableHead>訂單編號</TableHead>
-                        <TableHead className="text-right">撥款金額</TableHead>
+                        <TableHead>撥款金額</TableHead>
                         <TableHead>審核日期</TableHead>
                         <TableHead>狀態</TableHead>
                       </TableRow>
@@ -1001,7 +1001,7 @@ export const SplitManagement = forwardRef<SplitManagementRef, SplitManagementPro
                           <TableCell className="font-mono text-sm">
                             {record.orders?.order_number}
                           </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-center">
                             <div className="text-primary font-medium">
                               NT$ {record.accommodation_amount.toLocaleString()}
                             </div>
