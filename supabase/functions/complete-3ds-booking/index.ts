@@ -87,10 +87,64 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Calculate total price if not provided
+    // === Server-side price validation ===
     const totalPrice = body.totalPrice || body.finalPrice;
     const depositAmount = body.depositAmount || body.finalPrice;
     const totalGuests = body.totalGuests || 2;
+
+    try {
+      const validationPayload = {
+        accommodationId: body.accommodationId,
+        roomTypeId: body.selectedRoom.id,
+        checkInDate: body.checkInDate,
+        checkOutDate: body.checkOutDate,
+        totalPrice: totalPrice,
+        discountCode: body.discountCode || null,
+        discountAmount: body.discountAmount || 0,
+        finalPrice: body.finalPrice,
+        mealPlan: body.mealPlan || null,
+        mealPlanDetails: body.mealPlanDetails || [],
+        mealPlanTotal: body.mealPlanTotal || 0,
+        petCount: body.petCount || 0,
+        petPlanPrice: body.petPlanPrice || 0,
+      };
+
+      const validateResponse = await fetch(
+        `${supabaseUrl}/functions/v1/validate-order-prices`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${supabaseServiceKey}`,
+          },
+          body: JSON.stringify(validationPayload),
+        }
+      );
+
+      if (validateResponse.ok) {
+        const validationResult = await validateResponse.json();
+        if (!validationResult.isValid) {
+          console.error("[complete-3ds-booking] Price validation failed:", validationResult.errors);
+          return new Response(
+            JSON.stringify({
+              success: false,
+              message: "價格驗證失敗，請重新預訂",
+              errors: validationResult.errors,
+            }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        console.log("[complete-3ds-booking] Price validation passed");
+      } else {
+        // If validation service is down, log but allow order to proceed
+        // to avoid blocking legitimate payments that already completed 3DS
+        const respText = await validateResponse.text();
+        console.error("[complete-3ds-booking] Price validation service error:", validateResponse.status, respText);
+      }
+    } catch (validationError) {
+      // Non-fatal: if validation service is unreachable, log and continue
+      console.error("[complete-3ds-booking] Price validation call failed (non-fatal):", validationError);
+    }
 
     // Prepare order notes
     let orderNotes = `[TapPay 3DS 交易: ${body.recTradeId}]`;
