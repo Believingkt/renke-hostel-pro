@@ -619,7 +619,7 @@ const Customers = () => {
                       <TableHead className="font-semibold text-foreground text-sm">
                         備註
                       </TableHead>
-                      <TableHead className="font-semibold text-foreground text-right text-sm w-[140px]">操作</TableHead>
+                      <TableHead className="font-semibold text-foreground text-center text-sm w-[140px]">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -645,8 +645,8 @@ const Customers = () => {
                             {customer.notes || "-"}
                           </div>
                         </TableCell>
-                        <TableCell className="text-right text-sm w-[140px]">
-                          <div className="flex justify-end gap-1 pr-2">
+                        <TableCell className="text-center text-sm w-[140px]">
+                          <div className="flex justify-center gap-1 pr-2">
                             <Button
                               variant="ghost"
                               size="icon"

@@ -352,7 +352,7 @@ const CustomerOrders = () => {
                       <TableHead className="text-foreground font-semibold text-sm">訂單狀態</TableHead>
                       <TableHead className="text-foreground font-semibold text-sm">付款狀態</TableHead>
                       <TableHead className="text-foreground font-semibold text-sm">訂單來源</TableHead>
-                      <TableHead className="text-right text-foreground font-semibold text-sm">操作</TableHead>
+                      <TableHead className="text-center text-foreground font-semibold text-sm">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -377,7 +377,7 @@ const CustomerOrders = () => {
                         <TableCell className="text-sm">{getStatusBadge(order.order_status)}</TableCell>
                         <TableCell className="text-sm">{getPaymentStatusBadge(order.payment_status)}</TableCell>
                         <TableCell className="text-sm">{getOrderSourceBadge(order.order_source)}</TableCell>
-                        <TableCell className="text-right text-sm">
+                        <TableCell className="text-center text-sm">
                           <Button
                             variant="ghost"
                             size="icon"

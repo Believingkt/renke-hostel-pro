@@ -311,7 +311,7 @@ export const FacilityManagement = forwardRef<FacilityManagementRef, object>((_, 
                           <TableHead>設施名稱</TableHead>
                           <TableHead>計費方式</TableHead>
                           <TableHead>狀態</TableHead>
-                          <TableHead className="text-right">操作</TableHead>
+                          <TableHead className="text-center">操作</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -330,8 +330,8 @@ export const FacilityManagement = forwardRef<FacilityManagementRef, object>((_, 
                                 <Badge variant="outline">停用</Badge>
                               )}
                             </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-2">
+                            <TableCell className="text-center">
+                              <div className="flex justify-center gap-2">
                                 <Button 
                                   variant="ghost" 
                                   size="icon" 
