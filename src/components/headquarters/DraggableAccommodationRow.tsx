@@ -3,7 +3,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { GripVertical, Pencil, Copy, Globe, Link2, Power, PowerOff, ExternalLink, Trash2 } from "lucide-react";
+import { GripVertical, Pencil, Copy, Link2, Power, PowerOff, ExternalLink, Trash2 } from "lucide-react";
 import { THEME_COLORS } from "@/constants/themes";
 import { AccommodationHoverCard } from "./AccommodationHoverCard";
 import { toast } from "sonner";
@@ -35,7 +35,6 @@ interface DraggableAccommodationRowProps {
   onClone: (acc: Accommodation) => void;
   onToggle: (acc: Accommodation) => void;
   onDelete: (acc: Accommodation) => void;
-  onDnsSettings: (acc: Accommodation) => void;
   onCustomDomain: (acc: Accommodation) => void;
   isDragDisabled?: boolean;
 }
@@ -46,7 +45,6 @@ export function DraggableAccommodationRow({
   onClone,
   onToggle,
   onDelete,
-  onDnsSettings,
   onCustomDomain,
   isDragDisabled = false,
 }: DraggableAccommodationRowProps) {
@@ -184,16 +182,6 @@ export function DraggableAccommodationRow({
               title="自訂網域設定"
             >
               <Link2 className="h-4 w-4 text-primary" />
-            </Button>
-          )}
-          {accommodation.short_url_alias && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onDnsSettings(accommodation)}
-              title="子網域 DNS 設定"
-            >
-              <Globe className="h-4 w-4 text-blue-600" />
             </Button>
           )}
           <Button

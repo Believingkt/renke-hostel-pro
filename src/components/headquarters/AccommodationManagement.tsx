@@ -45,7 +45,6 @@ import { toast } from "sonner";
 import { Building2, Plus, Pencil, Power, PowerOff, Loader2, ExternalLink, Copy, Search, X, Globe, Link2, Palette, GripVertical, Trash2 } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { AccommodationDialog } from "./AccommodationDialog";
-import { DnsSettingsDialog } from "./DnsSettingsDialog";
 import { CustomDomainDialog } from "./CustomDomainDialog";
 import { DraggableAccommodationRow } from "./DraggableAccommodationRow";
 import { AccommodationHoverCard } from "./AccommodationHoverCard";
@@ -139,18 +138,9 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
 
-  // DNS settings dialog state
-  const [dnsDialogOpen, setDnsDialogOpen] = useState(false);
-  const [dnsAccommodation, setDnsAccommodation] = useState<Accommodation | null>(null);
-
   // Custom domain dialog state
   const [customDomainDialogOpen, setCustomDomainDialogOpen] = useState(false);
   const [customDomainAccommodation, setCustomDomainAccommodation] = useState<Accommodation | null>(null);
-
-  const openDnsDialog = (accommodation: Accommodation) => {
-    setDnsAccommodation(accommodation);
-    setDnsDialogOpen(true);
-  };
 
   const openCustomDomainDialog = (accommodation: Accommodation) => {
     setCustomDomainAccommodation(accommodation);
@@ -847,7 +837,6 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
                           onClone={openCloneDialog}
                           onToggle={openToggleDialog}
                           onDelete={openDeleteDialog}
-                          onDnsSettings={openDnsDialog}
                           onCustomDomain={openCustomDomainDialog}
                           isDragDisabled={isDragDisabled}
                         />
@@ -1037,15 +1026,6 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
         </DialogContent>
       </Dialog>
 
-      {/* DNS Settings Dialog */}
-      {dnsAccommodation?.short_url_alias && (
-        <DnsSettingsDialog
-          open={dnsDialogOpen}
-          onOpenChange={setDnsDialogOpen}
-          subdomain={dnsAccommodation.short_url_alias}
-          accommodationName={dnsAccommodation.name}
-        />
-      )}
 
       {/* Custom Domain Dialog */}
       {customDomainAccommodation && (
