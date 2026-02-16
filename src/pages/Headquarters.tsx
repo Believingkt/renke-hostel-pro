@@ -902,7 +902,7 @@ const Headquarters = () => {
                                         <div className="flex flex-col gap-4">
                                           {displayRoles.map((r) => (
                                             <div key={r.id} className="h-10 flex items-center gap-2">
-                                              <span className="min-w-[80px] text-muted-foreground shrink-0">
+                                              <span className="w-[100px] text-muted-foreground shrink-0 truncate">
                                                 {r.role === 'super_admin' ? '總部' : getAccommodationName(r.accommodation_id)}
                                               </span>
                                               <Badge variant={getRoleBadgeVariant(r.role)} className="shrink-0">
