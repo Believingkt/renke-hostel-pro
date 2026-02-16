@@ -851,78 +851,92 @@ const Headquarters = () => {
                           <TableHead className="font-semibold text-sm">用戶名稱</TableHead>
                           <TableHead className="font-semibold text-sm">Email</TableHead>
                           <TableHead className="font-semibold text-sm">狀態</TableHead>
-                          
-                          <TableHead className="font-semibold text-sm">旅館</TableHead>
-                          <TableHead className="font-semibold text-sm">角色</TableHead>
+                          <TableHead className="font-semibold text-sm">旅館 / 角色</TableHead>
                           <TableHead className="text-right font-semibold text-sm">操作</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {userRoles.map((userRole) => (
-                          <TableRow key={userRole.id}>
-                            <TableCell className="font-medium text-sm">
-                              {userRole.user_name}
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              {userRole.user_email}
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              <Badge 
-                                variant={userRole.status === 'active' ? 'default' : 'secondary'}
-                                className="gap-1"
-                              >
-                                {userRole.status === 'active' ? (
-                                  <MailCheck className="h-3 w-3" />
-                                ) : (
-                                  <Mail className="h-3 w-3" />
-                                )}
-                                {userRole.statusLabel}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-sm">{getAccommodationName(userRole.accommodation_id)}</TableCell>
-                            <TableCell className="text-sm">
-                              <div className="flex items-center gap-2">
-                                <Badge variant={getRoleBadgeVariant(userRole.role)}>
-                                  {getRoleLabel(userRole.role)}
-                                </Badge>
-                                <Select
-                                  value={userRole.role}
-                                  onValueChange={(value) => handleUpdateRole(userRole.id, value as "super_admin" | "hotel_admin" | "staff")}
-                                >
-                                  <SelectTrigger className="w-[140px] h-8">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="super_admin">總部管理員</SelectItem>
-                                    <SelectItem value="hotel_admin">民宿管理員</SelectItem>
-                                    <SelectItem value="staff">現場營運</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right text-sm">
-                              <div className="flex items-center justify-end gap-2">
-                                {userRole.status === 'pending' && (
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleResendInvite(userRole.user_id, userRole.user_name || "用戶", userRole.accommodation_id)}
-                                    title="重新發送邀請"
+                        {(() => {
+                          // Group roles by user_id
+                          const grouped = userRoles.reduce<Record<string, typeof userRoles>>((acc, role) => {
+                            const key = role.user_id;
+                            if (!acc[key]) acc[key] = [];
+                            acc[key].push(role);
+                            return acc;
+                          }, {});
+
+                          return Object.values(grouped).map((roles) => {
+                            const first = roles[0];
+                            return (
+                              <TableRow key={first.user_id}>
+                                <TableCell className="font-medium text-sm align-top">
+                                  {first.user_name}
+                                </TableCell>
+                                <TableCell className="text-sm align-top">
+                                  {first.user_email}
+                                </TableCell>
+                                <TableCell className="text-sm align-top">
+                                  <Badge 
+                                    variant={first.status === 'active' ? 'default' : 'secondary'}
+                                    className="gap-1"
                                   >
-                                    <Mail className="h-4 w-4 text-primary" />
-                                  </Button>
-                                )}
-                                <Button
-                                  variant="ghost-destructive"
-                                  size="icon"
-                                  onClick={() => handleDeleteRoleClick(userRole.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                                    {first.status === 'active' ? (
+                                      <MailCheck className="h-3 w-3" />
+                                    ) : (
+                                      <Mail className="h-3 w-3" />
+                                    )}
+                                    {first.statusLabel}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-sm align-top">
+                                  <div className="space-y-2">
+                                    {roles.map((r) => (
+                                      <div key={r.id} className="flex items-center gap-2">
+                                        <span className="min-w-[80px] text-muted-foreground">{getAccommodationName(r.accommodation_id)}</span>
+                                        <Badge variant={getRoleBadgeVariant(r.role)}>
+                                          {getRoleLabel(r.role)}
+                                        </Badge>
+                                        <Select
+                                          value={r.role}
+                                          onValueChange={(value) => handleUpdateRole(r.id, value as "super_admin" | "hotel_admin" | "staff")}
+                                        >
+                                          <SelectTrigger className="w-[130px] h-7 text-xs">
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="super_admin">總部管理員</SelectItem>
+                                            <SelectItem value="hotel_admin">民宿管理員</SelectItem>
+                                            <SelectItem value="staff">現場營運</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                        <Button
+                                          variant="ghost-destructive"
+                                          size="icon"
+                                          className="h-7 w-7"
+                                          onClick={() => handleDeleteRoleClick(r.id)}
+                                        >
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-right text-sm align-top">
+                                  {roles.some(r => r.status === 'pending') && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleResendInvite(first.user_id, first.user_name || "用戶", first.accommodation_id)}
+                                      title="重新發送邀請"
+                                    >
+                                      <Mail className="h-4 w-4 text-primary" />
+                                    </Button>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          });
+                        })()}
                       </TableBody>
                     </Table>
                   </div>
