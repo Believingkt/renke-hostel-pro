@@ -206,7 +206,7 @@ export function DraggableAccommodationRow({
             title="前往後台"
           >
             <a
-              href={`/admin?accommodation=${accommodation.id}`}
+              href={`/dashboard?accId=${accommodation.id}`}
               target="_blank"
               rel="noopener noreferrer"
             >
