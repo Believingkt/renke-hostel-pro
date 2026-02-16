@@ -2416,7 +2416,7 @@ const KolDiscount = () => {
                 <TableHead className="text-foreground font-semibold text-sm">使用上限</TableHead>
                 <TableHead className="text-foreground font-semibold text-sm">有效期</TableHead>
                 <TableHead className="text-foreground font-semibold text-sm">狀態</TableHead>
-                <TableHead className="text-foreground font-semibold text-sm w-[180px]">操作</TableHead>
+                <TableHead className="text-center text-foreground font-semibold text-sm w-[180px]">操作</TableHead>
               </TableRow>
             </TableHeader>
               <TableBody>
