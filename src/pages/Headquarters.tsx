@@ -889,36 +889,47 @@ const Headquarters = () => {
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="text-sm align-top">
-                                  <div className="space-y-2">
-                                    {roles.map((r) => (
-                                      <div key={r.id} className="flex items-center gap-2">
-                                        <span className="min-w-[80px] text-muted-foreground">{getAccommodationName(r.accommodation_id)}</span>
-                                        <Badge variant={getRoleBadgeVariant(r.role)}>
-                                          {getRoleLabel(r.role)}
-                                        </Badge>
-                                        <Select
-                                          value={r.role}
-                                          onValueChange={(value) => handleUpdateRole(r.id, value as "super_admin" | "hotel_admin" | "staff")}
-                                        >
-                                          <SelectTrigger className="w-[130px] h-7 text-xs">
-                                            <SelectValue />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="super_admin">總部管理員</SelectItem>
-                                            <SelectItem value="hotel_admin">民宿管理員</SelectItem>
-                                            <SelectItem value="staff">現場營運</SelectItem>
-                                          </SelectContent>
-                                        </Select>
-                                        <Button
-                                          variant="ghost-destructive"
-                                          size="icon"
-                                          className="h-7 w-7"
-                                          onClick={() => handleDeleteRoleClick(r.id)}
-                                        >
-                                          <Trash2 className="h-3.5 w-3.5" />
-                                        </Button>
-                                      </div>
-                                    ))}
+                                <div className="space-y-2">
+                                    {(() => {
+                                      // For super_admin roles, only show one entry with "總部" as name
+                                      const superAdminRoles = roles.filter(r => r.role === 'super_admin');
+                                      const otherRoles = roles.filter(r => r.role !== 'super_admin');
+                                      const displayRoles = [
+                                        ...(superAdminRoles.length > 0 ? [superAdminRoles[0]] : []),
+                                        ...otherRoles
+                                      ];
+                                      return displayRoles.map((r) => (
+                                        <div key={r.id} className="flex items-center gap-2">
+                                          <span className="min-w-[80px] text-muted-foreground">
+                                            {r.role === 'super_admin' ? '總部' : getAccommodationName(r.accommodation_id)}
+                                          </span>
+                                          <Badge variant={getRoleBadgeVariant(r.role)}>
+                                            {getRoleLabel(r.role)}
+                                          </Badge>
+                                          <Select
+                                            value={r.role}
+                                            onValueChange={(value) => handleUpdateRole(r.id, value as "super_admin" | "hotel_admin" | "staff")}
+                                          >
+                                            <SelectTrigger className="w-[130px] h-7 text-xs">
+                                              <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="super_admin">總部管理員</SelectItem>
+                                              <SelectItem value="hotel_admin">民宿管理員</SelectItem>
+                                              <SelectItem value="staff">現場營運</SelectItem>
+                                            </SelectContent>
+                                          </Select>
+                                          <Button
+                                            variant="ghost-destructive"
+                                            size="icon"
+                                            className="h-7 w-7"
+                                            onClick={() => handleDeleteRoleClick(r.id)}
+                                          >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                          </Button>
+                                        </div>
+                                      ));
+                                    })()}
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-right text-sm align-top">
