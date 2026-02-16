@@ -583,7 +583,7 @@ const Customers = () => {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">
-                      <TableHead className="font-semibold text-foreground pl-8 text-sm">
+                      <TableHead className="text-foreground pl-8 text-sm">
                         <button 
                           onClick={() => handleSort('name')}
                           className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
@@ -592,13 +592,13 @@ const Customers = () => {
                           {getSortIcon('name')}
                         </button>
                       </TableHead>
-                      <TableHead className="font-semibold text-foreground text-sm">
+                      <TableHead className="text-foreground text-sm">
                         手機
                       </TableHead>
-                      <TableHead className="font-semibold text-foreground text-sm">
+                      <TableHead className="text-foreground text-sm">
                         Email
                       </TableHead>
-                      <TableHead className="font-semibold text-foreground text-sm">
+                      <TableHead className="text-foreground text-sm">
                         <button 
                           onClick={() => handleSort('first_order_date')}
                           className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
@@ -607,7 +607,7 @@ const Customers = () => {
                           {getSortIcon('first_order_date')}
                         </button>
                       </TableHead>
-                      <TableHead className="font-semibold text-foreground text-sm">
+                      <TableHead className="text-foreground text-sm">
                         <button 
                           onClick={() => handleSort('visit_count')}
                           className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
@@ -616,10 +616,10 @@ const Customers = () => {
                           {getSortIcon('visit_count')}
                         </button>
                       </TableHead>
-                      <TableHead className="font-semibold text-foreground text-sm">
+                      <TableHead className="text-foreground text-sm">
                         備註
                       </TableHead>
-                      <TableHead className="font-semibold text-foreground text-center text-sm w-[140px]">操作</TableHead>
+                      <TableHead className="text-foreground text-center text-sm w-[140px]">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

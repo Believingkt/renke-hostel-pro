@@ -582,9 +582,9 @@ export const IntegratedCodeDetailsDialog = ({
                         <TableHead>房型</TableHead>
                         <TableHead>入住日期</TableHead>
                         <TableHead>退房日期</TableHead>
-                        <TableHead>原價</TableHead>
-                        <TableHead>折扣</TableHead>
-                        <TableHead>實付</TableHead>
+                        <TableHead className="text-right">原價</TableHead>
+                        <TableHead className="text-right">折扣</TableHead>
+                        <TableHead className="text-right">實付</TableHead>
                         <TableHead>狀態</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -764,10 +764,10 @@ export const IntegratedCodeDetailsDialog = ({
                         <TableHead>訂單編號</TableHead>
                         <TableHead>客人姓名</TableHead>
                         <TableHead>入住日期</TableHead>
-                        <TableHead>訂單金額</TableHead>
-                        <TableHead>折扣金額</TableHead>
-                        <TableHead>佣金率</TableHead>
-                        <TableHead>佣金金額</TableHead>
+                        <TableHead className="text-right">訂單金額</TableHead>
+                        <TableHead className="text-right">折扣金額</TableHead>
+                        <TableHead className="text-right">佣金率</TableHead>
+                        <TableHead className="text-right">佣金金額</TableHead>
                         <TableHead>結算狀態</TableHead>
                         <TableHead className="text-center">操作</TableHead>
                       </TableRow>
