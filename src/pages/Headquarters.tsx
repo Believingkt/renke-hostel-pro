@@ -899,7 +899,7 @@ const Headquarters = () => {
                                   return (
                                     <>
                                       <TableCell className="text-sm align-top">
-                                        <div className="flex flex-col gap-1">
+                                        <div className="flex flex-col gap-2">
                                           {displayRoles.map((r) => (
                                             <div key={r.id} className="h-8 flex items-center gap-2">
                                               <span className="min-w-[80px] text-muted-foreground shrink-0">
@@ -924,7 +924,7 @@ const Headquarters = () => {
                                         </div>
                                       </TableCell>
                                       <TableCell className="text-sm align-top">
-                                        <div className="flex flex-col gap-1">
+                                        <div className="flex flex-col gap-2">
                                           {displayRoles.map((r) => (
                                             <div key={r.id} className="h-8 flex items-center">
                                               <Select
@@ -945,7 +945,7 @@ const Headquarters = () => {
                                         </div>
                                       </TableCell>
                                       <TableCell className="text-sm align-top">
-                                        <div className="flex flex-col gap-1">
+                                        <div className="flex flex-col gap-2">
                                           {displayRoles.map((r) => (
                                             <div key={r.id} className="h-8 flex items-center justify-center">
                                               <Button
