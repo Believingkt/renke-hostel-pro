@@ -252,8 +252,7 @@ const Headquarters = () => {
       // First get all user roles
       const { data: rolesData, error: rolesError } = await supabase
         .from("user_roles")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .select("*");
 
       if (rolesError) throw rolesError;
 
