@@ -821,7 +821,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
                       <TableHead className="font-semibold">自訂網域</TableHead>
                       <TableHead className="font-semibold">狀態</TableHead>
                       <TableHead className="font-semibold">建立時間</TableHead>
-                      <TableHead className="text-right font-semibold">操作</TableHead>
+                      <TableHead className="text-center font-semibold">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
