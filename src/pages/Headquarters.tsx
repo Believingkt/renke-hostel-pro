@@ -435,7 +435,8 @@ const Headquarters = () => {
         });
 
       if (error) {
-        toast.error("新增權限失敗");
+        console.error("新增權限失敗:", error);
+        toast.error(`新增權限失敗: ${error.message}`);
         return;
       }
 
