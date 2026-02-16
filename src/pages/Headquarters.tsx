@@ -889,92 +889,80 @@ const Headquarters = () => {
                                     {first.statusLabel}
                                   </Badge>
                                 </TableCell>
-                                <TableCell className="text-sm align-top">
-                                  <div className="space-y-2">
-                                    {(() => {
-                                      const superAdminRoles = roles.filter(r => r.role === 'super_admin');
-                                      const otherRoles = roles.filter(r => r.role !== 'super_admin');
-                                      const displayRoles = [
-                                        ...(superAdminRoles.length > 0 ? [superAdminRoles[0]] : []),
-                                        ...otherRoles
-                                      ];
-                                      return displayRoles.map((r) => (
-                                        <div key={r.id} className="flex items-center gap-2">
-                                          <span className="min-w-[80px] text-muted-foreground shrink-0">
-                                            {r.role === 'super_admin' ? '總部' : getAccommodationName(r.accommodation_id)}
-                                          </span>
-                                          <Badge variant={getRoleBadgeVariant(r.role)} className="shrink-0">
-                                            {getRoleLabel(r.role)}
-                                          </Badge>
+                                {(() => {
+                                  const superAdminRoles = roles.filter(r => r.role === 'super_admin');
+                                  const otherRoles = roles.filter(r => r.role !== 'super_admin');
+                                  const displayRoles = [
+                                    ...(superAdminRoles.length > 0 ? [superAdminRoles[0]] : []),
+                                    ...otherRoles
+                                  ];
+                                  return (
+                                    <>
+                                      <TableCell className="text-sm align-top">
+                                        <div className="flex flex-col gap-1">
+                                          {displayRoles.map((r) => (
+                                            <div key={r.id} className="h-8 flex items-center gap-2">
+                                              <span className="min-w-[80px] text-muted-foreground shrink-0">
+                                                {r.role === 'super_admin' ? '總部' : getAccommodationName(r.accommodation_id)}
+                                              </span>
+                                              <Badge variant={getRoleBadgeVariant(r.role)} className="shrink-0">
+                                                {getRoleLabel(r.role)}
+                                              </Badge>
+                                            </div>
+                                          ))}
+                                          {roles.some(r => r.status === 'pending') && (
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              className="gap-1 text-xs w-fit"
+                                              onClick={() => handleResendInvite(first.user_id, first.user_name || "用戶", first.accommodation_id)}
+                                            >
+                                              <Mail className="h-3.5 w-3.5 text-primary" />
+                                              重新發送邀請
+                                            </Button>
+                                          )}
                                         </div>
-                                      ));
-                                    })()}
-                                    {roles.some(r => r.status === 'pending') && (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="gap-1 text-xs"
-                                        onClick={() => handleResendInvite(first.user_id, first.user_name || "用戶", first.accommodation_id)}
-                                      >
-                                        <Mail className="h-3.5 w-3.5 text-primary" />
-                                        重新發送邀請
-                                      </Button>
-                                    )}
-                                  </div>
-                                </TableCell>
-                                <TableCell className="text-sm align-top">
-                                  <div className="space-y-2">
-                                    {(() => {
-                                      const superAdminRoles = roles.filter(r => r.role === 'super_admin');
-                                      const otherRoles = roles.filter(r => r.role !== 'super_admin');
-                                      const displayRoles = [
-                                        ...(superAdminRoles.length > 0 ? [superAdminRoles[0]] : []),
-                                        ...otherRoles
-                                      ];
-                                      return displayRoles.map((r) => (
-                                        <div key={r.id} className="h-7 flex items-center">
-                                          <Select
-                                            value={r.role}
-                                            onValueChange={(value) => handleUpdateRole(r.id, value as "super_admin" | "hotel_admin" | "staff")}
-                                          >
-                                            <SelectTrigger className="w-[130px] h-7 text-xs">
-                                              <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="super_admin">總部管理員</SelectItem>
-                                              <SelectItem value="hotel_admin">民宿管理員</SelectItem>
-                                              <SelectItem value="staff">現場營運</SelectItem>
-                                            </SelectContent>
-                                          </Select>
+                                      </TableCell>
+                                      <TableCell className="text-sm align-top">
+                                        <div className="flex flex-col gap-1">
+                                          {displayRoles.map((r) => (
+                                            <div key={r.id} className="h-8 flex items-center">
+                                              <Select
+                                                value={r.role}
+                                                onValueChange={(value) => handleUpdateRole(r.id, value as "super_admin" | "hotel_admin" | "staff")}
+                                              >
+                                                <SelectTrigger className="w-[130px] h-7 text-xs">
+                                                  <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                  <SelectItem value="super_admin">總部管理員</SelectItem>
+                                                  <SelectItem value="hotel_admin">民宿管理員</SelectItem>
+                                                  <SelectItem value="staff">現場營運</SelectItem>
+                                                </SelectContent>
+                                              </Select>
+                                            </div>
+                                          ))}
                                         </div>
-                                      ));
-                                    })()}
-                                  </div>
-                                </TableCell>
-                                <TableCell className="text-sm align-top">
-                                  <div className="space-y-2">
-                                    {(() => {
-                                      const superAdminRoles = roles.filter(r => r.role === 'super_admin');
-                                      const otherRoles = roles.filter(r => r.role !== 'super_admin');
-                                      const displayRoles = [
-                                        ...(superAdminRoles.length > 0 ? [superAdminRoles[0]] : []),
-                                        ...otherRoles
-                                      ];
-                                      return displayRoles.map((r) => (
-                                        <div key={r.id} className="h-7 flex items-center justify-center">
-                                          <Button
-                                            variant="ghost-destructive"
-                                            size="icon"
-                                            className="h-7 w-7 shrink-0"
-                                            onClick={() => handleDeleteRoleClick(r.id)}
-                                          >
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                          </Button>
+                                      </TableCell>
+                                      <TableCell className="text-sm align-top">
+                                        <div className="flex flex-col gap-1">
+                                          {displayRoles.map((r) => (
+                                            <div key={r.id} className="h-8 flex items-center justify-center">
+                                              <Button
+                                                variant="ghost-destructive"
+                                                size="icon"
+                                                className="h-7 w-7 shrink-0"
+                                                onClick={() => handleDeleteRoleClick(r.id)}
+                                              >
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                              </Button>
+                                            </div>
+                                          ))}
                                         </div>
-                                      ));
-                                    })()}
-                                  </div>
-                                </TableCell>
+                                      </TableCell>
+                                    </>
+                                  );
+                                })()}
                               </TableRow>
                             );
                           });
