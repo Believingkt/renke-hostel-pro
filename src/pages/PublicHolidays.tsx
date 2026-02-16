@@ -676,7 +676,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                     <TableHead className="font-semibold text-foreground text-sm">日期</TableHead>
                     <TableHead className="font-semibold text-foreground text-sm">星期</TableHead>
                     <TableHead className="font-semibold text-foreground text-sm">年份</TableHead>
-                    <TableHead className="text-right font-semibold text-foreground text-sm">操作</TableHead>
+                    <TableHead className="text-center font-semibold text-foreground text-sm">操作</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -721,8 +721,8 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                           <Badge variant="outline">{dayOfWeek}</Badge>
                         </TableCell>
                         <TableCell className="text-sm">{year}</TableCell>
-                        <TableCell className="text-right text-sm">
-                          <div className="flex justify-end gap-1">
+                        <TableCell className="text-center text-sm">
+                          <div className="flex justify-center gap-1">
                             <Button
                               variant="ghost"
                               size="sm"

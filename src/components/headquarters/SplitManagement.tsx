@@ -618,7 +618,7 @@ export const SplitManagement = forwardRef<SplitManagementRef, SplitManagementPro
                         <TableHead>手續費比例</TableHead>
                         <TableHead>生效日期</TableHead>
                         <TableHead>狀態</TableHead>
-                        <TableHead className="text-right">操作</TableHead>
+                        <TableHead className="text-center">操作</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -644,8 +644,8 @@ export const SplitManagement = forwardRef<SplitManagementRef, SplitManagementPro
                               <Badge variant="secondary">已停用</Badge>
                             )}
                           </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
+                          <TableCell className="text-center">
+                            <div className="flex justify-center gap-2">
                               <Button variant="ghost" size="icon" onClick={() => openEditRule(rule)}>
                                 <Edit className="h-4 w-4" />
                               </Button>

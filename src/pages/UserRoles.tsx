@@ -368,7 +368,7 @@ export default function UserRoles() {
                       <TableHead>用戶 ID</TableHead>
                       <TableHead>角色</TableHead>
                       <TableHead>建立時間</TableHead>
-                      <TableHead className="text-right">操作</TableHead>
+                      <TableHead className="text-center">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -391,7 +391,7 @@ export default function UserRoles() {
                           </Select>
                         </TableCell>
                         <TableCell>{new Date(userRole.created_at).toLocaleDateString('zh-TW')}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-center">
                           <Button
                             variant="ghost-destructive"
                             size="icon"
