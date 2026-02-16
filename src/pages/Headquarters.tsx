@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -44,8 +44,13 @@ import {
   Clock,
   Database,
   Plus,
-  Utensils
+  Utensils,
+  GripVertical
 } from "lucide-react";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import {
@@ -89,6 +94,17 @@ interface UserRole {
   user_name?: string;
   status?: 'pending' | 'active';
   statusLabel?: string;
+  display_order?: number;
+}
+
+interface GroupedUser {
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  status: 'pending' | 'active';
+  statusLabel: string;
+  display_order: number;
+  roles: UserRole[];
 }
 
 interface AccommodationInfo {
@@ -130,6 +146,39 @@ interface BackupLog {
   updated_at: string;
   accommodation_id: string;
 }
+
+// Sortable table row component for drag-and-drop
+const SortableUserRow = ({ id, children }: { id: string; children: React.ReactNode }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <TableRow ref={setNodeRef} style={style} className={isDragging ? 'bg-muted' : ''}>
+      <TableCell className="w-10 align-top">
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded transition-colors"
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </div>
+      </TableCell>
+      {children}
+    </TableRow>
+  );
+};
 
 const Headquarters = () => {
   const navigate = useNavigate();
@@ -220,7 +269,7 @@ const Headquarters = () => {
       // Fetch user profiles
       const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, email, name, last_sign_in_at")
+        .select("id, email, name, last_sign_in_at, display_order")
         .in("id", userIds);
 
       if (profilesError) {
@@ -236,7 +285,8 @@ const Headquarters = () => {
           { 
             email: profile.email, 
             name: profile.name,
-            lastSignInAt: profile.last_sign_in_at 
+            lastSignInAt: profile.last_sign_in_at,
+            displayOrder: profile.display_order ?? 0
           }
         ]) || []
       );
@@ -251,6 +301,7 @@ const Headquarters = () => {
           user_name: profile?.name || "未知",
           status: (hasLoggedIn ? 'active' : 'pending') as 'active' | 'pending',
           statusLabel: hasLoggedIn ? '已啟用' : '待設定密碼',
+          display_order: profile?.displayOrder ?? 0,
         };
       });
 
@@ -481,6 +532,71 @@ const Headquarters = () => {
         return "success";
       default:
         return "info";
+    }
+  };
+
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor)
+  );
+
+  // Group and sort users
+  const groupedUsers = useMemo<GroupedUser[]>(() => {
+    const grouped = userRoles.reduce<Record<string, typeof userRoles>>((acc, role) => {
+      const key = role.user_id;
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(role);
+      return acc;
+    }, {});
+
+    return Object.values(grouped)
+      .map((roles) => {
+        const first = roles[0];
+        return {
+          user_id: first.user_id,
+          user_name: first.user_name || '未知',
+          user_email: first.user_email || '-',
+          status: first.status || 'pending' as const,
+          statusLabel: first.statusLabel || '待設定密碼',
+          display_order: first.display_order ?? 0,
+          roles,
+        };
+      })
+      .sort((a, b) => a.display_order - b.display_order);
+  }, [userRoles]);
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = groupedUsers.findIndex(u => u.user_id === active.id);
+    const newIndex = groupedUsers.findIndex(u => u.user_id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(groupedUsers, oldIndex, newIndex);
+
+    // Optimistic update
+    const updatedRoles = [...userRoles];
+    reordered.forEach((user, idx) => {
+      updatedRoles.forEach(role => {
+        if (role.user_id === user.user_id) {
+          role.display_order = idx;
+        }
+      });
+    });
+    setUserRoles(updatedRoles);
+
+    // Persist to DB
+    const updates = reordered.map((user, idx) => 
+      supabase.from("profiles").update({ display_order: idx }).eq("id", user.user_id)
+    );
+    
+    const results = await Promise.all(updates);
+    const hasError = results.some(r => r.error);
+    if (hasError) {
+      toast.error("排序儲存失敗");
+      loadUserRoles();
     }
   };
 
@@ -989,132 +1105,125 @@ const Headquarters = () => {
                     description="這裡會顯示所有旅館的用戶權限資訊"
                   />
                 ) : (
-                  <div className="table-scroll-container overflow-x-auto rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-muted/50">
-                          <TableHead className="font-semibold text-sm">用戶名稱</TableHead>
-                          <TableHead className="font-semibold text-sm">Email</TableHead>
-                          <TableHead className="font-semibold text-sm">狀態</TableHead>
-                          <TableHead className="font-semibold text-sm">旅館 / 角色</TableHead>
-                          <TableHead className="font-semibold text-sm pl-2">切換角色</TableHead>
-                          <TableHead className="font-semibold text-sm text-center">操作</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {(() => {
-                          // Group roles by user_id
-                          const grouped = userRoles.reduce<Record<string, typeof userRoles>>((acc, role) => {
-                            const key = role.user_id;
-                            if (!acc[key]) acc[key] = [];
-                            acc[key].push(role);
-                            return acc;
-                          }, {});
-
-                          return Object.values(grouped).map((roles) => {
-                            const first = roles[0];
-                            return (
-                              <TableRow key={first.user_id}>
-                                <TableCell className="font-medium text-sm align-top">
-                                  {first.user_name}
-                                </TableCell>
-                                <TableCell className="text-sm align-top">
-                                  {first.user_email}
-                                </TableCell>
-                                <TableCell className="text-sm align-top">
-                                  <Badge 
-                                    variant={first.status === 'active' ? 'default' : 'secondary'}
-                                    className="gap-1"
-                                  >
-                                    {first.status === 'active' ? (
-                                      <MailCheck className="h-3 w-3" />
-                                    ) : (
-                                      <Mail className="h-3 w-3" />
-                                    )}
-                                    {first.statusLabel}
-                                  </Badge>
-                                </TableCell>
-                                {(() => {
-                                  const superAdminRoles = roles.filter(r => r.role === 'super_admin');
-                                  const otherRoles = roles.filter(r => r.role !== 'super_admin');
-                                  const displayRoles = [
-                                    ...(superAdminRoles.length > 0 ? [superAdminRoles[0]] : []),
-                                    ...otherRoles
-                                  ];
-                                  return (
-                                    <>
-                                      <TableCell className="text-sm align-top">
-                                        <div className="flex flex-col gap-4">
-                                          {displayRoles.map((r) => (
-                                            <div key={r.id} className="h-10 flex items-center gap-2">
-                                              <span className="w-[100px] text-muted-foreground shrink-0 truncate">
-                                                {r.role === 'super_admin' ? '總部' : getAccommodationName(r.accommodation_id)}
-                                              </span>
-                                              <Badge variant={getRoleBadgeVariant(r.role)} className="shrink-0">
-                                                {getRoleLabel(r.role)}
-                                              </Badge>
-                                            </div>
-                                          ))}
-                                          {roles.some(r => r.status === 'pending') && (
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              className="gap-1 text-xs w-fit"
-                                              onClick={() => handleResendInvite(first.user_id, first.user_name || "用戶", first.accommodation_id)}
-                                            >
-                                              <Mail className="h-3.5 w-3.5 text-primary" />
-                                              重新發送邀請
-                                            </Button>
-                                          )}
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    modifiers={[restrictToVerticalAxis]}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <div className="table-scroll-container overflow-x-auto rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-muted/50">
+                            <TableHead className="font-semibold text-sm w-10"></TableHead>
+                            <TableHead className="font-semibold text-sm">用戶名稱</TableHead>
+                            <TableHead className="font-semibold text-sm">Email</TableHead>
+                            <TableHead className="font-semibold text-sm">狀態</TableHead>
+                            <TableHead className="font-semibold text-sm">旅館 / 角色</TableHead>
+                            <TableHead className="font-semibold text-sm pl-2">切換角色</TableHead>
+                            <TableHead className="font-semibold text-sm text-center">操作</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          <SortableContext items={groupedUsers.map(u => u.user_id)} strategy={verticalListSortingStrategy}>
+                            {groupedUsers.map((user) => {
+                              const superAdminRoles = user.roles.filter(r => r.role === 'super_admin');
+                              const otherRoles = user.roles.filter(r => r.role !== 'super_admin');
+                              const displayRoles = [
+                                ...(superAdminRoles.length > 0 ? [superAdminRoles[0]] : []),
+                                ...otherRoles
+                              ];
+                              return (
+                                <SortableUserRow key={user.user_id} id={user.user_id}>
+                                  <TableCell className="font-medium text-sm align-top">
+                                    {user.user_name}
+                                  </TableCell>
+                                  <TableCell className="text-sm align-top">
+                                    {user.user_email}
+                                  </TableCell>
+                                  <TableCell className="text-sm align-top">
+                                    <Badge 
+                                      variant={user.status === 'active' ? 'default' : 'secondary'}
+                                      className="gap-1"
+                                    >
+                                      {user.status === 'active' ? (
+                                        <MailCheck className="h-3 w-3" />
+                                      ) : (
+                                        <Mail className="h-3 w-3" />
+                                      )}
+                                      {user.statusLabel}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-sm align-top">
+                                    <div className="flex flex-col gap-4">
+                                      {displayRoles.map((r) => (
+                                        <div key={r.id} className="h-10 flex items-center gap-2">
+                                          <span className="w-[100px] text-muted-foreground shrink-0 truncate">
+                                            {r.role === 'super_admin' ? '總部' : getAccommodationName(r.accommodation_id)}
+                                          </span>
+                                          <Badge variant={getRoleBadgeVariant(r.role)} className="shrink-0">
+                                            {getRoleLabel(r.role)}
+                                          </Badge>
                                         </div>
-                                      </TableCell>
-                                      <TableCell className="text-sm align-top pl-2">
-                                        <div className="flex flex-col gap-4">
-                                          {displayRoles.map((r) => (
-                                            <div key={r.id} className="h-10 flex items-center">
-                                              <Select
-                                                value={r.role}
-                                                onValueChange={(value) => handleUpdateRole(r.id, value as "super_admin" | "hotel_admin" | "staff")}
-                                              >
-                                                <SelectTrigger className="w-[130px] h-7 text-xs">
-                                                  <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                  <SelectItem value="super_admin">總部管理員</SelectItem>
-                                                  <SelectItem value="hotel_admin">民宿管理員</SelectItem>
-                                                  <SelectItem value="staff">現場營運</SelectItem>
-                                                </SelectContent>
-                                              </Select>
-                                            </div>
-                                          ))}
+                                      ))}
+                                      {user.roles.some(r => r.status === 'pending') && (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="gap-1 text-xs w-fit"
+                                          onClick={() => handleResendInvite(user.user_id, user.user_name, user.roles[0].accommodation_id)}
+                                        >
+                                          <Mail className="h-3.5 w-3.5 text-primary" />
+                                          重新發送邀請
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-sm align-top pl-2">
+                                    <div className="flex flex-col gap-4">
+                                      {displayRoles.map((r) => (
+                                        <div key={r.id} className="h-10 flex items-center">
+                                          <Select
+                                            value={r.role}
+                                            onValueChange={(value) => handleUpdateRole(r.id, value as "super_admin" | "hotel_admin" | "staff")}
+                                          >
+                                            <SelectTrigger className="w-[130px] h-7 text-xs">
+                                              <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="super_admin">總部管理員</SelectItem>
+                                              <SelectItem value="hotel_admin">民宿管理員</SelectItem>
+                                              <SelectItem value="staff">現場營運</SelectItem>
+                                            </SelectContent>
+                                          </Select>
                                         </div>
-                                      </TableCell>
-                                      <TableCell className="text-sm align-top">
-                                        <div className="flex flex-col gap-4">
-                                          {displayRoles.map((r) => (
-                                            <div key={r.id} className="h-10 flex items-center justify-center">
-                                              <Button
-                                                variant="ghost-destructive"
-                                                size="icon"
-                                                className="h-7 w-7 shrink-0"
-                                                onClick={() => handleDeleteRoleClick(r.id)}
-                                              >
-                                                <Trash2 className="h-3.5 w-3.5" />
-                                              </Button>
-                                            </div>
-                                          ))}
+                                      ))}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-sm align-top">
+                                    <div className="flex flex-col gap-4">
+                                      {displayRoles.map((r) => (
+                                        <div key={r.id} className="h-10 flex items-center justify-center">
+                                          <Button
+                                            variant="ghost-destructive"
+                                            size="icon"
+                                            className="h-7 w-7 shrink-0"
+                                            onClick={() => handleDeleteRoleClick(r.id)}
+                                          >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                          </Button>
                                         </div>
-                                      </TableCell>
-                                    </>
-                                  );
-                                })()}
-                              </TableRow>
-                            );
-                          });
-                        })()}
-                      </TableBody>
-                    </Table>
-                  </div>
+                                      ))}
+                                    </div>
+                                  </TableCell>
+                                </SortableUserRow>
+                              );
+                            })}
+                          </SortableContext>
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </DndContext>
                 )}
               </CardContent>
             </Card>
