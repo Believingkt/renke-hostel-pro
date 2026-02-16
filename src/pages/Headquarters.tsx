@@ -851,7 +851,7 @@ const Headquarters = () => {
                           <TableHead className="font-semibold text-sm">用戶名稱</TableHead>
                           <TableHead className="font-semibold text-sm">Email</TableHead>
                           <TableHead className="font-semibold text-sm">狀態</TableHead>
-                          <TableHead className="font-semibold text-sm">用戶 ID</TableHead>
+                          
                           <TableHead className="font-semibold text-sm">旅館</TableHead>
                           <TableHead className="font-semibold text-sm">角色</TableHead>
                           <TableHead className="text-right font-semibold text-sm">操作</TableHead>
@@ -878,9 +878,6 @@ const Headquarters = () => {
                                 )}
                                 {userRole.statusLabel}
                               </Badge>
-                            </TableCell>
-                            <TableCell className="font-mono text-sm">
-                              {userRole.user_id.substring(0, 8)}...
                             </TableCell>
                             <TableCell className="text-sm">{getAccommodationName(userRole.accommodation_id)}</TableCell>
                             <TableCell className="text-sm">
