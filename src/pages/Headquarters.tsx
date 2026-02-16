@@ -899,9 +899,9 @@ const Headquarters = () => {
                                   return (
                                     <>
                                       <TableCell className="text-sm align-top">
-                                        <div className="flex flex-col gap-2">
+                                        <div className="flex flex-col gap-3">
                                           {displayRoles.map((r) => (
-                                            <div key={r.id} className="h-8 flex items-center gap-2">
+                                            <div key={r.id} className="h-9 flex items-center gap-2">
                                               <span className="min-w-[80px] text-muted-foreground shrink-0">
                                                 {r.role === 'super_admin' ? '總部' : getAccommodationName(r.accommodation_id)}
                                               </span>
@@ -924,9 +924,9 @@ const Headquarters = () => {
                                         </div>
                                       </TableCell>
                                       <TableCell className="text-sm align-top">
-                                        <div className="flex flex-col gap-2">
+                                        <div className="flex flex-col gap-3">
                                           {displayRoles.map((r) => (
-                                            <div key={r.id} className="h-8 flex items-center">
+                                            <div key={r.id} className="h-9 flex items-center">
                                               <Select
                                                 value={r.role}
                                                 onValueChange={(value) => handleUpdateRole(r.id, value as "super_admin" | "hotel_admin" | "staff")}
@@ -945,9 +945,9 @@ const Headquarters = () => {
                                         </div>
                                       </TableCell>
                                       <TableCell className="text-sm align-top">
-                                        <div className="flex flex-col gap-2">
+                                        <div className="flex flex-col gap-3">
                                           {displayRoles.map((r) => (
-                                            <div key={r.id} className="h-8 flex items-center justify-center">
+                                            <div key={r.id} className="h-9 flex items-center justify-center">
                                               <Button
                                                 variant="ghost-destructive"
                                                 size="icon"
