@@ -38,6 +38,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { 
   Percent,
   FileText,
@@ -56,6 +62,7 @@ import {
   Banknote,
   Download,
   CreditCard,
+  MoreHorizontal,
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { zhTW } from "date-fns/locale";
@@ -378,6 +385,42 @@ export const SplitManagement = forwardRef<SplitManagementRef, SplitManagementPro
       toast.error("撥款失敗");
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Change status of one or multiple records
+  const handleChangeStatus = async (recordIds: string[], newStatus: string) => {
+    if (recordIds.length === 0) return;
+
+    try {
+      const updateData: Record<string, unknown> = { settlement_status: newStatus };
+      
+      if (newStatus === 'requested') {
+        const { data: { user } } = await supabase.auth.getUser();
+        updateData.requested_at = new Date().toISOString();
+        updateData.requested_by = user?.id;
+      } else if (newStatus === 'approved') {
+        const { data: { user } } = await supabase.auth.getUser();
+        updateData.approved_at = new Date().toISOString();
+        updateData.approved_by = user?.id;
+      } else if (newStatus === 'paid') {
+        updateData.paid_at = new Date().toISOString();
+      }
+
+      const { error } = await supabase
+        .from("split_records")
+        .update(updateData)
+        .in("id", recordIds);
+
+      if (error) throw error;
+
+      const statusLabel = newStatus === 'pending' ? '待請款' : newStatus === 'requested' ? '已請款' : newStatus === 'approved' ? '已審核' : '已撥款';
+      toast.success(`已將 ${recordIds.length} 筆記錄更新為「${statusLabel}」`);
+      setSelectedRecords([]);
+      await loadSplitRecords();
+    } catch (error) {
+      console.error("Error changing status:", error);
+      toast.error("狀態更新失敗");
     }
   };
 
@@ -738,6 +781,35 @@ export const SplitManagement = forwardRef<SplitManagementRef, SplitManagementPro
             </div>
           )}
 
+          {/* Bulk Action Bar */}
+          {selectedRecords.length > 0 && (
+            <Card className="bg-muted/30 border-dashed">
+              <CardContent className="py-3 px-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-sm flex-wrap">
+                    <CheckCircle className="h-4 w-4 text-primary" />
+                    <span className="text-muted-foreground">已選擇</span>
+                    <span className="font-semibold text-foreground">{selectedRecords.length} 筆</span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Button size="sm" variant="outline" onClick={() => handleChangeStatus(selectedRecords, 'pending')}>
+                      <Clock className="h-3.5 w-3.5 mr-1.5" />待請款
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => handleChangeStatus(selectedRecords, 'requested')}>
+                      <Send className="h-3.5 w-3.5 mr-1.5" />已請款
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => handleChangeStatus(selectedRecords, 'approved')}>
+                      <CheckCircle className="h-3.5 w-3.5 mr-1.5" />已審核
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => handleChangeStatus(selectedRecords, 'paid')}>
+                      <Banknote className="h-3.5 w-3.5 mr-1.5" />已撥款
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Records Table */}
           <Card>
             <CardHeader>
@@ -760,6 +832,12 @@ export const SplitManagement = forwardRef<SplitManagementRef, SplitManagementPro
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">
+                        <TableHead className="w-12">
+                          <Checkbox
+                            checked={selectedRecords.length === splitRecords.length && splitRecords.length > 0}
+                            onCheckedChange={() => handleSelectAll(splitRecords)}
+                          />
+                        </TableHead>
                         <TableHead>訂單編號</TableHead>
                         <TableHead>民宿</TableHead>
                         <TableHead className="text-right">訂單金額</TableHead>
@@ -767,11 +845,18 @@ export const SplitManagement = forwardRef<SplitManagementRef, SplitManagementPro
                         <TableHead className="text-right">撥款金額</TableHead>
                         <TableHead>狀態</TableHead>
                         <TableHead>建立時間</TableHead>
+                        <TableHead className="text-center">操作</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {splitRecords.map(record => (
-                        <TableRow key={record.id}>
+                        <TableRow key={record.id} data-state={selectedRecords.includes(record.id) ? "selected" : undefined}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedRecords.includes(record.id)}
+                              onCheckedChange={() => handleSelectRecord(record.id)}
+                            />
+                          </TableCell>
                           <TableCell className="font-mono text-sm">
                             {record.orders?.order_number}
                           </TableCell>
@@ -790,6 +875,37 @@ export const SplitManagement = forwardRef<SplitManagementRef, SplitManagementPro
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
                             {format(new Date(record.created_at), "MM/dd HH:mm")}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {record.settlement_status !== 'pending' && (
+                                  <DropdownMenuItem onClick={() => handleChangeStatus([record.id], 'pending')}>
+                                    <Clock className="h-4 w-4 mr-2" />待請款
+                                  </DropdownMenuItem>
+                                )}
+                                {record.settlement_status !== 'requested' && (
+                                  <DropdownMenuItem onClick={() => handleChangeStatus([record.id], 'requested')}>
+                                    <Send className="h-4 w-4 mr-2" />已請款
+                                  </DropdownMenuItem>
+                                )}
+                                {record.settlement_status !== 'approved' && (
+                                  <DropdownMenuItem onClick={() => handleChangeStatus([record.id], 'approved')}>
+                                    <CheckCircle className="h-4 w-4 mr-2" />已審核
+                                  </DropdownMenuItem>
+                                )}
+                                {record.settlement_status !== 'paid' && (
+                                  <DropdownMenuItem onClick={() => handleChangeStatus([record.id], 'paid')}>
+                                    <Banknote className="h-4 w-4 mr-2" />已撥款
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </TableCell>
                         </TableRow>
                       ))}
