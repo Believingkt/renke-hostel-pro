@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
-import { Send, Loader2, ArrowLeft, RotateCcw, User, Mic, MicOff, Volume2, VolumeX, Square } from "lucide-react";
+import { Send, Loader2, ArrowLeft, RotateCcw, User, Mic, MicOff, Volume2, VolumeX, Square, ClipboardList } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSubdomain } from "@/hooks/use-subdomain";
@@ -1120,13 +1120,13 @@ export default function AIBooking() {
             </button>
           )}
 
-          {/* 重新開始 */}
+          {/* 訂單 */}
           <button
-            onClick={handleRestart}
+            onClick={() => navigate('/order-search')}
             className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all duration-200"
           >
-            <RotateCcw className="h-5 w-5" />
-            <span className="text-[10px] font-medium">重來</span>
+            <ClipboardList className="h-5 w-5" />
+            <span className="text-[10px] font-medium">訂單</span>
           </button>
 
           {/* 我的 */}
