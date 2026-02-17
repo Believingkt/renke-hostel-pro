@@ -825,7 +825,7 @@ const Headquarters = () => {
     if (currentTab === 'split' && section) {
       switch (section) {
         case 'rules': return '手續費設定';
-        case 'details': return '拆帳明細';
+        case 'details': return '請款明細';
         case 'reports': return '結算報表';
         case 'pending': return '待結算';
       }
@@ -887,7 +887,7 @@ const Headquarters = () => {
     if (currentTab === 'split' && section) {
       switch (section) {
         case 'rules': return '設定各民宿的請款手續費比例';
-        case 'details': return '查看所有訂單的拆帳明細記錄';
+        case 'details': return '查看所有訂單的請款明細記錄';
         case 'reports': return '統計各民宿分潤金額與結算報表';
         case 'pending': return '處理待結算的分潤請款申請';
       }
