@@ -610,7 +610,6 @@ export const SplitManagement = forwardRef<SplitManagementRef, SplitManagementPro
                         <TableHead>民宿</TableHead>
                         <TableHead>手續費比例</TableHead>
                         <TableHead>生效日期</TableHead>
-                        <TableHead>狀態</TableHead>
                         <TableHead className="text-center">操作</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -629,13 +628,6 @@ export const SplitManagement = forwardRef<SplitManagementRef, SplitManagementPro
                           <TableCell className="text-sm">
                             {format(new Date(rule.effective_from), "yyyy/MM/dd")}
                             {rule.effective_to && ` ~ ${format(new Date(rule.effective_to), "yyyy/MM/dd")}`}
-                          </TableCell>
-                          <TableCell>
-                            {rule.is_active ? (
-                              <Badge className="bg-primary">啟用中</Badge>
-                            ) : (
-                              <Badge variant="secondary">已停用</Badge>
-                            )}
                           </TableCell>
                           <TableCell className="text-center">
                             <div className="flex justify-center gap-2">
