@@ -595,14 +595,7 @@ export const SplitManagement = forwardRef<SplitManagementRef, SplitManagementPro
           </div>
 
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
-                手續費設定
-              </CardTitle>
-              <CardDescription>設定各民宿的請款手續費比例</CardDescription>
-            </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               {splitRules.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                   <CreditCard className="h-12 w-12 mb-4 opacity-50" />

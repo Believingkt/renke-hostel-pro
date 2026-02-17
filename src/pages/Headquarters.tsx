@@ -824,7 +824,7 @@ const Headquarters = () => {
     
     if (currentTab === 'split' && section) {
       switch (section) {
-        case 'rules': return '拆帳規則';
+        case 'rules': return '手續費設定';
         case 'details': return '拆帳明細';
         case 'reports': return '結算報表';
         case 'pending': return '待結算';
