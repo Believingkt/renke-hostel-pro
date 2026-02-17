@@ -240,18 +240,58 @@ serve(async (req) => {
           `)
           .eq('accommodation_id', accommodationId)
           .order('display_order');
+
+        // Fetch current inventory prices for each room type
+        const today = new Date().toISOString().split('T')[0];
+        const futureDate = new Date();
+        futureDate.setDate(futureDate.getDate() + 90);
+        const futureDateStr = futureDate.toISOString().split('T')[0];
+
+        const { data: inventoryPrices } = await supabase
+          .from('room_inventory_pricing')
+          .select('room_type_id, price, price_2_meals, price_3_meals, date')
+          .gte('date', today)
+          .lte('date', futureDateStr)
+          .eq('is_available', true)
+          .gt('available_rooms', 0);
+
+        // Group prices by room type
+        const pricesByRoom: Record<string, { prices: number[], prices2: number[], prices3: number[] }> = {};
+        inventoryPrices?.forEach((inv: any) => {
+          if (!pricesByRoom[inv.room_type_id]) {
+            pricesByRoom[inv.room_type_id] = { prices: [], prices2: [], prices3: [] };
+          }
+          if (inv.price) pricesByRoom[inv.room_type_id].prices.push(inv.price);
+          if (inv.price_2_meals) pricesByRoom[inv.room_type_id].prices2.push(inv.price_2_meals);
+          if (inv.price_3_meals) pricesByRoom[inv.room_type_id].prices3.push(inv.price_3_meals);
+        });
         
         return {
-          rooms: roomTypes?.map(rt => ({
-            id: rt.id,
-            name: rt.name,
-            capacity: rt.capacity,
-            weekday_price: rt.weekday_2_meals_price,
-            weekend_price: rt.weekend_2_meals_price,
-            description: rt.description,
-            size_sqm: rt.size_sqm,
-            photos: rt.room_photos?.sort((a: any, b: any) => a.display_order - b.display_order).map((p: any) => p.photo_url) || []
-          })) || []
+          rooms: roomTypes?.map(rt => {
+            const roomPrices = pricesByRoom[rt.id];
+            const minPrice = roomPrices?.prices.length ? Math.min(...roomPrices.prices) : rt.base_price;
+            const maxPrice = roomPrices?.prices.length ? Math.max(...roomPrices.prices) : rt.base_price;
+            const min2Meals = roomPrices?.prices2.length ? Math.min(...roomPrices.prices2) : null;
+            const max2Meals = roomPrices?.prices2.length ? Math.max(...roomPrices.prices2) : null;
+            const min3Meals = roomPrices?.prices3.length ? Math.min(...roomPrices.prices3) : null;
+            const max3Meals = roomPrices?.prices3.length ? Math.max(...roomPrices.prices3) : null;
+
+            return {
+              id: rt.id,
+              name: rt.name,
+              capacity: rt.capacity,
+              base_price: rt.base_price,
+              min_price: minPrice,
+              max_price: maxPrice,
+              min_2_meals: min2Meals,
+              max_2_meals: max2Meals,
+              min_3_meals: min3Meals,
+              max_3_meals: max3Meals,
+              description: rt.description,
+              size_sqm: rt.size_sqm,
+              photos: rt.room_photos?.sort((a: any, b: any) => a.display_order - b.display_order).map((p: any) => p.photo_url) || []
+            };
+          }) || []
         };
       }
 
