@@ -886,7 +886,7 @@ const Headquarters = () => {
     
     if (currentTab === 'split' && section) {
       switch (section) {
-        case 'rules': return '設定各民宿的分潤比例與生效期間';
+        case 'rules': return '設定各民宿的請款手續費比例';
         case 'details': return '查看所有訂單的分潤明細記錄';
         case 'reports': return '統計各民宿分潤金額與結算報表';
         case 'pending': return '處理待結算的分潤請款申請';
