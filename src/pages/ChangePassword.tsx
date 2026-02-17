@@ -373,18 +373,30 @@ export default function ChangePassword() {
                 </Button>
               </div>
             </div>
-            <Button 
-              type="submit" 
-              className={`w-full h-11 sm:h-10 text-base sm:text-sm touch-manipulation ${
-                (isAdminRoute || isHQRoute || isBackendUser)
-                  ? 'bg-blue-600 hover:bg-blue-700' 
-                  : ''
-              }`}
-              disabled={isLoading}
-            >
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              確認修改
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button 
+                type="submit" 
+                className={`w-full h-11 sm:h-10 text-base sm:text-sm touch-manipulation ${
+                  (isAdminRoute || isHQRoute || isBackendUser)
+                    ? 'bg-blue-600 hover:bg-blue-700' 
+                    : ''
+                }`}
+                disabled={isLoading}
+              >
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                確認修改
+              </Button>
+              {(isAdminRoute || isHQRoute) && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full h-11 sm:h-10 text-base sm:text-sm touch-manipulation"
+                  onClick={() => navigate(isHQRoute ? "/headquarters" : "/admin")}
+                >
+                  取消
+                </Button>
+              )}
+            </div>
           </form>
         </CardContent>
       </Card>
