@@ -761,11 +761,11 @@ export const SplitManagement = forwardRef<SplitManagementRef, SplitManagementPro
                         <p className="text-xl font-bold text-orange-500">NT$ {summary.pendingNet.toLocaleString()}</p>
                       </div>
                       <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">審核中</p>
+                        <p className="text-sm text-muted-foreground">已請款</p>
                         <p className="text-xl font-bold text-blue-500">NT$ {summary.requestedNet.toLocaleString()}</p>
                       </div>
                       <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">待撥款</p>
+                        <p className="text-sm text-muted-foreground">審核中</p>
                         <p className="text-xl font-bold text-purple-500">NT$ {summary.approvedNet.toLocaleString()}</p>
                       </div>
                       <div className="space-y-1">
