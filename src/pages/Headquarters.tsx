@@ -1339,7 +1339,7 @@ const Headquarters = () => {
                 className="gap-2"
               >
                 <Plus className="h-4 w-4" />
-                新增規則
+                新增民宿
               </Button>
             ) : currentTab === 'facilities' ? (
               <Button 
