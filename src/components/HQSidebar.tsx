@@ -7,9 +7,6 @@ import {
   ChevronDown,
   FileText,
   ClipboardList,
-  Calculator,
-  Clock,
-  Database,
   Utensils
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
@@ -41,7 +38,6 @@ const menuItems = [
     subItems: [
       { title: "手續費設定", url: "/hq?tab=split&section=rules", icon: FileText },
       { title: "拆帳明細與報表", url: "/hq?tab=split&section=details", icon: ClipboardList },
-      { title: "待結算", url: "/hq?tab=split&section=pending", icon: Clock },
     ]
   },
   { title: "民宿管理", url: "/hq?tab=accommodations", icon: Building2, tab: "accommodations" },

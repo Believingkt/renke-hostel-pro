@@ -119,7 +119,6 @@ const sectionToTab: Record<string, string> = {
   rules: "rules",
   details: "records",
   reports: "records",
-  pending: "pending",
   requested: "requested",
   approved: "approved",
 };
@@ -127,7 +126,6 @@ const sectionToTab: Record<string, string> = {
 const tabToSection: Record<string, string> = {
   rules: "rules",
   records: "details",
-  pending: "pending",
   requested: "requested",
   approved: "approved",
 };
@@ -916,85 +914,6 @@ export const SplitManagement = forwardRef<SplitManagementRef, SplitManagementPro
             </CardContent>
           </Card>
         </TabsContent>
-
-        {/* Pending (待結算) Tab */}
-        <TabsContent value="pending" className="space-y-4">
-          <div className="flex items-center gap-4 flex-wrap">
-            <Select value={accommodationFilter} onValueChange={setAccommodationFilter}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="全部民宿" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">全部民宿</SelectItem>
-                {accommodations.map(acc => (
-                  <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <MonthPicker
-              value={monthFilter}
-              onChange={setMonthFilter}
-              className="w-[160px]"
-            />
-          </div>
-
-          <Card>
-            <CardContent className="pt-6">
-              {splitRecords.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                  <Clock className="h-12 w-12 mb-4 opacity-50" />
-                  <p>目前沒有待結算的記錄</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50">
-                        <TableHead>民宿</TableHead>
-                        <TableHead>訂單編號</TableHead>
-                        <TableHead>入住日期</TableHead>
-                        <TableHead className="text-right">訂單金額</TableHead>
-                        <TableHead className="text-right">撥款金額</TableHead>
-                        <TableHead>建立日期</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {splitRecords.map(record => (
-                        <TableRow key={record.id}>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Building2 className="h-4 w-4 text-muted-foreground" />
-                              {getAccommodationName(record.accommodation_id)}
-                            </div>
-                          </TableCell>
-                          <TableCell className="font-mono text-sm">
-                            {record.orders?.order_number}
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {record.orders?.check_in_date && format(new Date(record.orders.check_in_date), "yyyy/MM/dd")}
-                          </TableCell>
-                          <TableCell className="text-right font-medium">
-                            NT$ {record.order_amount.toLocaleString()}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="text-primary font-medium">
-                              NT$ {record.accommodation_amount.toLocaleString()}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {format(new Date(record.created_at), "yyyy/MM/dd")}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
 
         {/* Requested (Pending Approval) Tab */}
         <TabsContent value="requested" className="space-y-4">
