@@ -5,6 +5,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import lokezeLogo from "@/assets/lokeze-logo.png";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export function HQHeader() {
   const navigate = useNavigate();
@@ -48,15 +59,30 @@ export function HQHeader() {
           <KeyRound className="h-4 w-4" />
           <span className="hidden sm:inline">修改密碼</span>
         </Button>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={handleLogout}
-          className="gap-2 h-9 md:h-10 text-sm"
-        >
-          <LogOut className="h-4 w-4" />
-          <span className="hidden sm:inline">登出</span>
-        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="gap-2 h-9 md:h-10 text-sm"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">登出</span>
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>確認登出</AlertDialogTitle>
+              <AlertDialogDescription>
+                您確定要登出總部管理系統嗎？
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>取消</AlertDialogCancel>
+              <AlertDialogAction onClick={handleLogout}>確認登出</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </header>
   );
