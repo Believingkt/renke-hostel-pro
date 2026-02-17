@@ -412,7 +412,7 @@ export const SplitManagement = forwardRef<SplitManagementRef, SplitManagementPro
 
       if (error) throw error;
 
-      const statusLabel = newStatus === 'pending' ? '待請款' : newStatus === 'requested' ? '已請款' : newStatus === 'approved' ? '已審核' : '已撥款';
+      const statusLabel = newStatus === 'pending' ? '待請款' : newStatus === 'requested' ? '已請款' : newStatus === 'approved' ? '審核中' : '已撥款';
       toast.success(`已將 ${recordIds.length} 筆記錄更新為「${statusLabel}」`);
       setSelectedRecords([]);
       await loadSplitRecords();
@@ -469,7 +469,7 @@ export const SplitManagement = forwardRef<SplitManagementRef, SplitManagementPro
       case "requested":
         return <Badge variant="outline" className="text-blue-500 border-blue-500">已請款</Badge>;
       case "approved":
-        return <Badge variant="outline" className="text-purple-500 border-purple-500">已審核</Badge>;
+        return <Badge variant="outline" className="text-purple-500 border-purple-500">審核中</Badge>;
       case "paid":
         return <Badge className="bg-primary">已撥款</Badge>;
       default:
@@ -592,7 +592,7 @@ export const SplitManagement = forwardRef<SplitManagementRef, SplitManagementPro
       r.accommodation_amount,
       r.settlement_status === "pending" ? "待請款" :
       r.settlement_status === "requested" ? "已請款" :
-      r.settlement_status === "approved" ? "已審核" : "已撥款",
+      r.settlement_status === "approved" ? "審核中" : "已撥款",
       r.requested_at ? format(new Date(r.requested_at), "yyyy/MM/dd") : "",
       r.approved_at ? format(new Date(r.approved_at), "yyyy/MM/dd") : "",
       r.paid_at ? format(new Date(r.paid_at), "yyyy/MM/dd") : "",
@@ -712,7 +712,7 @@ export const SplitManagement = forwardRef<SplitManagementRef, SplitManagementPro
                 <SelectItem value="all">全部狀態</SelectItem>
                 <SelectItem value="pending">待請款</SelectItem>
                 <SelectItem value="requested">已請款</SelectItem>
-                <SelectItem value="approved">已審核</SelectItem>
+                <SelectItem value="approved">審核中</SelectItem>
                 <SelectItem value="paid">已撥款</SelectItem>
               </SelectContent>
             </Select>
@@ -797,7 +797,7 @@ export const SplitManagement = forwardRef<SplitManagementRef, SplitManagementPro
                       <Send className="h-3.5 w-3.5 mr-1.5" />已請款
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => handleChangeStatus(selectedRecords, 'approved')}>
-                      <CheckCircle className="h-3.5 w-3.5 mr-1.5" />已審核
+                      <CheckCircle className="h-3.5 w-3.5 mr-1.5" />審核中
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => handleChangeStatus(selectedRecords, 'paid')}>
                       <Banknote className="h-3.5 w-3.5 mr-1.5" />已撥款
@@ -894,7 +894,7 @@ export const SplitManagement = forwardRef<SplitManagementRef, SplitManagementPro
                                 )}
                                 {record.settlement_status !== 'approved' && (
                                   <DropdownMenuItem onClick={() => handleChangeStatus([record.id], 'approved')}>
-                                    <CheckCircle className="h-4 w-4 mr-2" />已審核
+                                    <CheckCircle className="h-4 w-4 mr-2" />審核中
                                   </DropdownMenuItem>
                                 )}
                                 {record.settlement_status !== 'paid' && (
