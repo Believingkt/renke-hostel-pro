@@ -43,7 +43,7 @@ export default function AIBooking() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "您好！我是小安，您的專屬 AI 訂房助手 😊\n我可以協助您查詢房型、檢查空房、了解價格，並直接完成訂房！\n有任何問題都可以隨時問我喔～",
+      content: "您好！我是小安，您的專屬 AI 管家 😊\n我可以協助您查詢房型、檢查空房、了解價格，並直接完成訂房！\n有任何問題都可以隨時問我喔～",
       timestamp: new Date(),
       quickReplies: ["查看房型資訊", "了解旅宿特色", "入住須知"]
     }
@@ -291,7 +291,7 @@ export default function AIBooking() {
     setMessages([
       {
         role: "assistant",
-        content: "您好！我是森山寫照的 AI 訂房助手 😊\n\n我可以直接幫您完成訂房！請問您想什麼時候入住呢？\n\n請提供您的：\n📅 入住日期\n📅 退房日期",
+        content: "您好！我是森山寫照的 AI 管家 😊\n\n我可以直接幫您完成訂房！請問您想什麼時候入住呢？\n\n請提供您的：\n📅 入住日期\n📅 退房日期",
         timestamp: new Date(),
         quickReplies: ["查看房型資訊", "了解旅宿特色", "入住須知"]
       }
@@ -611,9 +611,9 @@ export default function AIBooking() {
   return (
     <div className={`h-screen flex flex-col bg-gradient-to-br from-background via-background to-muted/20 ${themeClass}`}>
       <SEOHead
-        title={`AI 訂房助手 - ${accommodationName}`}
-        description="使用 AI 智能助手快速完成訂房流程，即時查詢房型、價格和空房狀況"
-        keywords={["AI 訂房", "智能助手", "線上訂房", accommodationName]}
+        title={`AI 管家 - ${accommodationName}`}
+        description="使用 AI 管家快速完成訂房流程，即時查詢房型、價格和空房狀況"
+        keywords={["AI 管家", "智能助手", "線上訂房", accommodationName]}
       />
 
       {/* 頂部導航 - 手機版精簡 */}
@@ -632,7 +632,7 @@ export default function AIBooking() {
           <div className="flex items-center gap-3">
             <div className="text-center">
               <h1 className="text-base md:text-xl font-bold">{accommodationName}</h1>
-              <p className="text-[10px] md:text-sm opacity-90">AI 訂房助手</p>
+              <p className="text-[10px] md:text-sm opacity-90">AI 管家</p>
             </div>
           </div>
 
