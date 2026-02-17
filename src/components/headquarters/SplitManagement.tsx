@@ -111,7 +111,7 @@ export interface SplitManagementRef {
 const sectionToTab: Record<string, string> = {
   rules: "rules",
   details: "records",
-  reports: "reports",
+  reports: "records",
   pending: "pending",
   requested: "requested",
   approved: "approved",
@@ -120,7 +120,6 @@ const sectionToTab: Record<string, string> = {
 const tabToSection: Record<string, string> = {
   rules: "rules",
   records: "details",
-  reports: "reports",
   pending: "pending",
   requested: "requested",
   approved: "approved",
@@ -649,7 +648,7 @@ export const SplitManagement = forwardRef<SplitManagementRef, SplitManagementPro
           </Card>
         </TabsContent>
 
-        {/* Records Tab */}
+        {/* Records + Reports Combined Tab */}
         <TabsContent value="records" className="space-y-4">
           <div className="flex items-center gap-4 flex-wrap">
             <Select value={accommodationFilter} onValueChange={setAccommodationFilter}>
@@ -688,6 +687,58 @@ export const SplitManagement = forwardRef<SplitManagementRef, SplitManagementPro
             </Button>
           </div>
 
+          {/* Report Summary Cards */}
+          {Object.keys(reportSummary).length > 0 && (
+            <div className="space-y-3">
+              {Object.entries(reportSummary).map(([accId, summary]) => (
+                <Card key={accId} className="border-dashed">
+                  <CardContent className="pt-4 pb-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-5 w-5 text-muted-foreground" />
+                        <span className="font-semibold">{getAccommodationName(accId)}</span>
+                        <Badge variant="outline">{summary.count} 筆</Badge>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">訂單總額</p>
+                        <p className="text-xl font-bold">NT$ {summary.total.toLocaleString()}</p>
+                      </div>
+                      {summary.feePercentage > 0 && (
+                        <div className="space-y-1">
+                          <p className="text-sm text-muted-foreground flex items-center gap-1">
+                            <CreditCard className="h-3 w-3" />
+                            手續費 ({summary.feePercentage}%)
+                          </p>
+                          <p className="text-xl font-bold text-red-500">-NT$ {summary.feeTotal.toLocaleString()}</p>
+                        </div>
+                      )}
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">待請款</p>
+                        <p className="text-xl font-bold text-orange-500">NT$ {summary.pendingNet.toLocaleString()}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">審核中</p>
+                        <p className="text-xl font-bold text-blue-500">NT$ {summary.requestedNet.toLocaleString()}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">待撥款</p>
+                        <p className="text-xl font-bold text-purple-500">NT$ {summary.approvedNet.toLocaleString()}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">已撥款</p>
+                        <p className="text-xl font-bold text-primary">NT$ {summary.paidNet.toLocaleString()}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {/* Records Table */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -1091,85 +1142,8 @@ export const SplitManagement = forwardRef<SplitManagementRef, SplitManagementPro
           </Card>
         </TabsContent>
 
-        {/* Reports Tab */}
-        <TabsContent value="reports" className="space-y-4">
-          <div className="flex items-center gap-4">
-            <MonthPicker
-              value={monthFilter}
-              onChange={setMonthFilter}
-              className="w-[180px]"
-            />
-            <Button variant="outline" size="icon" onClick={handleExportCSV}>
-              <Download className="h-4 w-4" />
-            </Button>
-          </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                {format(new Date(monthFilter + "-01"), "yyyy年M月", { locale: zhTW })} 結算報表
-              </CardTitle>
-              <CardDescription>各民宿的拆帳統計與結算狀態</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {Object.keys(reportSummary).length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                  <BarChart3 className="h-12 w-12 mb-4 opacity-50" />
-                  <p>本月無拆帳資料</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {Object.entries(reportSummary).map(([accId, summary]) => (
-                    <Card key={accId} className="border-dashed">
-                      <CardContent className="pt-4">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-2">
-                            <Building2 className="h-5 w-5 text-muted-foreground" />
-                            <span className="font-semibold">{getAccommodationName(accId)}</span>
-                            <Badge variant="outline">{summary.count} 筆</Badge>
-                          </div>
-                        </div>
 
-                        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-                          <div className="space-y-1">
-                            <p className="text-sm text-muted-foreground">訂單總額</p>
-                            <p className="text-xl font-bold">NT$ {summary.total.toLocaleString()}</p>
-                          </div>
-                          {summary.feePercentage > 0 && (
-                            <div className="space-y-1">
-                              <p className="text-sm text-muted-foreground flex items-center gap-1">
-                                <CreditCard className="h-3 w-3" />
-                                手續費 ({summary.feePercentage}%)
-                              </p>
-                              <p className="text-xl font-bold text-red-500">-NT$ {summary.feeTotal.toLocaleString()}</p>
-                            </div>
-                          )}
-                          <div className="space-y-1">
-                            <p className="text-sm text-muted-foreground">待請款</p>
-                            <p className="text-xl font-bold text-orange-500">NT$ {summary.pendingNet.toLocaleString()}</p>
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-sm text-muted-foreground">審核中</p>
-                            <p className="text-xl font-bold text-blue-500">NT$ {summary.requestedNet.toLocaleString()}</p>
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-sm text-muted-foreground">待撥款</p>
-                            <p className="text-xl font-bold text-purple-500">NT$ {summary.approvedNet.toLocaleString()}</p>
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-sm text-muted-foreground">已撥款</p>
-                            <p className="text-xl font-bold text-primary">NT$ {summary.paidNet.toLocaleString()}</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
 
       {/* Rule Dialog */}
