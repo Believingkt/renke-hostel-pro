@@ -59,6 +59,7 @@ export default function AIBooking() {
   const [isProcessingQueue, setIsProcessingQueue] = useState(false);
   const [selectedCheckIn, setSelectedCheckIn] = useState<Date>();
   const [selectedCheckOut, setSelectedCheckOut] = useState<Date>();
+  const [showAvatarLightbox, setShowAvatarLightbox] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -714,8 +715,8 @@ export default function AIBooking() {
                   >
                     {/* AI 助手頭像和名字 */}
                     {message.role === "assistant" && (
-                      <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
-                        <Avatar className="h-14 w-14 border-3 border-primary/30 shadow-lg ring-2 ring-primary/10">
+                      <div className="flex flex-col items-center gap-1.5 flex-shrink-0 cursor-pointer" onClick={() => setShowAvatarLightbox(true)}>
+                        <Avatar className="h-14 w-14 border-3 border-primary/30 shadow-lg ring-2 ring-primary/10 transition-transform hover:scale-110">
                           <AvatarImage src={assistantAvatar} alt="小安" className="object-cover" />
                           <AvatarFallback className="bg-primary text-primary-foreground text-base">小安</AvatarFallback>
                         </Avatar>
@@ -1147,6 +1148,28 @@ export default function AIBooking() {
           </button>
         </div>
       </div>
+      
+      {/* 小安頭像大圖 */}
+      {showAvatarLightbox && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in"
+          onClick={() => setShowAvatarLightbox(false)}
+        >
+          <div className="relative" onClick={(e) => e.stopPropagation()}>
+            <img 
+              src={assistantAvatar} 
+              alt="小安" 
+              className="w-64 h-64 md:w-80 md:h-80 rounded-full object-cover shadow-2xl border-4 border-background"
+            />
+            <button
+              onClick={() => setShowAvatarLightbox(false)}
+              className="absolute -top-2 -right-2 bg-background text-foreground rounded-full w-8 h-8 flex items-center justify-center shadow-lg hover:bg-muted transition-colors"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
