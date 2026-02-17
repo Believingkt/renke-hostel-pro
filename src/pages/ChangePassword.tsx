@@ -391,7 +391,7 @@ export default function ChangePassword() {
                   type="button"
                   variant="outline"
                   className="w-full h-11 sm:h-10 text-base sm:text-sm touch-manipulation"
-                  onClick={() => navigate(isHQRoute ? "/headquarters" : "/admin")}
+                  onClick={() => navigate(isHQRoute ? "/hq" : "/admin")}
                 >
                   取消
                 </Button>
