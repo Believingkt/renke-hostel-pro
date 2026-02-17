@@ -1129,13 +1129,13 @@ export default function AIBooking() {
             <span className="text-[10px] font-medium">重來</span>
           </button>
 
-          {/* 返回首頁 */}
+          {/* 我的 */}
           <button
             onClick={() => navigate('/')}
             className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all duration-200"
           >
-            <ArrowLeft className="h-5 w-5" />
-            <span className="text-[10px] font-medium">首頁</span>
+            <User className="h-5 w-5" />
+            <span className="text-[10px] font-medium">我的</span>
           </button>
         </div>
       </div>
