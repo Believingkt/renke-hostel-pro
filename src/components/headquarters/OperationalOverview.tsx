@@ -786,15 +786,14 @@ export function OperationalOverview({ accommodations, selectedAccommodation, onA
     { name: '已取消', value: totals.cancelledOrders, color: STATUS_COLORS.cancelled },
   ].filter(item => item.value > 0);
 
-  const accommodationRevenueData = stats
-    .map((s, index) => ({
-      name: s.name,
-      fullName: s.name,
-      月營收: s.monthly_revenue,
-      年營收: s.yearly_revenue,
+  const accommodationRevenueData = performanceData
+    .map((d, index) => ({
+      name: d.name,
+      fullName: d.name,
+      營收: d.revenue,
       color: COLORS[index % COLORS.length],
     }))
-    .sort((a, b) => b.月營收 - a.月營收);
+    .sort((a, b) => b.營收 - a.營收);
 
   if (loading) {
     return <HQOverviewSkeleton />;
@@ -1162,13 +1161,13 @@ export function OperationalOverview({ accommodations, selectedAccommodation, onA
         </Card>
 
         {/* Accommodation Revenue Comparison */}
-        {stats.length > 1 && (
+        {performanceData.length > 1 && (
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-start justify-between">
                 <div>
                   <CardTitle className="text-lg font-semibold">各民宿營收比較</CardTitle>
-                  <CardDescription>本月各民宿營收排行</CardDescription>
+                  <CardDescription>{getTimeRangeLabel(timeRange)}各民宿營收排行</CardDescription>
                 </div>
                 <div className="p-2 bg-primary/10 rounded-lg">
                   <BarChart3 className="h-4 w-4 text-primary" />
@@ -1176,7 +1175,7 @@ export function OperationalOverview({ accommodations, selectedAccommodation, onA
               </div>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={Math.max(200, stats.length * 50)}>
+              <ResponsiveContainer width="100%" height={Math.max(200, performanceData.length * 50)}>
                 <BarChart 
                   data={accommodationRevenueData} 
                   layout="vertical"
@@ -1209,7 +1208,7 @@ export function OperationalOverview({ accommodations, selectedAccommodation, onA
                     }}
                   />
                   <Bar 
-                    dataKey="月營收" 
+                    dataKey="營收" 
                     radius={[0, 4, 4, 0]}
                     maxBarSize={30}
                   >
