@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubdomain } from "@/hooks/use-subdomain";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Search, ArrowLeft, Calendar, Users, Phone, Mail, CreditCard, BanknoteIcon, CheckCircle2, Clock, Home, LogOut, MessageCircle } from "lucide-react";
+import { Search, ArrowLeft, Calendar, Users, Phone, Mail, CreditCard, BanknoteIcon, CheckCircle2, Clock, Home, LogOut, MessageCircle, Mic, Volume2, User, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { zhTW } from "date-fns/locale";
@@ -43,6 +43,8 @@ interface OrderData {
 
 const OrderSearch = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const fromAiBooking = searchParams.get('from') === 'ai-booking';
   const { accommodationId, isLoading: subdomainLoading } = useSubdomain();
   const [orderNumber, setOrderNumber] = useState("");
   const [phone, setPhone] = useState("");
@@ -206,16 +208,18 @@ const OrderSearch = () => {
   }
 
   return (
-    <div className={`min-h-screen bg-gradient-to-b from-background to-muted/20 py-8 px-4 ${themeClass}`}>
+    <div className={`min-h-screen bg-gradient-to-b from-background to-muted/20 py-8 px-4 ${themeClass} ${fromAiBooking ? 'pb-28 md:pb-8' : ''}`}>
       <div className="max-w-2xl mx-auto">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/")}
-          className="mb-6"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          返回首頁
-        </Button>
+        {!fromAiBooking && (
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/")}
+            className="mb-6"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            返回首頁
+          </Button>
+        )}
 
         <Card className="shadow-lg">
           <CardHeader className="text-center">
@@ -490,6 +494,38 @@ const OrderSearch = () => {
       
       {/* 開發環境住宿切換器 */}
       <DevAccommodationSwitcher />
+      {/* 手機版底部 Tab（從 AI 訂房進入時顯示） */}
+      {fromAiBooking && (
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-[0_-2px_10px_rgba(0,0,0,0.08)] z-50">
+          <div className="flex items-center justify-around px-2 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+            {/* AI 訂房 */}
+            <button
+              onClick={() => navigate('/ai-booking')}
+              className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all duration-200"
+            >
+              <MessageCircle className="h-5 w-5" />
+              <span className="text-[10px] font-medium">AI 訂房</span>
+            </button>
+
+            {/* 訂單（當前頁） */}
+            <button
+              className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-primary bg-primary/5 transition-all duration-200"
+            >
+              <ClipboardList className="h-5 w-5" />
+              <span className="text-[10px] font-medium">訂單</span>
+            </button>
+
+            {/* 我的 */}
+            <button
+              onClick={() => navigate('/')}
+              className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all duration-200"
+            >
+              <User className="h-5 w-5" />
+              <span className="text-[10px] font-medium">我的</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
