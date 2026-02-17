@@ -126,8 +126,30 @@ export default function AIBooking() {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
-          body: JSON.stringify({
-            messages: newMessages,
+      body: JSON.stringify({
+            messages: newMessages.map(m => {
+              // Include tool call context in message content so AI knows what was already shown
+              let content = m.content;
+              if (m.role === 'assistant' && m.toolCalls?.length) {
+                const toolContext = m.toolCalls.map(tc => {
+                  if (tc.type === 'rooms') {
+                    const roomNames = tc.data.map((r: any) => r.name).join('、');
+                    return `[系統：已向客人展示房型卡片：${roomNames}]`;
+                  }
+                  if (tc.type === 'booking' && tc.data?.success) {
+                    return `[系統：已成功建立訂單 ${tc.data.order_number}]`;
+                  }
+                  if (tc.type === 'discount') {
+                    return `[系統：折扣碼驗證結果 - ${tc.data.is_valid ? '有效' : '無效'}]`;
+                  }
+                  return '';
+                }).filter(Boolean).join('\n');
+                if (toolContext) {
+                  content = (content || '') + '\n' + toolContext;
+                }
+              }
+              return { role: m.role, content };
+            }),
             accommodationId
           }),
         }
