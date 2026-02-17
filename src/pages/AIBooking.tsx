@@ -611,7 +611,7 @@ export default function AIBooking() {
   return (
     <div className={`h-screen flex flex-col bg-gradient-to-br from-background via-background to-muted/20 ${themeClass}`}>
       <SEOHead
-        title={`AI 管家 - ${accommodationName}`}
+        title={`${accommodationName} - AI 管家`}
         description="使用 AI 管家快速完成訂房流程，即時查詢房型、價格和空房狀況"
         keywords={["AI 管家", "智能助手", "線上訂房", accommodationName]}
       />
