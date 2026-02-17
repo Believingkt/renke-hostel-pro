@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { HQOverviewSkeleton } from "@/components/skeletons/HQSkeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -123,6 +123,12 @@ interface OperationalOverviewProps {
   accommodations: { id: string; name: string; is_active?: boolean }[];
   selectedAccommodation: string;
   onAccommodationChange: (value: string) => void;
+  timeRange: TimeRange;
+  onTimeRangeChange: (value: TimeRange) => void;
+}
+
+export interface OperationalOverviewRef {
+  exportCSV: () => void;
 }
 
 type TimeRange = "today" | "week" | "month" | "quarter" | "year" | "all";
@@ -144,7 +150,7 @@ const STATUS_COLORS = {
   cancelled: 'hsl(0, 84%, 60%)',
 };
 
-export function OperationalOverview({ accommodations, selectedAccommodation, onAccommodationChange }: OperationalOverviewProps) {
+export const OperationalOverview = forwardRef<OperationalOverviewRef, OperationalOverviewProps>(({ accommodations, selectedAccommodation, onAccommodationChange, timeRange, onTimeRangeChange }, ref) => {
   const navigate = useNavigate();
   
   // Overview states
@@ -165,7 +171,7 @@ export function OperationalOverview({ accommodations, selectedAccommodation, onA
 
   // Performance states
   const [performanceLoading, setPerformanceLoading] = useState(false);
-  const [timeRange, setTimeRange] = useState<TimeRange>("month");
+  
   const [performanceData, setPerformanceData] = useState<AccommodationPerformance[]>([]);
   const [previousPeriodData, setPreviousPeriodData] = useState<AccommodationPerformance[]>([]);
   const [trendData, setTrendData] = useState<TrendDataPoint[]>([]);
@@ -177,6 +183,10 @@ export function OperationalOverview({ accommodations, selectedAccommodation, onA
     if (selectedAccommodation === "all") return accommodations;
     return accommodations.filter(a => a.id === selectedAccommodation);
   }, [accommodations, selectedAccommodation]);
+
+  useImperativeHandle(ref, () => ({
+    exportCSV: handleExportCSV,
+  }));
 
   useEffect(() => {
     loadStats();
@@ -885,26 +895,6 @@ export function OperationalOverview({ accommodations, selectedAccommodation, onA
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
-              <SelectTrigger className="w-[140px]">
-                <Calendar className="h-4 w-4 mr-2" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="today">今日</SelectItem>
-                <SelectItem value="week">本週</SelectItem>
-                <SelectItem value="month">本月</SelectItem>
-                <SelectItem value="quarter">本季</SelectItem>
-                <SelectItem value="year">本年</SelectItem>
-                <SelectItem value="all">全部時間</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" onClick={handleExportCSV} disabled={exporting} className="gap-2">
-              {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-              匯出 CSV
-            </Button>
-          </div>
         </div>
 
         {performanceLoading ? (
@@ -1224,4 +1214,4 @@ export function OperationalOverview({ accommodations, selectedAccommodation, onA
       </section>
     </div>
   );
-}
+});
