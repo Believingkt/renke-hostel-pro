@@ -103,7 +103,7 @@ const ACTION_TYPE_LABELS: Record<string, string> = {
 
 export function SystemManagement({ accommodations }: SystemManagementProps) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const section = searchParams.get("section") || "logs";
+  const section = searchParams.get("section") || "settings";
   const activeTab = section; // section values match tab values: logs, facilities, backup, settings
   
   const [loading, setLoading] = useState(true);
