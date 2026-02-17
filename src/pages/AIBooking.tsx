@@ -606,6 +606,8 @@ export default function AIBooking() {
     });
   };
 
+  const [mobileTab, setMobileTab] = useState<"chat" | "voice" | "settings">("chat");
+
   return (
     <div className={`min-h-screen bg-gradient-to-br from-background via-background to-muted/20 ${themeClass}`}>
       <SEOHead
@@ -614,27 +616,28 @@ export default function AIBooking() {
         keywords={["AI 訂房", "智能助手", "線上訂房", accommodationName]}
       />
 
-      {/* 頂部導航 */}
+      {/* 頂部導航 - 手機版精簡 */}
       <div className="bg-primary text-primary-foreground shadow-lg">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="container mx-auto px-3 py-3 md:px-4 md:py-4 flex items-center justify-between">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => navigate('/')}
             className="text-primary-foreground hover:bg-primary-foreground/10"
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            返回首頁
+            <ArrowLeft className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">返回首頁</span>
           </Button>
           
           <div className="flex items-center gap-3">
-            <div>
-              <h1 className="text-lg md:text-xl font-bold">AI 訂房助手</h1>
-              <p className="text-xs md:text-sm opacity-90">{accommodationName}</p>
+            <div className="text-center">
+              <h1 className="text-base md:text-xl font-bold">AI 訂房助手</h1>
+              <p className="text-[10px] md:text-sm opacity-90">{accommodationName}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* 桌面版工具列 */}
+          <div className="hidden md:flex items-center gap-2">
             {isPlayingAudio && (
               <Button
                 variant="ghost"
@@ -668,17 +671,29 @@ export default function AIBooking() {
               className="text-primary-foreground hover:bg-primary-foreground/10"
             >
               <RotateCcw className="h-4 w-4 mr-2" />
-              <span className="hidden md:inline">重新開始</span>
+              重新開始
+            </Button>
+          </div>
+
+          {/* 手機版只顯示重新開始 */}
+          <div className="flex md:hidden items-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRestart}
+              className="text-primary-foreground hover:bg-primary-foreground/10"
+            >
+              <RotateCcw className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </div>
 
       {/* 主要內容區 */}
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
-        <Card className="shadow-2xl overflow-hidden border-primary/20 h-[calc(100vh-200px)] flex flex-col">
+      <div className="container mx-auto px-2 md:px-4 py-2 md:py-6 max-w-4xl">
+        <Card className="shadow-2xl overflow-hidden border-primary/20 h-[calc(100vh-130px)] md:h-[calc(100vh-200px)] flex flex-col">
           {/* 訊息區域 */}
-          <ScrollArea className="flex-1 p-6" ref={scrollRef}>
+          <ScrollArea className="flex-1 p-3 md:p-6" ref={scrollRef}>
             <div className="space-y-6">
               {messages.map((message, index) => (
                 <div 
@@ -994,8 +1009,8 @@ export default function AIBooking() {
             </div>
           </ScrollArea>
 
-          {/* 輸入區域 */}
-          <div className="p-4 md:p-6 border-t bg-background/50 backdrop-blur-sm">
+          {/* 桌面版輸入區域 */}
+          <div className="hidden md:block p-6 border-t bg-background/50 backdrop-blur-sm">
             <div className="flex gap-3">
               <Button
                 onClick={toggleRecording}
@@ -1031,6 +1046,94 @@ export default function AIBooking() {
                   <Send className="h-5 w-5" />
                 )}
               </Button>
+            </div>
+          </div>
+
+          {/* 手機版輸入框 + 底部 Tab */}
+          <div className="md:hidden border-t bg-background/50 backdrop-blur-sm">
+            {/* 輸入框 */}
+            <div className="px-3 pt-2 pb-1">
+              <div className="flex gap-2">
+                <Input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder={isRecording ? "🎤 錄音中..." : "輸入訊息..."}
+                  disabled={isLoading || isRecording}
+                  className="flex-1 h-10 text-sm rounded-full px-4 focus:ring-2 focus:ring-primary/20"
+                />
+                <Button
+                  onClick={sendMessage}
+                  disabled={!input.trim() || isLoading}
+                  size="icon"
+                  className="h-10 w-10 rounded-full shrink-0"
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            {/* 底部功能 Tab 列 */}
+            <div className="flex items-center justify-around px-2 py-2 border-t border-border/30">
+              {/* 語音輸入 */}
+              <button
+                onClick={toggleRecording}
+                disabled={isLoading}
+                className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all duration-200 ${
+                  isRecording 
+                    ? "text-destructive bg-destructive/10 animate-pulse" 
+                    : "text-muted-foreground hover:text-primary hover:bg-primary/5"
+                }`}
+              >
+                {isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                <span className="text-[10px] font-medium">{isRecording ? "停止" : "語音"}</span>
+              </button>
+
+              {/* 語音播放開關 */}
+              <button
+                onClick={toggleVoice}
+                className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all duration-200 ${
+                  isVoiceEnabled 
+                    ? "text-primary bg-primary/5" 
+                    : "text-muted-foreground hover:text-primary hover:bg-primary/5"
+                }`}
+              >
+                {isVoiceEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+                <span className="text-[10px] font-medium">{isVoiceEnabled ? "語音開" : "語音關"}</span>
+              </button>
+
+              {/* 停止播放 (播放中才顯示) */}
+              {isPlayingAudio && (
+                <button
+                  onClick={stopAudio}
+                  className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-destructive bg-destructive/10 transition-all duration-200"
+                >
+                  <Square className="h-5 w-5" />
+                  <span className="text-[10px] font-medium">停止</span>
+                </button>
+              )}
+
+              {/* 重新開始 */}
+              <button
+                onClick={handleRestart}
+                className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all duration-200"
+              >
+                <RotateCcw className="h-5 w-5" />
+                <span className="text-[10px] font-medium">重來</span>
+              </button>
+
+              {/* 返回首頁 */}
+              <button
+                onClick={() => navigate('/')}
+                className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all duration-200"
+              >
+                <ArrowLeft className="h-5 w-5" />
+                <span className="text-[10px] font-medium">首頁</span>
+              </button>
             </div>
           </div>
         </Card>
