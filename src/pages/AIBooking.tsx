@@ -631,8 +631,8 @@ export default function AIBooking() {
           
           <div className="flex items-center gap-3">
             <div className="text-center">
-              <h1 className="text-base md:text-xl font-bold">AI 訂房助手</h1>
-              <p className="text-[10px] md:text-sm opacity-90">{accommodationName}</p>
+              <h1 className="text-base md:text-xl font-bold">{accommodationName}</h1>
+              <p className="text-[10px] md:text-sm opacity-90">AI 訂房助手</p>
             </div>
           </div>
 
