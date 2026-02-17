@@ -813,7 +813,7 @@ export const SplitManagement = forwardRef<SplitManagementRef, SplitManagementPro
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
-                請款明細記錄
+                訂單請款紀錄
               </CardTitle>
               <CardDescription>
                 {format(new Date(monthFilter + "-01"), "yyyy年M月", { locale: zhTW })} 共 {splitRecords.length} 筆
