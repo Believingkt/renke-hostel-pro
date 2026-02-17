@@ -212,6 +212,11 @@ export default function AIBooking() {
             const parsed = JSON.parse(jsonStr);
 
             if (parsed.type === 'tool_calls_complete') {
+              // Check if rooms were already shown in previous messages
+              const roomsAlreadyShown = newMessages.some(
+                m => m.role === 'assistant' && m.toolCalls?.some(tc => tc.type === 'rooms')
+              );
+
               parsed.results.forEach((r: any) => {
                 if (r.result?.rooms && bookingStep < 2) {
                   setBookingStep(2);
@@ -225,20 +230,24 @@ export default function AIBooking() {
                 const updated = [...prev];
                 const lastMsg = updated[updated.length - 1];
                 
+                const toolCalls = parsed.results.map((r: any) => {
+                  if (r.result?.rooms) {
+                    // Skip rendering room cards if already shown
+                    if (roomsAlreadyShown) return null;
+                    return { type: 'rooms', data: r.result.rooms };
+                  }
+                  if (r.result?.success !== undefined) {
+                    return { type: 'booking', data: r.result };
+                  }
+                  if (r.result?.is_valid !== undefined) {
+                    return { type: 'discount', data: r.result };
+                  }
+                  return { type: 'unknown', data: r.result };
+                }).filter(Boolean);
+
                 updated[updated.length - 1] = {
                   ...lastMsg,
-                  toolCalls: parsed.results.map((r: any) => {
-                    if (r.result?.rooms) {
-                      return { type: 'rooms', data: r.result.rooms };
-                    }
-                    if (r.result?.success !== undefined) {
-                      return { type: 'booking', data: r.result };
-                    }
-                    if (r.result?.is_valid !== undefined) {
-                      return { type: 'discount', data: r.result };
-                    }
-                    return { type: 'unknown', data: r.result };
-                  })
+                  toolCalls: toolCalls.length > 0 ? toolCalls : undefined
                 };
                 
                 return updated;
