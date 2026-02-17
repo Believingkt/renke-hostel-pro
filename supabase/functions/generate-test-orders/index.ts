@@ -10,6 +10,7 @@ interface TestOrderParams {
   count?: number;
   year?: number; // 單一年份（向後兼容）
   years?: number[]; // 多年份陣列，例如 [2025, 2026]
+  month?: number; // 指定月份 (1-12)，搭配 year/years 使用
 }
 
 Deno.serve(async (req) => {
@@ -26,7 +27,7 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { accommodationId, count = 20, year, years }: TestOrderParams = await req.json();
+    const { accommodationId, count = 20, year, years, month }: TestOrderParams = await req.json();
 
     if (!accommodationId) {
       throw new Error('Accommodation ID is required');
@@ -98,10 +99,18 @@ Deno.serve(async (req) => {
       if (targetYears.length > 0) {
         // 從指定的年份中隨機選擇一個
         const selectedYear = targetYears[Math.floor(Math.random() * targetYears.length)];
-        const startOfYear = new Date(selectedYear, 0, 1);
-        const endOfYear = new Date(selectedYear, 11, 31);
-        const randomTime = startOfYear.getTime() + Math.random() * (endOfYear.getTime() - startOfYear.getTime());
-        orderDate = new Date(randomTime);
+        if (month && month >= 1 && month <= 12) {
+          // 指定月份：在該月份內隨機
+          const startOfMonth = new Date(selectedYear, month - 1, 1);
+          const endOfMonth = new Date(selectedYear, month, 0); // 該月最後一天
+          const randomTime = startOfMonth.getTime() + Math.random() * (endOfMonth.getTime() - startOfMonth.getTime());
+          orderDate = new Date(randomTime);
+        } else {
+          const startOfYear = new Date(selectedYear, 0, 1);
+          const endOfYear = new Date(selectedYear, 11, 31);
+          const randomTime = startOfYear.getTime() + Math.random() * (endOfYear.getTime() - startOfYear.getTime());
+          orderDate = new Date(randomTime);
+        }
       } else {
         // 否則生成過去6個月的訂單日期
         const daysAgo = Math.floor(Math.random() * 180);
