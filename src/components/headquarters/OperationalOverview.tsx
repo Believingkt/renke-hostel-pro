@@ -1201,6 +1201,13 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
                     dataKey="營收" 
                     radius={[0, 4, 4, 0]}
                     maxBarSize={30}
+                    label={{
+                      position: 'right',
+                      formatter: (value: number) => formatShortCurrency(value),
+                      fontSize: 11,
+                      fill: 'hsl(var(--muted-foreground))',
+                    }}
+                    minPointSize={3}
                   >
                     {accommodationRevenueData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
