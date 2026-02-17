@@ -45,7 +45,9 @@ import {
   Database,
   Plus,
   Utensils,
-  GripVertical
+  GripVertical,
+  Calendar,
+  Download
 } from "lucide-react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
@@ -75,7 +77,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import { AccommodationManagement, AccommodationManagementRef } from "@/components/headquarters/AccommodationManagement";
-import { OperationalOverview } from "@/components/headquarters/OperationalOverview";
+import { OperationalOverview, OperationalOverviewRef } from "@/components/headquarters/OperationalOverview";
 
 import { SystemManagement } from "@/components/headquarters/SystemManagement";
 import { SplitManagement, SplitManagementRef } from "@/components/headquarters/SplitManagement";
@@ -195,6 +197,7 @@ const Headquarters = () => {
   const [selectedAccommodation, setSelectedAccommodation] = useState("");
   const [selectedOverviewAccommodation, setSelectedOverviewAccommodation] = useState("all");
   const [selectedRole, setSelectedRole] = useState<"super_admin" | "hotel_admin" | "staff">("staff");
+  const [overviewTimeRange, setOverviewTimeRange] = useState<"today" | "week" | "month" | "quarter" | "year" | "all">("month");
   
   // Ref for AccommodationManagement
   const accommodationManagementRef = useRef<AccommodationManagementRef>(null);
@@ -202,6 +205,8 @@ const Headquarters = () => {
   const splitManagementRef = useRef<SplitManagementRef>(null);
   // Ref for FacilityManagement
   const facilityManagementRef = useRef<FacilityManagementRef>(null);
+  // Ref for OperationalOverview
+  const overviewRef = useRef<OperationalOverviewRef>(null);
 
   // Backup states
   const [backups, setBackups] = useState<BackupLog[]>([]);
@@ -917,9 +922,12 @@ const Headquarters = () => {
       case 'overview':
         return (
           <OperationalOverview 
+            ref={overviewRef}
             accommodations={accommodations} 
             selectedAccommodation={selectedOverviewAccommodation}
             onAccommodationChange={setSelectedOverviewAccommodation}
+            timeRange={overviewTimeRange}
+            onTimeRangeChange={setOverviewTimeRange}
           />
         );
       case 'split':
@@ -1233,9 +1241,12 @@ const Headquarters = () => {
       default:
         return (
           <OperationalOverview 
+            ref={overviewRef}
             accommodations={accommodations} 
             selectedAccommodation={selectedOverviewAccommodation}
             onAccommodationChange={setSelectedOverviewAccommodation}
+            timeRange={overviewTimeRange}
+            onTimeRangeChange={setOverviewTimeRange}
           />
         );
     }
@@ -1324,6 +1335,24 @@ const Headquarters = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                <Select value={overviewTimeRange} onValueChange={(v) => setOverviewTimeRange(v as typeof overviewTimeRange)}>
+                  <SelectTrigger className="w-[140px] bg-background">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border shadow-lg z-50">
+                    <SelectItem value="today">今日</SelectItem>
+                    <SelectItem value="week">本週</SelectItem>
+                    <SelectItem value="month">本月</SelectItem>
+                    <SelectItem value="quarter">本季</SelectItem>
+                    <SelectItem value="year">本年</SelectItem>
+                    <SelectItem value="all">全部時間</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button variant="outline" onClick={() => overviewRef.current?.exportCSV()} className="gap-2">
+                  <Download className="h-4 w-4" />
+                  匯出 CSV
+                </Button>
               </div>
             ) : currentTab === 'accommodations' ? (
               <Button 
