@@ -1193,7 +1193,7 @@ export default function AIBooking() {
 
           {/* 訂單 */}
           <button
-            onClick={() => navigate('/order-search')}
+            onClick={() => navigate('/order-search?from=ai-booking')}
             className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all duration-200"
           >
             <ClipboardList className="h-5 w-5" />
