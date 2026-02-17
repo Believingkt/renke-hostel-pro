@@ -40,8 +40,7 @@ const menuItems = [
     tab: "split",
     subItems: [
       { title: "手續費設定", url: "/hq?tab=split&section=rules", icon: FileText },
-      { title: "拆帳明細", url: "/hq?tab=split&section=details", icon: ClipboardList },
-      { title: "結算報表", url: "/hq?tab=split&section=reports", icon: Calculator },
+      { title: "拆帳明細與報表", url: "/hq?tab=split&section=details", icon: ClipboardList },
       { title: "待結算", url: "/hq?tab=split&section=pending", icon: Clock },
     ]
   },
