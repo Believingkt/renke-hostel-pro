@@ -617,7 +617,7 @@ export default function AIBooking() {
       />
 
       {/* 頂部導航 - 手機版精簡 */}
-      <div className="bg-primary text-primary-foreground shadow-lg">
+      <div className="hidden md:block bg-primary text-primary-foreground shadow-lg">
         <div className="container mx-auto px-3 py-3 md:px-4 md:py-4 flex items-center justify-between">
           <Button
             variant="ghost"
