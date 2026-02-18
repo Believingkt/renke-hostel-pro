@@ -767,6 +767,69 @@ serve(async (req) => {
                       type: 'tool_calls_complete',
                       results: toolResults
                     })}\n\n`));
+
+                    // Make follow-up AI call with tool results to get human-readable response
+                    try {
+                      const assistantToolMsg = {
+                        role: "assistant",
+                        content: null,
+                        tool_calls: completedToolCalls.map(tc => ({
+                          id: tc.id,
+                          type: "function",
+                          function: { name: tc.function.name, arguments: tc.function.arguments }
+                        }))
+                      };
+                      const toolResultMsgs = toolResults.map(tr => ({
+                        role: "tool",
+                        tool_call_id: tr.tool_call_id,
+                        content: JSON.stringify(tr.result)
+                      }));
+
+                      const followUpResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                        method: "POST",
+                        headers: {
+                          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+                          "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                          model: "openai/gpt-5-mini",
+                          messages: [
+                            { role: "system", content: systemPrompt },
+                            ...messages,
+                            assistantToolMsg,
+                            ...toolResultMsgs
+                          ],
+                          stream: true,
+                        }),
+                      });
+
+                      if (followUpResponse.ok && followUpResponse.body) {
+                        const followReader = followUpResponse.body.getReader();
+                        let followBuffer = '';
+                        while (true) {
+                          const { done: fDone, value: fValue } = await followReader.read();
+                          if (fDone) break;
+                          followBuffer += decoder.decode(fValue, { stream: true });
+                          const fLines = followBuffer.split('\n');
+                          followBuffer = fLines.pop() || '';
+                          for (const fLine of fLines) {
+                            if (!fLine.trim() || fLine.startsWith(':')) continue;
+                            if (!fLine.startsWith('data: ')) continue;
+                            const fData = fLine.slice(6).trim();
+                            if (fData === '[DONE]') continue;
+                            try {
+                              const fParsed = JSON.parse(fData);
+                              const fContent = fParsed.choices?.[0]?.delta?.content;
+                              if (fContent) {
+                                controller.enqueue(encoder.encode(`data: ${fData}\n\n`));
+                              }
+                            } catch (_) {}
+                          }
+                        }
+                      }
+                    } catch (followErr) {
+                      console.error('Follow-up AI call failed:', followErr);
+                    }
                   }
                 }
                 continue;
