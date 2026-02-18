@@ -127,7 +127,7 @@ export default function AIBooking() {
             "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
       body: JSON.stringify({
-            messages: newMessages.map(m => {
+            messages: (newMessages.length > 28 ? newMessages.slice(newMessages.length - 28) : newMessages).map(m => {
               // Include tool call context in message content so AI knows what was already shown
               let content = m.content;
               if (m.role === 'assistant' && m.toolCalls?.length) {
