@@ -259,35 +259,53 @@ export default function AIBooking() {
             if (content) {
               assistantMessage += content;
               
+              // Parse [SUGGEST: option1 | option2 | option3] markers from AI response
               let quickReplies: string[] = [];
               let showDatePicker: "check-in" | "check-out" | "range" | undefined = undefined;
-              const lowerContent = assistantMessage.toLowerCase();
+              let displayContent = assistantMessage;
               
-              if (lowerContent.includes('日期') || lowerContent.includes('入住')) {
-                showDatePicker = "range";
-                if (bookingStep < 1) setBookingStep(1);
+              // Extract SUGGEST markers
+              const suggestMatch = assistantMessage.match(/\[SUGGEST:\s*([^\]]+)\]/);
+              if (suggestMatch) {
+                quickReplies = suggestMatch[1].split('|').map(s => s.trim()).filter(Boolean);
+                displayContent = assistantMessage.replace(/\[SUGGEST:\s*[^\]]+\]/, '').trim();
               }
               
+              // Detect date-related context for date picker
+              const lowerContent = displayContent.toLowerCase();
+              if ((lowerContent.includes('日期') || lowerContent.includes('入住')) && 
+                  !lowerContent.includes('已確認') && !lowerContent.includes('確認訂單') &&
+                  (quickReplies.some(r => r.includes('日期') || r.includes('入住')) || quickReplies.length === 0)) {
+                showDatePicker = "range";
+              }
+
+              // Update booking step based on context
               if (lowerContent.includes('房型') || lowerContent.includes('選擇')) {
-                quickReplies = ["查看所有房型", "有其他選擇嗎？"];
                 if (bookingStep < 2) setBookingStep(2);
               }
-              
               if (lowerContent.includes('姓名') || lowerContent.includes('手機') || lowerContent.includes('聯絡')) {
-                quickReplies = ["確認無誤", "需要修改"];
                 if (bookingStep < 3) setBookingStep(3);
               }
-              
               if (lowerContent.includes('確認') && lowerContent.includes('訂單')) {
-                quickReplies = ["確認訂房", "我再想想"];
                 if (bookingStep < 4) setBookingStep(4);
+              }
+              
+              // Fallback: if AI didn't provide SUGGEST markers, use keyword detection
+              if (quickReplies.length === 0) {
+                if (lowerContent.includes('房型') && !lowerContent.includes('已選擇')) {
+                  quickReplies = ["查看所有房型", "幫我推薦"];
+                } else if (lowerContent.includes('姓名') || lowerContent.includes('手機')) {
+                  quickReplies = ["確認無誤", "需要修改"];
+                } else if (lowerContent.includes('確認') && lowerContent.includes('訂單')) {
+                  quickReplies = ["確認訂房", "我再想想"];
+                }
               }
               
               setMessages(prev => {
                 const updated = [...prev];
                 updated[updated.length - 1] = {
                   role: "assistant",
-                  content: assistantMessage,
+                  content: displayContent,
                   quickReplies: quickReplies.length > 0 ? quickReplies : undefined,
                   showDatePicker
                 };
@@ -1035,8 +1053,8 @@ export default function AIBooking() {
                   )}
                   
                   {/* 快速回覆按鈕 */}
-                  {message.role === "assistant" && message.quickReplies && message.quickReplies.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-2">
+                  {message.role === "assistant" && message.quickReplies && message.quickReplies.length > 0 && index === messages.length - 1 && (
+                    <div className="mt-3 flex flex-wrap gap-2 ml-[68px] md:ml-[72px]">
                       {message.quickReplies.map((reply, replyIdx) => (
                         <Button
                           key={replyIdx}
@@ -1044,7 +1062,7 @@ export default function AIBooking() {
                           variant="outline"
                           onClick={() => sendMessageWithContent(reply)}
                           disabled={isLoading}
-                          className="text-sm hover-scale transition-all duration-200"
+                          className="text-sm border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary shadow-sm hover:shadow-md transition-all duration-200 rounded-full px-4"
                         >
                           {reply}
                         </Button>
