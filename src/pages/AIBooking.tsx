@@ -316,23 +316,8 @@ export default function AIBooking() {
         }
       }
 
-      // After streaming is complete, detect if date picker should be shown
-      if (assistantMessage) {
-        const lowerFinal = assistantMessage.toLowerCase();
-        const shouldShowDatePicker = (lowerFinal.includes('日期') || lowerFinal.includes('入住')) && 
-            !lowerFinal.includes('已確認') && !lowerFinal.includes('確認訂單');
-        
-        if (shouldShowDatePicker) {
-          setMessages(prev => {
-            const updated = [...prev];
-            const lastMsg = updated[updated.length - 1];
-            if (lastMsg?.role === 'assistant') {
-              updated[updated.length - 1] = { ...lastMsg, showDatePicker: "range" };
-            }
-            return updated;
-          });
-        }
-      }
+      // Date picker is now only shown via explicit user flow (handleSelectRoom)
+      // No automatic keyword-based detection to avoid false positives
 
       // 串流結束後，先關閉 loading 狀態
       setIsLoading(false);
