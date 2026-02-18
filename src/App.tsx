@@ -20,6 +20,7 @@ import BookingFlow from "./pages/BookingFlow";
 import LinePayConfirm from "./pages/LinePayConfirm";
 import AIBooking from "./pages/AIBooking";
 import OrderSearch from "./pages/OrderSearch";
+import Profile from "./pages/Profile";
 import PaymentTest from "./pages/PaymentTest";
 import PublicPayment from "./pages/PublicPayment";
 import PaymentResult from "./pages/PaymentResult";
@@ -87,6 +88,11 @@ function App() {
                 <Route path="/order-search" element={
                   <Suspense fallback={<FrontendSkeleton />}>
                     <OrderSearch />
+                  </Suspense>
+                } />
+                <Route path="/profile" element={
+                  <Suspense fallback={<FrontendSkeleton />}>
+                    <Profile />
                   </Suspense>
                 } />
                 <Route path="/payment-test" element={
