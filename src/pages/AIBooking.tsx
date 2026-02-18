@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
-import { Send, Loader2, ArrowLeft, RotateCcw, User, Mic, MicOff, Volume2, VolumeX, Square, ClipboardList, MessageCircle, Settings, Home } from "lucide-react";
+import { Send, Loader2, ArrowLeft, RotateCcw, User, Mic, MicOff, Volume2, VolumeX, Square, ClipboardList, MessageCircle, Settings, UserCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSubdomain } from "@/hooks/use-subdomain";
@@ -1269,7 +1269,7 @@ export default function AIBooking() {
             onClick={() => navigate('/')}
             className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all duration-200"
           >
-            <Home className="h-5 w-5" />
+            <UserCircle className="h-5 w-5" />
             <span className="text-[10px] font-medium">我的</span>
           </button>
 
