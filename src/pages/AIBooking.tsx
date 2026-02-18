@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,7 @@ interface Message {
 
 export default function AIBooking() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { accommodationId } = useSubdomain();
 
   // 使用共用主題常數
@@ -60,7 +61,7 @@ export default function AIBooking() {
   const [selectedCheckIn, setSelectedCheckIn] = useState<Date>();
   const [selectedCheckOut, setSelectedCheckOut] = useState<Date>();
   const [showAvatarLightbox, setShowAvatarLightbox] = useState(false);
-  const [showSettingsPanel, setShowSettingsPanel] = useState(false);
+  const [showSettingsPanel, setShowSettingsPanel] = useState(() => searchParams.get('tab') === 'settings');
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
