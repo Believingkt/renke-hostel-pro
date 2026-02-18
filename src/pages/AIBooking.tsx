@@ -150,6 +150,10 @@ export default function AIBooking() {
                   content = (content || '') + '\n' + toolContext;
                 }
               }
+              // Append metadata (e.g. room_type_id) so AI backend has context
+              if ((m as any).metadata?.room_type_id) {
+                content = (content || '') + ` (room_type_id: ${(m as any).metadata.room_type_id})`;
+              }
               return { role: m.role, content };
             }),
             accommodationId
@@ -431,7 +435,7 @@ export default function AIBooking() {
     // 加入使用者選擇訊息，包含 room_type_id 讓 AI 後端知道 UUID
     setMessages(prev => [
       ...prev,
-      { role: "user", content: `我選擇了「${roomName}」(room_type_id: ${roomId})`, timestamp: new Date() },
+      { role: "user", content: `我選擇了「${roomName}」`, timestamp: new Date(), metadata: { room_type_id: roomId } } as any,
       {
         role: "assistant",
         content: `好的！您已選擇「${roomName}」🎉\n請選擇您的入住與退房日期：`,
