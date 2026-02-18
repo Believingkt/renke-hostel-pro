@@ -16,6 +16,7 @@ import { zhTW } from "date-fns/locale";
 import assistantAvatar from "@/assets/assistant-avatar-xiaoan.png";
 import { sanitizeAIContent } from "@/utils/sanitizeHtml";
 import { getThemeClassByAccommodation } from "@/constants/themes";
+import { InlineChatPayment } from "@/components/InlineChatPayment";
 
 interface Message {
   role: "user" | "assistant";
@@ -1115,17 +1116,16 @@ export default function AIBooking() {
                                   </div>
                                 </div>
                                 
-                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
-                                  <div className="font-semibold text-blue-900 flex items-center gap-2">
-                                    <span>💳</span>
-                                    <span>付款資訊</span>
-                                  </div>
-                                  <div className="text-sm text-blue-800 space-y-2">
-                                    <div>• 需支付訂金 30% 以確認訂房</div>
-                                    <div>• 餘款請於入住當天支付</div>
-                                    <div>• 我們會透過 LINE 或電話與您聯絡付款事宜</div>
-                                  </div>
-                                </div>
+                                {/* 內嵌信用卡付款 */}
+                                <InlineChatPayment
+                                  orderId={tool.data.order_id}
+                                  orderNumber={tool.data.order_number}
+                                  finalPrice={tool.data.final_price}
+                                  guestName={messages.find(m => m.role === 'user' && /[\u4e00-\u9fff]{2,}/.test(m.content))?.content?.match(/[\u4e00-\u9fff]+/)?.[0] || ''}
+                                  guestPhone={messages.find(m => m.role === 'user' && /09\d{8}/.test(m.content))?.content?.match(/09\d{8}/)?.[0] || ''}
+                                  guestEmail={messages.find(m => m.role === 'user' && /@/.test(m.content))?.content?.match(/[\w.-]+@[\w.-]+\.\w+/)?.[0]}
+                                  accommodationId={accommodationId || ''}
+                                />
                                 
                                 <div className="grid grid-cols-2 gap-3 pt-2">
                                   <Button
