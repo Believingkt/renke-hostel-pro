@@ -1030,7 +1030,14 @@ export default function AIBooking() {
                         <Button
                           onClick={() => {
                             if (selectedCheckIn && selectedCheckOut) {
-                              const dateMessage = `${format(selectedCheckIn, "yyyy/MM/dd")} - ${format(selectedCheckOut, "yyyy/MM/dd")}`;
+                              // Use local date formatting to avoid UTC shift
+                              const formatLocal = (d: Date) => {
+                                const y = d.getFullYear();
+                                const m = String(d.getMonth() + 1).padStart(2, '0');
+                                const dd = String(d.getDate()).padStart(2, '0');
+                                return `${y}-${m}-${dd}`;
+                              };
+                              const dateMessage = `入住日期：${formatLocal(selectedCheckIn)}，退房日期：${formatLocal(selectedCheckOut)}`;
                               sendMessageWithContent(dateMessage);
                               setSelectedCheckIn(undefined);
                               setSelectedCheckOut(undefined);
