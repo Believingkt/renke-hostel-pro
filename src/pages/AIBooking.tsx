@@ -427,11 +427,11 @@ export default function AIBooking() {
   };
 
   // 選擇房型後顯示確認訊息 + 日期選擇器
-  const handleSelectRoom = (roomName: string) => {
-    // 加入使用者選擇訊息
+  const handleSelectRoom = (roomName: string, roomId: string) => {
+    // 加入使用者選擇訊息，包含 room_type_id 讓 AI 後端知道 UUID
     setMessages(prev => [
       ...prev,
-      { role: "user", content: `我選擇了「${roomName}」`, timestamp: new Date() },
+      { role: "user", content: `我選擇了「${roomName}」(room_type_id: ${roomId})`, timestamp: new Date() },
       {
         role: "assistant",
         content: `好的！您已選擇「${roomName}」🎉\n請選擇您的入住與退房日期：`,
@@ -1018,7 +1018,7 @@ export default function AIBooking() {
                                       size="default"
                                       variant="default"
                                       className="w-full shadow-md hover:shadow-lg transition-all duration-300"
-                                      onClick={() => handleSelectRoom(room.name)}
+                                      onClick={() => handleSelectRoom(room.name, room.id)}
                                       disabled={isLoading}
                                     >
                                       <span className="mr-2">✨</span>
