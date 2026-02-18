@@ -44,7 +44,7 @@ export default function Profile() {
               <span className="text-[10px] font-medium">我的</span>
             </button>
             <button
-              onClick={() => navigate('/ai-booking')}
+              onClick={() => navigate('/ai-booking?tab=settings')}
               className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all duration-200"
             >
               <Settings className="h-5 w-5" />
