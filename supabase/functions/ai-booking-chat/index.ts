@@ -93,11 +93,9 @@ serve(async (req) => {
       );
     }
     
+    // Truncate to keep only the most recent messages if exceeding limit
     if (messages.length > MAX_MESSAGES) {
-      return new Response(
-        JSON.stringify({ error: `訊息數量超過限制（最多 ${MAX_MESSAGES} 則）` }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      messages = messages.slice(messages.length - MAX_MESSAGES);
     }
     
     // Validate each message
