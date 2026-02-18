@@ -362,6 +362,110 @@ export default function AIBooking() {
     }
   };
 
+  // 本地取得房型並顯示卡片
+  const fetchAndShowRoomTypes = async () => {
+    if (!accommodationId) return;
+    
+    // 加入使用者訊息
+    setMessages(prev => [...prev, { role: "user", content: "查看房型資訊", timestamp: new Date() }]);
+    setIsLoading(true);
+
+    try {
+      // 取得房型
+      const { data: roomTypes } = await supabase
+        .from('room_types')
+        .select('id, name, description, capacity, base_price, size_sqm, display_order')
+        .eq('accommodation_id', accommodationId)
+        .order('display_order', { ascending: true });
+
+      if (!roomTypes || roomTypes.length === 0) {
+        setMessages(prev => [...prev, {
+          role: "assistant",
+          content: "目前尚未設定房型資訊，請稍後再試。",
+          timestamp: new Date(),
+        }]);
+        setIsLoading(false);
+        return;
+      }
+
+      // 取得房型照片
+      const roomTypeIds = roomTypes.map(r => r.id);
+      const { data: photos } = await supabase
+        .from('room_photos')
+        .select('room_type_id, photo_url, display_order')
+        .in('room_type_id', roomTypeIds)
+        .order('display_order', { ascending: true });
+
+      // 取得庫存價格範圍
+      const { data: inventory } = await supabase
+        .from('room_inventory_pricing')
+        .select('room_type_id, price, price_2_meals, price_3_meals')
+        .in('room_type_id', roomTypeIds);
+
+      // 組合房型資料
+      const roomData = roomTypes.map(room => {
+        const roomPhotos = photos?.filter(p => p.room_type_id === room.id).map(p => p.photo_url) || [];
+        const roomInventory = inventory?.filter(i => i.room_type_id === room.id) || [];
+        
+        const prices = roomInventory.map(i => i.price).filter(Boolean);
+        const prices2 = roomInventory.map(i => i.price_2_meals).filter(Boolean) as number[];
+        const prices3 = roomInventory.map(i => i.price_3_meals).filter(Boolean) as number[];
+
+        return {
+          ...room,
+          photos: roomPhotos,
+          min_price: prices.length > 0 ? Math.min(...prices) : null,
+          max_price: prices.length > 0 ? Math.max(...prices) : null,
+          min_2_meals: prices2.length > 0 ? Math.min(...prices2) : null,
+          max_2_meals: prices2.length > 0 ? Math.max(...prices2) : null,
+          min_3_meals: prices3.length > 0 ? Math.min(...prices3) : null,
+          max_3_meals: prices3.length > 0 ? Math.max(...prices3) : null,
+        };
+      });
+
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        content: "以下是我們的房型介紹，點擊您感興趣的房型即可開始選擇日期 😊",
+        timestamp: new Date(),
+        toolCalls: [{ type: 'rooms', data: roomData }],
+      }]);
+    } catch (error) {
+      console.error('取得房型失敗:', error);
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        content: "抱歉，取得房型資訊時發生錯誤，請稍後再試。",
+        timestamp: new Date(),
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 選擇房型後顯示確認訊息 + 日期選擇器
+  const handleSelectRoom = (roomName: string) => {
+    // 加入使用者選擇訊息
+    setMessages(prev => [
+      ...prev,
+      { role: "user", content: `我選擇了「${roomName}」`, timestamp: new Date() },
+      {
+        role: "assistant",
+        content: `好的！您已選擇「${roomName}」🎉\n請選擇您的入住與退房日期：`,
+        timestamp: new Date(),
+        showDatePicker: "range" as const,
+      }
+    ]);
+    if (bookingStep < 2) setBookingStep(2);
+  };
+
+  // 處理快速回覆點擊
+  const handleQuickReply = (reply: string) => {
+    if (reply === '查看房型資訊') {
+      fetchAndShowRoomTypes();
+    } else {
+      sendMessageWithContent(reply);
+    }
+  };
+
   const handleRestart = () => {
     setMessages([
       {
@@ -929,7 +1033,7 @@ export default function AIBooking() {
                                       size="default"
                                       variant="default"
                                       className="w-full shadow-md hover:shadow-lg transition-all duration-300"
-                                      onClick={() => sendMessageWithContent(`我要預訂 ${room.name}`)}
+                                      onClick={() => handleSelectRoom(room.name)}
                                       disabled={isLoading}
                                     >
                                       <span className="mr-2">✨</span>
@@ -1083,7 +1187,7 @@ export default function AIBooking() {
                           key={replyIdx}
                           size="sm"
                           variant="outline"
-                          onClick={() => sendMessageWithContent(reply)}
+                          onClick={() => handleQuickReply(reply)}
                           disabled={isLoading}
                           className="text-sm border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary shadow-sm hover:shadow-md transition-all duration-200 rounded-full px-4"
                         >
