@@ -212,7 +212,7 @@ serve(async (req) => {
               room_type_id: { type: "string", description: "房型 ID" },
               guest_count: { type: "number", description: "人數" },
               pet_count: { type: "number", description: "毛孩數量" },
-              meal_plan: { type: "string", description: "餐食方案：breakfast_only 或 bbq" },
+              meal_plan: { type: "string", description: "餐食方案：2_meals（一泊二食）或 3_meals（一泊三食/含烤肉），不加購餐食則不傳此欄位" },
               discount_code: { type: "string", description: "折扣碼（選填）" },
               notes: { type: "string", description: "備註（選填）" }
             },
@@ -434,7 +434,7 @@ serve(async (req) => {
         
         // Calculate total price based on meal plan
         let totalPrice = 0;
-        const mealPlan = args.meal_plan || 'breakfast_only';
+        const mealPlan = args.meal_plan && ['2_meals', '3_meals'].includes(args.meal_plan) ? args.meal_plan : null;
         
         for (const date of datesToCheck) {
           const dayPricing = pricingData?.find((p: any) => p.date === date);
@@ -444,9 +444,9 @@ serve(async (req) => {
           
           // Select price based on meal plan
           let dayPrice = dayPricing.price;
-          if (mealPlan === 'bbq' && dayPricing.price_3_meals) {
+          if (mealPlan === '3_meals' && dayPricing.price_3_meals) {
             dayPrice = dayPricing.price_3_meals;
-          } else if (dayPricing.price_2_meals) {
+          } else if (mealPlan === '2_meals' && dayPricing.price_2_meals) {
             dayPrice = dayPricing.price_2_meals;
           }
           
