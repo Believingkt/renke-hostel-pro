@@ -271,13 +271,9 @@ export default function AIBooking() {
                 displayContent = assistantMessage.replace(/\[SUGGEST:\s*[^\]]+\]/, '').trim();
               }
               
-              // Detect date-related context for date picker
+              // Date picker detection deferred to after streaming completes
+              // to avoid calendar flicker during token-by-token rendering
               const lowerContent = displayContent.toLowerCase();
-              if ((lowerContent.includes('日期') || lowerContent.includes('入住')) && 
-                  !lowerContent.includes('已確認') && !lowerContent.includes('確認訂單') &&
-                  (quickReplies.some(r => r.includes('日期') || r.includes('入住')) || quickReplies.length === 0)) {
-                showDatePicker = "range";
-              }
 
               // Update booking step based on context
               if (lowerContent.includes('房型') || lowerContent.includes('選擇')) {
@@ -307,7 +303,7 @@ export default function AIBooking() {
                   role: "assistant",
                   content: displayContent,
                   quickReplies: quickReplies.length > 0 ? quickReplies : undefined,
-                  showDatePicker
+                  // No showDatePicker during streaming to avoid flicker
                 };
                 return updated;
               });
@@ -315,6 +311,24 @@ export default function AIBooking() {
           } catch (e) {
             console.error("解析失敗:", e);
           }
+        }
+      }
+
+      // After streaming is complete, detect if date picker should be shown
+      if (assistantMessage) {
+        const lowerFinal = assistantMessage.toLowerCase();
+        const shouldShowDatePicker = (lowerFinal.includes('日期') || lowerFinal.includes('入住')) && 
+            !lowerFinal.includes('已確認') && !lowerFinal.includes('確認訂單');
+        
+        if (shouldShowDatePicker) {
+          setMessages(prev => {
+            const updated = [...prev];
+            const lastMsg = updated[updated.length - 1];
+            if (lastMsg?.role === 'assistant') {
+              updated[updated.length - 1] = { ...lastMsg, showDatePicker: "range" };
+            }
+            return updated;
+          });
         }
       }
 
