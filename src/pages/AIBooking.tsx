@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
-import { Send, Loader2, ArrowLeft, RotateCcw, User, Mic, MicOff, Volume2, VolumeX, Square, ClipboardList } from "lucide-react";
+import { Send, Loader2, ArrowLeft, RotateCcw, User, Mic, MicOff, Volume2, VolumeX, Square, ClipboardList, MessageCircle, Settings, Home } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSubdomain } from "@/hooks/use-subdomain";
@@ -60,6 +60,7 @@ export default function AIBooking() {
   const [selectedCheckIn, setSelectedCheckIn] = useState<Date>();
   const [selectedCheckOut, setSelectedCheckOut] = useState<Date>();
   const [showAvatarLightbox, setShowAvatarLightbox] = useState(false);
+  const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -1190,45 +1191,69 @@ export default function AIBooking() {
           </div>
         </div>
 
+        {/* 設定面板 */}
+        {showSettingsPanel && (
+          <div className="px-3 py-3 border-t border-border/30 bg-muted/30 space-y-3 animate-in slide-in-from-bottom-2 duration-200">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-foreground">語音輸入</span>
+              <button
+                onClick={toggleRecording}
+                disabled={isLoading}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
+                  isRecording 
+                    ? "text-destructive bg-destructive/10 animate-pulse" 
+                    : "text-muted-foreground hover:text-primary hover:bg-primary/5 border border-border"
+                }`}
+              >
+                {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                <span>{isRecording ? "停止錄音" : "開始錄音"}</span>
+              </button>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-foreground">語音播放</span>
+              <button
+                onClick={toggleVoice}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all duration-200 border ${
+                  isVoiceEnabled 
+                    ? "text-primary bg-primary/5 border-primary/30" 
+                    : "text-muted-foreground hover:text-primary hover:bg-primary/5 border-border"
+                }`}
+              >
+                {isVoiceEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                <span>{isVoiceEnabled ? "已開啟" : "已關閉"}</span>
+              </button>
+            </div>
+            {isPlayingAudio && (
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-foreground">正在播放</span>
+                <button
+                  onClick={stopAudio}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-destructive bg-destructive/10 transition-all duration-200"
+                >
+                  <Square className="h-4 w-4" />
+                  <span>停止播放</span>
+                </button>
+              </div>
+            )}
+            <button
+              onClick={handleRestart}
+              className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all duration-200 border border-border"
+            >
+              <RotateCcw className="h-4 w-4" />
+              <span>重新開始對話</span>
+            </button>
+          </div>
+        )}
+
         {/* 底部功能 Tab 列 */}
         <div className="flex items-center justify-around px-2 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] border-t border-border/30">
-          {/* 語音輸入 */}
+          {/* 對話 */}
           <button
-            onClick={toggleRecording}
-            disabled={isLoading}
-            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all duration-200 ${
-              isRecording 
-                ? "text-destructive bg-destructive/10 animate-pulse" 
-                : "text-muted-foreground hover:text-primary hover:bg-primary/5"
-            }`}
+            className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-primary bg-primary/5 transition-all duration-200"
           >
-            {isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-            <span className="text-[10px] font-medium">{isRecording ? "停止" : "語音"}</span>
+            <MessageCircle className="h-5 w-5" />
+            <span className="text-[10px] font-medium">對話</span>
           </button>
-
-          {/* 語音播放開關 */}
-          <button
-            onClick={toggleVoice}
-            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all duration-200 ${
-              isVoiceEnabled 
-                ? "text-primary bg-primary/5" 
-                : "text-muted-foreground hover:text-primary hover:bg-primary/5"
-            }`}
-          >
-            {isVoiceEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
-            <span className="text-[10px] font-medium">{isVoiceEnabled ? "語音開" : "語音關"}</span>
-          </button>
-
-          {/* 停止播放 (播放中才顯示) */}
-          {isPlayingAudio && (
-            <button
-              onClick={stopAudio}
-              className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-destructive bg-destructive/10 transition-all duration-200"
-            >
-              <Square className="h-5 w-5" />
-              <span className="text-[10px] font-medium">停止</span>
-            </button>
-          )}
 
           {/* 訂單 */}
           <button
@@ -1244,8 +1269,21 @@ export default function AIBooking() {
             onClick={() => navigate('/')}
             className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all duration-200"
           >
-            <User className="h-5 w-5" />
+            <Home className="h-5 w-5" />
             <span className="text-[10px] font-medium">我的</span>
+          </button>
+
+          {/* 設定 */}
+          <button
+            onClick={() => setShowSettingsPanel(prev => !prev)}
+            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all duration-200 ${
+              showSettingsPanel 
+                ? "text-primary bg-primary/5" 
+                : "text-muted-foreground hover:text-primary hover:bg-primary/5"
+            }`}
+          >
+            <Settings className="h-5 w-5" />
+            <span className="text-[10px] font-medium">設定</span>
           </button>
         </div>
       </div>

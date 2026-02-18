@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Search, ArrowLeft, Calendar, Users, Phone, Mail, CreditCard, BanknoteIcon, CheckCircle2, Clock, Home, LogOut, MessageCircle, Mic, Volume2, User, ClipboardList } from "lucide-react";
+import { Search, ArrowLeft, Calendar, Users, Phone, Mail, CreditCard, BanknoteIcon, CheckCircle2, Clock, Home, LogOut, MessageCircle, Mic, Volume2, User, ClipboardList, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { zhTW } from "date-fns/locale";
@@ -498,13 +498,13 @@ const OrderSearch = () => {
       {fromAiBooking && (
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-[0_-2px_10px_rgba(0,0,0,0.08)] z-50">
           <div className="flex items-center justify-around px-2 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
-            {/* AI 訂房 */}
+            {/* 對話 */}
             <button
               onClick={() => navigate('/ai-booking')}
               className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all duration-200"
             >
               <MessageCircle className="h-5 w-5" />
-              <span className="text-[10px] font-medium">AI 訂房</span>
+              <span className="text-[10px] font-medium">對話</span>
             </button>
 
             {/* 訂單（當前頁） */}
@@ -520,8 +520,17 @@ const OrderSearch = () => {
               onClick={() => navigate('/')}
               className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all duration-200"
             >
-              <User className="h-5 w-5" />
+              <Home className="h-5 w-5" />
               <span className="text-[10px] font-medium">我的</span>
+            </button>
+
+            {/* 設定 */}
+            <button
+              onClick={() => navigate('/ai-booking')}
+              className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all duration-200"
+            >
+              <Settings className="h-5 w-5" />
+              <span className="text-[10px] font-medium">設定</span>
             </button>
           </div>
         </div>
