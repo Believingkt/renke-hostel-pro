@@ -1216,11 +1216,11 @@ export default function AIBooking() {
                             }
                           }}
                           modifiersClassNames={{
-                            available: "!bg-primary/10 !text-primary font-semibold rounded-md shadow-[inset_0_0_0_1.5px_hsl(var(--primary)/0.25)] !h-8 !w-8"
+                            available: "!bg-primary/10 !text-primary font-semibold shadow-[inset_0_0_0_1.5px_hsl(var(--primary)/0.25)]"
                           }}
                           numberOfMonths={2}
                           locale={zhTW}
-                          className="pointer-events-auto [&_.rdp-cell]:p-[2px] [&_.rdp-day]:h-8 [&_.rdp-day]:w-8"
+                          className="pointer-events-auto [&_.rdp-cell]:p-[3px] [&_.rdp-day_range_middle]:!bg-primary/15 [&_.rdp-day_range_start]:!rounded-md [&_.rdp-day_range_end]:!rounded-md"
                           variant="frontend"
                         />
                         <Button
