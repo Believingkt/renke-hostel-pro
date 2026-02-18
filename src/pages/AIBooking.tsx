@@ -60,6 +60,8 @@ export default function AIBooking() {
   const [isProcessingQueue, setIsProcessingQueue] = useState(false);
   const [selectedCheckIn, setSelectedCheckIn] = useState<Date>();
   const [selectedCheckOut, setSelectedCheckOut] = useState<Date>();
+  const [selectedRoomAvailableDates, setSelectedRoomAvailableDates] = useState<Set<string>>(new Set());
+  const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
   const [showAvatarLightbox, setShowAvatarLightbox] = useState(false);
   const [showSettingsPanel, setShowSettingsPanel] = useState(() => searchParams.get('tab') === 'settings');
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -431,19 +433,71 @@ export default function AIBooking() {
   };
 
   // 選擇房型後顯示確認訊息 + 日期選擇器
-  const handleSelectRoom = (roomName: string, roomId: string) => {
+  const handleSelectRoom = async (roomName: string, roomId: string) => {
     // 加入使用者選擇訊息，包含 room_type_id 讓 AI 後端知道 UUID
     setMessages(prev => [
       ...prev,
       { role: "user", content: `我選擇了「${roomName}」`, timestamp: new Date(), metadata: { room_type_id: roomId } } as any,
-      {
-        role: "assistant",
-        content: `好的！您已選擇「${roomName}」🎉\n請選擇您的入住與退房日期：`,
-        timestamp: new Date(),
-        showDatePicker: "range" as const,
-      }
     ]);
     if (bookingStep < 2) setBookingStep(2);
+
+    // 查詢該房型的可預訂日期
+    setIsLoadingAvailability(true);
+    try {
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      // 查詢未來 6 個月的庫存
+      const futureDate = new Date();
+      futureDate.setMonth(futureDate.getMonth() + 6);
+      const futureStr = `${futureDate.getFullYear()}-${String(futureDate.getMonth() + 1).padStart(2, '0')}-${String(futureDate.getDate()).padStart(2, '0')}`;
+
+      const { data: inventory } = await supabase
+        .from('room_inventory_pricing')
+        .select('date, available_rooms, is_available')
+        .eq('room_type_id', roomId)
+        .gte('date', todayStr)
+        .lte('date', futureStr);
+
+      const availableDates = new Set<string>();
+      if (inventory) {
+        inventory.forEach(item => {
+          if (item.is_available !== false && item.available_rooms > 0) {
+            availableDates.add(item.date);
+          }
+        });
+      }
+      setSelectedRoomAvailableDates(availableDates);
+
+      const availableCount = availableDates.size;
+      const availabilityNote = availableCount > 0
+        ? `目前有 ${availableCount} 天可預訂，日曆中綠色標記的日期為可選日期。`
+        : `目前暫無可預訂的日期，請稍後再查詢或選擇其他房型。`;
+
+      setMessages(prev => [
+        ...prev,
+        {
+          role: "assistant",
+          content: `好的！您已選擇「${roomName}」🎉\n${availabilityNote}\n請選擇您的入住與退房日期：`,
+          timestamp: new Date(),
+          showDatePicker: availableCount > 0 ? "range" as const : undefined,
+          quickReplies: availableCount === 0 ? ["查看房型資訊"] : undefined,
+        }
+      ]);
+    } catch (error) {
+      console.error('查詢可用日期失敗:', error);
+      setSelectedRoomAvailableDates(new Set());
+      setMessages(prev => [
+        ...prev,
+        {
+          role: "assistant",
+          content: `好的！您已選擇「${roomName}」🎉\n請選擇您的入住與退房日期：`,
+          timestamp: new Date(),
+          showDatePicker: "range" as const,
+        }
+      ]);
+    } finally {
+      setIsLoadingAvailability(false);
+    }
   };
 
   // 處理快速回覆點擊
@@ -1120,6 +1174,19 @@ export default function AIBooking() {
                   {message.role === "assistant" && message.showDatePicker && (
                     <div className="mt-3">
                       <Card className="p-3 bg-background/50 border">
+                        {/* 圖例說明 */}
+                        {selectedRoomAvailableDates.size > 0 && (
+                          <div className="flex items-center gap-4 mb-2 px-2 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <div className="w-3 h-3 rounded-full bg-primary/20 border border-primary/40"></div>
+                              <span>可預訂</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <div className="w-3 h-3 rounded-full bg-muted border border-muted-foreground/20"></div>
+                              <span>不可選</span>
+                            </div>
+                          </div>
+                        )}
                         <Calendar
                           mode="range"
                           selected={{
@@ -1130,7 +1197,27 @@ export default function AIBooking() {
                             setSelectedCheckIn(range?.from);
                             setSelectedCheckOut(range?.to);
                           }}
-                          disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                          disabled={(date) => {
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            if (date < today) return true;
+                            // If we have availability data, only allow available dates
+                            if (selectedRoomAvailableDates.size > 0) {
+                              const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                              return !selectedRoomAvailableDates.has(dateStr);
+                            }
+                            return false;
+                          }}
+                          modifiers={{
+                            available: (date) => {
+                              if (selectedRoomAvailableDates.size === 0) return false;
+                              const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                              return selectedRoomAvailableDates.has(dateStr);
+                            }
+                          }}
+                          modifiersClassNames={{
+                            available: "!bg-primary/10 !text-primary font-semibold border border-primary/30 rounded-md"
+                          }}
                           numberOfMonths={2}
                           locale={zhTW}
                           className="pointer-events-auto"
@@ -1139,7 +1226,6 @@ export default function AIBooking() {
                         <Button
                           onClick={() => {
                             if (selectedCheckIn && selectedCheckOut) {
-                              // Use local date formatting to avoid UTC shift
                               const formatLocal = (d: Date) => {
                                 const y = d.getFullYear();
                                 const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -1162,7 +1248,7 @@ export default function AIBooking() {
                           className="w-full mt-3"
                           size="sm"
                         >
-                          確認
+                          確認日期
                         </Button>
                       </Card>
                     </div>
