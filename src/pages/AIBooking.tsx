@@ -1266,7 +1266,12 @@ export default function AIBooking() {
 
           {/* 我的 */}
           <button
-            onClick={() => navigate('/')}
+            onClick={() => {
+              toast({
+                title: "🚧 建構中",
+                description: "此功能正在開發中，敬請期待！",
+              });
+            }}
             className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all duration-200"
           >
             <UserCircle className="h-5 w-5" />
