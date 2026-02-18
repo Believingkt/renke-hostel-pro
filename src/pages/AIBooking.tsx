@@ -1250,7 +1250,12 @@ export default function AIBooking() {
         <div className="flex items-center justify-around px-2 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] border-t border-border/30">
           {/* 對話 */}
           <button
-            className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-primary bg-primary/5 transition-all duration-200"
+            onClick={() => { setShowSettingsPanel(false); searchParams.delete('tab'); setSearchParams(searchParams, { replace: true }); }}
+            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all duration-200 ${
+              !showSettingsPanel
+                ? "text-primary bg-primary/5"
+                : "text-muted-foreground hover:text-primary hover:bg-primary/5"
+            }`}
           >
             <MessageCircle className="h-5 w-5" />
             <span className="text-[10px] font-medium">對話</span>
