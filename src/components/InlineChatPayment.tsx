@@ -413,7 +413,7 @@ export function InlineChatPayment({
           onClick={() => { setShowForm(false); setPaymentMethod('none'); formInitRef.current = false; }}
           disabled={isProcessing}
         >
-          取消
+          返回選擇付款方式
         </Button>
         <Button
           size="sm"
