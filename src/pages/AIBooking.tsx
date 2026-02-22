@@ -1109,10 +1109,10 @@ export default function AIBooking() {
                                 
                                 <div className="bg-muted/50 rounded-lg p-4 space-y-2 text-sm">
                                   <div className="text-muted-foreground">
-                                    訂單狀態：<span className="text-orange-600 font-medium">待付款</span>
+                                    訂單狀態：<span className="text-destructive font-medium">待付款</span>
                                   </div>
                                   <div className="text-muted-foreground">
-                                    請使用下方信用卡表單完成訂金支付
+                                    請選擇下方付款方式完成訂金支付
                                   </div>
                                 </div>
                                 
