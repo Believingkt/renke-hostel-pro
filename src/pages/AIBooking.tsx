@@ -329,6 +329,20 @@ export default function AIBooking() {
       // 串流結束後，先關閉 loading 狀態
       setIsLoading(false);
       
+      // 如果 AI 回覆涉及刷卡/付款，自動滾動到付款表單
+      if (assistantMessage && (
+        assistantMessage.includes('付款表單') || 
+        assistantMessage.includes('刷卡') ||
+        assistantMessage.includes('信用卡')
+      )) {
+        setTimeout(() => {
+          const paymentForm = document.getElementById('inline-payment-form');
+          if (paymentForm) {
+            paymentForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 300);
+      }
+      
       // 然後播放完整的語音回覆（不影響 UI 顯示）
       if (assistantMessage && isVoiceEnabled) {
         playTextToSpeech(assistantMessage);
@@ -1114,6 +1128,7 @@ export default function AIBooking() {
                                 </div>
                                 
                                 {/* 內嵌信用卡付款 */}
+                                <div id="inline-payment-form">
                                 <InlineChatPayment
                                   orderId={tool.data.order_id}
                                   orderNumber={tool.data.order_number}
@@ -1123,6 +1138,7 @@ export default function AIBooking() {
                                   guestEmail={messages.find(m => m.role === 'user' && /@/.test(m.content))?.content?.match(/[\w.-]+@[\w.-]+\.\w+/)?.[0]}
                                   accommodationId={accommodationId || ''}
                                 />
+                                </div>
                                 
                                 <div className="grid grid-cols-2 gap-3 pt-2">
                                   <Button
