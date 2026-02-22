@@ -45,6 +45,7 @@ export function InlineChatPayment({
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [depositPercentage, setDepositPercentage] = useState<number | null>(null);
   const [useDeposit, setUseDeposit] = useState(false);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
   const formInitRef = useRef(false);
 
   const { config: tappayConfig, loading: configLoading, error: configError, reload: reloadConfig } = useTapPayConfig(showForm);
@@ -52,14 +53,18 @@ export function InlineChatPayment({
   // Fetch booking settings for deposit info
   useEffect(() => {
     const fetchSettings = async () => {
-      const { data } = await supabase
-        .from('booking_settings')
-        .select('use_deposit, deposit_percentage')
-        .eq('accommodation_id', accommodationId)
-        .maybeSingle();
-      if (data) {
-        setUseDeposit(data.use_deposit ?? false);
-        setDepositPercentage(data.deposit_percentage ?? 30);
+      try {
+        const { data } = await supabase
+          .from('booking_settings')
+          .select('use_deposit, deposit_percentage')
+          .eq('accommodation_id', accommodationId)
+          .maybeSingle();
+        if (data) {
+          setUseDeposit(data.use_deposit ?? false);
+          setDepositPercentage(data.deposit_percentage ?? 30);
+        }
+      } finally {
+        setSettingsLoaded(true);
       }
     };
     fetchSettings();
@@ -226,6 +231,16 @@ export function InlineChatPayment({
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  // Wait for settings to load before showing payment selection
+  if (!settingsLoaded) {
+    return (
+      <div className="mt-3 border rounded-lg p-4 bg-card flex items-center justify-center py-6">
+        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+        <span className="ml-2 text-sm text-muted-foreground">載入付款資訊...</span>
+      </div>
+    );
+  }
 
   // Step 1: Choose payment method
   if (paymentMethod === 'none') {
