@@ -19,6 +19,7 @@ interface InlineChatPaymentProps {
   roomName?: string;
   checkInDate?: string;
   checkOutDate?: string;
+  initialMethod?: 'none' | 'card' | 'transfer';
   onPaymentSuccess?: (transactionId: string) => void;
 }
 
@@ -33,10 +34,11 @@ export function InlineChatPayment({
   roomName,
   checkInDate,
   checkOutDate,
+  initialMethod = 'card',
   onPaymentSuccess,
 }: InlineChatPaymentProps) {
-  const [paymentMethod, setPaymentMethod] = useState<'none' | 'card' | 'transfer'>('none');
-  const [showForm, setShowForm] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'none' | 'card' | 'transfer'>(initialMethod);
+  const [showForm, setShowForm] = useState(initialMethod === 'card');
   const [isTapPayReady, setIsTapPayReady] = useState(false);
   const [copied, setCopied] = useState(false);
   const [cardValid, setCardValid] = useState(false);
