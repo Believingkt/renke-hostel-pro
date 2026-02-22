@@ -1224,12 +1224,24 @@ export default function AIBooking() {
                           modifiers={{
                             available: (date) => {
                               if (selectedRoomAvailableDates.size === 0) return false;
+                              const today = new Date();
+                              today.setHours(0, 0, 0, 0);
+                              if (date < today) return false;
                               const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
                               return selectedRoomAvailableDates.has(dateStr);
+                            },
+                            unavailable: (date) => {
+                              if (selectedRoomAvailableDates.size === 0) return false;
+                              const today = new Date();
+                              today.setHours(0, 0, 0, 0);
+                              if (date < today) return false;
+                              const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                              return !selectedRoomAvailableDates.has(dateStr);
                             }
                           }}
                           modifiersClassNames={{
-                            available: "!bg-primary/10 !text-primary font-semibold shadow-[inset_0_0_0_1.5px_hsl(var(--primary)/0.25)] !rounded-md"
+                            available: "!bg-primary/10 !text-primary font-semibold shadow-[inset_0_0_0_1.5px_hsl(var(--primary)/0.25)] !rounded-md",
+                            unavailable: "!bg-transparent !text-muted-foreground/40 !opacity-50 !shadow-none"
                           }}
                           numberOfMonths={2}
                           locale={zhTW}
