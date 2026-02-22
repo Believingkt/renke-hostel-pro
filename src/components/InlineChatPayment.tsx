@@ -2,10 +2,11 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabase } from "@/integrations/supabase/client";
 import { useTapPayConfig } from "@/hooks/use-tappay-config";
 import { getTapPayPrime } from "@/utils/tappayPrime";
-import { Loader2, CreditCard, CheckCircle, AlertTriangle } from "lucide-react";
+import { Loader2, CreditCard, CheckCircle, AlertTriangle, Building2, Copy } from "lucide-react";
 
 interface InlineChatPaymentProps {
   orderId: string;
@@ -34,8 +35,10 @@ export function InlineChatPayment({
   checkOutDate,
   onPaymentSuccess,
 }: InlineChatPaymentProps) {
+  const [paymentMethod, setPaymentMethod] = useState<'none' | 'card' | 'transfer'>('none');
   const [showForm, setShowForm] = useState(false);
   const [isTapPayReady, setIsTapPayReady] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [cardValid, setCardValid] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentDone, setPaymentDone] = useState(false);
@@ -218,24 +221,108 @@ export function InlineChatPayment({
     );
   }
 
-  if (!showForm) {
+  const handleCopyAccount = () => {
+    navigator.clipboard.writeText('121450000353');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Step 1: Choose payment method
+  if (paymentMethod === 'none') {
     return (
-      <div className="mt-3">
-        <Button
-          onClick={() => setShowForm(true)}
-          className="w-full"
-          size="sm"
-        >
-          <CreditCard className="h-4 w-4 mr-2" />
-          立即支付訂金 NT$ {paymentAmount.toLocaleString()}
-        </Button>
+      <div className="mt-3 border rounded-lg p-4 bg-card space-y-4">
+        <div className="text-sm font-semibold">請選擇付款方式</div>
         {useDeposit && (
-          <p className="text-xs text-muted-foreground mt-1.5 text-center">
-            訂金為總金額 {depositPercentage}%，餘款 NT$ {(finalPrice - paymentAmount).toLocaleString()} 入住時支付
+          <p className="text-xs text-muted-foreground">
+            應付訂金 NT$ {paymentAmount.toLocaleString()}（總金額 {depositPercentage}%），餘款 NT$ {(finalPrice - paymentAmount).toLocaleString()} 入住時支付
           </p>
         )}
+        <RadioGroup
+          value=""
+          onValueChange={(v) => {
+            if (v === 'card') {
+              setPaymentMethod('card');
+              setShowForm(true);
+            } else if (v === 'transfer') {
+              setPaymentMethod('transfer');
+            }
+          }}
+          className="gap-3"
+        >
+          <label className="flex items-center gap-3 border rounded-lg p-3 cursor-pointer hover:bg-muted/50 transition-colors">
+            <RadioGroupItem value="card" />
+            <CreditCard className="h-4 w-4 text-primary" />
+            <div>
+              <div className="text-sm font-medium">線上刷卡</div>
+              <div className="text-xs text-muted-foreground">使用信用卡即時完成付款</div>
+            </div>
+          </label>
+          <label className="flex items-center gap-3 border rounded-lg p-3 cursor-pointer hover:bg-muted/50 transition-colors">
+            <RadioGroupItem value="transfer" />
+            <Building2 className="h-4 w-4 text-primary" />
+            <div>
+              <div className="text-sm font-medium">銀行轉帳</div>
+              <div className="text-xs text-muted-foreground">轉帳至指定帳戶後通知我們</div>
+            </div>
+          </label>
+        </RadioGroup>
       </div>
     );
+  }
+
+  // Step 2a: Bank transfer info
+  if (paymentMethod === 'transfer') {
+    return (
+      <div className="mt-3 border rounded-lg p-4 bg-card space-y-4">
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <Building2 className="h-4 w-4 text-primary" />
+          <span>銀行轉帳資訊</span>
+          <span className="ml-auto text-primary font-bold">NT$ {paymentAmount.toLocaleString()}</span>
+        </div>
+
+        <div className="bg-muted/50 rounded-lg p-4 space-y-2.5 text-sm">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">銀行</span>
+            <span className="font-medium">陽信銀行</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">銀行代號</span>
+            <span className="font-mono font-medium">108</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground">帳號</span>
+            <div className="flex items-center gap-1.5">
+              <span className="font-mono font-medium">121450000353</span>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCopyAccount}>
+                {copied ? <CheckCircle className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
+              </Button>
+            </div>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">戶名</span>
+            <span className="font-medium">人客多股份有限公司</span>
+          </div>
+        </div>
+
+        <p className="text-xs text-muted-foreground">
+          轉帳完成後請通知我們，確認後將為您更新訂單狀態。
+        </p>
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={() => setPaymentMethod('none')}
+        >
+          返回選擇付款方式
+        </Button>
+      </div>
+    );
+  }
+
+  // Step 2b: Credit card (existing flow, paymentMethod === 'card')
+  if (!showForm) {
+    setShowForm(true);
   }
 
   return (
@@ -306,7 +393,7 @@ export function InlineChatPayment({
           variant="outline"
           size="sm"
           className="flex-1"
-          onClick={() => { setShowForm(false); formInitRef.current = false; }}
+          onClick={() => { setShowForm(false); setPaymentMethod('none'); formInitRef.current = false; }}
           disabled={isProcessing}
         >
           取消
