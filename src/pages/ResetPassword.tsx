@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, KeyRound, Eye, EyeOff, AlertCircle } from "lucide-react";
+import { Loader2, KeyRound, Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react";
 import lokezeLogo from "@/assets/lokeze-logo-auth.png";
 import { getPasswordIssues } from "@/utils/passwordPolicy";
 
@@ -59,6 +59,7 @@ export default function ResetPassword() {
   };
 
   const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,8 +112,10 @@ export default function ResetPassword() {
         throw new Error(data?.error || "重設密碼失敗");
       }
 
+      setErrorMessage("");
+      setSuccessMessage("密碼已成功重設，請使用新密碼登入");
       toast.success("密碼已成功重設，請使用新密碼登入");
-      navigate("/auth");
+      setTimeout(() => navigate("/auth"), 2500);
     } catch (error: any) {
       console.error("[ResetPassword] Error:", error);
       const msg = error.message || "重設密碼失敗，請稍後再試";
@@ -245,6 +248,12 @@ export default function ResetPassword() {
                 </Button>
               </div>
             </div>
+            {successMessage && (
+              <div className="flex items-center gap-2 p-3 rounded-md bg-green-50 border border-green-200 text-green-700 text-sm">
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                <span>{successMessage}</span>
+              </div>
+            )}
             {errorMessage && (
               <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/20 text-destructive text-sm">
                 <AlertCircle className="h-4 w-4 shrink-0" />
