@@ -159,7 +159,7 @@ const Dashboard = () => {
 
   // 如果是空狀態，顯示引導頁面
   if (isEmptyState) {
-    return <EmptyDashboard onGenerateData={handleGenerateTestData} />;
+    return <EmptyDashboard onGenerateData={accommodationId !== '5f764d55-ae11-4631-80fe-2e611853deae' ? handleGenerateTestData : undefined} />;
   }
 
   // Sanitize all chart data to prevent NaN values - only include properties that are actually numbers
@@ -253,6 +253,7 @@ const Dashboard = () => {
         icon={BarChart3}
         action={
           <div className="flex items-center gap-2 flex-wrap w-full md:w-auto">
+            {accommodationId !== '5f764d55-ae11-4631-80fe-2e611853deae' && (
             <Popover>
               <PopoverTrigger asChild>
               <Button
@@ -322,6 +323,7 @@ const Dashboard = () => {
               </div>
               </PopoverContent>
             </Popover>
+            )}
             <Badge
               variant={isLiveUpdating ? "default" : "secondary"} 
               className={`transition-all touch-manipulation select-none h-8 px-3 ${isLiveUpdating ? 'animate-pulse' : ''}`}
