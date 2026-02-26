@@ -7,7 +7,7 @@ const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 
@@ -155,6 +155,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Validate password strength (needs email context)
     const passwordValidation = validatePasswordStrength(newPassword, tokenData.email);
     if (!passwordValidation.valid) {
+      console.log("Password validation failed:", passwordValidation.message);
       return new Response(
         JSON.stringify({ error: passwordValidation.message }),
         {
@@ -163,11 +164,13 @@ const handler = async (req: Request): Promise<Response> => {
         }
       );
     }
+    console.log("Password validation passed");
 
     // Leaked password protection (application-level mitigation)
-    // If the upstream platform toggle is disabled, we still block known-compromised passwords here.
     try {
+      console.log("Starting HIBP check...");
       const leaked = await isLeakedPassword(newPassword);
+      console.log("HIBP check result:", leaked);
       if (leaked) {
         return new Response(
           JSON.stringify({ error: "此密碼曾出現在已外洩的密碼清單中，請更換為其他密碼" }),
@@ -178,8 +181,6 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
     } catch (e) {
-      // Fail-open to avoid blocking password resets during temporary network issues.
-      // Strength validation still applies.
       console.warn("Leaked password check failed (continuing):", e);
     }
 

@@ -88,8 +88,11 @@ export default function ResetPassword() {
         },
       });
 
+      console.log("update-password response:", { data, error });
+
       if (error) {
         const parsed = await parseFunctionInvokeError(error);
+        console.log("Parsed error:", parsed);
         throw new Error(parsed.message);
       }
 
