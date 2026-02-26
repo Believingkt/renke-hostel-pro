@@ -58,29 +58,40 @@ export default function ResetPassword() {
     }
   };
 
+  const [errorMessage, setErrorMessage] = useState("");
+
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage("");
+    console.log("[ResetPassword] handleResetPassword called");
 
     if (newPassword !== confirmPassword) {
-      toast.error("兩次輸入的密碼不一致");
+      const msg = "兩次輸入的密碼不一致";
+      setErrorMessage(msg);
+      toast.error(msg);
+      console.log("[ResetPassword] Password mismatch");
       return;
     }
 
     const issues = getPasswordIssues(newPassword, { email: tokenData?.email });
     if (issues.length > 0) {
+      setErrorMessage(issues[0]);
       toast.error(issues[0]);
+      console.log("[ResetPassword] Password policy issue:", issues[0]);
       return;
     }
 
     if (!tokenData) {
-      toast.error("無效的重設連結");
+      const msg = "無效的重設連結";
+      setErrorMessage(msg);
+      toast.error(msg);
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // Update user password using admin API through edge function
+      console.log("[ResetPassword] Calling update-password...");
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-password`,
         {
@@ -94,7 +105,7 @@ export default function ResetPassword() {
       );
 
       const data = await response.json();
-      console.log("update-password response:", { status: response.status, data });
+      console.log("[ResetPassword] Response:", { status: response.status, data });
 
       if (!response.ok || data?.error) {
         throw new Error(data?.error || "重設密碼失敗");
@@ -103,8 +114,10 @@ export default function ResetPassword() {
       toast.success("密碼已成功重設，請使用新密碼登入");
       navigate("/auth");
     } catch (error: any) {
-      console.error("Password reset error:", error);
-      toast.error(error.message || "重設密碼失敗，請稍後再試");
+      console.error("[ResetPassword] Error:", error);
+      const msg = error.message || "重設密碼失敗，請稍後再試";
+      setErrorMessage(msg);
+      toast.error(msg);
     } finally {
       setIsLoading(false);
     }
@@ -232,6 +245,12 @@ export default function ResetPassword() {
                 </Button>
               </div>
             </div>
+            {errorMessage && (
+              <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
             <Button type="submit" className="w-full bg-auth-primary hover:bg-auth-primary-hover" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               重設密碼
