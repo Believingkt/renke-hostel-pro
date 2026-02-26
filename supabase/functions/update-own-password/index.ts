@@ -20,6 +20,8 @@ function isAllowedOrigin(origin: string) {
     return (
       url.hostname.endsWith(".lovable.app") ||
       url.hostname.endsWith(".lovableproject.com") ||
+      url.hostname.endsWith("lakeze.com") ||
+      url.hostname.endsWith("sensan.com.tw") ||
       url.hostname === "localhost" ||
       url.hostname === "127.0.0.1"
     );
