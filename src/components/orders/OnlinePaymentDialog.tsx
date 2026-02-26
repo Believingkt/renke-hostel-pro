@@ -259,6 +259,8 @@ export function OnlinePaymentDialog({
             email: order.guest_email || 'no-email@example.com',
           },
           details: `訂單 ${order.order_number} 付款`,
+          frontendRedirectUrl: `${window.location.origin}/payment-result?order_number=${order.order_number}&amount=${paymentAmount}&source=admin`,
+          backendNotifyUrl: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/tappay-notify`,
         },
       });
 
