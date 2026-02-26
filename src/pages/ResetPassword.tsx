@@ -81,23 +81,23 @@ export default function ResetPassword() {
 
     try {
       // Update user password using admin API through edge function
-      const { data, error } = await supabase.functions.invoke("update-password", {
-        body: { 
-          token,
-          newPassword 
-        },
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ token, newPassword }),
+        }
+      );
 
-      console.log("update-password response:", { data, error });
+      const data = await response.json();
+      console.log("update-password response:", { status: response.status, data });
 
-      if (error) {
-        const parsed = await parseFunctionInvokeError(error);
-        console.log("Parsed error:", parsed);
-        throw new Error(parsed.message);
-      }
-
-      if (data?.error) {
-        throw new Error(data.error);
+      if (!response.ok || data?.error) {
+        throw new Error(data?.error || "重設密碼失敗");
       }
 
       toast.success("密碼已成功重設，請使用新密碼登入");
