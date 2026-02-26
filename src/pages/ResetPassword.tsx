@@ -113,8 +113,8 @@ export default function ResetPassword() {
       }
 
       setErrorMessage("");
-      setSuccessMessage("密碼已成功重設，請使用新密碼登入");
-      toast.success("密碼已成功重設，請使用新密碼登入");
+      setSuccessMessage("密碼已重設成功");
+      toast.success("密碼已重設成功");
       setTimeout(() => navigate("/auth"), 2500);
     } catch (error: any) {
       console.error("[ResetPassword] Error:", error);
