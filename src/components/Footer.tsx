@@ -245,7 +245,7 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
               <a href="https://lakeze.co/" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity inline-flex items-center">
                 <img src={lakezeLogoWhite} alt="Lakeze" className="h-4 md:h-5 w-auto -translate-y-0.5" loading="lazy" />
               </a>
-              <span>2025 © All Rights Reserved.</span>
+              <span>2026 © All Rights Reserved.</span>
             </div>
             
           </div>
