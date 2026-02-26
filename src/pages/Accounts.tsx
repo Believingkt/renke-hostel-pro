@@ -751,17 +751,15 @@ const Accounts = () => {
                       <TableCell className="text-sm">{user.lastLogin}</TableCell>
                       <TableCell className="text-sm">
                         <div className="flex items-center gap-0">
-                          {user.status === 'pending' && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleResendInvite(user.id, user.name)}
-                              title="重新發送邀請"
-                              className="hover:bg-primary group"
-                            >
-                              <Mail className="h-4 w-4 text-primary group-hover:text-white transition-colors" />
-                            </Button>
-                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleResendInvite(user.id, user.name)}
+                            title="重新發送邀請連結"
+                            className="hover:bg-primary group"
+                          >
+                            <Mail className="h-4 w-4 text-primary group-hover:text-white transition-colors" />
+                          </Button>
                           <Button
                             variant="ghost-destructive"
                             size="icon"
@@ -834,17 +832,15 @@ const Accounts = () => {
                         </div>
                       </div>
                       <div className="flex flex-col gap-2 shrink-0">
-                        {user.status === 'pending' && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleResendInvite(user.id, user.name)}
-                            title="重新發送邀請"
-                            className="hover:bg-primary group"
-                          >
-                            <Mail className="h-5 w-5 text-primary group-hover:text-white transition-colors" />
-                          </Button>
-                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleResendInvite(user.id, user.name)}
+                          title="重新發送邀請連結"
+                          className="hover:bg-primary group"
+                        >
+                          <Mail className="h-5 w-5 text-primary group-hover:text-white transition-colors" />
+                        </Button>
                         <Button
                           variant="ghost-destructive"
                           size="icon"
