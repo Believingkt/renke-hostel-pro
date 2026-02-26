@@ -191,7 +191,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const { error: updateError } = await supabase.auth.admin.updateUserById(
       tokenData.user_id,
-      { password: newPassword }
+      { password: newPassword, user_metadata: { force_password_change: false } }
     );
 
     if (updateError) {
