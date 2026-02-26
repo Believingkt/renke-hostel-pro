@@ -152,6 +152,27 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Token verified for user:", tokenData.user_id);
 
+    // Check if new password is the same as current password
+    try {
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: tokenData.email,
+        password: newPassword,
+      });
+      if (signInData?.session && !signInError) {
+        await supabase.auth.signOut();
+        console.log("New password matches current password");
+        return new Response(
+          JSON.stringify({ error: "新密碼不可與目前密碼相同，請設定不同的密碼" }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
+      }
+    } catch (e) {
+      console.warn("Same-password check failed (continuing):", e);
+    }
+
     // Validate password strength (needs email context)
     const passwordValidation = validatePasswordStrength(newPassword, tokenData.email);
     if (!passwordValidation.valid) {
