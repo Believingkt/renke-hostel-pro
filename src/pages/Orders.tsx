@@ -557,10 +557,14 @@ const Orders = () => {
 
   if (error) {
     return (
-      <ErrorState
-        title="無法載入訂單"
-        message={error}
-        onRetry={fetchOrders}
+      <EmptyState
+        icon={ShoppingBag}
+        title="目前沒有訂單"
+        description="尚未建立任何訂單，點擊下方按鈕新增第一筆訂單"
+        action={{
+          label: "新增訂單",
+          onClick: () => setCreateDialogOpen(true),
+        }}
       />
     );
   }
