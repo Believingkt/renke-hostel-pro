@@ -187,23 +187,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
     console.log("Password validation passed");
 
-    // Leaked password protection (application-level mitigation)
-    try {
-      console.log("Starting HIBP check...");
-      const leaked = await isLeakedPassword(newPassword);
-      console.log("HIBP check result:", leaked);
-      if (leaked) {
-        return new Response(
-          JSON.stringify({ error: "此密碼曾出現在已外洩的密碼清單中，請更換為其他密碼" }),
-          {
-            status: 400,
-            headers: { "Content-Type": "application/json", ...corsHeaders },
-          }
-        );
-      }
-    } catch (e) {
-      console.warn("Leaked password check failed (continuing):", e);
-    }
+    // HIBP leaked password check disabled per business decision
 
     const { error: updateError } = await supabase.auth.admin.updateUserById(
       tokenData.user_id,
