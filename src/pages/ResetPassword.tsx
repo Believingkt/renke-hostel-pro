@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -88,7 +89,8 @@ export default function ResetPassword() {
       });
 
       if (error) {
-        throw error;
+        const parsed = await parseFunctionInvokeError(error);
+        throw new Error(parsed.message);
       }
 
       if (data?.error) {
