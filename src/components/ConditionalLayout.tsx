@@ -226,7 +226,7 @@ export function ConditionalLayout() {
                 </main>
                 <footer className="border-t py-3 px-4 md:py-4 md:px-6">
                   <p className="text-xs md:text-sm text-center text-muted-foreground">
-                    © 2025 人客多總部管理系統. 版權所有
+                    © 2026 人客多總部管理系統. 版權所有
                   </p>
                 </footer>
               </div>
@@ -252,7 +252,7 @@ export function ConditionalLayout() {
             </main>
             <footer className="border-t py-3 px-4 md:py-4 md:px-6">
               <p className="text-xs md:text-sm text-center text-muted-foreground">
-                © 2025 人客多 PMS 管理系統. 版權所有
+                © 2026 人客多 PMS 管理系統. 版權所有
               </p>
             </footer>
           </div>

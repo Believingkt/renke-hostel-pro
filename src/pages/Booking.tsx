@@ -556,7 +556,7 @@ const Booking = () => {
             <Separator className="my-8 bg-white/20" />
             
             <p className="text-center text-white/60 text-sm">
-              © 2025 森山寫照. All rights reserved.
+              © 2026 森山寫照. All rights reserved.
             </p>
           </div>
         </div>
