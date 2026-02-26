@@ -226,10 +226,10 @@ const handler = async (req: Request): Promise<Response> => {
       // Don't throw here, password was already updated
     }
 
-    // Update profile to remove force_password_change if exists
+    // Update profile to remove force_password_change and set last_sign_in_at
     await supabase
       .from("profiles")
-      .update({ force_password_change: false })
+      .update({ force_password_change: false, last_sign_in_at: new Date().toISOString() })
       .eq("id", tokenData.user_id);
 
     // Clear rate limit for this token on success
