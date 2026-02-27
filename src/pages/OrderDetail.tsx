@@ -141,10 +141,6 @@ const OrderDetail = () => {
 
   const handleSavePriceEdit = async () => {
     if (!order) return;
-    if (!editReason.trim()) {
-      toast({ title: "請填寫修改原因", variant: "destructive" });
-      return;
-    }
     if (editFinalPrice < 0) {
       toast({ title: "最終金額不可為負數", variant: "destructive" });
       return;
@@ -184,9 +180,11 @@ const OrderDetail = () => {
           deposit_amount: editDepositAmount,
           paid_amount: editPaidAmount,
           payment_status: newPaymentStatus,
-          notes: order.notes
-            ? `${order.notes}\n\n【金額修改】${editReason.trim()}`
-            : `【金額修改】${editReason.trim()}`,
+          ...(editReason.trim() ? {
+            notes: order.notes
+              ? `${order.notes}\n\n【金額修改】${editReason.trim()}`
+              : `【金額修改】${editReason.trim()}`,
+          } : {}),
         })
         .eq("id", order.id);
       if (error) throw error;
@@ -882,7 +880,7 @@ const OrderDetail = () => {
             </div>
             <Separator />
             <div className="space-y-2">
-              <Label htmlFor="edit-reason" className="text-destructive">修改原因（必填）</Label>
+              <Label htmlFor="edit-reason">備註</Label>
               <Textarea
                 id="edit-reason"
                 placeholder="請填寫修改金額的原因..."
@@ -895,7 +893,7 @@ const OrderDetail = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowPriceEditDialog(false)}>取消</Button>
-            <Button onClick={handleSavePriceEdit} disabled={isSavingPrice || !editReason.trim()}>
+            <Button onClick={handleSavePriceEdit} disabled={isSavingPrice}>
               {isSavingPrice ? "儲存中..." : "確認修改"}
             </Button>
           </DialogFooter>
