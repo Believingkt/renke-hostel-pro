@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Mail, Home, ShoppingBag, Globe, UserPlus, CreditCard } from "lucide-react";
+import { ArrowLeft, Mail, Home, ShoppingBag, Globe, UserPlus, CreditCard, XCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { OnlinePaymentDialog } from "@/components/orders/OnlinePaymentDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -77,6 +88,26 @@ const OrderDetail = () => {
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+
+  const handleCancelOrder = async () => {
+    if (!order) return;
+    setIsCancelling(true);
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .update({ order_status: "cancelled", cancelled_at: new Date().toISOString() })
+        .eq("id", order.id);
+      if (error) throw error;
+      toast({ title: "訂單已取消", description: `訂單 ${order.order_number} 已成功取消` });
+      fetchOrder();
+    } catch (error) {
+      console.error("取消訂單失敗:", error);
+      toast({ title: "取消失敗", description: "無法取消訂單，請稍後再試", variant: "destructive" });
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   const fetchOrder = async () => {
     if (!orderId) return;
@@ -364,6 +395,38 @@ const OrderDetail = () => {
               <span className="hidden sm:inline">{isSendingEmail ? "發送中..." : "重發確認信"}</span>
               <span className="sm:hidden">{isSendingEmail ? "發送中..." : "重發信件"}</span>
             </Button>
+          )}
+          {/* 取消訂單按鈕 - 只在非已取消狀態時顯示 */}
+          {order.order_status !== 'cancelled' && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="ghost-destructive"
+                  className="w-full sm:w-auto text-sm"
+                  disabled={isCancelling}
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  取消訂單
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>確認取消訂單</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    確定要取消訂單 <span className="font-semibold text-foreground">{order.order_number}</span> 嗎？此操作無法復原。
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>返回</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleCancelOrder}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {isCancelling ? "取消中..." : "確認取消"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
         </div>
       </div>
