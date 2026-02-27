@@ -6,6 +6,7 @@ import { CreditCard, CheckCircle2, XCircle, Copy, AlertCircle, Zap, ShieldCheck,
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getTapPayPrime } from "@/utils/tappayPrime";
+import { useTapPayConfig } from "@/hooks/use-tappay-config";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Progress } from "@/components/ui/progress";
@@ -231,6 +232,7 @@ const testCards: TestCard[] = [
 ];
 
 export default function PaymentTest() {
+  const { config: tappayConfig } = useTapPayConfig(true);
   const [isTapPayReady, setIsTapPayReady] = useState(false);
   const [cardValid, setCardValid] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -271,10 +273,12 @@ export default function PaymentTest() {
 
   // 載入 TapPay SDK
   useEffect(() => {
+    if (!tappayConfig) return;
+
     const loadTapPaySDK = () => {
       if (window.TPDirect) {
-        console.log('TapPay SDK already loaded (production)');
-        window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'production');
+        console.log(`TapPay SDK already loaded (${tappayConfig.env})`);
+        window.TPDirect.setupSDK(tappayConfig.appId, tappayConfig.appKey, tappayConfig.env);
         setIsTapPayReady(true);
         return;
       }
@@ -283,9 +287,9 @@ export default function PaymentTest() {
       script.src = 'https://js.tappaysdk.com/sdk/tpdirect/v5.18.0';
       script.async = true;
       script.onload = () => {
-        if (window.TPDirect) {
-          console.log('TapPay SDK loaded (production)');
-          window.TPDirect.setupSDK('165714', 'app_zYcYVG6FPf8I3WOti1Xgda3ycBBnz43ovMBehd7XzxkuwB2wzV857jdGWKWP', 'production');
+        if (window.TPDirect && tappayConfig) {
+          console.log(`TapPay SDK loaded (${tappayConfig.env})`);
+          window.TPDirect.setupSDK(tappayConfig.appId, tappayConfig.appKey, tappayConfig.env);
           setIsTapPayReady(true);
         }
       };
@@ -297,7 +301,7 @@ export default function PaymentTest() {
     };
 
     loadTapPaySDK();
-  }, []);
+  }, [tappayConfig]);
 
   // 設定 TapPay 表單
   useEffect(() => {

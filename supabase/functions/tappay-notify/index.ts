@@ -29,6 +29,54 @@ interface TapPayNotifyPayload {
   transaction_time_millis?: number;
 }
 
+// Verify webhook payload by querying TapPay Transaction API
+async function verifyWithTapPay(recTradeId: string): Promise<{ verified: boolean; record?: any }> {
+  const partnerKey = Deno.env.get('TAPPAY_PARTNER_KEY');
+  if (!partnerKey) {
+    console.error('[tappay-notify] Missing TAPPAY_PARTNER_KEY for verification');
+    return { verified: false };
+  }
+
+  const envRaw = Deno.env.get('TAPPAY_ENV');
+  const env = envRaw === 'sandbox' ? 'sandbox' : 'production';
+  const endpoint = env === 'sandbox'
+    ? 'https://sandbox.tappaysdk.com/tpc/transaction/query'
+    : 'https://prod.tappaysdk.com/tpc/transaction/query';
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': partnerKey,
+      },
+      body: JSON.stringify({
+        partner_key: partnerKey,
+        filters: { rec_trade_id: recTradeId },
+      }),
+    });
+
+    const result = await response.json();
+
+    // TapPay Record API: status 0 = success with data, 2 = end of list (both valid)
+    if (result.status !== 0 && result.status !== 2) {
+      console.warn('[tappay-notify] TapPay query failed:', { status: result.status, msg: result.msg });
+      return { verified: false };
+    }
+
+    const record = result.trade_records?.[0];
+    if (!record) {
+      console.warn('[tappay-notify] No trade record found for:', recTradeId);
+      return { verified: false };
+    }
+
+    return { verified: true, record };
+  } catch (err) {
+    console.error('[tappay-notify] Error querying TapPay API:', err);
+    return { verified: false };
+  }
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -51,16 +99,51 @@ Deno.serve(async (req) => {
       msg: body.msg,
     });
 
+    // ===== SECURITY: Verify webhook by querying TapPay API =====
+    if (!body.rec_trade_id) {
+      console.warn('[tappay-notify] Missing rec_trade_id, rejecting');
+      return new Response(
+        JSON.stringify({ status: 'error', message: 'Missing rec_trade_id' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const verification = await verifyWithTapPay(body.rec_trade_id);
+    if (!verification.verified) {
+      console.warn('[tappay-notify] Failed to verify transaction with TapPay API:', body.rec_trade_id);
+      return new Response(
+        JSON.stringify({ status: 'error', message: 'Transaction verification failed' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Use verified data from TapPay API instead of webhook body
+    const verifiedRecord = verification.record;
+    const verifiedStatus = verifiedRecord.record_status; // 0=auth success, 1=capture success
+    const verifiedAmount = verifiedRecord.amount;
+    const isSuccess = verifiedStatus === 0 || verifiedStatus === 1;
+
+    console.log('[tappay-notify] Verified with TapPay API:', {
+      rec_trade_id: body.rec_trade_id,
+      verified_status: verifiedStatus,
+      verified_amount: verifiedAmount,
+      webhook_status: body.status,
+      webhook_amount: body.amount,
+    });
+
+    // Warn if webhook data doesn't match verified data
+    if (body.amount !== verifiedAmount) {
+      console.warn('[tappay-notify] Amount mismatch! webhook:', body.amount, 'verified:', verifiedAmount);
+    }
+
     const {
-      status,
       rec_trade_id,
-      bank_transaction_id,
       order_number,
-      amount,
       auth_code,
     } = body;
 
-    const isSuccess = status === 0;
+    // Use verified amount for all calculations
+    const amount = verifiedAmount;
 
     // Strategy 1: Try to find order by order_number
     let order = null;
@@ -95,12 +178,9 @@ Deno.serve(async (req) => {
     }
 
     // Strategy 3: Check for pending 3DS booking that needs order creation
-    // This happens when frontend callback failed but webhook arrives
     if (!order && isSuccess && rec_trade_id) {
-      console.log('[tappay-notify] No existing order found. Checking if this is a pending 3DS booking...');
+      console.log('[tappay-notify] No existing order found. Creating notification for manual follow-up...');
       
-      // Log this for debugging - the actual order creation should be done by frontend
-      // But we can create a notification for manual follow-up
       const { error: notifError } = await supabase
         .from('notifications')
         .insert({
@@ -113,14 +193,12 @@ Deno.serve(async (req) => {
 
       if (notifError) {
         console.error('[tappay-notify] Failed to create notification:', notifError);
-      } else {
-        console.log('[tappay-notify] Created notification for unmatched payment');
       }
 
       return new Response(
         JSON.stringify({
           status: 'ok',
-          message: 'Payment received but no matching order found. Notification created.',
+          message: 'Payment verified but no matching order found. Notification created.',
           rec_trade_id,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -150,11 +228,9 @@ Deno.serve(async (req) => {
       }
 
       if (isSuccess) {
-        // Calculate new payment amounts
         const currentPaidAmount = order.paid_amount || 0;
         const newPaidAmount = currentPaidAmount + amount;
         
-        // Determine new payment status
         let newPaymentStatus = order.payment_status;
         if (newPaidAmount >= order.final_price) {
           newPaymentStatus = 'paid';
@@ -162,7 +238,6 @@ Deno.serve(async (req) => {
           newPaymentStatus = order.payment_status === 'unpaid' ? 'deposit_paid' : 'partial';
         }
 
-        // Build updated notes
         const transactionNote = `[3DS Webhook] ${new Date().toISOString()} - 付款成功 NT$${amount} (rec_trade_id: ${rec_trade_id}, auth_code: ${auth_code || 'N/A'})`;
         const newNotes = order.notes 
           ? `${order.notes}\n${transactionNote}`
@@ -192,7 +267,6 @@ Deno.serve(async (req) => {
             newPaymentStatus,
           });
 
-          // Create success notification
           await supabase.from('notifications').insert({
             accommodation_id: await getAccommodationIdFromOrder(supabase, order.id),
             type: 'payment',
@@ -203,16 +277,13 @@ Deno.serve(async (req) => {
           });
         }
       } else {
-        // Payment failed
-        console.log('[tappay-notify] Payment failed:', { 
+        console.log('[tappay-notify] Payment failed (verified):', { 
           orderId: order.id,
           orderNumber: order.order_number,
-          status: body.status,
-          msg: body.msg,
+          verifiedStatus: verifiedStatus,
         });
 
-        // Add failure note but don't change payment status
-        const failureNote = `[3DS Webhook] ${new Date().toISOString()} - 付款失敗 (rec_trade_id: ${rec_trade_id}, status: ${status}, msg: ${body.msg || 'N/A'})`;
+        const failureNote = `[3DS Webhook] ${new Date().toISOString()} - 付款失敗 (rec_trade_id: ${rec_trade_id}, verified_status: ${verifiedStatus})`;
         const newNotes = order.notes 
           ? `${order.notes}\n${failureNote}`
           : failureNote;
@@ -225,12 +296,11 @@ Deno.serve(async (req) => {
           })
           .eq('id', order.id);
 
-        // Create failure notification
         await supabase.from('notifications').insert({
           accommodation_id: await getAccommodationIdFromOrder(supabase, order.id),
           type: 'payment',
           title: '3DS 付款失敗',
-          description: `訂單 ${order.order_number} 的 3D 驗證付款失敗。原因: ${body.msg || '未知'}`,
+          description: `訂單 ${order.order_number} 的 3D 驗證付款失敗`,
           order_id: order.id,
           is_read: false,
         });
@@ -264,7 +334,6 @@ Deno.serve(async (req) => {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('[tappay-notify] Error:', error);
     
-    // Still respond with 200 to prevent TapPay retries
     return new Response(
       JSON.stringify({
         status: 'error',
