@@ -55,10 +55,11 @@ interface DashboardData {
 const fetchDashboardData = async (
   accommodationId: string,
   comparisonMode: 'lastYear' | 'lastMonth',
-  customDateRange?: { from: Date; to: Date }
+  customDateRange?: { from: Date; to: Date },
+  selectedYear?: number
 ): Promise<DashboardData> => {
   const now = new Date();
-  const currentYear = now.getFullYear();
+  const currentYear = selectedYear || now.getFullYear();
   
   // 如果有自定義日期範圍，使用它；否則根據比較模式決定範圍
   let startDate: Date;
@@ -184,15 +185,15 @@ const fetchDashboardData = async (
     }
   } else if (comparisonMode === 'lastYear') {
     // 與去年對比：生成當年1-12月的完整數據
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth(); // 0-11
+    const dataYear = selectedYear || now.getFullYear();
+    const currentMonth = dataYear === now.getFullYear() ? now.getMonth() : 11; // 0-11, show all months for past years
     
     for (let month = 0; month < 12; month++) {
-      const monthDate = new Date(currentYear, month, 1);
+      const monthDate = new Date(dataYear, month, 1);
       const monthKey = format(monthDate, 'yyyy-MM');
-      const lastYearMonthKey = format(new Date(currentYear - 1, month, 1), 'yyyy-MM');
+      const lastYearMonthKey = format(new Date(dataYear - 1, month, 1), 'yyyy-MM');
       const monthLabel = format(monthDate, 'MM月');
-      const isFuture = month > currentMonth; // 標記未來月份
+      const isFuture = dataYear === now.getFullYear() && month > now.getMonth();
       
       const monthOrders = ordersByMonth.get(monthKey) || [];
       const lastYearOrders = ordersByMonth.get(lastYearMonthKey) || [];
@@ -375,16 +376,17 @@ const fetchDashboardData = async (
   const monthlyAveragePrice: MonthlyMetrics[] = [];
   
   // 只計算今年的數據（1-12月）
+  const dataYear = selectedYear || now.getFullYear();
   for (let month = 0; month < 12; month++) {
-    const monthDate = new Date(currentYear, month, 1);
+    const monthDate = new Date(dataYear, month, 1);
     const monthStart = startOfMonth(monthDate);
     const monthEnd = endOfMonth(monthDate);
     const monthLabel = format(monthDate, 'MM月');
     const daysInMonth = monthEnd.getDate();
-    const isFutureMonth = monthDate > now;
+    const isFutureMonth = dataYear === now.getFullYear() && monthDate > now;
     
     // 去年同期日期
-    const lastYearMonthDate = new Date(currentYear - 1, month, 1);
+    const lastYearMonthDate = new Date(dataYear - 1, month, 1);
     const lastYearMonthStart = startOfMonth(lastYearMonthDate);
     const lastYearMonthEnd = endOfMonth(lastYearMonthDate);
     
@@ -545,13 +547,14 @@ const fetchDashboardData = async (
 export const useDashboardData = (
   accommodationId: string | null,
   comparisonMode: 'lastYear' | 'lastMonth',
-  customDateRange?: { from: Date; to: Date }
+  customDateRange?: { from: Date; to: Date },
+  selectedYear?: number
 ) => {
   const queryClient = useQueryClient();
   
   const query = useQuery({
-    queryKey: ['dashboard', accommodationId, comparisonMode, customDateRange],
-    queryFn: () => fetchDashboardData(accommodationId!, comparisonMode, customDateRange),
+    queryKey: ['dashboard', accommodationId, comparisonMode, customDateRange, selectedYear],
+    queryFn: () => fetchDashboardData(accommodationId!, comparisonMode, customDateRange, selectedYear),
     enabled: !!accommodationId,
     staleTime: 5 * 60 * 1000, // 資料在 5 分鐘內視為新鮮
     gcTime: 10 * 60 * 1000, // 快取保留 10 分鐘

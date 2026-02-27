@@ -1,4 +1,4 @@
-import { Hotel, Users, Calendar, DollarSign, Radio, Zap, X, BarChart3, Home } from "lucide-react";
+import { Hotel, Users, Calendar, DollarSign, Radio, Zap, X, BarChart3, Home, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,6 +42,8 @@ const Dashboard = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [testDataCount, setTestDataCount] = useState(20);
   const [generateYears, setGenerateYears] = useState<number[]>([2025, 2026]);
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState(currentYear);
   
   // 使用 React Query hook 獲取儀表板資料
   const { 
@@ -49,7 +51,7 @@ const Dashboard = () => {
     isLoading, 
     error, 
     refreshData 
-  } = useDashboardData(accommodationId, 'lastYear', undefined);
+  } = useDashboardData(accommodationId, 'lastYear', undefined, selectedYear);
 
   const handleGenerateTestData = async () => {
     if (!accommodationId) {
@@ -253,6 +255,27 @@ const Dashboard = () => {
         icon={BarChart3}
         action={
           <div className="flex items-center gap-2 flex-wrap w-full md:w-auto">
+            {/* Year Switcher */}
+            <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setSelectedYear(y => y - 1)}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="font-semibold text-sm min-w-[52px] text-center">{selectedYear}年</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                disabled={selectedYear >= currentYear}
+                onClick={() => setSelectedYear(y => y + 1)}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
             {accommodationId !== '5f764d55-ae11-4631-80fe-2e611853deae' && (
             <Popover>
               <PopoverTrigger asChild>
