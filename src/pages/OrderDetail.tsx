@@ -638,6 +638,7 @@ const OrderDetail = () => {
           payment_status: order.payment_status,
           deposit_amount: order.deposit_amount,
           paid_amount: order.paid_amount,
+          accommodation_id: order.accommodation_id,
         } : null}
         onPaymentSuccess={fetchOrder}
       />

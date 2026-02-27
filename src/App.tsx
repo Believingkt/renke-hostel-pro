@@ -23,6 +23,7 @@ import OrderSearch from "./pages/OrderSearch";
 import Profile from "./pages/Profile";
 import PaymentTest from "./pages/PaymentTest";
 import PublicPayment from "./pages/PublicPayment";
+import OrderPayment from "./pages/OrderPayment";
 import PaymentResult from "./pages/PaymentResult";
 import NotFound from "./pages/NotFound";
 import OgImagePreview from "./pages/OgImagePreview";
@@ -108,6 +109,11 @@ function App() {
                 <Route path="/pay" element={
                   <Suspense fallback={<FrontendSkeleton />}>
                     <PublicPayment />
+                  </Suspense>
+                } />
+                <Route path="/pay/order" element={
+                  <Suspense fallback={<FrontendSkeleton />}>
+                    <OrderPayment />
                   </Suspense>
                 } />
                 <Route path="/payment-result" element={
