@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAnalyticsData } from '@/hooks/use-analytics-data';
 import { BarChart3, Users, Eye, Globe, RefreshCw, Calendar } from 'lucide-react';
-import { format, subDays } from 'date-fns';
+import { format, subDays, startOfYear, endOfYear, min } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   AreaChart,
   Area,
@@ -20,13 +21,19 @@ interface AnalyticsDashboardProps {
   accommodationId: string;
 }
 
-type DateRange = '7' | '14' | '30';
+type DateRange = '7' | '14' | '30' | 'year';
 
 export const AnalyticsDashboard = ({ accommodationId }: AnalyticsDashboardProps) => {
+  const currentYear = new Date().getFullYear();
   const [dateRange, setDateRange] = useState<DateRange>('30');
+  const [selectedYear, setSelectedYear] = useState(currentYear);
   
-  const startDate = subDays(new Date(), parseInt(dateRange));
-  const endDate = new Date();
+  const startDate = dateRange === 'year' 
+    ? startOfYear(new Date(selectedYear, 0, 1))
+    : subDays(new Date(), parseInt(dateRange));
+  const endDate = dateRange === 'year'
+    ? min([endOfYear(new Date(selectedYear, 0, 1)), new Date()])
+    : new Date();
   
   const { data, isLoading, refetch, isFetching } = useAnalyticsData({
     accommodationId,
@@ -70,7 +77,37 @@ export const AnalyticsDashboard = ({ accommodationId }: AnalyticsDashboardProps)
   return (
     <div className="space-y-6">
       {/* Header with controls */}
-      <div className="flex justify-end items-center gap-2">
+      <div className="flex flex-wrap justify-end items-center gap-2">
+        {/* Year switcher */}
+        <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => { setSelectedYear(y => y - 1); setDateRange('year'); }}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={dateRange === 'year' ? 'secondary' : 'ghost'}
+            size="sm"
+            className="px-3 min-w-[60px]"
+            onClick={() => setDateRange('year')}
+          >
+            {selectedYear}年
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            disabled={selectedYear >= currentYear}
+            onClick={() => { setSelectedYear(y => y + 1); setDateRange('year'); }}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Day range buttons */}
         <div className="flex bg-muted rounded-lg p-1">
           {(['7', '14', '30'] as DateRange[]).map((range) => (
             <Button
@@ -108,7 +145,7 @@ export const AnalyticsDashboard = ({ accommodationId }: AnalyticsDashboardProps)
               {data?.total_pageviews?.toLocaleString() || 0}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              過去 {dateRange} 天
+              {dateRange === 'year' ? `${selectedYear} 年` : `過去 ${dateRange} 天`}
             </p>
           </CardContent>
         </Card>
