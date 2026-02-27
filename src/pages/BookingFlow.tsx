@@ -241,6 +241,10 @@ const BookingFlow = () => {
   }>>({});
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
   
+  // 預選房型的日期可用性（用於日期選擇器標記不可預訂日期）
+  const [unavailableDatesForRoom, setUnavailableDatesForRoom] = useState<Set<string>>(new Set());
+  const [isLoadingRoomDates, setIsLoadingRoomDates] = useState(false);
+  
   // 可用性快取機制
   const availabilityCacheRef = useRef<{
     checkInDate: string | null;
@@ -490,6 +494,83 @@ const BookingFlow = () => {
       }
     }
   }, [searchParams, roomTypes, selectedRoom]);
+
+  // 當預選房型時，載入該房型未來 6 個月的日期可用性（供日期選擇器使用）
+  useEffect(() => {
+    if (!selectedRoom || !accommodationId) {
+      setUnavailableDatesForRoom(new Set());
+      return;
+    }
+
+    const loadRoomDateAvailability = async () => {
+      setIsLoadingRoomDates(true);
+      try {
+        const today = new Date();
+        const sixMonthsLater = new Date(today);
+        sixMonthsLater.setMonth(today.getMonth() + 6);
+
+        const todayStr = today.toISOString().split('T')[0];
+        const endStr = sixMonthsLater.toISOString().split('T')[0];
+
+        // 取得該房型在未來 6 個月的庫存資料
+        const { data, error } = await supabase
+          .from('room_inventory_pricing')
+          .select('date, available_rooms, is_available, price')
+          .eq('room_type_id', selectedRoom.id)
+          .gte('date', todayStr)
+          .lte('date', endStr);
+
+        if (error) throw error;
+
+        // 建立已有庫存紀錄的日期 Map
+        const inventoryMap = new Map<string, { available_rooms: number; is_available: boolean | null; price: number | null }>();
+        if (data) {
+          for (const row of data) {
+            inventoryMap.set(row.date, {
+              available_rooms: row.available_rooms,
+              is_available: row.is_available,
+              price: row.price,
+            });
+          }
+        }
+
+        // 判斷不可預訂的日期
+        const unavailable = new Set<string>();
+        const current = new Date(today);
+        current.setHours(0, 0, 0, 0);
+        while (current <= sixMonthsLater) {
+          const dateStr = current.toISOString().split('T')[0];
+          const inv = inventoryMap.get(dateStr);
+
+          // 沒有庫存紀錄 → 不可預訂
+          if (!inv) {
+            unavailable.add(dateStr);
+          } else if (inv.is_available === false) {
+            // 關閉販售
+            unavailable.add(dateStr);
+          } else if (inv.available_rooms <= 0) {
+            // 無可用房間
+            unavailable.add(dateStr);
+          } else if (inv.price === null || inv.price === undefined) {
+            // 無價格設定
+            unavailable.add(dateStr);
+          }
+
+          current.setDate(current.getDate() + 1);
+        }
+
+        setUnavailableDatesForRoom(unavailable);
+      } catch (err) {
+        if (import.meta.env.DEV) {
+          console.error('Error loading room date availability:', err);
+        }
+      } finally {
+        setIsLoadingRoomDates(false);
+      }
+    };
+
+    loadRoomDateAvailability();
+  }, [selectedRoom?.id, accommodationId]);
 
   // 當日期或房型變化時，預先獲取價格和檢查可用性
   useEffect(() => {
@@ -2607,6 +2688,19 @@ const BookingFlow = () => {
                 {/* Step 2: Date Selection */}
                 {currentStep === "dates" && (
                   <div className="space-y-6">
+                    {/* 預選房型提示 */}
+                    {selectedRoom && (
+                      <div className="flex items-center gap-2 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                        <Home className="h-4 w-4 text-primary flex-shrink-0" />
+                        <p className="text-sm text-foreground">
+                          已選擇房型：<span className="font-semibold">{selectedRoom.name}</span>
+                          {isLoadingRoomDates && <span className="text-muted-foreground ml-2">（載入可預訂日期中...）</span>}
+                          {!isLoadingRoomDates && unavailableDatesForRoom.size > 0 && (
+                            <span className="text-muted-foreground ml-2">（灰色日期表示不可預訂）</span>
+                          )}
+                        </p>
+                      </div>
+                    )}
                     <div className="grid md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <Label className="flex items-center gap-2">
@@ -2654,7 +2748,13 @@ const BookingFlow = () => {
                                 // 禁用過去的日期
                                 const today = new Date();
                                 today.setHours(0, 0, 0, 0);
-                                return date < today;
+                                if (date < today) return true;
+                                // 禁用該房型不可預訂的日期
+                                if (selectedRoom && unavailableDatesForRoom.size > 0) {
+                                  const dateStr = date.toISOString().split('T')[0];
+                                  if (unavailableDatesForRoom.has(dateStr)) return true;
+                                }
+                                return false;
                               }}
                               initialFocus
                               className={cn("p-3 pointer-events-auto")}
@@ -2720,6 +2820,9 @@ const BookingFlow = () => {
                                 // 禁用過去的日期和入住日期當天及之前
                                 if (date < today) return true;
                                 if (checkInDate && date <= checkInDate) return true;
+                                // 禁用該房型不可預訂的日期（退房日當天不需要有庫存，所以檢查前一天）
+                                // 退房日期本身不需要庫存，但入住期間的每一晚都需要
+                                // 這裡不限制退房日期的不可用，因為退房日不佔房
                                 return false;
                               }}
                               initialFocus
