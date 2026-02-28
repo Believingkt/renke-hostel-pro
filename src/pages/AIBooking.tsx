@@ -69,20 +69,7 @@ export default function AIBooking() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // 從聊天記錄中提取待付款訂單資訊
-  const pendingOrder = useMemo(() => {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const msg = messages[i];
-      if (msg.role === 'assistant' && msg.toolCalls) {
-        for (const tc of msg.toolCalls) {
-          if (tc.type === 'booking' && tc.data?.success) {
-            return tc.data;
-          }
-        }
-      }
-    }
-    return null;
-  }, [messages]);
+
 
 
   useEffect(() => {
@@ -1122,7 +1109,16 @@ export default function AIBooking() {
                                   </div>
                                 </div>
                                 
-                                {/* 付款表單已移至底部固定區域 */}
+                                {/* 付款表單 - 直接在訂單卡片下方 */}
+                                <InlineChatPayment
+                                  orderId={tool.data.order_id}
+                                  orderNumber={tool.data.order_number}
+                                  finalPrice={tool.data.final_price}
+                                  guestName={messages.find(m => m.role === 'user' && /[\u4e00-\u9fff]{2,}/.test(m.content))?.content?.match(/[\u4e00-\u9fff]+/)?.[0] || ''}
+                                  guestPhone={messages.find(m => m.role === 'user' && /09\d{8}/.test(m.content))?.content?.match(/09\d{8}/)?.[0] || ''}
+                                  guestEmail={messages.find(m => m.role === 'user' && /@/.test(m.content))?.content?.match(/[\w.-]+@[\w.-]+\.\w+/)?.[0]}
+                                  accommodationId={accommodationId || ''}
+                                />
                                 
                                 <div className="grid grid-cols-2 gap-3 pt-2">
                                   <Button
@@ -1316,20 +1312,7 @@ export default function AIBooking() {
             </div>
           </ScrollArea>
 
-          {/* 桌面版 - 固定付款表單 */}
-          {pendingOrder && (
-            <div className="hidden md:block border-t bg-card p-4" id="inline-payment-form">
-              <InlineChatPayment
-                orderId={pendingOrder.order_id}
-                orderNumber={pendingOrder.order_number}
-                finalPrice={pendingOrder.final_price}
-                guestName={messages.find(m => m.role === 'user' && /[\u4e00-\u9fff]{2,}/.test(m.content))?.content?.match(/[\u4e00-\u9fff]+/)?.[0] || ''}
-                guestPhone={messages.find(m => m.role === 'user' && /09\d{8}/.test(m.content))?.content?.match(/09\d{8}/)?.[0] || ''}
-                guestEmail={messages.find(m => m.role === 'user' && /@/.test(m.content))?.content?.match(/[\w.-]+@[\w.-]+\.\w+/)?.[0]}
-                accommodationId={accommodationId || ''}
-              />
-            </div>
-          )}
+          {/* 付款表單已移至對話中 */}
 
           {/* 桌面版輸入區域 */}
           <div className="hidden md:block p-6 border-t bg-background/50 backdrop-blur-sm">
@@ -1376,20 +1359,7 @@ export default function AIBooking() {
 
       {/* 手機版固定底部：付款表單 + 輸入框 + Tab 列 */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-[0_-2px_10px_rgba(0,0,0,0.08)] z-50">
-        {/* 手機版付款表單 */}
-        {pendingOrder && (
-          <div className="px-3 pt-2 border-b border-border/50 max-h-[50vh] overflow-y-auto">
-            <InlineChatPayment
-              orderId={pendingOrder.order_id}
-              orderNumber={pendingOrder.order_number}
-              finalPrice={pendingOrder.final_price}
-              guestName={messages.find(m => m.role === 'user' && /[\u4e00-\u9fff]{2,}/.test(m.content))?.content?.match(/[\u4e00-\u9fff]+/)?.[0] || ''}
-              guestPhone={messages.find(m => m.role === 'user' && /09\d{8}/.test(m.content))?.content?.match(/09\d{8}/)?.[0] || ''}
-              guestEmail={messages.find(m => m.role === 'user' && /@/.test(m.content))?.content?.match(/[\w.-]+@[\w.-]+\.\w+/)?.[0]}
-              accommodationId={accommodationId || ''}
-            />
-          </div>
-        )}
+        {/* 付款表單已移至對話中 */}
         {/* 輸入框 */}
         <div className="px-3 pt-2 pb-1">
           <div className="flex gap-2">
