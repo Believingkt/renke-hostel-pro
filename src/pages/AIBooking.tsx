@@ -1140,9 +1140,9 @@ export default function AIBooking() {
                               </div>
                               
                               <div className="p-5 space-y-4">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-muted-foreground">訂單編號</span>
-                                  <span className="font-mono font-semibold text-success text-lg">
+                                <div className="flex items-center justify-between gap-2 min-w-0">
+                                  <span className="text-muted-foreground shrink-0">訂單編號</span>
+                                  <span className="font-mono font-semibold text-success text-sm sm:text-lg truncate">
                                     {tool.data.order_number}
                                   </span>
                                 </div>
