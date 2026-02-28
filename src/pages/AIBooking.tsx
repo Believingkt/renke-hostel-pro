@@ -310,7 +310,9 @@ export default function AIBooking() {
               
               setMessages(prev => {
                 const updated = [...prev];
+                const lastMsg = updated[updated.length - 1];
                 updated[updated.length - 1] = {
+                  ...lastMsg,
                   role: "assistant",
                   content: displayContent,
                   quickReplies: quickReplies.length > 0 ? quickReplies : undefined,
