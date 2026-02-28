@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
-import { Send, Loader2, ArrowLeft, RotateCcw, User, Mic, MicOff, Volume2, VolumeX, Square, ClipboardList, MessageCircle, Settings, UserCircle } from "lucide-react";
+import { Send, Loader2, ArrowLeft, RotateCcw, User, Mic, MicOff, Volume2, VolumeX, Square, ClipboardList, MessageCircle, Settings, UserCircle, Paperclip, Image as ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSubdomain } from "@/hooks/use-subdomain";
@@ -22,6 +22,7 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp?: Date;
+  imageUrl?: string;
   toolCalls?: {
     type: string;
     data: any;
@@ -67,7 +68,63 @@ export default function AIBooking() {
   const [showSettingsPanel, setShowSettingsPanel] = useState(() => searchParams.get('tab') === 'settings');
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputMobileRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({ title: "不支援的檔案格式", description: "請上傳圖片 (JPG/PNG/WEBP) 或 PDF", variant: "destructive" });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "檔案過大", description: "請上傳 10MB 以下的檔案", variant: "destructive" });
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const ext = file.name.split('.').pop() || 'jpg';
+      const fileName = `${accommodationId}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('transfer-receipts')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('transfer-receipts')
+        .getPublicUrl(fileName);
+
+      const imageUrl = urlData.publicUrl;
+
+      // Add image message
+      setMessages(prev => [...prev, {
+        role: "user",
+        content: "已上傳轉帳憑證",
+        imageUrl,
+        timestamp: new Date(),
+      }]);
+
+      // Send to AI so it can acknowledge
+      setTimeout(() => {
+        sendMessageWithContent("我已上傳轉帳憑證圖片，請確認收到");
+      }, 300);
+
+    } catch (error) {
+      console.error('上傳失敗:', error);
+      toast({ title: "上傳失敗", description: "請稍後再試", variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
 
 
@@ -978,6 +1035,19 @@ export default function AIBooking() {
                     )}
                     
                     <div className="flex flex-col gap-1 max-w-[85%] md:max-w-[75%]">
+                      {/* 上傳的圖片 */}
+                      {message.imageUrl && (
+                        <div className={`rounded-2xl overflow-hidden shadow-md mb-1 ${
+                          message.role === "user" ? "max-w-[240px] ml-auto" : "max-w-[240px]"
+                        }`}>
+                          <img 
+                            src={message.imageUrl} 
+                            alt="上傳的憑證" 
+                            className="w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => window.open(message.imageUrl, '_blank')}
+                          />
+                        </div>
+                      )}
                       <div
                         className={`rounded-3xl px-4 py-3 md:px-5 md:py-3.5 whitespace-pre-wrap transition-all duration-300 ${
                           message.role === "user"
@@ -1386,6 +1456,27 @@ export default function AIBooking() {
                   <Mic className="h-5 w-5" />
                 )}
               </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,.pdf"
+                className="hidden"
+                onChange={handleFileUpload}
+              />
+              <Button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isLoading || isUploading}
+                size="icon"
+                variant="outline"
+                className="h-12 w-12 transition-all duration-200"
+                title="上傳憑證"
+              >
+                {isUploading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Paperclip className="h-5 w-5" />
+                )}
+              </Button>
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -1418,6 +1509,26 @@ export default function AIBooking() {
         {/* 輸入框 */}
         <div className="px-3 pt-2 pb-1">
           <div className="flex gap-2">
+            <input
+              ref={fileInputMobileRef}
+              type="file"
+              accept="image/*,.pdf"
+              className="hidden"
+              onChange={handleFileUpload}
+            />
+            <Button
+              onClick={() => fileInputMobileRef.current?.click()}
+              disabled={isLoading || isUploading}
+              size="icon"
+              variant="ghost"
+              className="h-10 w-10 rounded-full shrink-0"
+            >
+              {isUploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Paperclip className="h-4 w-4" />
+              )}
+            </Button>
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
