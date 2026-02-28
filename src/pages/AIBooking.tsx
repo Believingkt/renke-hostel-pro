@@ -1110,15 +1110,26 @@ export default function AIBooking() {
                                 </div>
                                 
                                 {/* 付款表單 - 直接在訂單卡片下方 */}
-                                <InlineChatPayment
-                                  orderId={tool.data.order_id}
-                                  orderNumber={tool.data.order_number}
-                                  finalPrice={tool.data.final_price}
-                                  guestName={messages.find(m => m.role === 'user' && /[\u4e00-\u9fff]{2,}/.test(m.content))?.content?.match(/[\u4e00-\u9fff]+/)?.[0] || ''}
-                                  guestPhone={messages.find(m => m.role === 'user' && /09\d{8}/.test(m.content))?.content?.match(/09\d{8}/)?.[0] || ''}
-                                  guestEmail={messages.find(m => m.role === 'user' && /@/.test(m.content))?.content?.match(/[\w.-]+@[\w.-]+\.\w+/)?.[0]}
-                                  accommodationId={accommodationId || ''}
-                                />
+                                {(() => {
+                                  // 從後續對話中偵測用戶是否已選擇付款方式
+                                  const laterMessages = messages.slice(index + 1);
+                                  const userChoseCard = laterMessages.some(m => m.role === 'user' && /線上刷卡|信用卡/.test(m.content));
+                                  const userChoseTransfer = laterMessages.some(m => m.role === 'user' && /銀行轉帳|匯款/.test(m.content));
+                                  const detectedMethod: 'none' | 'card' | 'transfer' = userChoseCard ? 'card' : userChoseTransfer ? 'transfer' : 'none';
+                                  return (
+                                    <InlineChatPayment
+                                      key={`payment-${tool.data.order_id}-${detectedMethod}`}
+                                      orderId={tool.data.order_id}
+                                      orderNumber={tool.data.order_number}
+                                      finalPrice={tool.data.final_price}
+                                      guestName={messages.find(m => m.role === 'user' && /[\u4e00-\u9fff]{2,}/.test(m.content))?.content?.match(/[\u4e00-\u9fff]+/)?.[0] || ''}
+                                      guestPhone={messages.find(m => m.role === 'user' && /09\d{8}/.test(m.content))?.content?.match(/09\d{8}/)?.[0] || ''}
+                                      guestEmail={messages.find(m => m.role === 'user' && /@/.test(m.content))?.content?.match(/[\w.-]+@[\w.-]+\.\w+/)?.[0]}
+                                      accommodationId={accommodationId || ''}
+                                      initialMethod={detectedMethod}
+                                    />
+                                  );
+                                })()}
                                 
                                 <div className="grid grid-cols-2 gap-3 pt-2">
                                   <Button
