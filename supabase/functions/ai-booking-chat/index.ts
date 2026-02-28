@@ -178,6 +178,10 @@ serve(async (req) => {
               check_out_date: {
                 type: "string",
                 description: "退房日期，格式：YYYY-MM-DD（選填）"
+              },
+              room_type_id: {
+                type: "string",
+                description: "房型 ID（選填，用於查詢指定房型）"
               }
             },
             required: []
@@ -232,7 +236,13 @@ serve(async (req) => {
       console.log(`執行工具: ${toolName}`, args);
 
       if (toolName === "get_available_rooms") {
-        const { data: roomTypes } = await supabase
+        const hasDateRange = Boolean(args?.check_in_date && args?.check_out_date);
+        const targetRoomTypeId =
+          typeof args?.room_type_id === "string" && UUID_REGEX.test(args.room_type_id)
+            ? args.room_type_id
+            : null;
+
+        let roomTypesQuery = supabase
           .from('room_types')
           .select(`
             *,
@@ -244,7 +254,147 @@ serve(async (req) => {
           .eq('accommodation_id', accommodationId)
           .order('display_order');
 
-        // Fetch current inventory prices for each room type
+        if (targetRoomTypeId) {
+          roomTypesQuery = roomTypesQuery.eq('id', targetRoomTypeId);
+        }
+
+        const { data: roomTypes } = await roomTypesQuery;
+
+        if (!roomTypes || roomTypes.length === 0) {
+          return {
+            check_in_date: args?.check_in_date || null,
+            check_out_date: args?.check_out_date || null,
+            rooms: [],
+          };
+        }
+
+        const roomTypeIds = roomTypes.map((rt: any) => rt.id);
+
+        if (hasDateRange) {
+          const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+          if (!dateRegex.test(args.check_in_date) || !dateRegex.test(args.check_out_date)) {
+            return { rooms: [], error: "日期格式錯誤，請使用 YYYY-MM-DD" };
+          }
+
+          const checkInDate = new Date(args.check_in_date);
+          const checkOutDate = new Date(args.check_out_date);
+
+          if (checkOutDate <= checkInDate) {
+            return { rooms: [], error: "退房日期必須晚於入住日期" };
+          }
+
+          const datesToCheck: string[] = [];
+          const currentDate = new Date(checkInDate);
+          while (currentDate < checkOutDate) {
+            datesToCheck.push(currentDate.toISOString().split('T')[0]);
+            currentDate.setDate(currentDate.getDate() + 1);
+          }
+
+          const { data: rangeInventory } = await supabase
+            .from('room_inventory_pricing')
+            .select('room_type_id, date, price, price_2_meals, price_3_meals, is_available, available_rooms')
+            .in('room_type_id', roomTypeIds)
+            .gte('date', args.check_in_date)
+            .lt('date', args.check_out_date);
+
+          const inventoryByRoomDate = new Map<string, any>();
+          rangeInventory?.forEach((inv: any) => {
+            inventoryByRoomDate.set(`${inv.room_type_id}:${inv.date}`, inv);
+          });
+
+          const adjustedResults = await Promise.all(
+            roomTypeIds.map(async (roomTypeId: string) => {
+              const { data } = await supabase.rpc('get_adjusted_room_inventory_batch', {
+                p_room_type_id: roomTypeId,
+                p_dates: datesToCheck,
+                p_accommodation_id: accommodationId
+              });
+
+              return { roomTypeId, data: data || [] };
+            })
+          );
+
+          const adjustedMap = new Map<string, { available_rooms: number; is_blocked: boolean; blocked_by_room_name: string | null }>();
+          adjustedResults.forEach((result: any) => {
+            result.data.forEach((item: any) => {
+              adjustedMap.set(`${result.roomTypeId}:${item.date_value}`, {
+                available_rooms: item.available_rooms,
+                is_blocked: item.is_blocked,
+                blocked_by_room_name: item.blocked_by_room_name
+              });
+            });
+          });
+
+          return {
+            check_in_date: args.check_in_date,
+            check_out_date: args.check_out_date,
+            nights: datesToCheck.length,
+            rooms: roomTypes.map((rt: any) => {
+              const unavailableDates: string[] = [];
+              const blockedReasons: { date: string; blocked_by_room_name: string | null }[] = [];
+              let totalPrice = 0;
+              let totalPrice2Meals = 0;
+              let totalPrice3Meals = 0;
+              let has2MealsPricing = true;
+              let has3MealsPricing = true;
+
+              for (const date of datesToCheck) {
+                const inventory = inventoryByRoomDate.get(`${rt.id}:${date}`);
+                const adjusted = adjustedMap.get(`${rt.id}:${date}`);
+                const adjustedAvailableRooms = adjusted?.available_rooms ?? 0;
+
+                const isDateAvailable =
+                  !!inventory &&
+                  inventory.is_available !== false &&
+                  adjustedAvailableRooms > 0 &&
+                  Number(inventory.price) > 0;
+
+                if (!isDateAvailable) {
+                  unavailableDates.push(date);
+                  if (adjusted?.is_blocked) {
+                    blockedReasons.push({
+                      date,
+                      blocked_by_room_name: adjusted.blocked_by_room_name ?? null
+                    });
+                  }
+                  continue;
+                }
+
+                totalPrice += Number(inventory.price);
+
+                if (Number(inventory.price_2_meals) > 0) {
+                  totalPrice2Meals += Number(inventory.price_2_meals);
+                } else {
+                  has2MealsPricing = false;
+                }
+
+                if (Number(inventory.price_3_meals) > 0) {
+                  totalPrice3Meals += Number(inventory.price_3_meals);
+                } else {
+                  has3MealsPricing = false;
+                }
+              }
+
+              return {
+                id: rt.id,
+                name: rt.name,
+                capacity: rt.capacity,
+                base_price: rt.base_price,
+                description: rt.description,
+                size_sqm: rt.size_sqm,
+                photos: rt.room_photos?.sort((a: any, b: any) => a.display_order - b.display_order).map((p: any) => p.photo_url) || [],
+                is_available_for_range: unavailableDates.length === 0,
+                unavailable_dates: unavailableDates,
+                blocked_reasons: blockedReasons,
+                range_total_price: unavailableDates.length === 0 ? totalPrice : null,
+                range_total_price_2_meals: unavailableDates.length === 0 && has2MealsPricing ? totalPrice2Meals : null,
+                range_total_price_3_meals: unavailableDates.length === 0 && has3MealsPricing ? totalPrice3Meals : null,
+              };
+            })
+          };
+        }
+
+        // 無指定日期：回傳未來 90 天的房型價格範圍
         const today = new Date().toISOString().split('T')[0];
         const futureDate = new Date();
         futureDate.setDate(futureDate.getDate() + 90);
@@ -253,13 +403,13 @@ serve(async (req) => {
         const { data: inventoryPrices } = await supabase
           .from('room_inventory_pricing')
           .select('room_type_id, price, price_2_meals, price_3_meals, date')
+          .in('room_type_id', roomTypeIds)
           .gte('date', today)
           .lte('date', futureDateStr)
           .eq('is_available', true)
           .gt('available_rooms', 0);
 
-        // Group prices by room type
-        const pricesByRoom: Record<string, { prices: number[], prices2: number[], prices3: number[] }> = {};
+        const pricesByRoom: Record<string, { prices: number[]; prices2: number[]; prices3: number[] }> = {};
         inventoryPrices?.forEach((inv: any) => {
           if (!pricesByRoom[inv.room_type_id]) {
             pricesByRoom[inv.room_type_id] = { prices: [], prices2: [], prices3: [] };
@@ -268,9 +418,9 @@ serve(async (req) => {
           if (inv.price_2_meals) pricesByRoom[inv.room_type_id].prices2.push(inv.price_2_meals);
           if (inv.price_3_meals) pricesByRoom[inv.room_type_id].prices3.push(inv.price_3_meals);
         });
-        
+
         return {
-          rooms: roomTypes?.map(rt => {
+          rooms: roomTypes.map((rt: any) => {
             const roomPrices = pricesByRoom[rt.id];
             const minPrice = roomPrices?.prices.length ? Math.min(...roomPrices.prices) : rt.base_price;
             const maxPrice = roomPrices?.prices.length ? Math.max(...roomPrices.prices) : rt.base_price;
@@ -294,7 +444,7 @@ serve(async (req) => {
               size_sqm: rt.size_sqm,
               photos: rt.room_photos?.sort((a: any, b: any) => a.display_order - b.display_order).map((p: any) => p.photo_url) || []
             };
-          }) || []
+          })
         };
       }
 
@@ -586,8 +736,9 @@ serve(async (req) => {
 
 **重要規則：**
 - 當對話中出現「[系統：已向客人展示房型卡片：...]」的標記時，表示房型資訊已經展示給客人了，**絕對不要再次調用 get_available_rooms 工具**。
-- 只有在客人**首次**詢問房型、或明確要求「重新查詢」時，才調用 get_available_rooms。
-- 當客人已經選擇了某個房型（例如說「我要預訂18人包區」），直接進入下一步收集入住日期，不需要再查詢房型。
+- 只有在客人**首次**詢問房型、明確要求「重新查詢」、或已提供入住/退房日期需要即時確認空房時，才調用 get_available_rooms。
+- 當客人已經選擇某個房型時，先收集入住/退房日期，再用 get_available_rooms（帶 check_in_date、check_out_date，且若已知請帶 room_type_id）做可訂驗證。
+- 若 get_available_rooms 回傳該房型 is_available_for_range = false 或出現 unavailable_dates，必須明確告知不可訂並引導改期/改房型，**不可說成可訂**。
 - **極為重要：調用 create_booking 時，room_type_id 必須使用 get_available_rooms 返回的 UUID 格式 id（例如 "a1b2c3d4-e5f6-..."），絕對不能使用房型名稱（如 "double_room"）。請從之前查詢到的房型資料中找到對應的 id 值。**
 - **絕對不要在回覆中向客人顯示 room_type_id（UUID）。這是內部系統資料，客人不需要看到。只顯示房型名稱即可。**
 
@@ -643,6 +794,8 @@ serve(async (req) => {
 #### 步驟 1：收集入住日期
 - 詢問入住日期和退房日期
 - 確認日期格式正確（YYYY-MM-DD）
+- 收到日期後，立刻調用 get_available_rooms（check_in_date、check_out_date，若已知則帶 room_type_id）做即時可訂驗證。
+- 若該房型在指定日期不可訂（is_available_for_range = false 或 unavailable_dates 非空），必須立刻告知並引導客人改期或改房型，不可繼續往後收集資料。
 - **自動判斷平日/假日**：不要詢問客人是平日還是假日！系統會根據日期自動判斷：
   - 假日 = 週五、週六、國定假日前一天
   - 平日 = 其他日期
