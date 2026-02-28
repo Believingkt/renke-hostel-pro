@@ -446,31 +446,73 @@ export default function AIBooking() {
     ]);
     if (bookingStep < 2) setBookingStep(2);
 
-    // 查詢該房型的可預訂日期
+    // 查詢該房型的可預訂日期（套用互斥規則，與送單驗證一致）
     setIsLoadingAvailability(true);
     try {
       const today = new Date();
-      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      // 查詢未來 6 個月的庫存
       const futureDate = new Date();
       futureDate.setMonth(futureDate.getMonth() + 6);
-      const futureStr = `${futureDate.getFullYear()}-${String(futureDate.getMonth() + 1).padStart(2, '0')}-${String(futureDate.getDate()).padStart(2, '0')}`;
 
-      const { data: inventory } = await supabase
-        .from('room_inventory_pricing')
-        .select('date, available_rooms, is_available')
-        .eq('room_type_id', roomId)
-        .gte('date', todayStr)
-        .lte('date', futureStr);
+      const formatDate = (date: Date) =>
+        `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
-      const availableDates = new Set<string>();
-      if (inventory) {
-        inventory.forEach(item => {
-          if (item.is_available !== false && item.available_rooms > 0) {
-            availableDates.add(item.date);
-          }
-        });
+      const todayStr = formatDate(today);
+      const futureStr = formatDate(futureDate);
+
+      const allDates: string[] = [];
+      const cursor = new Date(today);
+      while (cursor <= futureDate) {
+        allDates.push(formatDate(cursor));
+        cursor.setDate(cursor.getDate() + 1);
       }
+
+      const [{ data: inventory }, { data: adjustedBatch, error: adjustedError }] = await Promise.all([
+        supabase
+          .from('room_inventory_pricing')
+          .select('date, available_rooms, is_available')
+          .eq('room_type_id', roomId)
+          .gte('date', todayStr)
+          .lte('date', futureStr),
+        supabase.rpc('get_adjusted_room_inventory_batch', {
+          p_room_type_id: roomId,
+          p_dates: allDates,
+          p_accommodation_id: accommodationId
+        })
+      ]);
+
+      if (adjustedError) {
+        console.error('查詢調整後庫存失敗:', adjustedError);
+      }
+
+      const inventoryMap = new Map<string, { available_rooms: number; is_available: boolean | null }>();
+      inventory?.forEach(item => {
+        inventoryMap.set(item.date, {
+          available_rooms: item.available_rooms,
+          is_available: item.is_available
+        });
+      });
+
+      const adjustedMap = new Map<string, { available_rooms: number }>();
+      adjustedBatch?.forEach((item: any) => {
+        adjustedMap.set(item.date_value, { available_rooms: item.available_rooms });
+      });
+
+      const shouldUseAdjusted = !adjustedError && !!adjustedBatch;
+      const availableDates = new Set<string>();
+
+      allDates.forEach(date => {
+        const inventoryItem = inventoryMap.get(date);
+        if (!inventoryItem || inventoryItem.is_available === false) return;
+
+        const effectiveAvailableRooms = shouldUseAdjusted
+          ? (adjustedMap.get(date)?.available_rooms ?? 0)
+          : (inventoryItem.available_rooms ?? 0);
+
+        if (effectiveAvailableRooms > 0) {
+          availableDates.add(date);
+        }
+      });
+
       setSelectedRoomAvailableDates(availableDates);
 
       const availableCount = availableDates.size;
