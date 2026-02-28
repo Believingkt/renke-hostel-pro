@@ -34,7 +34,7 @@ export function InlineChatPayment({
   roomName,
   checkInDate,
   checkOutDate,
-  initialMethod = 'card',
+  initialMethod = 'none',
   onPaymentSuccess,
 }: InlineChatPaymentProps) {
   const [paymentMethod, setPaymentMethod] = useState<'none' | 'card' | 'transfer'>(initialMethod);
