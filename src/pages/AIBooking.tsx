@@ -859,15 +859,7 @@ export default function AIBooking() {
       {/* 頂部導航 - 手機版精簡 */}
       <div className="hidden md:block bg-primary text-primary-foreground shadow-lg">
         <div className="container mx-auto px-3 py-3 md:px-4 md:py-4 flex items-center justify-between">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/')}
-            className="text-primary-foreground hover:bg-primary-foreground/10"
-          >
-            <ArrowLeft className="h-4 w-4 md:mr-2" />
-            <span className="hidden md:inline">返回首頁</span>
-          </Button>
+          <div className="w-[88px]" />
           
           <div className="flex items-center gap-3">
             <div className="text-center">
