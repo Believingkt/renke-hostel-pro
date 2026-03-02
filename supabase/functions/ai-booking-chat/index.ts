@@ -231,6 +231,67 @@ serve(async (req) => {
       }
     ];
 
+    // Generate template response for room availability (skips second AI call)
+    const generateAvailabilityResponse = (result: any): string => {
+      if (!result?.rooms || result.rooms.length === 0) {
+        return '抱歉，目前沒有找到符合條件的房型 😔\n\n[SUGGEST: 更換日期 | 查看所有房型]';
+      }
+
+      const hasDateRange = !!result.check_in_date;
+      
+      if (!hasDateRange) {
+        // No date range - show price ranges
+        const lines = ['以下是目前可預訂的房型 🏡\n'];
+        for (const room of result.rooms) {
+          const priceInfo = room.min_price === room.max_price 
+            ? `NT$ ${room.min_price?.toLocaleString()}`
+            : `NT$ ${room.min_price?.toLocaleString()} ~ ${room.max_price?.toLocaleString()}`;
+          lines.push(`🏠 **${room.name}**（${room.capacity}人）`);
+          lines.push(`　💰 ${priceInfo}/晚`);
+          if (room.size_sqm) lines.push(`　📐 ${room.size_sqm} 坪`);
+          lines.push('');
+        }
+        lines.push('[SUGGEST: 選擇入住日期 | 了解更多房型資訊]');
+        return lines.join('\n');
+      }
+
+      // With date range
+      const nights = result.nights || 1;
+      const available = result.rooms.filter((r: any) => r.is_available_for_range);
+      const unavailable = result.rooms.filter((r: any) => !r.is_available_for_range);
+
+      const lines = [`📅 入住 **${result.check_in_date}** ～ 退房 **${result.check_out_date}**（${nights}晚）\n`];
+
+      if (available.length > 0) {
+        lines.push('✅ **可預訂房型：**\n');
+        for (const room of available) {
+          lines.push(`🏠 **${room.name}**（${room.capacity}人）`);
+          lines.push(`　💰 總價 NT$ ${room.range_total_price?.toLocaleString()}`);
+          if (room.range_total_price_2_meals) {
+            lines.push(`　🍽️ 一泊二食 NT$ ${room.range_total_price_2_meals?.toLocaleString()}`);
+          }
+          lines.push('');
+        }
+      }
+
+      if (unavailable.length > 0 && available.length > 0) {
+        lines.push('❌ 以下房型該日期已滿：' + unavailable.map((r: any) => r.name).join('、') + '\n');
+      } else if (unavailable.length > 0 && available.length === 0) {
+        lines.push('很抱歉，所選日期的所有房型皆已額滿 😔\n');
+      }
+
+      if (available.length === 1) {
+        lines.push(`[SUGGEST: 預訂${available[0].name} | 更換日期]`);
+      } else if (available.length > 1) {
+        const suggests = available.slice(0, 3).map((r: any) => `預訂${r.name}`).join(' | ');
+        lines.push(`[SUGGEST: ${suggests}]`);
+      } else {
+        lines.push('[SUGGEST: 更換日期 | 查看其他房型]');
+      }
+
+      return lines.join('\n');
+    };
+
     // 處理工具調用
     const handleToolCall = async (toolName: string, args: any) => {
       console.log(`執行工具: ${toolName}`, args);
@@ -943,71 +1004,86 @@ serve(async (req) => {
                       results: toolResults
                     })}\n\n`));
 
-                    // Make follow-up AI call with tool results to get human-readable response
-                    try {
-                      const assistantToolMsg = {
-                        role: "assistant",
-                        content: null,
-                        tool_calls: completedToolCalls.map(tc => ({
-                          id: tc.id,
-                          type: "function",
-                          function: { name: tc.function.name, arguments: tc.function.arguments }
-                        }))
+                    // Generate response: use template for get_available_rooms, AI for others
+                    const canTemplateRespond = completedToolCalls.length === 1 && 
+                      completedToolCalls[0].function.name === 'get_available_rooms';
+                    
+                    if (canTemplateRespond) {
+                      // Direct template response - no second AI call needed
+                      const result = toolResults[0].result as any;
+                      const templateText = generateAvailabilityResponse(result);
+                      // Stream as a single SSE chunk
+                      const fakeChunk = {
+                        choices: [{ delta: { content: templateText } }]
                       };
-                      const toolResultMsgs = toolResults.map(tr => ({
-                        role: "tool",
-                        tool_call_id: tr.tool_call_id,
-                        content: JSON.stringify(tr.result)
-                      }));
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify(fakeChunk)}\n\n`));
+                    } else {
+                      // Other tools need AI interpretation
+                      try {
+                        const assistantToolMsg = {
+                          role: "assistant",
+                          content: null,
+                          tool_calls: completedToolCalls.map(tc => ({
+                            id: tc.id,
+                            type: "function",
+                            function: { name: tc.function.name, arguments: tc.function.arguments }
+                          }))
+                        };
+                        const toolResultMsgs = toolResults.map(tr => ({
+                          role: "tool",
+                          tool_call_id: tr.tool_call_id,
+                          content: JSON.stringify(tr.result)
+                        }));
 
-                      const followUpSystemPrompt = `你是森山寫照的 AI 管家。根據工具執行結果，用友善簡潔的語言回覆客人。
+                        const followUpSystemPrompt = `你是森山寫照的 AI 管家。根據工具執行結果，用友善簡潔的語言回覆客人。
 規則：不顯示 UUID/room_type_id。價格用 NT$ 格式。適時用 emoji。每次回覆最後加 [SUGGEST: 選項1 | 選項2] 供客人點選。
 訂單完成後引導付款：[SUGGEST: 線上刷卡 | 銀行轉帳]。入住15:00後，退房11:00前。地址：宜蘭縣冬山鄉大進三路208號。`;
 
-                      const followUpResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-                        method: "POST",
-                        headers: {
-                          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-                          "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                          model: "google/gemini-2.5-flash-lite",
-                          messages: [
-                            { role: "system", content: followUpSystemPrompt },
-                            ...messages.slice(-6),
-                            assistantToolMsg,
-                            ...toolResultMsgs
-                          ],
-                          stream: true,
-                        }),
-                      });
+                        const followUpResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                          method: "POST",
+                          headers: {
+                            "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+                            "Content-Type": "application/json",
+                          },
+                          body: JSON.stringify({
+                            model: "google/gemini-2.5-flash-lite",
+                            messages: [
+                              { role: "system", content: followUpSystemPrompt },
+                              ...messages.slice(-6),
+                              assistantToolMsg,
+                              ...toolResultMsgs
+                            ],
+                            stream: true,
+                          }),
+                        });
 
-                      if (followUpResponse.ok && followUpResponse.body) {
-                        const followReader = followUpResponse.body.getReader();
-                        let followBuffer = '';
-                        while (true) {
-                          const { done: fDone, value: fValue } = await followReader.read();
-                          if (fDone) break;
-                          followBuffer += decoder.decode(fValue, { stream: true });
-                          const fLines = followBuffer.split('\n');
-                          followBuffer = fLines.pop() || '';
-                          for (const fLine of fLines) {
-                            if (!fLine.trim() || fLine.startsWith(':')) continue;
-                            if (!fLine.startsWith('data: ')) continue;
-                            const fData = fLine.slice(6).trim();
-                            if (fData === '[DONE]') continue;
-                            try {
-                              const fParsed = JSON.parse(fData);
-                              const fContent = fParsed.choices?.[0]?.delta?.content;
-                              if (fContent) {
-                                controller.enqueue(encoder.encode(`data: ${fData}\n\n`));
-                              }
-                            } catch (_) {}
+                        if (followUpResponse.ok && followUpResponse.body) {
+                          const followReader = followUpResponse.body.getReader();
+                          let followBuffer = '';
+                          while (true) {
+                            const { done: fDone, value: fValue } = await followReader.read();
+                            if (fDone) break;
+                            followBuffer += decoder.decode(fValue, { stream: true });
+                            const fLines = followBuffer.split('\n');
+                            followBuffer = fLines.pop() || '';
+                            for (const fLine of fLines) {
+                              if (!fLine.trim() || fLine.startsWith(':')) continue;
+                              if (!fLine.startsWith('data: ')) continue;
+                              const fData = fLine.slice(6).trim();
+                              if (fData === '[DONE]') continue;
+                              try {
+                                const fParsed = JSON.parse(fData);
+                                const fContent = fParsed.choices?.[0]?.delta?.content;
+                                if (fContent) {
+                                  controller.enqueue(encoder.encode(`data: ${fData}\n\n`));
+                                }
+                              } catch (_) {}
+                            }
                           }
                         }
+                      } catch (followErr) {
+                        console.error('Follow-up AI call failed:', followErr);
                       }
-                    } catch (followErr) {
-                      console.error('Follow-up AI call failed:', followErr);
                     }
                   }
                 }
