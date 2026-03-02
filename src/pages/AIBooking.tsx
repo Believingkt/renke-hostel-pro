@@ -1350,8 +1350,8 @@ export default function AIBooking() {
                             }
                           }}
                           modifiersClassNames={{
-                            available: "!bg-primary/10 !text-primary font-semibold shadow-[inset_0_0_0_1.5px_hsl(var(--primary)/0.25)] !rounded-md",
-                            unavailable: "!bg-transparent !text-muted-foreground/40 !opacity-50 !shadow-none"
+                            available: "!bg-primary/15 !text-primary font-semibold !rounded-md",
+                            unavailable: "!bg-transparent !text-muted-foreground/40 !opacity-50"
                           }}
                           numberOfMonths={2}
                           locale={zhTW}
