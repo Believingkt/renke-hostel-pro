@@ -206,6 +206,73 @@ serve(async (req) => {
     };
 
     // Generate template response for room availability (skips second AI call)
+    const UUID_IN_TEXT_REGEX = /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
+    const ROOM_TYPE_ID_IN_TEXT_REGEX = /room_type_id:\s*([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
+
+    const normalizeRoomTypeToken = (value: string) =>
+      value
+        .toLowerCase()
+        .trim()
+        .replace(/[「」'"`]/g, '')
+        .replace(/\s+/g, '')
+        .replace(/[_-]/g, '');
+
+    const extractRoomTypeIdFromMessages = (msgs: any[]): string | null => {
+      for (let i = msgs.length - 1; i >= 0; i--) {
+        const content = typeof msgs[i]?.content === 'string' ? msgs[i].content : '';
+        const taggedMatch = content.match(ROOM_TYPE_ID_IN_TEXT_REGEX);
+        if (taggedMatch?.[1] && UUID_REGEX.test(taggedMatch[1])) return taggedMatch[1];
+
+        const uuidMatch = content.match(UUID_IN_TEXT_REGEX);
+        if (uuidMatch?.[1] && UUID_REGEX.test(uuidMatch[1])) return uuidMatch[1];
+      }
+      return null;
+    };
+
+    const resolveRoomTypeId = async (
+      input: unknown,
+      options: { allowMessageFallback?: boolean } = {}
+    ): Promise<string | null> => {
+      const { allowMessageFallback = false } = options;
+      const raw = typeof input === 'string' ? input.trim() : '';
+
+      if (raw && UUID_REGEX.test(raw)) return raw;
+
+      const uuidFromRaw = raw.match(UUID_IN_TEXT_REGEX)?.[1];
+      if (uuidFromRaw && UUID_REGEX.test(uuidFromRaw)) return uuidFromRaw;
+
+      if (raw) {
+        const { data: roomTypes } = await supabase
+          .from('room_types')
+          .select('id, name, name_en')
+          .eq('accommodation_id', accommodationId);
+
+        if (roomTypes && roomTypes.length > 0) {
+          const normalizedInput = normalizeRoomTypeToken(raw);
+          const inputDigits = raw.match(/\d+/)?.[0] ?? null;
+
+          const matchedRoom = roomTypes.find((room: any) => {
+            const nameToken = normalizeRoomTypeToken(room.name || '');
+            const nameEnToken = normalizeRoomTypeToken(room.name_en || '');
+
+            if (normalizedInput === nameToken || normalizedInput === nameEnToken) return true;
+            if (normalizedInput && (nameToken.includes(normalizedInput) || nameEnToken.includes(normalizedInput))) return true;
+            if (normalizedInput && (normalizedInput.includes(nameToken) || (!!nameEnToken && normalizedInput.includes(nameEnToken)))) return true;
+            if (inputDigits && typeof room.name === 'string' && room.name.includes(inputDigits)) return true;
+            return false;
+          });
+
+          if (matchedRoom?.id) return matchedRoom.id;
+        }
+      }
+
+      if (allowMessageFallback) {
+        return extractRoomTypeIdFromMessages(messages);
+      }
+
+      return null;
+    };
+
     // Helper: find nearest dates with availability for suggesting alternatives
     const findNearestAvailableDates = async (roomTypeIds: string[], aroundDate: string, count = 3): Promise<string[]> => {
       try {
@@ -314,10 +381,10 @@ serve(async (req) => {
 
       if (toolName === "get_available_rooms") {
         const hasDateRange = Boolean(args?.check_in_date && args?.check_out_date);
-        const targetRoomTypeId =
-          typeof args?.room_type_id === "string" && UUID_REGEX.test(args.room_type_id)
-            ? args.room_type_id
-            : null;
+        const hasExplicitRoomTypeInput = typeof args?.room_type_id === "string" && args.room_type_id.trim().length > 0;
+        const targetRoomTypeId = await resolveRoomTypeId(args?.room_type_id, {
+          allowMessageFallback: hasExplicitRoomTypeInput,
+        });
 
         let roomTypesQuery = supabase
           .from('room_types')
@@ -593,9 +660,10 @@ serve(async (req) => {
           return { success: false, message: "訂房最多30天" };
         }
         
-        // Validate room_type_id
-        if (!args.room_type_id || !UUID_REGEX.test(args.room_type_id)) {
-          return { success: false, message: "請選擇有效的房型" };
+        // Resolve room_type_id from UUID / room name / recent selected room context
+        const resolvedRoomTypeId = await resolveRoomTypeId(args.room_type_id, { allowMessageFallback: true });
+        if (!resolvedRoomTypeId || !UUID_REGEX.test(resolvedRoomTypeId)) {
+          return { success: false, message: "請先從房型卡片重新點選房型，再確認送出訂單" };
         }
         
         // Validate guest_count
@@ -608,12 +676,12 @@ serve(async (req) => {
         const { data: roomType, error: roomTypeError } = await supabase
           .from('room_types')
           .select('id, name, capacity, accommodation_id')
-          .eq('id', args.room_type_id)
+          .eq('id', resolvedRoomTypeId)
           .eq('accommodation_id', accommodationId)
           .single();
         
         if (roomTypeError || !roomType) {
-          console.warn('Room type not found:', args.room_type_id);
+          console.warn('Room type not found:', { raw: args.room_type_id, resolved: resolvedRoomTypeId });
           return { success: false, message: "找不到指定的房型" };
         }
         
@@ -635,7 +703,7 @@ serve(async (req) => {
         const { data: inventoryData, error: inventoryError } = await supabase.rpc(
           'get_adjusted_room_inventory_batch',
           {
-            p_room_type_id: args.room_type_id,
+            p_room_type_id: resolvedRoomTypeId,
             p_dates: datesToCheck,
             p_accommodation_id: accommodationId
           }
@@ -660,7 +728,7 @@ serve(async (req) => {
         const { data: pricingData, error: pricingError } = await supabase
           .from('room_inventory_pricing')
           .select('date, price, price_2_meals, price_3_meals')
-          .eq('room_type_id', args.room_type_id)
+          .eq('room_type_id', resolvedRoomTypeId)
           .gte('date', args.check_in_date)
           .lt('date', args.check_out_date)
           .order('date');
@@ -725,7 +793,7 @@ serve(async (req) => {
             p_accommodation_id: accommodationId,
             p_code: args.discount_code,
             p_order_amount: totalPrice,
-            p_room_type_id: args.room_type_id,
+            p_room_type_id: resolvedRoomTypeId,
             p_check_in_date: args.check_in_date
           });
           
@@ -763,7 +831,7 @@ serve(async (req) => {
             guest_email: sanitizedEmail,
             check_in_date: args.check_in_date,
             check_out_date: args.check_out_date,
-            room_type_id: args.room_type_id,
+            room_type_id: resolvedRoomTypeId,
             guest_count: guestCount,
             pet_count: petCount,
             pet_plan_price: petPlanPrice,
@@ -813,7 +881,7 @@ serve(async (req) => {
 ## 工具使用：
 - get_available_rooms：查房型/價格。看到「[系統：已向客人展示房型卡片]」時不要重複調用
 - check_discount_code：驗折扣碼
-- create_booking：建訂單，room_type_id 必須用 UUID
+- create_booking：建訂單時，room_type_id 必須使用對話中最新的 room_type_id UUID，禁止自行改寫成名稱或別名
 - is_available_for_range=false 或有 unavailable_dates 時必須告知不可訂
 
 ## 旅宿資訊：
