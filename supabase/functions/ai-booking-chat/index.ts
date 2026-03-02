@@ -207,7 +207,11 @@ serve(async (req) => {
 
     // Generate template response for room availability (skips second AI call)
     const generateAvailabilityResponse = (result: any): string => {
-      if (!result?.rooms || result.rooms.length === 0) {
+      if (result?.error) {
+        return `⚠️ 抱歉，剛剛查詢房況時發生錯誤（${result.error}）。請再試一次，或告訴我您要入住與退房日期，我馬上重查。\n\n[SUGGEST: 重新查詢房況 | 更換日期]`;
+      }
+
+      if (!Array.isArray(result?.rooms) || result.rooms.length === 0) {
         return '抱歉，目前沒有找到符合條件的房型 😔\n\n[SUGGEST: 更換日期 | 查看所有房型]';
       }
 
@@ -827,9 +831,19 @@ serve(async (req) => {
         const decoder = new TextDecoder();
         let buffer = '';
         
-        // Tool call accumulation
-        const toolCalls: { id: string; name: string; inputJson: string }[] = [];
-        let currentToolIndex = -1;
+        // Tool call accumulation (by Anthropic content block index)
+        const toolCallsByIndex = new Map<number, { id: string; name: string; inputJson: string; inputObject: any }>();
+        let shouldExecuteToolCalls = false;
+
+        const parseToolArgs = (rawArgs: string, fallbackInput: any = {}) => {
+          if (!rawArgs || !rawArgs.trim()) return fallbackInput || {};
+          try {
+            return JSON.parse(rawArgs);
+          } catch (error) {
+            console.warn('工具參數 JSON 解析失敗，改用 fallback input:', error);
+            return fallbackInput || {};
+          }
+        };
 
         try {
           while (true) {
@@ -855,8 +869,13 @@ serve(async (req) => {
                 if (eventType === 'content_block_start') {
                   const block = parsed.content_block;
                   if (block?.type === 'tool_use') {
-                    currentToolIndex = toolCalls.length;
-                    toolCalls.push({ id: block.id, name: block.name, inputJson: '' });
+                    const blockIndex = typeof parsed.index === 'number' ? parsed.index : toolCallsByIndex.size;
+                    toolCallsByIndex.set(blockIndex, {
+                      id: block.id,
+                      name: block.name,
+                      inputJson: '',
+                      inputObject: (block.input && typeof block.input === 'object') ? block.input : {}
+                    });
                   }
                 } else if (eventType === 'content_block_delta') {
                   const delta = parsed.delta;
@@ -864,149 +883,165 @@ serve(async (req) => {
                     // Convert to OpenAI-compatible format for frontend
                     const chunk = { choices: [{ delta: { content: delta.text } }] };
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
-                  } else if (delta?.type === 'input_json_delta' && currentToolIndex >= 0) {
-                    toolCalls[currentToolIndex].inputJson += delta.partial_json;
+                  } else if (delta?.type === 'input_json_delta') {
+                    const blockIndex = typeof parsed.index === 'number' ? parsed.index : -1;
+                    const toolCall = blockIndex >= 0 ? toolCallsByIndex.get(blockIndex) : null;
+                    if (toolCall && typeof delta.partial_json === 'string') {
+                      toolCall.inputJson += delta.partial_json;
+                    }
                   }
                 } else if (eventType === 'message_delta') {
                   const stopReason = parsed.delta?.stop_reason;
-                  if (stopReason === 'tool_use' && toolCalls.length > 0) {
-                    // Execute all tool calls
-                    const completedToolCalls = toolCalls.map(tc => ({
+                  if (stopReason === 'tool_use' && toolCallsByIndex.size > 0) {
+                    // Wait until message_stop to ensure all partial_json chunks are received
+                    shouldExecuteToolCalls = true;
+                  }
+                } else if (eventType === 'message_stop' && shouldExecuteToolCalls && toolCallsByIndex.size > 0) {
+                  // Execute all tool calls after message is fully complete
+                  const completedToolCalls = Array.from(toolCallsByIndex.entries())
+                    .sort(([a], [b]) => a - b)
+                    .map(([, tc]) => ({
                       id: tc.id,
-                      function: { name: tc.name, arguments: tc.inputJson }
+                      function: {
+                        name: tc.name,
+                        arguments: tc.inputJson,
+                        fallbackInput: tc.inputObject,
+                      }
                     }));
 
-                    const toolResults = await Promise.all(
-                      completedToolCalls.map(async (tc) => {
-                        try {
-                          const args = JSON.parse(tc.function.arguments);
-                          const result = await handleToolCall(tc.function.name, args);
-                          return { tool_call_id: tc.id, name: tc.function.name, result };
-                        } catch (e) {
-                          console.error('工具調用失敗:', e);
-                          return { tool_call_id: tc.id, name: tc.function.name, result: { error: '工具調用失敗' } };
-                        }
-                      })
-                    );
-
-                    // Send tool results event
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                      type: 'tool_calls_complete',
-                      results: toolResults
-                    })}\n\n`));
-
-                    // Template response for get_available_rooms
-                    const canTemplateRespond = completedToolCalls.length === 1 && 
-                      completedToolCalls[0].function.name === 'get_available_rooms';
-                    
-                    if (canTemplateRespond) {
-                      const templateText = generateAvailabilityResponse(toolResults[0].result);
-                      const fakeChunk = { choices: [{ delta: { content: templateText } }] };
-                      controller.enqueue(encoder.encode(`data: ${JSON.stringify(fakeChunk)}\n\n`));
-                    } else {
-                      // Follow-up with Claude for other tools
-                      let followUpSent = false;
+                  const toolResults = await Promise.all(
+                    completedToolCalls.map(async (tc) => {
                       try {
-                        const followUpSystemPrompt = `你是森山寫照的 AI 管家。根據工具執行結果，用友善簡潔的語言回覆客人。
+                        const args = parseToolArgs(tc.function.arguments, tc.function.fallbackInput);
+                        const result = await handleToolCall(tc.function.name, args);
+                        return { tool_call_id: tc.id, name: tc.function.name, result };
+                      } catch (e) {
+                        console.error('工具調用失敗:', e);
+                        return { tool_call_id: tc.id, name: tc.function.name, result: { error: '工具調用失敗' } };
+                      }
+                    })
+                  );
+
+                  // Send tool results event
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                    type: 'tool_calls_complete',
+                    results: toolResults
+                  })}\n\n`));
+
+                  // Template response for get_available_rooms
+                  const canTemplateRespond = completedToolCalls.length === 1 && 
+                    completedToolCalls[0].function.name === 'get_available_rooms';
+                  
+                  if (canTemplateRespond) {
+                    const templateText = generateAvailabilityResponse(toolResults[0].result);
+                    const fakeChunk = { choices: [{ delta: { content: templateText } }] };
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify(fakeChunk)}\n\n`));
+                  } else {
+                    // Follow-up with Claude for other tools
+                    let followUpSent = false;
+                    try {
+                      const followUpSystemPrompt = `你是森山寫照的 AI 管家。根據工具執行結果，用友善簡潔的語言回覆客人。
 規則：不顯示 UUID/room_type_id。價格用 NT$ 格式。適時用 emoji。每次回覆最後加 [SUGGEST: 選項1 | 選項2] 供客人點選。
 訂單完成後引導付款：[SUGGEST: 線上刷卡 | 銀行轉帳]。入住15:00後，退房11:00前。地址：宜蘭縣冬山鄉大進三路208號。`;
 
-                        // Build follow-up messages with tool results in Anthropic format
-                        const followUpMessages = [
-                          ...toAnthropicMessages(messages.slice(-6)),
-                          {
-                            role: "assistant",
-                            content: toolCalls.map(tc => ({
-                              type: "tool_use",
-                              id: tc.id,
-                              name: tc.name,
-                              input: JSON.parse(tc.inputJson || '{}')
-                            }))
-                          },
-                          {
-                            role: "user",
-                            content: toolResults.map(tr => ({
-                              type: "tool_result",
-                              tool_use_id: tr.tool_call_id,
-                              content: JSON.stringify(tr.result)
-                            }))
-                          }
-                        ];
-
-                        console.log("發送 follow-up 請求到 Anthropic API...");
-                        const followUpResponse = await fetch("https://api.anthropic.com/v1/messages", {
-                          method: "POST",
-                          headers: {
-                            "x-api-key": ANTHROPIC_API_KEY,
-                            "anthropic-version": "2023-06-01",
-                            "Content-Type": "application/json",
-                          },
-                          body: JSON.stringify({
-                            model: "claude-sonnet-4-20250514",
-                            max_tokens: 1024,
-                            system: followUpSystemPrompt,
-                            messages: followUpMessages,
-                            stream: true,
-                          }),
-                        });
-
-                        if (followUpResponse.ok && followUpResponse.body) {
-                          const followReader = followUpResponse.body.getReader();
-                          let followBuffer = '';
-                          while (true) {
-                            const { done: fDone, value: fValue } = await followReader.read();
-                            if (fDone) break;
-                            followBuffer += decoder.decode(fValue, { stream: true });
-                            const fLines = followBuffer.split('\n');
-                            followBuffer = fLines.pop() || '';
-                            for (const fLine of fLines) {
-                              if (!fLine.trim() || fLine.startsWith(':') || fLine.startsWith('event:')) continue;
-                              if (!fLine.startsWith('data: ')) continue;
-                              try {
-                                const fParsed = JSON.parse(fLine.slice(6));
-                                if (fParsed.type === 'content_block_delta' && fParsed.delta?.type === 'text_delta') {
-                                  followUpSent = true;
-                                  const chunk = { choices: [{ delta: { content: fParsed.delta.text } }] };
-                                  controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
-                                }
-                              } catch (_) {}
-                            }
-                          }
-                        } else {
-                          const errText = await followUpResponse.text().catch(() => '');
-                          console.error('Follow-up Claude call failed:', followUpResponse.status, errText);
+                      // Build follow-up messages with tool results in Anthropic format
+                      const followUpMessages = [
+                        ...toAnthropicMessages(messages.slice(-6)),
+                        {
+                          role: "assistant",
+                          content: completedToolCalls.map(tc => ({
+                            type: "tool_use",
+                            id: tc.id,
+                            name: tc.function.name,
+                            input: parseToolArgs(tc.function.arguments, tc.function.fallbackInput)
+                          }))
+                        },
+                        {
+                          role: "user",
+                          content: toolResults.map(tr => ({
+                            type: "tool_result",
+                            tool_use_id: tr.tool_call_id,
+                            content: JSON.stringify(tr.result)
+                          }))
                         }
-                      } catch (followErr) {
-                        console.error('Follow-up Claude call failed:', followErr);
+                      ];
+
+                      console.log("發送 follow-up 請求到 Anthropic API...");
+                      const followUpResponse = await fetch("https://api.anthropic.com/v1/messages", {
+                        method: "POST",
+                        headers: {
+                          "x-api-key": ANTHROPIC_API_KEY,
+                          "anthropic-version": "2023-06-01",
+                          "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                          model: "claude-sonnet-4-20250514",
+                          max_tokens: 1024,
+                          system: followUpSystemPrompt,
+                          messages: followUpMessages,
+                          stream: true,
+                        }),
+                      });
+
+                      if (followUpResponse.ok && followUpResponse.body) {
+                        const followReader = followUpResponse.body.getReader();
+                        let followBuffer = '';
+                        while (true) {
+                          const { done: fDone, value: fValue } = await followReader.read();
+                          if (fDone) break;
+                          followBuffer += decoder.decode(fValue, { stream: true });
+                          const fLines = followBuffer.split('\n');
+                          followBuffer = fLines.pop() || '';
+                          for (const fLine of fLines) {
+                            if (!fLine.trim() || fLine.startsWith(':') || fLine.startsWith('event:')) continue;
+                            if (!fLine.startsWith('data: ')) continue;
+                            try {
+                              const fParsed = JSON.parse(fLine.slice(6));
+                              if (fParsed.type === 'content_block_delta' && fParsed.delta?.type === 'text_delta') {
+                                followUpSent = true;
+                                const chunk = { choices: [{ delta: { content: fParsed.delta.text } }] };
+                                controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
+                              }
+                            } catch (_) {}
+                          }
+                        }
+                      } else {
+                        const errText = await followUpResponse.text().catch(() => '');
+                        console.error('Follow-up Claude call failed:', followUpResponse.status, errText);
                       }
+                    } catch (followErr) {
+                      console.error('Follow-up Claude call failed:', followErr);
+                    }
 
-                      // Fallback: if follow-up produced no text, generate a simple response from tool results
-                      if (!followUpSent) {
-                        console.log("Follow-up 未產生文字，使用 fallback 回應");
-                        let fallbackText = '';
-                        for (const tr of toolResults) {
-                          const r = tr.result as any;
-                          if (tr.name === 'create_booking') {
-                            if (r?.success) {
-                              fallbackText = `✅ 訂單已建立成功！\n\n📋 訂單編號：**${r.order_number}**\n💰 總金額：NT$ ${r.final_price?.toLocaleString()}\n\n請問您要如何付款呢？\n\n[SUGGEST: 線上刷卡 | 銀行轉帳]`;
-                            } else {
-                              fallbackText = `❌ ${r?.message || '訂單建立失敗，請稍後再試'}`;
-                            }
-                          } else if (tr.name === 'check_discount_code') {
-                            if (r?.is_valid) {
-                              fallbackText = `✅ 折扣碼有效！折扣：${r.discount_value}${r.discount_type === 'percentage' ? '%' : ' 元'}`;
-                            } else {
-                              fallbackText = `❌ ${r?.message || '折扣碼無效'}`;
-                            }
+                    // Fallback: if follow-up produced no text, generate a simple response from tool results
+                    if (!followUpSent) {
+                      console.log("Follow-up 未產生文字，使用 fallback 回應");
+                      let fallbackText = '';
+                      for (const tr of toolResults) {
+                        const r = tr.result as any;
+                        if (tr.name === 'create_booking') {
+                          if (r?.success) {
+                            fallbackText = `✅ 訂單已建立成功！\n\n📋 訂單編號：**${r.order_number}**\n💰 總金額：NT$ ${r.final_price?.toLocaleString()}\n\n請問您要如何付款呢？\n\n[SUGGEST: 線上刷卡 | 銀行轉帳]`;
+                          } else {
+                            fallbackText = `❌ ${r?.message || '訂單建立失敗，請稍後再試'}`;
+                          }
+                        } else if (tr.name === 'check_discount_code') {
+                          if (r?.is_valid) {
+                            fallbackText = `✅ 折扣碼有效！折扣：${r.discount_value}${r.discount_type === 'percentage' ? '%' : ' 元'}`;
+                          } else {
+                            fallbackText = `❌ ${r?.message || '折扣碼無效'}`;
                           }
                         }
-                        if (fallbackText) {
-                          const chunk = { choices: [{ delta: { content: fallbackText } }] };
-                          controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
-                        }
+                      }
+                      if (fallbackText) {
+                        const chunk = { choices: [{ delta: { content: fallbackText } }] };
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
                       }
                     }
                   }
+
+                  shouldExecuteToolCalls = false;
+                  toolCallsByIndex.clear();
                 }
               } catch (e) {
                 console.error('解析 Anthropic SSE 失敗:', e);
