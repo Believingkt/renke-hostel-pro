@@ -290,29 +290,29 @@ serve(async (req) => {
             currentDate.setDate(currentDate.getDate() + 1);
           }
 
-          const { data: rangeInventory } = await supabase
-            .from('room_inventory_pricing')
-            .select('room_type_id, date, price, price_2_meals, price_3_meals, is_available, available_rooms')
-            .in('room_type_id', roomTypeIds)
-            .gte('date', args.check_in_date)
-            .lt('date', args.check_out_date);
+          // Parallelize inventory query and adjusted batch RPC calls
+          const [inventoryResult, ...adjustedResults] = await Promise.all([
+            supabase
+              .from('room_inventory_pricing')
+              .select('room_type_id, date, price, price_2_meals, price_3_meals, is_available, available_rooms')
+              .in('room_type_id', roomTypeIds)
+              .gte('date', args.check_in_date)
+              .lt('date', args.check_out_date),
+            ...roomTypeIds.map((roomTypeId: string) =>
+              supabase.rpc('get_adjusted_room_inventory_batch', {
+                p_room_type_id: roomTypeId,
+                p_dates: datesToCheck,
+                p_accommodation_id: accommodationId
+              }).then(({ data }) => ({ roomTypeId, data: data || [] }))
+            )
+          ]);
+
+          const rangeInventory = inventoryResult.data;
 
           const inventoryByRoomDate = new Map<string, any>();
           rangeInventory?.forEach((inv: any) => {
             inventoryByRoomDate.set(`${inv.room_type_id}:${inv.date}`, inv);
           });
-
-          const adjustedResults = await Promise.all(
-            roomTypeIds.map(async (roomTypeId: string) => {
-              const { data } = await supabase.rpc('get_adjusted_room_inventory_batch', {
-                p_room_type_id: roomTypeId,
-                p_dates: datesToCheck,
-                p_accommodation_id: accommodationId
-              });
-
-              return { roomTypeId, data: data || [] };
-            })
-          );
 
           const adjustedMap = new Map<string, { available_rooms: number; is_blocked: boolean; blocked_by_room_name: string | null }>();
           adjustedResults.forEach((result: any) => {
@@ -960,6 +960,10 @@ serve(async (req) => {
                         content: JSON.stringify(tr.result)
                       }));
 
+                      const followUpSystemPrompt = `你是森山寫照的 AI 管家。根據工具執行結果，用友善簡潔的語言回覆客人。
+規則：不顯示 UUID/room_type_id。價格用 NT$ 格式。適時用 emoji。每次回覆最後加 [SUGGEST: 選項1 | 選項2] 供客人點選。
+訂單完成後引導付款：[SUGGEST: 線上刷卡 | 銀行轉帳]。入住15:00後，退房11:00前。地址：宜蘭縣冬山鄉大進三路208號。`;
+
                       const followUpResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
                         method: "POST",
                         headers: {
@@ -967,10 +971,10 @@ serve(async (req) => {
                           "Content-Type": "application/json",
                         },
                         body: JSON.stringify({
-                          model: "openai/gpt-5-mini",
+                          model: "google/gemini-2.5-flash-lite",
                           messages: [
-                            { role: "system", content: systemPrompt },
-                            ...messages,
+                            { role: "system", content: followUpSystemPrompt },
+                            ...messages.slice(-6),
                             assistantToolMsg,
                             ...toolResultMsgs
                           ],
