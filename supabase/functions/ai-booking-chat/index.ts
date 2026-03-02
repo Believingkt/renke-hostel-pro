@@ -136,9 +136,9 @@ serve(async (req) => {
       }
     }
     
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) {
+      throw new Error("ANTHROPIC_API_KEY is not configured");
     }
 
     // 初始化 Supabase client
@@ -148,75 +148,62 @@ serve(async (req) => {
 
     // Skip accommodation verification - will fail naturally on tool calls if invalid
 
-    // 定義工具（使用 Gemini 格式）
+    // 定義工具（Anthropic 格式）
     const tools = [
       {
-        type: "function",
-        function: {
-          name: "get_available_rooms",
-          description: "查詢可用的房型和價格。可以不提供日期直接查詢所有房型資訊。",
-          parameters: {
-            type: "object",
-            properties: {
-              check_in_date: {
-                type: "string",
-                description: "入住日期，格式：YYYY-MM-DD（選填）"
-              },
-              check_out_date: {
-                type: "string",
-                description: "退房日期，格式：YYYY-MM-DD（選填）"
-              },
-              room_type_id: {
-                type: "string",
-                description: "房型 ID（選填，用於查詢指定房型）"
-              }
-            },
-            required: []
-          }
+        name: "get_available_rooms",
+        description: "查詢可用的房型和價格。可以不提供日期直接查詢所有房型資訊。",
+        input_schema: {
+          type: "object",
+          properties: {
+            check_in_date: { type: "string", description: "入住日期，格式：YYYY-MM-DD（選填）" },
+            check_out_date: { type: "string", description: "退房日期，格式：YYYY-MM-DD（選填）" },
+            room_type_id: { type: "string", description: "房型 ID（選填，用於查詢指定房型）" }
+          },
+          required: []
         }
       },
       {
-        type: "function",
-        function: {
-          name: "check_discount_code",
-          description: "驗證折扣碼是否有效",
-          parameters: {
-            type: "object",
-            properties: {
-              code: {
-                type: "string",
-                description: "折扣碼"
-              }
-            },
-            required: ["code"]
-          }
+        name: "check_discount_code",
+        description: "驗證折扣碼是否有效",
+        input_schema: {
+          type: "object",
+          properties: {
+            code: { type: "string", description: "折扣碼" }
+          },
+          required: ["code"]
         }
       },
       {
-        type: "function",
-        function: {
-          name: "create_booking",
-          description: "創建訂單",
-          parameters: {
-            type: "object",
-            properties: {
-              guest_name: { type: "string", description: "客人姓名" },
-              guest_phone: { type: "string", description: "客人手機" },
-              guest_email: { type: "string", description: "客人 Email" },
-              check_in_date: { type: "string", description: "入住日期 YYYY-MM-DD" },
-              check_out_date: { type: "string", description: "退房日期 YYYY-MM-DD" },
-              room_type_id: { type: "string", description: "房型 ID" },
-              guest_count: { type: "number", description: "人數" },
-              pet_count: { type: "number", description: "毛孩數量" },
-              meal_plan: { type: "string", description: "餐食方案：2_meals（一泊二食）或 3_meals（一泊三食/含烤肉），不加購餐食則不傳此欄位" },
-              discount_code: { type: "string", description: "折扣碼（選填）" },
-              notes: { type: "string", description: "備註（選填）" }
-            },
-            required: ["guest_name", "guest_phone", "check_in_date", "check_out_date", "room_type_id", "guest_count"]
-          }
+        name: "create_booking",
+        description: "創建訂單",
+        input_schema: {
+          type: "object",
+          properties: {
+            guest_name: { type: "string", description: "客人姓名" },
+            guest_phone: { type: "string", description: "客人手機" },
+            guest_email: { type: "string", description: "客人 Email" },
+            check_in_date: { type: "string", description: "入住日期 YYYY-MM-DD" },
+            check_out_date: { type: "string", description: "退房日期 YYYY-MM-DD" },
+            room_type_id: { type: "string", description: "房型 ID" },
+            guest_count: { type: "number", description: "人數" },
+            pet_count: { type: "number", description: "毛孩數量" },
+            meal_plan: { type: "string", description: "餐食方案：2_meals（一泊二食）或 3_meals（一泊三食/含烤肉），不加購餐食則不傳此欄位" },
+            discount_code: { type: "string", description: "折扣碼（選填）" },
+            notes: { type: "string", description: "備註（選填）" }
+          },
+          required: ["guest_name", "guest_phone", "check_in_date", "check_out_date", "room_type_id", "guest_count"]
         }
       }
     ];
+
+    // Helper: convert messages to Anthropic format (filter out system role)
+    const toAnthropicMessages = (msgs: any[]) => {
+      return msgs.filter(m => m.role !== 'system').map(m => ({
+        role: m.role === 'assistant' ? 'assistant' : 'user',
+        content: m.content
+      }));
+    };
 
     // Generate template response for room availability (skips second AI call)
     const generateAvailabilityResponse = (result: any): string => {
@@ -795,65 +782,54 @@ serve(async (req) => {
 - 訂單完成後：[SUGGEST: 線上刷卡 | 銀行轉帳]，引導在下方付款區域操作
 - 不要說「寄送付款連結」，付款在對話中完成`;
 
-    console.log("發送請求到 AI Gateway...");
+    console.log("發送請求到 Anthropic API...");
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const anthropicMessages = toAnthropicMessages(messages.slice(-12));
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...messages.slice(-12)
-        ],
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages: anthropicMessages,
         tools,
-        tool_choice: "auto",
         stream: true,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("AI Gateway 錯誤:", response.status, errorText);
+      console.error("Anthropic API 錯誤:", response.status, errorText);
       
       if (response.status === 429) {
-        return new Response(JSON.stringify({ 
-          error: "使用量超過限制，請稍後再試" 
-        }), {
+        return new Response(JSON.stringify({ error: "使用量超過限制，請稍後再試" }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ 
-          error: "AI 服務需要充值，請聯絡管理員" 
-        }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
 
-      throw new Error("AI Gateway 回應失敗");
+      throw new Error("Anthropic API 回應失敗");
     }
 
-
-    // 建立 streaming response with tool handling
+    // 建立 streaming response - parse Anthropic SSE and convert to OpenAI-compatible format
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
         const reader = response.body?.getReader();
-        if (!reader) {
-          controller.close();
-          return;
-        }
+        if (!reader) { controller.close(); return; }
 
         const decoder = new TextDecoder();
         let buffer = '';
-        const toolCallsMap = new Map(); // 用於累積工具調用
+        
+        // Tool call accumulation
+        const toolCalls: { id: string; name: string; inputJson: string }[] = [];
+        let currentToolIndex = -1;
 
         try {
           while (true) {
@@ -866,86 +842,108 @@ serve(async (req) => {
 
             for (const line of lines) {
               if (!line.trim() || line.startsWith(':')) continue;
+              
+              // Anthropic sends "event: xxx" then "data: {...}"
+              if (line.startsWith('event:')) continue;
               if (!line.startsWith('data: ')) continue;
 
               const data = line.slice(6);
-              if (data === '[DONE]') {
-                // 處理已累積的工具調用
-                if (toolCallsMap.size > 0) {
-                  const toolCalls = Array.from(toolCallsMap.values());
-                  const completedToolCalls = toolCalls.filter(
-                    tc => tc.function?.name && tc.function?.arguments
-                  );
-                  
-                  if (completedToolCalls.length > 0) {
+              try {
+                const parsed = JSON.parse(data);
+                const eventType = parsed.type;
+
+                if (eventType === 'content_block_start') {
+                  const block = parsed.content_block;
+                  if (block?.type === 'tool_use') {
+                    currentToolIndex = toolCalls.length;
+                    toolCalls.push({ id: block.id, name: block.name, inputJson: '' });
+                  }
+                } else if (eventType === 'content_block_delta') {
+                  const delta = parsed.delta;
+                  if (delta?.type === 'text_delta' && delta.text) {
+                    // Convert to OpenAI-compatible format for frontend
+                    const chunk = { choices: [{ delta: { content: delta.text } }] };
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
+                  } else if (delta?.type === 'input_json_delta' && currentToolIndex >= 0) {
+                    toolCalls[currentToolIndex].inputJson += delta.partial_json;
+                  }
+                } else if (eventType === 'message_delta') {
+                  const stopReason = parsed.delta?.stop_reason;
+                  if (stopReason === 'tool_use' && toolCalls.length > 0) {
+                    // Execute all tool calls
+                    const completedToolCalls = toolCalls.map(tc => ({
+                      id: tc.id,
+                      function: { name: tc.name, arguments: tc.inputJson }
+                    }));
+
                     const toolResults = await Promise.all(
                       completedToolCalls.map(async (tc) => {
                         try {
                           const args = JSON.parse(tc.function.arguments);
                           const result = await handleToolCall(tc.function.name, args);
-                          return { tool_call_id: tc.id, result };
+                          return { tool_call_id: tc.id, name: tc.function.name, result };
                         } catch (e) {
                           console.error('工具調用失敗:', e);
-                          return { tool_call_id: tc.id, result: { error: '工具調用失敗' } };
+                          return { tool_call_id: tc.id, name: tc.function.name, result: { error: '工具調用失敗' } };
                         }
                       })
                     );
 
-                    // 發送工具執行結果
+                    // Send tool results event
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                       type: 'tool_calls_complete',
                       results: toolResults
                     })}\n\n`));
 
-                    // Generate response: use template for get_available_rooms, AI for others
+                    // Template response for get_available_rooms
                     const canTemplateRespond = completedToolCalls.length === 1 && 
                       completedToolCalls[0].function.name === 'get_available_rooms';
                     
                     if (canTemplateRespond) {
-                      // Direct template response - no second AI call needed
-                      const result = toolResults[0].result as any;
-                      const templateText = generateAvailabilityResponse(result);
-                      // Stream as a single SSE chunk
-                      const fakeChunk = {
-                        choices: [{ delta: { content: templateText } }]
-                      };
+                      const templateText = generateAvailabilityResponse(toolResults[0].result);
+                      const fakeChunk = { choices: [{ delta: { content: templateText } }] };
                       controller.enqueue(encoder.encode(`data: ${JSON.stringify(fakeChunk)}\n\n`));
                     } else {
-                      // Other tools need AI interpretation
+                      // Follow-up with Claude for other tools
                       try {
-                        const assistantToolMsg = {
-                          role: "assistant",
-                          content: null,
-                          tool_calls: completedToolCalls.map(tc => ({
-                            id: tc.id,
-                            type: "function",
-                            function: { name: tc.function.name, arguments: tc.function.arguments }
-                          }))
-                        };
-                        const toolResultMsgs = toolResults.map(tr => ({
-                          role: "tool",
-                          tool_call_id: tr.tool_call_id,
-                          content: JSON.stringify(tr.result)
-                        }));
-
                         const followUpSystemPrompt = `你是森山寫照的 AI 管家。根據工具執行結果，用友善簡潔的語言回覆客人。
 規則：不顯示 UUID/room_type_id。價格用 NT$ 格式。適時用 emoji。每次回覆最後加 [SUGGEST: 選項1 | 選項2] 供客人點選。
 訂單完成後引導付款：[SUGGEST: 線上刷卡 | 銀行轉帳]。入住15:00後，退房11:00前。地址：宜蘭縣冬山鄉大進三路208號。`;
 
-                        const followUpResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                        // Build follow-up messages with tool results in Anthropic format
+                        const followUpMessages = [
+                          ...toAnthropicMessages(messages.slice(-6)),
+                          {
+                            role: "assistant",
+                            content: toolCalls.map(tc => ({
+                              type: "tool_use",
+                              id: tc.id,
+                              name: tc.name,
+                              input: JSON.parse(tc.inputJson || '{}')
+                            }))
+                          },
+                          {
+                            role: "user",
+                            content: toolResults.map(tr => ({
+                              type: "tool_result",
+                              tool_use_id: tr.tool_call_id,
+                              content: JSON.stringify(tr.result)
+                            }))
+                          }
+                        ];
+
+                        const followUpResponse = await fetch("https://api.anthropic.com/v1/messages", {
                           method: "POST",
                           headers: {
-                            "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+                            "x-api-key": ANTHROPIC_API_KEY,
+                            "anthropic-version": "2023-06-01",
                             "Content-Type": "application/json",
                           },
                           body: JSON.stringify({
-                            model: "google/gemini-2.5-flash-lite",
-                            messages: [
-                              { role: "system", content: followUpSystemPrompt },
-                              ...messages.slice(-6),
-                              assistantToolMsg,
-                              ...toolResultMsgs
-                            ],
+                            model: "claude-sonnet-4-20250514",
+                            max_tokens: 1024,
+                            system: followUpSystemPrompt,
+                            messages: followUpMessages,
                             stream: true,
                           }),
                         });
@@ -960,64 +958,26 @@ serve(async (req) => {
                             const fLines = followBuffer.split('\n');
                             followBuffer = fLines.pop() || '';
                             for (const fLine of fLines) {
-                              if (!fLine.trim() || fLine.startsWith(':')) continue;
+                              if (!fLine.trim() || fLine.startsWith(':') || fLine.startsWith('event:')) continue;
                               if (!fLine.startsWith('data: ')) continue;
-                              const fData = fLine.slice(6).trim();
-                              if (fData === '[DONE]') continue;
                               try {
-                                const fParsed = JSON.parse(fData);
-                                const fContent = fParsed.choices?.[0]?.delta?.content;
-                                if (fContent) {
-                                  controller.enqueue(encoder.encode(`data: ${fData}\n\n`));
+                                const fParsed = JSON.parse(fLine.slice(6));
+                                if (fParsed.type === 'content_block_delta' && fParsed.delta?.type === 'text_delta') {
+                                  const chunk = { choices: [{ delta: { content: fParsed.delta.text } }] };
+                                  controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
                                 }
                               } catch (_) {}
                             }
                           }
                         }
                       } catch (followErr) {
-                        console.error('Follow-up AI call failed:', followErr);
+                        console.error('Follow-up Claude call failed:', followErr);
                       }
                     }
                   }
                 }
-                continue;
-              }
-
-              try {
-                const parsed = JSON.parse(data);
-                const delta = parsed.choices?.[0]?.delta;
-
-                // 累積工具調用
-                if (delta?.tool_calls) {
-                  for (const tc of delta.tool_calls) {
-                    const index = tc.index ?? 0;
-                    
-                    if (!toolCallsMap.has(index)) {
-                      toolCallsMap.set(index, {
-                        id: tc.id || `call_${index}`,
-                        type: 'function',
-                        function: {
-                          name: '',
-                          arguments: ''
-                        }
-                      });
-                    }
-                    
-                    const existing = toolCallsMap.get(index);
-                    if (tc.id) existing.id = tc.id;
-                    if (tc.function?.name) existing.function.name = tc.function.name;
-                    if (tc.function?.arguments) existing.function.arguments += tc.function.arguments;
-                  }
-                  continue;
-                }
-
-                // 轉發文字內容
-                if (delta?.content) {
-                  controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-                }
-
               } catch (e) {
-                console.error('解析 SSE 失敗:', e);
+                console.error('解析 Anthropic SSE 失敗:', e);
               }
             }
           }
