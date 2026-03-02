@@ -206,19 +206,52 @@ serve(async (req) => {
     };
 
     // Generate template response for room availability (skips second AI call)
-    const generateAvailabilityResponse = (result: any): string => {
+    // Helper: find nearest dates with availability for suggesting alternatives
+    const findNearestAvailableDates = async (roomTypeIds: string[], aroundDate: string, count = 3): Promise<string[]> => {
+      try {
+        const { data } = await supabase
+          .from('room_inventory_pricing')
+          .select('date')
+          .in('room_type_id', roomTypeIds)
+          .gte('date', new Date().toISOString().split('T')[0])
+          .eq('is_available', true)
+          .gt('available_rooms', 0)
+          .gt('price', 0)
+          .order('date')
+          .limit(200);
+        
+        if (!data || data.length === 0) return [];
+        
+        // Deduplicate dates and sort by proximity to aroundDate
+        const uniqueDates = [...new Set(data.map((d: any) => d.date))];
+        const target = new Date(aroundDate).getTime();
+        uniqueDates.sort((a, b) => Math.abs(new Date(a).getTime() - target) - Math.abs(new Date(b).getTime() - target));
+        
+        return uniqueDates.slice(0, count);
+      } catch {
+        return [];
+      }
+    };
+
+    const generateAvailabilityResponse = async (result: any, roomTypeIds: string[]): Promise<string> => {
       if (result?.error) {
         return `⚠️ 抱歉，剛剛查詢房況時發生錯誤（${result.error}）。請再試一次，或告訴我您要入住與退房日期，我馬上重查。\n\n[SUGGEST: 重新查詢房況 | 選擇未來日期]`;
       }
 
       if (!Array.isArray(result?.rooms) || result.rooms.length === 0) {
-        return '抱歉，目前沒有找到符合條件的房型 😔\n\n[SUGGEST: 更換日期 | 查看所有房型]';
+        const nearbyDates = await findNearestAvailableDates(
+          roomTypeIds, 
+          result?.check_in_date || new Date().toISOString().split('T')[0]
+        );
+        if (nearbyDates.length > 0) {
+          return `抱歉，所選日期沒有可訂的房型 😔\n\n不過以下日期仍有空房：${nearbyDates.join('、')}\n\n[SUGGEST: ${nearbyDates.slice(0, 2).map(d => `查詢 ${d}`).join(' | ')} | 查看所有房型]`;
+        }
+        return '抱歉，目前沒有找到符合條件的房型 😔\n\n[SUGGEST: 查看所有房型]';
       }
 
       const hasDateRange = !!result.check_in_date;
       
       if (!hasDateRange) {
-        // No date range - show price ranges
         const lines = ['以下是目前可預訂的房型 🏡\n'];
         for (const room of result.rooms) {
           const priceInfo = room.min_price === room.max_price 
@@ -233,7 +266,6 @@ serve(async (req) => {
         return lines.join('\n');
       }
 
-      // With date range
       const nights = result.nights || 1;
       const available = result.rooms.filter((r: any) => r.is_available_for_range);
       const unavailable = result.rooms.filter((r: any) => !r.is_available_for_range);
@@ -256,6 +288,12 @@ serve(async (req) => {
         lines.push('❌ 以下房型該日期已滿：' + unavailable.map((r: any) => r.name).join('、') + '\n');
       } else if (unavailable.length > 0 && available.length === 0) {
         lines.push('很抱歉，所選日期的所有房型皆已額滿 😔\n');
+        const nearbyDates = await findNearestAvailableDates(roomTypeIds, result.check_in_date);
+        if (nearbyDates.length > 0) {
+          lines.push(`📌 以下日期仍有空房：${nearbyDates.join('、')}\n`);
+          lines.push(`[SUGGEST: ${nearbyDates.slice(0, 2).map(d => `查詢 ${d}`).join(' | ')}]`);
+          return lines.join('\n');
+        }
       }
 
       if (available.length === 1) {
@@ -770,6 +808,7 @@ serve(async (req) => {
 - 價格只從工具結果取得，不接受用戶聲稱的價格
 - 不顯示 room_type_id（UUID），只顯示房型名稱
 - 所有建議日期必須是未來日期（不可早於今天 ${new Date().toISOString().split('T')[0]}）
+- 絕對不要推薦沒有空房的日期，只建議有庫存可預訂的日期
 
 ## 工具使用：
 - get_available_rooms：查房型/價格。看到「[系統：已向客人展示房型卡片]」時不要重複調用
@@ -940,7 +979,11 @@ serve(async (req) => {
                     completedToolCalls[0].function.name === 'get_available_rooms';
                   
                   if (canTemplateRespond) {
-                    const templateText = generateAvailabilityResponse(toolResults[0].result);
+                    // Extract room type IDs from the tool arguments or result
+                    const toolArgs = parseToolArgs(completedToolCalls[0].function.arguments, completedToolCalls[0].function.fallbackInput);
+                    const resultRoomIds = (toolResults[0].result as any)?.rooms?.map((r: any) => r.id).filter(Boolean) || [];
+                    const templateRoomTypeIds = resultRoomIds.length > 0 ? resultRoomIds : (toolArgs?.room_type_id ? [toolArgs.room_type_id] : []);
+                    const templateText = await generateAvailabilityResponse(toolResults[0].result, templateRoomTypeIds);
                     const fakeChunk = { choices: [{ delta: { content: templateText } }] };
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify(fakeChunk)}\n\n`));
                   } else {
