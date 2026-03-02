@@ -905,6 +905,7 @@ serve(async (req) => {
                       controller.enqueue(encoder.encode(`data: ${JSON.stringify(fakeChunk)}\n\n`));
                     } else {
                       // Follow-up with Claude for other tools
+                      let followUpSent = false;
                       try {
                         const followUpSystemPrompt = `你是森山寫照的 AI 管家。根據工具執行結果，用友善簡潔的語言回覆客人。
 規則：不顯示 UUID/room_type_id。價格用 NT$ 格式。適時用 emoji。每次回覆最後加 [SUGGEST: 選項1 | 選項2] 供客人點選。
@@ -932,6 +933,7 @@ serve(async (req) => {
                           }
                         ];
 
+                        console.log("發送 follow-up 請求到 Anthropic API...");
                         const followUpResponse = await fetch("https://api.anthropic.com/v1/messages", {
                           method: "POST",
                           headers: {
@@ -963,15 +965,45 @@ serve(async (req) => {
                               try {
                                 const fParsed = JSON.parse(fLine.slice(6));
                                 if (fParsed.type === 'content_block_delta' && fParsed.delta?.type === 'text_delta') {
+                                  followUpSent = true;
                                   const chunk = { choices: [{ delta: { content: fParsed.delta.text } }] };
                                   controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
                                 }
                               } catch (_) {}
                             }
                           }
+                        } else {
+                          const errText = await followUpResponse.text().catch(() => '');
+                          console.error('Follow-up Claude call failed:', followUpResponse.status, errText);
                         }
                       } catch (followErr) {
                         console.error('Follow-up Claude call failed:', followErr);
+                      }
+
+                      // Fallback: if follow-up produced no text, generate a simple response from tool results
+                      if (!followUpSent) {
+                        console.log("Follow-up 未產生文字，使用 fallback 回應");
+                        let fallbackText = '';
+                        for (const tr of toolResults) {
+                          const r = tr.result as any;
+                          if (tr.name === 'create_booking') {
+                            if (r?.success) {
+                              fallbackText = `✅ 訂單已建立成功！\n\n📋 訂單編號：**${r.order_number}**\n💰 總金額：NT$ ${r.final_price?.toLocaleString()}\n\n請問您要如何付款呢？\n\n[SUGGEST: 線上刷卡 | 銀行轉帳]`;
+                            } else {
+                              fallbackText = `❌ ${r?.message || '訂單建立失敗，請稍後再試'}`;
+                            }
+                          } else if (tr.name === 'check_discount_code') {
+                            if (r?.is_valid) {
+                              fallbackText = `✅ 折扣碼有效！折扣：${r.discount_value}${r.discount_type === 'percentage' ? '%' : ' 元'}`;
+                            } else {
+                              fallbackText = `❌ ${r?.message || '折扣碼無效'}`;
+                            }
+                          }
+                        }
+                        if (fallbackText) {
+                          const chunk = { choices: [{ delta: { content: fallbackText } }] };
+                          controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
+                        }
                       }
                     }
                   }
