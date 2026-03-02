@@ -64,6 +64,8 @@ export default function AIBooking() {
   const [selectedCheckOut, setSelectedCheckOut] = useState<Date>();
   const [selectedRoomAvailableDates, setSelectedRoomAvailableDates] = useState<Set<string>>(new Set());
   const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
+  const [selectedRoomTypeId, setSelectedRoomTypeId] = useState<string | null>(null);
+  const [selectedRoomName, setSelectedRoomName] = useState<string | null>(null);
   const [showAvatarLightbox, setShowAvatarLightbox] = useState(false);
   const [showSettingsPanel, setShowSettingsPanel] = useState(() => searchParams.get('tab') === 'settings');
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -498,6 +500,9 @@ export default function AIBooking() {
 
   // 選擇房型後顯示確認訊息 + 日期選擇器
   const handleSelectRoom = async (roomName: string, roomId: string) => {
+    // Store selected room for direct availability query on date confirm
+    setSelectedRoomTypeId(roomId);
+    setSelectedRoomName(roomName);
     // 加入使用者選擇訊息，包含 room_type_id 讓 AI 後端知道 UUID
     setMessages(prev => [
       ...prev,
@@ -1361,7 +1366,7 @@ export default function AIBooking() {
                           variant="frontend"
                         />
                         <Button
-                          onClick={() => {
+                          onClick={async () => {
                             if (selectedCheckIn && selectedCheckOut) {
                               const formatLocal = (d: Date) => {
                                 const y = d.getFullYear();
@@ -1369,10 +1374,107 @@ export default function AIBooking() {
                                 const dd = String(d.getDate()).padStart(2, '0');
                                 return `${y}-${m}-${dd}`;
                               };
-                              const dateMessage = `入住日期：${formatLocal(selectedCheckIn)}，退房日期：${formatLocal(selectedCheckOut)}`;
-                              sendMessageWithContent(dateMessage);
+                              const checkInStr = formatLocal(selectedCheckIn);
+                              const checkOutStr = formatLocal(selectedCheckOut);
+                              const roomId = selectedRoomTypeId;
+                              const roomName = selectedRoomName;
+
+                              // Add user message
+                              const dateMessage = `入住日期：${checkInStr}，退房日期：${checkOutStr}`;
+                              setMessages(prev => [...prev, { role: "user", content: dateMessage, timestamp: new Date() }]);
                               setSelectedCheckIn(undefined);
                               setSelectedCheckOut(undefined);
+
+                              if (roomId) {
+                                // Direct frontend query - skip AI round-trip for speed
+                                setIsLoading(true);
+                                try {
+                                  const datesToCheck: string[] = [];
+                                  const cursor = new Date(selectedCheckIn);
+                                  const endDate = new Date(selectedCheckOut);
+                                  while (cursor < endDate) {
+                                    datesToCheck.push(formatLocal(cursor));
+                                    cursor.setDate(cursor.getDate() + 1);
+                                  }
+                                  const nights = datesToCheck.length;
+
+                                  const [{ data: inventory }, { data: adjustedBatch }] = await Promise.all([
+                                    supabase
+                                      .from('room_inventory_pricing')
+                                      .select('date, price, price_2_meals, price_3_meals, is_available, available_rooms')
+                                      .eq('room_type_id', roomId)
+                                      .gte('date', checkInStr)
+                                      .lt('date', checkOutStr),
+                                    supabase.rpc('get_adjusted_room_inventory_batch', {
+                                      p_room_type_id: roomId,
+                                      p_dates: datesToCheck,
+                                      p_accommodation_id: accommodationId
+                                    })
+                                  ]);
+
+                                  let totalPrice = 0;
+                                  let totalPrice2Meals = 0;
+                                  let has2Meals = true;
+                                  let allAvailable = true;
+                                  const unavailableDates: string[] = [];
+
+                                  const invMap = new Map<string, any>();
+                                  inventory?.forEach((inv: any) => invMap.set(inv.date, inv));
+                                  const adjMap = new Map<string, number>();
+                                  adjustedBatch?.forEach((item: any) => adjMap.set(item.date_value, item.available_rooms));
+
+                                  for (const date of datesToCheck) {
+                                    const inv = invMap.get(date);
+                                    const adjRooms = adjMap.get(date) ?? 0;
+                                    const isAvail = !!inv && inv.is_available !== false && adjRooms > 0 && Number(inv.price) > 0;
+                                    if (!isAvail) {
+                                      allAvailable = false;
+                                      unavailableDates.push(date);
+                                    } else {
+                                      totalPrice += Number(inv.price);
+                                      if (Number(inv.price_2_meals) > 0) {
+                                        totalPrice2Meals += Number(inv.price_2_meals);
+                                      } else {
+                                        has2Meals = false;
+                                      }
+                                    }
+                                  }
+
+                                  if (allAvailable) {
+                                    const priceLines = [`📅 入住 **${checkInStr}** ～ 退房 **${checkOutStr}**（${nights}晚）\n`,
+                                      `✅ **${roomName}** 可預訂！\n`,
+                                      `💰 總價 NT$ ${totalPrice.toLocaleString()}`];
+                                    if (has2Meals && totalPrice2Meals > 0) {
+                                      priceLines.push(`🍽️ 一泊二食 NT$ ${totalPrice2Meals.toLocaleString()}`);
+                                    }
+                                    priceLines.push('\n請問是否要預訂？需要您的姓名、手機號碼與人數。');
+                                    setMessages(prev => [...prev, {
+                                      role: "assistant",
+                                      content: priceLines.join('\n'),
+                                      timestamp: new Date(),
+                                      quickReplies: [`預訂${roomName}`, "更換日期", "查看其他房型"],
+                                    }]);
+                                    // Context is preserved in messages for future AI calls
+                                  } else {
+                                    setMessages(prev => [...prev, {
+                                      role: "assistant",
+                                      content: `📅 ${checkInStr} ～ ${checkOutStr}\n\n❌ 很抱歉，「${roomName}」在以下日期無法預訂：${unavailableDates.join('、')}\n\n請選擇其他日期或房型。`,
+                                      timestamp: new Date(),
+                                      showDatePicker: "range" as const,
+                                      quickReplies: ["查看其他房型"],
+                                    }]);
+                                  }
+                                } catch (err) {
+                                  console.error('直接查詢房況失敗:', err);
+                                  // Fallback to AI
+                                  sendMessageWithContent(dateMessage);
+                                } finally {
+                                  setIsLoading(false);
+                                }
+                              } else {
+                                // No room selected, fall back to AI
+                                sendMessageWithContent(dateMessage);
+                              }
                             } else {
                               toast({
                                 title: "請選擇日期",
