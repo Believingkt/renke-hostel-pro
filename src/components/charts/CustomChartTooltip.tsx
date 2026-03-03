@@ -26,21 +26,22 @@ export const CustomChartTooltip = ({
   if (!active || !payload || payload.length === 0) return null;
 
   // 计算增长率
-  const calculateGrowth = () => {
+  const calculateGrowthData = (): { growth: number | null; diff: number } | null => {
     if (isCustomRange || payload.length < 2) return null;
     
-    // payload[0] is the comparison (去年/上月), payload[1] is current (今年/本月)
     const current = payload[1]?.value || 0;
     const previous = payload[0]?.value || 0;
     
     if (previous === 0 && current === 0) return null;
-    if (previous === 0) return null; // 去年為0時不顯示增長率
+    
+    const diff = current - previous;
+    if (previous === 0) return { growth: null, diff };
     
     const growth = ((current - previous) / previous) * 100;
-    return growth;
+    return { growth, diff };
   };
 
-  const growth = calculateGrowth();
+  const growthData = calculateGrowthData();
   const isFuture = payload[0]?.payload?.isFuture;
 
   return (
@@ -74,22 +75,24 @@ export const CustomChartTooltip = ({
         })}
       </div>
 
-      {growth !== null && !isFuture && (
+      {growthData !== null && !isFuture && (
         <div className="mt-2 pt-2 border-t border-border">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">增長率</span>
-            <span className={`text-sm font-semibold ${
-              growth >= 0 ? 'text-primary' : 'text-red-600'
-            }`}>
-              {growth >= 0 ? '+' : ''}{growth.toFixed(1)}%
-            </span>
-          </div>
-          <div className="flex items-center justify-between mt-1">
+          {growthData.growth !== null && (
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">增長率</span>
+              <span className={`text-sm font-semibold ${
+                growthData.growth >= 0 ? 'text-primary' : 'text-red-600'
+              }`}>
+                {growthData.growth >= 0 ? '+' : ''}{growthData.growth.toFixed(1)}%
+              </span>
+            </div>
+          )}
+          <div className={`flex items-center justify-between ${growthData.growth !== null ? 'mt-1' : ''}`}>
             <span className="text-xs text-muted-foreground">差異</span>
             <span className={`text-xs font-medium ${
-              growth >= 0 ? 'text-primary' : 'text-red-600'
+              growthData.diff >= 0 ? 'text-primary' : 'text-red-600'
             }`}>
-              {growth >= 0 ? '+' : ''}{valueFormatter(payload[1].value - payload[0].value)}
+              {growthData.diff >= 0 ? '+' : ''}{valueFormatter(growthData.diff)}
             </span>
           </div>
         </div>
