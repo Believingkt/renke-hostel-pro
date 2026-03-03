@@ -1424,10 +1424,10 @@ export default function AIBooking() {
                             head_cell: "text-muted-foreground rounded-md w-10 sm:w-8 font-normal text-[0.8rem]",
                             day: "h-10 w-10 sm:h-8 sm:w-8 p-0 font-normal aria-selected:opacity-100 hover:bg-primary/10 hover:text-primary inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm transition-colors focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50",
                             day_range_middle: "aria-selected:!bg-primary/20 aria-selected:!text-primary !rounded-md",
-                            day_selected: "!bg-primary !text-primary-foreground !font-bold !shadow-md !ring-2 !ring-primary/40 hover:!bg-primary hover:!text-primary-foreground focus:!bg-primary focus:!text-primary-foreground",
+                            day_selected: "!bg-[hsl(160,60%,30%)] !text-white !font-bold !shadow-md hover:!bg-[hsl(160,60%,25%)] hover:!text-white focus:!bg-[hsl(160,60%,30%)] focus:!text-white",
                             day_today: "border-2 border-primary font-semibold",
-                            day_range_start: "!bg-primary !text-primary-foreground !font-bold !shadow-md !ring-2 !ring-primary/40 !rounded-md",
-                            day_range_end: "!bg-primary !text-primary-foreground !font-bold !shadow-md !ring-2 !ring-primary/40 !rounded-md",
+                            day_range_start: "!bg-[hsl(160,60%,30%)] !text-white !font-bold !shadow-md !rounded-md",
+                            day_range_end: "!bg-[hsl(160,60%,30%)] !text-white !font-bold !shadow-md !rounded-md",
                             day_outside: "text-muted-foreground opacity-50",
                             day_disabled: "text-muted-foreground opacity-50",
                           }}
