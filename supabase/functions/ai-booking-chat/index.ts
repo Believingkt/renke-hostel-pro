@@ -1170,6 +1170,10 @@ serve(async (req) => {
         } catch (error) {
           console.error('Stream 處理錯誤:', error);
         } finally {
+          // Send [DONE] marker to signal end-of-stream for all browsers (especially LINE WebView)
+          try {
+            controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
+          } catch (_) {}
           controller.close();
         }
       }
