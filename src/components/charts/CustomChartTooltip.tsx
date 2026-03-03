@@ -29,10 +29,12 @@ export const CustomChartTooltip = ({
   const calculateGrowth = () => {
     if (isCustomRange || payload.length < 2) return null;
     
-    const current = payload[0]?.value || 0;
-    const previous = payload[1]?.value || 0;
+    // payload[0] is the comparison (去年/上月), payload[1] is current (今年/本月)
+    const current = payload[1]?.value || 0;
+    const previous = payload[0]?.value || 0;
     
-    if (previous === 0) return null;
+    if (previous === 0 && current === 0) return null;
+    if (previous === 0) return null; // 去年為0時不顯示增長率
     
     const growth = ((current - previous) / previous) * 100;
     return growth;
@@ -87,7 +89,7 @@ export const CustomChartTooltip = ({
             <span className={`text-xs font-medium ${
               growth >= 0 ? 'text-primary' : 'text-red-600'
             }`}>
-              {growth >= 0 ? '+' : ''}{valueFormatter(payload[0].value - payload[1].value)}
+              {growth >= 0 ? '+' : ''}{valueFormatter(payload[1].value - payload[0].value)}
             </span>
           </div>
         </div>
