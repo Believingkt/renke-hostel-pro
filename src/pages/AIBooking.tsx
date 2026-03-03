@@ -9,6 +9,7 @@ import { Send, Loader2, ArrowLeft, RotateCcw, User, Mic, MicOff, Volume2, Volume
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSubdomain } from "@/hooks/use-subdomain";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { SEOHead } from "@/components/SEOHead";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
@@ -39,6 +40,7 @@ export default function AIBooking() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { accommodationId } = useSubdomain();
+  const isMobile = useIsMobile();
 
   // 使用共用主題常數
   const themeClass = getThemeClassByAccommodation(accommodationId);
@@ -1348,7 +1350,7 @@ export default function AIBooking() {
                   {/* 日期選擇器 */}
                   {message.role === "assistant" && message.showDatePicker && (
                     <div className="mt-3">
-                      <Card className="p-3 bg-background/50 border">
+                      <Card className="p-2 sm:p-3 bg-background/50 border overflow-x-auto">
                         {/* 圖例說明 */}
                         {selectedRoomAvailableDates.size > 0 && (
                           <div className="flex items-center gap-4 mb-2 px-2 text-xs text-muted-foreground">
@@ -1376,7 +1378,6 @@ export default function AIBooking() {
                             const today = new Date();
                             today.setHours(0, 0, 0, 0);
                             if (date < today) return true;
-                            // If we have availability data, only allow available dates
                             if (selectedRoomAvailableDates.size > 0) {
                               const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
                               return !selectedRoomAvailableDates.has(dateStr);
@@ -1405,16 +1406,28 @@ export default function AIBooking() {
                             available: "!bg-primary/15 !text-primary font-semibold !rounded-md",
                             unavailable: "!bg-transparent !text-muted-foreground/40 !opacity-50"
                           }}
-                          numberOfMonths={2}
+                          numberOfMonths={isMobile ? 1 : 2}
                           locale={zhTW}
                           className="pointer-events-auto"
                           classNames={{
-                            row: "flex w-full mt-1 gap-1",
-                            head_row: "flex gap-1",
-                            cell: "h-8 w-8 p-0 text-center text-sm",
-                            head_cell: "text-muted-foreground rounded-md w-8 font-normal text-[0.8rem]",
-                            day: "h-8 w-8 p-0 font-normal aria-selected:opacity-100 hover:bg-primary/10 hover:text-primary inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50",
+                            months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+                            month: "space-y-3",
+                            caption: "flex justify-center pt-1 relative items-center",
+                            caption_label: "text-sm font-semibold",
+                            nav_button: "h-8 w-8 bg-transparent p-0 opacity-70 hover:opacity-100 border border-input rounded-md inline-flex items-center justify-center",
+                            nav_button_previous: "absolute left-1",
+                            nav_button_next: "absolute right-1",
+                            table: "w-full border-collapse",
+                            row: "flex w-full mt-1",
+                            head_row: "flex",
+                            cell: "h-10 w-10 sm:h-8 sm:w-8 p-0 text-center text-sm relative",
+                            head_cell: "text-muted-foreground rounded-md w-10 sm:w-8 font-normal text-[0.8rem]",
+                            day: "h-10 w-10 sm:h-8 sm:w-8 p-0 font-normal aria-selected:opacity-100 hover:bg-primary/10 hover:text-primary inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm transition-colors focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50",
                             day_range_middle: "aria-selected:!bg-primary/10 aria-selected:!text-primary !rounded-md",
+                            day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                            day_today: "border-2 border-primary font-semibold",
+                            day_outside: "text-muted-foreground opacity-50",
+                            day_disabled: "text-muted-foreground opacity-50",
                           }}
                           variant="frontend"
                         />
