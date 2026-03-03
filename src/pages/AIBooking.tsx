@@ -1359,9 +1359,10 @@ export default function AIBooking() {
                           classNames={{
                             row: "flex w-full mt-1 gap-1",
                             head_row: "flex gap-1",
-                            cell: "h-8 w-8 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                            cell: "h-8 w-8 p-0 text-center text-sm",
                             head_cell: "text-muted-foreground rounded-md w-8 font-normal text-[0.8rem]",
                             day: "h-8 w-8 p-0 font-normal aria-selected:opacity-100 hover:bg-primary/10 hover:text-primary inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50",
+                            day_range_middle: "aria-selected:!bg-primary/10 aria-selected:!text-primary !rounded-md",
                           }}
                           variant="frontend"
                         />
