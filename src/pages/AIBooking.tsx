@@ -260,9 +260,21 @@ export default function AIBooking() {
 
       setMessages(prev => [...prev, { role: "assistant", content: "", timestamp: new Date() }]);
 
+      // Stream timeout to prevent infinite hanging (especially in LINE browser)
+      let streamTimeout: ReturnType<typeof setTimeout> | null = null;
+      const resetStreamTimeout = () => {
+        if (streamTimeout) clearTimeout(streamTimeout);
+        streamTimeout = setTimeout(() => {
+          console.warn("Stream timeout - forcing close");
+          reader.cancel().catch(() => {});
+        }, 30000); // 30s without any data = timeout
+      };
+      resetStreamTimeout();
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+        resetStreamTimeout(); // Reset timeout on each chunk
 
         textBuffer += decoder.decode(value, { stream: true });
         let newlineIndex: number;
@@ -389,7 +401,8 @@ export default function AIBooking() {
       // Date picker is now only shown via explicit user flow (handleSelectRoom)
       // No automatic keyword-based detection to avoid false positives
 
-      // 串流結束後，先關閉 loading 狀態
+      // 串流結束後，清除 timeout 並關閉 loading 狀態
+      if (streamTimeout) clearTimeout(streamTimeout);
       setIsLoading(false);
       
       
