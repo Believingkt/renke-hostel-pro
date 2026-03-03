@@ -249,9 +249,48 @@ export default function AIBooking() {
         throw new Error("AI 回應失敗");
       }
 
+      // Safari/LINE browser compatibility: some WebViews don't support ReadableStream well
+      // Use a robust approach that handles both streaming and buffered responses
       const reader = response.body?.getReader();
       if (!reader) {
-        throw new Error("無法讀取回應");
+        // Fallback: read entire response as text (for browsers that don't support streaming)
+        const fullText = await response.text();
+        const lines = fullText.split('\n');
+        let fbContent = '';
+        let fbToolCalls: any[] = [];
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === '[DONE]') continue;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            if (parsed.type === 'tool_calls_complete') {
+              parsed.results.forEach((r: any) => {
+                if (r.result?.rooms) fbToolCalls.push({ type: 'rooms', data: r.result.rooms });
+                if (r.result?.success !== undefined) fbToolCalls.push({ type: 'booking', data: r.result });
+                if (r.result?.is_valid !== undefined) fbToolCalls.push({ type: 'discount', data: r.result });
+              });
+            }
+            const ct = parsed.choices?.[0]?.delta?.content;
+            if (ct) fbContent += ct;
+          } catch (_) {}
+        }
+        const sm = fbContent.match(/\[SUGGEST:\s*([^\]]+)\]/);
+        const qr = sm ? sm[1].split('|').map(s => s.trim()).filter(Boolean) : [];
+        const dc = fbContent.replace(/\[SUGGEST:\s*[^\]]+\]/, '').trim();
+        
+        setMessages(prev => [...prev, {
+          role: "assistant",
+          content: dc,
+          timestamp: new Date(),
+          toolCalls: fbToolCalls.length > 0 ? fbToolCalls : undefined,
+          quickReplies: qr.length > 0 ? qr : undefined,
+        }]);
+        setIsLoading(false);
+        if (dc && isVoiceEnabled) {
+          playTextToSpeech(dc);
+        }
+        return;
       }
 
       const decoder = new TextDecoder();
@@ -260,21 +299,21 @@ export default function AIBooking() {
 
       setMessages(prev => [...prev, { role: "assistant", content: "", timestamp: new Date() }]);
 
-      // Stream timeout to prevent infinite hanging (especially in LINE browser)
+      // Stream timeout to prevent infinite hanging (especially in LINE/Safari WebView)
       let streamTimeout: ReturnType<typeof setTimeout> | null = null;
       const resetStreamTimeout = () => {
         if (streamTimeout) clearTimeout(streamTimeout);
         streamTimeout = setTimeout(() => {
           console.warn("Stream timeout - forcing close");
           reader.cancel().catch(() => {});
-        }, 30000); // 30s without any data = timeout
+        }, 30000);
       };
       resetStreamTimeout();
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        resetStreamTimeout(); // Reset timeout on each chunk
+        resetStreamTimeout();
 
         textBuffer += decoder.decode(value, { stream: true });
         let newlineIndex: number;
