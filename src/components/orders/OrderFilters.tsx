@@ -119,7 +119,10 @@ export function OrderFilters({
           >
             <option value="">(全部)</option>
             <option value="website">官網下單</option>
-            <option value="manual">手動新增</option>
+            <option value="manual">後台</option>
+            <option value="agoda">Agoda</option>
+            <option value="booking">Booking</option>
+            <option value="trip">Trip</option>
           </select>
         </div>
 

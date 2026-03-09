@@ -99,6 +99,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     notes: "",
     meal_plan: "2_meals",
     selected_addons: [] as { addon_id: string; quantity: number }[],
+    order_source: "",
   });
 
   // Reset form when dialog opens
@@ -120,6 +121,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         notes: "",
         meal_plan: "2_meals",
         selected_addons: [],
+        order_source: "",
       });
       setDiscountCode("");
       setAppliedDiscount(null);
@@ -571,7 +573,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         meal_plan: form.meal_plan || null,
         meal_plan_details: form.selected_addons.length > 0 ? form.selected_addons : null,
         confirmed_at: form.order_status === "confirmed" ? new Date().toISOString() : null,
-        order_source: "manual",
+        order_source: form.order_source || "manual",
       }).select('id').single();
 
       if (error) throw error;
@@ -1097,8 +1099,23 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         </Alert>
       )}
 
-      <div className="space-y-2">
-        <Label>訂單狀態</Label>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>訂單來源</Label>
+          <Select value={form.order_source} onValueChange={(value) => setForm({...form, order_source: value})}>
+            <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+              <SelectValue placeholder="後台（預設）" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="agoda">Agoda</SelectItem>
+              <SelectItem value="booking">Booking</SelectItem>
+              <SelectItem value="trip">Trip</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>訂單狀態</Label>
         <Select value={form.order_status} onValueChange={(value) => setForm({...form, order_status: value})}>
           <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
             <SelectValue />
@@ -1110,7 +1127,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             <SelectItem value="checked_out">已退房</SelectItem>
             <SelectItem value="cancelled">已取消</SelectItem>
           </SelectContent>
-        </Select>
+          </Select>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
