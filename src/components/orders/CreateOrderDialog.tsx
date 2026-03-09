@@ -1126,7 +1126,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             <SelectItem value="checked_out">已退房</SelectItem>
             <SelectItem value="cancelled">已取消</SelectItem>
           </SelectContent>
-        </Select>
+          </Select>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

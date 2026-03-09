@@ -172,7 +172,10 @@ const CustomerOrders = () => {
   const getOrderSourceBadge = (source: string) => {
     const sourceConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
       website: { label: "官網下單", variant: "default" },
-      manual: { label: "手動新增", variant: "secondary" },
+      manual: { label: "後台", variant: "secondary" },
+      agoda: { label: "Agoda", variant: "outline" },
+      booking: { label: "Booking", variant: "outline" },
+      trip: { label: "Trip", variant: "outline" },
     };
     const config = sourceConfig[source] || { label: source || "官網下單", variant: "default" };
     return <Badge variant={config.variant}>{config.label}</Badge>;
