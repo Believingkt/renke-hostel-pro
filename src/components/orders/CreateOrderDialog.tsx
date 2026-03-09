@@ -121,6 +121,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         notes: "",
         meal_plan: "2_meals",
         selected_addons: [],
+        order_source: "",
       });
       setDiscountCode("");
       setAppliedDiscount(null);
