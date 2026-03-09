@@ -67,6 +67,74 @@ Deno.serve(async (req) => {
       );
     }
 
+    // === Verify TapPay payment is real and successful ===
+    const partnerKey = Deno.env.get("TAPPAY_PARTNER_KEY");
+    if (!partnerKey) {
+      console.error("[complete-3ds-booking] TAPPAY_PARTNER_KEY not configured");
+      return new Response(
+        JSON.stringify({ success: false, message: "付款驗證設定錯誤" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const tappayQueryResponse = await fetch("https://prod.tappaysdk.com/tpc/transaction/query", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": partnerKey,
+      },
+      body: JSON.stringify({
+        partner_key: partnerKey,
+        filters: { rec_trade_id: body.recTradeId },
+      }),
+    });
+
+    const tappayResult = await tappayQueryResponse.json();
+    console.log("[complete-3ds-booking] TapPay verification:", {
+      status: tappayResult.status,
+      recordCount: tappayResult.trade_records?.length || 0,
+    });
+
+    if (tappayResult.status !== 0 && tappayResult.status !== 2) {
+      return new Response(
+        JSON.stringify({ success: false, message: "無法驗證付款交易" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const tappayRecord = tappayResult.trade_records?.[0];
+    if (!tappayRecord) {
+      return new Response(
+        JSON.stringify({ success: false, message: "找不到付款交易記錄，交易編號無效" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Verify payment was successful (record_status: 0=auth success, 1=capture success)
+    const isPaymentSuccess = tappayRecord.record_status === 0 || tappayRecord.record_status === 1;
+    if (!isPaymentSuccess) {
+      return new Response(
+        JSON.stringify({ success: false, message: "付款未成功，無法建立訂單" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Verify payment amount matches expected finalPrice
+    const verifiedAmount = tappayRecord.amount;
+    if (verifiedAmount !== body.finalPrice) {
+      console.error("[complete-3ds-booking] Amount mismatch:", { verified: verifiedAmount, submitted: body.finalPrice });
+      return new Response(
+        JSON.stringify({ success: false, message: "付款金額與訂單金額不符" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("[complete-3ds-booking] TapPay payment verified:", {
+      recTradeId: tappayRecord.rec_trade_id,
+      amount: verifiedAmount,
+      authCode: tappayRecord.auth_code,
+    });
+
     // Check if order with this recTradeId already exists (prevent duplicates)
     const { data: existingOrder } = await supabase
       .from("orders")
@@ -179,7 +247,7 @@ Deno.serve(async (req) => {
         deposit_payment_method: "credit_card_3ds",
         balance_payment_method: null,
         payment_status: "deposit_paid",
-        paid_amount: body.finalPrice, // Full payment via 3DS
+        paid_amount: verifiedAmount, // Use TapPay-verified amount
         order_status: "pending",
         notes: orderNotes,
         pet_count: body.petCount || 0,

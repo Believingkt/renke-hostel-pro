@@ -42,6 +42,17 @@ serve(async (req) => {
   }
 
   try {
+    // Validate caller has a valid Supabase key (anon or authenticated)
+    const authHeader = req.headers.get('authorization') || '';
+    const apiKey = req.headers.get('apikey') || '';
+    
+    if (!authHeader && !apiKey) {
+      return new Response(
+        JSON.stringify({ error: '未授權的請求' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Rate limiting by IP or fallback identifier
     const clientIP = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
     if (!checkRateLimit(clientIP)) {
