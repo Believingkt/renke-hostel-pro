@@ -103,11 +103,11 @@ export default function AIBooking() {
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
+      const { data: urlData } = await supabase.storage
         .from('transfer-receipts')
-        .getPublicUrl(fileName);
+        .createSignedUrl(fileName, 3600); // 1 hour expiry
 
-      const imageUrl = urlData.publicUrl;
+      const imageUrl = urlData?.signedUrl || '';
 
       // Add image message
       setMessages(prev => [...prev, {
