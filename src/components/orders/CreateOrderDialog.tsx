@@ -572,7 +572,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         meal_plan: form.meal_plan || null,
         meal_plan_details: form.selected_addons.length > 0 ? form.selected_addons : null,
         confirmed_at: form.order_status === "confirmed" ? new Date().toISOString() : null,
-        order_source: "manual",
+        order_source: form.order_source || "manual",
       }).select('id').single();
 
       if (error) throw error;
