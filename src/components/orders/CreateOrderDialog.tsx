@@ -1098,8 +1098,23 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         </Alert>
       )}
 
-      <div className="space-y-2">
-        <Label>訂單狀態</Label>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>訂單來源</Label>
+          <Select value={form.order_source} onValueChange={(value) => setForm({...form, order_source: value})}>
+            <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+              <SelectValue placeholder="後台（預設）" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="agoda">Agoda</SelectItem>
+              <SelectItem value="booking">Booking</SelectItem>
+              <SelectItem value="trip">Trip</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>訂單狀態</Label>
         <Select value={form.order_status} onValueChange={(value) => setForm({...form, order_status: value})}>
           <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
             <SelectValue />
