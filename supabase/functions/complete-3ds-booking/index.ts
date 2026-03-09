@@ -247,7 +247,7 @@ Deno.serve(async (req) => {
         deposit_payment_method: "credit_card_3ds",
         balance_payment_method: null,
         payment_status: "deposit_paid",
-        paid_amount: body.finalPrice, // Full payment via 3DS
+        paid_amount: verifiedAmount, // Use TapPay-verified amount
         order_status: "pending",
         notes: orderNotes,
         pet_count: body.petCount || 0,
