@@ -99,6 +99,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     notes: "",
     meal_plan: "2_meals",
     selected_addons: [] as { addon_id: string; quantity: number }[],
+    order_source: "",
   });
 
   // Reset form when dialog opens
