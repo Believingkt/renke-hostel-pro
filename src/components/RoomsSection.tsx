@@ -490,21 +490,9 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
     room_photos: room.room_photos || [],
   }));
 
-  // 如果沒有房型資料，顯示空值佔位符（樣式與設施服務一致）
+  // 沒有資料時直接隱藏
   if (!displayRooms || displayRooms.length === 0) {
-    return (
-      <section id="rooms" className="py-12 md:py-16 lg:py-20 bg-background">
-        <div className="container mx-auto px-4 md:px-6">
-          <div className="max-w-lg mx-auto text-center">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground/40">
-              <Home className="h-8 w-8" />
-            </div>
-            <h2 className="text-xl md:text-2xl font-semibold text-muted-foreground/60 mb-3">房型資訊準備中</h2>
-            <p className="text-muted-foreground/50 text-sm md:text-base">我們正在準備精緻的房型資訊，敬請期待</p>
-          </div>
-        </div>
-      </section>
-    );
+    return null;
   }
 
   const shouldUseCarousel = displayRooms.length > 4;

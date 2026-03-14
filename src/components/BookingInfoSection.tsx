@@ -77,21 +77,9 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice, customSections = [
     setDialogOpen(true);
   };
 
-  // 如果沒有任何訂房須知資料，顯示空值佔位符（樣式與設施服務一致）
+  // 沒有資料時直接隱藏
   if (!hasAnyData) {
-    return (
-      <section id="booking-info" className="py-12 md:py-16 lg:py-20 bg-background">
-        <div className="container mx-auto px-4 md:px-6">
-          <div className="max-w-lg mx-auto text-center">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground/40">
-              <ClipboardList className="h-8 w-8" />
-            </div>
-            <h2 className="text-xl md:text-2xl font-semibold text-muted-foreground/60 mb-3">訂房須知準備中</h2>
-            <p className="text-muted-foreground/50 text-sm md:text-base">訂房相關資訊即將更新</p>
-          </div>
-        </div>
-      </section>
-    );
+    return null;
   }
 
   // 過濾出啟用且有內容的自訂區塊
