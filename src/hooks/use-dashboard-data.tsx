@@ -129,12 +129,14 @@ const fetchDashboardData = async (
   const lastMonthBookingCount = lastMonthOrders.length;
   const monthlyGuestCount = currentMonthOrders.reduce((sum, o) => sum + (o.guest_count || 0), 0);
   const lastMonthGuestCount = lastMonthOrders.reduce((sum, o) => sum + (o.guest_count || 0), 0);
-  // Validate and sum revenues, filtering out invalid values
+  // Validate and sum revenues - 只計算實際入住的訂單
   const monthlyRev = currentMonthOrders.reduce((sum, o) => {
+    if (!isRevenueEligible(o.order_status)) return sum;
     const price = Number(o.final_price);
     return sum + (Number.isFinite(price) ? price : 0);
   }, 0);
   const lastMonthRev = lastMonthOrders.reduce((sum, o) => {
+    if (!isRevenueEligible(o.order_status)) return sum;
     const price = Number(o.final_price);
     return sum + (Number.isFinite(price) ? price : 0);
   }, 0);
