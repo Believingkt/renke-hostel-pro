@@ -1735,7 +1735,7 @@ export default function AIBooking() {
               onKeyPress={handleKeyPress}
               placeholder={isRecording ? "🎤 錄音中..." : "輸入訊息..."}
               disabled={isLoading || isRecording}
-              className="flex-1 h-10 text-sm rounded-full px-4 focus:ring-2 focus:ring-primary/20"
+              className="flex-1 h-10 text-base rounded-full px-4 focus:ring-2 focus:ring-primary/20"
             />
             <Button
               onClick={sendMessage}
