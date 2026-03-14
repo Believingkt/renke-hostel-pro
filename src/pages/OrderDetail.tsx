@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import { ArrowLeft, Mail, Home, ShoppingBag, Globe, UserPlus, CreditCard, XCircle, Pencil } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -93,6 +93,8 @@ interface CustomMealPlan {
 const OrderDetail = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const backTo = (location.state as any)?.from || "/admin/orders";
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<OrderDetail | null>(null);
@@ -431,7 +433,7 @@ const OrderDetail = () => {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/admin/orders")}>
+          <Button variant="ghost" size="icon" onClick={() => navigate(backTo)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">訂單詳情</h1>
@@ -480,7 +482,7 @@ const OrderDetail = () => {
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-2 md:gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/admin/orders")} className="h-9 w-9 md:h-10 md:w-10">
+          <Button variant="ghost" size="icon" onClick={() => navigate(backTo)} className="h-9 w-9 md:h-10 md:w-10">
             <ArrowLeft className="h-4 w-4 md:h-5 md:w-5" />
           </Button>
           <h1 className="text-xl md:text-2xl lg:text-3xl font-bold tracking-tight">訂單詳情</h1>
