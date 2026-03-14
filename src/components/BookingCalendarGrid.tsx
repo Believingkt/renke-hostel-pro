@@ -16,6 +16,7 @@ interface RoomType {
   id: string;
   name: string;
   room_count: number | null;
+  is_exclusive_package: boolean;
 }
 
 interface Order {
@@ -113,7 +114,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
       const [roomTypesRes, ordersRes, holidaysRes, inventoryRes] = await Promise.all([
         supabase
           .from("room_types")
-          .select("id, name, room_count")
+          .select("id, name, room_count, is_exclusive_package")
           .eq("accommodation_id", accommodationId)
           .order("display_order"),
         supabase
@@ -353,7 +354,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                   >
                     {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                     <span className="font-semibold text-sm truncate">{roomType.name}</span>
-                    <span className="text-xs text-muted-foreground ml-auto">{roomCount > 0 ? `${roomCount}間` : ""}</span>
+                    <span className="text-xs text-muted-foreground ml-auto">{roomCount > 0 ? `${roomCount}${roomType.is_exclusive_package ? '棟' : '間'}` : ""}</span>
                   </div>
                   {/* Available rooms per date */}
                   <div className="flex flex-1">
