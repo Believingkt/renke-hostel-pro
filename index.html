@@ -127,6 +127,23 @@
 
   <body>
     <div id="root"></div>
+    <script>
+      // 全域錯誤捕捉 - 防止空白頁
+      window.onerror = function(msg, src, line, col, err) {
+        var root = document.getElementById('root');
+        if (root && !root.hasChildNodes()) {
+          root.innerHTML = '<div style="padding:2rem;text-align:center;font-family:sans-serif">' +
+            '<h2>載入失敗</h2>' +
+            '<p style="color:#666">' + msg + '</p>' +
+            '<p style="color:#999;font-size:12px">' + (src || '') + ':' + (line || '') + '</p>' +
+            '<button onclick="location.reload()" style="margin-top:1rem;padding:8px 16px;cursor:pointer">重新整理</button>' +
+            '</div>';
+        }
+      };
+      window.addEventListener('unhandledrejection', function(e) {
+        console.error('Unhandled rejection:', e.reason);
+      });
+    </script>
     <script type="module" src="/src/main.tsx" fetchpriority="high"></script>
   </body>
 </html>
