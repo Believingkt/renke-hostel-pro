@@ -156,7 +156,7 @@ export default function ChangePassword() {
       } else if (isHQRoute) {
         // 從總部後台主動修改密碼：不登出，直接返回總部
         toast.success("密碼已更新");
-        navigate("/headquarters");
+        navigate("/hq");
       } else {
         // 首次登入強制修改密碼：需要更新標記並登出
         // Get current user

@@ -63,7 +63,7 @@ export default function HQAuth() {
           .limit(1);
 
         if (userRoles && userRoles.length > 0) {
-          navigate("/headquarters");
+          navigate("/hq");
         }
       }
     });
