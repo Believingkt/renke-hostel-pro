@@ -177,7 +177,7 @@ export const HomepageSectionsBlock = ({
   }, [autoSave]);
 
   // Ref for title save timeout (separate from order save)
-  const titleSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const titleSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Debounced save for title changes
   const debouncedSaveTitles = useCallback((newTitles: Record<string, { title?: string; subtitle?: string }>) => {

@@ -28,7 +28,7 @@ export function useFormDraft<T extends Record<string, any>>({
   const [formData, setFormData] = useState<T>(initialData);
   const [hasDraft, setHasDraft] = useState(false);
   const [isDraftRestored, setIsDraftRestored] = useState(false);
-  const autoSaveTimerRef = useRef<NodeJS.Timeout>();
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const isInitialMount = useRef(true);
   const initialDataRef = useRef<T>(initialData);
   const initializationCompleteRef = useRef(false);
