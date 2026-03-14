@@ -641,7 +641,48 @@ serve(async (req) => {
         };
       }
 
-      if (toolName === "check_discount_code") {
+      if (toolName === "search_external_rooms") {
+        try {
+          // Check if this accommodation has external mapping
+          const { data: mapping } = await supabase
+            .from('external_hotel_mappings')
+            .select('*')
+            .eq('accommodation_id', accommodationId)
+            .eq('is_enabled', true)
+            .maybeSingle();
+
+          if (!mapping) {
+            return { error: "此住宿未串接外部訂房平台" };
+          }
+
+          // Call search-external-rooms edge function
+          const searchUrl = `${supabaseUrl}/functions/v1/search-external-rooms`;
+          const searchResponse = await fetch(searchUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseKey}`,
+            },
+            body: JSON.stringify({
+              accommodationId,
+              checkIn: args.check_in_date,
+              checkOut: args.check_out_date,
+            }),
+          });
+
+          const searchResult = await searchResponse.json();
+
+          if (!searchResponse.ok || !searchResult.success) {
+            return { error: searchResult.error || '外部平台查詢失敗' };
+          }
+
+          return searchResult;
+        } catch (e) {
+          console.error('External room search failed:', e);
+          return { error: '外部訂房平台查詢失敗，請稍後再試' };
+        }
+      }
+
         const { data } = await supabase.rpc('validate_discount_code', {
           p_accommodation_id: accommodationId,
           p_code: args.code
