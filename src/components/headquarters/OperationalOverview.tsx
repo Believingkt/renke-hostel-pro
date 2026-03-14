@@ -240,6 +240,9 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
         monthlyMap.set(key, { revenue: 0, orders: 0, prevRevenue: 0, prevOrders: 0 });
       }
 
+      // 營收只計算實際入住的訂單（checked_in 或 checked_out）
+      const isRevenueEligible = (status: string) => status === 'checked_in' || status === 'checked_out';
+
       // Current year data
       allOrders?.forEach(order => {
         if (order.order_status !== 'cancelled' && order.created_at) {
@@ -247,7 +250,9 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
           const key = format(orderDate, 'M月');
           const current = monthlyMap.get(key);
           if (current) {
-            current.revenue += order.final_price || 0;
+            if (isRevenueEligible(order.order_status)) {
+              current.revenue += order.final_price || 0;
+            }
             current.orders += 1;
           }
         }
@@ -260,7 +265,9 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
           const key = format(orderDate, 'M月');
           const current = monthlyMap.get(key);
           if (current) {
-            current.prevRevenue += order.final_price || 0;
+            if (isRevenueEligible(order.order_status)) {
+              current.prevRevenue += order.final_price || 0;
+            }
             current.prevOrders += 1;
           }
         }
@@ -300,13 +307,13 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
 
         const monthlyOrders = allAccOrders.filter(o => {
           const orderDate = o.created_at?.split('T')[0];
-          return orderDate >= monthStart && orderDate <= monthEnd && o.order_status !== "cancelled";
+          return orderDate >= monthStart && orderDate <= monthEnd && (o.order_status === 'checked_in' || o.order_status === 'checked_out');
         });
         const monthlyRevenue = monthlyOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
 
         const yearlyOrders = allAccOrders.filter(o => {
           const orderDate = o.created_at?.split('T')[0];
-          return orderDate >= yearStart && orderDate <= yearEnd && o.order_status !== "cancelled";
+          return orderDate >= yearStart && orderDate <= yearEnd && (o.order_status === 'checked_in' || o.order_status === 'checked_out');
         });
         const yearlyRevenue = yearlyOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
 
@@ -488,7 +495,10 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
       const dateKey = format(closestDate, "yyyy-MM-dd");
       
       const existing = trendMap.get(dateKey) || { revenue: 0, orders: 0, prevRevenue: 0, prevOrders: 0 };
-      existing.revenue += order.final_price || 0;
+      // 營收只計算實際入住的訂單
+      if (order.order_status === 'checked_in' || order.order_status === 'checked_out') {
+        existing.revenue += order.final_price || 0;
+      }
       existing.orders += 1;
       trendMap.set(dateKey, existing);
     });
@@ -509,7 +519,10 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
         const correspondingCurrentDate = sampledDays[prevIndex];
         const dateKey = format(correspondingCurrentDate, "yyyy-MM-dd");
         const existing = trendMap.get(dateKey) || { revenue: 0, orders: 0, prevRevenue: 0, prevOrders: 0 };
-        existing.prevRevenue += order.final_price || 0;
+        // 營收只計算實際入住的訂單
+        if (order.order_status === 'checked_in' || order.order_status === 'checked_out') {
+          existing.prevRevenue += order.final_price || 0;
+        }
         existing.prevOrders += 1;
         trendMap.set(dateKey, existing);
       }
@@ -557,6 +570,10 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
 
     const currentOrders = (currentYearOrders || []).filter(o => o.order_status !== "cancelled");
     const prevOrders = (previousYearOrders || []).filter(o => o.order_status !== "cancelled");
+    
+    // 營收只計算實際入住的訂單
+    const currentRevenueOrders = (currentYearOrders || []).filter(o => o.order_status === 'checked_in' || o.order_status === 'checked_out');
+    const prevRevenueOrders = (previousYearOrders || []).filter(o => o.order_status === 'checked_in' || o.order_status === 'checked_out');
 
     return months.map(month => {
       const monthNum = getMonth(month);
@@ -565,8 +582,11 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
       const currentMonthOrders = currentOrders.filter(o => getMonth(new Date(o.created_at)) === monthNum);
       const prevMonthOrders = prevOrders.filter(o => getMonth(new Date(o.created_at)) === monthNum);
 
-      const currentRevenue = currentMonthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
-      const previousRevenue = prevMonthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+      const currentMonthRevenueOrders = currentRevenueOrders.filter(o => getMonth(new Date(o.created_at)) === monthNum);
+      const prevMonthRevenueOrders = prevRevenueOrders.filter(o => getMonth(new Date(o.created_at)) === monthNum);
+
+      const currentRevenue = currentMonthRevenueOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+      const previousRevenue = prevMonthRevenueOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
       const currentOrderCount = currentMonthOrders.length;
       const previousOrderCount = prevMonthOrders.length;
 
@@ -608,7 +628,8 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
         const allOrders = orders || [];
         const validOrders = allOrders.filter((o) => o.order_status !== "cancelled");
         const cancelledOrders = allOrders.filter((o) => o.order_status === "cancelled");
-        const revenue = validOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+        const revenueOrders = validOrders.filter(o => o.order_status === 'checked_in' || o.order_status === 'checked_out');
+        const revenue = revenueOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
         
         const roomNights = validOrders.reduce((sum, o) => {
           const checkIn = new Date(o.check_in_date);
