@@ -114,7 +114,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
       const [roomTypesRes, ordersRes, holidaysRes, inventoryRes] = await Promise.all([
         supabase
           .from("room_types")
-          .select("id, name, room_count")
+          .select("id, name, room_count, is_exclusive_package")
           .eq("accommodation_id", accommodationId)
           .order("display_order"),
         supabase
