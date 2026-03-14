@@ -47,15 +47,9 @@ const LocationSection = ({ address, locationInfo, customTitle, customSubtitle }:
 
   const hasData = hasAddress || hasLocationDescription || hasDrivingInfo || hasPublicTransportInfo || hasNearbyAttractions;
 
+  // 沒有資料時直接隱藏
   if (!hasData) {
-    return (
-      <EmptySectionPlaceholder
-        sectionId="location"
-        icon={<MapPin className="h-8 w-8" />}
-        title="交通資訊"
-        description="尚未設定交通地圖與位置資訊"
-      />
-    );
+    return null;
   }
 
   const nearbyAttractions = locationInfo?.nearby_attractions || [];
