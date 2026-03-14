@@ -314,10 +314,12 @@ const fetchDashboardData = async (
       const prevMonthOrders = ordersByMonth.get(prevMonthKey) || [];
       
       const revenue = monthOrders.reduce((sum, o) => {
+        if (!isRevenueEligible(o.order_status)) return sum;
         const price = Number(o.final_price);
         return sum + (Number.isFinite(price) ? price : 0);
       }, 0);
       const prevRevenue = prevMonthOrders.reduce((sum, o) => {
+        if (!isRevenueEligible(o.order_status)) return sum;
         const price = Number(o.final_price);
         return sum + (Number.isFinite(price) ? price : 0);
       }, 0);
