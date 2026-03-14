@@ -307,13 +307,13 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
 
         const monthlyOrders = allAccOrders.filter(o => {
           const orderDate = o.created_at?.split('T')[0];
-          return orderDate >= monthStart && orderDate <= monthEnd && o.order_status !== "cancelled";
+          return orderDate >= monthStart && orderDate <= monthEnd && (o.order_status === 'checked_in' || o.order_status === 'checked_out');
         });
         const monthlyRevenue = monthlyOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
 
         const yearlyOrders = allAccOrders.filter(o => {
           const orderDate = o.created_at?.split('T')[0];
-          return orderDate >= yearStart && orderDate <= yearEnd && o.order_status !== "cancelled";
+          return orderDate >= yearStart && orderDate <= yearEnd && (o.order_status === 'checked_in' || o.order_status === 'checked_out');
         });
         const yearlyRevenue = yearlyOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
 
