@@ -78,7 +78,7 @@ export default function ChangePassword() {
   const searchParams = new URLSearchParams(location.search);
   const sourceParam = searchParams.get('source');
   const isAdminRoute = location.pathname.includes('/admin/') || sourceParam === 'admin';
-  const isHQRoute = location.pathname.includes('/headquarters/') || sourceParam === 'hq';
+  const isHQRoute = location.pathname.startsWith('/hq') || location.pathname.includes('/headquarters/') || sourceParam === 'hq';
 
   useEffect(() => {
     const fetchUserEmail = async () => {
@@ -156,7 +156,7 @@ export default function ChangePassword() {
       } else if (isHQRoute) {
         // 從總部後台主動修改密碼：不登出，直接返回總部
         toast.success("密碼已更新");
-        navigate("/headquarters");
+        navigate("/hq");
       } else {
         // 首次登入強制修改密碼：需要更新標記並登出
         // Get current user
