@@ -530,7 +530,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                       left: `${leftPercent}%`,
                                       width: `${widthPercent}%`,
                                     }}
-                                    onClick={() => navigate(`/admin/orders/${order.id}`)}
+                                    onClick={() => navigate(`/admin/orders/${order.id}`, { state: { from: '/admin/room-inventory' } })}
                                     title={`${order.guest_name} | ${order.check_in_date} ~ ${order.check_out_date} | ${getSourceLabel(order.order_source)}`}
                                   >
                                     <span className="shrink-0">{SOURCE_ICONS[order.order_source] || "📋"}</span>
