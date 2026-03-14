@@ -186,6 +186,18 @@ serve(async (req) => {
         }
       },
       {
+        name: "search_external_rooms",
+        description: "查詢外部訂房平台的房型和價格。當本地沒有房型資料、或住宿有串接外部訂房平台時使用。",
+        input_schema: {
+          type: "object",
+          properties: {
+            check_in_date: { type: "string", description: "入住日期，格式：YYYY-MM-DD" },
+            check_out_date: { type: "string", description: "退房日期，格式：YYYY-MM-DD" }
+          },
+          required: ["check_in_date", "check_out_date"]
+        }
+      },
+      {
         name: "create_booking",
         description: "創建訂單",
         input_schema: {
