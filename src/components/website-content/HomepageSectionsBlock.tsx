@@ -95,7 +95,7 @@ export const HomepageSectionsBlock = ({
   onCustomSectionToggle,
 }: HomepageSectionsBlockProps) => {
   const [isSaving, setIsSaving] = useState(false);
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Create a map of custom sections for quick lookup
   const customSectionsMap = useMemo(() => {
