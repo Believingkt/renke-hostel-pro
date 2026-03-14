@@ -265,7 +265,9 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
           const key = format(orderDate, 'M月');
           const current = monthlyMap.get(key);
           if (current) {
-            current.prevRevenue += order.final_price || 0;
+            if (isRevenueEligible(order.order_status)) {
+              current.prevRevenue += order.final_price || 0;
+            }
             current.prevOrders += 1;
           }
         }
