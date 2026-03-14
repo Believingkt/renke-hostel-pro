@@ -44,7 +44,7 @@ export default function HQAuth() {
           .maybeSingle();
 
         if (userRole) {
-          navigate("/headquarters");
+          navigate("/hq");
         } else {
           toast.error("您沒有總部後台的存取權限");
           await supabase.auth.signOut();

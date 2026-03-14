@@ -78,7 +78,7 @@ export default function ChangePassword() {
   const searchParams = new URLSearchParams(location.search);
   const sourceParam = searchParams.get('source');
   const isAdminRoute = location.pathname.includes('/admin/') || sourceParam === 'admin';
-  const isHQRoute = location.pathname.includes('/headquarters/') || sourceParam === 'hq';
+  const isHQRoute = location.pathname.startsWith('/hq') || location.pathname.includes('/headquarters/') || sourceParam === 'hq';
 
   useEffect(() => {
     const fetchUserEmail = async () => {
