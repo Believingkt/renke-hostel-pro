@@ -570,6 +570,10 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
 
     const currentOrders = (currentYearOrders || []).filter(o => o.order_status !== "cancelled");
     const prevOrders = (previousYearOrders || []).filter(o => o.order_status !== "cancelled");
+    
+    // 營收只計算實際入住的訂單
+    const currentRevenueOrders = (currentYearOrders || []).filter(o => o.order_status === 'checked_in' || o.order_status === 'checked_out');
+    const prevRevenueOrders = (previousYearOrders || []).filter(o => o.order_status === 'checked_in' || o.order_status === 'checked_out');
 
     return months.map(month => {
       const monthNum = getMonth(month);
