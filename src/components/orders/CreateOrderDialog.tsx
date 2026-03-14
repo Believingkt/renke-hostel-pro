@@ -1104,7 +1104,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           <Label>訂單來源</Label>
           <Select value={form.order_source} onValueChange={(value) => setForm({...form, order_source: value})}>
             <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
-              <SelectValue placeholder="後台（預設）" />
+              <SelectValue placeholder="現場訂房（預設）" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="agoda">Agoda</SelectItem>
