@@ -495,7 +495,10 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
       const dateKey = format(closestDate, "yyyy-MM-dd");
       
       const existing = trendMap.get(dateKey) || { revenue: 0, orders: 0, prevRevenue: 0, prevOrders: 0 };
-      existing.revenue += order.final_price || 0;
+      // 營收只計算實際入住的訂單
+      if (order.order_status === 'checked_in' || order.order_status === 'checked_out') {
+        existing.revenue += order.final_price || 0;
+      }
       existing.orders += 1;
       trendMap.set(dateKey, existing);
     });
