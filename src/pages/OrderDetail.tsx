@@ -93,6 +93,8 @@ interface CustomMealPlan {
 const OrderDetail = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const backTo = (location.state as any)?.from || "/admin/orders";
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<OrderDetail | null>(null);
