@@ -22,11 +22,20 @@ const queryClient = new QueryClient({
 
 const root = document.getElementById("root");
 if (root) {
-  ReactDOM.createRoot(root).render(
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
-  );
+  try {
+    ReactDOM.createRoot(root).render(
+      <QueryClientProvider client={queryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+  } catch (err) {
+    console.error("React mount error:", err);
+    root.innerHTML = `<div style="padding:2rem;text-align:center;font-family:sans-serif">
+      <h2>載入失敗</h2>
+      <p style="color:#666">${err instanceof Error ? err.message : String(err)}</p>
+      <button onclick="location.reload()" style="margin-top:1rem;padding:8px 16px;cursor:pointer">重新整理</button>
+    </div>`;
+  }
 }
 
 // Clean up service workers and caches
