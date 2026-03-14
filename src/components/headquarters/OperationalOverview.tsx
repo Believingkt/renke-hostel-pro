@@ -582,8 +582,11 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
       const currentMonthOrders = currentOrders.filter(o => getMonth(new Date(o.created_at)) === monthNum);
       const prevMonthOrders = prevOrders.filter(o => getMonth(new Date(o.created_at)) === monthNum);
 
-      const currentRevenue = currentMonthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
-      const previousRevenue = prevMonthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+      const currentMonthRevenueOrders = currentRevenueOrders.filter(o => getMonth(new Date(o.created_at)) === monthNum);
+      const prevMonthRevenueOrders = prevRevenueOrders.filter(o => getMonth(new Date(o.created_at)) === monthNum);
+
+      const currentRevenue = currentMonthRevenueOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+      const previousRevenue = prevMonthRevenueOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
       const currentOrderCount = currentMonthOrders.length;
       const previousOrderCount = prevMonthOrders.length;
 
