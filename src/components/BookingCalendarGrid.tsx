@@ -16,6 +16,7 @@ interface RoomType {
   id: string;
   name: string;
   room_count: number | null;
+  is_exclusive_package: boolean;
 }
 
 interface Order {
