@@ -12,51 +12,53 @@ import { PageTransition } from "@/components/PageTransition";
 import { ChunkErrorBoundary } from "@/components/ChunkErrorBoundary";
 import { HQDomainRedirect } from "@/components/HQDomainRedirect";
 
-const { Suspense } = React;
+const { Suspense, lazy } = React;
 
-// 前台頁面
+// 前台首頁 - 關鍵路徑，直接 import
 import Index from "./pages/Index";
-import BookingFlow from "./pages/BookingFlow";
-import LinePayConfirm from "./pages/LinePayConfirm";
-import AIBooking from "./pages/AIBooking";
-import OrderSearch from "./pages/OrderSearch";
-import Profile from "./pages/Profile";
-import PaymentTest from "./pages/PaymentTest";
-import PublicPayment from "./pages/PublicPayment";
-import OrderPayment from "./pages/OrderPayment";
-import PaymentResult from "./pages/PaymentResult";
-import NotFound from "./pages/NotFound";
-import OgImagePreview from "./pages/OgImagePreview";
-import KolApiDocs from "./pages/KolApiDocs";
 
-// 後台管理頁面
-import Dashboard from "./pages/Dashboard";
-import WebsiteContent from "./pages/WebsiteContent";
-import Faq from "./pages/Faq";
-import Orders from "./pages/Orders";
-import OrderDetail from "./pages/OrderDetail";
-import Pricing from "./pages/Pricing";
-import RoomInventory from "./pages/RoomInventory";
-import RoomPriceCalendar from "./pages/RoomPriceCalendar";
-import Accounts from "./pages/Accounts";
-import KolDiscount from "./pages/KolDiscount";
-import DiscountCodeOrders from "./pages/DiscountCodeOrders";
-import UserRoles from "./pages/UserRoles";
-import Headquarters from "./pages/Headquarters";
-import Customers from "./pages/Customers";
-import CustomerOrders from "./pages/CustomerOrders";
-import PublicHolidays from "./pages/PublicHolidays";
-import Notifications from "./pages/Notifications";
-import DataBackup from "./pages/DataBackup";
-import EmailTest from "./pages/EmailTest";
-import Settlement from "./pages/Settlement";
-import Analytics from "./pages/Analytics";
-
-// Auth 頁面 - 關鍵路徑
+// Auth 頁面 - 關鍵路徑，直接 import
 import Auth from "./pages/Auth";
 import HQAuth from "./pages/HQAuth";
-import ChangePassword from "./pages/ChangePassword";
-import ResetPassword from "./pages/ResetPassword";
+
+// 前台頁面 - lazy load
+const BookingFlow = lazy(() => import("./pages/BookingFlow"));
+const LinePayConfirm = lazy(() => import("./pages/LinePayConfirm"));
+const AIBooking = lazy(() => import("./pages/AIBooking"));
+const OrderSearch = lazy(() => import("./pages/OrderSearch"));
+const Profile = lazy(() => import("./pages/Profile"));
+const PaymentTest = lazy(() => import("./pages/PaymentTest"));
+const PublicPayment = lazy(() => import("./pages/PublicPayment"));
+const OrderPayment = lazy(() => import("./pages/OrderPayment"));
+const PaymentResult = lazy(() => import("./pages/PaymentResult"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const OgImagePreview = lazy(() => import("./pages/OgImagePreview"));
+const KolApiDocs = lazy(() => import("./pages/KolApiDocs"));
+const ChangePassword = lazy(() => import("./pages/ChangePassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+
+// 後台管理頁面 - lazy load
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const WebsiteContent = lazy(() => import("./pages/WebsiteContent"));
+const Faq = lazy(() => import("./pages/Faq"));
+const Orders = lazy(() => import("./pages/Orders"));
+const OrderDetail = lazy(() => import("./pages/OrderDetail"));
+const Pricing = lazy(() => import("./pages/Pricing"));
+const RoomInventory = lazy(() => import("./pages/RoomInventory"));
+const RoomPriceCalendar = lazy(() => import("./pages/RoomPriceCalendar"));
+const Accounts = lazy(() => import("./pages/Accounts"));
+const KolDiscount = lazy(() => import("./pages/KolDiscount"));
+const DiscountCodeOrders = lazy(() => import("./pages/DiscountCodeOrders"));
+const UserRoles = lazy(() => import("./pages/UserRoles"));
+const Headquarters = lazy(() => import("./pages/Headquarters"));
+const Customers = lazy(() => import("./pages/Customers"));
+const CustomerOrders = lazy(() => import("./pages/CustomerOrders"));
+const PublicHolidays = lazy(() => import("./pages/PublicHolidays"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+const DataBackup = lazy(() => import("./pages/DataBackup"));
+const EmailTest = lazy(() => import("./pages/EmailTest"));
+const Settlement = lazy(() => import("./pages/Settlement"));
+const Analytics = lazy(() => import("./pages/Analytics"));
 
 function App() {
   return (
@@ -122,16 +124,36 @@ function App() {
                   </Suspense>
                 } />
                 
-                {/* Auth 頁面 - 無需骨架屏 */}
+                {/* Auth 頁面 */}
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/hq-auth" element={<HQAuth />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/change-password" element={<ChangePassword />} />
-                <Route path="/admin/change-password" element={<ChangePassword />} />
-                <Route path="/headquarters/change-password" element={<ChangePassword />} />
-                <Route path="/hq" element={<Headquarters />} />
+                <Route path="/reset-password" element={
+                  <Suspense fallback={<FrontendSkeleton />}>
+                    <ResetPassword />
+                  </Suspense>
+                } />
+                <Route path="/change-password" element={
+                  <Suspense fallback={<FrontendSkeleton />}>
+                    <ChangePassword />
+                  </Suspense>
+                } />
+                <Route path="/admin/change-password" element={
+                  <Suspense fallback={<FrontendSkeleton />}>
+                    <ChangePassword />
+                  </Suspense>
+                } />
+                <Route path="/headquarters/change-password" element={
+                  <Suspense fallback={<FrontendSkeleton />}>
+                    <ChangePassword />
+                  </Suspense>
+                } />
+                <Route path="/hq" element={
+                  <Suspense fallback={<DashboardSkeleton />}>
+                    <Headquarters />
+                  </Suspense>
+                } />
                 
-                {/* 後台管理頁面 - 使用 DashboardSkeleton */}
+                {/* 後台管理頁面 */}
                 <Route 
                   path="/admin" 
                   element={
