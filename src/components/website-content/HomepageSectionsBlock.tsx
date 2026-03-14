@@ -95,7 +95,7 @@ export const HomepageSectionsBlock = ({
   onCustomSectionToggle,
 }: HomepageSectionsBlockProps) => {
   const [isSaving, setIsSaving] = useState(false);
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Create a map of custom sections for quick lookup
   const customSectionsMap = useMemo(() => {
@@ -177,7 +177,7 @@ export const HomepageSectionsBlock = ({
   }, [autoSave]);
 
   // Ref for title save timeout (separate from order save)
-  const titleSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const titleSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Debounced save for title changes
   const debouncedSaveTitles = useCallback((newTitles: Record<string, { title?: string; subtitle?: string }>) => {

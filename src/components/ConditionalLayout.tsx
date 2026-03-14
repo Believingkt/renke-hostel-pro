@@ -1,5 +1,5 @@
 import { useLocation, Outlet, Navigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,9 +14,11 @@ import { useOrderNotifications } from "@/hooks/use-order-notifications";
 import { toast } from "sonner";
 import { HQProvider } from "@/contexts/HQContext";
 
+const isDev = import.meta.env.DEV;
+
 export function ConditionalLayout() {
   const location = useLocation();
-  const isFrontendPage = location.pathname === "/";
+  const isFrontendPage = location.pathname === "/" || location.pathname.startsWith("/__cb/");
   const isAdminPage = location.pathname.startsWith("/admin");
   const isHQPage = location.pathname.startsWith("/hq") && location.pathname !== "/hq-auth";
   const isAuthPage = location.pathname === "/auth";
@@ -26,11 +28,9 @@ export function ConditionalLayout() {
   const [loading, setLoading] = useState(true);
   const [needsPasswordChange, setNeedsPasswordChange] = useState<boolean | null>(null);
 
-  // 啟用訂單即時通知（僅在後台頁面且已登入時）
   useOrderNotifications((isAdminPage || isHQPage) && !!session);
 
   useEffect(() => {
-    // 僅針對後台/登入頁面設定標題，前台由 SEOHead 組件負責（避免覆蓋民宿名稱）
     if (isAdminPage) {
       document.title = "人客多 PMS 管理系統";
     } else if (isHQPage) {
@@ -40,99 +40,63 @@ export function ConditionalLayout() {
     } else if (isHQAuthPage) {
       document.title = "登入 - 總部管理系統";
     }
-    // 前台不在此設定標題，保留 index.html 的預設值，由 SEOHead 組件載入民宿名稱後更新
   }, [isAdminPage, isHQPage, isAuthPage, isHQAuthPage]);
 
-  useEffect(() => {
-    console.log('[ConditionalLayout] Initial load, isAdminPage:', isAdminPage, 'isHQPage:', isHQPage);
-    
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      console.log('[ConditionalLayout] Got session:', session?.user?.email);
-      setSession(session);
-      
-      // Check if user needs to change password
-      if (session) {
-        console.log('[ConditionalLayout] Checking password change requirement...');
-        await checkPasswordChangeRequired(session);
-        setTimeout(() => {
-          checkUserValidity(session.user.id);
-        }, 0);
-      } else {
-        // No session, no need to check password
-        console.log('[ConditionalLayout] No session, setting needsPasswordChange to false');
-        setNeedsPasswordChange(false);
-      }
-      
-      console.log('[ConditionalLayout] Setting loading to false');
-      setLoading(false);
-    });
+  const checkPasswordChangeRequired = useCallback((session: Session) => {
+    const needsChange = session.user.user_metadata?.force_password_change === true;
+    setNeedsPasswordChange(needsChange);
+  }, []);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('[ConditionalLayout] Auth state changed:', event, session?.user?.email);
-        setSession(session);
-        
-        // Check password change requirement for relevant events
-        if ((event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') && session) {
-          console.log('[ConditionalLayout] Checking password on auth event:', event);
-          await checkPasswordChangeRequired(session);
-          setTimeout(() => {
-            checkUserValidity(session.user.id);
-          }, 0);
-        }
-        
-        // After user updates their info, recheck password requirement
-        if (event === 'USER_UPDATED' && session) {
-          console.log('[ConditionalLayout] User updated, rechecking password');
-          await checkPasswordChangeRequired(session);
-        }
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, []); // Remove isAdminPage dependency to prevent infinite loop
-
-  // Check if user needs to change password
-  const checkPasswordChangeRequired = async (session: Session) => {
-    console.log('[ConditionalLayout] checkPasswordChangeRequired started');
+  const checkUserValidity = useCallback(async (userId: string) => {
     try {
-      // Use metadata as primary source for password change requirement
-      const needsChange = session.user.user_metadata?.force_password_change === true;
-      console.log('[ConditionalLayout] needsChange from metadata:', needsChange);
-      
-      setNeedsPasswordChange(needsChange);
-      console.log('[ConditionalLayout] Set needsPasswordChange to:', needsChange);
-    } catch (error) {
-      console.error('[ConditionalLayout] Error checking password change requirement:', error);
-      setNeedsPasswordChange(false);
-    }
-  };
-
-  // Check if user account still exists
-  const checkUserValidity = async (userId: string) => {
-    try {
-      // Check if user has any roles (indicates account exists and is active)
       const { data: userRoles, error } = await supabase
         .from('user_roles')
         .select('id')
         .eq('user_id', userId)
         .limit(1);
 
-      // If query succeeds but returns no data, user account has been deleted
       if (!error && (!userRoles || userRoles.length === 0)) {
-        console.warn('User account deleted, signing out...');
-        
-        toast.error('您的帳號已被刪除，請聯繫系統管理員', {
-          duration: 5000,
-        });
-        
-        // Sign out and clear session
+        if (isDev) console.warn('User account deleted, signing out...');
+        toast.error('您的帳號已被刪除，請聯繫系統管理員', { duration: 5000 });
         await supabase.auth.signOut();
       }
     } catch (error) {
-      console.error('Error checking user validity:', error);
+      if (isDev) console.error('Error checking user validity:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      setSession(session);
+      
+      if (session) {
+        checkPasswordChangeRequired(session);
+        // Use microtask to avoid blocking render
+        queueMicrotask(() => checkUserValidity(session.user.id));
+      } else {
+        setNeedsPasswordChange(false);
+      }
+      
+      setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        
+        if ((event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') && session) {
+          checkPasswordChangeRequired(session);
+          queueMicrotask(() => checkUserValidity(session.user.id));
+        }
+        
+        if (event === 'USER_UPDATED' && session) {
+          checkPasswordChangeRequired(session);
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, [checkPasswordChangeRequired, checkUserValidity]);
 
   if (isFrontendPage) {
     return (
@@ -164,11 +128,8 @@ export function ConditionalLayout() {
     return <Navigate to="/hq-auth" replace />;
   }
 
-  // If on auth page with session, check if password change is needed
   if (isAuthPage && session && !loading) {
-    // If user needs to change password, stay on auth page
     if (needsPasswordChange) {
-      // Let Auth.tsx handle the password change flow
       return (
         <TooltipProvider>
           <div className="admin-theme">
@@ -179,16 +140,13 @@ export function ConditionalLayout() {
         </TooltipProvider>
       );
     }
-    // Otherwise redirect to admin
     return <Navigate to="/admin" replace />;
   }
   
-  // If on admin page but needs password change, redirect to auth
   if (isAdminPage && session && needsPasswordChange && !loading) {
     return <Navigate to="/auth" replace />;
   }
   
-  // If on HQ page but needs password change, redirect to hq-auth
   if (isHQPage && session && needsPasswordChange && !loading) {
     return <Navigate to="/hq-auth" replace />;
   }
@@ -209,7 +167,6 @@ export function ConditionalLayout() {
     );
   }
 
-  // HQ pages - use HQ sidebar and header
   if (isHQPage) {
     return (
       <TooltipProvider>

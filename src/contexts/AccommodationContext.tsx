@@ -30,6 +30,7 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
   const [searchParams, setSearchParams] = useSearchParams();
   const [currentAccommodationId, setCurrentAccommodationIdState] = useState<string | null>(null);
   const currentAccommodationIdRef = useRef<string | null>(null);
+  const loadedForUserRef = useRef<string | null>(null);
 
   const [userAccommodations, setUserAccommodations] = useState<Array<{
     accommodation_id: string;
@@ -45,7 +46,6 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
     const isSame = currentAccommodationIdRef.current === id;
     currentAccommodationIdRef.current = id;
 
-    // 避免重複 setState 造成無限 re-render
     if (!isSame) {
       setCurrentAccommodationIdState(id);
     }
@@ -54,10 +54,9 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
       try {
         localStorage.setItem(LAST_ACCOMMODATION_KEY, id);
       } catch (e) {
-        console.error('[AccommodationContext] Failed to save to localStorage:', e);
+        // silent
       }
 
-      // 同步寫入 URL query 參數（若已相同則不觸發 replaceState）
       setSearchParams(
         (prev) => {
           const current = prev.get(ACCOMMODATION_ID_PARAM);
@@ -72,18 +71,16 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
   }, [setSearchParams]);
 
   useEffect(() => {
-    // 初始載入時自動選擇民宿
     loadUserAccommodations(true);
 
-    // Listen to auth state changes to reload accommodations when user logs in
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        // 登入時也要自動選擇
-        loadUserAccommodations(true);
-      } else if (event === 'TOKEN_REFRESHED') {
-        // Token 刷新時只更新列表，不改變選擇
-        loadUserAccommodations(false);
+        // 只在使用者變更時重新載入，避免重複呼叫
+        if (loadedForUserRef.current !== session.user.id) {
+          loadUserAccommodations(true);
+        }
       }
+      // TOKEN_REFRESHED 不再重複載入，減少不必要的 API 呼叫
     });
 
     return () => {
@@ -100,25 +97,31 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
         return;
       }
 
-      console.log('[AccommodationContext] Loading user accommodations for user:', session.user.id);
-
-      // Use Promise to avoid blocking
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('accommodation_id, role')
-        .eq('user_id', session.user.id)
-        .limit(10); // Add limit for faster query
-
-      if (error) {
-        console.error('[AccommodationContext] Error loading user accommodations:', error);
+      // 避免同一使用者重複載入
+      if (loadedForUserRef.current === session.user.id && !forceAutoSelect) {
         setIsLoading(false);
         return;
       }
 
-      console.log('[AccommodationContext] Loaded accommodations:', data);
+      if (import.meta.env.DEV) {
+        console.log('[AccommodationContext] Loading accommodations for:', session.user.id);
+      }
+
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('accommodation_id, role')
+        .eq('user_id', session.user.id)
+        .limit(10);
+
+      if (error) {
+        if (import.meta.env.DEV) console.error('[AccommodationContext] Error:', error);
+        setIsLoading(false);
+        return;
+      }
+
+      loadedForUserRef.current = session.user.id;
       setUserAccommodations(data || []);
 
-      // 優先順序：URL query > ref > localStorage > 第一個可用民宿
       if (data && data.length > 0 && forceAutoSelect) {
         // 1. 優先從 URL query 讀取
         const urlAccommodationId = searchParams.get(ACCOMMODATION_ID_PARAM);
@@ -127,14 +130,11 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
           : null;
 
         if (urlAccommodation) {
-          console.log('[AccommodationContext] Restoring from URL query:', urlAccommodationId);
           currentAccommodationIdRef.current = urlAccommodationId;
           setCurrentAccommodationIdState(urlAccommodationId);
           try {
             localStorage.setItem(LAST_ACCOMMODATION_KEY, urlAccommodationId);
-          } catch (e) {
-            console.error('[AccommodationContext] Failed to save to localStorage:', e);
-          }
+          } catch (e) { /* silent */ }
           setIsLoading(false);
           return;
         }
@@ -145,27 +145,20 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
           ? data.some(acc => acc.accommodation_id === currentId)
           : false;
 
-        if (currentStillAccessible) {
-          console.log('[AccommodationContext] Keeping current accommodation (do not override):', currentId);
-        } else {
+        if (!currentStillAccessible) {
           // 3. 優先使用 localStorage 儲存的選擇
           let savedAccommodationId: string | null = null;
           try {
             savedAccommodationId = localStorage.getItem(LAST_ACCOMMODATION_KEY);
-          } catch (e) {
-            console.error('[AccommodationContext] Failed to read from localStorage:', e);
-          }
+          } catch (e) { /* silent */ }
 
           const savedAccommodation = savedAccommodationId
             ? data.find(acc => acc.accommodation_id === savedAccommodationId)
             : null;
 
           if (savedAccommodation) {
-            console.log('[AccommodationContext] Restoring last selected accommodation:', savedAccommodationId);
             setCurrentAccommodationId(savedAccommodationId);
           } else {
-            // 4. 若沒有可用的 saved 值，選第一個可用民宿
-            console.log('[AccommodationContext] Auto-selecting first available accommodation:', data[0].accommodation_id);
             setCurrentAccommodationId(data[0].accommodation_id);
           }
         }
@@ -173,7 +166,7 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
       
       setIsLoading(false);
     } catch (error) {
-      console.error('[AccommodationContext] Error loading user accommodations:', error);
+      if (import.meta.env.DEV) console.error('[AccommodationContext] Error:', error);
       setIsLoading(false);
     }
   };
