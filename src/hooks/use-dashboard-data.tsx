@@ -205,10 +205,12 @@ const fetchDashboardData = async (
       const lastYearOrders = ordersByMonth.get(lastYearMonthKey) || [];
       
       const revenue = monthOrders.reduce((sum, o) => {
+        if (!isRevenueEligible(o.order_status)) return sum;
         const price = Number(o.final_price);
         return sum + (Number.isFinite(price) ? price : 0);
       }, 0);
       const lastYearRevenue = lastYearOrders.reduce((sum, o) => {
+        if (!isRevenueEligible(o.order_status)) return sum;
         const price = Number(o.final_price);
         return sum + (Number.isFinite(price) ? price : 0);
       }, 0);
