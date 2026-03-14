@@ -99,6 +99,9 @@ const fetchDashboardData = async (
   const roomTypesData = roomTypesResult.data || [];
   const ordersData = ordersResult.data || [];
   
+  // 營收只計算實際入住的訂單（checked_in 或 checked_out）
+  const isRevenueEligible = (status: string) => status === 'checked_in' || status === 'checked_out';
+  
   const totalRoomCount = roomTypesData.reduce((sum, rt) => sum + (rt.room_count || 0), 0);
   
   // 預先按月份分組資料
