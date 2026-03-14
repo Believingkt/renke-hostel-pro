@@ -1153,135 +1153,138 @@ export default function AIBooking() {
                         <div key={toolIdx}>
                           {/* 房型列表 */}
                           {tool.type === 'rooms' && (
-                            <div className="space-y-4 mt-4">
-                              <p className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2 px-1">
-                                <span className="text-lg">🏠</span>
+                            <div className="space-y-2.5 mt-3">
+                              <p className="text-sm font-semibold text-foreground flex items-center gap-2 px-1">
+                                <span className="text-base">🏠</span>
                                 <span>為您推薦以下房型</span>
                               </p>
-                              {tool.data.map((room: any, roomIdx: number) => (
-                                <Card key={roomIdx} className="overflow-hidden hover:shadow-xl transition-all duration-300 border-primary/20 group">
-                                  {/* 房型圖片 */}
-                                  {room.photos && room.photos.length > 0 && (
-                                    <div className="relative h-48 overflow-hidden bg-muted">
-                                      <img 
-                                        src={room.photos[0]} 
-                                        alt={room.name}
-                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                      />
-                                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
-                                      <div className="absolute bottom-3 left-4 right-4">
-                                        <h3 className="text-white text-xl font-bold drop-shadow-lg">{room.name}</h3>
-                                      </div>
-                                    </div>
-                                  )}
-                                  
-                                  <div className="p-4 space-y-3">
-                                    {/* 房型資訊 */}
-                                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                      <div className="flex items-center gap-1.5">
-                                        <span className="text-base">👥</span>
-                                        <span>{room.capacity}人</span>
-                                      </div>
-                                      {room.size_sqm && (
-                                        <div className="flex items-center gap-1.5">
-                                          <span className="text-base">📐</span>
-                                          <span>{room.size_sqm}㎡</span>
+                              {tool.data.map((room: any, roomIdx: number) => {
+                                // 計算顯示價格
+                                const displayPrice = room.range_total_price 
+                                  || room.min_price 
+                                  || (room.base_price > 0 ? room.base_price : null);
+                                const hasMealPrices = room.range_total_price_2_meals || room.min_2_meals;
+                                
+                                return (
+                                  <Card key={roomIdx} className="overflow-hidden border-primary/20 hover:shadow-lg transition-all duration-200">
+                                    {/* 手機版：緊湊橫向佈局 */}
+                                    <div className="flex md:flex-col">
+                                      {/* 圖片 */}
+                                      {room.photos && room.photos.length > 0 && (
+                                        <div className="relative w-28 shrink-0 md:w-full md:h-44 overflow-hidden bg-muted">
+                                          <img 
+                                            src={room.photos[0]} 
+                                            alt={room.name}
+                                            className="w-full h-full object-cover"
+                                          />
+                                          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent md:from-black/60 md:via-black/20"></div>
+                                          <div className="absolute bottom-1.5 left-2 md:bottom-3 md:left-4">
+                                            <h3 className="text-white text-sm md:text-xl font-bold drop-shadow-lg">{room.name}</h3>
+                                          </div>
                                         </div>
                                       )}
+                                      
+                                      {/* 資訊區 */}
+                                      <div className="flex-1 p-2.5 md:p-4 flex flex-col justify-between gap-1.5 md:gap-3 min-w-0">
+                                        {/* 容量 + 坪數 */}
+                                        <div className="flex items-center gap-3 text-xs md:text-sm text-muted-foreground">
+                                          <span>👥 {room.capacity}人</span>
+                                          {room.size_sqm && <span>📐 {room.size_sqm}㎡</span>}
+                                        </div>
+                                        
+                                        {/* 手機版：精簡價格 */}
+                                        <div className="md:hidden">
+                                          {displayPrice && (
+                                            <div className="flex items-baseline gap-1">
+                                              <span className="text-xs text-muted-foreground">起</span>
+                                              <span className="font-bold text-primary text-base">
+                                                NT$ {displayPrice.toLocaleString()}
+                                              </span>
+                                            </div>
+                                          )}
+                                          {hasMealPrices && (
+                                            <span className="text-xs text-muted-foreground">
+                                              含餐 NT$ {(room.range_total_price_2_meals || room.min_2_meals || 0).toLocaleString()} 起
+                                            </span>
+                                          )}
+                                        </div>
+                                        
+                                        {/* 桌面版：完整價格 */}
+                                        <div className="hidden md:block bg-primary/5 rounded-lg p-3 space-y-1.5">
+                                          {room.range_total_price ? (
+                                            <>
+                                              <div className="flex items-center justify-between text-sm">
+                                                <span className="text-muted-foreground">純住宿</span>
+                                                <span className="font-semibold text-primary text-base">NT$ {room.range_total_price.toLocaleString()}</span>
+                                              </div>
+                                              {room.range_total_price_2_meals && (
+                                                <div className="flex items-center justify-between text-sm">
+                                                  <span className="text-muted-foreground">一泊二食</span>
+                                                  <span className="font-semibold text-primary">NT$ {room.range_total_price_2_meals.toLocaleString()}</span>
+                                                </div>
+                                              )}
+                                              {room.range_total_price_3_meals && (
+                                                <div className="flex items-center justify-between text-sm">
+                                                  <span className="text-muted-foreground">一泊三食</span>
+                                                  <span className="font-semibold text-primary">NT$ {room.range_total_price_3_meals.toLocaleString()}</span>
+                                                </div>
+                                              )}
+                                            </>
+                                          ) : room.min_price && room.max_price ? (
+                                            <>
+                                              <div className="flex items-center justify-between text-sm">
+                                                <span className="text-muted-foreground">純住宿</span>
+                                                <span className="font-semibold text-primary text-base">
+                                                  {room.min_price === room.max_price 
+                                                    ? `NT$ ${room.min_price.toLocaleString()}`
+                                                    : `NT$ ${room.min_price.toLocaleString()} ~ ${room.max_price.toLocaleString()}`}
+                                                </span>
+                                              </div>
+                                              {room.min_2_meals && (
+                                                <div className="flex items-center justify-between text-sm">
+                                                  <span className="text-muted-foreground">一泊二食</span>
+                                                  <span className="font-semibold text-primary">
+                                                    {room.min_2_meals === room.max_2_meals
+                                                      ? `NT$ ${room.min_2_meals.toLocaleString()}`
+                                                      : `NT$ ${room.min_2_meals.toLocaleString()} ~ ${room.max_2_meals.toLocaleString()}`}
+                                                  </span>
+                                                </div>
+                                              )}
+                                              {room.min_3_meals && (
+                                                <div className="flex items-center justify-between text-sm">
+                                                  <span className="text-muted-foreground">一泊三食</span>
+                                                  <span className="font-semibold text-primary">
+                                                    {room.min_3_meals === room.max_3_meals
+                                                      ? `NT$ ${room.min_3_meals.toLocaleString()}`
+                                                      : `NT$ ${room.min_3_meals.toLocaleString()} ~ ${room.max_3_meals.toLocaleString()}`}
+                                                  </span>
+                                                </div>
+                                              )}
+                                            </>
+                                          ) : room.base_price > 0 ? (
+                                            <div className="flex items-center justify-between text-sm">
+                                              <span className="text-muted-foreground">參考價格</span>
+                                              <span className="font-semibold text-primary text-base">NT$ {room.base_price.toLocaleString()}</span>
+                                            </div>
+                                          ) : null}
+                                        </div>
+                                        
+                                        {/* 選擇按鈕 */}
+                                        <Button
+                                          size="sm"
+                                          variant="default"
+                                          className="w-full md:h-10 shadow-sm hover:shadow-md transition-all duration-200 text-xs md:text-sm"
+                                          onClick={() => handleSelectRoom(room.name, room.id)}
+                                          disabled={isLoading}
+                                        >
+                                          <span className="mr-1">✨</span>
+                                          選擇此房型
+                                        </Button>
+                                      </div>
                                     </div>
-                                    
-                                    {/* 房型描述 */}
-                                    {room.description && (
-                                      <p className="text-sm text-muted-foreground line-clamp-2">
-                                        {room.description}
-                                      </p>
-                                    )}
-                                    
-                                     {/* 價格資訊 */}
-                                     <div className="bg-primary/5 rounded-lg p-3 space-y-1.5">
-                                       {room.range_total_price ? (
-                                         <>
-                                           <div className="flex items-center justify-between text-sm">
-                                             <span className="text-muted-foreground">純住宿</span>
-                                             <span className="font-semibold text-primary text-base">
-                                               NT$ {room.range_total_price.toLocaleString()}
-                                             </span>
-                                           </div>
-                                           {room.range_total_price_2_meals && (
-                                             <div className="flex items-center justify-between text-sm">
-                                               <span className="text-muted-foreground">一泊二食</span>
-                                               <span className="font-semibold text-primary">
-                                                 NT$ {room.range_total_price_2_meals.toLocaleString()}
-                                               </span>
-                                             </div>
-                                           )}
-                                           {room.range_total_price_3_meals && (
-                                             <div className="flex items-center justify-between text-sm">
-                                               <span className="text-muted-foreground">一泊三食</span>
-                                               <span className="font-semibold text-primary">
-                                                 NT$ {room.range_total_price_3_meals.toLocaleString()}
-                                               </span>
-                                             </div>
-                                           )}
-                                         </>
-                                       ) : room.min_price && room.max_price ? (
-                                         <>
-                                           <div className="flex items-center justify-between text-sm">
-                                             <span className="text-muted-foreground">純住宿</span>
-                                             <span className="font-semibold text-primary text-base">
-                                               {room.min_price === room.max_price 
-                                                 ? `NT$ ${room.min_price.toLocaleString()}`
-                                                 : `NT$ ${room.min_price.toLocaleString()} ~ ${room.max_price.toLocaleString()}`
-                                               }
-                                             </span>
-                                           </div>
-                                           {room.min_2_meals && (
-                                             <div className="flex items-center justify-between text-sm">
-                                               <span className="text-muted-foreground">一泊二食</span>
-                                               <span className="font-semibold text-primary">
-                                                 {room.min_2_meals === room.max_2_meals
-                                                   ? `NT$ ${room.min_2_meals.toLocaleString()}`
-                                                   : `NT$ ${room.min_2_meals.toLocaleString()} ~ ${room.max_2_meals.toLocaleString()}`
-                                                 }
-                                               </span>
-                                             </div>
-                                           )}
-                                           {room.min_3_meals && (
-                                             <div className="flex items-center justify-between text-sm">
-                                               <span className="text-muted-foreground">一泊三食</span>
-                                               <span className="font-semibold text-primary">
-                                                 {room.min_3_meals === room.max_3_meals
-                                                   ? `NT$ ${room.min_3_meals.toLocaleString()}`
-                                                   : `NT$ ${room.min_3_meals.toLocaleString()} ~ ${room.max_3_meals.toLocaleString()}`
-                                                 }
-                                               </span>
-                                             </div>
-                                           )}
-                                         </>
-                                       ) : room.base_price > 0 ? (
-                                         <div className="flex items-center justify-between text-sm">
-                                           <span className="text-muted-foreground">參考價格</span>
-                                           <span className="font-semibold text-primary text-base">
-                                             NT$ {room.base_price.toLocaleString()}
-                                           </span>
-                                         </div>
-                                       ) : null}
-                                     </div>
-                                    
-                                    {/* 選擇按鈕 */}
-                                    <Button
-                                      size="default"
-                                      variant="default"
-                                      className="w-full shadow-md hover:shadow-lg transition-all duration-300"
-                                      onClick={() => handleSelectRoom(room.name, room.id)}
-                                      disabled={isLoading}
-                                    >
-                                      <span className="mr-2">✨</span>
-                                      選擇此房型
-                                    </Button>
-                                  </div>
-                                </Card>
-                              ))}
+                                  </Card>
+                                );
+                              })}
                             </div>
                           )}
                           
