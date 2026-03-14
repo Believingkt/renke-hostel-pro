@@ -1199,46 +1199,73 @@ export default function AIBooking() {
                                     
                                      {/* 價格資訊 */}
                                      <div className="bg-primary/5 rounded-lg p-3 space-y-1.5">
-                                       {room.min_price && room.max_price ? (
-                                         <div className="flex items-center justify-between text-sm">
-                                           <span className="text-muted-foreground">純住宿</span>
-                                           <span className="font-semibold text-primary text-base">
-                                             {room.min_price === room.max_price 
-                                               ? `NT$ ${room.min_price.toLocaleString()}`
-                                               : `NT$ ${room.min_price.toLocaleString()} ~ ${room.max_price.toLocaleString()}`
-                                             }
-                                           </span>
-                                         </div>
-                                       ) : (
+                                       {room.range_total_price ? (
+                                         <>
+                                           <div className="flex items-center justify-between text-sm">
+                                             <span className="text-muted-foreground">純住宿</span>
+                                             <span className="font-semibold text-primary text-base">
+                                               NT$ {room.range_total_price.toLocaleString()}
+                                             </span>
+                                           </div>
+                                           {room.range_total_price_2_meals && (
+                                             <div className="flex items-center justify-between text-sm">
+                                               <span className="text-muted-foreground">一泊二食</span>
+                                               <span className="font-semibold text-primary">
+                                                 NT$ {room.range_total_price_2_meals.toLocaleString()}
+                                               </span>
+                                             </div>
+                                           )}
+                                           {room.range_total_price_3_meals && (
+                                             <div className="flex items-center justify-between text-sm">
+                                               <span className="text-muted-foreground">一泊三食</span>
+                                               <span className="font-semibold text-primary">
+                                                 NT$ {room.range_total_price_3_meals.toLocaleString()}
+                                               </span>
+                                             </div>
+                                           )}
+                                         </>
+                                       ) : room.min_price && room.max_price ? (
+                                         <>
+                                           <div className="flex items-center justify-between text-sm">
+                                             <span className="text-muted-foreground">純住宿</span>
+                                             <span className="font-semibold text-primary text-base">
+                                               {room.min_price === room.max_price 
+                                                 ? `NT$ ${room.min_price.toLocaleString()}`
+                                                 : `NT$ ${room.min_price.toLocaleString()} ~ ${room.max_price.toLocaleString()}`
+                                               }
+                                             </span>
+                                           </div>
+                                           {room.min_2_meals && (
+                                             <div className="flex items-center justify-between text-sm">
+                                               <span className="text-muted-foreground">一泊二食</span>
+                                               <span className="font-semibold text-primary">
+                                                 {room.min_2_meals === room.max_2_meals
+                                                   ? `NT$ ${room.min_2_meals.toLocaleString()}`
+                                                   : `NT$ ${room.min_2_meals.toLocaleString()} ~ ${room.max_2_meals.toLocaleString()}`
+                                                 }
+                                               </span>
+                                             </div>
+                                           )}
+                                           {room.min_3_meals && (
+                                             <div className="flex items-center justify-between text-sm">
+                                               <span className="text-muted-foreground">一泊三食</span>
+                                               <span className="font-semibold text-primary">
+                                                 {room.min_3_meals === room.max_3_meals
+                                                   ? `NT$ ${room.min_3_meals.toLocaleString()}`
+                                                   : `NT$ ${room.min_3_meals.toLocaleString()} ~ ${room.max_3_meals.toLocaleString()}`
+                                                 }
+                                               </span>
+                                             </div>
+                                           )}
+                                         </>
+                                       ) : room.base_price > 0 ? (
                                          <div className="flex items-center justify-between text-sm">
                                            <span className="text-muted-foreground">參考價格</span>
                                            <span className="font-semibold text-primary text-base">
-                                             NT$ {room.base_price?.toLocaleString()}
+                                             NT$ {room.base_price.toLocaleString()}
                                            </span>
                                          </div>
-                                       )}
-                                       {room.min_2_meals && (
-                                         <div className="flex items-center justify-between text-sm">
-                                           <span className="text-muted-foreground">一泊二食</span>
-                                           <span className="font-semibold text-primary">
-                                             {room.min_2_meals === room.max_2_meals
-                                               ? `NT$ ${room.min_2_meals.toLocaleString()}`
-                                               : `NT$ ${room.min_2_meals.toLocaleString()} ~ ${room.max_2_meals.toLocaleString()}`
-                                             }
-                                           </span>
-                                         </div>
-                                       )}
-                                       {room.min_3_meals && (
-                                         <div className="flex items-center justify-between text-sm">
-                                           <span className="text-muted-foreground">一泊三食</span>
-                                           <span className="font-semibold text-primary">
-                                             {room.min_3_meals === room.max_3_meals
-                                               ? `NT$ ${room.min_3_meals.toLocaleString()}`
-                                               : `NT$ ${room.min_3_meals.toLocaleString()} ~ ${room.max_3_meals.toLocaleString()}`
-                                             }
-                                           </span>
-                                         </div>
-                                       )}
+                                       ) : null}
                                      </div>
                                     
                                     {/* 選擇按鈕 */}
