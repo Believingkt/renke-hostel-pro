@@ -186,6 +186,18 @@ serve(async (req) => {
         }
       },
       {
+        name: "search_external_rooms",
+        description: "查詢外部訂房平台的房型和價格。當本地沒有房型資料、或住宿有串接外部訂房平台時使用。",
+        input_schema: {
+          type: "object",
+          properties: {
+            check_in_date: { type: "string", description: "入住日期，格式：YYYY-MM-DD" },
+            check_out_date: { type: "string", description: "退房日期，格式：YYYY-MM-DD" }
+          },
+          required: ["check_in_date", "check_out_date"]
+        }
+      },
+      {
         name: "create_booking",
         description: "創建訂單",
         input_schema: {
@@ -629,7 +641,48 @@ serve(async (req) => {
         };
       }
 
-      if (toolName === "check_discount_code") {
+      if (toolName === "search_external_rooms") {
+        try {
+          // Check if this accommodation has external mapping
+          const { data: mapping } = await supabase
+            .from('external_hotel_mappings')
+            .select('*')
+            .eq('accommodation_id', accommodationId)
+            .eq('is_enabled', true)
+            .maybeSingle();
+
+          if (!mapping) {
+            return { error: "此住宿未串接外部訂房平台" };
+          }
+
+          // Call search-external-rooms edge function
+          const searchUrl = `${supabaseUrl}/functions/v1/search-external-rooms`;
+          const searchResponse = await fetch(searchUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseKey}`,
+            },
+            body: JSON.stringify({
+              accommodationId,
+              checkIn: args.check_in_date,
+              checkOut: args.check_out_date,
+            }),
+          });
+
+          const searchResult = await searchResponse.json();
+
+          if (!searchResponse.ok || !searchResult.success) {
+            return { error: searchResult.error || '外部平台查詢失敗' };
+          }
+
+          return searchResult;
+        } catch (e) {
+          console.error('External room search failed:', e);
+          return { error: '外部訂房平台查詢失敗，請稍後再試' };
+        }
+      }
+
         const { data } = await supabase.rpc('validate_discount_code', {
           p_accommodation_id: accommodationId,
           p_code: args.code
@@ -910,10 +963,16 @@ serve(async (req) => {
 - 絕對不要推薦沒有空房的日期，只建議有庫存可預訂的日期
 
 ## 工具使用：
-- get_available_rooms：查房型/價格。看到「[系統：已向客人展示房型卡片]」時不要重複調用
+- get_available_rooms：查本地房型/價格。看到「[系統：已向客人展示房型卡片]」時不要重複調用
+- search_external_rooms：查詢外部訂房平台的房型和價格。當本地沒有房型資料時自動嘗試，需提供入住/退房日期
 - check_discount_code：驗折扣碼
 - create_booking：建訂單時，room_type_id 必須使用對話中最新的 room_type_id UUID，禁止自行改寫成名稱或別名
 - is_available_for_range=false 或有 unavailable_dates 時必須告知不可訂
+
+## 外部訂房平台規則：
+- 若 search_external_rooms 有結果，展示飯店與房型資訊，包含價格（含稅金額）
+- 外部平台房型無法在此直接下單，需引導客人點擊訂房連結（bookingUrl）前往外部平台完成預訂
+- 顯示房型時包含：房型名稱、入住人數、價格、床型、設施等資訊
 
 ## 旅宿資訊：
 森山寫照｜宜蘭縣冬山鄉大進三路208號｜0903-178-518

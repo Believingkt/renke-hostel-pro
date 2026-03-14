@@ -1002,6 +1002,50 @@ export type Database = {
           },
         ]
       }
+      external_hotel_mappings: {
+        Row: {
+          accommodation_id: string
+          api_environment: string
+          cid_code: string
+          created_at: string
+          hotel_code: string | null
+          id: string
+          is_enabled: boolean
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          api_environment?: string
+          cid_code: string
+          created_at?: string
+          hotel_code?: string | null
+          id?: string
+          is_enabled?: boolean
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          api_environment?: string
+          cid_code?: string
+          created_at?: string
+          hotel_code?: string | null
+          id?: string
+          is_enabled?: boolean
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_hotel_mappings_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       faqs: {
         Row: {
           accommodation_id: string | null

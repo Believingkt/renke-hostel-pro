@@ -102,3 +102,6 @@ verify_jwt = false
 [functions.tappay-config]
 verify_jwt = false
 
+[functions.search-external-rooms]
+verify_jwt = false
+
