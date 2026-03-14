@@ -174,6 +174,7 @@ const fetchDashboardData = async (
       const monthLabel = format(currentDate, 'yyyy/MM');
       const monthOrders = ordersByMonth.get(monthKey) || [];
       const revenue = monthOrders.reduce((sum, o) => {
+        if (!isRevenueEligible(o.order_status)) return sum;
         const price = Number(o.final_price);
         return sum + (Number.isFinite(price) ? price : 0);
       }, 0);
