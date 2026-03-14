@@ -24,7 +24,7 @@ export const getOrderStatusConfig = (status: string) => {
 export const getOrderSourceConfig = (source: string) => {
   const sourceMap: Record<string, { label: string; className: string }> = {
     website: { label: "官網下單", className: "bg-blue-100 text-blue-700 border-blue-200" },
-    manual: { label: "後台", className: "bg-purple-100 text-purple-700 border-purple-200" },
+    manual: { label: "現場訂房", className: "bg-purple-100 text-purple-700 border-purple-200" },
     agoda: { label: "Agoda", className: "bg-green-100 text-green-700 border-green-200" },
     booking: { label: "Booking", className: "bg-indigo-100 text-indigo-700 border-indigo-200" },
     trip: { label: "Trip", className: "bg-orange-100 text-orange-700 border-orange-200" },
