@@ -353,7 +353,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                   >
                     {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                     <span className="font-semibold text-sm truncate">{roomType.name}</span>
-                    <span className="text-xs text-muted-foreground ml-auto">{roomCount > 0 ? `${roomCount}間` : ""}</span>
+                    <span className="text-xs text-muted-foreground ml-auto">{roomCount > 0 ? `${roomCount}${roomType.is_exclusive_package ? '棟' : '間'}` : ""}</span>
                   </div>
                   {/* Available rooms per date */}
                   <div className="flex flex-1">
