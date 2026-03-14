@@ -262,6 +262,19 @@ serve(async (req) => {
           const normalizedInput = normalizeRoomTypeToken(raw);
           const inputDigits = raw.match(/\d+/)?.[0] ?? null;
 
+          // Common English alias mapping for Chinese room names
+          const aliasMap: Record<string, string[]> = {
+            'double': ['雙人', '二人'],
+            'twin': ['雙人', '二人'],
+            'quad': ['四人'],
+            'triple': ['三人'],
+            'single': ['單人'],
+            'suite': ['套房'],
+            'family': ['家庭'],
+            'deluxe': ['豪華', '精緻'],
+            'standard': ['標準'],
+          };
+
           const matchedRoom = roomTypes.find((room: any) => {
             const nameToken = normalizeRoomTypeToken(room.name || '');
             const nameEnToken = normalizeRoomTypeToken(room.name_en || '');
@@ -270,6 +283,13 @@ serve(async (req) => {
             if (normalizedInput && (nameToken.includes(normalizedInput) || nameEnToken.includes(normalizedInput))) return true;
             if (normalizedInput && (normalizedInput.includes(nameToken) || (!!nameEnToken && normalizedInput.includes(nameEnToken)))) return true;
             if (inputDigits && typeof room.name === 'string' && room.name.includes(inputDigits)) return true;
+
+            // Check English alias matching
+            const aliases = aliasMap[normalizedInput];
+            if (aliases) {
+              return aliases.some(alias => (room.name || '').includes(alias));
+            }
+
             return false;
           });
 
