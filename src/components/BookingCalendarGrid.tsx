@@ -389,7 +389,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                           ) : (
                             <span className={cn(
                               "font-medium",
-                              remaining <= 1 ? "text-destructive" : "text-foreground"
+                              remaining === 0 ? "text-destructive" : remaining <= 1 && available > 1 ? "text-orange-500" : "text-foreground"
                             )}>
                               {remaining}
                             </span>
