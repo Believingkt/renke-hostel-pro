@@ -287,7 +287,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
           {/* Header row - dates */}
           <div className="flex border-b bg-muted/30 sticky top-0 z-10">
             <div
-              className="shrink-0 border-r p-2 flex items-center font-medium text-sm text-muted-foreground sticky left-0 bg-muted/30 z-20"
+              className="shrink-0 border-r p-2 flex items-center font-medium text-sm text-muted-foreground sticky left-0 bg-muted/30 z-30 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]"
               style={{ width: LEFT_COL_WIDTH, minWidth: LEFT_COL_WIDTH }}
             >
               <ChevronDown className="h-4 w-4 mr-1" />
