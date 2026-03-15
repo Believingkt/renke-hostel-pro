@@ -48,7 +48,7 @@ const DAY_LABELS = ["日", "一", "二", "三", "四", "五", "六"];
 
 const SOURCE_ICONS: Record<string, string> = {
   website: "🌐",
-  manual: "🏨",
+  manual: "📋",
   agoda: "🅰️",
   booking: "📘",
   trip: "✈️",
