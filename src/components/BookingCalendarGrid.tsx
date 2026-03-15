@@ -348,7 +348,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                 {/* Room type header row - shows available rooms */}
                 <div className="flex border-b hover:bg-muted/20">
                   <div
-                    className="shrink-0 border-r p-2 flex items-center gap-1 cursor-pointer sticky left-0 bg-card z-10 hover:bg-muted/30"
+                    className="shrink-0 border-r p-2 flex items-center gap-1 cursor-pointer sticky left-0 bg-card z-20 hover:bg-muted/30 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]"
                     style={{ width: LEFT_COL_WIDTH, minWidth: LEFT_COL_WIDTH }}
                     onClick={() => toggleRoomType(roomType.id)}
                   >
