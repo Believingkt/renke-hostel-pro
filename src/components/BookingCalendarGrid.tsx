@@ -556,6 +556,16 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
           })}
         </div>
       </div>
+      {/* 來源圖示說明 */}
+      <div className="px-3 py-2.5 border rounded-lg bg-muted/30 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
+        <span className="font-medium text-foreground">圖示說明：</span>
+        {Object.entries(SOURCE_ICONS).map(([key, icon]) => (
+          <span key={key} className="inline-flex items-center gap-1">
+            <span>{icon}</span>
+            <span>{SOURCE_LABELS[key] || key}</span>
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
