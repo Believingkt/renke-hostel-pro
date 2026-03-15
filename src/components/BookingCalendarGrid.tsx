@@ -464,7 +464,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                         return (
                           <div key={slotIdx} className="flex border-b last:border-b-0">
                             <div
-                              className="shrink-0 border-r p-2 pl-8 text-sm flex items-center gap-1 sticky left-0 bg-card z-20 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]"
+                              className="shrink-0 border-r p-2 pl-8 text-sm flex items-center gap-1 sticky left-0 bg-card z-20"
                               style={{ width: LEFT_COL_WIDTH, minWidth: LEFT_COL_WIDTH }}
                             >
                               <span className="text-muted-foreground">
