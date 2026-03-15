@@ -287,7 +287,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
           {/* Header row - dates */}
           <div className="flex border-b bg-muted/30 sticky top-0 z-10">
             <div
-              className="shrink-0 border-r p-2 flex items-center font-medium text-sm text-muted-foreground sticky left-0 bg-muted/30 z-20"
+              className="shrink-0 border-r p-2 flex items-center font-medium text-sm text-muted-foreground sticky left-0 bg-muted/30 z-30 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]"
               style={{ width: LEFT_COL_WIDTH, minWidth: LEFT_COL_WIDTH }}
             >
               <ChevronDown className="h-4 w-4 mr-1" />
@@ -348,7 +348,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                 {/* Room type header row - shows available rooms */}
                 <div className="flex border-b hover:bg-muted/20">
                   <div
-                    className="shrink-0 border-r p-2 flex items-center gap-1 cursor-pointer sticky left-0 bg-card z-10 hover:bg-muted/30"
+                    className="shrink-0 border-r p-2 flex items-center gap-1 cursor-pointer sticky left-0 bg-card z-20 hover:bg-muted/30 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]"
                     style={{ width: LEFT_COL_WIDTH, minWidth: LEFT_COL_WIDTH }}
                     onClick={() => toggleRoomType(roomType.id)}
                   >
@@ -406,7 +406,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                     {/* Unassigned orders row */}
                     <div className="flex border-b">
                       <div
-                        className="shrink-0 border-r p-2 pl-8 text-sm text-muted-foreground sticky left-0 bg-card z-10"
+                        className="shrink-0 border-r p-2 pl-8 text-sm text-muted-foreground sticky left-0 bg-card z-20 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]"
                         style={{ width: LEFT_COL_WIDTH, minWidth: LEFT_COL_WIDTH }}
                       >
                         待排房
@@ -464,7 +464,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                         return (
                           <div key={slotIdx} className="flex border-b last:border-b-0">
                             <div
-                              className="shrink-0 border-r p-2 pl-8 text-sm flex items-center gap-1 sticky left-0 bg-card z-10"
+                              className="shrink-0 border-r p-2 pl-8 text-sm flex items-center gap-1 sticky left-0 bg-card z-20 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]"
                               style={{ width: LEFT_COL_WIDTH, minWidth: LEFT_COL_WIDTH }}
                             >
                               <span className="text-muted-foreground">
