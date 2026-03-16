@@ -240,8 +240,8 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
         monthlyMap.set(key, { revenue: 0, orders: 0, prevRevenue: 0, prevOrders: 0 });
       }
 
-      // 營收只計算實際入住的訂單（checked_in 或 checked_out）
-      const isRevenueEligible = (status: string) => status === 'checked_in' || status === 'checked_out';
+      // 營收只計算已確認的訂單（confirmed）
+      const isRevenueEligible = (status: string) => status === 'confirmed';
 
       // Current year data
       allOrders?.forEach(order => {
