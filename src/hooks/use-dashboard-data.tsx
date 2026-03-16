@@ -115,7 +115,7 @@ const fetchDashboardData = async (
     
     const { data: inventoryData } = await supabase
       .from('room_inventory_pricing')
-      .select('room_type_id, date, price')
+      .select('room_type_id, date, price, price_2_meals, price_3_meals')
       .in('room_type_id', roomTypeIds)
       .gte('date', minDate)
       .lte('date', maxDate)

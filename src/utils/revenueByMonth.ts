@@ -1,21 +1,49 @@
 import { format, addDays, differenceInDays } from 'date-fns';
 
-export type PricingMap = Map<string, number>; // key: `${room_type_id}_${yyyy-MM-dd}`
+export interface InventoryPriceRow {
+  room_type_id: string;
+  date: string;
+  price: number;
+  price_2_meals: number | null;
+  price_3_meals: number | null;
+}
 
-export function buildPricingMap(
-  inventoryData: { room_type_id: string; date: string; price: number }[]
-): PricingMap {
-  const map = new Map<string, number>();
+// key: `${room_type_id}_${yyyy-MM-dd}`, value: { price, price_2_meals, price_3_meals }
+export type PricingMap = Map<string, { price: number; price_2_meals: number | null; price_3_meals: number | null }>;
+
+export function buildPricingMap(inventoryData: InventoryPriceRow[]): PricingMap {
+  const map: PricingMap = new Map();
   inventoryData.forEach(item => {
-    map.set(`${item.room_type_id}_${item.date}`, item.price);
+    map.set(`${item.room_type_id}_${item.date}`, {
+      price: item.price,
+      price_2_meals: item.price_2_meals,
+      price_3_meals: item.price_3_meals,
+    });
   });
   return map;
 }
 
 /**
+ * Pick the appropriate daily price from inventory based on the order's meal_plan.
+ * Falls back to base price if meal-specific price is null.
+ */
+function pickDailyPrice(
+  inv: { price: number; price_2_meals: number | null; price_3_meals: number | null },
+  mealPlan: string | null
+): number {
+  if (mealPlan === '3_meals' || mealPlan === '三餐') {
+    return inv.price_3_meals ?? inv.price;
+  }
+  if (mealPlan === '2_meals' || mealPlan === '二餐' || mealPlan === '兩餐') {
+    return inv.price_2_meals ?? inv.price;
+  }
+  return inv.price;
+}
+
+/**
  * Split an order's revenue by month based on daily room prices from inventory.
- * Each night of stay uses the inventory price for that date.
- * Falls back to final_price / nights if no inventory price found.
+ * Uses inventory prices as proportional weights to distribute final_price across months.
+ * Falls back to equal distribution (final_price / nights) if no inventory price found.
  */
 export function splitOrderRevenueByMonth(
   order: {
@@ -23,6 +51,7 @@ export function splitOrderRevenueByMonth(
     check_out_date: string;
     room_type_id: string | null;
     final_price: number;
+    meal_plan?: string | null;
   },
   pricingMap: PricingMap
 ): Map<string, number> {
@@ -30,22 +59,42 @@ export function splitOrderRevenueByMonth(
   const checkIn = new Date(order.check_in_date);
   const checkOut = new Date(order.check_out_date);
   const totalNights = Math.max(1, differenceInDays(checkOut, checkIn));
-  const fallbackDailyPrice = order.final_price / totalNights;
+
+  // Collect daily prices from inventory
+  const dailyPrices: { monthKey: string; price: number }[] = [];
+  let totalInventoryPrice = 0;
+  let hasInventory = false;
 
   for (let i = 0; i < totalNights; i++) {
     const day = addDays(checkIn, i);
     const dateStr = format(day, 'yyyy-MM-dd');
     const monthKey = format(day, 'yyyy-MM');
 
-    let dailyPrice = fallbackDailyPrice;
+    let dailyPrice = 0;
     if (order.room_type_id) {
-      const inventoryPrice = pricingMap.get(`${order.room_type_id}_${dateStr}`);
-      if (inventoryPrice !== undefined) {
-        dailyPrice = inventoryPrice;
+      const inv = pricingMap.get(`${order.room_type_id}_${dateStr}`);
+      if (inv) {
+        dailyPrice = pickDailyPrice(inv, order.meal_plan ?? null);
+        hasInventory = true;
       }
     }
 
-    result.set(monthKey, (result.get(monthKey) || 0) + dailyPrice);
+    dailyPrices.push({ monthKey, price: dailyPrice });
+    totalInventoryPrice += dailyPrice;
+  }
+
+  if (hasInventory && totalInventoryPrice > 0) {
+    // Use inventory prices as weights to proportionally split final_price
+    dailyPrices.forEach(({ monthKey, price }) => {
+      const share = (price / totalInventoryPrice) * order.final_price;
+      result.set(monthKey, (result.get(monthKey) || 0) + share);
+    });
+  } else {
+    // Fallback: equal distribution
+    const fallbackDailyPrice = order.final_price / totalNights;
+    dailyPrices.forEach(({ monthKey }) => {
+      result.set(monthKey, (result.get(monthKey) || 0) + fallbackDailyPrice);
+    });
   }
 
   return result;
@@ -60,6 +109,7 @@ export function aggregateRevenueByMonth(
     check_out_date: string;
     room_type_id: string | null;
     final_price: number;
+    meal_plan?: string | null;
   }[],
   pricingMap: PricingMap
 ): Map<string, number> {
