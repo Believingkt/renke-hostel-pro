@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/breadcrumb";
 
 const Dashboard = () => {
-  const { accommodationId } = useSubdomain();
+  const { currentAccommodationId: accommodationId } = useAccommodation();
   const isMobile = useIsMobile();
   const [isLiveUpdating, setIsLiveUpdating] = useState(false);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date());
