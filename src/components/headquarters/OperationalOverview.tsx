@@ -558,12 +558,8 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
         .lte("created_at", `${previousYear}-12-31T23:59:59`),
     ]);
 
-    const currentOrders = (currentYearOrders || []).filter(o => o.order_status !== "cancelled");
-    const prevOrders = (previousYearOrders || []).filter(o => o.order_status !== "cancelled");
-    
-    // 營收只計算已確認的訂單
-    const currentRevenueOrders = (currentYearOrders || []).filter(o => o.order_status === 'confirmed');
-    const prevRevenueOrders = (previousYearOrders || []).filter(o => o.order_status === 'confirmed');
+    const currentOrders = (currentYearOrders || []).filter(o => o.order_status === 'confirmed');
+    const prevOrders = (previousYearOrders || []).filter(o => o.order_status === 'confirmed');
 
     return months.map(month => {
       const monthNum = getMonth(month);
@@ -572,11 +568,8 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
       const currentMonthOrders = currentOrders.filter(o => getMonth(new Date(o.created_at)) === monthNum);
       const prevMonthOrders = prevOrders.filter(o => getMonth(new Date(o.created_at)) === monthNum);
 
-      const currentMonthRevenueOrders = currentRevenueOrders.filter(o => getMonth(new Date(o.created_at)) === monthNum);
-      const prevMonthRevenueOrders = prevRevenueOrders.filter(o => getMonth(new Date(o.created_at)) === monthNum);
-
-      const currentRevenue = currentMonthRevenueOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
-      const previousRevenue = prevMonthRevenueOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+      const currentRevenue = currentMonthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+      const previousRevenue = prevMonthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
       const currentOrderCount = currentMonthOrders.length;
       const previousOrderCount = prevMonthOrders.length;
 
