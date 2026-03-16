@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useSubdomain } from "@/hooks/use-subdomain";
+import { useAccommodation } from "@/contexts/AccommodationContext";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
