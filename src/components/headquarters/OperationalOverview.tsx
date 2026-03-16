@@ -697,7 +697,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
       filteredAccommodations.map(async (acc) => {
         const { data: orders } = await supabase
           .from("orders")
-          .select("order_status, final_price, check_in_date, check_out_date, room_type_id")
+          .select("order_status, final_price, check_in_date, check_out_date, room_type_id, meal_plan")
           .eq("accommodation_id", acc.id)
           .gte("created_at", startDate)
           .lte("created_at", endDate + "T23:59:59");
