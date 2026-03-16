@@ -296,9 +296,9 @@ const fetchDashboardData = async (
       lastMonthData.push({
         month: monthLabel,
         revenue: Number.isFinite(revenue) ? revenue : 0,
-        bookings: monthOrders.length,
+        bookings: monthOrders.filter(o => isRevenueEligible(o.order_status)).length,
         prevRevenue: Number.isFinite(prevRevenue) ? prevRevenue : 0,
-        prevBookings: prevMonthOrders.length,
+        prevBookings: prevMonthOrders.filter(o => isRevenueEligible(o.order_status)).length,
       });
       
       currentDate = new Date(currentDate.setMonth(currentDate.getMonth() + 1));
@@ -329,9 +329,9 @@ const fetchDashboardData = async (
       lastMonthData.push({
         month: monthLabel,
         revenue: Number.isFinite(revenue) ? revenue : 0,
-        bookings: monthOrders.length,
+        bookings: monthOrders.filter(o => isRevenueEligible(o.order_status)).length,
         prevRevenue: Number.isFinite(prevRevenue) ? prevRevenue : 0,
-        prevBookings: prevMonthOrders.length,
+        prevBookings: prevMonthOrders.filter(o => isRevenueEligible(o.order_status)).length,
       });
     }
   }
