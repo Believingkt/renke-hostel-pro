@@ -686,7 +686,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
     if (periodRoomTypeIds.length > 0) {
       const { data: invData } = await supabase
         .from('room_inventory_pricing')
-        .select('room_type_id, date, price')
+        .select('room_type_id, date, price, price_2_meals, price_3_meals')
         .in('room_type_id', periodRoomTypeIds)
         .gte('date', startDate).lte('date', endDate)
         .limit(10000);
