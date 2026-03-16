@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { getOrderStatusLabel } from "@/utils/orderHelpers";
+import { buildPricingMap, aggregateRevenueByMonth, computeRoomNightsByMonth, type PricingMap } from "@/utils/revenueByMonth";
 
 interface DashboardStats {
   totalRooms: number;
@@ -31,7 +32,7 @@ interface ChartData {
 
 interface OccupancyData {
   month: string;
-  [roomTypeName: string]: number | string; // 动态的房型名称作为key
+  [roomTypeName: string]: number | string;
 }
 
 interface MonthlyMetrics {
@@ -61,7 +62,6 @@ const fetchDashboardData = async (
   const now = new Date();
   const currentYear = selectedYear || now.getFullYear();
   
-  // 如果有自定義日期範圍，使用它；否則根據比較模式決定範圍
   let startDate: Date;
   let endDate: Date;
   
@@ -69,16 +69,14 @@ const fetchDashboardData = async (
     startDate = customDateRange.from;
     endDate = customDateRange.to;
   } else if (comparisonMode === 'lastYear') {
-    // 與去年對比：查詢去年和今年的完整年度數據
-    startDate = new Date(currentYear - 1, 0, 1); // 去年1月1日
-    endDate = new Date(currentYear, 11, 31, 23, 59, 59); // 今年12月31日
+    startDate = new Date(currentYear - 1, 0, 1);
+    endDate = new Date(currentYear, 11, 31, 23, 59, 59);
   } else {
-    // 與上月對比：最近 13 個月
     startDate = subMonths(now, 13);
     endDate = now;
   }
   
-  // 平行查詢房型和訂單資料
+  // Step 1: Fetch room types and orders in parallel
   const [roomTypesResult, ordersResult] = await Promise.all([
     supabase
       .from("room_types")
@@ -99,12 +97,47 @@ const fetchDashboardData = async (
   const roomTypesData = roomTypesResult.data || [];
   const ordersData = ordersResult.data || [];
   
-  // 營收只計算已確認的訂單（confirmed）
   const isRevenueEligible = (status: string) => status === 'confirmed';
-  
   const totalRoomCount = roomTypesData.reduce((sum, rt) => sum + (rt.room_count || 0), 0);
+
+  // Step 2: Fetch inventory pricing for daily revenue splitting
+  const confirmedWithDates = ordersData.filter(o => isRevenueEligible(o.order_status) && o.check_in_date && o.check_out_date);
+  const roomTypeIds = roomTypesData.map(rt => rt.id);
   
-  // 預先按月份分組資料
+  let pricingMap: PricingMap = new Map();
+  if (roomTypeIds.length > 0 && confirmedWithDates.length > 0) {
+    let minDate = confirmedWithDates[0].check_in_date;
+    let maxDate = confirmedWithDates[0].check_out_date;
+    confirmedWithDates.forEach(o => {
+      if (o.check_in_date < minDate) minDate = o.check_in_date;
+      if (o.check_out_date > maxDate) maxDate = o.check_out_date;
+    });
+    
+    const { data: inventoryData } = await supabase
+      .from('room_inventory_pricing')
+      .select('room_type_id, date, price')
+      .in('room_type_id', roomTypeIds)
+      .gte('date', minDate)
+      .lte('date', maxDate)
+      .limit(10000);
+    
+    pricingMap = buildPricingMap(inventoryData || []);
+  }
+
+  // Pre-compute revenue and room nights by month using daily price splitting
+  const revenueByMonth = aggregateRevenueByMonth(
+    confirmedWithDates.map(o => ({
+      check_in_date: o.check_in_date,
+      check_out_date: o.check_out_date,
+      room_type_id: o.room_type_id,
+      final_price: Number(o.final_price) || 0,
+    })),
+    pricingMap
+  );
+  
+  const roomNightsByMonth = computeRoomNightsByMonth(confirmedWithDates);
+  
+  // Keep ordersByMonth for booking counts (by order_date)
   const ordersByMonth = new Map<string, typeof ordersData>();
   ordersData.forEach(order => {
     const orderDate = new Date(order.order_date);
@@ -115,7 +148,7 @@ const fetchDashboardData = async (
     ordersByMonth.get(monthKey)!.push(order);
   });
   
-  // 本月和上月統計
+  // Stats cards
   const currentMonthStart = startOfMonth(now);
   const lastMonthStart = startOfMonth(subMonths(now, 1));
   
@@ -131,19 +164,12 @@ const fetchDashboardData = async (
   const lastMonthBookingCount = confirmedLastMonthOrders.length;
   const monthlyGuestCount = confirmedCurrentMonthOrders.reduce((sum, o) => sum + (o.guest_count || 0), 0);
   const lastMonthGuestCount = confirmedLastMonthOrders.reduce((sum, o) => sum + (o.guest_count || 0), 0);
-  // Validate and sum revenues - 只計算實際入住的訂單
-  const monthlyRev = currentMonthOrders.reduce((sum, o) => {
-    if (!isRevenueEligible(o.order_status)) return sum;
-    const price = Number(o.final_price);
-    return sum + (Number.isFinite(price) ? price : 0);
-  }, 0);
-  const lastMonthRev = lastMonthOrders.reduce((sum, o) => {
-    if (!isRevenueEligible(o.order_status)) return sum;
-    const price = Number(o.final_price);
-    return sum + (Number.isFinite(price) ? price : 0);
-  }, 0);
   
-  // 計算變化百分比
+  // Revenue from daily price splitting
+  const monthlyRev = revenueByMonth.get(currentMonthKey) || 0;
+  const lastMonthRev = revenueByMonth.get(lastMonthKey) || 0;
+  
+  // Calculate change percentages
   const bookingChange = lastMonthBookingCount > 0 
     ? ((monthlyBookingCount - lastMonthBookingCount) / lastMonthBookingCount * 100).toFixed(1)
     : "0";
@@ -154,32 +180,22 @@ const fetchDashboardData = async (
     ? ((monthlyRev - lastMonthRev) / lastMonthRev * 100).toFixed(1)
     : "0";
     
-  // Ensure all numeric values are valid
   const safeBookingChange = Number.isFinite(Number(bookingChange)) ? bookingChange : "0";
   const safeGuestChange = Number.isFinite(Number(guestChange)) ? guestChange : "0";
   const safeRevChange = Number.isFinite(Number(revChange)) ? revChange : "0";
   
-  // 根據是否有自定義日期範圍來決定如何生成圖表數據
+  // Generate chart data
   let monthlyData: ChartData[] = [];
   
   if (customDateRange?.from && customDateRange?.to) {
-    // 自定義日期範圍：只顯示該範圍內的數據
-    const rangeStartKey = format(customDateRange.from, 'yyyy-MM');
-    const rangeEndKey = format(customDateRange.to, 'yyyy-MM');
-    
-    // 獲取該範圍內的所有月份
     let currentDate = new Date(customDateRange.from);
-    const endDate = new Date(customDateRange.to);
+    const rangeEnd = new Date(customDateRange.to);
     
-    while (currentDate <= endDate) {
+    while (currentDate <= rangeEnd) {
       const monthKey = format(currentDate, 'yyyy-MM');
       const monthLabel = format(currentDate, 'yyyy/MM');
       const monthOrders = ordersByMonth.get(monthKey) || [];
-      const revenue = monthOrders.reduce((sum, o) => {
-        if (!isRevenueEligible(o.order_status)) return sum;
-        const price = Number(o.final_price);
-        return sum + (Number.isFinite(price) ? price : 0);
-      }, 0);
+      const revenue = revenueByMonth.get(monthKey) || 0;
       
       monthlyData.push({
         month: monthLabel,
@@ -192,9 +208,7 @@ const fetchDashboardData = async (
       currentDate = new Date(currentDate.setMonth(currentDate.getMonth() + 1));
     }
   } else if (comparisonMode === 'lastYear') {
-    // 與去年對比：生成當年1-12月的完整數據
     const dataYear = selectedYear || now.getFullYear();
-    const currentMonth = dataYear === now.getFullYear() ? now.getMonth() : 11; // 0-11, show all months for past years
     
     for (let month = 0; month < 12; month++) {
       const monthDate = new Date(dataYear, month, 1);
@@ -206,16 +220,8 @@ const fetchDashboardData = async (
       const monthOrders = ordersByMonth.get(monthKey) || [];
       const lastYearOrders = ordersByMonth.get(lastYearMonthKey) || [];
       
-      const revenue = monthOrders.reduce((sum, o) => {
-        if (!isRevenueEligible(o.order_status)) return sum;
-        const price = Number(o.final_price);
-        return sum + (Number.isFinite(price) ? price : 0);
-      }, 0);
-      const lastYearRevenue = lastYearOrders.reduce((sum, o) => {
-        if (!isRevenueEligible(o.order_status)) return sum;
-        const price = Number(o.final_price);
-        return sum + (Number.isFinite(price) ? price : 0);
-      }, 0);
+      const revenue = revenueByMonth.get(monthKey) || 0;
+      const lastYearRevenue = revenueByMonth.get(lastYearMonthKey) || 0;
       
       monthlyData.push({
         month: monthLabel,
@@ -227,7 +233,6 @@ const fetchDashboardData = async (
       });
     }
   } else {
-    // 與上月對比：生成過去12個月的圖表數據
     for (let i = 11; i >= 0; i--) {
       const monthDate = subMonths(now, i);
       const monthKey = format(monthDate, 'yyyy-MM');
@@ -237,16 +242,8 @@ const fetchDashboardData = async (
       const monthOrders = ordersByMonth.get(monthKey) || [];
       const lastYearOrders = ordersByMonth.get(lastYearMonthKey) || [];
       
-      const revenue = monthOrders.reduce((sum, o) => {
-        if (!isRevenueEligible(o.order_status)) return sum;
-        const price = Number(o.final_price);
-        return sum + (Number.isFinite(price) ? price : 0);
-      }, 0);
-      const lastYearRevenue = lastYearOrders.reduce((sum, o) => {
-        if (!isRevenueEligible(o.order_status)) return sum;
-        const price = Number(o.final_price);
-        return sum + (Number.isFinite(price) ? price : 0);
-      }, 0);
+      const revenue = revenueByMonth.get(monthKey) || 0;
+      const lastYearRevenue = revenueByMonth.get(lastYearMonthKey) || 0;
       
       monthlyData.push({
         month: monthLabel,
@@ -258,21 +255,14 @@ const fetchDashboardData = async (
     }
   }
   
-  // 上月對比數據
+  // Last month comparison data
   const lastMonthData: ChartData[] = [];
   
   if (customDateRange?.from && customDateRange?.to) {
-    // 自定義日期範圍：與前一個相同長度的時段對比
-    const rangeLength = Math.ceil((customDateRange.to.getTime() - customDateRange.from.getTime()) / (1000 * 60 * 60 * 24));
-    const prevRangeStart = new Date(customDateRange.from);
-    prevRangeStart.setDate(prevRangeStart.getDate() - rangeLength);
-    const prevRangeEnd = new Date(customDateRange.from);
-    prevRangeEnd.setDate(prevRangeEnd.getDate() - 1);
-    
     let currentDate = new Date(customDateRange.from);
-    const endDate = new Date(customDateRange.to);
+    const rangeEnd = new Date(customDateRange.to);
     
-    while (currentDate <= endDate) {
+    while (currentDate <= rangeEnd) {
       const monthKey = format(currentDate, 'yyyy-MM');
       const prevDate = new Date(currentDate);
       prevDate.setMonth(prevDate.getMonth() - 1);
@@ -282,16 +272,8 @@ const fetchDashboardData = async (
       const monthOrders = ordersByMonth.get(monthKey) || [];
       const prevMonthOrders = ordersByMonth.get(prevMonthKey) || [];
       
-      const revenue = monthOrders.reduce((sum, o) => {
-        if (!isRevenueEligible(o.order_status)) return sum;
-        const price = Number(o.final_price);
-        return sum + (Number.isFinite(price) ? price : 0);
-      }, 0);
-      const prevRevenue = prevMonthOrders.reduce((sum, o) => {
-        if (!isRevenueEligible(o.order_status)) return sum;
-        const price = Number(o.final_price);
-        return sum + (Number.isFinite(price) ? price : 0);
-      }, 0);
+      const revenue = revenueByMonth.get(monthKey) || 0;
+      const prevRevenue = revenueByMonth.get(prevMonthKey) || 0;
       
       lastMonthData.push({
         month: monthLabel,
@@ -304,7 +286,6 @@ const fetchDashboardData = async (
       currentDate = new Date(currentDate.setMonth(currentDate.getMonth() + 1));
     }
   } else {
-    // 預設：過去12個月的上月對比
     for (let i = 11; i >= 0; i--) {
       const monthDate = subMonths(now, i);
       const prevMonthDate = subMonths(monthDate, 1);
@@ -315,16 +296,8 @@ const fetchDashboardData = async (
       const monthOrders = ordersByMonth.get(monthKey) || [];
       const prevMonthOrders = ordersByMonth.get(prevMonthKey) || [];
       
-      const revenue = monthOrders.reduce((sum, o) => {
-        if (!isRevenueEligible(o.order_status)) return sum;
-        const price = Number(o.final_price);
-        return sum + (Number.isFinite(price) ? price : 0);
-      }, 0);
-      const prevRevenue = prevMonthOrders.reduce((sum, o) => {
-        if (!isRevenueEligible(o.order_status)) return sum;
-        const price = Number(o.final_price);
-        return sum + (Number.isFinite(price) ? price : 0);
-      }, 0);
+      const revenue = revenueByMonth.get(monthKey) || 0;
+      const prevRevenue = revenueByMonth.get(prevMonthKey) || 0;
       
       lastMonthData.push({
         month: monthLabel,
@@ -336,12 +309,11 @@ const fetchDashboardData = async (
     }
   }
   
-  // 根據對比模式設置數據，並確保至少有一個數據點
+  // Set chart data based on comparison mode
   let revenueData: ChartData[];
   let bookingData: ChartData[];
   
   if (customDateRange?.from && customDateRange?.to) {
-    // 自定義範圍：簡化顯示，只顯示該範圍數據
     revenueData = monthlyData.map(m => ({ 
       month: m.month, 
       "本期": Number.isFinite(m.revenue) ? m.revenue : 0,
@@ -376,7 +348,6 @@ const fetchDashboardData = async (
     }));
   }
   
-  // 確保數據不為空，至少有一個數據點
   if (revenueData.length === 0) {
     revenueData = [{ month: format(now, 'M月'), "本期": 0 }];
   }
@@ -384,14 +355,11 @@ const fetchDashboardData = async (
     bookingData = [{ month: format(now, 'M月'), "本期": 0 }];
   }
   
-  // 計算房型入住率（今年每個月）
+  // Occupancy data
   const occupancyData: OccupancyData[] = [];
-  
-  // 計算整體住房率和平均房價
   const monthlyOccupancyRate: MonthlyMetrics[] = [];
   const monthlyAveragePrice: MonthlyMetrics[] = [];
   
-  // 只計算今年的數據（1-12月）
   const dataYear = selectedYear || now.getFullYear();
   for (let month = 0; month < 12; month++) {
     const monthDate = new Date(dataYear, month, 1);
@@ -401,104 +369,78 @@ const fetchDashboardData = async (
     const daysInMonth = monthEnd.getDate();
     const isFutureMonth = dataYear === now.getFullYear() && monthDate > now;
     
-    // 去年同期日期
     const lastYearMonthDate = new Date(dataYear - 1, month, 1);
     const lastYearMonthStart = startOfMonth(lastYearMonthDate);
     const lastYearMonthEnd = endOfMonth(lastYearMonthDate);
     
-    const monthDataPoint: OccupancyData = {
-      month: monthLabel,
-    };
+    const monthDataPoint: OccupancyData = { month: monthLabel };
     
-    // 獲取該月的已確認訂單
+    // Get confirmed orders overlapping this month
     const monthOrders = ordersData.filter(o => {
       if (!o.check_in_date || !o.check_out_date) return false;
       if (!isRevenueEligible(o.order_status)) return false;
       const checkIn = new Date(o.check_in_date);
       const checkOut = new Date(o.check_out_date);
-      // 訂單與該月有重疊
       return checkOut > monthStart && checkIn <= monthEnd;
     });
     
-    // 計算整體住房率
     let totalNightsAllRooms = 0;
     let totalAvailableNights = 0;
-    
-    // 去年同期住房率
     let lastYearTotalNights = 0;
     let lastYearTotalAvailable = 0;
     
-    // 獲取去年同期的已確認訂單
     const lastYearMonthOrders = ordersData.filter(o => {
       if (!o.check_in_date || !o.check_out_date) return false;
       if (!isRevenueEligible(o.order_status)) return false;
       const checkIn = new Date(o.check_in_date);
       const checkOut = new Date(o.check_out_date);
-      // 訂單與去年該月有重疊
       return checkOut > lastYearMonthStart && checkIn <= lastYearMonthEnd;
     });
     
-    // 為每個房型計算入住率
     roomTypesData.forEach(roomType => {
       const roomCount = roomType.room_count || 1;
       
-      // 計算該房型在該月的總住宿天數
       const roomOrders = monthOrders.filter(o => o.room_type_id === roomType.id);
       let totalNights = 0;
       
       roomOrders.forEach(order => {
         const checkIn = new Date(order.check_in_date);
         const checkOut = new Date(order.check_out_date);
-        
-        // 計算與該月重疊的天數
         const overlapStart = checkIn < monthStart ? monthStart : checkIn;
         const overlapEnd = checkOut > monthEnd ? monthEnd : checkOut;
         const nights = Math.ceil((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24));
-        
-        if (nights > 0 && Number.isFinite(nights)) {
-          totalNights += nights;
-        }
+        if (nights > 0 && Number.isFinite(nights)) totalNights += nights;
       });
       
-      // 計算去年同期該房型的總住宿天數
       const lastYearRoomOrders = lastYearMonthOrders.filter(o => o.room_type_id === roomType.id);
       let lastYearNights = 0;
       
       lastYearRoomOrders.forEach(order => {
         const checkIn = new Date(order.check_in_date);
         const checkOut = new Date(order.check_out_date);
-        
         const overlapStart = checkIn < lastYearMonthStart ? lastYearMonthStart : checkIn;
         const overlapEnd = checkOut > lastYearMonthEnd ? lastYearMonthEnd : checkOut;
         const nights = Math.ceil((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24));
-        
-        if (nights > 0 && Number.isFinite(nights)) {
-          lastYearNights += nights;
-        }
+        if (nights > 0 && Number.isFinite(nights)) lastYearNights += nights;
       });
       
-      // 計算入住率：總住宿天數 / (房間數 × 該月天數)
       const maxPossibleNights = roomCount * daysInMonth;
       const occupancyRate = maxPossibleNights > 0 
         ? Math.round((totalNights / maxPossibleNights) * 100)
         : 0;
       
-      // 累加整體數據
       totalNightsAllRooms += totalNights;
       totalAvailableNights += maxPossibleNights;
       lastYearTotalNights += lastYearNights;
       lastYearTotalAvailable += maxPossibleNights;
       
-      // 未來月份設為 null 或 0
       monthDataPoint[roomType.name] = isFutureMonth ? 0 : Math.min(100, occupancyRate);
     });
     
-    // 計算整體住房率
     const overallOccupancyRate = totalAvailableNights > 0
       ? Math.round((totalNightsAllRooms / totalAvailableNights) * 100)
       : 0;
     
-    // 計算去年同期整體住房率
     const lastYearOverallOccupancyRate = lastYearTotalAvailable > 0
       ? Math.round((lastYearTotalNights / lastYearTotalAvailable) * 100)
       : 0;
@@ -511,25 +453,16 @@ const fetchDashboardData = async (
       isFuture: isFutureMonth,
     });
     
-    // 計算平均房價（已確認訂單總金額 / 已確認訂單數）
+    // Average price (ADR) using daily-split revenue / room nights
     const monthKey = format(monthDate, 'yyyy-MM');
-    const monthOrdersForPrice = (ordersByMonth.get(monthKey) || []).filter(o => isRevenueEligible(o.order_status));
-    const totalRevenue = monthOrdersForPrice.reduce((sum, o) => {
-      const price = Number(o.final_price);
-      return sum + (Number.isFinite(price) ? price : 0);
-    }, 0);
-    const orderCount = monthOrdersForPrice.length;
-    const averagePrice = orderCount > 0 ? Math.round(totalRevenue / orderCount) : 0;
+    const monthRevenue = revenueByMonth.get(monthKey) || 0;
+    const monthRoomNights = roomNightsByMonth.get(monthKey) || 0;
+    const averagePrice = monthRoomNights > 0 ? Math.round(monthRevenue / monthRoomNights) : 0;
     
-    // 計算去年同期平均房價
     const lastYearMonthKey = format(lastYearMonthDate, 'yyyy-MM');
-    const lastYearMonthOrdersForPrice = (ordersByMonth.get(lastYearMonthKey) || []).filter(o => isRevenueEligible(o.order_status));
-    const lastYearTotalRevenue = lastYearMonthOrdersForPrice.reduce((sum, o) => {
-      const price = Number(o.final_price);
-      return sum + (Number.isFinite(price) ? price : 0);
-    }, 0);
-    const lastYearOrderCount = lastYearMonthOrdersForPrice.length;
-    const lastYearAveragePrice = lastYearOrderCount > 0 ? Math.round(lastYearTotalRevenue / lastYearOrderCount) : 0;
+    const lastYearMonthRevenue = revenueByMonth.get(lastYearMonthKey) || 0;
+    const lastYearMonthRoomNights = roomNightsByMonth.get(lastYearMonthKey) || 0;
+    const lastYearAveragePrice = lastYearMonthRoomNights > 0 ? Math.round(lastYearMonthRevenue / lastYearMonthRoomNights) : 0;
     
     monthlyAveragePrice.push({
       month: monthLabel,
@@ -574,12 +507,11 @@ export const useDashboardData = (
     queryKey: ['dashboard', accommodationId, comparisonMode, customDateRange, selectedYear],
     queryFn: () => fetchDashboardData(accommodationId!, comparisonMode, customDateRange, selectedYear),
     enabled: !!accommodationId,
-    staleTime: 5 * 60 * 1000, // 資料在 5 分鐘內視為新鮮
-    gcTime: 10 * 60 * 1000, // 快取保留 10 分鐘
-    refetchOnWindowFocus: true, // 視窗獲得焦點時重新取得資料
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: true,
   });
   
-  // 提供手動刷新方法
   const refreshData = () => {
     queryClient.invalidateQueries({ queryKey: ['dashboard', accommodationId] });
   };
