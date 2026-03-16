@@ -410,9 +410,10 @@ const fetchDashboardData = async (
       month: monthLabel,
     };
     
-    // 獲取該月的訂單
+    // 獲取該月的已確認訂單
     const monthOrders = ordersData.filter(o => {
       if (!o.check_in_date || !o.check_out_date) return false;
+      if (!isRevenueEligible(o.order_status)) return false;
       const checkIn = new Date(o.check_in_date);
       const checkOut = new Date(o.check_out_date);
       // 訂單與該月有重疊
