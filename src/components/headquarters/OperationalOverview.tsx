@@ -220,12 +220,12 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
       const [{ data: allOrders, error: allOrdersError }, { data: prevYearOrders, error: prevYearOrdersError }, { data: allRoomTypesForPricing }] = await Promise.all([
         supabase
           .from("orders")
-          .select("accommodation_id, order_status, final_price, created_at, check_in_date, check_out_date, room_type_id")
+          .select("accommodation_id, order_status, final_price, created_at, check_in_date, check_out_date, room_type_id, meal_plan")
           .in("accommodation_id", accIds)
           .gte("created_at", format(subMonths(now, 11), 'yyyy-MM-dd')),
         supabase
           .from("orders")
-          .select("accommodation_id, order_status, final_price, created_at, check_in_date, check_out_date, room_type_id")
+          .select("accommodation_id, order_status, final_price, created_at, check_in_date, check_out_date, room_type_id, meal_plan")
           .in("accommodation_id", accIds)
           .gte("created_at", format(subMonths(now, 23), 'yyyy-MM-dd'))
           .lt("created_at", format(subMonths(now, 11), 'yyyy-MM-dd')),
@@ -257,7 +257,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
         
         const { data: inventoryData } = await supabase
           .from('room_inventory_pricing')
-          .select('room_type_id, date, price')
+          .select('room_type_id, date, price, price_2_meals, price_3_meals')
           .in('room_type_id', allRoomTypeIds)
           .gte('date', minDate)
           .lte('date', maxDate)
@@ -271,11 +271,11 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
       const prevConfirmed = (prevYearOrders || []).filter(o => o.order_status === 'confirmed' && o.check_in_date && o.check_out_date);
       
       const currentRevenueByMonth = aggregateRevenueByMonth(
-        currentConfirmed.map(o => ({ check_in_date: o.check_in_date, check_out_date: o.check_out_date, room_type_id: o.room_type_id, final_price: o.final_price || 0 })),
+        currentConfirmed.map(o => ({ check_in_date: o.check_in_date, check_out_date: o.check_out_date, room_type_id: o.room_type_id, final_price: o.final_price || 0, meal_plan: o.meal_plan })),
         hqPricingMap
       );
       const prevRevenueByMonth = aggregateRevenueByMonth(
-        prevConfirmed.map(o => ({ check_in_date: o.check_in_date, check_out_date: o.check_out_date, room_type_id: o.room_type_id, final_price: o.final_price || 0 })),
+        prevConfirmed.map(o => ({ check_in_date: o.check_in_date, check_out_date: o.check_out_date, room_type_id: o.room_type_id, final_price: o.final_price || 0, meal_plan: o.meal_plan })),
         hqPricingMap
       );
 
@@ -332,7 +332,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
       const statsPromises = filteredAccommodations.map(async (acc) => {
         const { data: orders, error: ordersError } = await supabase
           .from("orders")
-          .select("order_status, final_price, created_at, check_in_date, check_out_date, room_type_id")
+          .select("order_status, final_price, created_at, check_in_date, check_out_date, room_type_id, meal_plan")
           .eq("accommodation_id", acc.id);
 
         if (ordersError) throw ordersError;
@@ -354,7 +354,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
         // Per-acc revenue using daily price splitting
         const accConfirmed = allAccOrders.filter(o => o.order_status === 'confirmed' && o.check_in_date && o.check_out_date);
         const accRevenueByMonth = aggregateRevenueByMonth(
-          accConfirmed.map(o => ({ check_in_date: o.check_in_date!, check_out_date: o.check_out_date!, room_type_id: o.room_type_id, final_price: o.final_price || 0 })),
+          accConfirmed.map(o => ({ check_in_date: o.check_in_date!, check_out_date: o.check_out_date!, room_type_id: o.room_type_id, final_price: o.final_price || 0, meal_plan: o.meal_plan })),
           hqPricingMap
         );
         
@@ -598,13 +598,13 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
     const [{ data: currentYearOrders }, { data: previousYearOrders }] = await Promise.all([
       supabase
         .from("orders")
-        .select("created_at, final_price, order_status, check_in_date, check_out_date, room_type_id")
+        .select("created_at, final_price, order_status, check_in_date, check_out_date, room_type_id, meal_plan")
         .in("accommodation_id", accIds)
         .gte("created_at", `${currentYear}-01-01`)
         .lte("created_at", format(now, "yyyy-MM-dd") + "T23:59:59"),
       supabase
         .from("orders")
-        .select("created_at, final_price, order_status, check_in_date, check_out_date, room_type_id")
+        .select("created_at, final_price, order_status, check_in_date, check_out_date, room_type_id, meal_plan")
         .in("accommodation_id", accIds)
         .gte("created_at", `${previousYear}-01-01`)
         .lte("created_at", `${previousYear}-12-31T23:59:59`),
@@ -626,18 +626,18 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
       });
       const { data: invData } = await supabase
         .from('room_inventory_pricing')
-        .select('room_type_id, date, price')
+        .select('room_type_id, date, price, price_2_meals, price_3_meals')
         .in('room_type_id', compRoomTypeIds)
         .gte('date', minD).lte('date', maxD).limit(10000);
       compPricingMap = buildPricingMap(invData || []);
     }
 
     const curRevByMonth = aggregateRevenueByMonth(
-      currentConfirmedOrders.map(o => ({ check_in_date: o.check_in_date!, check_out_date: o.check_out_date!, room_type_id: o.room_type_id, final_price: o.final_price || 0 })),
+      currentConfirmedOrders.map(o => ({ check_in_date: o.check_in_date!, check_out_date: o.check_out_date!, room_type_id: o.room_type_id, final_price: o.final_price || 0, meal_plan: o.meal_plan })),
       compPricingMap
     );
     const prevRevByMonth = aggregateRevenueByMonth(
-      prevConfirmedOrders.map(o => ({ check_in_date: o.check_in_date!, check_out_date: o.check_out_date!, room_type_id: o.room_type_id, final_price: o.final_price || 0 })),
+      prevConfirmedOrders.map(o => ({ check_in_date: o.check_in_date!, check_out_date: o.check_out_date!, room_type_id: o.room_type_id, final_price: o.final_price || 0, meal_plan: o.meal_plan })),
       compPricingMap
     );
 
@@ -686,7 +686,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
     if (periodRoomTypeIds.length > 0) {
       const { data: invData } = await supabase
         .from('room_inventory_pricing')
-        .select('room_type_id, date, price')
+        .select('room_type_id, date, price, price_2_meals, price_3_meals')
         .in('room_type_id', periodRoomTypeIds)
         .gte('date', startDate).lte('date', endDate)
         .limit(10000);
@@ -697,7 +697,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
       filteredAccommodations.map(async (acc) => {
         const { data: orders } = await supabase
           .from("orders")
-          .select("order_status, final_price, check_in_date, check_out_date, room_type_id")
+          .select("order_status, final_price, check_in_date, check_out_date, room_type_id, meal_plan")
           .eq("accommodation_id", acc.id)
           .gte("created_at", startDate)
           .lte("created_at", endDate + "T23:59:59");
@@ -714,7 +714,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
         // Revenue using daily price splitting
         const confirmedWithDates = confirmedOrders.filter(o => o.check_in_date && o.check_out_date);
         const accRevByMonth = aggregateRevenueByMonth(
-          confirmedWithDates.map(o => ({ check_in_date: o.check_in_date!, check_out_date: o.check_out_date!, room_type_id: o.room_type_id, final_price: o.final_price || 0 })),
+          confirmedWithDates.map(o => ({ check_in_date: o.check_in_date!, check_out_date: o.check_out_date!, room_type_id: o.room_type_id, final_price: o.final_price || 0, meal_plan: o.meal_plan })),
           periodPricingMap
         );
         const revenue = Array.from(accRevByMonth.values()).reduce((sum, v) => sum + v, 0);
