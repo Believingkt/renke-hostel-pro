@@ -332,7 +332,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
       const statsPromises = filteredAccommodations.map(async (acc) => {
         const { data: orders, error: ordersError } = await supabase
           .from("orders")
-          .select("order_status, final_price, created_at, check_in_date, check_out_date, room_type_id")
+          .select("order_status, final_price, created_at, check_in_date, check_out_date, room_type_id, meal_plan")
           .eq("accommodation_id", acc.id);
 
         if (ordersError) throw ordersError;
