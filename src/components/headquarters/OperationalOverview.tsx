@@ -332,7 +332,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
       const statsPromises = filteredAccommodations.map(async (acc) => {
         const { data: orders, error: ordersError } = await supabase
           .from("orders")
-          .select("order_status, final_price, created_at")
+          .select("order_status, final_price, created_at, check_in_date, check_out_date, room_type_id")
           .eq("accommodation_id", acc.id);
 
         if (ordersError) throw ordersError;
@@ -351,17 +351,19 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
         const checkedOutOrders = allAccOrders.filter(o => o.order_status === "checked_out").length;
         const cancelledOrders = allAccOrders.filter(o => o.order_status === "cancelled").length;
 
-        const monthlyOrders = allAccOrders.filter(o => {
-          const orderDate = o.created_at?.split('T')[0];
-          return orderDate >= monthStart && orderDate <= monthEnd && o.order_status === 'confirmed';
-        });
-        const monthlyRevenue = monthlyOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
-
-        const yearlyOrders = allAccOrders.filter(o => {
-          const orderDate = o.created_at?.split('T')[0];
-          return orderDate >= yearStart && orderDate <= yearEnd && o.order_status === 'confirmed';
-        });
-        const yearlyRevenue = yearlyOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+        // Per-acc revenue using daily price splitting
+        const accConfirmed = allAccOrders.filter(o => o.order_status === 'confirmed' && o.check_in_date && o.check_out_date);
+        const accRevenueByMonth = aggregateRevenueByMonth(
+          accConfirmed.map(o => ({ check_in_date: o.check_in_date!, check_out_date: o.check_out_date!, room_type_id: o.room_type_id, final_price: o.final_price || 0 })),
+          hqPricingMap
+        );
+        
+        const currentMonthKey = format(now, 'yyyy-MM');
+        const monthlyRevenue = accRevenueByMonth.get(currentMonthKey) || 0;
+        
+        const yearlyRevenue = Array.from(accRevenueByMonth.entries())
+          .filter(([key]) => key.startsWith(String(now.getFullYear())))
+          .reduce((sum, [, rev]) => sum + rev, 0);
 
         return {
           id: acc.id,
