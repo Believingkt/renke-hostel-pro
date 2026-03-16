@@ -609,12 +609,11 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
           .eq("accommodation_id", acc.id);
 
         const allOrders = orders || [];
-        const validOrders = allOrders.filter((o) => o.order_status !== "cancelled");
+        const confirmedOrders = allOrders.filter((o) => o.order_status === "confirmed");
         const cancelledOrders = allOrders.filter((o) => o.order_status === "cancelled");
-        const revenueOrders = validOrders.filter(o => o.order_status === 'confirmed');
-        const revenue = revenueOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+        const revenue = confirmedOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
         
-        const roomNights = validOrders.reduce((sum, o) => {
+        const roomNights = confirmedOrders.reduce((sum, o) => {
           const checkIn = new Date(o.check_in_date);
           const checkOut = new Date(o.check_out_date);
           return sum + differenceInDays(checkOut, checkIn);
@@ -629,9 +628,9 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
           id: acc.id,
           name: acc.name,
           is_active: acc.is_active !== false,
-          orderCount: validOrders.length,
+          orderCount: confirmedOrders.length,
           revenue,
-          averageOrderValue: validOrders.length > 0 ? Math.round(revenue / validOrders.length) : 0,
+          averageOrderValue: confirmedOrders.length > 0 ? Math.round(revenue / confirmedOrders.length) : 0,
           occupancyRate: Math.round(occupancyRate * 10) / 10,
           cancelledCount: cancelledOrders.length,
           roomNights,
