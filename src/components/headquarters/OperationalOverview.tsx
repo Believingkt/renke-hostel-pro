@@ -598,7 +598,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
     const [{ data: currentYearOrders }, { data: previousYearOrders }] = await Promise.all([
       supabase
         .from("orders")
-        .select("created_at, final_price, order_status, check_in_date, check_out_date, room_type_id")
+        .select("created_at, final_price, order_status, check_in_date, check_out_date, room_type_id, meal_plan")
         .in("accommodation_id", accIds)
         .gte("created_at", `${currentYear}-01-01`)
         .lte("created_at", format(now, "yyyy-MM-dd") + "T23:59:59"),
