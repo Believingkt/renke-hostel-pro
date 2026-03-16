@@ -228,9 +228,9 @@ const fetchDashboardData = async (
       monthlyData.push({
         month: monthLabel,
         revenue: Number.isFinite(revenue) ? revenue : 0,
-        bookings: monthOrders.filter(o => isRevenueEligible(o.order_status)).length,
+        bookings: bookingCountByMonth.get(monthKey) || 0,
         lastYearRevenue: Number.isFinite(lastYearRevenue) ? lastYearRevenue : 0,
-        lastYearBookings: lastYearOrders.filter(o => isRevenueEligible(o.order_status)).length,
+        lastYearBookings: bookingCountByMonth.get(lastYearMonthKey) || 0,
         isFuture,
       });
     }
