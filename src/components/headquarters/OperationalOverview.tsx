@@ -258,14 +258,12 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
 
       // Previous year data (map to same month names)
       prevYearOrders?.forEach(order => {
-        if (order.order_status !== 'cancelled' && order.created_at) {
+        if (order.created_at && isRevenueEligible(order.order_status)) {
           const orderDate = new Date(order.created_at);
           const key = format(orderDate, 'M月');
           const current = monthlyMap.get(key);
           if (current) {
-            if (isRevenueEligible(order.order_status)) {
-              current.prevRevenue += order.final_price || 0;
-            }
+            current.prevRevenue += order.final_price || 0;
             current.prevOrders += 1;
           }
         }
