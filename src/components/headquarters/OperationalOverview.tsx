@@ -628,7 +628,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
         const allOrders = orders || [];
         const validOrders = allOrders.filter((o) => o.order_status !== "cancelled");
         const cancelledOrders = allOrders.filter((o) => o.order_status === "cancelled");
-        const revenueOrders = validOrders.filter(o => o.order_status === 'checked_in' || o.order_status === 'checked_out');
+        const revenueOrders = validOrders.filter(o => o.order_status === 'confirmed');
         const revenue = revenueOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
         
         const roomNights = validOrders.reduce((sum, o) => {
