@@ -511,9 +511,9 @@ const fetchDashboardData = async (
       isFuture: isFutureMonth,
     });
     
-    // 計算平均房價（訂單總金額 / 總訂單數）
+    // 計算平均房價（已確認訂單總金額 / 已確認訂單數）
     const monthKey = format(monthDate, 'yyyy-MM');
-    const monthOrdersForPrice = ordersByMonth.get(monthKey) || [];
+    const monthOrdersForPrice = (ordersByMonth.get(monthKey) || []).filter(o => isRevenueEligible(o.order_status));
     const totalRevenue = monthOrdersForPrice.reduce((sum, o) => {
       const price = Number(o.final_price);
       return sum + (Number.isFinite(price) ? price : 0);
@@ -523,7 +523,7 @@ const fetchDashboardData = async (
     
     // 計算去年同期平均房價
     const lastYearMonthKey = format(lastYearMonthDate, 'yyyy-MM');
-    const lastYearMonthOrdersForPrice = ordersByMonth.get(lastYearMonthKey) || [];
+    const lastYearMonthOrdersForPrice = (ordersByMonth.get(lastYearMonthKey) || []).filter(o => isRevenueEligible(o.order_status));
     const lastYearTotalRevenue = lastYearMonthOrdersForPrice.reduce((sum, o) => {
       const price = Number(o.final_price);
       return sum + (Number.isFinite(price) ? price : 0);
