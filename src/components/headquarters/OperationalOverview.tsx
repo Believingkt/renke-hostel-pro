@@ -225,7 +225,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
           .gte("created_at", format(subMonths(now, 11), 'yyyy-MM-dd')),
         supabase
           .from("orders")
-          .select("accommodation_id, order_status, final_price, created_at, check_in_date, check_out_date, room_type_id")
+          .select("accommodation_id, order_status, final_price, created_at, check_in_date, check_out_date, room_type_id, meal_plan")
           .in("accommodation_id", accIds)
           .gte("created_at", format(subMonths(now, 23), 'yyyy-MM-dd'))
           .lt("created_at", format(subMonths(now, 11), 'yyyy-MM-dd')),
