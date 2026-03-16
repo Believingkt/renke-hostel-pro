@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { buildPricingMap, aggregateRevenueByMonth, type PricingMap } from "@/utils/revenueByMonth";
 import { HQOverviewSkeleton } from "@/components/skeletons/HQSkeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -216,22 +217,70 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
       const accIds = filteredAccommodations.map(a => a.id);
       
       // Get orders from last 24 months for year-over-year comparison
-      const [{ data: allOrders, error: allOrdersError }, { data: prevYearOrders, error: prevYearOrdersError }] = await Promise.all([
+      const [{ data: allOrders, error: allOrdersError }, { data: prevYearOrders, error: prevYearOrdersError }, { data: allRoomTypesForPricing }] = await Promise.all([
         supabase
           .from("orders")
-          .select("accommodation_id, order_status, final_price, created_at")
+          .select("accommodation_id, order_status, final_price, created_at, check_in_date, check_out_date, room_type_id")
           .in("accommodation_id", accIds)
           .gte("created_at", format(subMonths(now, 11), 'yyyy-MM-dd')),
         supabase
           .from("orders")
-          .select("accommodation_id, order_status, final_price, created_at")
+          .select("accommodation_id, order_status, final_price, created_at, check_in_date, check_out_date, room_type_id")
           .in("accommodation_id", accIds)
           .gte("created_at", format(subMonths(now, 23), 'yyyy-MM-dd'))
-          .lt("created_at", format(subMonths(now, 11), 'yyyy-MM-dd'))
+          .lt("created_at", format(subMonths(now, 11), 'yyyy-MM-dd')),
+        supabase
+          .from("room_types")
+          .select("id")
+          .in("accommodation_id", accIds)
       ]);
 
       if (allOrdersError) throw allOrdersError;
       if (prevYearOrdersError) throw prevYearOrdersError;
+
+      // Fetch inventory pricing for daily revenue splitting
+      const allRoomTypeIds = (allRoomTypesForPricing || []).map(rt => rt.id);
+      let hqPricingMap: PricingMap = new Map();
+      
+      const allConfirmedWithDates = [
+        ...(allOrders || []),
+        ...(prevYearOrders || []),
+      ].filter(o => o.order_status === 'confirmed' && o.check_in_date && o.check_out_date);
+      
+      if (allRoomTypeIds.length > 0 && allConfirmedWithDates.length > 0) {
+        let minDate = allConfirmedWithDates[0].check_in_date;
+        let maxDate = allConfirmedWithDates[0].check_out_date;
+        allConfirmedWithDates.forEach(o => {
+          if (o.check_in_date < minDate) minDate = o.check_in_date;
+          if (o.check_out_date > maxDate) maxDate = o.check_out_date;
+        });
+        
+        const { data: inventoryData } = await supabase
+          .from('room_inventory_pricing')
+          .select('room_type_id, date, price')
+          .in('room_type_id', allRoomTypeIds)
+          .gte('date', minDate)
+          .lte('date', maxDate)
+          .limit(10000);
+        
+        hqPricingMap = buildPricingMap(inventoryData || []);
+      }
+
+      // Compute revenueByMonth for current and previous periods
+      const currentConfirmed = (allOrders || []).filter(o => o.order_status === 'confirmed' && o.check_in_date && o.check_out_date);
+      const prevConfirmed = (prevYearOrders || []).filter(o => o.order_status === 'confirmed' && o.check_in_date && o.check_out_date);
+      
+      const currentRevenueByMonth = aggregateRevenueByMonth(
+        currentConfirmed.map(o => ({ check_in_date: o.check_in_date, check_out_date: o.check_out_date, room_type_id: o.room_type_id, final_price: o.final_price || 0 })),
+        hqPricingMap
+      );
+      const prevRevenueByMonth = aggregateRevenueByMonth(
+        prevConfirmed.map(o => ({ check_in_date: o.check_in_date, check_out_date: o.check_out_date, room_type_id: o.room_type_id, final_price: o.final_price || 0 })),
+        hqPricingMap
+      );
+
+      // 營收只計算已確認的訂單（confirmed）
+      const isRevenueEligible = (status: string) => status === 'confirmed';
 
       const monthlyMap = new Map<string, { revenue: number; orders: number; prevRevenue: number; prevOrders: number }>();
       for (let i = 11; i >= 0; i--) {
@@ -240,34 +289,35 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
         monthlyMap.set(key, { revenue: 0, orders: 0, prevRevenue: 0, prevOrders: 0 });
       }
 
-      // 營收只計算已確認的訂單（confirmed）
-      const isRevenueEligible = (status: string) => status === 'confirmed';
-
-      // Current year data
+      // Order counts by created_at month
       allOrders?.forEach(order => {
         if (order.created_at && isRevenueEligible(order.order_status)) {
-          const orderDate = new Date(order.created_at);
-          const key = format(orderDate, 'M月');
+          const key = format(new Date(order.created_at), 'M月');
           const current = monthlyMap.get(key);
-          if (current) {
-            current.revenue += order.final_price || 0;
-            current.orders += 1;
-          }
+          if (current) current.orders += 1;
         }
       });
 
-      // Previous year data (map to same month names)
       prevYearOrders?.forEach(order => {
         if (order.created_at && isRevenueEligible(order.order_status)) {
-          const orderDate = new Date(order.created_at);
-          const key = format(orderDate, 'M月');
+          const key = format(new Date(order.created_at), 'M月');
           const current = monthlyMap.get(key);
-          if (current) {
-            current.prevRevenue += order.final_price || 0;
-            current.prevOrders += 1;
-          }
+          if (current) current.prevOrders += 1;
         }
       });
+
+      // Revenue by stay month using daily price splitting
+      for (let i = 11; i >= 0; i--) {
+        const date = subMonths(now, i);
+        const key = format(date, 'M月');
+        const yearMonthKey = format(date, 'yyyy-MM');
+        const prevYearMonthKey = format(subMonths(date, 12), 'yyyy-MM');
+        const current = monthlyMap.get(key);
+        if (current) {
+          current.revenue = currentRevenueByMonth.get(yearMonthKey) || 0;
+          current.prevRevenue = prevRevenueByMonth.get(prevYearMonthKey) || 0;
+        }
+      }
 
       setMonthlyTrends(
         Array.from(monthlyMap.entries()).map(([month, data]) => ({
@@ -282,7 +332,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
       const statsPromises = filteredAccommodations.map(async (acc) => {
         const { data: orders, error: ordersError } = await supabase
           .from("orders")
-          .select("order_status, final_price, created_at")
+          .select("order_status, final_price, created_at, check_in_date, check_out_date, room_type_id")
           .eq("accommodation_id", acc.id);
 
         if (ordersError) throw ordersError;
@@ -301,17 +351,19 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
         const checkedOutOrders = allAccOrders.filter(o => o.order_status === "checked_out").length;
         const cancelledOrders = allAccOrders.filter(o => o.order_status === "cancelled").length;
 
-        const monthlyOrders = allAccOrders.filter(o => {
-          const orderDate = o.created_at?.split('T')[0];
-          return orderDate >= monthStart && orderDate <= monthEnd && o.order_status === 'confirmed';
-        });
-        const monthlyRevenue = monthlyOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
-
-        const yearlyOrders = allAccOrders.filter(o => {
-          const orderDate = o.created_at?.split('T')[0];
-          return orderDate >= yearStart && orderDate <= yearEnd && o.order_status === 'confirmed';
-        });
-        const yearlyRevenue = yearlyOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+        // Per-acc revenue using daily price splitting
+        const accConfirmed = allAccOrders.filter(o => o.order_status === 'confirmed' && o.check_in_date && o.check_out_date);
+        const accRevenueByMonth = aggregateRevenueByMonth(
+          accConfirmed.map(o => ({ check_in_date: o.check_in_date!, check_out_date: o.check_out_date!, room_type_id: o.room_type_id, final_price: o.final_price || 0 })),
+          hqPricingMap
+        );
+        
+        const currentMonthKey = format(now, 'yyyy-MM');
+        const monthlyRevenue = accRevenueByMonth.get(currentMonthKey) || 0;
+        
+        const yearlyRevenue = Array.from(accRevenueByMonth.entries())
+          .filter(([key]) => key.startsWith(String(now.getFullYear())))
+          .reduce((sum, [, rev]) => sum + rev, 0);
 
         return {
           id: acc.id,
@@ -546,32 +598,60 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
     const [{ data: currentYearOrders }, { data: previousYearOrders }] = await Promise.all([
       supabase
         .from("orders")
-        .select("created_at, final_price, order_status")
+        .select("created_at, final_price, order_status, check_in_date, check_out_date, room_type_id")
         .in("accommodation_id", accIds)
         .gte("created_at", `${currentYear}-01-01`)
         .lte("created_at", format(now, "yyyy-MM-dd") + "T23:59:59"),
       supabase
         .from("orders")
-        .select("created_at, final_price, order_status")
+        .select("created_at, final_price, order_status, check_in_date, check_out_date, room_type_id")
         .in("accommodation_id", accIds)
         .gte("created_at", `${previousYear}-01-01`)
         .lte("created_at", `${previousYear}-12-31T23:59:59`),
     ]);
 
-    const currentOrders = (currentYearOrders || []).filter(o => o.order_status === 'confirmed');
-    const prevOrders = (previousYearOrders || []).filter(o => o.order_status === 'confirmed');
+    const currentConfirmedOrders = (currentYearOrders || []).filter(o => o.order_status === 'confirmed' && o.check_in_date && o.check_out_date);
+    const prevConfirmedOrders = (previousYearOrders || []).filter(o => o.order_status === 'confirmed' && o.check_in_date && o.check_out_date);
+
+    // Fetch inventory pricing for comparison
+    const compOrdersAll = [...currentConfirmedOrders, ...prevConfirmedOrders];
+    const compRoomTypeIds = [...new Set(compOrdersAll.map(o => o.room_type_id).filter(Boolean))] as string[];
+    let compPricingMap: PricingMap = new Map();
+    if (compRoomTypeIds.length > 0 && compOrdersAll.length > 0) {
+      let minD = compOrdersAll[0].check_in_date!;
+      let maxD = compOrdersAll[0].check_out_date!;
+      compOrdersAll.forEach(o => {
+        if (o.check_in_date! < minD) minD = o.check_in_date!;
+        if (o.check_out_date! > maxD) maxD = o.check_out_date!;
+      });
+      const { data: invData } = await supabase
+        .from('room_inventory_pricing')
+        .select('room_type_id, date, price')
+        .in('room_type_id', compRoomTypeIds)
+        .gte('date', minD).lte('date', maxD).limit(10000);
+      compPricingMap = buildPricingMap(invData || []);
+    }
+
+    const curRevByMonth = aggregateRevenueByMonth(
+      currentConfirmedOrders.map(o => ({ check_in_date: o.check_in_date!, check_out_date: o.check_out_date!, room_type_id: o.room_type_id, final_price: o.final_price || 0 })),
+      compPricingMap
+    );
+    const prevRevByMonth = aggregateRevenueByMonth(
+      prevConfirmedOrders.map(o => ({ check_in_date: o.check_in_date!, check_out_date: o.check_out_date!, room_type_id: o.room_type_id, final_price: o.final_price || 0 })),
+      compPricingMap
+    );
 
     return months.map(month => {
       const monthNum = getMonth(month);
       const monthLabel = format(month, "M月", { locale: zhTW });
+      const yearMonthKey = format(month, "yyyy-MM");
+      const prevYearMonthKey = `${previousYear}-${String(monthNum + 1).padStart(2, '0')}`;
 
-      const currentMonthOrders = currentOrders.filter(o => getMonth(new Date(o.created_at)) === monthNum);
-      const prevMonthOrders = prevOrders.filter(o => getMonth(new Date(o.created_at)) === monthNum);
+      const currentOrderCount = currentConfirmedOrders.filter(o => getMonth(new Date(o.created_at)) === monthNum).length;
+      const previousOrderCount = prevConfirmedOrders.filter(o => getMonth(new Date(o.created_at)) === monthNum).length;
 
-      const currentRevenue = currentMonthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
-      const previousRevenue = prevMonthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
-      const currentOrderCount = currentMonthOrders.length;
-      const previousOrderCount = prevMonthOrders.length;
+      const currentRevenue = curRevByMonth.get(yearMonthKey) || 0;
+      const previousRevenue = prevRevByMonth.get(prevYearMonthKey) || 0;
 
       const revenueGrowth = previousRevenue > 0 
         ? ((currentRevenue - previousRevenue) / previousRevenue) * 100 
@@ -594,11 +674,30 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
   };
 
   const loadPeriodData = async (startDate: string, endDate: string): Promise<AccommodationPerformance[]> => {
+    // Fetch room types and inventory pricing for daily revenue splitting
+    const periodAccIds = filteredAccommodations.map(a => a.id);
+    const { data: periodRoomTypes } = await supabase
+      .from("room_types")
+      .select("id")
+      .in("accommodation_id", periodAccIds);
+    
+    const periodRoomTypeIds = (periodRoomTypes || []).map(rt => rt.id);
+    let periodPricingMap: PricingMap = new Map();
+    if (periodRoomTypeIds.length > 0) {
+      const { data: invData } = await supabase
+        .from('room_inventory_pricing')
+        .select('room_type_id, date, price')
+        .in('room_type_id', periodRoomTypeIds)
+        .gte('date', startDate).lte('date', endDate)
+        .limit(10000);
+      periodPricingMap = buildPricingMap(invData || []);
+    }
+
     const results = await Promise.all(
       filteredAccommodations.map(async (acc) => {
         const { data: orders } = await supabase
           .from("orders")
-          .select("order_status, final_price, check_in_date, check_out_date")
+          .select("order_status, final_price, check_in_date, check_out_date, room_type_id")
           .eq("accommodation_id", acc.id)
           .gte("created_at", startDate)
           .lte("created_at", endDate + "T23:59:59");
@@ -611,7 +710,14 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
         const allOrders = orders || [];
         const confirmedOrders = allOrders.filter((o) => o.order_status === "confirmed");
         const cancelledOrders = allOrders.filter((o) => o.order_status === "cancelled");
-        const revenue = confirmedOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+        
+        // Revenue using daily price splitting
+        const confirmedWithDates = confirmedOrders.filter(o => o.check_in_date && o.check_out_date);
+        const accRevByMonth = aggregateRevenueByMonth(
+          confirmedWithDates.map(o => ({ check_in_date: o.check_in_date!, check_out_date: o.check_out_date!, room_type_id: o.room_type_id, final_price: o.final_price || 0 })),
+          periodPricingMap
+        );
+        const revenue = Array.from(accRevByMonth.values()).reduce((sum, v) => sum + v, 0);
         
         const roomNights = confirmedOrders.reduce((sum, o) => {
           const checkIn = new Date(o.check_in_date);
