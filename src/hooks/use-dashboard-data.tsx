@@ -220,9 +220,9 @@ const fetchDashboardData = async (
       monthlyData.push({
         month: monthLabel,
         revenue: Number.isFinite(revenue) ? revenue : 0,
-        bookings: monthOrders.length,
+        bookings: monthOrders.filter(o => isRevenueEligible(o.order_status)).length,
         lastYearRevenue: Number.isFinite(lastYearRevenue) ? lastYearRevenue : 0,
-        lastYearBookings: lastYearOrders.length,
+        lastYearBookings: lastYearOrders.filter(o => isRevenueEligible(o.order_status)).length,
         isFuture,
       });
     }
@@ -251,9 +251,9 @@ const fetchDashboardData = async (
       monthlyData.push({
         month: monthLabel,
         revenue: Number.isFinite(revenue) ? revenue : 0,
-        bookings: monthOrders.length,
+        bookings: monthOrders.filter(o => isRevenueEligible(o.order_status)).length,
         lastYearRevenue: Number.isFinite(lastYearRevenue) ? lastYearRevenue : 0,
-        lastYearBookings: lastYearOrders.length,
+        lastYearBookings: lastYearOrders.filter(o => isRevenueEligible(o.order_status)).length,
       });
     }
   }
