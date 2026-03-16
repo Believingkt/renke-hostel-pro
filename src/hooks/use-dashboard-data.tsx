@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { getOrderStatusLabel } from "@/utils/orderHelpers";
-import { buildPricingMap, aggregateRevenueByMonth, computeRoomNightsByMonth, type PricingMap } from "@/utils/revenueByMonth";
+import { buildPricingMap, aggregateRevenueByMonth, computeRoomNightsByMonth, computeBookingCountByMonth, type PricingMap } from "@/utils/revenueByMonth";
 
 interface DashboardStats {
   totalRooms: number;
