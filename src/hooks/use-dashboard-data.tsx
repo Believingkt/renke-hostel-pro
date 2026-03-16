@@ -137,8 +137,9 @@ const fetchDashboardData = async (
   );
   
   const roomNightsByMonth = computeRoomNightsByMonth(confirmedWithDates);
+  const bookingCountByMonth = computeBookingCountByMonth(confirmedWithDates);
   
-  // Keep ordersByMonth for booking counts (by order_date)
+  // Keep ordersByMonth for backward compat (stats cards use order_date for current/last month comparison)
   const ordersByMonth = new Map<string, typeof ordersData>();
   ordersData.forEach(order => {
     const orderDate = new Date(order.order_date);
