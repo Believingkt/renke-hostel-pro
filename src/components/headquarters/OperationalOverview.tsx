@@ -240,8 +240,8 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
         monthlyMap.set(key, { revenue: 0, orders: 0, prevRevenue: 0, prevOrders: 0 });
       }
 
-      // 營收只計算實際入住的訂單（checked_in 或 checked_out）
-      const isRevenueEligible = (status: string) => status === 'checked_in' || status === 'checked_out';
+      // 營收只計算已確認的訂單（confirmed）
+      const isRevenueEligible = (status: string) => status === 'confirmed';
 
       // Current year data
       allOrders?.forEach(order => {
@@ -307,13 +307,13 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
 
         const monthlyOrders = allAccOrders.filter(o => {
           const orderDate = o.created_at?.split('T')[0];
-          return orderDate >= monthStart && orderDate <= monthEnd && (o.order_status === 'checked_in' || o.order_status === 'checked_out');
+          return orderDate >= monthStart && orderDate <= monthEnd && o.order_status === 'confirmed';
         });
         const monthlyRevenue = monthlyOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
 
         const yearlyOrders = allAccOrders.filter(o => {
           const orderDate = o.created_at?.split('T')[0];
-          return orderDate >= yearStart && orderDate <= yearEnd && (o.order_status === 'checked_in' || o.order_status === 'checked_out');
+          return orderDate >= yearStart && orderDate <= yearEnd && o.order_status === 'confirmed';
         });
         const yearlyRevenue = yearlyOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
 
@@ -495,8 +495,8 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
       const dateKey = format(closestDate, "yyyy-MM-dd");
       
       const existing = trendMap.get(dateKey) || { revenue: 0, orders: 0, prevRevenue: 0, prevOrders: 0 };
-      // 營收只計算實際入住的訂單
-      if (order.order_status === 'checked_in' || order.order_status === 'checked_out') {
+      // 營收只計算已確認的訂單
+      if (order.order_status === 'confirmed') {
         existing.revenue += order.final_price || 0;
       }
       existing.orders += 1;
@@ -519,8 +519,8 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
         const correspondingCurrentDate = sampledDays[prevIndex];
         const dateKey = format(correspondingCurrentDate, "yyyy-MM-dd");
         const existing = trendMap.get(dateKey) || { revenue: 0, orders: 0, prevRevenue: 0, prevOrders: 0 };
-        // 營收只計算實際入住的訂單
-        if (order.order_status === 'checked_in' || order.order_status === 'checked_out') {
+        // 營收只計算已確認的訂單
+        if (order.order_status === 'confirmed') {
           existing.prevRevenue += order.final_price || 0;
         }
         existing.prevOrders += 1;
@@ -571,9 +571,9 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
     const currentOrders = (currentYearOrders || []).filter(o => o.order_status !== "cancelled");
     const prevOrders = (previousYearOrders || []).filter(o => o.order_status !== "cancelled");
     
-    // 營收只計算實際入住的訂單
-    const currentRevenueOrders = (currentYearOrders || []).filter(o => o.order_status === 'checked_in' || o.order_status === 'checked_out');
-    const prevRevenueOrders = (previousYearOrders || []).filter(o => o.order_status === 'checked_in' || o.order_status === 'checked_out');
+    // 營收只計算已確認的訂單
+    const currentRevenueOrders = (currentYearOrders || []).filter(o => o.order_status === 'confirmed');
+    const prevRevenueOrders = (previousYearOrders || []).filter(o => o.order_status === 'confirmed');
 
     return months.map(month => {
       const monthNum = getMonth(month);
@@ -628,7 +628,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
         const allOrders = orders || [];
         const validOrders = allOrders.filter((o) => o.order_status !== "cancelled");
         const cancelledOrders = allOrders.filter((o) => o.order_status === "cancelled");
-        const revenueOrders = validOrders.filter(o => o.order_status === 'checked_in' || o.order_status === 'checked_out');
+        const revenueOrders = validOrders.filter(o => o.order_status === 'confirmed');
         const revenue = revenueOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
         
         const roomNights = validOrders.reduce((sum, o) => {
