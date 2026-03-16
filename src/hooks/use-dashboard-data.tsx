@@ -125,10 +125,12 @@ const fetchDashboardData = async (
   const currentMonthOrders = ordersByMonth.get(currentMonthKey) || [];
   const lastMonthOrders = ordersByMonth.get(lastMonthKey) || [];
   
-  const monthlyBookingCount = currentMonthOrders.length;
-  const lastMonthBookingCount = lastMonthOrders.length;
-  const monthlyGuestCount = currentMonthOrders.reduce((sum, o) => sum + (o.guest_count || 0), 0);
-  const lastMonthGuestCount = lastMonthOrders.reduce((sum, o) => sum + (o.guest_count || 0), 0);
+  const confirmedCurrentMonthOrders = currentMonthOrders.filter(o => isRevenueEligible(o.order_status));
+  const confirmedLastMonthOrders = lastMonthOrders.filter(o => isRevenueEligible(o.order_status));
+  const monthlyBookingCount = confirmedCurrentMonthOrders.length;
+  const lastMonthBookingCount = confirmedLastMonthOrders.length;
+  const monthlyGuestCount = confirmedCurrentMonthOrders.reduce((sum, o) => sum + (o.guest_count || 0), 0);
+  const lastMonthGuestCount = confirmedLastMonthOrders.reduce((sum, o) => sum + (o.guest_count || 0), 0);
   // Validate and sum revenues - 只計算實際入住的訂單
   const monthlyRev = currentMonthOrders.reduce((sum, o) => {
     if (!isRevenueEligible(o.order_status)) return sum;
@@ -182,7 +184,7 @@ const fetchDashboardData = async (
       monthlyData.push({
         month: monthLabel,
         revenue: Number.isFinite(revenue) ? revenue : 0,
-        bookings: monthOrders.length,
+        bookings: monthOrders.filter(o => isRevenueEligible(o.order_status)).length,
         lastYearRevenue: 0,
         lastYearBookings: 0,
       });
@@ -218,9 +220,9 @@ const fetchDashboardData = async (
       monthlyData.push({
         month: monthLabel,
         revenue: Number.isFinite(revenue) ? revenue : 0,
-        bookings: monthOrders.length,
+        bookings: monthOrders.filter(o => isRevenueEligible(o.order_status)).length,
         lastYearRevenue: Number.isFinite(lastYearRevenue) ? lastYearRevenue : 0,
-        lastYearBookings: lastYearOrders.length,
+        lastYearBookings: lastYearOrders.filter(o => isRevenueEligible(o.order_status)).length,
         isFuture,
       });
     }
@@ -249,9 +251,9 @@ const fetchDashboardData = async (
       monthlyData.push({
         month: monthLabel,
         revenue: Number.isFinite(revenue) ? revenue : 0,
-        bookings: monthOrders.length,
+        bookings: monthOrders.filter(o => isRevenueEligible(o.order_status)).length,
         lastYearRevenue: Number.isFinite(lastYearRevenue) ? lastYearRevenue : 0,
-        lastYearBookings: lastYearOrders.length,
+        lastYearBookings: lastYearOrders.filter(o => isRevenueEligible(o.order_status)).length,
       });
     }
   }
@@ -294,9 +296,9 @@ const fetchDashboardData = async (
       lastMonthData.push({
         month: monthLabel,
         revenue: Number.isFinite(revenue) ? revenue : 0,
-        bookings: monthOrders.length,
+        bookings: monthOrders.filter(o => isRevenueEligible(o.order_status)).length,
         prevRevenue: Number.isFinite(prevRevenue) ? prevRevenue : 0,
-        prevBookings: prevMonthOrders.length,
+        prevBookings: prevMonthOrders.filter(o => isRevenueEligible(o.order_status)).length,
       });
       
       currentDate = new Date(currentDate.setMonth(currentDate.getMonth() + 1));
@@ -327,9 +329,9 @@ const fetchDashboardData = async (
       lastMonthData.push({
         month: monthLabel,
         revenue: Number.isFinite(revenue) ? revenue : 0,
-        bookings: monthOrders.length,
+        bookings: monthOrders.filter(o => isRevenueEligible(o.order_status)).length,
         prevRevenue: Number.isFinite(prevRevenue) ? prevRevenue : 0,
-        prevBookings: prevMonthOrders.length,
+        prevBookings: prevMonthOrders.filter(o => isRevenueEligible(o.order_status)).length,
       });
     }
   }
@@ -408,9 +410,10 @@ const fetchDashboardData = async (
       month: monthLabel,
     };
     
-    // 獲取該月的訂單
+    // 獲取該月的已確認訂單
     const monthOrders = ordersData.filter(o => {
       if (!o.check_in_date || !o.check_out_date) return false;
+      if (!isRevenueEligible(o.order_status)) return false;
       const checkIn = new Date(o.check_in_date);
       const checkOut = new Date(o.check_out_date);
       // 訂單與該月有重疊
@@ -425,9 +428,10 @@ const fetchDashboardData = async (
     let lastYearTotalNights = 0;
     let lastYearTotalAvailable = 0;
     
-    // 獲取去年同期的訂單
+    // 獲取去年同期的已確認訂單
     const lastYearMonthOrders = ordersData.filter(o => {
       if (!o.check_in_date || !o.check_out_date) return false;
+      if (!isRevenueEligible(o.order_status)) return false;
       const checkIn = new Date(o.check_in_date);
       const checkOut = new Date(o.check_out_date);
       // 訂單與去年該月有重疊
@@ -507,9 +511,9 @@ const fetchDashboardData = async (
       isFuture: isFutureMonth,
     });
     
-    // 計算平均房價（訂單總金額 / 總訂單數）
+    // 計算平均房價（已確認訂單總金額 / 已確認訂單數）
     const monthKey = format(monthDate, 'yyyy-MM');
-    const monthOrdersForPrice = ordersByMonth.get(monthKey) || [];
+    const monthOrdersForPrice = (ordersByMonth.get(monthKey) || []).filter(o => isRevenueEligible(o.order_status));
     const totalRevenue = monthOrdersForPrice.reduce((sum, o) => {
       const price = Number(o.final_price);
       return sum + (Number.isFinite(price) ? price : 0);
@@ -519,7 +523,7 @@ const fetchDashboardData = async (
     
     // 計算去年同期平均房價
     const lastYearMonthKey = format(lastYearMonthDate, 'yyyy-MM');
-    const lastYearMonthOrdersForPrice = ordersByMonth.get(lastYearMonthKey) || [];
+    const lastYearMonthOrdersForPrice = (ordersByMonth.get(lastYearMonthKey) || []).filter(o => isRevenueEligible(o.order_status));
     const lastYearTotalRevenue = lastYearMonthOrdersForPrice.reduce((sum, o) => {
       const price = Number(o.final_price);
       return sum + (Number.isFinite(price) ? price : 0);
