@@ -146,3 +146,28 @@ export function computeRoomNightsByMonth(
   });
   return result;
 }
+
+/**
+ * Count unique booking orders per month based on stay-date overlap.
+ * An order is counted in every month its stay dates overlap with.
+ */
+export function computeBookingCountByMonth(
+  confirmedOrders: { check_in_date: string; check_out_date: string }[]
+): Map<string, number> {
+  const result = new Map<string, number>();
+  confirmedOrders.forEach(order => {
+    if (!order.check_in_date || !order.check_out_date) return;
+    const checkIn = new Date(order.check_in_date);
+    const checkOut = new Date(order.check_out_date);
+    const nights = Math.max(1, differenceInDays(checkOut, checkIn));
+    // Collect unique months this order spans
+    const months = new Set<string>();
+    for (let i = 0; i < nights; i++) {
+      months.add(format(addDays(checkIn, i), 'yyyy-MM'));
+    }
+    months.forEach(monthKey => {
+      result.set(monthKey, (result.get(monthKey) || 0) + 1);
+    });
+  });
+  return result;
+}

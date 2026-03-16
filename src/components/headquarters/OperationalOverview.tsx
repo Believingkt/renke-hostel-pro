@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { buildPricingMap, aggregateRevenueByMonth, type PricingMap } from "@/utils/revenueByMonth";
+import { buildPricingMap, aggregateRevenueByMonth, computeBookingCountByMonth, type PricingMap } from "@/utils/revenueByMonth";
 import { HQOverviewSkeleton } from "@/components/skeletons/HQSkeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -641,14 +641,17 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
       compPricingMap
     );
 
+    const curBookingByMonth = computeBookingCountByMonth(currentConfirmedOrders.map(o => ({ check_in_date: o.check_in_date!, check_out_date: o.check_out_date! })));
+    const prevBookingByMonth = computeBookingCountByMonth(prevConfirmedOrders.map(o => ({ check_in_date: o.check_in_date!, check_out_date: o.check_out_date! })));
+
     return months.map(month => {
       const monthNum = getMonth(month);
       const monthLabel = format(month, "M月", { locale: zhTW });
       const yearMonthKey = format(month, "yyyy-MM");
       const prevYearMonthKey = `${previousYear}-${String(monthNum + 1).padStart(2, '0')}`;
 
-      const currentOrderCount = currentConfirmedOrders.filter(o => getMonth(new Date(o.created_at)) === monthNum).length;
-      const previousOrderCount = prevConfirmedOrders.filter(o => getMonth(new Date(o.created_at)) === monthNum).length;
+      const currentOrderCount = curBookingByMonth.get(yearMonthKey) || 0;
+      const previousOrderCount = prevBookingByMonth.get(prevYearMonthKey) || 0;
 
       const currentRevenue = curRevByMonth.get(yearMonthKey) || 0;
       const previousRevenue = prevRevByMonth.get(prevYearMonthKey) || 0;

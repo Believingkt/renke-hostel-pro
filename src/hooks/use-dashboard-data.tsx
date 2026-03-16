@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { getOrderStatusLabel } from "@/utils/orderHelpers";
-import { buildPricingMap, aggregateRevenueByMonth, computeRoomNightsByMonth, type PricingMap } from "@/utils/revenueByMonth";
+import { buildPricingMap, aggregateRevenueByMonth, computeRoomNightsByMonth, computeBookingCountByMonth, type PricingMap } from "@/utils/revenueByMonth";
 
 interface DashboardStats {
   totalRooms: number;
@@ -137,8 +137,9 @@ const fetchDashboardData = async (
   );
   
   const roomNightsByMonth = computeRoomNightsByMonth(confirmedWithDates);
+  const bookingCountByMonth = computeBookingCountByMonth(confirmedWithDates);
   
-  // Keep ordersByMonth for booking counts (by order_date)
+  // Keep ordersByMonth for backward compat (stats cards use order_date for current/last month comparison)
   const ordersByMonth = new Map<string, typeof ordersData>();
   ordersData.forEach(order => {
     const orderDate = new Date(order.order_date);
@@ -201,7 +202,7 @@ const fetchDashboardData = async (
       monthlyData.push({
         month: monthLabel,
         revenue: Number.isFinite(revenue) ? revenue : 0,
-        bookings: monthOrders.filter(o => isRevenueEligible(o.order_status)).length,
+        bookings: bookingCountByMonth.get(monthKey) || 0,
         lastYearRevenue: 0,
         lastYearBookings: 0,
       });
@@ -227,9 +228,9 @@ const fetchDashboardData = async (
       monthlyData.push({
         month: monthLabel,
         revenue: Number.isFinite(revenue) ? revenue : 0,
-        bookings: monthOrders.filter(o => isRevenueEligible(o.order_status)).length,
+        bookings: bookingCountByMonth.get(monthKey) || 0,
         lastYearRevenue: Number.isFinite(lastYearRevenue) ? lastYearRevenue : 0,
-        lastYearBookings: lastYearOrders.filter(o => isRevenueEligible(o.order_status)).length,
+        lastYearBookings: bookingCountByMonth.get(lastYearMonthKey) || 0,
         isFuture,
       });
     }
@@ -249,9 +250,9 @@ const fetchDashboardData = async (
       monthlyData.push({
         month: monthLabel,
         revenue: Number.isFinite(revenue) ? revenue : 0,
-        bookings: monthOrders.filter(o => isRevenueEligible(o.order_status)).length,
+        bookings: bookingCountByMonth.get(monthKey) || 0,
         lastYearRevenue: Number.isFinite(lastYearRevenue) ? lastYearRevenue : 0,
-        lastYearBookings: lastYearOrders.filter(o => isRevenueEligible(o.order_status)).length,
+        lastYearBookings: bookingCountByMonth.get(lastYearMonthKey) || 0,
       });
     }
   }
@@ -279,9 +280,9 @@ const fetchDashboardData = async (
       lastMonthData.push({
         month: monthLabel,
         revenue: Number.isFinite(revenue) ? revenue : 0,
-        bookings: monthOrders.filter(o => isRevenueEligible(o.order_status)).length,
+        bookings: bookingCountByMonth.get(monthKey) || 0,
         prevRevenue: Number.isFinite(prevRevenue) ? prevRevenue : 0,
-        prevBookings: prevMonthOrders.filter(o => isRevenueEligible(o.order_status)).length,
+        prevBookings: bookingCountByMonth.get(prevMonthKey) || 0,
       });
       
       currentDate = new Date(currentDate.setMonth(currentDate.getMonth() + 1));
@@ -303,9 +304,9 @@ const fetchDashboardData = async (
       lastMonthData.push({
         month: monthLabel,
         revenue: Number.isFinite(revenue) ? revenue : 0,
-        bookings: monthOrders.filter(o => isRevenueEligible(o.order_status)).length,
+        bookings: bookingCountByMonth.get(monthKey) || 0,
         prevRevenue: Number.isFinite(prevRevenue) ? prevRevenue : 0,
-        prevBookings: prevMonthOrders.filter(o => isRevenueEligible(o.order_status)).length,
+        prevBookings: bookingCountByMonth.get(prevMonthKey) || 0,
       });
     }
   }
