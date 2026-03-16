@@ -6,29 +6,37 @@ export function useCounterAnimation(
   isActive: boolean = true
 ) {
   const [currentValue, setCurrentValue] = useState(0);
-  const prevTargetRef = useRef(targetValue);
+  const prevTargetRef = useRef<number | null>(null);
   const animationFrameRef = useRef<number>();
 
   useEffect(() => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+
     if (!isActive) {
       setCurrentValue(targetValue);
+      prevTargetRef.current = targetValue;
       return;
     }
 
-    // 如果目標值沒有改變，不執行動畫
-    if (prevTargetRef.current === targetValue) {
+    if (prevTargetRef.current === targetValue && currentValue === targetValue) {
       return;
     }
 
     const startValue = currentValue;
     const difference = targetValue - startValue;
+
+    if (difference === 0) {
+      prevTargetRef.current = targetValue;
+      return;
+    }
+
     const startTime = performance.now();
 
     const animate = (currentTime: number) => {
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
-
-      // 使用 easeOutCubic 緩動函數
       const easeProgress = 1 - Math.pow(1 - progress, 3);
       const newValue = startValue + difference * easeProgress;
 
@@ -37,6 +45,7 @@ export function useCounterAnimation(
       if (progress < 1) {
         animationFrameRef.current = requestAnimationFrame(animate);
       } else {
+        setCurrentValue(targetValue);
         prevTargetRef.current = targetValue;
       }
     };
