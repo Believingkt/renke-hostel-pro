@@ -428,9 +428,10 @@ const fetchDashboardData = async (
     let lastYearTotalNights = 0;
     let lastYearTotalAvailable = 0;
     
-    // 獲取去年同期的訂單
+    // 獲取去年同期的已確認訂單
     const lastYearMonthOrders = ordersData.filter(o => {
       if (!o.check_in_date || !o.check_out_date) return false;
+      if (!isRevenueEligible(o.order_status)) return false;
       const checkIn = new Date(o.check_in_date);
       const checkOut = new Date(o.check_out_date);
       // 訂單與去年該月有重疊
