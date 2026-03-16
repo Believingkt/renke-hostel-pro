@@ -674,11 +674,30 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
   };
 
   const loadPeriodData = async (startDate: string, endDate: string): Promise<AccommodationPerformance[]> => {
+    // Fetch room types and inventory pricing for daily revenue splitting
+    const periodAccIds = filteredAccommodations.map(a => a.id);
+    const { data: periodRoomTypes } = await supabase
+      .from("room_types")
+      .select("id")
+      .in("accommodation_id", periodAccIds);
+    
+    const periodRoomTypeIds = (periodRoomTypes || []).map(rt => rt.id);
+    let periodPricingMap: PricingMap = new Map();
+    if (periodRoomTypeIds.length > 0) {
+      const { data: invData } = await supabase
+        .from('room_inventory_pricing')
+        .select('room_type_id, date, price')
+        .in('room_type_id', periodRoomTypeIds)
+        .gte('date', startDate).lte('date', endDate)
+        .limit(10000);
+      periodPricingMap = buildPricingMap(invData || []);
+    }
+
     const results = await Promise.all(
       filteredAccommodations.map(async (acc) => {
         const { data: orders } = await supabase
           .from("orders")
-          .select("order_status, final_price, check_in_date, check_out_date")
+          .select("order_status, final_price, check_in_date, check_out_date, room_type_id")
           .eq("accommodation_id", acc.id)
           .gte("created_at", startDate)
           .lte("created_at", endDate + "T23:59:59");
@@ -691,7 +710,14 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
         const allOrders = orders || [];
         const confirmedOrders = allOrders.filter((o) => o.order_status === "confirmed");
         const cancelledOrders = allOrders.filter((o) => o.order_status === "cancelled");
-        const revenue = confirmedOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+        
+        // Revenue using daily price splitting
+        const confirmedWithDates = confirmedOrders.filter(o => o.check_in_date && o.check_out_date);
+        const accRevByMonth = aggregateRevenueByMonth(
+          confirmedWithDates.map(o => ({ check_in_date: o.check_in_date!, check_out_date: o.check_out_date!, room_type_id: o.room_type_id, final_price: o.final_price || 0 })),
+          periodPricingMap
+        );
+        const revenue = Array.from(accRevByMonth.values()).reduce((sum, v) => sum + v, 0);
         
         const roomNights = confirmedOrders.reduce((sum, o) => {
           const checkIn = new Date(o.check_in_date);
