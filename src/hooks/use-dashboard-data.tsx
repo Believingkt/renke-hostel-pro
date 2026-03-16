@@ -125,10 +125,12 @@ const fetchDashboardData = async (
   const currentMonthOrders = ordersByMonth.get(currentMonthKey) || [];
   const lastMonthOrders = ordersByMonth.get(lastMonthKey) || [];
   
-  const monthlyBookingCount = currentMonthOrders.length;
-  const lastMonthBookingCount = lastMonthOrders.length;
-  const monthlyGuestCount = currentMonthOrders.reduce((sum, o) => sum + (o.guest_count || 0), 0);
-  const lastMonthGuestCount = lastMonthOrders.reduce((sum, o) => sum + (o.guest_count || 0), 0);
+  const confirmedCurrentMonthOrders = currentMonthOrders.filter(o => isRevenueEligible(o.order_status));
+  const confirmedLastMonthOrders = lastMonthOrders.filter(o => isRevenueEligible(o.order_status));
+  const monthlyBookingCount = confirmedCurrentMonthOrders.length;
+  const lastMonthBookingCount = confirmedLastMonthOrders.length;
+  const monthlyGuestCount = confirmedCurrentMonthOrders.reduce((sum, o) => sum + (o.guest_count || 0), 0);
+  const lastMonthGuestCount = confirmedLastMonthOrders.reduce((sum, o) => sum + (o.guest_count || 0), 0);
   // Validate and sum revenues - 只計算實際入住的訂單
   const monthlyRev = currentMonthOrders.reduce((sum, o) => {
     if (!isRevenueEligible(o.order_status)) return sum;
