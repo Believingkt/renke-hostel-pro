@@ -313,7 +313,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
 
         const yearlyOrders = allAccOrders.filter(o => {
           const orderDate = o.created_at?.split('T')[0];
-          return orderDate >= yearStart && orderDate <= yearEnd && (o.order_status === 'checked_in' || o.order_status === 'checked_out');
+          return orderDate >= yearStart && orderDate <= yearEnd && o.order_status === 'confirmed';
         });
         const yearlyRevenue = yearlyOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
 
