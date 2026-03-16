@@ -714,7 +714,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
         // Revenue using daily price splitting
         const confirmedWithDates = confirmedOrders.filter(o => o.check_in_date && o.check_out_date);
         const accRevByMonth = aggregateRevenueByMonth(
-          confirmedWithDates.map(o => ({ check_in_date: o.check_in_date!, check_out_date: o.check_out_date!, room_type_id: o.room_type_id, final_price: o.final_price || 0 })),
+          confirmedWithDates.map(o => ({ check_in_date: o.check_in_date!, check_out_date: o.check_out_date!, room_type_id: o.room_type_id, final_price: o.final_price || 0, meal_plan: o.meal_plan })),
           periodPricingMap
         );
         const revenue = Array.from(accRevByMonth.values()).reduce((sum, v) => sum + v, 0);
