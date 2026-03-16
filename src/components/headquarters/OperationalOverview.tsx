@@ -217,22 +217,70 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
       const accIds = filteredAccommodations.map(a => a.id);
       
       // Get orders from last 24 months for year-over-year comparison
-      const [{ data: allOrders, error: allOrdersError }, { data: prevYearOrders, error: prevYearOrdersError }] = await Promise.all([
+      const [{ data: allOrders, error: allOrdersError }, { data: prevYearOrders, error: prevYearOrdersError }, { data: allRoomTypesForPricing }] = await Promise.all([
         supabase
           .from("orders")
-          .select("accommodation_id, order_status, final_price, created_at")
+          .select("accommodation_id, order_status, final_price, created_at, check_in_date, check_out_date, room_type_id")
           .in("accommodation_id", accIds)
           .gte("created_at", format(subMonths(now, 11), 'yyyy-MM-dd')),
         supabase
           .from("orders")
-          .select("accommodation_id, order_status, final_price, created_at")
+          .select("accommodation_id, order_status, final_price, created_at, check_in_date, check_out_date, room_type_id")
           .in("accommodation_id", accIds)
           .gte("created_at", format(subMonths(now, 23), 'yyyy-MM-dd'))
-          .lt("created_at", format(subMonths(now, 11), 'yyyy-MM-dd'))
+          .lt("created_at", format(subMonths(now, 11), 'yyyy-MM-dd')),
+        supabase
+          .from("room_types")
+          .select("id")
+          .in("accommodation_id", accIds)
       ]);
 
       if (allOrdersError) throw allOrdersError;
       if (prevYearOrdersError) throw prevYearOrdersError;
+
+      // Fetch inventory pricing for daily revenue splitting
+      const allRoomTypeIds = (allRoomTypesForPricing || []).map(rt => rt.id);
+      let hqPricingMap: PricingMap = new Map();
+      
+      const allConfirmedWithDates = [
+        ...(allOrders || []),
+        ...(prevYearOrders || []),
+      ].filter(o => o.order_status === 'confirmed' && o.check_in_date && o.check_out_date);
+      
+      if (allRoomTypeIds.length > 0 && allConfirmedWithDates.length > 0) {
+        let minDate = allConfirmedWithDates[0].check_in_date;
+        let maxDate = allConfirmedWithDates[0].check_out_date;
+        allConfirmedWithDates.forEach(o => {
+          if (o.check_in_date < minDate) minDate = o.check_in_date;
+          if (o.check_out_date > maxDate) maxDate = o.check_out_date;
+        });
+        
+        const { data: inventoryData } = await supabase
+          .from('room_inventory_pricing')
+          .select('room_type_id, date, price')
+          .in('room_type_id', allRoomTypeIds)
+          .gte('date', minDate)
+          .lte('date', maxDate)
+          .limit(10000);
+        
+        hqPricingMap = buildPricingMap(inventoryData || []);
+      }
+
+      // Compute revenueByMonth for current and previous periods
+      const currentConfirmed = (allOrders || []).filter(o => o.order_status === 'confirmed' && o.check_in_date && o.check_out_date);
+      const prevConfirmed = (prevYearOrders || []).filter(o => o.order_status === 'confirmed' && o.check_in_date && o.check_out_date);
+      
+      const currentRevenueByMonth = aggregateRevenueByMonth(
+        currentConfirmed.map(o => ({ check_in_date: o.check_in_date, check_out_date: o.check_out_date, room_type_id: o.room_type_id, final_price: o.final_price || 0 })),
+        hqPricingMap
+      );
+      const prevRevenueByMonth = aggregateRevenueByMonth(
+        prevConfirmed.map(o => ({ check_in_date: o.check_in_date, check_out_date: o.check_out_date, room_type_id: o.room_type_id, final_price: o.final_price || 0 })),
+        hqPricingMap
+      );
+
+      // 營收只計算已確認的訂單（confirmed）
+      const isRevenueEligible = (status: string) => status === 'confirmed';
 
       const monthlyMap = new Map<string, { revenue: number; orders: number; prevRevenue: number; prevOrders: number }>();
       for (let i = 11; i >= 0; i--) {
@@ -241,34 +289,35 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
         monthlyMap.set(key, { revenue: 0, orders: 0, prevRevenue: 0, prevOrders: 0 });
       }
 
-      // 營收只計算已確認的訂單（confirmed）
-      const isRevenueEligible = (status: string) => status === 'confirmed';
-
-      // Current year data
+      // Order counts by created_at month
       allOrders?.forEach(order => {
         if (order.created_at && isRevenueEligible(order.order_status)) {
-          const orderDate = new Date(order.created_at);
-          const key = format(orderDate, 'M月');
+          const key = format(new Date(order.created_at), 'M月');
           const current = monthlyMap.get(key);
-          if (current) {
-            current.revenue += order.final_price || 0;
-            current.orders += 1;
-          }
+          if (current) current.orders += 1;
         }
       });
 
-      // Previous year data (map to same month names)
       prevYearOrders?.forEach(order => {
         if (order.created_at && isRevenueEligible(order.order_status)) {
-          const orderDate = new Date(order.created_at);
-          const key = format(orderDate, 'M月');
+          const key = format(new Date(order.created_at), 'M月');
           const current = monthlyMap.get(key);
-          if (current) {
-            current.prevRevenue += order.final_price || 0;
-            current.prevOrders += 1;
-          }
+          if (current) current.prevOrders += 1;
         }
       });
+
+      // Revenue by stay month using daily price splitting
+      for (let i = 11; i >= 0; i--) {
+        const date = subMonths(now, i);
+        const key = format(date, 'M月');
+        const yearMonthKey = format(date, 'yyyy-MM');
+        const prevYearMonthKey = format(subMonths(date, 12), 'yyyy-MM');
+        const current = monthlyMap.get(key);
+        if (current) {
+          current.revenue = currentRevenueByMonth.get(yearMonthKey) || 0;
+          current.prevRevenue = prevRevenueByMonth.get(prevYearMonthKey) || 0;
+        }
+      }
 
       setMonthlyTrends(
         Array.from(monthlyMap.entries()).map(([month, data]) => ({
