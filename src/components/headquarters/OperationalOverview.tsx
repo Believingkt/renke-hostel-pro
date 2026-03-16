@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { buildPricingMap, aggregateRevenueByMonth, type PricingMap } from "@/utils/revenueByMonth";
 import { HQOverviewSkeleton } from "@/components/skeletons/HQSkeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
