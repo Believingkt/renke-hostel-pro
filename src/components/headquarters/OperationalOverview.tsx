@@ -245,14 +245,12 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
 
       // Current year data
       allOrders?.forEach(order => {
-        if (order.order_status !== 'cancelled' && order.created_at) {
+        if (order.created_at && isRevenueEligible(order.order_status)) {
           const orderDate = new Date(order.created_at);
           const key = format(orderDate, 'M月');
           const current = monthlyMap.get(key);
           if (current) {
-            if (isRevenueEligible(order.order_status)) {
-              current.revenue += order.final_price || 0;
-            }
+            current.revenue += order.final_price || 0;
             current.orders += 1;
           }
         }
@@ -260,14 +258,12 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
 
       // Previous year data (map to same month names)
       prevYearOrders?.forEach(order => {
-        if (order.order_status !== 'cancelled' && order.created_at) {
+        if (order.created_at && isRevenueEligible(order.order_status)) {
           const orderDate = new Date(order.created_at);
           const key = format(orderDate, 'M月');
           const current = monthlyMap.get(key);
           if (current) {
-            if (isRevenueEligible(order.order_status)) {
-              current.prevRevenue += order.final_price || 0;
-            }
+            current.prevRevenue += order.final_price || 0;
             current.prevOrders += 1;
           }
         }
@@ -486,7 +482,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
     });
     
     orders.forEach(order => {
-      if (order.order_status === "cancelled") return;
+      if (order.order_status !== "confirmed") return;
       const orderDate = format(new Date(order.created_at), "yyyy-MM-dd");
       const closestDate = sampledDays.reduce((prev, curr) => {
         const currKey = format(curr, "yyyy-MM-dd");
@@ -495,10 +491,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
       const dateKey = format(closestDate, "yyyy-MM-dd");
       
       const existing = trendMap.get(dateKey) || { revenue: 0, orders: 0, prevRevenue: 0, prevOrders: 0 };
-      // 營收只計算已確認的訂單
-      if (order.order_status === 'confirmed') {
-        existing.revenue += order.final_price || 0;
-      }
+      existing.revenue += order.final_price || 0;
       existing.orders += 1;
       trendMap.set(dateKey, existing);
     });
@@ -507,7 +500,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
     const sampledPrevDays = prevDays.filter((_, i) => i % prevStep === 0 || i === prevDays.length - 1);
     
     previousOrdersList.forEach(order => {
-      if (order.order_status === "cancelled") return;
+      if (order.order_status !== "confirmed") return;
       const orderDate = format(new Date(order.created_at), "yyyy-MM-dd");
       const closestPrevDate = sampledPrevDays.reduce((prev, curr) => {
         const currKey = format(curr, "yyyy-MM-dd");
@@ -519,10 +512,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
         const correspondingCurrentDate = sampledDays[prevIndex];
         const dateKey = format(correspondingCurrentDate, "yyyy-MM-dd");
         const existing = trendMap.get(dateKey) || { revenue: 0, orders: 0, prevRevenue: 0, prevOrders: 0 };
-        // 營收只計算已確認的訂單
-        if (order.order_status === 'confirmed') {
-          existing.prevRevenue += order.final_price || 0;
-        }
+        existing.prevRevenue += order.final_price || 0;
         existing.prevOrders += 1;
         trendMap.set(dateKey, existing);
       }
@@ -568,12 +558,8 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
         .lte("created_at", `${previousYear}-12-31T23:59:59`),
     ]);
 
-    const currentOrders = (currentYearOrders || []).filter(o => o.order_status !== "cancelled");
-    const prevOrders = (previousYearOrders || []).filter(o => o.order_status !== "cancelled");
-    
-    // 營收只計算已確認的訂單
-    const currentRevenueOrders = (currentYearOrders || []).filter(o => o.order_status === 'confirmed');
-    const prevRevenueOrders = (previousYearOrders || []).filter(o => o.order_status === 'confirmed');
+    const currentOrders = (currentYearOrders || []).filter(o => o.order_status === 'confirmed');
+    const prevOrders = (previousYearOrders || []).filter(o => o.order_status === 'confirmed');
 
     return months.map(month => {
       const monthNum = getMonth(month);
@@ -582,11 +568,8 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
       const currentMonthOrders = currentOrders.filter(o => getMonth(new Date(o.created_at)) === monthNum);
       const prevMonthOrders = prevOrders.filter(o => getMonth(new Date(o.created_at)) === monthNum);
 
-      const currentMonthRevenueOrders = currentRevenueOrders.filter(o => getMonth(new Date(o.created_at)) === monthNum);
-      const prevMonthRevenueOrders = prevRevenueOrders.filter(o => getMonth(new Date(o.created_at)) === monthNum);
-
-      const currentRevenue = currentMonthRevenueOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
-      const previousRevenue = prevMonthRevenueOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+      const currentRevenue = currentMonthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+      const previousRevenue = prevMonthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
       const currentOrderCount = currentMonthOrders.length;
       const previousOrderCount = prevMonthOrders.length;
 
@@ -626,12 +609,11 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
           .eq("accommodation_id", acc.id);
 
         const allOrders = orders || [];
-        const validOrders = allOrders.filter((o) => o.order_status !== "cancelled");
+        const confirmedOrders = allOrders.filter((o) => o.order_status === "confirmed");
         const cancelledOrders = allOrders.filter((o) => o.order_status === "cancelled");
-        const revenueOrders = validOrders.filter(o => o.order_status === 'confirmed');
-        const revenue = revenueOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
+        const revenue = confirmedOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
         
-        const roomNights = validOrders.reduce((sum, o) => {
+        const roomNights = confirmedOrders.reduce((sum, o) => {
           const checkIn = new Date(o.check_in_date);
           const checkOut = new Date(o.check_out_date);
           return sum + differenceInDays(checkOut, checkIn);
@@ -646,9 +628,9 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
           id: acc.id,
           name: acc.name,
           is_active: acc.is_active !== false,
-          orderCount: validOrders.length,
+          orderCount: confirmedOrders.length,
           revenue,
-          averageOrderValue: validOrders.length > 0 ? Math.round(revenue / validOrders.length) : 0,
+          averageOrderValue: confirmedOrders.length > 0 ? Math.round(revenue / confirmedOrders.length) : 0,
           occupancyRate: Math.round(occupancyRate * 10) / 10,
           cancelledCount: cancelledOrders.length,
           roomNights,
