@@ -500,7 +500,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
     const sampledPrevDays = prevDays.filter((_, i) => i % prevStep === 0 || i === prevDays.length - 1);
     
     previousOrdersList.forEach(order => {
-      if (order.order_status === "cancelled") return;
+      if (order.order_status !== "confirmed") return;
       const orderDate = format(new Date(order.created_at), "yyyy-MM-dd");
       const closestPrevDate = sampledPrevDays.reduce((prev, curr) => {
         const currKey = format(curr, "yyyy-MM-dd");
@@ -512,10 +512,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
         const correspondingCurrentDate = sampledDays[prevIndex];
         const dateKey = format(correspondingCurrentDate, "yyyy-MM-dd");
         const existing = trendMap.get(dateKey) || { revenue: 0, orders: 0, prevRevenue: 0, prevOrders: 0 };
-        // 營收只計算已確認的訂單
-        if (order.order_status === 'confirmed') {
-          existing.prevRevenue += order.final_price || 0;
-        }
+        existing.prevRevenue += order.final_price || 0;
         existing.prevOrders += 1;
         trendMap.set(dateKey, existing);
       }
