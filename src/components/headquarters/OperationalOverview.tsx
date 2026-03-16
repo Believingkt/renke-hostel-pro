@@ -307,7 +307,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
 
         const monthlyOrders = allAccOrders.filter(o => {
           const orderDate = o.created_at?.split('T')[0];
-          return orderDate >= monthStart && orderDate <= monthEnd && (o.order_status === 'checked_in' || o.order_status === 'checked_out');
+          return orderDate >= monthStart && orderDate <= monthEnd && o.order_status === 'confirmed';
         });
         const monthlyRevenue = monthlyOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
 
