@@ -598,32 +598,60 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
     const [{ data: currentYearOrders }, { data: previousYearOrders }] = await Promise.all([
       supabase
         .from("orders")
-        .select("created_at, final_price, order_status")
+        .select("created_at, final_price, order_status, check_in_date, check_out_date, room_type_id")
         .in("accommodation_id", accIds)
         .gte("created_at", `${currentYear}-01-01`)
         .lte("created_at", format(now, "yyyy-MM-dd") + "T23:59:59"),
       supabase
         .from("orders")
-        .select("created_at, final_price, order_status")
+        .select("created_at, final_price, order_status, check_in_date, check_out_date, room_type_id")
         .in("accommodation_id", accIds)
         .gte("created_at", `${previousYear}-01-01`)
         .lte("created_at", `${previousYear}-12-31T23:59:59`),
     ]);
 
-    const currentOrders = (currentYearOrders || []).filter(o => o.order_status === 'confirmed');
-    const prevOrders = (previousYearOrders || []).filter(o => o.order_status === 'confirmed');
+    const currentConfirmedOrders = (currentYearOrders || []).filter(o => o.order_status === 'confirmed' && o.check_in_date && o.check_out_date);
+    const prevConfirmedOrders = (previousYearOrders || []).filter(o => o.order_status === 'confirmed' && o.check_in_date && o.check_out_date);
+
+    // Fetch inventory pricing for comparison
+    const compOrdersAll = [...currentConfirmedOrders, ...prevConfirmedOrders];
+    const compRoomTypeIds = [...new Set(compOrdersAll.map(o => o.room_type_id).filter(Boolean))] as string[];
+    let compPricingMap: PricingMap = new Map();
+    if (compRoomTypeIds.length > 0 && compOrdersAll.length > 0) {
+      let minD = compOrdersAll[0].check_in_date!;
+      let maxD = compOrdersAll[0].check_out_date!;
+      compOrdersAll.forEach(o => {
+        if (o.check_in_date! < minD) minD = o.check_in_date!;
+        if (o.check_out_date! > maxD) maxD = o.check_out_date!;
+      });
+      const { data: invData } = await supabase
+        .from('room_inventory_pricing')
+        .select('room_type_id, date, price')
+        .in('room_type_id', compRoomTypeIds)
+        .gte('date', minD).lte('date', maxD).limit(10000);
+      compPricingMap = buildPricingMap(invData || []);
+    }
+
+    const curRevByMonth = aggregateRevenueByMonth(
+      currentConfirmedOrders.map(o => ({ check_in_date: o.check_in_date!, check_out_date: o.check_out_date!, room_type_id: o.room_type_id, final_price: o.final_price || 0 })),
+      compPricingMap
+    );
+    const prevRevByMonth = aggregateRevenueByMonth(
+      prevConfirmedOrders.map(o => ({ check_in_date: o.check_in_date!, check_out_date: o.check_out_date!, room_type_id: o.room_type_id, final_price: o.final_price || 0 })),
+      compPricingMap
+    );
 
     return months.map(month => {
       const monthNum = getMonth(month);
       const monthLabel = format(month, "M月", { locale: zhTW });
+      const yearMonthKey = format(month, "yyyy-MM");
+      const prevYearMonthKey = `${previousYear}-${String(monthNum + 1).padStart(2, '0')}`;
 
-      const currentMonthOrders = currentOrders.filter(o => getMonth(new Date(o.created_at)) === monthNum);
-      const prevMonthOrders = prevOrders.filter(o => getMonth(new Date(o.created_at)) === monthNum);
+      const currentOrderCount = currentConfirmedOrders.filter(o => getMonth(new Date(o.created_at)) === monthNum).length;
+      const previousOrderCount = prevConfirmedOrders.filter(o => getMonth(new Date(o.created_at)) === monthNum).length;
 
-      const currentRevenue = currentMonthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
-      const previousRevenue = prevMonthOrders.reduce((sum, o) => sum + (o.final_price || 0), 0);
-      const currentOrderCount = currentMonthOrders.length;
-      const previousOrderCount = prevMonthOrders.length;
+      const currentRevenue = curRevByMonth.get(yearMonthKey) || 0;
+      const previousRevenue = prevRevByMonth.get(prevYearMonthKey) || 0;
 
       const revenueGrowth = previousRevenue > 0 
         ? ((currentRevenue - previousRevenue) / previousRevenue) * 100 
