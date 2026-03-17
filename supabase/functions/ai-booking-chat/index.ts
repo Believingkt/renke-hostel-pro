@@ -683,6 +683,7 @@ serve(async (req) => {
         }
       }
 
+      if (toolName === "validate_discount_code") {
         const { data } = await supabase.rpc('validate_discount_code', {
           p_accommodation_id: accommodationId,
           p_code: args.code
