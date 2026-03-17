@@ -1,0 +1,10 @@
+{
+  "name": "static-ip-relay-server",
+  "version": "1.0.0",
+  "description": "Static IP relay proxy for forwarding Edge Function requests through a fixed IP",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {}
+}
