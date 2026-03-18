@@ -261,9 +261,26 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
           <Button variant="ghost" size="sm" onClick={goPrev} className="h-9 px-2">
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="px-3 text-sm font-medium min-w-[120px] text-center">
-            {format(startDate, "yyyy/MM/dd")}
-          </span>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-9 px-3 min-w-[120px] font-medium">
+                {format(startDate, "yyyy/MM/dd")}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={startDate}
+                onSelect={(date) => {
+                  if (date) {
+                    date.setHours(0, 0, 0, 0);
+                    setStartDate(date);
+                  }
+                }}
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
           <Button variant="ghost" size="sm" onClick={goNext} className="h-9 px-2">
             <ChevronRight className="h-4 w-4" />
           </Button>
