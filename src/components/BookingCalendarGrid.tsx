@@ -2,11 +2,13 @@ import { useState, useEffect, useMemo } from "react";
 import { format, addDays, subDays, isToday, isWeekend, parseISO, differenceInDays } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Lock, Package } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Lock, Package, CalendarIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface BookingCalendarGridProps {
   accommodationId: string;
