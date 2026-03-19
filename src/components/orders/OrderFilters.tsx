@@ -80,6 +80,7 @@ export function OrderFilters({
   onOrderSourceChange,
   onSearchKeywordChange,
   onClear,
+  onSubmit,
 }: OrderFiltersProps) {
   return (
     <div className="space-y-4">
