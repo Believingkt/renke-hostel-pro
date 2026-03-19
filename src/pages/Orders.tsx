@@ -640,6 +640,7 @@ const Orders = () => {
                   onOrderSourceChange={setOrderSource}
                   onSearchKeywordChange={setSearchKeyword}
                   onClear={clearAllFilters}
+                  onSubmit={handleFilterSubmit}
                 />
               </div>
 
