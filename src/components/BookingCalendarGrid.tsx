@@ -575,7 +575,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                   >
                                     <span className="shrink-0">{SOURCE_ICONS[order.order_source] || "📋"}</span>
                                     <span className="font-medium truncate">{order.guest_name}</span>
-                                    {span >= 2 && order.order_source !== 'website' && (
+                                    {span >= 2 && order.order_source !== 'website' && order.order_source !== 'manual' && (
                                       <span className="text-muted-foreground truncate hidden sm:inline">
                                         {getSourceLabel(order.order_source)}
                                       </span>
