@@ -1,7 +1,12 @@
-import { Calendar, X } from "lucide-react";
+import { useState } from "react";
+import { Calendar as CalendarIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format, parse } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface OrderFiltersProps {
   dateType: string;
@@ -19,6 +24,43 @@ interface OrderFiltersProps {
   onOrderSourceChange: (value: string) => void;
   onSearchKeywordChange: (value: string) => void;
   onClear: () => void;
+}
+
+function DatePickerInput({ value, onChange, placeholder }: { value: string; onChange: (val: string) => void; placeholder?: string }) {
+  const [open, setOpen] = useState(false);
+  const dateObj = value ? parse(value, "yyyy-MM-dd", new Date()) : undefined;
+  const isValidDate = dateObj && !isNaN(dateObj.getTime());
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          className={cn(
+            "h-12 md:h-10 flex-1 md:w-[160px] justify-start text-left font-normal text-base md:text-sm touch-manipulation",
+            !value && "text-muted-foreground"
+          )}
+        >
+          <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
+          {isValidDate ? format(dateObj, "yyyy/MM/dd") : <span>{placeholder || "選擇日期"}</span>}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={isValidDate ? dateObj : undefined}
+          onSelect={(date) => {
+            if (date) {
+              onChange(format(date, "yyyy-MM-dd"));
+            }
+            setOpen(false);
+          }}
+          initialFocus
+          className={cn("p-3 pointer-events-auto")}
+        />
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 export function OrderFilters({
@@ -52,23 +94,10 @@ export function OrderFilters({
             <option value="check_in">入住日期</option>
             <option value="order">訂購日期</option>
           </select>
-          <Button variant="ghost" size="icon" className="hidden md:flex h-10 w-10">
-            <Calendar className="h-4 w-4" />
-          </Button>
           <div className="flex items-center gap-2 w-full md:w-auto">
-            <Input
-              type="date"
-              value={startDate}
-              onChange={(e) => onStartDateChange(e.target.value)}
-              className="h-12 md:h-10 flex-1 md:w-auto text-base md:text-sm touch-manipulation"
-            />
+            <DatePickerInput value={startDate} onChange={onStartDateChange} placeholder="開始日期" />
             <span className="text-muted-foreground">-</span>
-            <Input
-              type="date"
-              value={endDate}
-              onChange={(e) => onEndDateChange(e.target.value)}
-              className="h-12 md:h-10 flex-1 md:w-auto text-base md:text-sm touch-manipulation"
-            />
+            <DatePickerInput value={endDate} onChange={onEndDateChange} placeholder="結束日期" />
           </div>
         </div>
       </div>
