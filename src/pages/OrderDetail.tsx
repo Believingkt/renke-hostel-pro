@@ -144,7 +144,7 @@ const OrderDetail = () => {
   const handleSavePriceEdit = async () => {
     if (!order) return;
     if (editFinalPrice < 0) {
-      toast({ title: "最終金額不可為負數", variant: "destructive" });
+      toast({ title: "實收金額不可為負數", variant: "destructive" });
       return;
     }
     setIsSavingPrice(true);
@@ -709,7 +709,7 @@ const OrderDetail = () => {
             )}
             <Separator />
             <div className="flex justify-between items-center gap-2">
-              <span className="text-xs md:text-sm font-semibold">最終金額</span>
+              <span className="text-xs md:text-sm font-semibold">實收金額</span>
               <span className="font-bold text-base md:text-lg">NT$ {order.final_price.toLocaleString()}</span>
             </div>
             <Separator />
@@ -857,7 +857,7 @@ const OrderDetail = () => {
             </div>
             <Separator />
             <div className="flex justify-between items-center">
-              <span className="text-sm font-semibold">最終金額</span>
+              <span className="text-sm font-semibold">實收金額</span>
               <span className={`font-bold text-lg ${editFinalPrice < 0 ? 'text-destructive' : ''}`}>
                 NT$ {editFinalPrice.toLocaleString()}
               </span>
