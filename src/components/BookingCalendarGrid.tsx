@@ -74,11 +74,31 @@ const getSourceLabel = (source: string, paymentMethod?: string) => {
 export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProps) {
   const navigate = useNavigate();
   const [startDate, setStartDate] = useState(() => {
+    const saved = sessionStorage.getItem('bookingCalendar_startDate');
+    if (saved) {
+      const d = new Date(saved);
+      if (!isNaN(d.getTime())) {
+        d.setHours(0, 0, 0, 0);
+        return d;
+      }
+    }
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return today;
   });
-  const [dayCount, setDayCount] = useState(7);
+  const [dayCount, setDayCount] = useState(() => {
+    const saved = sessionStorage.getItem('bookingCalendar_dayCount');
+    return saved ? Number(saved) || 7 : 7;
+  });
+
+  // Persist startDate and dayCount to sessionStorage
+  useEffect(() => {
+    sessionStorage.setItem('bookingCalendar_startDate', startDate.toISOString());
+  }, [startDate]);
+
+  useEffect(() => {
+    sessionStorage.setItem('bookingCalendar_dayCount', String(dayCount));
+  }, [dayCount]);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [holidays, setHolidays] = useState<Map<string, PublicHoliday>>(new Map());
