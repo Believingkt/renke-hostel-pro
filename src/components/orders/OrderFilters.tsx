@@ -180,8 +180,8 @@ export function OrderFilters({
         </div>
       </div>
 
-      {/* 清除按鈕 */}
-      <div className="flex justify-end">
+      {/* 操作按鈕 */}
+      <div className="flex justify-end gap-2">
         <Button
           variant="ghost"
           size="sm"
@@ -189,6 +189,13 @@ export function OrderFilters({
           className="text-muted-foreground h-10 md:h-9 touch-manipulation"
         >
           清除所有篩選
+        </Button>
+        <Button
+          size="sm"
+          onClick={onSubmit}
+          className="h-10 md:h-9 touch-manipulation"
+        >
+          查詢
         </Button>
       </div>
     </div>
