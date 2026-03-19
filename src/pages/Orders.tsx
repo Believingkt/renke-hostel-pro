@@ -47,7 +47,7 @@ import { ErrorState } from "@/components/ErrorState";
 import { PageHeader } from "@/components/PageHeader";
 
 const Orders = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "list");
   const { currentAccommodationId: accommodationId } = useAccommodation();
   const { toast } = useToast();
@@ -70,27 +70,30 @@ const Orders = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   
   // 快速篩選
-  const [quickFilter, setQuickFilter] = useState<QuickFilterType>("");
+  const [quickFilter, setQuickFilter] = useState<QuickFilterType>((searchParams.get("qf") || "") as QuickFilterType);
   
-  // 篩選條件
-  const [dateType, setDateType] = useState("check_in");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [paymentStatus, setPaymentStatus] = useState("");
-  const [orderStatus, setOrderStatus] = useState("");
-  const [orderSource, setOrderSource] = useState("");
-  const [searchKeyword, setSearchKeyword] = useState("");
+  // 篩選條件 - 從 URL 參數初始化
+  const [dateType, setDateType] = useState(searchParams.get("dt") || "check_in");
+  const [startDate, setStartDate] = useState(searchParams.get("sd") || "");
+  const [endDate, setEndDate] = useState(searchParams.get("ed") || "");
+  const [paymentStatus, setPaymentStatus] = useState(searchParams.get("ps") || "");
+  const [orderStatus, setOrderStatus] = useState(searchParams.get("os") || "");
+  const [orderSource, setOrderSource] = useState(searchParams.get("src") || "");
+  const [searchKeyword, setSearchKeyword] = useState(searchParams.get("kw") || "");
   
   // 排序狀態
-  const [sortField, setSortField] = useState<keyof Order | "">("");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [sortField, setSortField] = useState<keyof Order | "">((searchParams.get("sf") || "") as keyof Order | "");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">((searchParams.get("sdir") === "asc" ? "asc" : "desc"));
   
   // 分頁狀態
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(Number(searchParams.get("page")) || 1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
   
   // 篩選觸發計數器（點擊查詢按鈕時遞增）
   const [filterTrigger, setFilterTrigger] = useState(0);
+  // 如果 URL 中已有篩選參數，初始載入時也要觸發一次篩選
+  const hasInitialFilters = !!(searchParams.get("sd") || searchParams.get("ps") || searchParams.get("os") || searchParams.get("src") || searchParams.get("kw"));
+  const [initialFilterApplied, setInitialFilterApplied] = useState(false);
   
   // 篩選抽屜狀態
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
@@ -302,12 +305,43 @@ const Orders = () => {
 
   useEffect(() => {
     applyFilters();
-    setCurrentPage(1);
+    if (!hasInitialFilters || initialFilterApplied) {
+      setCurrentPage(1);
+    }
   }, [orders, quickFilter, sortField, sortDirection, filterTrigger]);
+
+  // 初次載入時，如果 URL 有篩選參數，自動觸發一次篩選
+  useEffect(() => {
+    if (hasInitialFilters && orders.length > 0 && !initialFilterApplied) {
+      setInitialFilterApplied(true);
+      applyFilters();
+    }
+  }, [orders, hasInitialFilters, initialFilterApplied]);
+
+  // 將篩選狀態同步到 URL
+  const syncFiltersToUrl = () => {
+    const params = new URLSearchParams(searchParams);
+    const setOrDelete = (key: string, val: string) => {
+      if (val) params.set(key, val);
+      else params.delete(key);
+    };
+    setOrDelete("qf", quickFilter);
+    setOrDelete("dt", dateType !== "check_in" ? dateType : "");
+    setOrDelete("sd", startDate);
+    setOrDelete("ed", endDate);
+    setOrDelete("ps", paymentStatus);
+    setOrDelete("os", orderStatus);
+    setOrDelete("src", orderSource);
+    setOrDelete("kw", searchKeyword);
+    setOrDelete("sf", sortField);
+    setOrDelete("sdir", sortDirection !== "desc" ? sortDirection : "");
+    setSearchParams(params, { replace: true });
+  };
 
   // 快速篩選處理
   const handleQuickFilter = (filter: QuickFilterType) => {
-    setQuickFilter(filter === quickFilter ? "" : filter);
+    const newFilter = filter === quickFilter ? "" : filter;
+    setQuickFilter(newFilter);
     // 清除其他篩選條件
     if (filter !== quickFilter) {
       setStartDate("");
@@ -316,6 +350,15 @@ const Orders = () => {
       setOrderStatus("");
       setSearchKeyword("");
     }
+    // 同步 URL
+    const params = new URLSearchParams(searchParams);
+    if (newFilter) params.set("qf", newFilter);
+    else params.delete("qf");
+    // 清除詳細篩選參數
+    if (filter !== quickFilter) {
+      ["sd", "ed", "ps", "os", "kw"].forEach(k => params.delete(k));
+    }
+    setSearchParams(params, { replace: true });
   };
 
   // 清除所有篩選
@@ -331,11 +374,19 @@ const Orders = () => {
     setSortDirection("desc");
     setCurrentPage(1);
     setFilterTrigger(prev => prev + 1);
+    // 清除 URL 篩選參數
+    const params = new URLSearchParams();
+    const accId = searchParams.get("accId");
+    const tab = searchParams.get("tab");
+    if (tab) params.set("tab", tab);
+    if (accId) params.set("accId", accId);
+    setSearchParams(params, { replace: true });
   };
 
   // 手動觸發篩選查詢
   const handleFilterSubmit = () => {
     setFilterTrigger(prev => prev + 1);
+    syncFiltersToUrl();
   };
 
   // 處理排序
