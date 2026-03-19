@@ -89,6 +89,9 @@ const Orders = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
   
+  // 篩選觸發計數器（點擊查詢按鈕時遞增）
+  const [filterTrigger, setFilterTrigger] = useState(0);
+  
   // 篩選抽屜狀態
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
