@@ -8,6 +8,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 import { Link2, Copy, Check, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
 
 interface OnlinePaymentDialogProps {
   open: boolean;
@@ -91,14 +92,14 @@ export function OnlinePaymentDialog({
   }, [open]);
 
   const handleCopyLink = async () => {
-    if (!generatedLink) return;
+    if (!generatedLink || !order) return;
     try {
       await navigator.clipboard.writeText(generatedLink);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
       toast({
         title: "已複製付款連結",
-        description: "可傳送給客人進行線上刷卡付款",
+        description: "可傳送給客人進行線上刷卡付款，連結有效期限為 3 天",
       });
     } catch {
       // Fallback
@@ -111,6 +112,16 @@ export function OnlinePaymentDialog({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
       toast({ title: "已複製付款連結" });
+    }
+
+    // Save payment_link_created_at to the order (reset on every new link copy)
+    try {
+      await supabase
+        .from('orders')
+        .update({ payment_link_created_at: new Date().toISOString() } as any)
+        .eq('id', order.id);
+    } catch (err) {
+      console.error('Failed to save payment link timestamp:', err);
     }
   };
 
@@ -246,7 +257,8 @@ export function OnlinePaymentDialog({
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                複製連結傳送給客人，客人開啟後即可自行輸入信用卡完成付款
+                複製連結傳送給客人，客人開啟後即可自行輸入信用卡完成付款。
+                <span className="text-warning font-medium">連結有效期限為 3 天。</span>
               </p>
             </div>
           )}

@@ -1,3 +1,29 @@
+/**
+ * Check if an order's payment link has expired (3 days after generation).
+ */
+export const isPaymentLinkExpired = (paymentLinkCreatedAt: string | null | undefined): boolean => {
+  if (!paymentLinkCreatedAt) return false;
+  const created = new Date(paymentLinkCreatedAt);
+  if (isNaN(created.getTime())) return false;
+  const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+  return Date.now() > created.getTime() + threeDaysMs;
+};
+
+/**
+ * Get effective payment status, considering overdue logic.
+ * If the order has an unpaid/deposit_paid status and the payment link has expired, show "overdue".
+ */
+export const getEffectivePaymentStatus = (
+  paymentStatus: string,
+  paymentLinkCreatedAt?: string | null
+): string => {
+  const unpaidStatuses = ['unpaid', 'deposit_paid', 'partial'];
+  if (unpaidStatuses.includes(paymentStatus) && isPaymentLinkExpired(paymentLinkCreatedAt)) {
+    return 'overdue';
+  }
+  return paymentStatus;
+};
+
 export const getPaymentStatusConfig = (status: string) => {
   const statusMap: Record<string, { label: string; className: string }> = {
     unpaid: { label: "未付款", className: "bg-red-100 text-red-700 border-red-200" },

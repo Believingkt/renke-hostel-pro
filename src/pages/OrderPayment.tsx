@@ -57,7 +57,7 @@ export default function OrderPayment() {
       try {
         const { data, error } = await supabase
           .from("orders")
-          .select("id, guest_name, guest_phone, guest_email, final_price, paid_amount, payment_status, order_status")
+          .select("id, guest_name, guest_phone, guest_email, final_price, paid_amount, payment_status, order_status, payment_link_created_at")
           .eq("order_number", orderNumber)
           .eq("accommodation_id", accommodationId)
           .maybeSingle();
@@ -79,6 +79,17 @@ export default function OrderPayment() {
           setOrderError("此訂單已全額付款完成");
           setLoadingOrder(false);
           return;
+        }
+
+        // Check if payment link has expired (3 days)
+        if (data.payment_link_created_at) {
+          const created = new Date(data.payment_link_created_at);
+          const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+          if (Date.now() > created.getTime() + threeDaysMs) {
+            setOrderError("此付款連結已逾期（超過 3 天），請聯繫業者取得新的付款連結");
+            setLoadingOrder(false);
+            return;
+          }
         }
 
         const unpaid = data.final_price - (data.paid_amount || 0);

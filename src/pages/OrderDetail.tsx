@@ -575,7 +575,17 @@ const OrderDetail = () => {
             <Separator />
             <div className="flex justify-between items-center gap-2">
               <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">付款狀態</span>
-              {getPaymentStatusBadge(order.payment_status)}
+              {getPaymentStatusBadge(
+                (() => {
+                  const o = order as any;
+                  const unpaidStatuses = ['unpaid', 'deposit_paid', 'partial'];
+                  if (unpaidStatuses.includes(order.payment_status) && o.payment_link_created_at) {
+                    const created = new Date(o.payment_link_created_at);
+                    if (Date.now() > created.getTime() + 3 * 24 * 60 * 60 * 1000) return 'overdue';
+                  }
+                  return order.payment_status;
+                })()
+              )}
             </div>
             {order.deposit_payment_method && (
               <>
