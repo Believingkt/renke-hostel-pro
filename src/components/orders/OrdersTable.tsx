@@ -258,7 +258,7 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                   <div className="flex items-center justify-between text-sm mb-3">
                     <div className="flex items-center">
                       <DollarSign className="w-4 h-4 mr-1 text-muted-foreground" />
-                      <span className="text-muted-foreground">訂單金額:</span>
+                      <span className="text-muted-foreground">實收金額:</span>
                     </div>
                     <span className="font-semibold text-base">NT$ {order.final_price.toLocaleString()}</span>
                   </div>
