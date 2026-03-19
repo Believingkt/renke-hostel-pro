@@ -302,8 +302,8 @@ const Orders = () => {
 
   useEffect(() => {
     applyFilters();
-    setCurrentPage(1); // 重置到第一頁
-  }, [orders, startDate, endDate, paymentStatus, orderStatus, orderSource, searchKeyword, quickFilter, sortField, sortDirection]);
+    setCurrentPage(1);
+  }, [orders, quickFilter, sortField, sortDirection, filterTrigger]);
 
   // 快速篩選處理
   const handleQuickFilter = (filter: QuickFilterType) => {
