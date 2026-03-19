@@ -144,7 +144,7 @@ const OrderDetail = () => {
   const handleSavePriceEdit = async () => {
     if (!order) return;
     if (editFinalPrice < 0) {
-      toast({ title: "最終金額不可為負數", variant: "destructive" });
+      toast({ title: "實收金額不可為負數", variant: "destructive" });
       return;
     }
     setIsSavingPrice(true);
