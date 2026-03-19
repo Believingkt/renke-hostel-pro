@@ -47,7 +47,7 @@ import { ErrorState } from "@/components/ErrorState";
 import { PageHeader } from "@/components/PageHeader";
 
 const Orders = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "list");
   const { currentAccommodationId: accommodationId } = useAccommodation();
   const { toast } = useToast();
