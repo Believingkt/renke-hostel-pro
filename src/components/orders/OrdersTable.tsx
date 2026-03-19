@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -19,11 +19,14 @@ interface OrdersTableProps {
 }
 
 export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onSort, customMealPlans = [] }: OrdersTableProps) {
+  const location = useLocation();
+  const backTo = `${location.pathname}${location.search}`;
+
   const getSortIcon = (field: keyof Order) => {
     if (sortField !== field) {
       return <ArrowUpDown className="w-4 h-4 ml-1 opacity-50" />;
     }
-    return sortDirection === "asc" 
+    return sortDirection === "asc"
       ? <ArrowUp className="w-4 h-4 ml-1" />
       : <ArrowDown className="w-4 h-4 ml-1" />;
   };
@@ -39,9 +42,8 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
     return planId === "2_meals" ? "一泊二食" : planId === "3_meals" ? "一泊三食" : planId;
   };
 
-
   const SortableHeader = ({ field, children }: { field: keyof Order; children: React.ReactNode }) => (
-    <th 
+    <th
       className="px-4 py-3 text-left text-sm font-semibold text-foreground cursor-pointer hover:text-primary transition-colors select-none"
       onClick={() => onSort(field)}
     >
@@ -99,13 +101,14 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                 const effectivePaymentStatus = getEffectivePaymentStatus(order.payment_status, order.payment_link_created_at);
                 const paymentStatusConfig = getPaymentStatusConfig(effectivePaymentStatus);
                 const orderSourceConfig = getOrderSourceConfig(order.order_source);
-                
+
                 return (
                   <tr key={order.id} className="border-b hover:bg-muted/50">
                     <td className="px-4 py-3 text-sm">
                       <OrderQuickPreview order={order}>
-                        <Link 
+                        <Link
                           to={`/admin/orders/${order.id}`}
+                          state={{ from: backTo }}
                           className="text-primary hover:underline font-medium"
                         >
                           {order.order_number}
@@ -144,7 +147,7 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                                 className="h-9 w-9 p-0 touch-manipulation"
                                 asChild
                               >
-                                <Link to={`/admin/orders/${order.id}`}>
+                                <Link to={`/admin/orders/${order.id}`} state={{ from: backTo }}>
                                   <Eye className="h-4 w-4" />
                                 </Link>
                               </Button>
@@ -196,15 +199,16 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
             const effectiveMobilePaymentStatus = getEffectivePaymentStatus(order.payment_status, order.payment_link_created_at);
             const paymentStatusConfig = getPaymentStatusConfig(effectiveMobilePaymentStatus);
             const orderSourceConfig = getOrderSourceConfig(order.order_source);
-            
+
             return (
               <Card key={order.id} className="overflow-hidden">
                 <CardContent className="p-4">
                   {/* 訂單編號和狀態 */}
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex flex-col gap-1">
-                      <Link 
+                      <Link
                         to={`/admin/orders/${order.id}`}
+                        state={{ from: backTo }}
                         className="text-primary hover:underline font-semibold text-base"
                       >
                         {order.order_number}
@@ -271,7 +275,7 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                       className="flex-1 h-12 touch-manipulation gap-2"
                       asChild
                     >
-                      <Link to={`/admin/orders/${order.id}`}>
+                      <Link to={`/admin/orders/${order.id}`} state={{ from: backTo }}>
                         <Eye className="h-5 w-5" />
                         <span>查看詳情</span>
                       </Link>
