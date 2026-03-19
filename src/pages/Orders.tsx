@@ -682,13 +682,11 @@ const Orders = () => {
                         onOrderSourceChange={setOrderSource}
                         onSearchKeywordChange={setSearchKeyword}
                         onClear={clearAllFilters}
+                        onSubmit={() => {
+                          handleFilterSubmit();
+                          setFilterDrawerOpen(false);
+                        }}
                       />
-                      <Button 
-                        className="w-full h-12 mt-6 text-base touch-manipulation" 
-                        onClick={() => setFilterDrawerOpen(false)}
-                      >
-                        套用篩選
-                      </Button>
                     </div>
                   </SheetContent>
                 </Sheet>
