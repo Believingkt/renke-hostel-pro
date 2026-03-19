@@ -709,7 +709,7 @@ const OrderDetail = () => {
             )}
             <Separator />
             <div className="flex justify-between items-center gap-2">
-              <span className="text-xs md:text-sm font-semibold">最終金額</span>
+              <span className="text-xs md:text-sm font-semibold">實收金額</span>
               <span className="font-bold text-base md:text-lg">NT$ {order.final_price.toLocaleString()}</span>
             </div>
             <Separator />
