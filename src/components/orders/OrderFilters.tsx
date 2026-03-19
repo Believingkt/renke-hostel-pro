@@ -24,6 +24,7 @@ interface OrderFiltersProps {
   onOrderSourceChange: (value: string) => void;
   onSearchKeywordChange: (value: string) => void;
   onClear: () => void;
+  onSubmit: () => void;
 }
 
 function DatePickerInput({ value, onChange, placeholder }: { value: string; onChange: (val: string) => void; placeholder?: string }) {
