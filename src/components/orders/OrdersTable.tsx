@@ -195,7 +195,8 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
         ) : (
           orders.map((order) => {
             const orderStatusConfig = getOrderStatusConfig(order.order_status);
-            const paymentStatusConfig = getPaymentStatusConfig(order.payment_status);
+            const effectiveMobilePaymentStatus = getEffectivePaymentStatus(order.payment_status, order.payment_link_created_at);
+            const paymentStatusConfig = getPaymentStatusConfig(effectiveMobilePaymentStatus);
             const orderSourceConfig = getOrderSourceConfig(order.order_source);
             
             return (
