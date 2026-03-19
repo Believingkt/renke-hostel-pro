@@ -1203,6 +1203,7 @@ export type Database = {
           order_source: string
           order_status: string
           paid_amount: number | null
+          payment_link_created_at: string | null
           payment_method: string | null
           payment_status: string
           pet_count: number | null
@@ -1243,6 +1244,7 @@ export type Database = {
           order_source?: string
           order_status?: string
           paid_amount?: number | null
+          payment_link_created_at?: string | null
           payment_method?: string | null
           payment_status?: string
           pet_count?: number | null
@@ -1283,6 +1285,7 @@ export type Database = {
           order_source?: string
           order_status?: string
           paid_amount?: number | null
+          payment_link_created_at?: string | null
           payment_method?: string | null
           payment_status?: string
           pet_count?: number | null
