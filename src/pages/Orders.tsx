@@ -89,6 +89,9 @@ const Orders = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
   
+  // 篩選觸發計數器（點擊查詢按鈕時遞增）
+  const [filterTrigger, setFilterTrigger] = useState(0);
+  
   // 篩選抽屜狀態
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
@@ -299,8 +302,8 @@ const Orders = () => {
 
   useEffect(() => {
     applyFilters();
-    setCurrentPage(1); // 重置到第一頁
-  }, [orders, startDate, endDate, paymentStatus, orderStatus, orderSource, searchKeyword, quickFilter, sortField, sortDirection]);
+    setCurrentPage(1);
+  }, [orders, quickFilter, sortField, sortDirection, filterTrigger]);
 
   // 快速篩選處理
   const handleQuickFilter = (filter: QuickFilterType) => {
@@ -327,6 +330,12 @@ const Orders = () => {
     setSortField("");
     setSortDirection("desc");
     setCurrentPage(1);
+    setFilterTrigger(prev => prev + 1);
+  };
+
+  // 手動觸發篩選查詢
+  const handleFilterSubmit = () => {
+    setFilterTrigger(prev => prev + 1);
   };
 
   // 處理排序
@@ -631,6 +640,7 @@ const Orders = () => {
                   onOrderSourceChange={setOrderSource}
                   onSearchKeywordChange={setSearchKeyword}
                   onClear={clearAllFilters}
+                  onSubmit={handleFilterSubmit}
                 />
               </div>
 
@@ -672,13 +682,11 @@ const Orders = () => {
                         onOrderSourceChange={setOrderSource}
                         onSearchKeywordChange={setSearchKeyword}
                         onClear={clearAllFilters}
+                        onSubmit={() => {
+                          handleFilterSubmit();
+                          setFilterDrawerOpen(false);
+                        }}
                       />
-                      <Button 
-                        className="w-full h-12 mt-6 text-base touch-manipulation" 
-                        onClick={() => setFilterDrawerOpen(false)}
-                      >
-                        套用篩選
-                      </Button>
                     </div>
                   </SheetContent>
                 </Sheet>

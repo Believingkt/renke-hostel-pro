@@ -24,6 +24,7 @@ interface OrderFiltersProps {
   onOrderSourceChange: (value: string) => void;
   onSearchKeywordChange: (value: string) => void;
   onClear: () => void;
+  onSubmit: () => void;
 }
 
 function DatePickerInput({ value, onChange, placeholder }: { value: string; onChange: (val: string) => void; placeholder?: string }) {
@@ -79,6 +80,7 @@ export function OrderFilters({
   onOrderSourceChange,
   onSearchKeywordChange,
   onClear,
+  onSubmit,
 }: OrderFiltersProps) {
   return (
     <div className="space-y-4">
@@ -178,8 +180,8 @@ export function OrderFilters({
         </div>
       </div>
 
-      {/* 清除按鈕 */}
-      <div className="flex justify-end">
+      {/* 操作按鈕 */}
+      <div className="flex justify-end gap-2">
         <Button
           variant="ghost"
           size="sm"
@@ -187,6 +189,13 @@ export function OrderFilters({
           className="text-muted-foreground h-10 md:h-9 touch-manipulation"
         >
           清除所有篩選
+        </Button>
+        <Button
+          size="sm"
+          onClick={onSubmit}
+          className="h-10 md:h-9 touch-manipulation"
+        >
+          查詢
         </Button>
       </div>
     </div>
