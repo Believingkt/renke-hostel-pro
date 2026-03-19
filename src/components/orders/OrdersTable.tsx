@@ -116,7 +116,7 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                     <td className="px-4 py-3 text-sm">{order.guest_name}</td>
                     <td className="px-4 py-3 text-sm">{order.check_in_date}</td>
                     <td className="px-4 py-3 text-sm">{order.check_out_date}</td>
-                    <td className="px-4 py-3 text-sm">{getMealPlanDisplayName(order.meal_plan)}</td>
+                    <td className="px-4 py-3 text-sm font-medium">NT$ {order.final_price.toLocaleString()}</td>
                     <td className="px-4 py-3 text-sm">
                       <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${orderSourceConfig.className}`}>
                         {order.order_source === 'website' ? <Globe className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
