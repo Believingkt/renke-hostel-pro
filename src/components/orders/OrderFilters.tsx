@@ -188,7 +188,7 @@ export function OrderFilters({
           onClick={onClear}
           className="text-muted-foreground h-10 md:h-9 touch-manipulation"
         >
-          清除所有篩選
+          清除
         </Button>
         <Button
           size="sm"
