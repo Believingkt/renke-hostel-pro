@@ -330,6 +330,12 @@ const Orders = () => {
     setSortField("");
     setSortDirection("desc");
     setCurrentPage(1);
+    setFilterTrigger(prev => prev + 1);
+  };
+
+  // 手動觸發篩選查詢
+  const handleFilterSubmit = () => {
+    setFilterTrigger(prev => prev + 1);
   };
 
   // 處理排序
