@@ -64,9 +64,7 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
               <SortableHeader field="guest_name">訂購人</SortableHeader>
               <SortableHeader field="check_in_date">入住日期</SortableHeader>
               <SortableHeader field="check_out_date">退房日期</SortableHeader>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
-                專案
-              </th>
+              <SortableHeader field="final_price">實收金額</SortableHeader>
               <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
                 來源
               </th>
@@ -118,7 +116,7 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                     <td className="px-4 py-3 text-sm">{order.guest_name}</td>
                     <td className="px-4 py-3 text-sm">{order.check_in_date}</td>
                     <td className="px-4 py-3 text-sm">{order.check_out_date}</td>
-                    <td className="px-4 py-3 text-sm">{getMealPlanDisplayName(order.meal_plan)}</td>
+                    <td className="px-4 py-3 text-sm font-medium">NT$ {order.final_price.toLocaleString()}</td>
                     <td className="px-4 py-3 text-sm">
                       <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${orderSourceConfig.className}`}>
                         {order.order_source === 'website' ? <Globe className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
@@ -260,7 +258,7 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                   <div className="flex items-center justify-between text-sm mb-3">
                     <div className="flex items-center">
                       <DollarSign className="w-4 h-4 mr-1 text-muted-foreground" />
-                      <span className="text-muted-foreground">訂單金額:</span>
+                      <span className="text-muted-foreground">實收金額:</span>
                     </div>
                     <span className="font-semibold text-base">NT$ {order.final_price.toLocaleString()}</span>
                   </div>
