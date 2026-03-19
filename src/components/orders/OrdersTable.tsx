@@ -64,9 +64,7 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
               <SortableHeader field="guest_name">訂購人</SortableHeader>
               <SortableHeader field="check_in_date">入住日期</SortableHeader>
               <SortableHeader field="check_out_date">退房日期</SortableHeader>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
-                專案
-              </th>
+              <SortableHeader field="final_price">實收金額</SortableHeader>
               <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
                 來源
               </th>
