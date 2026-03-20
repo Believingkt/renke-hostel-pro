@@ -982,7 +982,7 @@ const KolDiscount = () => {
                   <DrawerHeader>
                     <DrawerTitle>新增網紅折扣碼</DrawerTitle>
                     <DrawerDescription>
-                      填寫折扣碼資訊，系統將自動生成折扣碼
+                      填寫折扣碼資訊
                     </DrawerDescription>
                   </DrawerHeader>
                   <div className="overflow-y-auto px-4 pb-4">
@@ -995,6 +995,17 @@ const KolDiscount = () => {
                         onChange={(e) => setName(e.target.value)}
                         placeholder="例如：春季促銷、網紅合作"
                         className="h-12 text-base touch-manipulation"
+                      />
+              </div>
+              <div className="grid gap-2">
+                      <Label htmlFor="customCode">折扣碼（選填，留空將自動生成）</Label>
+                      <Input
+                        id="customCode"
+                        value={customCode}
+                        onChange={(e) => setCustomCode(e.target.value.toUpperCase())}
+                        placeholder="例如：SUMMER2026"
+                        maxLength={20}
+                        className="h-12 text-base touch-manipulation uppercase"
                       />
               </div>
               <div className="grid gap-2">
