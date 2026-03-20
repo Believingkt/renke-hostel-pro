@@ -57,8 +57,9 @@ const SOURCE_ICONS: Record<string, string> = {
 };
 
 const SOURCE_LABELS: Record<string, string> = {
-  website: "官網下單",
+  website: "官網訂房",
   manual: "現場訂房",
+  line: "Line@",
   agoda: "Agoda",
   booking: "Booking",
   trip: "Trip",

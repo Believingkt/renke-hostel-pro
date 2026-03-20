@@ -49,13 +49,15 @@ export const getOrderStatusConfig = (status: string) => {
 
 export const getOrderSourceConfig = (source: string) => {
   const sourceMap: Record<string, { label: string; className: string }> = {
-    website: { label: "官網下單", className: "bg-blue-100 text-blue-700 border-blue-200" },
+    website: { label: "官網訂房", className: "bg-blue-100 text-blue-700 border-blue-200" },
     manual: { label: "現場訂房", className: "bg-purple-100 text-purple-700 border-purple-200" },
+    line: { label: "Line@", className: "bg-emerald-100 text-emerald-700 border-emerald-200" },
     agoda: { label: "Agoda", className: "bg-green-100 text-green-700 border-green-200" },
     booking: { label: "Booking", className: "bg-indigo-100 text-indigo-700 border-indigo-200" },
     trip: { label: "Trip", className: "bg-orange-100 text-orange-700 border-orange-200" },
+    travel_agency: { label: "旅行社", className: "bg-teal-100 text-teal-700 border-teal-200" },
   };
-  return sourceMap[source] || { label: source || "官網下單", className: "bg-muted text-muted-foreground border-border" };
+  return sourceMap[source] || { label: source || "官網訂房", className: "bg-muted text-muted-foreground border-border" };
 };
 
 export const getOrderStatusLabel = (status: string) => {

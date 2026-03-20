@@ -149,11 +149,13 @@ export function OrderFilters({
             onChange={(e) => onOrderSourceChange(e.target.value)}
           >
             <option value="">(全部)</option>
-            <option value="website">官網下單</option>
+            <option value="website">官網訂房</option>
             <option value="manual">現場訂房</option>
+            <option value="line">Line@</option>
             <option value="agoda">Agoda</option>
             <option value="booking">Booking</option>
             <option value="trip">Trip</option>
+            <option value="travel_agency">旅行社</option>
           </select>
         </div>
 
