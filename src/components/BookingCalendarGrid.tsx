@@ -63,13 +63,14 @@ const SOURCE_LABELS: Record<string, string> = {
   agoda: "Agoda",
   booking: "Booking",
   trip: "Trip",
+  travel_agency: "旅行社",
 };
 
 const getSourceLabel = (source: string, paymentMethod?: string) => {
   if (source === "manual" && paymentMethod) {
     return `手動訂單(${paymentMethod})`;
   }
-  return SOURCE_LABELS[source] || source || "官網下單";
+  return SOURCE_LABELS[source] || source || "官網訂房";
 };
 
 export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProps) {
