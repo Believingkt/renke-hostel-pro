@@ -962,14 +962,6 @@ const KolDiscount = () => {
         icon={Sparkles}
         action={
           <>
-            <Button 
-              variant="outline" 
-              className="gap-2 h-11 sm:h-10 touch-manipulation"
-              onClick={() => setApiDocOpen(true)}
-            >
-              <Code className="h-4 w-4" />
-              <span className="hidden sm:inline">API 文件</span>
-            </Button>
             {isMobile ? (
               <Drawer open={open} onOpenChange={handleDialogClose}>
                 <DrawerTrigger asChild>
