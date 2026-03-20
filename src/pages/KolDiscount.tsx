@@ -361,6 +361,7 @@ const KolDiscount = () => {
 
       setOpen(false);
       setName("");
+      setCustomCode("");
       setDiscountValue("");
       setUsageLimit("");
       setDiscountType("percentage");
