@@ -128,6 +128,7 @@ const KolDiscount = () => {
   const [editOpen, setEditOpen] = useState(false);
   const [editingCode, setEditingCode] = useState<DiscountCode | null>(null);
   const [name, setName] = useState("");
+  const [customCode, setCustomCode] = useState("");
   const [discountType, setDiscountType] = useState<"percentage" | "amount">("percentage");
   const [discountValue, setDiscountValue] = useState("");
   const [usageLimit, setUsageLimit] = useState("");
