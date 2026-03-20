@@ -318,7 +318,7 @@ const KolDiscount = () => {
       return;
     }
 
-    const code = generateCode();
+    const code = customCode.trim().toUpperCase() || generateCode();
     const apiKey = generateApiKey();
 
     try {
