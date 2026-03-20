@@ -635,6 +635,7 @@ const KolDiscount = () => {
     if (!isOpen) {
       // 清除表單
       setName("");
+      setCustomCode("");
       setDiscountValue("");
       setUsageLimit("");
       setDiscountType("percentage");
