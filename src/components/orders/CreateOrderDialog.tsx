@@ -1107,9 +1107,11 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               <SelectValue placeholder="現場訂房（預設）" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="line">Line@</SelectItem>
               <SelectItem value="agoda">Agoda</SelectItem>
               <SelectItem value="booking">Booking</SelectItem>
               <SelectItem value="trip">Trip</SelectItem>
+              <SelectItem value="travel_agency">旅行社</SelectItem>
             </SelectContent>
           </Select>
         </div>
