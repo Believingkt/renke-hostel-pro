@@ -1276,7 +1276,7 @@ const KolDiscount = () => {
                   <DialogHeader>
                     <DialogTitle>新增網紅折扣碼</DialogTitle>
                     <DialogDescription>
-                      填寫折扣碼資訊，系統將自動生成折扣碼
+                      填寫折扣碼資訊
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
@@ -1288,6 +1288,17 @@ const KolDiscount = () => {
                         onChange={(e) => setName(e.target.value)}
                         placeholder="例如：春季促銷、網紅合作"
                         className="touch-manipulation"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="customCode">折扣碼（選填，留空將自動生成）</Label>
+                      <Input
+                        id="customCode"
+                        value={customCode}
+                        onChange={(e) => setCustomCode(e.target.value.toUpperCase())}
+                        placeholder="例如：SUMMER2026"
+                        maxLength={20}
+                        className="touch-manipulation uppercase"
                       />
                     </div>
                     <div className="grid gap-2">
