@@ -316,7 +316,7 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, sortField, sortD
                         className="flex-1 h-12 touch-manipulation gap-2"
                         onClick={() => onEditPrice(order)}
                       >
-                        <Pencil className="h-5 w-5" />
+                        <BadgeDollarSign className="h-5 w-5" />
                         <span>修改金額</span>
                       </Button>
                     )}
