@@ -557,6 +557,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                 const isHoliday = holiday && (holiday.holiday_type === "holiday" || holiday.holiday_type === "compensatory_day_off");
                                 const isSatSun = isWeekend(date);
                                 const isRedDay = (isSatSun || isHoliday) && holiday?.holiday_type !== "work_on_weekend";
+                                const blockedByExclusive = isBlockedByExclusive(roomType.id, dateStr);
                                 return (
                                   <div
                                     key={dateStr}
@@ -564,6 +565,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                       "flex-1 border-r last:border-r-0",
                                       isRedDay && "bg-destructive/5",
                                       isToday(date) && "bg-primary/5",
+                                      blockedByExclusive && "bg-amber-100 dark:bg-amber-900/30",
                                     )}
                                     style={{ minWidth: DAY_COL_MIN_WIDTH }}
                                   />
