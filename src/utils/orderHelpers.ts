@@ -63,6 +63,7 @@ export const getOrderSourceConfig = (source: string) => {
 
 export const getOrderStatusLabel = (status: string) => {
   const statusMap: Record<string, string> = {
+    hold: "保留中",
     pending: "待確認",
     confirmed: "已確認",
     checked_in: "已入住",
