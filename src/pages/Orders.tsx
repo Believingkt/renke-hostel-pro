@@ -525,9 +525,9 @@ const Orders = () => {
       if (error) throw error;
 
       // Update or create customer record
-      const guestName = editingOrder.guest_name.trim();
-      const guestPhone = editingOrder.guest_phone.trim();
-      const guestEmail = editingOrder.guest_email?.trim() || null;
+      const guestName = form.guest_name.trim();
+      const guestPhone = form.guest_phone.trim();
+      const guestEmail = form.guest_email.trim() || null;
 
       if (accommodationId && guestPhone) {
         // Check if customer already exists by phone number
