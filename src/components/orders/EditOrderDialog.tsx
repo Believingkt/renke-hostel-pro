@@ -61,6 +61,8 @@ interface EditOrderDialogProps {
     guest_phone: string;
     guest_email: string;
   }) => Promise<void>;
+  onCancel?: (orderId: string) => Promise<void>;
+  onDelete?: (orderId: string) => Promise<void>;
 }
 
 export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrderDialogProps) {
