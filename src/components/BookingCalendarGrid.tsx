@@ -435,6 +435,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                       const remaining = Math.max(0, available - booked);
                       const isSoldOut = available > 0 && remaining === 0;
                       const noInventory = available === 0;
+                      const blockedByExclusive = isBlockedByExclusive(roomType.id, dateStr);
                       const holiday = holidays.get(dateStr);
                       const isHoliday = holiday && (holiday.holiday_type === "holiday" || holiday.holiday_type === "compensatory_day_off");
                       const isSatSun = isWeekend(date);
@@ -447,10 +448,15 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                             "flex-1 border-r last:border-r-0 p-2 text-center text-sm",
                             isRedDay && "bg-destructive/5",
                             isToday(date) && "bg-primary/5",
+                            blockedByExclusive && "bg-amber-100 dark:bg-amber-900/30",
                           )}
                           style={{ minWidth: DAY_COL_MIN_WIDTH }}
                         >
-                          {noInventory ? (
+                          {blockedByExclusive ? (
+                            <span className="flex items-center justify-center gap-0.5 text-amber-600 dark:text-amber-400 font-medium">
+                              <Lock className="h-3 w-3" /> 包區
+                            </span>
+                          ) : noInventory ? (
                             <span className="text-muted-foreground/40">—</span>
                           ) : isSoldOut ? (
                             <span className="flex items-center justify-center gap-0.5 text-muted-foreground">
