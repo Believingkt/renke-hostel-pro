@@ -77,7 +77,7 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, sortField, sortD
               <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
                 付款狀態
               </th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground w-[120px]">
+              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground w-[160px]">
                 操作
               </th>
             </tr>
