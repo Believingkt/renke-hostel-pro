@@ -925,6 +925,13 @@ const Orders = () => {
         onOpenChange={setPriceEditDialogOpen}
         onSuccess={fetchOrders}
       />
+
+      {/* 新增保留單對話框 */}
+      <CreateHoldOrderDialog
+        open={holdDialogOpen}
+        onOpenChange={setHoldDialogOpen}
+        onSuccess={fetchOrders}
+      />
     </div>
   );
 };
