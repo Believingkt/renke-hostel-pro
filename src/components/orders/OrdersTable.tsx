@@ -185,7 +185,7 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, sortField, sortD
                                   className="h-9 w-9 p-0 touch-manipulation"
                                   onClick={() => onEditPrice(order)}
                                 >
-                                  <Pencil className="h-4 w-4" />
+                                  <BadgeDollarSign className="h-4 w-4" />
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>
