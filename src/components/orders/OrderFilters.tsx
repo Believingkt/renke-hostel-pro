@@ -189,14 +189,14 @@ export function OrderFilters({
           variant="ghost"
           size="sm"
           onClick={onClear}
-          className="text-muted-foreground h-10 md:h-9 px-8 touch-manipulation"
+          className="text-muted-foreground h-10 md:h-9 px-14 touch-manipulation"
         >
           清除
         </Button>
         <Button
           size="sm"
           onClick={onSubmit}
-          className="h-10 md:h-9 px-8 touch-manipulation"
+          className="h-10 md:h-9 px-14 touch-manipulation"
         >
           查詢
         </Button>
