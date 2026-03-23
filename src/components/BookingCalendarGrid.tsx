@@ -19,6 +19,8 @@ interface RoomType {
   name: string;
   room_count: number | null;
   is_exclusive_package: boolean;
+  is_bound_to_exclusive: boolean;
+  bound_exclusive_ids: string[] | null;
 }
 
 interface Order {
@@ -138,7 +140,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
       const [roomTypesRes, ordersRes, holidaysRes, inventoryRes] = await Promise.all([
         supabase
           .from("room_types")
-          .select("id, name, room_count, is_exclusive_package")
+          .select("id, name, room_count, is_exclusive_package, is_bound_to_exclusive, bound_exclusive_ids")
           .eq("accommodation_id", accommodationId)
           .order("display_order"),
         supabase
@@ -208,7 +210,34 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
     });
   };
 
-  // Calculate visible span of an order within the current date range
+  // Check if a date is blocked because an exclusive package is booked
+  const isBlockedByExclusive = (roomTypeId: string, dateStr: string): boolean => {
+    const roomType = roomTypes.find(r => r.id === roomTypeId);
+    if (!roomType || !roomType.is_bound_to_exclusive || !roomType.bound_exclusive_ids?.length) return false;
+    
+    // Check if any of the bound exclusive packages have orders on this date
+    return roomType.bound_exclusive_ids.some(exclusiveId => {
+      return orders.some(o => {
+        if (o.room_type_id !== exclusiveId) return false;
+        return o.check_in_date <= dateStr && o.check_out_date > dateStr;
+      });
+    });
+  };
+
+  // Get the set of dates where an exclusive package room type has bookings
+  const exclusiveBookedDates = useMemo(() => {
+    const map = new Map<string, Set<string>>(); // exclusiveRoomTypeId -> Set of dateStrings
+    const exclusiveTypes = roomTypes.filter(r => r.is_exclusive_package);
+    for (const et of exclusiveTypes) {
+      const bookedDates = new Set<string>();
+      for (const dateStr of dateStrings) {
+        const hasBooking = orders.some(o => o.room_type_id === et.id && o.check_in_date <= dateStr && o.check_out_date > dateStr);
+        if (hasBooking) bookedDates.add(dateStr);
+      }
+      if (bookedDates.size > 0) map.set(et.id, bookedDates);
+    }
+    return map;
+  }, [roomTypes, orders, dateStrings]);
   const getOrderSpan = (order: Order, dateStr: string): { isStart: boolean; span: number } | null => {
     const checkIn = order.check_in_date;
     const checkOut = order.check_out_date;
@@ -406,6 +435,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                       const remaining = Math.max(0, available - booked);
                       const isSoldOut = available > 0 && remaining === 0;
                       const noInventory = available === 0;
+                      const blockedByExclusive = isBlockedByExclusive(roomType.id, dateStr);
                       const holiday = holidays.get(dateStr);
                       const isHoliday = holiday && (holiday.holiday_type === "holiday" || holiday.holiday_type === "compensatory_day_off");
                       const isSatSun = isWeekend(date);
@@ -418,10 +448,15 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                             "flex-1 border-r last:border-r-0 p-2 text-center text-sm",
                             isRedDay && "bg-destructive/5",
                             isToday(date) && "bg-primary/5",
+                            blockedByExclusive && "bg-amber-100 dark:bg-amber-900/30",
                           )}
                           style={{ minWidth: DAY_COL_MIN_WIDTH }}
                         >
-                          {noInventory ? (
+                          {blockedByExclusive ? (
+                            <span className="flex items-center justify-center gap-0.5 text-amber-600 dark:text-amber-400 font-medium">
+                              <Lock className="h-3 w-3" /> 包區
+                            </span>
+                          ) : noInventory ? (
                             <span className="text-muted-foreground/40">—</span>
                           ) : isSoldOut ? (
                             <span className="flex items-center justify-center gap-0.5 text-muted-foreground">
@@ -459,6 +494,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                           const isHoliday = holiday && (holiday.holiday_type === "holiday" || holiday.holiday_type === "compensatory_day_off");
                           const isSatSun = isWeekend(date);
                           const isRedDay = (isSatSun || isHoliday) && holiday?.holiday_type !== "work_on_weekend";
+                          const blockedByExclusive = isBlockedByExclusive(roomType.id, dateStr);
                           return (
                             <div
                               key={dateStr}
@@ -466,6 +502,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                 "flex-1 border-r last:border-r-0",
                                 isRedDay && "bg-destructive/5",
                                 isToday(date) && "bg-primary/5",
+                                blockedByExclusive && "bg-amber-100 dark:bg-amber-900/30",
                               )}
                               style={{ minWidth: DAY_COL_MIN_WIDTH }}
                             />
@@ -520,6 +557,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                 const isHoliday = holiday && (holiday.holiday_type === "holiday" || holiday.holiday_type === "compensatory_day_off");
                                 const isSatSun = isWeekend(date);
                                 const isRedDay = (isSatSun || isHoliday) && holiday?.holiday_type !== "work_on_weekend";
+                                const blockedByExclusive = isBlockedByExclusive(roomType.id, dateStr);
                                 return (
                                   <div
                                     key={dateStr}
@@ -527,6 +565,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                       "flex-1 border-r last:border-r-0",
                                       isRedDay && "bg-destructive/5",
                                       isToday(date) && "bg-primary/5",
+                                      blockedByExclusive && "bg-amber-100 dark:bg-amber-900/30",
                                     )}
                                     style={{ minWidth: DAY_COL_MIN_WIDTH }}
                                   />
@@ -625,6 +664,10 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
         <span className="inline-flex items-center gap-1.5">
           <span className="text-muted-foreground/40">—</span>
           <span>未設定庫存</span>
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="inline-flex items-center gap-0.5 text-amber-600 dark:text-amber-400 font-medium"><Lock className="h-3 w-3" />包區</span>
+          <span>包區已預訂（連動鎖房）</span>
         </span>
       </div>
     </div>
