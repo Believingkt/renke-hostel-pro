@@ -903,6 +903,14 @@ const Orders = () => {
         onOpenChange={setCreateDialogOpen}
         onSuccess={fetchOrders}
       />
+
+      {/* 修改金額對話框 */}
+      <OrderPriceEditDialog
+        order={priceEditingOrder}
+        open={priceEditDialogOpen}
+        onOpenChange={setPriceEditDialogOpen}
+        onSuccess={fetchOrders}
+      />
     </div>
   );
 };
