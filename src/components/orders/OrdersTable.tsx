@@ -5,7 +5,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { format } from "date-fns";
 import { Order, CustomMealPlan } from "@/types/order";
 import { getPaymentStatusConfig, getOrderStatusConfig, getOrderSourceConfig, getEffectivePaymentStatus } from "@/utils/orderHelpers";
-import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCart, Edit, Eye, Utensils, Globe, UserPlus, BadgeDollarSign } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCart, Edit, Eye, Utensils, Globe, UserPlus, CircleDollarSign } from "lucide-react";
 import { OrderQuickPreview } from "./OrderQuickPreview";
 import { EmptyState } from "@/components/EmptyState";
 
@@ -185,7 +185,7 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, sortField, sortD
                                   className="h-9 w-9 p-0 touch-manipulation"
                                   onClick={() => onEditPrice(order)}
                                 >
-                                  <BadgeDollarSign className="h-4 w-4" />
+                                  <CircleDollarSign className="h-4 w-4" />
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>
@@ -316,7 +316,7 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, sortField, sortD
                         className="flex-1 h-12 touch-manipulation gap-2"
                         onClick={() => onEditPrice(order)}
                       >
-                        <BadgeDollarSign className="h-5 w-5" />
+                        <CircleDollarSign className="h-5 w-5" />
                         <span>修改金額</span>
                       </Button>
                     )}
