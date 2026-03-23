@@ -909,6 +909,30 @@ const Orders = () => {
         order={editingOrder}
         onOpenChange={handleEditDialogClose}
         onSave={handleSaveEdit}
+        onCancel={async (orderId) => {
+          const { error } = await supabase
+            .from("orders")
+            .update({ order_status: "cancelled", cancelled_at: new Date().toISOString() })
+            .eq("id", orderId);
+          if (error) {
+            toast({ title: "取消失敗", description: error.message, variant: "destructive" });
+          } else {
+            toast({ title: "訂單已取消" });
+            fetchOrders();
+          }
+        }}
+        onDelete={async (orderId) => {
+          const { error } = await supabase
+            .from("orders")
+            .delete()
+            .eq("id", orderId);
+          if (error) {
+            toast({ title: "刪除失敗", description: error.message, variant: "destructive" });
+          } else {
+            toast({ title: "訂單已刪除" });
+            fetchOrders();
+          }
+        }}
       />
 
       {/* 新增訂單對話框 */}
