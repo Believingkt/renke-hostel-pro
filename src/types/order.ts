@@ -13,6 +13,7 @@ export interface Order {
   discount_amount: number;
   discount_code: string | null;
   final_price: number;
+  deposit_amount: number;
   paid_amount: number;
   notes: string | null;
   order_date: string;
