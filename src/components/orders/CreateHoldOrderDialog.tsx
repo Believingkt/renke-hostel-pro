@@ -193,7 +193,7 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
         accommodation_id: currentAccommodationId,
         order_number: orderNumber,
         guest_name: "保留單",
-        guest_phone: "-",
+        guest_phone: "00000000",
         check_in_date: form.check_in_date,
         check_out_date: form.check_out_date,
         room_type_id: form.room_type_id,
