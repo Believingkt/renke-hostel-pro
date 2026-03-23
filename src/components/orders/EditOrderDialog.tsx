@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Tag, X, AlertTriangle, Loader2 } from "lucide-react";
+import { CalendarIcon, Tag, X, AlertTriangle, Loader2, Ban, Trash2 } from "lucide-react";
 import { format, parseISO, isAfter, isBefore } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Order } from "@/types/order";
@@ -61,13 +61,18 @@ interface EditOrderDialogProps {
     guest_phone: string;
     guest_email: string;
   }) => Promise<void>;
+  onCancel?: (orderId: string) => Promise<void>;
+  onDelete?: (orderId: string) => Promise<void>;
 }
 
-export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrderDialogProps) {
+export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, onDelete }: EditOrderDialogProps) {
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const { currentAccommodationId } = useAccommodation();
   const [isSaving, setIsSaving] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<"cancel" | "delete" | null>(null);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   
   const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
@@ -993,23 +998,105 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
         </div>
       );
 
+  const handleCancelOrder = async () => {
+    if (!order) return;
+    setIsCancelling(true);
+    try {
+      await onCancel?.(order.id);
+      onOpenChange(false);
+    } finally {
+      setIsCancelling(false);
+      setConfirmAction(null);
+    }
+  };
+
+  const handleDeleteOrder = async () => {
+    if (!order) return;
+    setIsDeleting(true);
+    try {
+      await onDelete?.(order.id);
+      onOpenChange(false);
+    } finally {
+      setIsDeleting(false);
+      setConfirmAction(null);
+    }
+  };
+
+  const isCancelled = order?.order_status === "cancelled";
+
   const footerButtons = (
-    <div className="flex flex-col sm:flex-row gap-2 w-full">
-      <Button 
-        variant="outline" 
-        onClick={() => onOpenChange(false)} 
-        disabled={isSaving || isValidating}
-        className="h-12 sm:h-10 w-full sm:w-auto touch-manipulation"
-      >
-        取消
-      </Button>
-      <Button 
-        onClick={handleSave} 
-        disabled={isSaving || isValidating}
-        className="h-12 sm:h-10 w-full sm:w-auto touch-manipulation"
-      >
-        {isValidating ? "驗證中..." : isSaving ? "儲存變更中..." : "儲存變更"}
-      </Button>
+    <div className="flex flex-col gap-3 w-full">
+      {/* Confirm action alert */}
+      {confirmAction && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription className="flex items-center justify-between">
+            <span>
+              {confirmAction === "cancel" ? "確定要取消此訂單嗎？此操作無法復原。" : "確定要刪除此訂單嗎？此操作無法復原。"}
+            </span>
+            <div className="flex gap-2 ml-4">
+              <Button size="sm" variant="outline" onClick={() => setConfirmAction(null)}>
+                返回
+              </Button>
+              <Button 
+                size="sm" 
+                variant="destructive" 
+                onClick={confirmAction === "cancel" ? handleCancelOrder : handleDeleteOrder}
+                disabled={isCancelling || isDeleting}
+              >
+                {isCancelling || isDeleting ? "處理中..." : "確定"}
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <div className="flex flex-col sm:flex-row gap-2 w-full">
+        {/* Left side: danger actions */}
+        <div className="flex gap-2 sm:mr-auto">
+          {onCancel && !isCancelled && (
+            <Button 
+              variant="outline" 
+              onClick={() => setConfirmAction("cancel")}
+              disabled={isSaving || isValidating || !!confirmAction}
+              className="h-12 sm:h-10 text-destructive border-destructive/30 hover:bg-destructive/10 touch-manipulation"
+            >
+              <Ban className="h-4 w-4 mr-1" />
+              取消訂單
+            </Button>
+          )}
+          {onDelete && (
+            <Button 
+              variant="outline" 
+              onClick={() => setConfirmAction("delete")}
+              disabled={isSaving || isValidating || !!confirmAction}
+              className="h-12 sm:h-10 text-destructive border-destructive/30 hover:bg-destructive/10 touch-manipulation"
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              刪除訂單
+            </Button>
+          )}
+        </div>
+
+        {/* Right side: save actions */}
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => onOpenChange(false)} 
+            disabled={isSaving || isValidating}
+            className="h-12 sm:h-10 w-full sm:w-auto touch-manipulation"
+          >
+            關閉
+          </Button>
+          <Button 
+            onClick={handleSave} 
+            disabled={isSaving || isValidating}
+            className="h-12 sm:h-10 w-full sm:w-auto touch-manipulation"
+          >
+            {isValidating ? "驗證中..." : isSaving ? "儲存變更中..." : "儲存變更"}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 
