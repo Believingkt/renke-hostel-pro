@@ -70,6 +70,9 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
   const { toast } = useToast();
   const { currentAccommodationId } = useAccommodation();
   const [isSaving, setIsSaving] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<"cancel" | "delete" | null>(null);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   
   const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
