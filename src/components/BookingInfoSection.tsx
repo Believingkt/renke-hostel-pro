@@ -136,7 +136,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice, customSections = [
                   <div>
                     <h3 className="font-semibold text-base md:text-base lg:text-lg">{sectionLabels.payment.title}</h3>
                     {sectionLabels.payment.subtitle && (
-                      <p className="text-xs text-muted-foreground mt-0.5">{sectionLabels.payment.subtitle}</p>
+                      <p className="text-sm text-muted-foreground mt-0.5">{sectionLabels.payment.subtitle}</p>
                     )}
                   </div>
                 </div>
