@@ -152,6 +152,16 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
           </div>
           <Separator />
           <div className="space-y-2">
+            <Label htmlFor="list-edit-deposit">訂金金額</Label>
+            <Input
+              id="list-edit-deposit"
+              type="number"
+              min={0}
+              value={editDepositAmount}
+              onChange={(e) => setEditDepositAmount(Math.max(0, parseInt(e.target.value) || 0))}
+            />
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="list-edit-paid">已付金額</Label>
             <Input
               id="list-edit-paid"
