@@ -20,6 +20,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
   const { toast } = useToast();
   const [editTotalPrice, setEditTotalPrice] = useState(0);
   const [editDiscountAmount, setEditDiscountAmount] = useState(0);
+  const [editDepositAmount, setEditDepositAmount] = useState(0);
   const [editPaidAmount, setEditPaidAmount] = useState(0);
   const [editReason, setEditReason] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -30,6 +31,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
     if (isOpen && order) {
       setEditTotalPrice(order.total_price);
       setEditDiscountAmount(order.discount_amount);
+      setEditDepositAmount(order.deposit_amount ?? 0);
       setEditPaidAmount(order.paid_amount);
       setEditReason("");
     }
@@ -48,12 +50,14 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
         total_price: order.total_price,
         discount_amount: order.discount_amount,
         final_price: order.final_price,
+        deposit_amount: order.deposit_amount,
         paid_amount: order.paid_amount,
       };
       const newValues = {
         total_price: editTotalPrice,
         discount_amount: editDiscountAmount,
         final_price: editFinalPrice,
+        deposit_amount: editDepositAmount,
         paid_amount: editPaidAmount,
       };
 
@@ -72,6 +76,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
           total_price: editTotalPrice,
           discount_amount: editDiscountAmount,
           final_price: editFinalPrice,
+          deposit_amount: editDepositAmount,
           paid_amount: editPaidAmount,
           payment_status: newPaymentStatus,
           ...(editReason.trim() ? {
@@ -146,6 +151,16 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
             </span>
           </div>
           <Separator />
+          <div className="space-y-2">
+            <Label htmlFor="list-edit-deposit">訂金金額</Label>
+            <Input
+              id="list-edit-deposit"
+              type="number"
+              min={0}
+              value={editDepositAmount}
+              onChange={(e) => setEditDepositAmount(Math.max(0, parseInt(e.target.value) || 0))}
+            />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="list-edit-paid">已付金額</Label>
             <Input
