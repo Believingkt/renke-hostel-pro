@@ -1,0 +1,357 @@
+import { useEffect, useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from "@/components/ui/drawer";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon, Loader2, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { format, parseISO, isAfter, isBefore } from "date-fns";
+import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useAccommodation } from "@/contexts/AccommodationContext";
+import { useAuditLog } from "@/hooks/use-audit-log";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+interface RoomType {
+  id: string;
+  name: string;
+}
+
+interface CreateHoldOrderDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess: () => void;
+}
+
+export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateHoldOrderDialogProps) {
+  const isMobile = useIsMobile();
+  const { toast } = useToast();
+  const { currentAccommodationId } = useAccommodation();
+  const { logAction } = useAuditLog();
+  const [isSaving, setIsSaving] = useState(false);
+  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
+  const [checkInOpen, setCheckInOpen] = useState(false);
+  const [checkOutOpen, setCheckOutOpen] = useState(false);
+  const [inventoryWarnings, setInventoryWarnings] = useState<{ date: string; available: number; blocked?: boolean; blockedBy?: string }[]>([]);
+  const [isCheckingInventory, setIsCheckingInventory] = useState(false);
+
+  const [form, setForm] = useState({
+    check_in_date: "",
+    check_out_date: "",
+    room_type_id: "",
+    notes: "",
+  });
+
+  useEffect(() => {
+    if (open) {
+      setForm({ check_in_date: "", check_out_date: "", room_type_id: "", notes: "" });
+      setInventoryWarnings([]);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    const fetchRoomTypes = async () => {
+      if (!currentAccommodationId) return;
+      const { data } = await supabase
+        .from("room_types")
+        .select("id, name")
+        .eq("accommodation_id", currentAccommodationId)
+        .order("display_order");
+      if (data) setRoomTypes(data);
+    };
+    fetchRoomTypes();
+  }, [currentAccommodationId]);
+
+  // Check inventory when dates/room change
+  useEffect(() => {
+    const checkInventory = async () => {
+      if (!form.room_type_id || !form.check_in_date || !form.check_out_date || !currentAccommodationId) {
+        setInventoryWarnings([]);
+        return;
+      }
+
+      setIsCheckingInventory(true);
+      try {
+        const start = new Date(form.check_in_date);
+        const end = new Date(form.check_out_date);
+        const nights = Math.ceil((end.getTime() - start.getTime()) / (1000 * 3600 * 24));
+        if (nights <= 0) return;
+
+        const dates: string[] = [];
+        for (let i = 0; i < nights; i++) {
+          const d = new Date(start);
+          d.setDate(start.getDate() + i);
+          dates.push(format(d, "yyyy-MM-dd"));
+        }
+
+        const { data: inventoryData } = await supabase.rpc(
+          'get_adjusted_room_inventory_batch',
+          {
+            p_room_type_id: form.room_type_id,
+            p_dates: dates,
+            p_accommodation_id: currentAccommodationId
+          }
+        );
+
+        const warnings: { date: string; available: number; blocked?: boolean; blockedBy?: string }[] = [];
+        if (inventoryData) {
+          for (const item of inventoryData) {
+            if (item.is_blocked) {
+              warnings.push({ date: item.date_value, available: 0, blocked: true, blockedBy: item.blocked_by_room_name });
+            } else if (item.available_rooms < 1) {
+              warnings.push({ date: item.date_value, available: item.available_rooms });
+            }
+          }
+        }
+        setInventoryWarnings(warnings);
+      } finally {
+        setIsCheckingInventory(false);
+      }
+    };
+    checkInventory();
+  }, [form.check_in_date, form.check_out_date, form.room_type_id, currentAccommodationId]);
+
+  const handleSave = async () => {
+    if (!form.check_in_date || !form.check_out_date) {
+      toast({ title: "請選擇入住和退房日期", variant: "destructive" });
+      return;
+    }
+    if (!isAfter(parseISO(form.check_out_date), parseISO(form.check_in_date))) {
+      toast({ title: "退房日期必須在入住日期之後", variant: "destructive" });
+      return;
+    }
+    if (!form.room_type_id) {
+      toast({ title: "請選擇房型", variant: "destructive" });
+      return;
+    }
+    if (!currentAccommodationId) return;
+
+    setIsSaving(true);
+    try {
+      const { data: orderNumber, error: numErr } = await supabase.rpc('generate_order_number');
+      if (numErr) throw numErr;
+
+      const { data: orderData, error } = await supabase.from("orders").insert({
+        accommodation_id: currentAccommodationId,
+        order_number: orderNumber,
+        guest_name: "保留單",
+        guest_phone: "-",
+        check_in_date: form.check_in_date,
+        check_out_date: form.check_out_date,
+        room_type_id: form.room_type_id,
+        guest_count: 1,
+        order_status: "hold",
+        payment_status: "unpaid",
+        total_price: 0,
+        discount_amount: 0,
+        final_price: 0,
+        notes: form.notes.trim() || "【保留單】待補客人資訊",
+        order_source: "manual",
+      }).select('id').single();
+
+      if (error) throw error;
+
+      await logAction({
+        actionType: "create",
+        actionCategory: "order",
+        entityType: "order",
+        entityId: orderData?.id || "",
+        entityName: orderNumber,
+        accommodationId: currentAccommodationId,
+        details: {
+          type: "hold",
+          check_in_date: form.check_in_date,
+          check_out_date: form.check_out_date,
+        },
+      });
+
+      toast({ title: "保留單建立成功", description: `已為 ${form.check_in_date} ~ ${form.check_out_date} 建立保留單` });
+      onSuccess();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error creating hold order:", error);
+      toast({ title: "建立失敗", description: "無法建立保留單", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const formContent = (
+    <div className="space-y-4 py-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>入住日期 <span className="text-destructive">*</span></Label>
+          <Popover open={checkInOpen} onOpenChange={setCheckInOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal h-12 sm:h-10",
+                  form.check_in_date
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                    : ""
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {form.check_in_date ? format(parseISO(form.check_in_date), "yyyy/MM/dd") : "選擇日期"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={form.check_in_date ? parseISO(form.check_in_date) : undefined}
+                onSelect={(date) => {
+                  if (date && !isNaN(date.getTime())) {
+                    const newCheckIn = format(date, "yyyy-MM-dd");
+                    if (form.check_out_date && !isAfter(parseISO(form.check_out_date), date)) {
+                      setForm({ ...form, check_in_date: newCheckIn, check_out_date: "" });
+                    } else {
+                      setForm({ ...form, check_in_date: newCheckIn });
+                    }
+                    setCheckInOpen(false);
+                    setTimeout(() => setCheckOutOpen(true), 150);
+                  }
+                }}
+                disabled={(date) => isBefore(date, new Date(new Date().setHours(0, 0, 0, 0)))}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+        <div className="space-y-2">
+          <Label>退房日期 <span className="text-destructive">*</span></Label>
+          <Popover open={checkOutOpen} onOpenChange={setCheckOutOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal h-12 sm:h-10",
+                  form.check_out_date
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                    : ""
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {form.check_out_date ? format(parseISO(form.check_out_date), "yyyy/MM/dd") : "選擇日期"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={form.check_out_date ? parseISO(form.check_out_date) : undefined}
+                onSelect={(date) => {
+                  if (date && !isNaN(date.getTime())) {
+                    setForm({ ...form, check_out_date: format(date, "yyyy-MM-dd") });
+                    setCheckOutOpen(false);
+                  }
+                }}
+                disabled={(date) => {
+                  if (form.check_in_date) {
+                    return isBefore(date, parseISO(form.check_in_date)) || date.getTime() === parseISO(form.check_in_date).getTime();
+                  }
+                  return isBefore(date, new Date(new Date().setHours(0, 0, 0, 0)));
+                }}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label>房型 <span className="text-destructive">*</span></Label>
+        <Select value={form.room_type_id} onValueChange={(v) => setForm({ ...form, room_type_id: v })}>
+          <SelectTrigger className="h-12 sm:h-10">
+            <SelectValue placeholder="選擇房型" />
+          </SelectTrigger>
+          <SelectContent>
+            {roomTypes.map((rt) => (
+              <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {isCheckingInventory && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          檢查庫存中...
+        </div>
+      )}
+
+      {inventoryWarnings.length > 0 && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            以下日期庫存不足：
+            {inventoryWarnings.map((w) => (
+              <div key={w.date}>
+                {w.date} - {w.blocked ? `被 ${w.blockedBy} 鎖定` : `剩餘 ${w.available} 間`}
+              </div>
+            ))}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <div className="space-y-2">
+        <Label>備註</Label>
+        <Textarea
+          value={form.notes}
+          onChange={(e) => setForm({ ...form, notes: e.target.value })}
+          placeholder="可記錄保留原因等資訊"
+          className="min-h-[80px]"
+        />
+      </div>
+
+      <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-3 text-sm text-cyan-700">
+        💡 保留單會佔用庫存但不需要填寫客人資訊。之後可透過「編輯訂單」補填客人資訊並將狀態改為「已確認」。
+      </div>
+    </div>
+  );
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>新增保留單</DrawerTitle>
+          </DrawerHeader>
+          <ScrollArea className="max-h-[70vh] px-4">
+            {formContent}
+          </ScrollArea>
+          <DrawerFooter>
+            <Button onClick={handleSave} disabled={isSaving} className="w-full h-12">
+              {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              建立保留單
+            </Button>
+            <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full h-12">
+              取消
+            </Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>新增保留單</DialogTitle>
+        </DialogHeader>
+        {formContent}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            建立保留單
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
