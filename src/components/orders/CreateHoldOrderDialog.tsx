@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -10,7 +10,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Loader2, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { format, parseISO, isAfter, isBefore } from "date-fns";
+import { format, parseISO, isAfter, isBefore, addMonths } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -40,6 +40,8 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
   const [checkOutOpen, setCheckOutOpen] = useState(false);
   const [inventoryWarnings, setInventoryWarnings] = useState<{ date: string; available: number; blocked?: boolean; blockedBy?: string }[]>([]);
   const [isCheckingInventory, setIsCheckingInventory] = useState(false);
+  const [unavailableDates, setUnavailableDates] = useState<Set<string>>(new Set());
+  const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
 
   const [form, setForm] = useState({
     check_in_date: "",
@@ -52,6 +54,7 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
     if (open) {
       setForm({ check_in_date: "", check_out_date: "", room_type_id: "", notes: "" });
       setInventoryWarnings([]);
+      setUnavailableDates(new Set());
     }
   }, [open]);
 
@@ -68,7 +71,56 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
     fetchRoomTypes();
   }, [currentAccommodationId]);
 
-  // Check inventory when dates/room change
+  // Fetch unavailable dates when room type changes
+  const fetchUnavailableDates = useCallback(async (roomTypeId: string) => {
+    if (!roomTypeId || !currentAccommodationId) {
+      setUnavailableDates(new Set());
+      return;
+    }
+
+    setIsLoadingAvailability(true);
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const endDate = addMonths(today, 6);
+
+      const dates: string[] = [];
+      const current = new Date(today);
+      while (current <= endDate) {
+        dates.push(format(current, "yyyy-MM-dd"));
+        current.setDate(current.getDate() + 1);
+      }
+
+      const { data: inventoryData } = await supabase.rpc(
+        'get_adjusted_room_inventory_batch',
+        {
+          p_room_type_id: roomTypeId,
+          p_dates: dates,
+          p_accommodation_id: currentAccommodationId,
+        }
+      );
+
+      const blocked = new Set<string>();
+      if (inventoryData) {
+        for (const item of inventoryData) {
+          if (item.is_blocked || item.available_rooms < 1) {
+            blocked.add(item.date_value);
+          }
+        }
+      }
+      setUnavailableDates(blocked);
+    } catch (err) {
+      console.error("Error fetching availability:", err);
+    } finally {
+      setIsLoadingAvailability(false);
+    }
+  }, [currentAccommodationId]);
+
+  useEffect(() => {
+    fetchUnavailableDates(form.room_type_id);
+  }, [form.room_type_id, fetchUnavailableDates]);
+
+  // Check inventory when dates/room change (for warning display)
   useEffect(() => {
     const checkInventory = async () => {
       if (!form.room_type_id || !form.check_in_date || !form.check_out_date || !currentAccommodationId) {
@@ -182,8 +234,38 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
     }
   };
 
+  const isDateUnavailable = useCallback((date: Date) => {
+    return unavailableDates.has(format(date, "yyyy-MM-dd"));
+  }, [unavailableDates]);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   const formContent = (
     <div className="space-y-4 py-4">
+      {/* Room type first */}
+      <div className="space-y-2">
+        <Label>房型 <span className="text-destructive">*</span></Label>
+        <Select value={form.room_type_id} onValueChange={(v) => setForm({ ...form, room_type_id: v, check_in_date: "", check_out_date: "" })}>
+          <SelectTrigger className="h-12 sm:h-10">
+            <SelectValue placeholder="選擇房型" />
+          </SelectTrigger>
+          <SelectContent>
+            {roomTypes.map((rt) => (
+              <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {isLoadingAvailability && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          載入可預訂日期中...
+        </div>
+      )}
+
+      {/* Dates - only enabled after room type selected */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>入住日期 <span className="text-destructive">*</span></Label>
@@ -191,6 +273,7 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
+                disabled={!form.room_type_id || isLoadingAvailability}
                 className={cn(
                   "w-full justify-start text-left font-normal h-12 sm:h-10",
                   form.check_in_date
@@ -218,7 +301,7 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
                     setTimeout(() => setCheckOutOpen(true), 150);
                   }
                 }}
-                disabled={(date) => isBefore(date, new Date(new Date().setHours(0, 0, 0, 0)))}
+                disabled={(date) => isBefore(date, today) || isDateUnavailable(date)}
               />
             </PopoverContent>
           </Popover>
@@ -229,6 +312,7 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
+                disabled={!form.room_type_id || isLoadingAvailability}
                 className={cn(
                   "w-full justify-start text-left font-normal h-12 sm:h-10",
                   form.check_out_date
@@ -252,9 +336,10 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
                 }}
                 disabled={(date) => {
                   if (form.check_in_date) {
-                    return isBefore(date, parseISO(form.check_in_date)) || date.getTime() === parseISO(form.check_in_date).getTime();
+                    const checkIn = parseISO(form.check_in_date);
+                    return isBefore(date, checkIn) || date.getTime() === checkIn.getTime();
                   }
-                  return isBefore(date, new Date(new Date().setHours(0, 0, 0, 0)));
+                  return isBefore(date, today);
                 }}
               />
             </PopoverContent>
@@ -262,19 +347,9 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label>房型 <span className="text-destructive">*</span></Label>
-        <Select value={form.room_type_id} onValueChange={(v) => setForm({ ...form, room_type_id: v })}>
-          <SelectTrigger className="h-12 sm:h-10">
-            <SelectValue placeholder="選擇房型" />
-          </SelectTrigger>
-          <SelectContent>
-            {roomTypes.map((rt) => (
-              <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {!form.room_type_id && (
+        <p className="text-sm text-muted-foreground">請先選擇房型，系統會自動顯示可預訂的日期</p>
+      )}
 
       {isCheckingInventory && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
