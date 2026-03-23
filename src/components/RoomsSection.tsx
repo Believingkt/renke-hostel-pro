@@ -552,7 +552,7 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
             ) : (
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6 lg:gap-6 items-stretch">
                 {displayRooms.map((room, index) => (
-                  <RoomCard key={room.id} room={room} isFirstRoom={index === 0} />
+                  <RoomCard key={room.id} room={room} isFirstRoom={index === 0} sharedTemplateLabels={sharedTemplateLabels} sharedHolidays={sharedHolidays} />
                 ))}
               </div>
             )}
