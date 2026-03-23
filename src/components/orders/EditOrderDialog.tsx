@@ -886,6 +886,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="hold">保留中</SelectItem>
                 <SelectItem value="pending">待確認</SelectItem>
                 <SelectItem value="confirmed">已確認</SelectItem>
                 <SelectItem value="checked_in">已入住</SelectItem>
