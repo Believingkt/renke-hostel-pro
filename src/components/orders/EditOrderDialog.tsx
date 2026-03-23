@@ -65,7 +65,7 @@ interface EditOrderDialogProps {
   onDelete?: (orderId: string) => Promise<void>;
 }
 
-export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrderDialogProps) {
+export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, onDelete }: EditOrderDialogProps) {
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const { currentAccommodationId } = useAccommodation();
