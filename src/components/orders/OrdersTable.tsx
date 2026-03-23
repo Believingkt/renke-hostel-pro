@@ -5,20 +5,21 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { format } from "date-fns";
 import { Order, CustomMealPlan } from "@/types/order";
 import { getPaymentStatusConfig, getOrderStatusConfig, getOrderSourceConfig, getEffectivePaymentStatus } from "@/utils/orderHelpers";
-import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCart, Edit, Eye, Utensils, Globe, UserPlus } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCart, Edit, Eye, Utensils, Globe, UserPlus, Pencil } from "lucide-react";
 import { OrderQuickPreview } from "./OrderQuickPreview";
 import { EmptyState } from "@/components/EmptyState";
 
 interface OrdersTableProps {
   orders: Order[];
   onEditOrder: (order: Order) => void;
+  onEditPrice?: (order: Order) => void;
   sortField: keyof Order | "";
   sortDirection: "asc" | "desc";
   onSort: (field: keyof Order) => void;
   customMealPlans?: CustomMealPlan[];
 }
 
-export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onSort, customMealPlans = [] }: OrdersTableProps) {
+export function OrdersTable({ orders, onEditOrder, onEditPrice, sortField, sortDirection, onSort, customMealPlans = [] }: OrdersTableProps) {
   const location = useLocation();
   const backTo = `${location.pathname}${location.search}`;
 
