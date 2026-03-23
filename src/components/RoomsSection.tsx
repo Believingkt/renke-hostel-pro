@@ -75,7 +75,7 @@ const ExpandableDescription = ({ text }: { text: string }) => {
     <div className="mb-4 md:mb-5">
       <p
         ref={textRef}
-        className={`text-xs md:text-sm text-muted-foreground leading-relaxed ${expanded ? '' : 'line-clamp-2'}`}
+        className={`text-sm text-muted-foreground leading-relaxed ${expanded ? '' : 'line-clamp-2'}`}
       >
         {text}
       </p>
