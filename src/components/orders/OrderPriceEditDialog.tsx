@@ -20,6 +20,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
   const { toast } = useToast();
   const [editTotalPrice, setEditTotalPrice] = useState(0);
   const [editDiscountAmount, setEditDiscountAmount] = useState(0);
+  const [editDepositAmount, setEditDepositAmount] = useState(0);
   const [editPaidAmount, setEditPaidAmount] = useState(0);
   const [editReason, setEditReason] = useState("");
   const [isSaving, setIsSaving] = useState(false);
