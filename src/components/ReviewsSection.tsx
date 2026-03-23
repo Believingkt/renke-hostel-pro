@@ -72,7 +72,7 @@ const ReviewsSection = ({ accommodationId, customTitle, customSubtitle }: Review
   }
 
   return (
-    <section className="py-12 md:py-16 lg:py-20 bg-secondary/20">
+    <section id="reviews" className="py-12 md:py-16 lg:py-20 bg-secondary/20">
       <div className="container mx-auto px-4 md:px-6">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-3 lg:mb-4">{customTitle || '旅客評價'}</h2>
