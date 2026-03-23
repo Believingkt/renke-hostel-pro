@@ -82,7 +82,7 @@ const ExpandableDescription = ({ text }: { text: string }) => {
       {isClamped && (
         <button
           onClick={() => setExpanded(!expanded)}
-          className="text-xs text-primary hover:underline mt-1"
+          className="text-sm text-primary hover:underline mt-1"
         >
           {expanded ? '收起' : '查看更多'}
         </button>
