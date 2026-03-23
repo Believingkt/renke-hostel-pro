@@ -484,6 +484,9 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
         discount_code: appliedDiscount?.code || null,
         meal_plan: editForm.meal_plan || null,
         meal_plan_details: editForm.selected_addons.length > 0 ? editForm.selected_addons : null,
+        guest_name: editForm.guest_name,
+        guest_phone: editForm.guest_phone,
+        guest_email: editForm.guest_email,
       });
       onOpenChange(false);
     } finally {
