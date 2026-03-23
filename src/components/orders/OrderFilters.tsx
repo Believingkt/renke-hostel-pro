@@ -196,7 +196,7 @@ export function OrderFilters({
         <Button
           size="sm"
           onClick={onSubmit}
-          className="h-10 md:h-9 px-8 touch-manipulation"
+          className="h-10 md:h-9 px-14 touch-manipulation"
         >
           查詢
         </Button>
