@@ -442,6 +442,11 @@ const Orders = () => {
     setEditDialogOpen(true);
   };
 
+  const handleEditPrice = (order: Order) => {
+    setPriceEditingOrder(order);
+    setPriceEditDialogOpen(true);
+  };
+
   const handleSaveEdit = async (form: { 
     order_status: string; 
     payment_status: string;
