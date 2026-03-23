@@ -422,6 +422,55 @@ const RoomCard = ({ room, isFirstRoom = false, sharedTemplateLabels, sharedHolid
 };
 
 const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtitle }: RoomsSectionProps) => {
+  // Shared data: fetch pricing_templates and public_holidays once for all room cards
+  const [sharedTemplateLabels, setSharedTemplateLabels] = useState<{ priceLabel?: string; price2MealsLabel?: string; price3MealsLabel?: string }>({});
+  const [sharedHolidays, setSharedHolidays] = useState<Set<string>>(new Set());
+
+  const accommodationId = roomTypes[0]?.accommodation_id;
+
+  useEffect(() => {
+    if (!accommodationId) return;
+    
+    const fetchSharedData = async () => {
+      const today = new Date();
+      const thirtyDaysLater = new Date(today);
+      thirtyDaysLater.setDate(today.getDate() + 30);
+
+      const [templatesResult, holidaysResult] = await Promise.all([
+        supabase
+          .from('pricing_templates')
+          .select('template_name, price, display_order')
+          .eq('accommodation_id', accommodationId)
+          .order('display_order', { ascending: true }),
+        supabase
+          .from('public_holidays')
+          .select('holiday_date')
+          .gte('holiday_date', today.toISOString().split('T')[0])
+          .lte('holiday_date', thirtyDaysLater.toISOString().split('T')[0])
+      ]);
+
+      // Process template labels
+      if (!templatesResult.error && templatesResult.data?.length) {
+        const labels: { priceLabel?: string; price2MealsLabel?: string; price3MealsLabel?: string } = {};
+        for (const t of templatesResult.data) {
+          const name = t.template_name;
+          if (name.includes('三食') && !labels.price3MealsLabel) labels.price3MealsLabel = name;
+          else if (name.includes('二食') && !labels.price2MealsLabel) labels.price2MealsLabel = name;
+          else if (!labels.priceLabel) labels.priceLabel = name;
+        }
+        if (!labels.priceLabel && templatesResult.data.length > 0) labels.priceLabel = templatesResult.data[0].template_name;
+        setSharedTemplateLabels(labels);
+      }
+
+      // Process holidays
+      if (holidaysResult.data) {
+        setSharedHolidays(new Set(holidaysResult.data.map(h => h.holiday_date)));
+      }
+    };
+
+    fetchSharedData();
+  }, [accommodationId]);
+
   // 將資料庫的房型資料轉換為顯示格式，保留照片資料
   const displayRooms: RoomType[] = roomTypes.map(room => ({
     id: room.id,
