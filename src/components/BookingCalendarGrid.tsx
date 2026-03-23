@@ -210,7 +210,34 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
     });
   };
 
-  // Calculate visible span of an order within the current date range
+  // Check if a date is blocked because an exclusive package is booked
+  const isBlockedByExclusive = (roomTypeId: string, dateStr: string): boolean => {
+    const roomType = roomTypes.find(r => r.id === roomTypeId);
+    if (!roomType || !roomType.is_bound_to_exclusive || !roomType.bound_exclusive_ids?.length) return false;
+    
+    // Check if any of the bound exclusive packages have orders on this date
+    return roomType.bound_exclusive_ids.some(exclusiveId => {
+      return orders.some(o => {
+        if (o.room_type_id !== exclusiveId) return false;
+        return o.check_in_date <= dateStr && o.check_out_date > dateStr;
+      });
+    });
+  };
+
+  // Get the set of dates where an exclusive package room type has bookings
+  const exclusiveBookedDates = useMemo(() => {
+    const map = new Map<string, Set<string>>(); // exclusiveRoomTypeId -> Set of dateStrings
+    const exclusiveTypes = roomTypes.filter(r => r.is_exclusive_package);
+    for (const et of exclusiveTypes) {
+      const bookedDates = new Set<string>();
+      for (const dateStr of dateStrings) {
+        const hasBooking = orders.some(o => o.room_type_id === et.id && o.check_in_date <= dateStr && o.check_out_date > dateStr);
+        if (hasBooking) bookedDates.add(dateStr);
+      }
+      if (bookedDates.size > 0) map.set(et.id, bookedDates);
+    }
+    return map;
+  }, [roomTypes, orders, dateStrings]);
   const getOrderSpan = (order: Order, dateStr: string): { isStart: boolean; span: number } | null => {
     const checkIn = order.check_in_date;
     const checkOut = order.check_out_date;
