@@ -675,6 +675,21 @@ const Orders = () => {
         icon={ShoppingBag}
         action={
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (filteredOrders.length === 0) {
+                  toast({ title: "無資料可匯出", description: "目前沒有符合條件的訂單", variant: "destructive" });
+                  return;
+                }
+                exportOrdersToExcel(filteredOrders);
+                toast({ title: "匯出成功", description: `已匯出 ${filteredOrders.length} 筆訂單` });
+              }}
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">匯出 Excel</span>
+            </Button>
             <Button variant="outline" onClick={() => setHoldDialogOpen(true)} className="gap-2">
               <CalendarClock className="h-4 w-4" />
               <span className="hidden sm:inline">新增保留單</span>
