@@ -31,6 +31,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
     if (isOpen && order) {
       setEditTotalPrice(order.total_price);
       setEditDiscountAmount(order.discount_amount);
+      setEditDepositAmount(order.deposit_amount ?? 0);
       setEditPaidAmount(order.paid_amount);
       setEditReason("");
     }
