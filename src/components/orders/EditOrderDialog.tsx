@@ -169,6 +169,9 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
         selected_addons: selectedAddons,
         deposit_paid: depositPaid,
         balance_paid: balancePaid,
+        guest_name: order.guest_name,
+        guest_phone: order.guest_phone,
+        guest_email: order.guest_email || "",
       });
       
       // 載入現有的折扣碼
