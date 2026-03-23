@@ -147,7 +147,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
           .from("orders")
           .select("id, order_number, guest_name, guest_phone, check_in_date, check_out_date, order_status, order_source, room_type_id")
           .eq("accommodation_id", accommodationId)
-          .in("order_status", ["pending", "confirmed", "checked_in"])
+          .in("order_status", ["hold", "pending", "confirmed", "checked_in"])
           .gte("check_out_date", startStr)
           .lte("check_in_date", endStr),
         supabase
