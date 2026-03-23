@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Tag, X, AlertTriangle, Loader2 } from "lucide-react";
+import { CalendarIcon, Tag, X, AlertTriangle, Loader2, Ban, Trash2 } from "lucide-react";
 import { format, parseISO, isAfter, isBefore } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Order } from "@/types/order";
