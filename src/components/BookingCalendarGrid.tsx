@@ -665,6 +665,10 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
           <span className="text-muted-foreground/40">—</span>
           <span>未設定庫存</span>
         </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="inline-flex items-center gap-0.5 text-amber-600 dark:text-amber-400 font-medium"><Lock className="h-3 w-3" />包區</span>
+          <span>包區已預訂（連動鎖房）</span>
+        </span>
       </div>
     </div>
   );
