@@ -542,7 +542,7 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
                 <CarouselContent className="-ml-4">
                   {displayRooms.map((room, index) => (
                     <CarouselItem key={room.id} className="pl-4 basis-1/2 lg:basis-1/4">
-                      <RoomCard room={room} isFirstRoom={index === 0} />
+                      <RoomCard room={room} isFirstRoom={index === 0} sharedTemplateLabels={sharedTemplateLabels} sharedHolidays={sharedHolidays} />
                     </CarouselItem>
                   ))}
                 </CarouselContent>
