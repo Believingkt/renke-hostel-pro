@@ -502,9 +502,35 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
             <Label>訂單編號</Label>
             <Input value={order.order_number} disabled className="h-12 text-base sm:h-10 sm:text-sm" />
           </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>訂購人 <span className="text-destructive">*</span></Label>
+              <Input 
+                value={editForm.guest_name} 
+                onChange={(e) => setEditForm({...editForm, guest_name: e.target.value})}
+                placeholder="請輸入訂購人姓名"
+                className="h-12 text-base sm:h-10 sm:text-sm" 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>聯絡電話 <span className="text-destructive">*</span></Label>
+              <Input 
+                value={editForm.guest_phone} 
+                onChange={(e) => setEditForm({...editForm, guest_phone: e.target.value})}
+                placeholder="請輸入聯絡電話"
+                className="h-12 text-base sm:h-10 sm:text-sm" 
+              />
+            </div>
+          </div>
           <div className="space-y-2">
-            <Label>訂購人</Label>
-            <Input value={order.guest_name} disabled className="h-12 text-base sm:h-10 sm:text-sm" />
+            <Label>電子信箱</Label>
+            <Input 
+              value={editForm.guest_email} 
+              onChange={(e) => setEditForm({...editForm, guest_email: e.target.value})}
+              placeholder="請輸入電子信箱（選填）"
+              type="email"
+              className="h-12 text-base sm:h-10 sm:text-sm" 
+            />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
