@@ -1,0 +1,2 @@
+ALTER TABLE public.orders DROP CONSTRAINT IF EXISTS orders_order_status_check;
+ALTER TABLE public.orders ADD CONSTRAINT orders_order_status_check CHECK (order_status IN ('hold', 'pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled'));
