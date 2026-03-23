@@ -104,7 +104,7 @@ const ReviewsSection = ({ accommodationId, customTitle, customSubtitle }: Review
                 <div className="flex items-start justify-between mb-3 md:mb-3 lg:mb-4">
                   <div>
                     <h3 className="font-semibold text-base md:text-base lg:text-lg">{review.reviewer_name}</h3>
-                    <p className="text-xs md:text-sm lg:text-sm text-muted-foreground mt-1">{review.review_date}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{review.review_date}</p>
                   </div>
                   <div className="flex gap-0.5">
                     {[1, 2, 3, 4, 5].map((star) => (
