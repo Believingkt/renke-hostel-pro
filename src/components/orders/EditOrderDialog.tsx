@@ -94,6 +94,9 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
     selected_addons: [] as { addon_id: string; quantity: number }[],
     deposit_paid: false,
     balance_paid: false,
+    guest_name: "",
+    guest_phone: "",
+    guest_email: "",
   });
 
   // Fetch room types, public holidays, templates, and addons
