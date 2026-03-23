@@ -796,6 +796,7 @@ const Orders = () => {
                   <OrdersTable 
                     orders={paginatedOrders} 
                     onEditOrder={handleEditOrder}
+                    onEditPrice={handleEditPrice}
                     sortField={sortField}
                     sortDirection={sortDirection}
                     onSort={handleSort}
