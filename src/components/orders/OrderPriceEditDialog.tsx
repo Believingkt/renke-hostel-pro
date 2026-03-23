@@ -76,6 +76,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
           total_price: editTotalPrice,
           discount_amount: editDiscountAmount,
           final_price: editFinalPrice,
+          deposit_amount: editDepositAmount,
           paid_amount: editPaidAmount,
           payment_status: newPaymentStatus,
           ...(editReason.trim() ? {
