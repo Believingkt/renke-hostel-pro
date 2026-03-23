@@ -70,6 +70,7 @@ const Orders = () => {
   
   // 新增對話框狀態
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [holdDialogOpen, setHoldDialogOpen] = useState(false);
 
   // 修改金額對話框狀態
   const [priceEditDialogOpen, setPriceEditDialogOpen] = useState(false);
