@@ -16,8 +16,9 @@ import { OrdersTable } from "@/components/orders/OrdersTable";
 import { EditOrderDialog } from "@/components/orders/EditOrderDialog";
 import { OrderPriceEditDialog } from "@/components/orders/OrderPriceEditDialog";
 import { CreateOrderDialog } from "@/components/orders/CreateOrderDialog";
+import { CreateHoldOrderDialog } from "@/components/orders/CreateHoldOrderDialog";
 import { Button } from "@/components/ui/button";
-import { Filter, ShoppingCart, CalendarDays, CreditCard, Package, ShoppingBag, Home, Plus } from "lucide-react";
+import { Filter, ShoppingCart, CalendarDays, CreditCard, Package, ShoppingBag, Home, Plus, CalendarClock } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -69,6 +70,7 @@ const Orders = () => {
   
   // 新增對話框狀態
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [holdDialogOpen, setHoldDialogOpen] = useState(false);
 
   // 修改金額對話框狀態
   const [priceEditDialogOpen, setPriceEditDialogOpen] = useState(false);
@@ -464,6 +466,9 @@ const Orders = () => {
     discount_code: string | null;
     meal_plan: string | null;
     meal_plan_details: { addon_id: string; quantity: number }[] | null;
+    guest_name: string;
+    guest_phone: string;
+    guest_email: string;
   }) => {
     if (!editingOrder) return;
 
@@ -487,6 +492,9 @@ const Orders = () => {
         final_price: form.final_price,
         meal_plan: form.meal_plan,
         meal_plan_details: form.meal_plan_details,
+        guest_name: form.guest_name.trim(),
+        guest_phone: form.guest_phone.trim(),
+        guest_email: form.guest_email.trim() || null,
         updated_at: new Date().toISOString(),
       };
 
@@ -519,9 +527,9 @@ const Orders = () => {
       if (error) throw error;
 
       // Update or create customer record
-      const guestName = editingOrder.guest_name.trim();
-      const guestPhone = editingOrder.guest_phone.trim();
-      const guestEmail = editingOrder.guest_email?.trim() || null;
+      const guestName = form.guest_name.trim();
+      const guestPhone = form.guest_phone.trim();
+      const guestEmail = form.guest_email.trim() || null;
 
       if (accommodationId && guestPhone) {
         // Check if customer already exists by phone number
@@ -665,10 +673,16 @@ const Orders = () => {
         title="訂單列表"
         icon={ShoppingBag}
         action={
-          <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">新增訂單</span>
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setHoldDialogOpen(true)} className="gap-2">
+              <CalendarClock className="h-4 w-4" />
+              <span className="hidden sm:inline">新增保留單</span>
+            </Button>
+            <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">新增訂單</span>
+            </Button>
+          </div>
         }
       />
       
@@ -909,6 +923,13 @@ const Orders = () => {
         order={priceEditingOrder}
         open={priceEditDialogOpen}
         onOpenChange={setPriceEditDialogOpen}
+        onSuccess={fetchOrders}
+      />
+
+      {/* 新增保留單對話框 */}
+      <CreateHoldOrderDialog
+        open={holdDialogOpen}
+        onOpenChange={setHoldDialogOpen}
         onSuccess={fetchOrders}
       />
     </div>

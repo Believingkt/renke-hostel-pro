@@ -38,6 +38,7 @@ export const getPaymentStatusConfig = (status: string) => {
 
 export const getOrderStatusConfig = (status: string) => {
   const statusMap: Record<string, { label: string; className: string }> = {
+    hold: { label: "保留中", className: "bg-cyan-100 text-cyan-700 border-cyan-200" },
     pending: { label: "待確認", className: "bg-yellow-100 text-yellow-700 border-yellow-200" },
     confirmed: { label: "已確認", className: "bg-blue-100 text-blue-700 border-blue-200" },
     checked_in: { label: "已入住", className: "bg-purple-100 text-purple-700 border-purple-200" },
@@ -62,6 +63,7 @@ export const getOrderSourceConfig = (source: string) => {
 
 export const getOrderStatusLabel = (status: string) => {
   const statusMap: Record<string, string> = {
+    hold: "保留中",
     pending: "待確認",
     confirmed: "已確認",
     checked_in: "已入住",

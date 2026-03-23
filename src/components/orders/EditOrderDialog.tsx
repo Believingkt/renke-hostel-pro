@@ -57,6 +57,9 @@ interface EditOrderDialogProps {
     discount_code: string | null;
     meal_plan: string | null;
     meal_plan_details: { addon_id: string; quantity: number }[] | null;
+    guest_name: string;
+    guest_phone: string;
+    guest_email: string;
   }) => Promise<void>;
 }
 
@@ -91,6 +94,9 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
     selected_addons: [] as { addon_id: string; quantity: number }[],
     deposit_paid: false,
     balance_paid: false,
+    guest_name: "",
+    guest_phone: "",
+    guest_email: "",
   });
 
   // Fetch room types, public holidays, templates, and addons
@@ -163,6 +169,9 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
         selected_addons: selectedAddons,
         deposit_paid: depositPaid,
         balance_paid: balancePaid,
+        guest_name: order.guest_name,
+        guest_phone: order.guest_phone,
+        guest_email: order.guest_email || "",
       });
       
       // 載入現有的折扣碼
@@ -475,6 +484,9 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
         discount_code: appliedDiscount?.code || null,
         meal_plan: editForm.meal_plan || null,
         meal_plan_details: editForm.selected_addons.length > 0 ? editForm.selected_addons : null,
+        guest_name: editForm.guest_name,
+        guest_phone: editForm.guest_phone,
+        guest_email: editForm.guest_email,
       });
       onOpenChange(false);
     } finally {
@@ -490,9 +502,35 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
             <Label>訂單編號</Label>
             <Input value={order.order_number} disabled className="h-12 text-base sm:h-10 sm:text-sm" />
           </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>訂購人 <span className="text-destructive">*</span></Label>
+              <Input 
+                value={editForm.guest_name} 
+                onChange={(e) => setEditForm({...editForm, guest_name: e.target.value})}
+                placeholder="請輸入訂購人姓名"
+                className="h-12 text-base sm:h-10 sm:text-sm" 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>聯絡電話 <span className="text-destructive">*</span></Label>
+              <Input 
+                value={editForm.guest_phone} 
+                onChange={(e) => setEditForm({...editForm, guest_phone: e.target.value})}
+                placeholder="請輸入聯絡電話"
+                className="h-12 text-base sm:h-10 sm:text-sm" 
+              />
+            </div>
+          </div>
           <div className="space-y-2">
-            <Label>訂購人</Label>
-            <Input value={order.guest_name} disabled className="h-12 text-base sm:h-10 sm:text-sm" />
+            <Label>電子信箱</Label>
+            <Input 
+              value={editForm.guest_email} 
+              onChange={(e) => setEditForm({...editForm, guest_email: e.target.value})}
+              placeholder="請輸入電子信箱（選填）"
+              type="email"
+              className="h-12 text-base sm:h-10 sm:text-sm" 
+            />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -848,6 +886,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave }: EditOrder
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="hold">保留中</SelectItem>
                 <SelectItem value="pending">待確認</SelectItem>
                 <SelectItem value="confirmed">已確認</SelectItem>
                 <SelectItem value="checked_in">已入住</SelectItem>

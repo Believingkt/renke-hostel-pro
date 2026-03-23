@@ -132,6 +132,7 @@ export function OrderFilters({
             onChange={(e) => onOrderStatusChange(e.target.value)}
           >
             <option value="">(全部)</option>
+            <option value="hold">保留中</option>
             <option value="pending">待確認</option>
             <option value="confirmed">已確認</option>
             <option value="checked_in">已入住</option>
