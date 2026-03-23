@@ -16,6 +16,7 @@ import { OrdersTable } from "@/components/orders/OrdersTable";
 import { EditOrderDialog } from "@/components/orders/EditOrderDialog";
 import { OrderPriceEditDialog } from "@/components/orders/OrderPriceEditDialog";
 import { CreateOrderDialog } from "@/components/orders/CreateOrderDialog";
+import { CreateHoldOrderDialog } from "@/components/orders/CreateHoldOrderDialog";
 import { Button } from "@/components/ui/button";
 import { Filter, ShoppingCart, CalendarDays, CreditCard, Package, ShoppingBag, Home, Plus } from "lucide-react";
 import {
