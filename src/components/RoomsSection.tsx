@@ -91,7 +91,12 @@ const ExpandableDescription = ({ text }: { text: string }) => {
   );
 };
 
-const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photos?: { photo_url: string; display_order: number }[] }, isFirstRoom?: boolean }) => {
+const RoomCard = ({ room, isFirstRoom = false, sharedTemplateLabels, sharedHolidays }: { 
+  room: RoomType & { room_photos?: { photo_url: string; display_order: number }[] }, 
+  isFirstRoom?: boolean,
+  sharedTemplateLabels?: { priceLabel?: string; price2MealsLabel?: string; price3MealsLabel?: string },
+  sharedHolidays?: Set<string>
+}) => {
   // 優先使用資料庫照片，沒有則使用預設照片
   const databaseImages = room.room_photos?.map(p => p.photo_url) || [];
   const defaultImages = roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard];
@@ -99,11 +104,7 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
   
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [amenities, setAmenities] = useState<string[]>([]);
-  const [templateLabels, setTemplateLabels] = useState<{
-    priceLabel?: string;
-    price2MealsLabel?: string;
-    price3MealsLabel?: string;
-  }>({});
+  const templateLabels = sharedTemplateLabels || {};
   const [inventoryPricing, setInventoryPricing] = useState<{
     weekday_price?: number;
     weekend_price?: number;
@@ -116,8 +117,7 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
   useEffect(() => {
     loadAmenities();
     loadInventoryPricing();
-    loadTemplateLabels();
-  }, [room.id, room.accommodation_id]);
+  }, [room.id]);
 
   const loadAmenities = async () => {
     try {
@@ -142,7 +142,6 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
       const thirtyDaysLater = new Date(today);
       thirtyDaysLater.setDate(today.getDate() + 30);
 
-      // 獲取最近30天的價格數據
       const { data, error } = await supabase
         .from('room_inventory_pricing')
         .select('price, price_2_meals, price_3_meals, date')
@@ -155,27 +154,14 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
       if (error) throw error;
 
       if (data && data.length > 0) {
-        // 獲取公眾假期
-        const { data: holidays } = await supabase
-          .from('public_holidays')
-          .select('holiday_date')
-          .gte('holiday_date', today.toISOString().split('T')[0])
-          .lte('holiday_date', thirtyDaysLater.toISOString().split('T')[0]);
-
-        const holidayDates = new Set(holidays?.map(h => h.holiday_date) || []);
-
-        // 分類平日和假日的價格（使用價格差異來區分，而非星期幾）
-        // 先收集所有不同的價格
         const allPrices = data.map(item => item.price).filter((p): p is number => p != null);
         const allPrices2Meals = data.map(item => item.price_2_meals).filter((p): p is number => p != null);
         const allPrices3Meals = data.map(item => item.price_3_meals).filter((p): p is number => p != null);
         
-        // 使用價格值來區分平日和假日（較低價格為平日，較高價格為假日）
         const uniquePrices = [...new Set(allPrices)].sort((a, b) => a - b);
         const uniquePrices2Meals = [...new Set(allPrices2Meals)].sort((a, b) => a - b);
         const uniquePrices3Meals = [...new Set(allPrices3Meals)].sort((a, b) => a - b);
         
-        // 設定價格：如果只有一種價格則平日假日相同，如果有多種則最低為平日、最高為假日
         setInventoryPricing({
           weekday_price: uniquePrices.length > 0 ? uniquePrices[0] : undefined,
           weekend_price: uniquePrices.length > 1 ? uniquePrices[uniquePrices.length - 1] : (uniquePrices.length > 0 ? uniquePrices[0] : undefined),
@@ -188,42 +174,6 @@ const RoomCard = ({ room, isFirstRoom = false }: { room: RoomType & { room_photo
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error loading inventory pricing:', error);
-      }
-    }
-  };
-
-  const loadTemplateLabels = async () => {
-    if (!room.accommodation_id) return;
-    try {
-      const { data: templates, error } = await supabase
-        .from('pricing_templates')
-        .select('template_name, price, display_order')
-        .eq('accommodation_id', room.accommodation_id)
-        .order('display_order', { ascending: true });
-
-      if (error || !templates || templates.length === 0) return;
-
-      const labels: typeof templateLabels = {};
-      
-      for (const t of templates) {
-        const name = t.template_name;
-        if (name.includes('三食') && !labels.price3MealsLabel) {
-          labels.price3MealsLabel = name;
-        } else if (name.includes('二食') && !labels.price2MealsLabel) {
-          labels.price2MealsLabel = name;
-        } else if (!labels.priceLabel) {
-          labels.priceLabel = name;
-        }
-      }
-
-      if (!labels.priceLabel && templates.length > 0) {
-        labels.priceLabel = templates[0].template_name;
-      }
-
-      setTemplateLabels(labels);
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error loading template labels:', error);
       }
     }
   };
