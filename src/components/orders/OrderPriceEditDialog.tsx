@@ -27,14 +27,17 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
 
   const editFinalPrice = editTotalPrice - editDiscountAmount;
 
-  const handleOpen = (isOpen: boolean) => {
-    if (isOpen && order) {
+  useEffect(() => {
+    if (open && order) {
       setEditTotalPrice(order.total_price);
       setEditDiscountAmount(order.discount_amount);
       setEditDepositAmount(order.deposit_amount ?? 0);
       setEditPaidAmount(order.paid_amount);
       setEditReason("");
     }
+  }, [open, order]);
+
+  const handleOpen = (isOpen: boolean) => {
     onOpenChange(isOpen);
   };
 
