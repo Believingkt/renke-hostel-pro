@@ -14,6 +14,7 @@ import { QuickFilters } from "@/components/orders/QuickFilters";
 import { OrderFilters } from "@/components/orders/OrderFilters";
 import { OrdersTable } from "@/components/orders/OrdersTable";
 import { EditOrderDialog } from "@/components/orders/EditOrderDialog";
+import { OrderPriceEditDialog } from "@/components/orders/OrderPriceEditDialog";
 import { CreateOrderDialog } from "@/components/orders/CreateOrderDialog";
 import { Button } from "@/components/ui/button";
 import { Filter, ShoppingCart, CalendarDays, CreditCard, Package, ShoppingBag, Home, Plus } from "lucide-react";
@@ -68,6 +69,10 @@ const Orders = () => {
   
   // 新增對話框狀態
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+
+  // 修改金額對話框狀態
+  const [priceEditDialogOpen, setPriceEditDialogOpen] = useState(false);
+  const [priceEditingOrder, setPriceEditingOrder] = useState<Order | null>(null);
   
   // 快速篩選
   const [quickFilter, setQuickFilter] = useState<QuickFilterType>((searchParams.get("qf") || "") as QuickFilterType);
@@ -437,6 +442,11 @@ const Orders = () => {
     setEditDialogOpen(true);
   };
 
+  const handleEditPrice = (order: Order) => {
+    setPriceEditingOrder(order);
+    setPriceEditDialogOpen(true);
+  };
+
   const handleSaveEdit = async (form: { 
     order_status: string; 
     payment_status: string;
@@ -786,6 +796,7 @@ const Orders = () => {
                   <OrdersTable 
                     orders={paginatedOrders} 
                     onEditOrder={handleEditOrder}
+                    onEditPrice={handleEditPrice}
                     sortField={sortField}
                     sortDirection={sortDirection}
                     onSort={handleSort}
@@ -890,6 +901,14 @@ const Orders = () => {
       <CreateOrderDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
+        onSuccess={fetchOrders}
+      />
+
+      {/* 修改金額對話框 */}
+      <OrderPriceEditDialog
+        order={priceEditingOrder}
+        open={priceEditDialogOpen}
+        onOpenChange={setPriceEditDialogOpen}
         onSuccess={fetchOrders}
       />
     </div>

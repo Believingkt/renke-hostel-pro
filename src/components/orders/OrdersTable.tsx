@@ -5,20 +5,21 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { format } from "date-fns";
 import { Order, CustomMealPlan } from "@/types/order";
 import { getPaymentStatusConfig, getOrderStatusConfig, getOrderSourceConfig, getEffectivePaymentStatus } from "@/utils/orderHelpers";
-import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCart, Edit, Eye, Utensils, Globe, UserPlus } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCart, Edit, Eye, Utensils, Globe, UserPlus, Pencil } from "lucide-react";
 import { OrderQuickPreview } from "./OrderQuickPreview";
 import { EmptyState } from "@/components/EmptyState";
 
 interface OrdersTableProps {
   orders: Order[];
   onEditOrder: (order: Order) => void;
+  onEditPrice?: (order: Order) => void;
   sortField: keyof Order | "";
   sortDirection: "asc" | "desc";
   onSort: (field: keyof Order) => void;
   customMealPlans?: CustomMealPlan[];
 }
 
-export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onSort, customMealPlans = [] }: OrdersTableProps) {
+export function OrdersTable({ orders, onEditOrder, onEditPrice, sortField, sortDirection, onSort, customMealPlans = [] }: OrdersTableProps) {
   const location = useLocation();
   const backTo = `${location.pathname}${location.search}`;
 
@@ -76,7 +77,7 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
               <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
                 付款狀態
               </th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground w-[120px]">
+              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground w-[160px]">
                 操作
               </th>
             </tr>
@@ -136,7 +137,7 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                         {paymentStatusConfig.label}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm w-[120px]">
+                    <td className="px-4 py-3 text-sm w-[160px]">
                       <div className="flex justify-start gap-1 -ml-5">
                         <TooltipProvider>
                           <Tooltip>
@@ -174,6 +175,25 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
+                        {onEditPrice && order.order_status !== 'cancelled' && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-9 w-9 p-0 touch-manipulation"
+                                  onClick={() => onEditPrice(order)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>修改金額</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -289,6 +309,17 @@ export function OrdersTable({ orders, onEditOrder, sortField, sortDirection, onS
                       <Edit className="h-5 w-5" />
                       <span>編輯訂單</span>
                     </Button>
+                    {onEditPrice && order.order_status !== 'cancelled' && (
+                      <Button
+                        variant="outline"
+                        size="default"
+                        className="flex-1 h-12 touch-manipulation gap-2"
+                        onClick={() => onEditPrice(order)}
+                      >
+                        <Pencil className="h-5 w-5" />
+                        <span>修改金額</span>
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
