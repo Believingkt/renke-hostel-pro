@@ -464,6 +464,9 @@ const Orders = () => {
     discount_code: string | null;
     meal_plan: string | null;
     meal_plan_details: { addon_id: string; quantity: number }[] | null;
+    guest_name: string;
+    guest_phone: string;
+    guest_email: string;
   }) => {
     if (!editingOrder) return;
 
@@ -487,6 +490,9 @@ const Orders = () => {
         final_price: form.final_price,
         meal_plan: form.meal_plan,
         meal_plan_details: form.meal_plan_details,
+        guest_name: form.guest_name.trim(),
+        guest_phone: form.guest_phone.trim(),
+        guest_email: form.guest_email.trim() || null,
         updated_at: new Date().toISOString(),
       };
 
