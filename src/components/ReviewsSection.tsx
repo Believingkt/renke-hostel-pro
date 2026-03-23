@@ -72,7 +72,7 @@ const ReviewsSection = ({ accommodationId, customTitle, customSubtitle }: Review
   }
 
   return (
-    <section className="py-12 md:py-16 lg:py-20 bg-secondary/20">
+    <section id="reviews" className="py-12 md:py-16 lg:py-20 bg-secondary/20">
       <div className="container mx-auto px-4 md:px-6">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-3 lg:mb-4">{customTitle || '旅客評價'}</h2>
@@ -104,7 +104,7 @@ const ReviewsSection = ({ accommodationId, customTitle, customSubtitle }: Review
                 <div className="flex items-start justify-between mb-3 md:mb-3 lg:mb-4">
                   <div>
                     <h3 className="font-semibold text-base md:text-base lg:text-lg">{review.reviewer_name}</h3>
-                    <p className="text-xs md:text-sm lg:text-sm text-muted-foreground mt-1">{review.review_date}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{review.review_date}</p>
                   </div>
                   <div className="flex gap-0.5">
                     {[1, 2, 3, 4, 5].map((star) => (

@@ -59,7 +59,7 @@ const FacilitiesSection = ({ facilities, customTitle, customSubtitle }: Faciliti
                       <div className="flex-1">
                         <span className="text-xs md:text-sm lg:text-sm text-foreground">{facility.facility_name}</span>
                         {facility.pricing_type && facility.pricing_type !== 'included' && (
-                          <span className="text-xs text-muted-foreground block">
+                          <span className="text-sm text-muted-foreground block">
                             ({facility.pricing_type === 'free' ? '免費提供' : '需額外付費'})
                           </span>
                         )}

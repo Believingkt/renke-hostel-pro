@@ -110,7 +110,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice, customSections = [
                   <div>
                     <h3 className="font-semibold text-base md:text-base lg:text-lg">{sectionLabels.checkIn.title}</h3>
                     {sectionLabels.checkIn.subtitle && (
-                      <p className="text-xs text-muted-foreground mt-0.5">{sectionLabels.checkIn.subtitle}</p>
+                      <p className="text-sm text-muted-foreground mt-0.5">{sectionLabels.checkIn.subtitle}</p>
                     )}
                   </div>
                 </div>
@@ -136,7 +136,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice, customSections = [
                   <div>
                     <h3 className="font-semibold text-base md:text-base lg:text-lg">{sectionLabels.payment.title}</h3>
                     {sectionLabels.payment.subtitle && (
-                      <p className="text-xs text-muted-foreground mt-0.5">{sectionLabels.payment.subtitle}</p>
+                      <p className="text-sm text-muted-foreground mt-0.5">{sectionLabels.payment.subtitle}</p>
                     )}
                   </div>
                 </div>
@@ -164,7 +164,7 @@ const BookingInfoSection = ({ bookingSettings, checkInNotice, customSections = [
                     <div>
                       <h3 className="font-semibold text-base md:text-lg">{sectionLabels.cancellation.title}</h3>
                       {sectionLabels.cancellation.subtitle && (
-                        <p className="text-xs text-muted-foreground mt-0.5">{sectionLabels.cancellation.subtitle}</p>
+                        <p className="text-sm text-muted-foreground mt-0.5">{sectionLabels.cancellation.subtitle}</p>
                       )}
                     </div>
                   </div>
