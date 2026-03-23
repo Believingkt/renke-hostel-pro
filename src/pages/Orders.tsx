@@ -673,10 +673,16 @@ const Orders = () => {
         title="訂單列表"
         icon={ShoppingBag}
         action={
-          <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">新增訂單</span>
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setHoldDialogOpen(true)} className="gap-2">
+              <CalendarClock className="h-4 w-4" />
+              <span className="hidden sm:inline">新增保留單</span>
+            </Button>
+            <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">新增訂單</span>
+            </Button>
+          </div>
         }
       />
       
