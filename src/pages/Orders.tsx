@@ -15,6 +15,7 @@ import { OrderFilters } from "@/components/orders/OrderFilters";
 import { OrdersTable } from "@/components/orders/OrdersTable";
 import { EditOrderDialog } from "@/components/orders/EditOrderDialog";
 import { OrderPriceEditDialog } from "@/components/orders/OrderPriceEditDialog";
+import { PaymentStatusDialog } from "@/components/orders/PaymentStatusDialog";
 import { CreateOrderDialog } from "@/components/orders/CreateOrderDialog";
 import { CreateHoldOrderDialog } from "@/components/orders/CreateHoldOrderDialog";
 import { Button } from "@/components/ui/button";
