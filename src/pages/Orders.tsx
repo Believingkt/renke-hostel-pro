@@ -77,6 +77,10 @@ const Orders = () => {
   // 修改金額對話框狀態
   const [priceEditDialogOpen, setPriceEditDialogOpen] = useState(false);
   const [priceEditingOrder, setPriceEditingOrder] = useState<Order | null>(null);
+
+  // 付款狀態對話框
+  const [paymentStatusDialogOpen, setPaymentStatusDialogOpen] = useState(false);
+  const [paymentStatusOrder, setPaymentStatusOrder] = useState<Order | null>(null);
   
   // 快速篩選
   const [quickFilter, setQuickFilter] = useState<QuickFilterType>((searchParams.get("qf") || "") as QuickFilterType);
