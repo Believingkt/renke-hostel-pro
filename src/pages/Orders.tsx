@@ -1013,6 +1013,22 @@ const Orders = () => {
         onOpenChange={setPaymentStatusDialogOpen}
         onSuccess={fetchOrders}
       />
+
+      {/* 訂單狀態對話框 */}
+      <OrderStatusDialog
+        order={orderStatusOrder}
+        open={orderStatusDialogOpen}
+        onOpenChange={setOrderStatusDialogOpen}
+        onSuccess={fetchOrders}
+      />
+
+      {/* 訂單來源對話框 */}
+      <OrderSourceDialog
+        order={orderSourceOrder}
+        open={orderSourceDialogOpen}
+        onOpenChange={setOrderSourceDialogOpen}
+        onSuccess={fetchOrders}
+      />
     </div>
   );
 };
