@@ -858,6 +858,8 @@ const Orders = () => {
                     onEditOrder={handleEditOrder}
                     onEditPrice={handleEditPrice}
                     onChangePaymentStatus={handleChangePaymentStatus}
+                    onChangeOrderStatus={handleChangeOrderStatus}
+                    onChangeOrderSource={handleChangeOrderSource}
                     sortField={sortField}
                     sortDirection={sortDirection}
                     onSort={handleSort}
