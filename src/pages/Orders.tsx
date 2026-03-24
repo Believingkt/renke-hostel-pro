@@ -470,6 +470,16 @@ const Orders = () => {
     setPaymentStatusDialogOpen(true);
   };
 
+  const handleChangeOrderStatus = (order: Order) => {
+    setOrderStatusOrder(order);
+    setOrderStatusDialogOpen(true);
+  };
+
+  const handleChangeOrderSource = (order: Order) => {
+    setOrderSourceOrder(order);
+    setOrderSourceDialogOpen(true);
+  };
+
   const handleSaveEdit = async (form: { 
     order_status: string; 
     payment_status: string;
