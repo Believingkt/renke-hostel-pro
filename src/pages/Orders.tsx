@@ -837,6 +837,7 @@ const Orders = () => {
                     orders={paginatedOrders} 
                     onEditOrder={handleEditOrder}
                     onEditPrice={handleEditPrice}
+                    onChangePaymentStatus={handleChangePaymentStatus}
                     sortField={sortField}
                     sortDirection={sortDirection}
                     onSort={handleSort}
