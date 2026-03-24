@@ -83,6 +83,14 @@ const Orders = () => {
   // 付款狀態對話框
   const [paymentStatusDialogOpen, setPaymentStatusDialogOpen] = useState(false);
   const [paymentStatusOrder, setPaymentStatusOrder] = useState<Order | null>(null);
+
+  // 訂單狀態對話框
+  const [orderStatusDialogOpen, setOrderStatusDialogOpen] = useState(false);
+  const [orderStatusOrder, setOrderStatusOrder] = useState<Order | null>(null);
+
+  // 訂單來源對話框
+  const [orderSourceDialogOpen, setOrderSourceDialogOpen] = useState(false);
+  const [orderSourceOrder, setOrderSourceOrder] = useState<Order | null>(null);
   
   // 快速篩選
   const [quickFilter, setQuickFilter] = useState<QuickFilterType>((searchParams.get("qf") || "") as QuickFilterType);
