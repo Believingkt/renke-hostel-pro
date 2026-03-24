@@ -134,9 +134,19 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${paymentStatusConfig.className}`}>
-                        {paymentStatusConfig.label}
-                      </span>
+                      {onChangePaymentStatus && order.order_status !== 'cancelled' ? (
+                        <button
+                          onClick={() => onChangePaymentStatus(order)}
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border cursor-pointer hover:opacity-80 transition-opacity ${paymentStatusConfig.className}`}
+                          title="點擊變更付款狀態"
+                        >
+                          {paymentStatusConfig.label}
+                        </button>
+                      ) : (
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${paymentStatusConfig.className}`}>
+                          {paymentStatusConfig.label}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-sm w-[160px]">
                       <div className="flex justify-start gap-1 -ml-5">
