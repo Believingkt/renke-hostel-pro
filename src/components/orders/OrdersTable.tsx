@@ -14,13 +14,15 @@ interface OrdersTableProps {
   onEditOrder: (order: Order) => void;
   onEditPrice?: (order: Order) => void;
   onChangePaymentStatus?: (order: Order) => void;
+  onChangeOrderStatus?: (order: Order) => void;
+  onChangeOrderSource?: (order: Order) => void;
   sortField: keyof Order | "";
   sortDirection: "asc" | "desc";
   onSort: (field: keyof Order) => void;
   customMealPlans?: CustomMealPlan[];
 }
 
-export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentStatus, sortField, sortDirection, onSort, customMealPlans = [] }: OrdersTableProps) {
+export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentStatus, onChangeOrderStatus, onChangeOrderSource, sortField, sortDirection, onSort, customMealPlans = [] }: OrdersTableProps) {
   const location = useLocation();
   const backTo = `${location.pathname}${location.search}`;
 
@@ -123,15 +125,36 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                     <td className="px-4 py-3 text-sm">{order.check_out_date}</td>
                     <td className="px-4 py-3 text-sm font-medium">NT$ {order.final_price.toLocaleString()}</td>
                     <td className="px-4 py-3 text-sm">
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${orderSourceConfig.className}`}>
-                        {order.order_source === 'website' ? <Globe className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
-                        {orderSourceConfig.label}
-                      </span>
+                      {onChangeOrderSource ? (
+                        <button
+                          onClick={() => onChangeOrderSource(order)}
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border cursor-pointer hover:opacity-80 transition-opacity ${orderSourceConfig.className}`}
+                          title="點擊變更訂單來源"
+                        >
+                          {order.order_source === 'website' ? <Globe className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
+                          {orderSourceConfig.label}
+                        </button>
+                      ) : (
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${orderSourceConfig.className}`}>
+                          {order.order_source === 'website' ? <Globe className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
+                          {orderSourceConfig.label}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-sm">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${orderStatusConfig.className}`}>
-                        {orderStatusConfig.label}
-                      </span>
+                      {onChangeOrderStatus ? (
+                        <button
+                          onClick={() => onChangeOrderStatus(order)}
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border cursor-pointer hover:opacity-80 transition-opacity ${orderStatusConfig.className}`}
+                          title="點擊變更訂單狀態"
+                        >
+                          {orderStatusConfig.label}
+                        </button>
+                      ) : (
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${orderStatusConfig.className}`}>
+                          {orderStatusConfig.label}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-sm">
                       {onChangePaymentStatus && order.order_status !== 'cancelled' ? (
@@ -244,14 +267,33 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                       >
                         {order.order_number}
                       </Link>
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border w-fit ${orderSourceConfig.className}`}>
-                        {order.order_source === 'website' ? <Globe className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
-                        {orderSourceConfig.label}
-                      </span>
+                      {onChangeOrderSource ? (
+                        <button
+                          onClick={() => onChangeOrderSource(order)}
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border w-fit cursor-pointer hover:opacity-80 transition-opacity ${orderSourceConfig.className}`}
+                        >
+                          {order.order_source === 'website' ? <Globe className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
+                          {orderSourceConfig.label}
+                        </button>
+                      ) : (
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border w-fit ${orderSourceConfig.className}`}>
+                          {order.order_source === 'website' ? <Globe className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
+                          {orderSourceConfig.label}
+                        </span>
+                      )}
                     </div>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border whitespace-nowrap ${orderStatusConfig.className}`}>
-                      {orderStatusConfig.label}
-                    </span>
+                    {onChangeOrderStatus ? (
+                      <button
+                        onClick={() => onChangeOrderStatus(order)}
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity ${orderStatusConfig.className}`}
+                      >
+                        {orderStatusConfig.label}
+                      </button>
+                    ) : (
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border whitespace-nowrap ${orderStatusConfig.className}`}>
+                        {orderStatusConfig.label}
+                      </span>
+                    )}
                   </div>
 
                   {/* 訂購人和訂購時間 */}

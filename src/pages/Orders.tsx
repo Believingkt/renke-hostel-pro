@@ -16,6 +16,8 @@ import { OrdersTable } from "@/components/orders/OrdersTable";
 import { EditOrderDialog } from "@/components/orders/EditOrderDialog";
 import { OrderPriceEditDialog } from "@/components/orders/OrderPriceEditDialog";
 import { PaymentStatusDialog } from "@/components/orders/PaymentStatusDialog";
+import { OrderStatusDialog } from "@/components/orders/OrderStatusDialog";
+import { OrderSourceDialog } from "@/components/orders/OrderSourceDialog";
 import { CreateOrderDialog } from "@/components/orders/CreateOrderDialog";
 import { CreateHoldOrderDialog } from "@/components/orders/CreateHoldOrderDialog";
 import { Button } from "@/components/ui/button";
@@ -81,6 +83,14 @@ const Orders = () => {
   // 付款狀態對話框
   const [paymentStatusDialogOpen, setPaymentStatusDialogOpen] = useState(false);
   const [paymentStatusOrder, setPaymentStatusOrder] = useState<Order | null>(null);
+
+  // 訂單狀態對話框
+  const [orderStatusDialogOpen, setOrderStatusDialogOpen] = useState(false);
+  const [orderStatusOrder, setOrderStatusOrder] = useState<Order | null>(null);
+
+  // 訂單來源對話框
+  const [orderSourceDialogOpen, setOrderSourceDialogOpen] = useState(false);
+  const [orderSourceOrder, setOrderSourceOrder] = useState<Order | null>(null);
   
   // 快速篩選
   const [quickFilter, setQuickFilter] = useState<QuickFilterType>((searchParams.get("qf") || "") as QuickFilterType);
@@ -458,6 +468,16 @@ const Orders = () => {
   const handleChangePaymentStatus = (order: Order) => {
     setPaymentStatusOrder(order);
     setPaymentStatusDialogOpen(true);
+  };
+
+  const handleChangeOrderStatus = (order: Order) => {
+    setOrderStatusOrder(order);
+    setOrderStatusDialogOpen(true);
+  };
+
+  const handleChangeOrderSource = (order: Order) => {
+    setOrderSourceOrder(order);
+    setOrderSourceDialogOpen(true);
   };
 
   const handleSaveEdit = async (form: { 
@@ -838,6 +858,8 @@ const Orders = () => {
                     onEditOrder={handleEditOrder}
                     onEditPrice={handleEditPrice}
                     onChangePaymentStatus={handleChangePaymentStatus}
+                    onChangeOrderStatus={handleChangeOrderStatus}
+                    onChangeOrderSource={handleChangeOrderSource}
                     sortField={sortField}
                     sortDirection={sortDirection}
                     onSort={handleSort}
@@ -989,6 +1011,22 @@ const Orders = () => {
         order={paymentStatusOrder}
         open={paymentStatusDialogOpen}
         onOpenChange={setPaymentStatusDialogOpen}
+        onSuccess={fetchOrders}
+      />
+
+      {/* 訂單狀態對話框 */}
+      <OrderStatusDialog
+        order={orderStatusOrder}
+        open={orderStatusDialogOpen}
+        onOpenChange={setOrderStatusDialogOpen}
+        onSuccess={fetchOrders}
+      />
+
+      {/* 訂單來源對話框 */}
+      <OrderSourceDialog
+        order={orderSourceOrder}
+        open={orderSourceDialogOpen}
+        onOpenChange={setOrderSourceDialogOpen}
         onSuccess={fetchOrders}
       />
     </div>
