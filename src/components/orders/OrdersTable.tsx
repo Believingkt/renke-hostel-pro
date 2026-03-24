@@ -267,14 +267,33 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                       >
                         {order.order_number}
                       </Link>
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border w-fit ${orderSourceConfig.className}`}>
-                        {order.order_source === 'website' ? <Globe className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
-                        {orderSourceConfig.label}
-                      </span>
+                      {onChangeOrderSource ? (
+                        <button
+                          onClick={() => onChangeOrderSource(order)}
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border w-fit cursor-pointer hover:opacity-80 transition-opacity ${orderSourceConfig.className}`}
+                        >
+                          {order.order_source === 'website' ? <Globe className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
+                          {orderSourceConfig.label}
+                        </button>
+                      ) : (
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border w-fit ${orderSourceConfig.className}`}>
+                          {order.order_source === 'website' ? <Globe className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
+                          {orderSourceConfig.label}
+                        </span>
+                      )}
                     </div>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border whitespace-nowrap ${orderStatusConfig.className}`}>
-                      {orderStatusConfig.label}
-                    </span>
+                    {onChangeOrderStatus ? (
+                      <button
+                        onClick={() => onChangeOrderStatus(order)}
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity ${orderStatusConfig.className}`}
+                      >
+                        {orderStatusConfig.label}
+                      </button>
+                    ) : (
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border whitespace-nowrap ${orderStatusConfig.className}`}>
+                        {orderStatusConfig.label}
+                      </span>
+                    )}
                   </div>
 
                   {/* 訂購人和訂購時間 */}
