@@ -983,6 +983,14 @@ const Orders = () => {
         onOpenChange={setHoldDialogOpen}
         onSuccess={fetchOrders}
       />
+
+      {/* 付款狀態對話框 */}
+      <PaymentStatusDialog
+        order={paymentStatusOrder}
+        open={paymentStatusDialogOpen}
+        onOpenChange={setPaymentStatusDialogOpen}
+        onSuccess={fetchOrders}
+      />
     </div>
   );
 };
