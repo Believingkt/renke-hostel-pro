@@ -13,13 +13,14 @@ interface OrdersTableProps {
   orders: Order[];
   onEditOrder: (order: Order) => void;
   onEditPrice?: (order: Order) => void;
+  onChangePaymentStatus?: (order: Order) => void;
   sortField: keyof Order | "";
   sortDirection: "asc" | "desc";
   onSort: (field: keyof Order) => void;
   customMealPlans?: CustomMealPlan[];
 }
 
-export function OrdersTable({ orders, onEditOrder, onEditPrice, sortField, sortDirection, onSort, customMealPlans = [] }: OrdersTableProps) {
+export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentStatus, sortField, sortDirection, onSort, customMealPlans = [] }: OrdersTableProps) {
   const location = useLocation();
   const backTo = `${location.pathname}${location.search}`;
 
@@ -133,9 +134,19 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, sortField, sortD
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${paymentStatusConfig.className}`}>
-                        {paymentStatusConfig.label}
-                      </span>
+                      {onChangePaymentStatus && order.order_status !== 'cancelled' ? (
+                        <button
+                          onClick={() => onChangePaymentStatus(order)}
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border cursor-pointer hover:opacity-80 transition-opacity ${paymentStatusConfig.className}`}
+                          title="點擊變更付款狀態"
+                        >
+                          {paymentStatusConfig.label}
+                        </button>
+                      ) : (
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${paymentStatusConfig.className}`}>
+                          {paymentStatusConfig.label}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-sm w-[160px]">
                       <div className="flex justify-start gap-1 -ml-5">

@@ -15,6 +15,7 @@ import { OrderFilters } from "@/components/orders/OrderFilters";
 import { OrdersTable } from "@/components/orders/OrdersTable";
 import { EditOrderDialog } from "@/components/orders/EditOrderDialog";
 import { OrderPriceEditDialog } from "@/components/orders/OrderPriceEditDialog";
+import { PaymentStatusDialog } from "@/components/orders/PaymentStatusDialog";
 import { CreateOrderDialog } from "@/components/orders/CreateOrderDialog";
 import { CreateHoldOrderDialog } from "@/components/orders/CreateHoldOrderDialog";
 import { Button } from "@/components/ui/button";
@@ -76,6 +77,10 @@ const Orders = () => {
   // 修改金額對話框狀態
   const [priceEditDialogOpen, setPriceEditDialogOpen] = useState(false);
   const [priceEditingOrder, setPriceEditingOrder] = useState<Order | null>(null);
+
+  // 付款狀態對話框
+  const [paymentStatusDialogOpen, setPaymentStatusDialogOpen] = useState(false);
+  const [paymentStatusOrder, setPaymentStatusOrder] = useState<Order | null>(null);
   
   // 快速篩選
   const [quickFilter, setQuickFilter] = useState<QuickFilterType>((searchParams.get("qf") || "") as QuickFilterType);
@@ -448,6 +453,11 @@ const Orders = () => {
   const handleEditPrice = (order: Order) => {
     setPriceEditingOrder(order);
     setPriceEditDialogOpen(true);
+  };
+
+  const handleChangePaymentStatus = (order: Order) => {
+    setPaymentStatusOrder(order);
+    setPaymentStatusDialogOpen(true);
   };
 
   const handleSaveEdit = async (form: { 
@@ -827,6 +837,7 @@ const Orders = () => {
                     orders={paginatedOrders} 
                     onEditOrder={handleEditOrder}
                     onEditPrice={handleEditPrice}
+                    onChangePaymentStatus={handleChangePaymentStatus}
                     sortField={sortField}
                     sortDirection={sortDirection}
                     onSort={handleSort}
@@ -970,6 +981,14 @@ const Orders = () => {
       <CreateHoldOrderDialog
         open={holdDialogOpen}
         onOpenChange={setHoldDialogOpen}
+        onSuccess={fetchOrders}
+      />
+
+      {/* 付款狀態對話框 */}
+      <PaymentStatusDialog
+        order={paymentStatusOrder}
+        open={paymentStatusDialogOpen}
+        onOpenChange={setPaymentStatusDialogOpen}
         onSuccess={fetchOrders}
       />
     </div>
