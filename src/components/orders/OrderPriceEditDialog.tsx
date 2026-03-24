@@ -83,7 +83,9 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
           paid_amount: editPaidAmount,
           payment_status: newPaymentStatus,
           ...(editReason.trim() ? {
-            notes: `【金額修改】${editReason.trim()}`,
+            notes: order.notes
+              ? `${order.notes}\n【金額修改】${editReason.trim()}`
+              : `【金額修改】${editReason.trim()}`,
           } : {}),
         })
         .eq("id", order.id);
