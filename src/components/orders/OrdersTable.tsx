@@ -14,13 +14,15 @@ interface OrdersTableProps {
   onEditOrder: (order: Order) => void;
   onEditPrice?: (order: Order) => void;
   onChangePaymentStatus?: (order: Order) => void;
+  onChangeOrderStatus?: (order: Order) => void;
+  onChangeOrderSource?: (order: Order) => void;
   sortField: keyof Order | "";
   sortDirection: "asc" | "desc";
   onSort: (field: keyof Order) => void;
   customMealPlans?: CustomMealPlan[];
 }
 
-export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentStatus, sortField, sortDirection, onSort, customMealPlans = [] }: OrdersTableProps) {
+export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentStatus, onChangeOrderStatus, onChangeOrderSource, sortField, sortDirection, onSort, customMealPlans = [] }: OrdersTableProps) {
   const location = useLocation();
   const backTo = `${location.pathname}${location.search}`;
 
