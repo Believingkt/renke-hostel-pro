@@ -5,7 +5,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { format } from "date-fns";
 import { Order, CustomMealPlan } from "@/types/order";
 import { getPaymentStatusConfig, getOrderStatusConfig, getOrderSourceConfig, getEffectivePaymentStatus } from "@/utils/orderHelpers";
-import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCart, Edit, Eye, Utensils, Globe, UserPlus, CircleDollarSign } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCart, Edit, Eye, Utensils, Globe, UserPlus } from "lucide-react";
 import { OrderQuickPreview } from "./OrderQuickPreview";
 import { EmptyState } from "@/components/EmptyState";
 
@@ -123,7 +123,19 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                     <td className="px-4 py-3 text-sm">{order.guest_name}</td>
                     <td className="px-4 py-3 text-sm">{order.check_in_date}</td>
                     <td className="px-4 py-3 text-sm">{order.check_out_date}</td>
-                    <td className="px-4 py-3 text-sm font-medium">NT$ {order.final_price.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-sm font-medium">
+                      {onEditPrice && order.order_status !== 'cancelled' ? (
+                        <button
+                          onClick={() => onEditPrice(order)}
+                          className="text-primary hover:underline cursor-pointer transition-opacity hover:opacity-80"
+                          title="點擊修改金額"
+                        >
+                          NT$ {order.final_price.toLocaleString()}
+                        </button>
+                      ) : (
+                        <>NT$ {order.final_price.toLocaleString()}</>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-sm">
                       {onChangeOrderSource ? (
                         <button
@@ -209,25 +221,6 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
-                        {onEditPrice && order.order_status !== 'cancelled' && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-9 w-9 p-0 touch-manipulation"
-                                  onClick={() => onEditPrice(order)}
-                                >
-                                  <CircleDollarSign className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>修改金額</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
                       </div>
                     </td>
                   </tr>
@@ -337,7 +330,17 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                       <DollarSign className="w-4 h-4 mr-1 text-muted-foreground" />
                       <span className="text-muted-foreground">實收金額:</span>
                     </div>
-                    <span className="font-semibold text-base">NT$ {order.final_price.toLocaleString()}</span>
+                    {onEditPrice && order.order_status !== 'cancelled' ? (
+                      <button
+                        onClick={() => onEditPrice(order)}
+                        className="font-semibold text-base text-primary hover:underline cursor-pointer"
+                        title="點擊修改金額"
+                      >
+                        NT$ {order.final_price.toLocaleString()}
+                      </button>
+                    ) : (
+                      <span className="font-semibold text-base">NT$ {order.final_price.toLocaleString()}</span>
+                    )}
                   </div>
 
                   {/* 操作按鈕 */}
@@ -362,17 +365,6 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                       <Edit className="h-5 w-5" />
                       <span>編輯訂單</span>
                     </Button>
-                    {onEditPrice && order.order_status !== 'cancelled' && (
-                      <Button
-                        variant="outline"
-                        size="default"
-                        className="flex-1 h-12 touch-manipulation gap-2"
-                        onClick={() => onEditPrice(order)}
-                      >
-                        <CircleDollarSign className="h-5 w-5" />
-                        <span>修改金額</span>
-                      </Button>
-                    )}
                   </div>
                 </CardContent>
               </Card>
