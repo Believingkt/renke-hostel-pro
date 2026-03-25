@@ -602,9 +602,15 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                     key={order.id}
                                     className={cn(
                                       "absolute top-1 bottom-1 z-[5] cursor-pointer",
-                                      "border-2 border-dashed border-primary/40 bg-primary/5 rounded-md",
-                                      "flex items-center px-2 gap-1 text-xs overflow-hidden",
-                                      "hover:bg-primary/10 hover:border-primary/60 transition-colors",
+                                      order.order_status === 'hold'
+                                        ? "border-2 border-dashed border-blue-400 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200"
+                                        : order.order_status === 'confirmed'
+                                          ? "border border-emerald-300 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200"
+                                          : order.order_status === 'checked_in'
+                                            ? "border border-violet-300 bg-violet-100 dark:bg-violet-900/30 text-violet-800 dark:text-violet-200"
+                                            : "border border-amber-300 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200",
+                                      "rounded-md flex items-center px-2 gap-1 text-xs overflow-hidden",
+                                      "hover:brightness-95 transition-all",
                                       isClippedLeft && "rounded-l-none border-l-0",
                                       isClippedRight && "rounded-r-none border-r-0",
                                     )}
