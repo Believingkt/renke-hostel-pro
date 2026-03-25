@@ -156,7 +156,8 @@ export function OrderFilters({
             <option value="agoda">Agoda</option>
             <option value="booking">Booking</option>
             <option value="trip">Trip</option>
-            <option value="travel_agency">旅行社</option>
+             <option value="travel_agency">旅行社</option>
+             <option value="kol">KOL互惠</option>
           </select>
         </div>
 

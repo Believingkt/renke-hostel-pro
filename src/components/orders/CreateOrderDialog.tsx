@@ -1108,7 +1108,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               <SelectItem value="agoda">Agoda</SelectItem>
               <SelectItem value="booking">Booking</SelectItem>
               <SelectItem value="trip">Trip</SelectItem>
-              <SelectItem value="travel_agency">旅行社</SelectItem>
+               <SelectItem value="travel_agency">旅行社</SelectItem>
+               <SelectItem value="kol">KOL互惠</SelectItem>
             </SelectContent>
           </Select>
         </div>
