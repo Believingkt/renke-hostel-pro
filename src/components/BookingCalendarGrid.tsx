@@ -65,7 +65,8 @@ const SOURCE_LABELS: Record<string, string> = {
   agoda: "Agoda",
   booking: "Booking",
   trip: "Trip",
-  travel_agency: "旅行社",
+   travel_agency: "旅行社",
+   kol: "KOL互惠",
 };
 
 const getSourceLabel = (source: string, paymentMethod?: string) => {
