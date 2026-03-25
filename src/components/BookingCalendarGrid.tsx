@@ -653,6 +653,26 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
           </span>
         ))}
       </div>
+      {/* 訂單狀態色塊說明 */}
+      <div className="px-3 py-2.5 border rounded-lg bg-muted/30 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
+        <span className="font-medium text-foreground">訂單色塊：</span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="inline-block w-5 h-3 rounded border-2 border-dashed border-blue-400 bg-blue-50" />
+          <span>保留單</span>
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="inline-block w-5 h-3 rounded border border-amber-300 bg-amber-100" />
+          <span>待確認</span>
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="inline-block w-5 h-3 rounded border border-emerald-300 bg-emerald-100" />
+          <span>已確認</span>
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="inline-block w-5 h-3 rounded border border-violet-300 bg-violet-100" />
+          <span>已入住</span>
+        </span>
+      </div>
       {/* 庫存數字顏色說明 */}
       <div className="px-3 py-2.5 border rounded-lg bg-muted/30 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
         <span className="font-medium text-foreground">庫存說明：</span>
