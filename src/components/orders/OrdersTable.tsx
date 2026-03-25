@@ -5,7 +5,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { format } from "date-fns";
 import { Order, CustomMealPlan } from "@/types/order";
 import { getPaymentStatusConfig, getOrderStatusConfig, getOrderSourceConfig, getEffectivePaymentStatus } from "@/utils/orderHelpers";
-import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCart, Edit, Eye, Utensils, Globe, UserPlus, CircleDollarSign } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCart, Edit, Eye, Utensils, Globe, UserPlus } from "lucide-react";
 import { OrderQuickPreview } from "./OrderQuickPreview";
 import { EmptyState } from "@/components/EmptyState";
 
