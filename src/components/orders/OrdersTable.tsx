@@ -123,7 +123,19 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                     <td className="px-4 py-3 text-sm">{order.guest_name}</td>
                     <td className="px-4 py-3 text-sm">{order.check_in_date}</td>
                     <td className="px-4 py-3 text-sm">{order.check_out_date}</td>
-                    <td className="px-4 py-3 text-sm font-medium">NT$ {order.final_price.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-sm font-medium">
+                      {onEditPrice && order.order_status !== 'cancelled' ? (
+                        <button
+                          onClick={() => onEditPrice(order)}
+                          className="text-primary hover:underline cursor-pointer transition-opacity hover:opacity-80"
+                          title="點擊修改金額"
+                        >
+                          NT$ {order.final_price.toLocaleString()}
+                        </button>
+                      ) : (
+                        <>NT$ {order.final_price.toLocaleString()}</>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-sm">
                       {onChangeOrderSource ? (
                         <button
