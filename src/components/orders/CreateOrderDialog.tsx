@@ -748,7 +748,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                     setTimeout(() => setCheckOutOpen(true), 150);
                   }
                 }}
-                disabled={(date) => isBefore(date, new Date(new Date().setHours(0, 0, 0, 0)))}
+                disabled={undefined}
               />
             </PopoverContent>
           </Popover>
