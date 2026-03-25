@@ -221,25 +221,6 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
-                        {onEditPrice && order.order_status !== 'cancelled' && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-9 w-9 p-0 touch-manipulation"
-                                  onClick={() => onEditPrice(order)}
-                                >
-                                  <CircleDollarSign className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>修改金額</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
                       </div>
                     </td>
                   </tr>
