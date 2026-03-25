@@ -365,17 +365,6 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                       <Edit className="h-5 w-5" />
                       <span>編輯訂單</span>
                     </Button>
-                    {onEditPrice && order.order_status !== 'cancelled' && (
-                      <Button
-                        variant="outline"
-                        size="default"
-                        className="flex-1 h-12 touch-manipulation gap-2"
-                        onClick={() => onEditPrice(order)}
-                      >
-                        <CircleDollarSign className="h-5 w-5" />
-                        <span>修改金額</span>
-                      </Button>
-                    )}
                   </div>
                 </CardContent>
               </Card>
