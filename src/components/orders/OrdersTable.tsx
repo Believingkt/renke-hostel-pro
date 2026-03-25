@@ -330,7 +330,17 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                       <DollarSign className="w-4 h-4 mr-1 text-muted-foreground" />
                       <span className="text-muted-foreground">實收金額:</span>
                     </div>
-                    <span className="font-semibold text-base">NT$ {order.final_price.toLocaleString()}</span>
+                    {onEditPrice && order.order_status !== 'cancelled' ? (
+                      <button
+                        onClick={() => onEditPrice(order)}
+                        className="font-semibold text-base text-primary hover:underline cursor-pointer"
+                        title="點擊修改金額"
+                      >
+                        NT$ {order.final_price.toLocaleString()}
+                      </button>
+                    ) : (
+                      <span className="font-semibold text-base">NT$ {order.final_price.toLocaleString()}</span>
+                    )}
                   </div>
 
                   {/* 操作按鈕 */}
