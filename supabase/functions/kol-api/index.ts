@@ -109,6 +109,222 @@ Deno.serve(async (req) => {
 
   try {
     const url = new URL(req.url);
+    const pathname = url.pathname;
+
+    // ========== Platform Management Endpoints ==========
+    // Authenticated via PLATFORM_MASTER_KEY header
+    if (pathname.includes('/manage/')) {
+      const platformKey = req.headers.get('x-platform-key');
+      const masterKey = Deno.env.get('PLATFORM_MASTER_KEY');
+
+      if (!masterKey) {
+        console.error('[KOL-API] PLATFORM_MASTER_KEY not configured');
+        return new Response(
+          JSON.stringify({ error: '平台管理功能未設定' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (!platformKey || platformKey !== masterKey) {
+        return new Response(
+          JSON.stringify({ error: '平台驗證失敗' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const supabase = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+
+      // POST /kol-api/manage/keys - Generate API key for a discount code
+      if (pathname.includes('/manage/keys') && req.method === 'POST') {
+        const body = await req.json();
+        const code = body.code?.toUpperCase();
+
+        if (!code) {
+          return new Response(
+            JSON.stringify({ error: '缺少必要參數：code' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Find discount code
+        const { data: dc, error: dcErr } = await supabase
+          .from('discount_codes')
+          .select('id, code, name')
+          .eq('code', code)
+          .single();
+
+        if (dcErr || !dc) {
+          return new Response(
+            JSON.stringify({ error: '找不到此折扣碼' }),
+            { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Generate new API key
+        const newApiKey = generateApiKey();
+
+        // Upsert into discount_code_secrets
+        const { error: upsertErr } = await supabase
+          .from('discount_code_secrets')
+          .upsert(
+            { discount_code_id: dc.id, api_key: newApiKey, updated_at: new Date().toISOString() },
+            { onConflict: 'discount_code_id' }
+          );
+
+        if (upsertErr) {
+          console.error('[KOL-API] Error upserting API key:', upsertErr);
+          return new Response(
+            JSON.stringify({ error: '生成 API Key 失敗' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log('[KOL-API] Platform generated API key for code:', code);
+        return new Response(
+          JSON.stringify({
+            success: true,
+            discount_code: dc.code,
+            name: dc.name,
+            api_key: newApiKey
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // GET /kol-api/manage/keys?code=XXX - Get API key for a discount code
+      if (pathname.includes('/manage/keys') && req.method === 'GET') {
+        const code = url.searchParams.get('code')?.toUpperCase();
+
+        if (!code) {
+          return new Response(
+            JSON.stringify({ error: '缺少必要參數：code' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const { data: dc } = await supabase
+          .from('discount_codes')
+          .select('id, code, name')
+          .eq('code', code)
+          .single();
+
+        if (!dc) {
+          return new Response(
+            JSON.stringify({ error: '找不到此折扣碼' }),
+            { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const { data: secrets } = await supabase
+          .from('discount_code_secrets')
+          .select('api_key, created_at, updated_at')
+          .eq('discount_code_id', dc.id)
+          .single();
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            discount_code: dc.code,
+            name: dc.name,
+            api_key: secrets?.api_key || null,
+            has_key: !!secrets?.api_key,
+            created_at: secrets?.created_at,
+            updated_at: secrets?.updated_at
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // DELETE /kol-api/manage/keys?code=XXX - Revoke API key
+      if (pathname.includes('/manage/keys') && req.method === 'DELETE') {
+        const code = url.searchParams.get('code')?.toUpperCase();
+
+        if (!code) {
+          return new Response(
+            JSON.stringify({ error: '缺少必要參數：code' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const { data: dc } = await supabase
+          .from('discount_codes')
+          .select('id, code, name')
+          .eq('code', code)
+          .single();
+
+        if (!dc) {
+          return new Response(
+            JSON.stringify({ error: '找不到此折扣碼' }),
+            { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const { error: updateErr } = await supabase
+          .from('discount_code_secrets')
+          .update({ api_key: null, updated_at: new Date().toISOString() })
+          .eq('discount_code_id', dc.id);
+
+        if (updateErr) {
+          return new Response(
+            JSON.stringify({ error: '撤銷 API Key 失敗' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log('[KOL-API] Platform revoked API key for code:', code);
+        return new Response(
+          JSON.stringify({ success: true, message: `已撤銷 ${dc.code} 的 API Key` }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // GET /kol-api/manage/codes - List all discount codes with key status
+      if (pathname.includes('/manage/codes') && req.method === 'GET') {
+        const { data: codes, error: codesErr } = await supabase
+          .from('discount_codes')
+          .select(`
+            id, code, name, discount_type, discount_value, 
+            is_active, used_count, usage_limit, commission_rate,
+            discount_code_secrets (api_key, updated_at)
+          `)
+          .order('created_at', { ascending: false });
+
+        if (codesErr) {
+          return new Response(
+            JSON.stringify({ error: '查詢折扣碼失敗' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const result = (codes || []).map((c: any) => ({
+          code: c.code,
+          name: c.name,
+          discount_type: c.discount_type,
+          discount_value: c.discount_value,
+          is_active: c.is_active,
+          used_count: c.used_count,
+          usage_limit: c.usage_limit,
+          commission_rate: c.commission_rate,
+          has_api_key: !!c.discount_code_secrets?.api_key,
+          api_key_updated_at: c.discount_code_secrets?.updated_at || null
+        }));
+
+        return new Response(
+          JSON.stringify({ success: true, codes: result }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ error: '未知的管理端點' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ========== KOL Data Endpoints (existing) ==========
     const discountCode = url.searchParams.get('code');
     const apiKey = req.headers.get('x-api-key') || url.searchParams.get('api_key');
 
