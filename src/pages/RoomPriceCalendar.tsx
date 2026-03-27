@@ -642,7 +642,7 @@ function RoomTypeRows({
                 "px-2 py-1 text-center border-r cursor-pointer transition-colors",
                 isWeekend && "bg-orange-50/50 hover:bg-orange-100/50",
                 dayType === 'holiday' && "bg-red-50/50 hover:bg-red-100/50",
-                !isWeekend && dayType !== 'holiday' && "hover:bg-muted/50",
+                !isWeekend && "hover:bg-muted/50",
               )}
               onClick={() => onCellClick(roomType, null, dateStr, cellData?.price || undefined, cellData?.available_rooms)}
             >
