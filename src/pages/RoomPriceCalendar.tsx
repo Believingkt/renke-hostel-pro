@@ -260,7 +260,8 @@ export default function RoomPriceCalendar() {
     roomType: RoomType,
     template: PricingTemplate | null,
     dateStr: string,
-    currentPrice?: number
+    currentPrice?: number,
+    currentAvailableRooms?: number
   ) => {
     setSelectedCell({
       roomTypeId: roomType.id,
@@ -269,6 +270,7 @@ export default function RoomPriceCalendar() {
       templateName: template?.project_name || template?.template_name,
       date: dateStr,
       currentPrice,
+      currentAvailableRooms,
     });
     setEditDialogOpen(true);
   };
