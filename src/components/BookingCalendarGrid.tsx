@@ -550,7 +550,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                       // Ensure we show at least room_count rows
                       const minRows = Math.max(roomCount, roomSlots.length, 1);
 
-                      return Array.from({ length: minRows }, (_, slotIdx) => {
+                      const slotRows = Array.from({ length: minRows }, (_, slotIdx) => {
                         const slotOrders = roomSlots[slotIdx] || [];
                         
                         return (
@@ -591,7 +591,6 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                 const checkInDate = order.check_in_date;
                                 const checkOutDate = order.check_out_date;
                                 
-                                // Calculate position
                                 const visibleStart = checkInDate < dateStrings[0] ? dateStrings[0] : checkInDate;
                                 const visibleEnd = checkOutDate > dateStrings[dateStrings.length - 1]
                                   ? format(addDays(parseISO(dateStrings[dateStrings.length - 1]), 1), "yyyy-MM-dd")
@@ -644,58 +643,71 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                   </div>
                                 );
                               })}
-
-                              {/* Exclusive package block bars - only on first slot row */}
-                              {slotIdx === 0 && exclusiveBlockOrders.map(exOrder => {
-                                const visibleStart = exOrder.check_in_date < dateStrings[0] ? dateStrings[0] : exOrder.check_in_date;
-                                const visibleEnd = exOrder.check_out_date > dateStrings[dateStrings.length - 1]
-                                  ? format(addDays(parseISO(dateStrings[dateStrings.length - 1]), 1), "yyyy-MM-dd")
-                                  : exOrder.check_out_date;
-                                
-                                const startIdx = dateStrings.indexOf(visibleStart);
-                                if (startIdx === -1) return null;
-                                
-                                const endIdx = dateStrings.indexOf(visibleEnd);
-                                const span = endIdx === -1 ? dateStrings.length - startIdx : endIdx - startIdx;
-                                if (span <= 0) return null;
-
-                                const leftPercent = (startIdx / dayCount) * 100;
-                                const widthPercent = (span / dayCount) * 100;
-                                const isClippedLeft = exOrder.check_in_date < dateStrings[0];
-                                const isClippedRight = exOrder.check_out_date > format(addDays(parseISO(dateStrings[dateStrings.length - 1]), 1), "yyyy-MM-dd");
-                                const exRoomType = roomTypes.find(r => r.id === exOrder.room_type_id);
-
-                                return (
-                                  <div
-                                    key={`ex-${exOrder.id}`}
-                                    className={cn(
-                                      "absolute top-1 z-[5] cursor-pointer",
-                                      "border border-amber-400 bg-amber-100/80 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300",
-                                      "rounded-md flex items-center px-2 gap-1 text-xs overflow-hidden",
-                                      "hover:brightness-95 transition-all",
-                                      isClippedLeft && "rounded-l-none border-l-0",
-                                      isClippedRight && "rounded-r-none border-r-0",
-                                    )}
-                                    style={{
-                                      left: `${leftPercent}%`,
-                                      width: `${widthPercent}%`,
-                                      height: `calc(${minRows} * 100% - 8px)`,
-                                    }}
-                                    onClick={() => navigate(`/admin/orders/${exOrder.id}`, { state: { from: '/admin/room-inventory' } })}
-                                    title={`包區佔用 | ${exRoomType?.name || '包區'} | ${exOrder.guest_name} | ${exOrder.check_in_date} ~ ${exOrder.check_out_date}`}
-                                  >
-                                    <Lock className="h-3 w-3 shrink-0" />
-                                    <span className="font-medium truncate">包區佔用 - {exOrder.guest_name}</span>
-                                    {span >= 3 && (
-                                      <span className="truncate hidden sm:inline">({exRoomType?.name})</span>
-                                    )}
-                                  </div>
-                                );
-                              })}
                             </div>
                           </div>
                         );
                       });
+
+                      // If there are exclusive block orders, wrap in relative container with overlay
+                      if (exclusiveBlockOrders.length > 0) {
+                        return (
+                          <div className="relative" key="slots-wrapper">
+                            {slotRows}
+                            {/* Exclusive package overlay bars spanning all rows */}
+                            <div className="absolute inset-0 pointer-events-none z-[8]" style={{ left: LEFT_COL_WIDTH }}>
+                              <div className="relative h-full w-full">
+                                {exclusiveBlockOrders.map(exOrder => {
+                                  const visibleStart = exOrder.check_in_date < dateStrings[0] ? dateStrings[0] : exOrder.check_in_date;
+                                  const visibleEnd = exOrder.check_out_date > dateStrings[dateStrings.length - 1]
+                                    ? format(addDays(parseISO(dateStrings[dateStrings.length - 1]), 1), "yyyy-MM-dd")
+                                    : exOrder.check_out_date;
+                                  
+                                  const startIdx = dateStrings.indexOf(visibleStart);
+                                  if (startIdx === -1) return null;
+                                  
+                                  const endIdx = dateStrings.indexOf(visibleEnd);
+                                  const span = endIdx === -1 ? dateStrings.length - startIdx : endIdx - startIdx;
+                                  if (span <= 0) return null;
+
+                                  const leftPercent = (startIdx / dayCount) * 100;
+                                  const widthPercent = (span / dayCount) * 100;
+                                  const isClippedLeft = exOrder.check_in_date < dateStrings[0];
+                                  const isClippedRight = exOrder.check_out_date > format(addDays(parseISO(dateStrings[dateStrings.length - 1]), 1), "yyyy-MM-dd");
+                                  const exRoomType = roomTypes.find(r => r.id === exOrder.room_type_id);
+
+                                  return (
+                                    <div
+                                      key={`ex-${exOrder.id}`}
+                                      className={cn(
+                                        "absolute top-1 bottom-1 pointer-events-auto cursor-pointer",
+                                        "border-2 border-amber-400 bg-amber-200/60 dark:bg-amber-800/40 text-amber-700 dark:text-amber-300",
+                                        "rounded-md flex items-center justify-center px-2 gap-1.5 text-xs",
+                                        "hover:bg-amber-200/80 dark:hover:bg-amber-800/60 transition-all",
+                                        isClippedLeft && "rounded-l-none border-l-0",
+                                        isClippedRight && "rounded-r-none border-r-0",
+                                      )}
+                                      style={{
+                                        left: `${leftPercent}%`,
+                                        width: `${widthPercent}%`,
+                                      }}
+                                      onClick={() => navigate(`/admin/orders/${exOrder.id}`, { state: { from: '/admin/room-inventory' } })}
+                                      title={`包區佔用 | ${exRoomType?.name || '包區'} | ${exOrder.guest_name} | ${exOrder.check_in_date} ~ ${exOrder.check_out_date}`}
+                                    >
+                                      <Lock className="h-3.5 w-3.5 shrink-0" />
+                                      <span className="font-semibold truncate">包區佔用 - {exOrder.guest_name}</span>
+                                      {span >= 3 && exRoomType && (
+                                        <span className="truncate hidden sm:inline opacity-75">({exRoomType.name})</span>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      return slotRows;
                     })()}
                   </>
                 )}
