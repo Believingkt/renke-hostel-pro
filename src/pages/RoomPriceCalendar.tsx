@@ -88,6 +88,7 @@ export default function RoomPriceCalendar() {
     templateName?: string;
     date: string;
     currentPrice?: number;
+    currentAvailableRooms?: number;
   } | null>(null);
 
   // 計算當月的所有日期
@@ -259,7 +260,8 @@ export default function RoomPriceCalendar() {
     roomType: RoomType,
     template: PricingTemplate | null,
     dateStr: string,
-    currentPrice?: number
+    currentPrice?: number,
+    currentAvailableRooms?: number
   ) => {
     setSelectedCell({
       roomTypeId: roomType.id,
@@ -268,6 +270,7 @@ export default function RoomPriceCalendar() {
       templateName: template?.project_name || template?.template_name,
       date: dateStr,
       currentPrice,
+      currentAvailableRooms,
     });
     setEditDialogOpen(true);
   };
@@ -526,6 +529,7 @@ export default function RoomPriceCalendar() {
           templateName={selectedCell.templateName}
           initialDate={selectedCell.date}
           currentPrice={selectedCell.currentPrice}
+          currentAvailableRooms={selectedCell.currentAvailableRooms}
           accommodationId={currentAccommodationId || ''}
           onComplete={handleEditComplete}
         />
@@ -543,7 +547,7 @@ interface RoomTypeRowsProps {
   holidays: Map<string, PublicHoliday>;
   getCellData: (roomTypeId: string, dateStr: string) => InventoryData | undefined;
   getDayType: (date: Date, dateStr: string) => 'weekend' | 'holiday' | 'weekday';
-  onCellClick: (roomType: RoomType, template: PricingTemplate | null, dateStr: string, currentPrice?: number) => void;
+  onCellClick: (roomType: RoomType, template: PricingTemplate | null, dateStr: string, currentPrice?: number, currentAvailableRooms?: number) => void;
   showCategoryHeader?: boolean;
 }
 
@@ -690,7 +694,7 @@ function RoomTypeRows({
                   // 關閉販售：在價格列做淡化提示（仍可點擊編輯以重新開啟）
                   isUnavailable && "opacity-60",
                 )}
-                onClick={() => onCellClick(roomType, template, dateStr, price || undefined)}
+                onClick={() => onCellClick(roomType, template, dateStr, price || undefined, cellData?.available_rooms)}
                 title={isUnavailable ? '無法預定（已關閉販售）' : undefined}
               >
                 <span className="text-sm">{isUnavailable ? '' : formatPrice(price)}</span>

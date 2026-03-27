@@ -30,6 +30,7 @@ interface RoomPriceEditDialogProps {
   templateName?: string;
   initialDate: string;
   currentPrice?: number;
+  currentAvailableRooms?: number;
   accommodationId: string;
   onComplete: () => void;
 }
@@ -53,6 +54,7 @@ export function RoomPriceEditDialog({
   templateName,
   initialDate,
   currentPrice,
+  currentAvailableRooms,
   accommodationId,
   onComplete,
 }: RoomPriceEditDialogProps) {
@@ -65,7 +67,7 @@ export function RoomPriceEditDialog({
   const [changeAvailability, setChangeAvailability] = useState(false);
   const [isAvailable, setIsAvailable] = useState(true);
   const [changeInventory, setChangeInventory] = useState(false);
-  const [inventoryCount, setInventoryCount] = useState('1');
+  const [inventoryCount, setInventoryCount] = useState(currentAvailableRooms?.toString() || '1');
   const [saving, setSaving] = useState(false);
   const [holidays, setHolidays] = useState<Set<string>>(new Set());
 
@@ -88,7 +90,7 @@ export function RoomPriceEditDialog({
       setChangeAvailability(false);
       setIsAvailable(true);
       setChangeInventory(false);
-      setInventoryCount('1');
+      setInventoryCount(currentAvailableRooms?.toString() || '1');
     }
   }, [open, initialDate, currentPrice]);
 
