@@ -412,6 +412,37 @@ export function RoomPriceEditDialog({
                 </div>
               )}
             </div>
+
+            {/* 變更庫存量 */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="changeInventory"
+                  checked={changeInventory}
+                  onCheckedChange={(checked) => setChangeInventory(checked === true)}
+                />
+                <label htmlFor="changeInventory" className="text-sm cursor-pointer font-medium">
+                  變更庫存量
+                </label>
+              </div>
+
+              {changeInventory && (
+                <div className="ml-6 flex items-center gap-2">
+                  <Label htmlFor="inventoryCount" className="text-sm">
+                    庫存數量
+                  </Label>
+                  <Input
+                    id="inventoryCount"
+                    type="number"
+                    min="0"
+                    value={inventoryCount}
+                    onChange={(e) => setInventoryCount(e.target.value)}
+                    className="w-32"
+                    placeholder="1"
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
