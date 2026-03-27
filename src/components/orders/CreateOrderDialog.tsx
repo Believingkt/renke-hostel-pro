@@ -446,6 +446,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         guest_name: form.guest_name.trim(),
         guest_phone: form.guest_phone.trim(),
         guest_email: form.guest_email.trim() || null,
+        guest_gender: form.guest_gender || null,
+        guest_nationality: form.guest_nationality.trim() || null,
         check_in_date: form.check_in_date,
         check_out_date: form.check_out_date,
         room_type_id: form.room_type_id,
