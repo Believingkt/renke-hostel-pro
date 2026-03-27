@@ -20,8 +20,6 @@ const ORDER_STATUSES = [
   { value: "hold", label: "保留中" },
   { value: "pending", label: "待確認" },
   { value: "confirmed", label: "已確認" },
-  { value: "checked_in", label: "已入住" },
-  { value: "checked_out", label: "已退房" },
   { value: "cancelled", label: "已取消" },
 ];
 
