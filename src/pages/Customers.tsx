@@ -66,6 +66,8 @@ interface Customer {
   name: string;
   phone: string | null;
   email: string | null;
+  gender: string | null;
+  nationality: string | null;
   first_order_date: string | null;
   visit_count: number;
   notes: string | null;
