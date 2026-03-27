@@ -60,6 +60,8 @@ export function RoomPriceEditDialog({
 }: RoomPriceEditDialogProps) {
   const [startDate, setStartDate] = useState<Date>(parseISO(initialDate));
   const [endDate, setEndDate] = useState<Date>(parseISO(initialDate));
+  const [startPopoverOpen, setStartPopoverOpen] = useState(false);
+  const [endPopoverOpen, setEndPopoverOpen] = useState(false);
   const [selectedDays, setSelectedDays] = useState<Set<string>>(new Set(['0', '1', '2', '3', '4', '5', '6']));
   const [excludeHolidays, setExcludeHolidays] = useState(false);
   const [changePrice, setChangePrice] = useState(false);
@@ -264,7 +266,7 @@ export function RoomPriceEditDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>開始日期</Label>
-              <Popover>
+              <Popover open={startPopoverOpen} onOpenChange={setStartPopoverOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -281,15 +283,22 @@ export function RoomPriceEditDialog({
                   <Calendar
                     mode="single"
                     selected={startDate}
-                    onSelect={(date) => date && setStartDate(date)}
+                    onSelect={(date) => {
+                      if (date) {
+                        setStartDate(date);
+                        setStartPopoverOpen(false);
+                        setTimeout(() => setEndPopoverOpen(true), 150);
+                      }
+                    }}
                     initialFocus
+                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
             </div>
             <div className="space-y-2">
               <Label>結束日期</Label>
-              <Popover>
+              <Popover open={endPopoverOpen} onOpenChange={setEndPopoverOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -306,8 +315,14 @@ export function RoomPriceEditDialog({
                   <Calendar
                     mode="single"
                     selected={endDate}
-                    onSelect={(date) => date && setEndDate(date)}
+                    onSelect={(date) => {
+                      if (date) {
+                        setEndDate(date);
+                        setEndPopoverOpen(false);
+                      }
+                    }}
                     initialFocus
+                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
