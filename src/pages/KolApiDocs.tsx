@@ -586,6 +586,68 @@ function verifyWebhookSignature(payload, signature, timestamp, secret) {
 
             <Separator />
 
+            {/* Platform Management API */}
+            <section>
+              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Server className="h-5 w-5" />
+                平台管理 API（合作平台專用）
+              </h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                合作平台可透過平台主金鑰 (x-platform-key) 管理網紅的 API Key。所有管理端點需在請求頭中加入 <code className="bg-muted px-1 py-0.5 rounded text-xs">x-platform-key</code>。
+              </p>
+
+              <div className="space-y-4">
+                {/* Generate Key */}
+                <div className="bg-muted/50 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="bg-green-600 text-white text-xs px-2 py-0.5 rounded font-mono">POST</span>
+                    <code className="text-sm font-mono">/kol-api/manage/keys</code>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-2">為指定折扣碼生成 API Key</p>
+                  <p className="text-xs text-muted-foreground">Body: <code>{`{"code": "DISCOUNT_CODE"}`}</code></p>
+                  <p className="text-xs text-muted-foreground mt-1">回應包含: code, name, api_key</p>
+                </div>
+
+                {/* Get Key */}
+                <div className="bg-muted/50 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded font-mono">GET</span>
+                    <code className="text-sm font-mono">/kol-api/manage/keys?code=DISCOUNT_CODE</code>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-2">查詢指定折扣碼的 API Key</p>
+                  <p className="text-xs text-muted-foreground">回應包含: code, name, api_key, has_key</p>
+                </div>
+
+                {/* Revoke Key */}
+                <div className="bg-muted/50 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="bg-red-600 text-white text-xs px-2 py-0.5 rounded font-mono">DELETE</span>
+                    <code className="text-sm font-mono">/kol-api/manage/keys?code=DISCOUNT_CODE</code>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-2">撤銷指定折扣碼的 API Key</p>
+                </div>
+
+                {/* List Codes */}
+                <div className="bg-muted/50 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded font-mono">GET</span>
+                    <code className="text-sm font-mono">/kol-api/manage/codes</code>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-2">列出所有折扣碼及 API Key 狀態</p>
+                  <p className="text-xs text-muted-foreground">回應包含: codes[] (code, name, has_api_key, ...)</p>
+                </div>
+              </div>
+
+              <div className="mt-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">⚠️ 安全提醒</p>
+                <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                  平台主金鑰具有最高管理權限，請嚴格限制存取範圍，僅在伺服器端使用，切勿在前端暴露。
+                </p>
+              </div>
+            </section>
+
+            <Separator />
+
             {/* Notes */}
             <section>
               <h2 className="text-lg font-semibold mb-4">注意事項</h2>
@@ -598,6 +660,7 @@ function verifyWebhookSignature(payload, signature, timestamp, secret) {
                 <li>API 支援 CORS，可直接從瀏覽器調用</li>
                 <li>API 回應時間通常在 100-500ms 之間</li>
                 <li>Webhook 通知為即時發送，建議設定穩定的接收端點</li>
+                <li>平台管理 API 需使用獨立的平台主金鑰 (x-platform-key) 驗證</li>
               </ul>
             </section>
           </div>
