@@ -64,6 +64,8 @@ export function RoomPriceEditDialog({
   const [customPrice, setCustomPrice] = useState(currentPrice?.toString() || '');
   const [changeAvailability, setChangeAvailability] = useState(false);
   const [isAvailable, setIsAvailable] = useState(true);
+  const [changeInventory, setChangeInventory] = useState(false);
+  const [inventoryCount, setInventoryCount] = useState('1');
   const [saving, setSaving] = useState(false);
   const [holidays, setHolidays] = useState<Set<string>>(new Set());
 
@@ -85,6 +87,8 @@ export function RoomPriceEditDialog({
       setCustomPrice(currentPrice?.toString() || '');
       setChangeAvailability(false);
       setIsAvailable(true);
+      setChangeInventory(false);
+      setInventoryCount('1');
     }
   }, [open, initialDate, currentPrice]);
 
@@ -123,7 +127,7 @@ export function RoomPriceEditDialog({
   };
 
   const handleSave = async () => {
-    if (!changePrice && !changeAvailability) {
+    if (!changePrice && !changeAvailability && !changeInventory) {
       toast.error('請至少選擇一項變更設定');
       return;
     }
@@ -180,6 +184,10 @@ export function RoomPriceEditDialog({
           updateData.is_available = isAvailable;
         }
 
+        if (changeInventory) {
+          updateData.available_rooms = parseInt(inventoryCount);
+        }
+
         return updateData;
       });
 
@@ -199,7 +207,7 @@ export function RoomPriceEditDialog({
       const toInsert = updates.filter(u => !existingDates.has(u.date)).map(u => ({
         ...u,
         price: u.price || parseInt(customPrice) || currentPrice || 0,
-        available_rooms: 1,
+        available_rooms: u.available_rooms ?? 1,
         is_available: u.is_available ?? true,
       }));
 
@@ -401,6 +409,37 @@ export function RoomPriceEditDialog({
                       <label htmlFor="close" className="text-sm cursor-pointer">關閉</label>
                     </div>
                   </RadioGroup>
+                </div>
+              )}
+            </div>
+
+            {/* 變更庫存量 */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="changeInventory"
+                  checked={changeInventory}
+                  onCheckedChange={(checked) => setChangeInventory(checked === true)}
+                />
+                <label htmlFor="changeInventory" className="text-sm cursor-pointer font-medium">
+                  變更庫存量
+                </label>
+              </div>
+
+              {changeInventory && (
+                <div className="ml-6 flex items-center gap-2">
+                  <Label htmlFor="inventoryCount" className="text-sm">
+                    庫存數量
+                  </Label>
+                  <Input
+                    id="inventoryCount"
+                    type="number"
+                    min="0"
+                    value={inventoryCount}
+                    onChange={(e) => setInventoryCount(e.target.value)}
+                    className="w-32"
+                    placeholder="1"
+                  />
                 </div>
               )}
             </div>
