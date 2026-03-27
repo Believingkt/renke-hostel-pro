@@ -184,6 +184,10 @@ export function RoomPriceEditDialog({
           updateData.is_available = isAvailable;
         }
 
+        if (changeInventory) {
+          updateData.available_rooms = parseInt(inventoryCount);
+        }
+
         return updateData;
       });
 
