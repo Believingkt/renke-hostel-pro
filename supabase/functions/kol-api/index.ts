@@ -130,14 +130,14 @@ Deno.serve(async (req) => {
         console.error('[KOL-API] PLATFORM_MASTER_KEY not configured');
         return new Response(
           JSON.stringify({ error: '平台管理功能未設定' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 500, headers: { ...manageCorsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
       if (!platformKey || platformKey !== masterKey) {
         return new Response(
           JSON.stringify({ error: '平台驗證失敗' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 401, headers: { ...manageCorsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
         if (!code) {
           return new Response(
             JSON.stringify({ error: '缺少必要參數：code' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            { status: 400, headers: { ...manageCorsHeaders, 'Content-Type': 'application/json' } }
           );
         }
 
@@ -168,7 +168,7 @@ Deno.serve(async (req) => {
         if (dcErr || !dc) {
           return new Response(
             JSON.stringify({ error: '找不到此折扣碼' }),
-            { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            { status: 404, headers: { ...manageCorsHeaders, 'Content-Type': 'application/json' } }
           );
         }
 
@@ -187,7 +187,7 @@ Deno.serve(async (req) => {
           console.error('[KOL-API] Error upserting API key:', upsertErr);
           return new Response(
             JSON.stringify({ error: '生成 API Key 失敗' }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            { status: 500, headers: { ...manageCorsHeaders, 'Content-Type': 'application/json' } }
           );
         }
 
@@ -199,7 +199,7 @@ Deno.serve(async (req) => {
             name: dc.name,
             api_key: newApiKey
           }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { headers: { ...manageCorsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -210,7 +210,7 @@ Deno.serve(async (req) => {
         if (!code) {
           return new Response(
             JSON.stringify({ error: '缺少必要參數：code' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            { status: 400, headers: { ...manageCorsHeaders, 'Content-Type': 'application/json' } }
           );
         }
 
@@ -223,7 +223,7 @@ Deno.serve(async (req) => {
         if (!dc) {
           return new Response(
             JSON.stringify({ error: '找不到此折扣碼' }),
-            { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            { status: 404, headers: { ...manageCorsHeaders, 'Content-Type': 'application/json' } }
           );
         }
 
@@ -243,7 +243,7 @@ Deno.serve(async (req) => {
             created_at: secrets?.created_at,
             updated_at: secrets?.updated_at
           }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { headers: { ...manageCorsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -254,7 +254,7 @@ Deno.serve(async (req) => {
         if (!code) {
           return new Response(
             JSON.stringify({ error: '缺少必要參數：code' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            { status: 400, headers: { ...manageCorsHeaders, 'Content-Type': 'application/json' } }
           );
         }
 
@@ -267,7 +267,7 @@ Deno.serve(async (req) => {
         if (!dc) {
           return new Response(
             JSON.stringify({ error: '找不到此折扣碼' }),
-            { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            { status: 404, headers: { ...manageCorsHeaders, 'Content-Type': 'application/json' } }
           );
         }
 
@@ -279,14 +279,14 @@ Deno.serve(async (req) => {
         if (updateErr) {
           return new Response(
             JSON.stringify({ error: '撤銷 API Key 失敗' }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            { status: 500, headers: { ...manageCorsHeaders, 'Content-Type': 'application/json' } }
           );
         }
 
         console.log('[KOL-API] Platform revoked API key for code:', code);
         return new Response(
           JSON.stringify({ success: true, message: `已撤銷 ${dc.code} 的 API Key` }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { headers: { ...manageCorsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -304,7 +304,7 @@ Deno.serve(async (req) => {
         if (codesErr) {
           return new Response(
             JSON.stringify({ error: '查詢折扣碼失敗' }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            { status: 500, headers: { ...manageCorsHeaders, 'Content-Type': 'application/json' } }
           );
         }
 
@@ -323,13 +323,13 @@ Deno.serve(async (req) => {
 
         return new Response(
           JSON.stringify({ success: true, codes: result }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { headers: { ...manageCorsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
       return new Response(
         JSON.stringify({ error: '未知的管理端點' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 404, headers: { ...manageCorsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
