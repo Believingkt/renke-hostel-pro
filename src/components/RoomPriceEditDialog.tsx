@@ -127,7 +127,7 @@ export function RoomPriceEditDialog({
   };
 
   const handleSave = async () => {
-    if (!changePrice && !changeAvailability) {
+    if (!changePrice && !changeAvailability && !changeInventory) {
       toast.error('請至少選擇一項變更設定');
       return;
     }
