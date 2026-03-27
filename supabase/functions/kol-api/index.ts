@@ -115,6 +115,13 @@ Deno.serve(async (req) => {
 
     // ========== Platform Management Endpoints ==========
     // Authenticated via PLATFORM_MASTER_KEY header
+    // Allow any origin for platform API calls
+    const manageCorsHeaders = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key, x-platform-key',
+      'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+    };
+
     if (pathname.includes('/manage/')) {
       const platformKey = req.headers.get('x-platform-key');
       const masterKey = Deno.env.get('PLATFORM_MASTER_KEY');
