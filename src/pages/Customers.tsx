@@ -262,6 +262,8 @@ const Customers = () => {
         name: formData.name,
         phone: formData.phone || null,
         email: formData.email || null,
+        gender: formData.gender || null,
+        nationality: formData.nationality || null,
         first_order_date: formData.first_order_date || null,
         visit_count: parseInt(formData.visit_count) || 0,
         notes: formData.notes || null,
