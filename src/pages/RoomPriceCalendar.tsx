@@ -21,7 +21,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { RoomPriceEditDialog } from "@/components/RoomPriceEditDialog";
-import { ClearProjectPricingDialog } from "@/components/ClearProjectPricingDialog";
+
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 
 interface RoomType {
