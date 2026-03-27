@@ -377,6 +377,34 @@ const Customers = () => {
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
+          <Label htmlFor="gender">性別</Label>
+          <Select
+            value={formData.gender}
+            onValueChange={(value) => setFormData({ ...formData, gender: value })}
+          >
+            <SelectTrigger className="h-12 sm:h-10">
+              <SelectValue placeholder="請選擇" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="male">男</SelectItem>
+              <SelectItem value="female">女</SelectItem>
+              <SelectItem value="other">其他</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="nationality">國籍</Label>
+          <Input
+            id="nationality"
+            value={formData.nationality}
+            onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
+            placeholder="例如：台灣、日本"
+            className="h-12 text-base sm:h-10 sm:text-sm"
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
           <Label htmlFor="first_order_date">首筆訂單日</Label>
           <Input
             id="first_order_date"
