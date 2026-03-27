@@ -6,6 +6,20 @@ const allowedOrigins = [
   'https://dmafqwfynatdvnaeovhz.lovableproject.com',
 ];
 
+// Generate a secure random API key
+function generateApiKey(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const segments = [];
+  for (let s = 0; s < 4; s++) {
+    let segment = '';
+    for (let i = 0; i < 8; i++) {
+      segment += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    segments.push(segment);
+  }
+  return `kol_${segments.join('_')}`;
+}
+
 function getCorsHeaders(req: Request) {
   const origin = req.headers.get('origin') || '';
   const allowedOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
