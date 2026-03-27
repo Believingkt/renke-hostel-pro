@@ -89,6 +89,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     guest_name: "",
     guest_phone: "",
     guest_email: "",
+    guest_gender: "",
+    guest_nationality: "",
     check_in_date: "",
     check_out_date: "",
     room_type_id: "",
