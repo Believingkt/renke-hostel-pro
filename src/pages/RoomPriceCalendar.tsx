@@ -88,6 +88,7 @@ export default function RoomPriceCalendar() {
     templateName?: string;
     date: string;
     currentPrice?: number;
+    currentAvailableRooms?: number;
   } | null>(null);
 
   // 計算當月的所有日期
