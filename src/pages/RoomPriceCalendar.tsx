@@ -530,14 +530,6 @@ export default function RoomPriceCalendar() {
           onComplete={handleEditComplete}
         />
       )}
-      {/* 清除專案房價對話框 */}
-      <ClearProjectPricingDialog
-        open={clearPricingDialogOpen}
-        onOpenChange={setClearPricingDialogOpen}
-        accommodationId={currentAccommodationId || ''}
-        roomTypes={roomTypes}
-        onComplete={loadData}
-      />
     </div>
   );
 }
