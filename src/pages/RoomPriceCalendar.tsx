@@ -80,7 +80,7 @@ export default function RoomPriceCalendar() {
   
   // 編輯對話框狀態
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [clearPricingDialogOpen, setClearPricingDialogOpen] = useState(false);
+  
   const [selectedCell, setSelectedCell] = useState<{
     roomTypeId: string;
     roomTypeName: string;
