@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Eye, Calendar, DollarSign, Users, Phone, Mail, FileText, UserRound, Home } from "lucide-react";
+import { ArrowLeft, Eye, Calendar, DollarSign, Users, Phone, Mail, FileText, UserRound, Home, Globe, User } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbItem,
