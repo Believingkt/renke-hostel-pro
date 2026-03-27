@@ -87,6 +87,8 @@ export function RoomPriceEditDialog({
       setCustomPrice(currentPrice?.toString() || '');
       setChangeAvailability(false);
       setIsAvailable(true);
+      setChangeInventory(false);
+      setInventoryCount('1');
     }
   }, [open, initialDate, currentPrice]);
 
