@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, DollarSign, Home, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, DollarSign, Home } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { toast } from "sonner";
@@ -21,7 +21,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { RoomPriceEditDialog } from "@/components/RoomPriceEditDialog";
-import { ClearProjectPricingDialog } from "@/components/ClearProjectPricingDialog";
+
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 
 interface RoomType {
@@ -80,7 +80,7 @@ export default function RoomPriceCalendar() {
   
   // 編輯對話框狀態
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [clearPricingDialogOpen, setClearPricingDialogOpen] = useState(false);
+  
   const [selectedCell, setSelectedCell] = useState<{
     roomTypeId: string;
     roomTypeName: string;
@@ -395,17 +395,6 @@ export default function RoomPriceCalendar() {
               </Select>
             </div>
 
-            {/* 清除專案房價 */}
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
-              onClick={() => setClearPricingDialogOpen(true)}
-            >
-              <Trash2 className="h-4 w-4 mr-1.5" />
-              清除專案房價
-            </Button>
-
             {/* 月份選擇器 */}
             <div className="flex items-center gap-2 ml-auto">
               <Button variant="outline" size="icon" onClick={handlePrevMonth}>
@@ -541,14 +530,6 @@ export default function RoomPriceCalendar() {
           onComplete={handleEditComplete}
         />
       )}
-      {/* 清除專案房價對話框 */}
-      <ClearProjectPricingDialog
-        open={clearPricingDialogOpen}
-        onOpenChange={setClearPricingDialogOpen}
-        accommodationId={currentAccommodationId || ''}
-        roomTypes={roomTypes}
-        onComplete={loadData}
-      />
     </div>
   );
 }
