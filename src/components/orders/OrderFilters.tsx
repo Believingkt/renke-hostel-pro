@@ -135,8 +135,6 @@ export function OrderFilters({
             <option value="hold">保留中</option>
             <option value="pending">待確認</option>
             <option value="confirmed">已確認</option>
-            <option value="checked_in">已入住</option>
-            <option value="checked_out">已退房</option>
             <option value="cancelled">已取消</option>
           </select>
         </div>
