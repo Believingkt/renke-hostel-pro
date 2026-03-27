@@ -298,7 +298,7 @@ export function RoomPriceEditDialog({
             </div>
             <div className="space-y-2">
               <Label>結束日期</Label>
-              <Popover>
+              <Popover open={endPopoverOpen} onOpenChange={setEndPopoverOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -315,8 +315,14 @@ export function RoomPriceEditDialog({
                   <Calendar
                     mode="single"
                     selected={endDate}
-                    onSelect={(date) => date && setEndDate(date)}
+                    onSelect={(date) => {
+                      if (date) {
+                        setEndDate(date);
+                        setEndPopoverOpen(false);
+                      }
+                    }}
                     initialFocus
+                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
