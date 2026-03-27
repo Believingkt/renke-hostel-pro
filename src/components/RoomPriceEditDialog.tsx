@@ -207,7 +207,7 @@ export function RoomPriceEditDialog({
       const toInsert = updates.filter(u => !existingDates.has(u.date)).map(u => ({
         ...u,
         price: u.price || parseInt(customPrice) || currentPrice || 0,
-        available_rooms: 1,
+        available_rooms: u.available_rooms ?? 1,
         is_available: u.is_available ?? true,
       }));
 
