@@ -54,6 +54,7 @@ export function RoomPriceEditDialog({
   templateName,
   initialDate,
   currentPrice,
+  currentAvailableRooms,
   accommodationId,
   onComplete,
 }: RoomPriceEditDialogProps) {
