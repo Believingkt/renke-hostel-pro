@@ -644,6 +644,54 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                   </div>
                                 );
                               })}
+
+                              {/* Exclusive package block bars - only on first slot row */}
+                              {slotIdx === 0 && exclusiveBlockOrders.map(exOrder => {
+                                const visibleStart = exOrder.check_in_date < dateStrings[0] ? dateStrings[0] : exOrder.check_in_date;
+                                const visibleEnd = exOrder.check_out_date > dateStrings[dateStrings.length - 1]
+                                  ? format(addDays(parseISO(dateStrings[dateStrings.length - 1]), 1), "yyyy-MM-dd")
+                                  : exOrder.check_out_date;
+                                
+                                const startIdx = dateStrings.indexOf(visibleStart);
+                                if (startIdx === -1) return null;
+                                
+                                const endIdx = dateStrings.indexOf(visibleEnd);
+                                const span = endIdx === -1 ? dateStrings.length - startIdx : endIdx - startIdx;
+                                if (span <= 0) return null;
+
+                                const leftPercent = (startIdx / dayCount) * 100;
+                                const widthPercent = (span / dayCount) * 100;
+                                const isClippedLeft = exOrder.check_in_date < dateStrings[0];
+                                const isClippedRight = exOrder.check_out_date > format(addDays(parseISO(dateStrings[dateStrings.length - 1]), 1), "yyyy-MM-dd");
+                                const exRoomType = roomTypes.find(r => r.id === exOrder.room_type_id);
+
+                                return (
+                                  <div
+                                    key={`ex-${exOrder.id}`}
+                                    className={cn(
+                                      "absolute top-1 z-[5] cursor-pointer",
+                                      "border border-amber-400 bg-amber-100/80 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300",
+                                      "rounded-md flex items-center px-2 gap-1 text-xs overflow-hidden",
+                                      "hover:brightness-95 transition-all",
+                                      isClippedLeft && "rounded-l-none border-l-0",
+                                      isClippedRight && "rounded-r-none border-r-0",
+                                    )}
+                                    style={{
+                                      left: `${leftPercent}%`,
+                                      width: `${widthPercent}%`,
+                                      height: `calc(${minRows} * 100% - 8px)`,
+                                    }}
+                                    onClick={() => navigate(`/admin/orders/${exOrder.id}`, { state: { from: '/admin/room-inventory' } })}
+                                    title={`包區佔用 | ${exRoomType?.name || '包區'} | ${exOrder.guest_name} | ${exOrder.check_in_date} ~ ${exOrder.check_out_date}`}
+                                  >
+                                    <Lock className="h-3 w-3 shrink-0" />
+                                    <span className="font-medium truncate">包區佔用 - {exOrder.guest_name}</span>
+                                    {span >= 3 && (
+                                      <span className="truncate hidden sm:inline">({exRoomType?.name})</span>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         );
