@@ -266,7 +266,7 @@ export function RoomPriceEditDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>開始日期</Label>
-              <Popover>
+              <Popover open={startPopoverOpen} onOpenChange={setStartPopoverOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -283,8 +283,15 @@ export function RoomPriceEditDialog({
                   <Calendar
                     mode="single"
                     selected={startDate}
-                    onSelect={(date) => date && setStartDate(date)}
+                    onSelect={(date) => {
+                      if (date) {
+                        setStartDate(date);
+                        setStartPopoverOpen(false);
+                        setTimeout(() => setEndPopoverOpen(true), 150);
+                      }
+                    }}
                     initialFocus
+                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
