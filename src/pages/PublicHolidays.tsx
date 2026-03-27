@@ -585,11 +585,6 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
           icon={CalendarDays}
           action={
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={() => setIsBatchDialogOpen(true)} className="text-xs sm:text-sm">
-                <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">批量導入</span>
-                <span className="sm:hidden">導入</span>
-              </Button>
               <Button onClick={() => setIsAddDialogOpen(true)} className="text-xs sm:text-sm">
                 <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 <span className="hidden sm:inline">新增假日</span>
@@ -1301,11 +1296,6 @@ export const PublicHolidaysButtons = ({
 }) => {
   return (
     <div className="flex flex-wrap gap-2">
-      <Button variant="outline" onClick={onBatchClick} className="text-xs sm:text-sm h-8 sm:h-10">
-        <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-        <span className="hidden xs:inline">批量導入</span>
-        <span className="xs:hidden">導入</span>
-      </Button>
       <Button onClick={onAddClick} className="text-xs sm:text-sm h-8 sm:h-10">
         <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
         新增假日
