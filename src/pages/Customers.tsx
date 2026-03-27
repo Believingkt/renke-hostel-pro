@@ -66,6 +66,8 @@ interface Customer {
   name: string;
   phone: string | null;
   email: string | null;
+  gender: string | null;
+  nationality: string | null;
   first_order_date: string | null;
   visit_count: number;
   notes: string | null;
@@ -92,6 +94,8 @@ const Customers = () => {
     name: "",
     phone: "",
     email: "",
+    gender: "",
+    nationality: "",
     first_order_date: "",
     visit_count: "0",
     notes: "",
@@ -205,6 +209,8 @@ const Customers = () => {
         name: customer.name,
         phone: customer.phone || "",
         email: customer.email || "",
+        gender: customer.gender || "",
+        nationality: customer.nationality || "",
         first_order_date: customer.first_order_date || "",
         visit_count: customer.visit_count.toString(),
         notes: customer.notes || "",
@@ -215,6 +221,8 @@ const Customers = () => {
         name: "",
         phone: "",
         email: "",
+        gender: "",
+        nationality: "",
         first_order_date: "",
         visit_count: "0",
         notes: "",
@@ -254,6 +262,8 @@ const Customers = () => {
         name: formData.name,
         phone: formData.phone || null,
         email: formData.email || null,
+        gender: formData.gender || null,
+        nationality: formData.nationality || null,
         first_order_date: formData.first_order_date || null,
         visit_count: parseInt(formData.visit_count) || 0,
         notes: formData.notes || null,
@@ -362,6 +372,34 @@ const Customers = () => {
             placeholder="example@email.com"
             className="h-12 text-base sm:h-10 sm:text-sm"
             inputMode="email"
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="gender">性別</Label>
+          <Select
+            value={formData.gender}
+            onValueChange={(value) => setFormData({ ...formData, gender: value })}
+          >
+            <SelectTrigger className="h-12 sm:h-10">
+              <SelectValue placeholder="請選擇" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="male">男</SelectItem>
+              <SelectItem value="female">女</SelectItem>
+              <SelectItem value="other">其他</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="nationality">國籍</Label>
+          <Input
+            id="nationality"
+            value={formData.nationality}
+            onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
+            placeholder="例如：台灣、日本"
+            className="h-12 text-base sm:h-10 sm:text-sm"
           />
         </div>
       </div>

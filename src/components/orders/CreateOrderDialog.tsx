@@ -89,6 +89,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     guest_name: "",
     guest_phone: "",
     guest_email: "",
+    guest_gender: "",
+    guest_nationality: "",
     check_in_date: "",
     check_out_date: "",
     room_type_id: "",
@@ -110,6 +112,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         guest_name: "",
         guest_phone: "",
         guest_email: "",
+        guest_gender: "",
+        guest_nationality: "",
         check_in_date: initialData?.check_in_date || "",
         check_out_date: initialData?.check_out_date || "",
         room_type_id: initialData?.room_type_id || "",
@@ -442,6 +446,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         guest_name: form.guest_name.trim(),
         guest_phone: form.guest_phone.trim(),
         guest_email: form.guest_email.trim() || null,
+        guest_gender: form.guest_gender || null,
+        guest_nationality: form.guest_nationality.trim() || null,
         check_in_date: form.check_in_date,
         check_out_date: form.check_out_date,
         room_type_id: form.room_type_id,
@@ -491,6 +497,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           .update({
             name: guestName,
             email: guestEmail,
+            gender: form.guest_gender || null,
+            nationality: form.guest_nationality.trim() || null,
             visit_count: existingCustomer.visit_count + 1,
             updated_at: new Date().toISOString(),
           })
@@ -504,6 +512,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             name: guestName,
             phone: guestPhone,
             email: guestEmail,
+            gender: form.guest_gender || null,
+            nationality: form.guest_nationality.trim() || null,
             visit_count: 1,
             first_order_date: form.check_in_date,
           })
@@ -641,6 +651,34 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           className="h-12 text-base sm:h-10 sm:text-sm"
           type="email"
         />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>性別</Label>
+          <Select
+            value={form.guest_gender}
+            onValueChange={(value) => setForm({...form, guest_gender: value})}
+          >
+            <SelectTrigger className="h-12 sm:h-10">
+              <SelectValue placeholder="請選擇" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="male">男</SelectItem>
+              <SelectItem value="female">女</SelectItem>
+              <SelectItem value="other">其他</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>國籍</Label>
+          <Input
+            value={form.guest_nationality}
+            onChange={(e) => setForm({...form, guest_nationality: e.target.value})}
+            placeholder="例如：台灣、日本"
+            className="h-12 text-base sm:h-10 sm:text-sm"
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -842,8 +842,10 @@ export type Database = {
           created_at: string
           email: string | null
           first_order_date: string | null
+          gender: string | null
           id: string
           name: string
+          nationality: string | null
           notes: string | null
           phone: string | null
           updated_at: string
@@ -854,8 +856,10 @@ export type Database = {
           created_at?: string
           email?: string | null
           first_order_date?: string | null
+          gender?: string | null
           id?: string
           name: string
+          nationality?: string | null
           notes?: string | null
           phone?: string | null
           updated_at?: string
@@ -866,8 +870,10 @@ export type Database = {
           created_at?: string
           email?: string | null
           first_order_date?: string | null
+          gender?: string | null
           id?: string
           name?: string
+          nationality?: string | null
           notes?: string | null
           phone?: string | null
           updated_at?: string
@@ -1191,7 +1197,9 @@ export type Database = {
           guest_address: string | null
           guest_count: number
           guest_email: string | null
+          guest_gender: string | null
           guest_name: string
+          guest_nationality: string | null
           guest_phone: string
           id: string
           meal_plan: string | null
@@ -1232,7 +1240,9 @@ export type Database = {
           guest_address?: string | null
           guest_count?: number
           guest_email?: string | null
+          guest_gender?: string | null
           guest_name: string
+          guest_nationality?: string | null
           guest_phone: string
           id?: string
           meal_plan?: string | null
@@ -1273,7 +1283,9 @@ export type Database = {
           guest_address?: string | null
           guest_count?: number
           guest_email?: string | null
+          guest_gender?: string | null
           guest_name?: string
+          guest_nationality?: string | null
           guest_phone?: string
           id?: string
           meal_plan?: string | null
