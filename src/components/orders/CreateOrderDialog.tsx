@@ -649,6 +649,34 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
+          <Label>性別</Label>
+          <Select
+            value={form.guest_gender}
+            onValueChange={(value) => setForm({...form, guest_gender: value})}
+          >
+            <SelectTrigger className="h-12 sm:h-10">
+              <SelectValue placeholder="請選擇" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="male">男</SelectItem>
+              <SelectItem value="female">女</SelectItem>
+              <SelectItem value="other">其他</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>國籍</Label>
+          <Input
+            value={form.guest_nationality}
+            onChange={(e) => setForm({...form, guest_nationality: e.target.value})}
+            placeholder="例如：台灣、日本"
+            className="h-12 text-base sm:h-10 sm:text-sm"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
           <Label>入住日期 <span className="text-destructive">*</span></Label>
           <Popover open={checkInOpen} onOpenChange={setCheckInOpen}>
             <PopoverTrigger asChild>
