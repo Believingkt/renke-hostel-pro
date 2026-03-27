@@ -497,6 +497,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           .update({
             name: guestName,
             email: guestEmail,
+            gender: form.guest_gender || null,
+            nationality: form.guest_nationality.trim() || null,
             visit_count: existingCustomer.visit_count + 1,
             updated_at: new Date().toISOString(),
           })
@@ -510,6 +512,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             name: guestName,
             phone: guestPhone,
             email: guestEmail,
+            gender: form.guest_gender || null,
+            nationality: form.guest_nationality.trim() || null,
             visit_count: 1,
             first_order_date: form.check_in_date,
           })
