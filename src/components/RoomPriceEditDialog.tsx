@@ -60,6 +60,8 @@ export function RoomPriceEditDialog({
 }: RoomPriceEditDialogProps) {
   const [startDate, setStartDate] = useState<Date>(parseISO(initialDate));
   const [endDate, setEndDate] = useState<Date>(parseISO(initialDate));
+  const [startPopoverOpen, setStartPopoverOpen] = useState(false);
+  const [endPopoverOpen, setEndPopoverOpen] = useState(false);
   const [selectedDays, setSelectedDays] = useState<Set<string>>(new Set(['0', '1', '2', '3', '4', '5', '6']));
   const [excludeHolidays, setExcludeHolidays] = useState(false);
   const [changePrice, setChangePrice] = useState(false);
