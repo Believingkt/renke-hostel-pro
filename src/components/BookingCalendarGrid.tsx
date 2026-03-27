@@ -514,6 +514,19 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
 
                     {/* Individual booking rows - group orders into "rooms" */}
                     {(() => {
+                      // Collect exclusive package orders that block this room type
+                      const exclusiveBlockOrders: Order[] = [];
+                      if (roomType.is_bound_to_exclusive && roomType.bound_exclusive_ids?.length) {
+                        roomType.bound_exclusive_ids.forEach(exId => {
+                          orders.filter(o => o.room_type_id === exId).forEach(o => {
+                            // Check if this order overlaps our visible range
+                            if (o.check_in_date <= dateStrings[dateStrings.length - 1] && o.check_out_date > dateStrings[0]) {
+                              exclusiveBlockOrders.push(o);
+                            }
+                          });
+                        });
+                      }
+
                       // Assign orders to visual "room slots"
                       const roomSlots: Order[][] = [];
                       const sortedOrders = [...rtOrders].sort((a, b) => a.check_in_date.localeCompare(b.check_in_date));
