@@ -704,7 +704,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                     key={`ex-${exOrder.id}`}
                                     className={cn(
                                       "absolute top-1 bottom-1 z-[6] cursor-pointer",
-                                      "border border-amber-400 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300",
+                                      "border border-muted-foreground/30 text-muted-foreground",
                                       "rounded-md flex items-center px-2 gap-1.5 text-xs overflow-hidden",
                                       "hover:brightness-95 transition-all",
                                       isClippedLeft && "rounded-l-none border-l-0",
@@ -713,6 +713,13 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                     style={{
                                       left: `${leftPercent}%`,
                                       width: `${widthPercent}%`,
+                                      background: `repeating-linear-gradient(
+                                        -45deg,
+                                        transparent,
+                                        transparent 4px,
+                                        hsl(var(--muted-foreground) / 0.15) 4px,
+                                        hsl(var(--muted-foreground) / 0.15) 5px
+                                      )`,
                                     }}
                                     onClick={() => navigate(`/admin/orders/${exOrder.id}`, { state: { from: '/admin/room-inventory' } })}
                                     title={`包區佔用 | ${exRoomType?.name || '包區'} | ${exOrder.guest_name} | ${exOrder.check_in_date} ~ ${exOrder.check_out_date}`}
