@@ -90,7 +90,7 @@ export function RoomPriceEditDialog({
       setChangeAvailability(false);
       setIsAvailable(true);
       setChangeInventory(false);
-      setInventoryCount('1');
+      setInventoryCount(currentAvailableRooms?.toString() || '1');
     }
   }, [open, initialDate, currentPrice]);
 
