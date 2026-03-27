@@ -529,6 +529,7 @@ export default function RoomPriceCalendar() {
           templateName={selectedCell.templateName}
           initialDate={selectedCell.date}
           currentPrice={selectedCell.currentPrice}
+          currentAvailableRooms={selectedCell.currentAvailableRooms}
           accommodationId={currentAccommodationId || ''}
           onComplete={handleEditComplete}
         />
