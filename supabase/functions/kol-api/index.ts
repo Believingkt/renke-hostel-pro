@@ -453,7 +453,7 @@ Deno.serve(async (req) => {
 
     console.log('[KOL-API] Authenticated successfully for code:', discountCode);
 
-    const pathname = url.pathname;
+    // Use pathname already declared above
 
     // GET /kol-api/orders - Query orders using this discount code
     if (pathname.includes('/orders')) {
