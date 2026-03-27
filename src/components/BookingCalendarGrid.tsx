@@ -449,13 +449,21 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                             "flex-1 border-r last:border-r-0 p-2 text-center text-sm",
                             isRedDay && "bg-destructive/5",
                             isToday(date) && "bg-primary/5",
-                            blockedByExclusive && "bg-amber-100 dark:bg-amber-900/30",
                           )}
-                          style={{ minWidth: DAY_COL_MIN_WIDTH }}
+                          style={{
+                            minWidth: DAY_COL_MIN_WIDTH,
+                            ...(blockedByExclusive
+                              ? {
+                                  backgroundColor: "hsl(var(--muted) / 0.28)",
+                                  backgroundImage:
+                                    "repeating-linear-gradient(-45deg, transparent, transparent 6px, hsl(var(--border) / 0.8) 6px, hsl(var(--border) / 0.8) 8px)",
+                                }
+                              : {}),
+                          }}
                         >
                           {blockedByExclusive ? (
-                            <span className="flex items-center justify-center gap-0.5 text-amber-600 dark:text-amber-400 font-medium">
-                              <Lock className="h-3 w-3" /> 包區
+                            <span className="flex items-center justify-center gap-0.5 text-muted-foreground">
+                              <Lock className="h-3 w-3" /> 0
                             </span>
                           ) : noInventory ? (
                             <span className="text-muted-foreground/40">—</span>
@@ -503,9 +511,17 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                 "flex-1 border-r last:border-r-0",
                                 isRedDay && "bg-destructive/5",
                                 isToday(date) && "bg-primary/5",
-                                blockedByExclusive && "bg-amber-100 dark:bg-amber-900/30",
                               )}
-                              style={{ minWidth: DAY_COL_MIN_WIDTH }}
+                              style={{
+                                minWidth: DAY_COL_MIN_WIDTH,
+                                ...(blockedByExclusive
+                                  ? {
+                                      backgroundColor: "hsl(var(--muted) / 0.28)",
+                                      backgroundImage:
+                                        "repeating-linear-gradient(-45deg, transparent, transparent 6px, hsl(var(--border) / 0.8) 6px, hsl(var(--border) / 0.8) 8px)",
+                                    }
+                                  : {}),
+                              }}
                             />
                           );
                         })}
@@ -514,25 +530,10 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
 
                     {/* Individual booking rows - group orders into "rooms" */}
                     {(() => {
-                      // Collect exclusive package orders that block this room type
-                      const exclusiveBlockOrders: Order[] = [];
-                      if (roomType.is_bound_to_exclusive && roomType.bound_exclusive_ids?.length) {
-                        roomType.bound_exclusive_ids.forEach(exId => {
-                          orders.filter(o => o.room_type_id === exId).forEach(o => {
-                            // Check if this order overlaps our visible range
-                            if (o.check_in_date <= dateStrings[dateStrings.length - 1] && o.check_out_date > dateStrings[0]) {
-                              exclusiveBlockOrders.push(o);
-                            }
-                          });
-                        });
-                      }
-
-                      // Assign orders to visual "room slots"
                       const roomSlots: Order[][] = [];
                       const sortedOrders = [...rtOrders].sort((a, b) => a.check_in_date.localeCompare(b.check_in_date));
                       
                       sortedOrders.forEach(order => {
-                        // Find first slot where this order doesn't overlap
                         let placed = false;
                         for (const slot of roomSlots) {
                           const lastOrder = slot[slot.length - 1];
@@ -547,7 +548,6 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                         }
                       });
 
-                      // Ensure we show at least room_count rows
                       const minRows = Math.max(roomCount, roomSlots.length, 1);
 
                       const slotRows = Array.from({ length: minRows }, (_, slotIdx) => {
@@ -579,9 +579,17 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                       "flex-1 border-r last:border-r-0",
                                       isRedDay && "bg-destructive/5",
                                       isToday(date) && "bg-primary/5",
-                                      blockedByExclusive && "bg-amber-100 dark:bg-amber-900/30",
                                     )}
-                                    style={{ minWidth: DAY_COL_MIN_WIDTH }}
+                                    style={{
+                                      minWidth: DAY_COL_MIN_WIDTH,
+                                      ...(blockedByExclusive
+                                        ? {
+                                            backgroundColor: "hsl(var(--muted) / 0.28)",
+                                            backgroundImage:
+                                              "repeating-linear-gradient(-45deg, transparent, transparent 6px, hsl(var(--border) / 0.8) 6px, hsl(var(--border) / 0.8) 8px)",
+                                          }
+                                        : {}),
+                                    }}
                                   />
                                 );
                               })}
@@ -647,97 +655,6 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                           </div>
                         );
                       });
-
-                      if (exclusiveBlockOrders.length > 0) {
-                        const exclusiveRow = (
-                          <div className="flex border-b">
-                            <div
-                              className="shrink-0 border-r p-2 pl-8 text-sm flex items-center gap-1 sticky left-0 bg-card z-20"
-                              style={{ width: LEFT_COL_WIDTH, minWidth: LEFT_COL_WIDTH }}
-                            >
-                              <Lock className="h-4 w-4 text-amber-600" />
-                              <span className="text-foreground">包區佔用</span>
-                            </div>
-                            <div className="flex flex-1 relative" style={{ minHeight: 48 }}>
-                              {dates.map((date, i) => {
-                                const dateStr = dateStrings[i];
-                                const holiday = holidays.get(dateStr);
-                                const isHoliday = holiday && (holiday.holiday_type === "holiday" || holiday.holiday_type === "compensatory_day_off");
-                                const isSatSun = isWeekend(date);
-                                const isRedDay = (isSatSun || isHoliday) && holiday?.holiday_type !== "work_on_weekend";
-                                const blockedByExclusive = isBlockedByExclusive(roomType.id, dateStr);
-                                return (
-                                  <div
-                                    key={`exclusive-${dateStr}`}
-                                    className={cn(
-                                      "flex-1 border-r last:border-r-0",
-                                      isRedDay && "bg-destructive/5",
-                                      isToday(date) && "bg-primary/5",
-                                      blockedByExclusive && "bg-amber-100/60 dark:bg-amber-900/20",
-                                    )}
-                                    style={{ minWidth: DAY_COL_MIN_WIDTH }}
-                                  />
-                                );
-                              })}
-
-                              {exclusiveBlockOrders.map(exOrder => {
-                                const visibleStart = exOrder.check_in_date < dateStrings[0] ? dateStrings[0] : exOrder.check_in_date;
-                                const visibleEnd = exOrder.check_out_date > dateStrings[dateStrings.length - 1]
-                                  ? format(addDays(parseISO(dateStrings[dateStrings.length - 1]), 1), "yyyy-MM-dd")
-                                  : exOrder.check_out_date;
-
-                                const startIdx = dateStrings.indexOf(visibleStart);
-                                if (startIdx === -1) return null;
-
-                                const endIdx = dateStrings.indexOf(visibleEnd);
-                                const span = endIdx === -1 ? dateStrings.length - startIdx : endIdx - startIdx;
-                                if (span <= 0) return null;
-
-                                const leftPercent = (startIdx / dayCount) * 100;
-                                const widthPercent = (span / dayCount) * 100;
-                                const isClippedLeft = exOrder.check_in_date < dateStrings[0];
-                                const isClippedRight = exOrder.check_out_date > format(addDays(parseISO(dateStrings[dateStrings.length - 1]), 1), "yyyy-MM-dd");
-                                const exRoomType = roomTypes.find(r => r.id === exOrder.room_type_id);
-
-                                return (
-                                  <div
-                                    key={`ex-${exOrder.id}`}
-                                    className={cn(
-                                      "absolute top-1 bottom-1 z-[6] cursor-pointer",
-                                      "border border-muted-foreground/30 text-muted-foreground",
-                                      "rounded-md flex items-center px-2 gap-1.5 text-xs overflow-hidden",
-                                      "hover:brightness-95 transition-all",
-                                      isClippedLeft && "rounded-l-none border-l-0",
-                                      isClippedRight && "rounded-r-none border-r-0",
-                                    )}
-                                    style={{
-                                      left: `${leftPercent}%`,
-                                      width: `${widthPercent}%`,
-                                      background: `repeating-linear-gradient(
-                                        -45deg,
-                                        transparent,
-                                        transparent 4px,
-                                        hsl(var(--muted-foreground) / 0.15) 4px,
-                                        hsl(var(--muted-foreground) / 0.15) 5px
-                                      )`,
-                                    }}
-                                    onClick={() => navigate(`/admin/orders/${exOrder.id}`, { state: { from: '/admin/room-inventory' } })}
-                                    title={`包區佔用 | ${exRoomType?.name || '包區'} | ${exOrder.guest_name} | ${exOrder.check_in_date} ~ ${exOrder.check_out_date}`}
-                                  >
-                                    <Lock className="h-3.5 w-3.5 shrink-0" />
-                                    <span className="font-semibold truncate">{exOrder.guest_name}</span>
-                                    {span >= 3 && exRoomType && (
-                                      <span className="truncate hidden sm:inline opacity-75">{exRoomType.name}</span>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-
-                        return [exclusiveRow, ...slotRows];
-                      }
 
                       return slotRows;
                     })()}
