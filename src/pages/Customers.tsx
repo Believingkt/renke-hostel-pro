@@ -94,6 +94,8 @@ const Customers = () => {
     name: "",
     phone: "",
     email: "",
+    gender: "",
+    nationality: "",
     first_order_date: "",
     visit_count: "0",
     notes: "",
