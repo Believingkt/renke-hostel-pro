@@ -30,6 +30,7 @@ interface RoomPriceEditDialogProps {
   templateName?: string;
   initialDate: string;
   currentPrice?: number;
+  currentAvailableRooms?: number;
   accommodationId: string;
   onComplete: () => void;
 }
