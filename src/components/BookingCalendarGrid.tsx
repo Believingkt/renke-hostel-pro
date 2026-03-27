@@ -648,63 +648,88 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                         );
                       });
 
-                      // If there are exclusive block orders, wrap in relative container with overlay
                       if (exclusiveBlockOrders.length > 0) {
-                        return (
-                          <div className="relative" key="slots-wrapper">
-                            {slotRows}
-                            {/* Exclusive package overlay bars spanning all rows */}
-                            <div className="absolute inset-0 pointer-events-none z-[8]" style={{ left: LEFT_COL_WIDTH }}>
-                              <div className="relative h-full w-full">
-                                {exclusiveBlockOrders.map(exOrder => {
-                                  const visibleStart = exOrder.check_in_date < dateStrings[0] ? dateStrings[0] : exOrder.check_in_date;
-                                  const visibleEnd = exOrder.check_out_date > dateStrings[dateStrings.length - 1]
-                                    ? format(addDays(parseISO(dateStrings[dateStrings.length - 1]), 1), "yyyy-MM-dd")
-                                    : exOrder.check_out_date;
-                                  
-                                  const startIdx = dateStrings.indexOf(visibleStart);
-                                  if (startIdx === -1) return null;
-                                  
-                                  const endIdx = dateStrings.indexOf(visibleEnd);
-                                  const span = endIdx === -1 ? dateStrings.length - startIdx : endIdx - startIdx;
-                                  if (span <= 0) return null;
+                        const exclusiveRow = (
+                          <div className="flex border-b">
+                            <div
+                              className="shrink-0 border-r p-2 pl-8 text-sm flex items-center gap-1 sticky left-0 bg-card z-20"
+                              style={{ width: LEFT_COL_WIDTH, minWidth: LEFT_COL_WIDTH }}
+                            >
+                              <Lock className="h-4 w-4 text-amber-600" />
+                              <span className="text-foreground">包區佔用</span>
+                            </div>
+                            <div className="flex flex-1 relative" style={{ minHeight: 48 }}>
+                              {dates.map((date, i) => {
+                                const dateStr = dateStrings[i];
+                                const holiday = holidays.get(dateStr);
+                                const isHoliday = holiday && (holiday.holiday_type === "holiday" || holiday.holiday_type === "compensatory_day_off");
+                                const isSatSun = isWeekend(date);
+                                const isRedDay = (isSatSun || isHoliday) && holiday?.holiday_type !== "work_on_weekend";
+                                const blockedByExclusive = isBlockedByExclusive(roomType.id, dateStr);
+                                return (
+                                  <div
+                                    key={`exclusive-${dateStr}`}
+                                    className={cn(
+                                      "flex-1 border-r last:border-r-0",
+                                      isRedDay && "bg-destructive/5",
+                                      isToday(date) && "bg-primary/5",
+                                      blockedByExclusive && "bg-amber-100/60 dark:bg-amber-900/20",
+                                    )}
+                                    style={{ minWidth: DAY_COL_MIN_WIDTH }}
+                                  />
+                                );
+                              })}
 
-                                  const leftPercent = (startIdx / dayCount) * 100;
-                                  const widthPercent = (span / dayCount) * 100;
-                                  const isClippedLeft = exOrder.check_in_date < dateStrings[0];
-                                  const isClippedRight = exOrder.check_out_date > format(addDays(parseISO(dateStrings[dateStrings.length - 1]), 1), "yyyy-MM-dd");
-                                  const exRoomType = roomTypes.find(r => r.id === exOrder.room_type_id);
+                              {exclusiveBlockOrders.map(exOrder => {
+                                const visibleStart = exOrder.check_in_date < dateStrings[0] ? dateStrings[0] : exOrder.check_in_date;
+                                const visibleEnd = exOrder.check_out_date > dateStrings[dateStrings.length - 1]
+                                  ? format(addDays(parseISO(dateStrings[dateStrings.length - 1]), 1), "yyyy-MM-dd")
+                                  : exOrder.check_out_date;
 
-                                  return (
-                                    <div
-                                      key={`ex-${exOrder.id}`}
-                                      className={cn(
-                                        "absolute top-1 bottom-1 pointer-events-auto cursor-pointer",
-                                        "border-2 border-amber-400 bg-amber-200/60 dark:bg-amber-800/40 text-amber-700 dark:text-amber-300",
-                                        "rounded-md flex items-center justify-center px-2 gap-1.5 text-xs",
-                                        "hover:bg-amber-200/80 dark:hover:bg-amber-800/60 transition-all",
-                                        isClippedLeft && "rounded-l-none border-l-0",
-                                        isClippedRight && "rounded-r-none border-r-0",
-                                      )}
-                                      style={{
-                                        left: `${leftPercent}%`,
-                                        width: `${widthPercent}%`,
-                                      }}
-                                      onClick={() => navigate(`/admin/orders/${exOrder.id}`, { state: { from: '/admin/room-inventory' } })}
-                                      title={`包區佔用 | ${exRoomType?.name || '包區'} | ${exOrder.guest_name} | ${exOrder.check_in_date} ~ ${exOrder.check_out_date}`}
-                                    >
-                                      <Lock className="h-3.5 w-3.5 shrink-0" />
-                                      <span className="font-semibold truncate">包區佔用 - {exOrder.guest_name}</span>
-                                      {span >= 3 && exRoomType && (
-                                        <span className="truncate hidden sm:inline opacity-75">({exRoomType.name})</span>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
+                                const startIdx = dateStrings.indexOf(visibleStart);
+                                if (startIdx === -1) return null;
+
+                                const endIdx = dateStrings.indexOf(visibleEnd);
+                                const span = endIdx === -1 ? dateStrings.length - startIdx : endIdx - startIdx;
+                                if (span <= 0) return null;
+
+                                const leftPercent = (startIdx / dayCount) * 100;
+                                const widthPercent = (span / dayCount) * 100;
+                                const isClippedLeft = exOrder.check_in_date < dateStrings[0];
+                                const isClippedRight = exOrder.check_out_date > format(addDays(parseISO(dateStrings[dateStrings.length - 1]), 1), "yyyy-MM-dd");
+                                const exRoomType = roomTypes.find(r => r.id === exOrder.room_type_id);
+
+                                return (
+                                  <div
+                                    key={`ex-${exOrder.id}`}
+                                    className={cn(
+                                      "absolute top-1 bottom-1 z-[6] cursor-pointer",
+                                      "border border-amber-400 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300",
+                                      "rounded-md flex items-center px-2 gap-1.5 text-xs overflow-hidden",
+                                      "hover:brightness-95 transition-all",
+                                      isClippedLeft && "rounded-l-none border-l-0",
+                                      isClippedRight && "rounded-r-none border-r-0",
+                                    )}
+                                    style={{
+                                      left: `${leftPercent}%`,
+                                      width: `${widthPercent}%`,
+                                    }}
+                                    onClick={() => navigate(`/admin/orders/${exOrder.id}`, { state: { from: '/admin/room-inventory' } })}
+                                    title={`包區佔用 | ${exRoomType?.name || '包區'} | ${exOrder.guest_name} | ${exOrder.check_in_date} ~ ${exOrder.check_out_date}`}
+                                  >
+                                    <Lock className="h-3.5 w-3.5 shrink-0" />
+                                    <span className="font-semibold truncate">{exOrder.guest_name}</span>
+                                    {span >= 3 && exRoomType && (
+                                      <span className="truncate hidden sm:inline opacity-75">{exRoomType.name}</span>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         );
+
+                        return [exclusiveRow, ...slotRows];
                       }
 
                       return slotRows;
