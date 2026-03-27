@@ -67,7 +67,7 @@ export function RoomPriceEditDialog({
   const [changeAvailability, setChangeAvailability] = useState(false);
   const [isAvailable, setIsAvailable] = useState(true);
   const [changeInventory, setChangeInventory] = useState(false);
-  const [inventoryCount, setInventoryCount] = useState('1');
+  const [inventoryCount, setInventoryCount] = useState(currentAvailableRooms?.toString() || '1');
   const [saving, setSaving] = useState(false);
   const [holidays, setHolidays] = useState<Set<string>>(new Set());
 
