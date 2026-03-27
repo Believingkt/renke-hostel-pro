@@ -395,17 +395,6 @@ export default function RoomPriceCalendar() {
               </Select>
             </div>
 
-            {/* 清除專案房價 */}
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
-              onClick={() => setClearPricingDialogOpen(true)}
-            >
-              <Trash2 className="h-4 w-4 mr-1.5" />
-              清除專案房價
-            </Button>
-
             {/* 月份選擇器 */}
             <div className="flex items-center gap-2 ml-auto">
               <Button variant="outline" size="icon" onClick={handlePrevMonth}>
