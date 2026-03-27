@@ -1005,8 +1005,6 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             <SelectContent>
               <SelectItem value="pending">待確認</SelectItem>
               <SelectItem value="confirmed">已確認</SelectItem>
-              <SelectItem value="checked_in">已入住</SelectItem>
-              <SelectItem value="checked_out">已退房</SelectItem>
               <SelectItem value="cancelled">已取消</SelectItem>
             </SelectContent>
           </Select>
