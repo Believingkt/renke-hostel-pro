@@ -694,7 +694,7 @@ function RoomTypeRows({
                   // 關閉販售：在價格列做淡化提示（仍可點擊編輯以重新開啟）
                   isUnavailable && "opacity-60",
                 )}
-                onClick={() => onCellClick(roomType, template, dateStr, price || undefined)}
+                onClick={() => onCellClick(roomType, template, dateStr, price || undefined, cellData?.available_rooms)}
                 title={isUnavailable ? '無法預定（已關閉販售）' : undefined}
               >
                 <span className="text-sm">{isUnavailable ? '' : formatPrice(price)}</span>
