@@ -25,7 +25,9 @@ function getCorsHeaders(req: Request) {
   const allowedOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
   return {
     'Access-Control-Allow-Origin': allowedOrigin,
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key, x-platform-key',
+    'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
   };
 }
 
