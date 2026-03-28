@@ -360,10 +360,18 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
       </div>
 
       {/* Grid */}
-      <div className="border rounded-lg overflow-x-auto bg-card">
+      <div className="border rounded-lg overflow-x-auto bg-card relative">
+        <div className="sticky top-0 left-0 z-20 border-b bg-card">
+          <div
+            className="text-center text-sm font-semibold py-1 text-muted-foreground"
+            style={{ paddingLeft: LEFT_COL_WIDTH }}
+          >
+            {format(dates[Math.floor(dates.length / 2)], "yyyy/MM")}
+          </div>
+        </div>
         <div style={{ minWidth: LEFT_COL_WIDTH + DAY_COL_MIN_WIDTH * dayCount }}>
           {/* Header row - dates */}
-          <div className="flex border-b bg-muted/30 sticky top-0 z-10">
+          <div className="flex border-b bg-muted/30 sticky top-7 z-10">
             <div
               className="shrink-0 border-r p-2 flex items-center font-medium text-sm text-muted-foreground sticky left-0 bg-background z-30"
               style={{ width: LEFT_COL_WIDTH, minWidth: LEFT_COL_WIDTH }}
@@ -371,13 +379,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
               <ChevronDown className="h-4 w-4 mr-1" />
               客房類別
             </div>
-            {/* Year/Month label */}
-            <div className="flex-1 flex flex-col relative">
-              <div className="border-b h-7 relative">
-                <div className="sticky left-[160px] inline-block text-sm font-semibold py-1 text-muted-foreground">
-                  {format(dates[Math.floor(dates.length / 2)], "yyyy/MM")}
-                </div>
-              </div>
+            <div className="flex-1 flex flex-col">
               <div className="flex">
                 {dates.map((date, i) => {
                   const dateStr = dateStrings[i];
