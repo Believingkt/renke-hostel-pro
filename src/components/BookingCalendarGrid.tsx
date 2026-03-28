@@ -212,25 +212,21 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
   };
 
   // Check if a date is blocked because an exclusive package is booked
-  const isBlockedByExclusive = (roomTypeId: string, dateStr: string): boolean => {
-    const roomType = roomTypes.find(r => r.id === roomTypeId);
-    if (!roomType) return false;
-
-    if (roomType.is_exclusive_package) {
-      return orders.some((o) => {
-        if (o.room_type_id !== roomType.id) return false;
-        return o.check_in_date <= dateStr && o.check_out_date > dateStr;
-      });
+  // Check if ANY exclusive package has a booking on this date (applies to ALL room types)
+  const isDateBlockedByAnyExclusive = useMemo(() => {
+    const blockedDates = new Set<string>();
+    const exclusiveTypes = roomTypes.filter(r => r.is_exclusive_package);
+    for (const dateStr of dateStrings) {
+      const hasExclusiveBooking = exclusiveTypes.some(et =>
+        orders.some(o => o.room_type_id === et.id && o.check_in_date <= dateStr && o.check_out_date > dateStr)
+      );
+      if (hasExclusiveBooking) blockedDates.add(dateStr);
     }
+    return blockedDates;
+  }, [roomTypes, orders, dateStrings]);
 
-    if (!roomType.is_bound_to_exclusive || !roomType.bound_exclusive_ids?.length) return false;
-
-    return roomType.bound_exclusive_ids.some((exclusiveId) => {
-      return orders.some((o) => {
-        if (o.room_type_id !== exclusiveId) return false;
-        return o.check_in_date <= dateStr && o.check_out_date > dateStr;
-      });
-    });
+  const isBlockedByExclusive = (_roomTypeId: string, dateStr: string): boolean => {
+    return isDateBlockedByAnyExclusive.has(dateStr);
   };
 
   // Get the set of dates where an exclusive package room type has bookings
