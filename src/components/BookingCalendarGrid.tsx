@@ -214,11 +214,19 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
   // Check if a date is blocked because an exclusive package is booked
   const isBlockedByExclusive = (roomTypeId: string, dateStr: string): boolean => {
     const roomType = roomTypes.find(r => r.id === roomTypeId);
-    if (!roomType || !roomType.is_bound_to_exclusive || !roomType.bound_exclusive_ids?.length) return false;
-    
-    // Check if any of the bound exclusive packages have orders on this date
-    return roomType.bound_exclusive_ids.some(exclusiveId => {
-      return orders.some(o => {
+    if (!roomType) return false;
+
+    if (roomType.is_exclusive_package) {
+      return orders.some((o) => {
+        if (o.room_type_id !== roomType.id) return false;
+        return o.check_in_date <= dateStr && o.check_out_date > dateStr;
+      });
+    }
+
+    if (!roomType.is_bound_to_exclusive || !roomType.bound_exclusive_ids?.length) return false;
+
+    return roomType.bound_exclusive_ids.some((exclusiveId) => {
+      return orders.some((o) => {
         if (o.room_type_id !== exclusiveId) return false;
         return o.check_in_date <= dateStr && o.check_out_date > dateStr;
       });
