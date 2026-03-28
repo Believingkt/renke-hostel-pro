@@ -372,9 +372,11 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
               客房類別
             </div>
             {/* Year/Month label */}
-            <div className="flex-1 flex flex-col">
-              <div className="text-center text-sm font-semibold py-1 border-b text-muted-foreground">
-                {format(dates[Math.floor(dates.length / 2)], "yyyy/MM")}
+            <div className="flex-1 flex flex-col relative">
+              <div className="border-b h-7 relative">
+                <div className="sticky left-[160px] inline-block text-sm font-semibold py-1 text-muted-foreground">
+                  {format(dates[Math.floor(dates.length / 2)], "yyyy/MM")}
+                </div>
               </div>
               <div className="flex">
                 {dates.map((date, i) => {
