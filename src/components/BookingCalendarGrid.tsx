@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { format, addDays, subDays, isToday, isWeekend, parseISO, differenceInDays } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -81,6 +81,9 @@ const getSourceLabel = (source: string, paymentMethod?: string) => {
 
 export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProps) {
   const navigate = useNavigate();
+  const headerScrollRef = useRef<HTMLDivElement | null>(null);
+  const bodyScrollRef = useRef<HTMLDivElement | null>(null);
+  const isSyncingScrollRef = useRef(false);
   const [startDate, setStartDate] = useState(() => {
     const saved = sessionStorage.getItem('bookingCalendar_startDate');
     if (saved) {
@@ -288,6 +291,23 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
   // Column width
   const LEFT_COL_WIDTH = 200;
   const DAY_COL_MIN_WIDTH = dayCount <= 7 ? 160 : dayCount <= 15 ? 100 : 70;
+  const GRID_MIN_WIDTH = LEFT_COL_WIDTH + DAY_COL_MIN_WIDTH * dayCount;
+
+  const syncHorizontalScroll = (source: "header" | "body") => {
+    if (isSyncingScrollRef.current) return;
+
+    const sourceEl = source === "header" ? headerScrollRef.current : bodyScrollRef.current;
+    const targetEl = source === "header" ? bodyScrollRef.current : headerScrollRef.current;
+
+    if (!sourceEl || !targetEl) return;
+
+    isSyncingScrollRef.current = true;
+    targetEl.scrollLeft = sourceEl.scrollLeft;
+
+    requestAnimationFrame(() => {
+      isSyncingScrollRef.current = false;
+    });
+  };
 
   if (loading && roomTypes.length === 0) {
     return (
@@ -360,64 +380,80 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
       </div>
 
       {/* Grid */}
-      <div className="border rounded-lg overflow-x-auto bg-card relative">
-        <div className="sticky top-0 left-0 z-20 border-b bg-card">
+      <div className="border rounded-lg bg-card relative">
+        <div className="sticky top-0 z-40 border-b bg-card shadow-sm">
           <div
-            className="text-center text-sm font-semibold py-1 text-muted-foreground"
-            style={{ paddingLeft: LEFT_COL_WIDTH }}
+            ref={headerScrollRef}
+            onScroll={() => syncHorizontalScroll("header")}
+            className="overflow-x-auto overflow-y-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
-            {format(dates[Math.floor(dates.length / 2)], "yyyy/MM")}
-          </div>
-        </div>
-        <div style={{ minWidth: LEFT_COL_WIDTH + DAY_COL_MIN_WIDTH * dayCount }}>
-          {/* Header row - dates */}
-          <div className="flex border-b bg-muted/30 sticky top-7 z-10">
-            <div
-              className="shrink-0 border-r p-2 flex items-center font-medium text-sm text-muted-foreground sticky left-0 bg-background z-30"
-              style={{ width: LEFT_COL_WIDTH, minWidth: LEFT_COL_WIDTH }}
-            >
-              <ChevronDown className="h-4 w-4 mr-1" />
-              客房類別
-            </div>
-            <div className="flex-1 flex flex-col">
-              <div className="flex">
-                {dates.map((date, i) => {
-                  const dateStr = dateStrings[i];
-                  const holiday = holidays.get(dateStr);
-                  const dayOfWeek = date.getDay();
-                  const isSat = dayOfWeek === 6;
-                  const isSun = dayOfWeek === 0;
-                  const isHoliday = holiday && (holiday.holiday_type === "holiday" || holiday.holiday_type === "compensatory_day_off");
-                  const isWorkOnWeekend = holiday?.holiday_type === "work_on_weekend";
-                  const isRed = (isSat || isSun || isHoliday) && !isWorkOnWeekend;
+            <div style={{ minWidth: GRID_MIN_WIDTH }}>
+              <div className="flex border-b bg-card">
+                <div
+                  className="shrink-0 border-r sticky left-0 bg-card z-30"
+                  style={{ width: LEFT_COL_WIDTH, minWidth: LEFT_COL_WIDTH }}
+                />
+                <div className="flex-1 text-center text-sm font-semibold py-1 text-muted-foreground">
+                  {format(dates[Math.floor(dates.length / 2)], "yyyy/MM")}
+                </div>
+              </div>
 
-                  return (
-                    <div
-                      key={dateStr}
-                      className={cn(
-                        "flex-1 text-center py-2 border-r last:border-r-0 text-sm",
-                        isToday(date) && "bg-primary/10 font-bold",
-                        isRed && "text-destructive",
-                      )}
-                      style={{ minWidth: DAY_COL_MIN_WIDTH }}
-                    >
-                      <span>{DAY_LABELS[dayOfWeek]} {date.getDate()}</span>
-                      {holiday && (
-                        <span className={cn(
-                          "ml-1 text-xs px-1 rounded",
-                          isHoliday ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"
-                        )}>
-                          {holiday.holiday_name.length > 2 ? holiday.holiday_name.slice(0, 2) : holiday.holiday_name}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
+              <div className="flex bg-muted/30">
+                <div
+                  className="shrink-0 border-r p-2 flex items-center font-medium text-sm text-muted-foreground sticky left-0 bg-background z-30"
+                  style={{ width: LEFT_COL_WIDTH, minWidth: LEFT_COL_WIDTH }}
+                >
+                  <ChevronDown className="h-4 w-4 mr-1" />
+                  客房類別
+                </div>
+                <div className="flex-1 flex flex-col">
+                  <div className="flex">
+                    {dates.map((date, i) => {
+                      const dateStr = dateStrings[i];
+                      const holiday = holidays.get(dateStr);
+                      const dayOfWeek = date.getDay();
+                      const isSat = dayOfWeek === 6;
+                      const isSun = dayOfWeek === 0;
+                      const isHoliday = holiday && (holiday.holiday_type === "holiday" || holiday.holiday_type === "compensatory_day_off");
+                      const isWorkOnWeekend = holiday?.holiday_type === "work_on_weekend";
+                      const isRed = (isSat || isSun || isHoliday) && !isWorkOnWeekend;
+
+                      return (
+                        <div
+                          key={dateStr}
+                          className={cn(
+                            "flex-1 text-center py-2 border-r last:border-r-0 text-sm",
+                            isToday(date) && "bg-primary/10 font-bold",
+                            isRed && "text-destructive",
+                          )}
+                          style={{ minWidth: DAY_COL_MIN_WIDTH }}
+                        >
+                          <span>{DAY_LABELS[dayOfWeek]} {date.getDate()}</span>
+                          {holiday && (
+                            <span className={cn(
+                              "ml-1 text-xs px-1 rounded",
+                              isHoliday ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"
+                            )}>
+                              {holiday.holiday_name.length > 2 ? holiday.holiday_name.slice(0, 2) : holiday.holiday_name}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Room type rows */}
+        <div
+          ref={bodyScrollRef}
+          onScroll={() => syncHorizontalScroll("body")}
+          className="overflow-x-auto overflow-y-visible"
+        >
+          <div style={{ minWidth: GRID_MIN_WIDTH }}>
+            {/* Room type rows */}
           {roomTypes.map(roomType => {
             const isExpanded = expandedRoomTypes.has(roomType.id);
             const roomCount = roomType.room_count || 0;
@@ -674,6 +710,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
               </div>
             );
           })}
+          </div>
         </div>
       </div>
       {/* 來源圖示說明 */}
