@@ -170,9 +170,9 @@ const OrderDetailPage = () => {
       order_source: order.order_source || "website",
       order_status: order.order_status || "pending",
       payment_status: order.payment_status || "unpaid",
-      deposit_payment_method: order.deposit_payment_method || "",
-      balance_payment_method: order.balance_payment_method || "",
-      meal_plan: order.meal_plan || "",
+      deposit_payment_method: order.deposit_payment_method || "none",
+      balance_payment_method: order.balance_payment_method || "none",
+      meal_plan: order.meal_plan || "none",
       notes: order.notes || "",
       room_type_id: order.room_type_id || "",
     });
@@ -196,9 +196,9 @@ const OrderDetailPage = () => {
         order_source: editForm.order_source,
         order_status: editForm.order_status,
         payment_status: editForm.payment_status,
-        deposit_payment_method: editForm.deposit_payment_method || null,
-        balance_payment_method: editForm.balance_payment_method || null,
-        meal_plan: editForm.meal_plan || null,
+        deposit_payment_method: editForm.deposit_payment_method === "none" ? null : editForm.deposit_payment_method,
+        balance_payment_method: editForm.balance_payment_method === "none" ? null : editForm.balance_payment_method,
+        meal_plan: editForm.meal_plan === "none" ? null : editForm.meal_plan,
         notes: editForm.notes.trim() || null,
         room_type_id: editForm.room_type_id || null,
       };
@@ -636,7 +636,7 @@ const OrderDetailPage = () => {
   ];
 
   const paymentMethodOptions = [
-    { value: "", label: "無" },
+    { value: "none", label: "無" },
     { value: "credit_card", label: "信用卡" },
     { value: "line_pay", label: "LINE Pay" },
     { value: "bank_transfer", label: "轉帳匯款" },
@@ -978,7 +978,7 @@ const OrderDetailPage = () => {
                         <SelectValue placeholder="選擇" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">無</SelectItem>
+                        <SelectItem value="none">無</SelectItem>
                         <SelectItem value="2_meals">一泊二食</SelectItem>
                         <SelectItem value="3_meals">一泊三食</SelectItem>
                         {customMealPlans.map(mp => (
