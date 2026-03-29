@@ -978,7 +978,7 @@ const OrderDetailPage = () => {
                         <SelectValue placeholder="選擇" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">無</SelectItem>
+                        <SelectItem value="none">無</SelectItem>
                         <SelectItem value="2_meals">一泊二食</SelectItem>
                         <SelectItem value="3_meals">一泊三食</SelectItem>
                         {customMealPlans.map(mp => (
