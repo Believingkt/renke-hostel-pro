@@ -459,7 +459,7 @@ const OrderDetailPage = () => {
       checked_in: { label: "已入住", className: "bg-info-light text-info border-info/20" },
       checked_out: { label: "已退房", className: "bg-muted text-muted-foreground border-border" },
       cancelled: { label: "已取消", className: "bg-error-light text-error border-error/20" },
-      hold: { label: "hold", className: "bg-muted text-muted-foreground border-border" },
+      hold: { label: "保留中", className: "bg-muted text-muted-foreground border-border" },
     };
     const config = statusMap[status] || { label: status, className: "bg-muted text-muted-foreground border-border" };
     return (
@@ -624,7 +624,7 @@ const OrderDetailPage = () => {
     { value: "checked_in", label: "已入住" },
     { value: "checked_out", label: "已退房" },
     { value: "cancelled", label: "已取消" },
-    { value: "hold", label: "hold" },
+    { value: "hold", label: "保留中" },
   ];
 
   const paymentStatusOptions = [
