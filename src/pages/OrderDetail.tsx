@@ -196,9 +196,9 @@ const OrderDetailPage = () => {
         order_source: editForm.order_source,
         order_status: editForm.order_status,
         payment_status: editForm.payment_status,
-        deposit_payment_method: editForm.deposit_payment_method || null,
-        balance_payment_method: editForm.balance_payment_method || null,
-        meal_plan: editForm.meal_plan || null,
+        deposit_payment_method: editForm.deposit_payment_method === "none" ? null : editForm.deposit_payment_method,
+        balance_payment_method: editForm.balance_payment_method === "none" ? null : editForm.balance_payment_method,
+        meal_plan: editForm.meal_plan === "none" ? null : editForm.meal_plan,
         notes: editForm.notes.trim() || null,
         room_type_id: editForm.room_type_id || null,
       };
