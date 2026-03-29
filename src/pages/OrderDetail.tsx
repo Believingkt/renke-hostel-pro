@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
-import { ArrowLeft, Mail, Home, ShoppingBag, Globe, UserPlus, CreditCard, XCircle, Pencil } from "lucide-react";
+import { ArrowLeft, Mail, Home, ShoppingBag, Globe, UserPlus, CreditCard, XCircle, Pencil, Save, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,13 @@ import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -78,6 +85,7 @@ interface OrderDetail {
   meal_plan_details: MealPlanDetail[];
   meal_plan_total: number;
   order_source: string;
+  room_type_id: string | null;
   room_types: {
     name: string;
     name_en: string | null;
@@ -90,7 +98,28 @@ interface CustomMealPlan {
   description: string;
 }
 
-const OrderDetail = () => {
+interface RoomTypeOption {
+  id: string;
+  name: string;
+}
+
+interface EditFormState {
+  guest_name: string;
+  guest_phone: string;
+  guest_email: string;
+  guest_address: string;
+  guest_count: number;
+  order_source: string;
+  order_status: string;
+  payment_status: string;
+  deposit_payment_method: string;
+  balance_payment_method: string;
+  meal_plan: string;
+  notes: string;
+  room_type_id: string;
+}
+
+const OrderDetailPage = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -109,6 +138,124 @@ const OrderDetail = () => {
   const [editPaidAmount, setEditPaidAmount] = useState(0);
   const [editReason, setEditReason] = useState("");
   const [isSavingPrice, setIsSavingPrice] = useState(false);
+
+  // Edit mode
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [roomTypes, setRoomTypes] = useState<RoomTypeOption[]>([]);
+  const [editForm, setEditForm] = useState<EditFormState>({
+    guest_name: "",
+    guest_phone: "",
+    guest_email: "",
+    guest_address: "",
+    guest_count: 1,
+    order_source: "",
+    order_status: "",
+    payment_status: "",
+    deposit_payment_method: "",
+    balance_payment_method: "",
+    meal_plan: "",
+    notes: "",
+    room_type_id: "",
+  });
+
+  const startEditing = () => {
+    if (!order) return;
+    setEditForm({
+      guest_name: order.guest_name || "",
+      guest_phone: order.guest_phone || "",
+      guest_email: order.guest_email || "",
+      guest_address: order.guest_address || "",
+      guest_count: order.guest_count || 1,
+      order_source: order.order_source || "website",
+      order_status: order.order_status || "pending",
+      payment_status: order.payment_status || "unpaid",
+      deposit_payment_method: order.deposit_payment_method || "",
+      balance_payment_method: order.balance_payment_method || "",
+      meal_plan: order.meal_plan || "",
+      notes: order.notes || "",
+      room_type_id: order.room_type_id || "",
+    });
+    setIsEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setIsEditing(false);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!order) return;
+    setIsSavingEdit(true);
+    try {
+      const updateData: Record<string, any> = {
+        guest_name: editForm.guest_name.trim(),
+        guest_phone: editForm.guest_phone.trim(),
+        guest_email: editForm.guest_email.trim() || null,
+        guest_address: editForm.guest_address.trim() || null,
+        guest_count: editForm.guest_count,
+        order_source: editForm.order_source,
+        order_status: editForm.order_status,
+        payment_status: editForm.payment_status,
+        deposit_payment_method: editForm.deposit_payment_method || null,
+        balance_payment_method: editForm.balance_payment_method || null,
+        meal_plan: editForm.meal_plan || null,
+        notes: editForm.notes.trim() || null,
+        room_type_id: editForm.room_type_id || null,
+      };
+
+      // Handle status timestamp updates
+      if (editForm.order_status !== order.order_status) {
+        if (editForm.order_status === "confirmed" && !order.confirmed_at) {
+          updateData.confirmed_at = new Date().toISOString();
+        }
+        if (editForm.order_status === "checked_in" && !order.checked_in_at) {
+          updateData.checked_in_at = new Date().toISOString();
+        }
+        if (editForm.order_status === "checked_out" && !order.checked_out_at) {
+          updateData.checked_out_at = new Date().toISOString();
+        }
+        if (editForm.order_status === "cancelled") {
+          updateData.cancelled_at = new Date().toISOString();
+        }
+      }
+
+      const { error } = await supabase
+        .from("orders")
+        .update(updateData)
+        .eq("id", order.id);
+
+      if (error) throw error;
+
+      // Audit log
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from("audit_logs").insert([{
+            user_id: user.id,
+            user_email: user.email,
+            action_type: "update",
+            action_category: "order",
+            entity_type: "order",
+            entity_id: order.id,
+            entity_name: order.order_number,
+            accommodation_id: order.accommodation_id,
+            details: { type: "inline_edit" } as any,
+          }]);
+        }
+      } catch (e) {
+        console.error("Audit log error:", e);
+      }
+
+      toast({ title: "儲存成功", description: "訂單已更新" });
+      setIsEditing(false);
+      fetchOrder();
+    } catch (error) {
+      console.error("儲存失敗:", error);
+      toast({ title: "儲存失敗", description: "無法更新訂單，請稍後再試", variant: "destructive" });
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
 
   const handleCancelOrder = async () => {
     if (!order) return;
@@ -251,8 +398,15 @@ const OrderDetail = () => {
         } as OrderDetail;
         setOrder(orderObj);
 
-        // 獲取自訂餐食方案
+        // Fetch room types for edit mode
         if (orderData.accommodation_id) {
+          const { data: rtData } = await supabase
+            .from("room_types")
+            .select("id, name")
+            .eq("accommodation_id", orderData.accommodation_id)
+            .order("display_order", { ascending: true });
+          if (rtData) setRoomTypes(rtData);
+
           const { data: templatesData } = await supabase
             .from("pricing_templates")
             .select("meal_plans")
@@ -305,6 +459,7 @@ const OrderDetail = () => {
       checked_in: { label: "已入住", className: "bg-info-light text-info border-info/20" },
       checked_out: { label: "已退房", className: "bg-muted text-muted-foreground border-border" },
       cancelled: { label: "已取消", className: "bg-error-light text-error border-error/20" },
+      hold: { label: "hold", className: "bg-muted text-muted-foreground border-border" },
     };
     const config = statusMap[status] || { label: status, className: "bg-muted text-muted-foreground border-border" };
     return (
@@ -322,8 +477,8 @@ const OrderDetail = () => {
       agoda: { label: "Agoda", className: "bg-green-100 text-green-700 border-green-200", icon: Globe },
       booking: { label: "Booking", className: "bg-indigo-100 text-indigo-700 border-indigo-200", icon: Globe },
       trip: { label: "Trip", className: "bg-orange-100 text-orange-700 border-orange-200", icon: Globe },
-       travel_agency: { label: "旅行社", className: "bg-teal-100 text-teal-700 border-teal-200", icon: Globe },
-       kol: { label: "KOL互惠", className: "bg-pink-100 text-pink-700 border-pink-200", icon: Globe },
+      travel_agency: { label: "旅行社", className: "bg-teal-100 text-teal-700 border-teal-200", icon: Globe },
+      kol: { label: "KOL互惠", className: "bg-pink-100 text-pink-700 border-pink-200", icon: Globe },
     };
     const config = sourceMap[source] || { label: source || "官網訂房", className: "bg-muted text-muted-foreground border-border", icon: Globe };
     const Icon = config.icon;
@@ -335,7 +490,6 @@ const OrderDetail = () => {
     );
   };
 
-  // 獲取付款方式顯示名稱
   const getPaymentMethodDisplayName = (method: string | null) => {
     if (!method) return "-";
     const methodMap: Record<string, string> = {
@@ -348,14 +502,12 @@ const OrderDetail = () => {
     return methodMap[method] || method;
   };
 
-  // 獲取餐食方案顯示名稱
   const getMealPlanDisplayName = (planId: string | null) => {
     if (!planId) return "-";
     const customPlan = customMealPlans.find(p => p.id === planId);
     if (customPlan) {
       return customPlan.name;
     }
-    // 預設名稱
     return planId === "2_meals" ? "一泊二食" : planId === "3_meals" ? "一泊三食" : planId;
   };
 
@@ -455,6 +607,43 @@ const OrderDetail = () => {
     (1000 * 60 * 60 * 24)
   );
 
+  const orderSourceOptions = [
+    { value: "website", label: "官網訂房" },
+    { value: "manual", label: "現場訂房" },
+    { value: "line", label: "Line@" },
+    { value: "agoda", label: "Agoda" },
+    { value: "booking", label: "Booking" },
+    { value: "trip", label: "Trip" },
+    { value: "travel_agency", label: "旅行社" },
+    { value: "kol", label: "KOL互惠" },
+  ];
+
+  const orderStatusOptions = [
+    { value: "pending", label: "待確認" },
+    { value: "confirmed", label: "已確認" },
+    { value: "checked_in", label: "已入住" },
+    { value: "checked_out", label: "已退房" },
+    { value: "cancelled", label: "已取消" },
+    { value: "hold", label: "hold" },
+  ];
+
+  const paymentStatusOptions = [
+    { value: "unpaid", label: "未付款" },
+    { value: "deposit_paid", label: "已付訂金" },
+    { value: "paid", label: "已付清" },
+    { value: "refunded", label: "已退款" },
+    { value: "partial_refunded", label: "部分退款" },
+  ];
+
+  const paymentMethodOptions = [
+    { value: "", label: "無" },
+    { value: "credit_card", label: "信用卡" },
+    { value: "line_pay", label: "LINE Pay" },
+    { value: "bank_transfer", label: "轉帳匯款" },
+    { value: "cash", label: "現金" },
+    { value: "monthly", label: "月結" },
+  ];
+
   return (
     <div className="space-y-4 md:space-y-6">
       <Breadcrumb>
@@ -491,60 +680,77 @@ const OrderDetail = () => {
           <h1 className="text-xl md:text-2xl lg:text-3xl font-bold tracking-tight">訂單詳情</h1>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-          {/* 線上付款按鈕 - 只在未全額付清且未取消時顯示 */}
-          {order.payment_status !== 'paid' && order.order_status !== 'cancelled' && (
-            <Button 
-              onClick={() => setShowPaymentDialog(true)}
-              className="w-full sm:w-auto text-sm"
-            >
-              <CreditCard className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">線上收款</span>
-              <span className="sm:hidden">收款</span>
-            </Button>
-          )}
-          {order.guest_email && (
-            <Button 
-              variant="outline" 
-              onClick={handleResendConfirmation}
-              disabled={isSendingEmail}
-              className="w-full sm:w-auto text-sm"
-            >
-              <Mail className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">{isSendingEmail ? "發送中..." : "重發確認信"}</span>
-              <span className="sm:hidden">{isSendingEmail ? "發送中..." : "重發信件"}</span>
-            </Button>
-          )}
-          {/* 取消訂單按鈕 - 只在非已取消狀態時顯示 */}
-          {order.order_status !== 'cancelled' && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
+          {isEditing ? (
+            <>
+              <Button onClick={handleSaveEdit} disabled={isSavingEdit} className="w-full sm:w-auto text-sm">
+                <Save className="h-4 w-4 mr-2" />
+                {isSavingEdit ? "儲存中..." : "儲存"}
+              </Button>
+              <Button variant="outline" onClick={cancelEditing} disabled={isSavingEdit} className="w-full sm:w-auto text-sm">
+                <X className="h-4 w-4 mr-2" />
+                取消編輯
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="outline" onClick={startEditing} className="w-full sm:w-auto text-sm">
+                <Pencil className="h-4 w-4 mr-2" />
+                編輯
+              </Button>
+              {order.payment_status !== 'paid' && order.order_status !== 'cancelled' && (
                 <Button 
-                  variant="ghost-destructive"
+                  onClick={() => setShowPaymentDialog(true)}
                   className="w-full sm:w-auto text-sm"
-                  disabled={isCancelling}
                 >
-                  <XCircle className="h-4 w-4 mr-2" />
-                  取消訂單
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">線上收款</span>
+                  <span className="sm:hidden">收款</span>
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>確認取消訂單</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    確定要取消訂單 <span className="font-semibold text-foreground">{order.order_number}</span> 嗎？此操作無法復原。
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>返回</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleCancelOrder}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    {isCancelling ? "取消中..." : "確認取消"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+              )}
+              {order.guest_email && (
+                <Button 
+                  variant="outline" 
+                  onClick={handleResendConfirmation}
+                  disabled={isSendingEmail}
+                  className="w-full sm:w-auto text-sm"
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">{isSendingEmail ? "發送中..." : "重發確認信"}</span>
+                  <span className="sm:hidden">{isSendingEmail ? "發送中..." : "重發信件"}</span>
+                </Button>
+              )}
+              {order.order_status !== 'cancelled' && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      variant="ghost-destructive"
+                      className="w-full sm:w-auto text-sm"
+                      disabled={isCancelling}
+                    >
+                      <XCircle className="h-4 w-4 mr-2" />
+                      取消訂單
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>確認取消訂單</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        確定要取消訂單 <span className="font-semibold text-foreground">{order.order_number}</span> 嗎？此操作無法復原。
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>返回</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleCancelOrder}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        {isCancelling ? "取消中..." : "確認取消"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -568,17 +774,50 @@ const OrderDetail = () => {
             <Separator />
             <div className="flex justify-between items-center gap-2">
               <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">訂單來源</span>
-              {getOrderSourceBadge(order.order_source)}
+              {isEditing ? (
+                <Select value={editForm.order_source} onValueChange={(v) => setEditForm(f => ({ ...f, order_source: v }))}>
+                  <SelectTrigger className="w-[140px] h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {orderSourceOptions.map(o => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : getOrderSourceBadge(order.order_source)}
             </div>
             <Separator />
             <div className="flex justify-between items-center gap-2">
               <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">訂單狀態</span>
-              {getOrderStatusBadge(order.order_status)}
+              {isEditing ? (
+                <Select value={editForm.order_status} onValueChange={(v) => setEditForm(f => ({ ...f, order_status: v }))}>
+                  <SelectTrigger className="w-[140px] h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {orderStatusOptions.map(o => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : getOrderStatusBadge(order.order_status)}
             </div>
             <Separator />
             <div className="flex justify-between items-center gap-2">
               <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">付款狀態</span>
-              {getPaymentStatusBadge(
+              {isEditing ? (
+                <Select value={editForm.payment_status} onValueChange={(v) => setEditForm(f => ({ ...f, payment_status: v }))}>
+                  <SelectTrigger className="w-[140px] h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {paymentStatusOptions.map(o => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : getPaymentStatusBadge(
                 (() => {
                   const o = order as any;
                   const unpaidStatuses = ['unpaid', 'deposit_paid', 'partial'];
@@ -590,21 +829,47 @@ const OrderDetail = () => {
                 })()
               )}
             </div>
-            {order.deposit_payment_method && (
+            {(order.deposit_payment_method || isEditing) && (
               <>
                 <Separator />
                 <div className="flex justify-between items-center gap-2">
                   <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">訂金付款方式</span>
-                  <span className="font-medium text-sm md:text-base">{getPaymentMethodDisplayName(order.deposit_payment_method)}</span>
+                  {isEditing ? (
+                    <Select value={editForm.deposit_payment_method} onValueChange={(v) => setEditForm(f => ({ ...f, deposit_payment_method: v }))}>
+                      <SelectTrigger className="w-[140px] h-8 text-xs">
+                        <SelectValue placeholder="選擇" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {paymentMethodOptions.map(o => (
+                          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <span className="font-medium text-sm md:text-base">{getPaymentMethodDisplayName(order.deposit_payment_method)}</span>
+                  )}
                 </div>
               </>
             )}
-            {order.balance_payment_method && (
+            {(order.balance_payment_method || isEditing) && (
               <>
                 <Separator />
                 <div className="flex justify-between items-center gap-2">
                   <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">尾款付款方式</span>
-                  <span className="font-medium text-sm md:text-base">{getPaymentMethodDisplayName(order.balance_payment_method)}</span>
+                  {isEditing ? (
+                    <Select value={editForm.balance_payment_method} onValueChange={(v) => setEditForm(f => ({ ...f, balance_payment_method: v }))}>
+                      <SelectTrigger className="w-[140px] h-8 text-xs">
+                        <SelectValue placeholder="選擇" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {paymentMethodOptions.map(o => (
+                          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <span className="font-medium text-sm md:text-base">{getPaymentMethodDisplayName(order.balance_payment_method)}</span>
+                  )}
                 </div>
               </>
             )}
@@ -619,31 +884,39 @@ const OrderDetail = () => {
           <CardContent className="space-y-3">
             <div className="flex justify-between items-center gap-2">
               <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">姓名</span>
-              <span className="font-medium text-sm md:text-base">{order.guest_name}</span>
+              {isEditing ? (
+                <Input className="w-[200px] h-8 text-sm" value={editForm.guest_name} onChange={(e) => setEditForm(f => ({ ...f, guest_name: e.target.value }))} />
+              ) : (
+                <span className="font-medium text-sm md:text-base">{order.guest_name}</span>
+              )}
             </div>
             <Separator />
             <div className="flex justify-between items-center gap-2">
               <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">電話</span>
-              <span className="font-medium text-sm md:text-base">{order.guest_phone}</span>
+              {isEditing ? (
+                <Input className="w-[200px] h-8 text-sm" value={editForm.guest_phone} onChange={(e) => setEditForm(f => ({ ...f, guest_phone: e.target.value }))} />
+              ) : (
+                <span className="font-medium text-sm md:text-base">{order.guest_phone}</span>
+              )}
             </div>
-            {order.guest_email && (
-              <>
-                <Separator />
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-2">
-                  <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">Email</span>
-                  <span className="font-medium text-xs md:text-sm break-all sm:text-right">{order.guest_email}</span>
-                </div>
-              </>
-            )}
-            {order.guest_address && (
-              <>
-                <Separator />
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 sm:gap-2">
-                  <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">地址</span>
-                  <span className="font-medium text-xs md:text-sm break-words sm:text-right sm:max-w-[60%]">{order.guest_address}</span>
-                </div>
-              </>
-            )}
+            <Separator />
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-2">
+              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">Email</span>
+              {isEditing ? (
+                <Input className="w-[200px] h-8 text-sm" type="email" value={editForm.guest_email} onChange={(e) => setEditForm(f => ({ ...f, guest_email: e.target.value }))} placeholder="選填" />
+              ) : (
+                <span className="font-medium text-xs md:text-sm break-all sm:text-right">{order.guest_email || "-"}</span>
+              )}
+            </div>
+            <Separator />
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 sm:gap-2">
+              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">地址</span>
+              {isEditing ? (
+                <Input className="w-[200px] h-8 text-sm" value={editForm.guest_address} onChange={(e) => setEditForm(f => ({ ...f, guest_address: e.target.value }))} placeholder="選填" />
+              ) : (
+                <span className="font-medium text-xs md:text-sm break-words sm:text-right sm:max-w-[60%]">{order.guest_address || "-"}</span>
+              )}
+            </div>
           </CardContent>
         </Card>
 
@@ -655,7 +928,20 @@ const OrderDetail = () => {
           <CardContent className="space-y-3">
             <div className="flex justify-between items-center gap-2">
               <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">房型</span>
-              <span className="font-medium text-sm md:text-base text-right">{order.room_types?.name || "-"}</span>
+              {isEditing ? (
+                <Select value={editForm.room_type_id} onValueChange={(v) => setEditForm(f => ({ ...f, room_type_id: v }))}>
+                  <SelectTrigger className="w-[200px] h-8 text-xs">
+                    <SelectValue placeholder="選擇房型" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roomTypes.map(rt => (
+                      <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <span className="font-medium text-sm md:text-base text-right">{order.room_types?.name || "-"}</span>
+              )}
             </div>
             <Separator />
             <div className="flex justify-between items-center gap-2">
@@ -675,14 +961,34 @@ const OrderDetail = () => {
             <Separator />
             <div className="flex justify-between items-center gap-2">
               <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">入住人數</span>
-              <span className="font-medium text-sm md:text-base">{order.guest_count} 人</span>
+              {isEditing ? (
+                <Input className="w-[100px] h-8 text-sm text-right" type="number" min={1} value={editForm.guest_count} onChange={(e) => setEditForm(f => ({ ...f, guest_count: Math.max(1, parseInt(e.target.value) || 1) }))} />
+              ) : (
+                <span className="font-medium text-sm md:text-base">{order.guest_count} 人</span>
+              )}
             </div>
-            {order.meal_plan && (
+            {(order.meal_plan || isEditing) && (
               <>
                 <Separator />
                 <div className="flex justify-between items-center gap-2">
                   <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">餐食方案</span>
-                  <span className="font-medium text-sm md:text-base text-right">{getMealPlanDisplayName(order.meal_plan)}</span>
+                  {isEditing ? (
+                    <Select value={editForm.meal_plan} onValueChange={(v) => setEditForm(f => ({ ...f, meal_plan: v }))}>
+                      <SelectTrigger className="w-[160px] h-8 text-xs">
+                        <SelectValue placeholder="選擇" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">無</SelectItem>
+                        <SelectItem value="2_meals">一泊二食</SelectItem>
+                        <SelectItem value="3_meals">一泊三食</SelectItem>
+                        {customMealPlans.map(mp => (
+                          <SelectItem key={mp.id} value={mp.id}>{mp.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <span className="font-medium text-sm md:text-base text-right">{getMealPlanDisplayName(order.meal_plan)}</span>
+                  )}
                 </div>
               </>
             )}
@@ -693,7 +999,7 @@ const OrderDetail = () => {
         <Card>
           <CardHeader className="pb-3 flex flex-row items-center justify-between">
             <CardTitle className="text-base md:text-lg">價格明細</CardTitle>
-            {order.order_status !== 'cancelled' && (
+            {order.order_status !== 'cancelled' && !isEditing && (
               <Button variant="ghost" size="sm" onClick={openPriceEditDialog} className="h-8 px-2">
                 <Pencil className="h-3.5 w-3.5 mr-1" />
                 <span className="text-xs">修改金額</span>
@@ -810,16 +1116,28 @@ const OrderDetail = () => {
       </Card>
 
       {/* 備註 */}
-      {order.notes && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base md:text-lg">訂單備註</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs md:text-sm whitespace-pre-wrap break-words">{order.notes}</p>
-          </CardContent>
-        </Card>
-      )}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base md:text-lg">訂單備註</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isEditing ? (
+            <Textarea
+              value={editForm.notes}
+              onChange={(e) => setEditForm(f => ({ ...f, notes: e.target.value }))}
+              rows={4}
+              placeholder="輸入備註..."
+              className="text-sm"
+            />
+          ) : (
+            order.notes ? (
+              <p className="text-xs md:text-sm whitespace-pre-wrap break-words">{order.notes}</p>
+            ) : (
+              <p className="text-xs md:text-sm text-muted-foreground text-center py-2">無備註</p>
+            )
+          )}
+        </CardContent>
+      </Card>
 
       {/* 線上付款對話框 */}
       <OnlinePaymentDialog
@@ -921,4 +1239,4 @@ const OrderDetail = () => {
   );
 };
 
-export default OrderDetail;
+export default OrderDetailPage;
