@@ -199,6 +199,7 @@ const OrderDetailPage = () => {
     if (!order) return;
     setIsSavingEdit(true);
     try {
+      const editFinalPriceCalc = editForm.total_price - editForm.discount_amount;
       const updateData: Record<string, any> = {
         guest_name: editForm.guest_name.trim(),
         guest_phone: editForm.guest_phone.trim(),
@@ -213,6 +214,11 @@ const OrderDetailPage = () => {
         meal_plan: editForm.meal_plan === "none" ? null : editForm.meal_plan,
         notes: editForm.notes.trim() || null,
         room_type_id: editForm.room_type_id || null,
+        total_price: editForm.total_price,
+        discount_amount: editForm.discount_amount,
+        final_price: editFinalPriceCalc,
+        deposit_amount: editForm.deposit_amount,
+        paid_amount: editForm.paid_amount,
       };
 
       // Handle status timestamp updates
