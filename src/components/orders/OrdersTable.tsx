@@ -109,7 +109,6 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                 return (
                   <tr key={order.id} className="border-b hover:bg-muted/50">
                     <td className="px-4 py-3 text-sm">
-                      <OrderQuickPreview order={order}>
                         <Link
                           to={`/admin/orders/${order.id}`}
                           state={{ from: backTo }}
@@ -117,7 +116,6 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                         >
                           {order.order_number}
                         </Link>
-                      </OrderQuickPreview>
                     </td>
                     <td className="px-4 py-3 text-sm">{format(new Date(order.order_date), "yyyy-MM-dd HH:mm")}</td>
                     <td className="px-4 py-3 text-sm">{order.guest_name}</td>
