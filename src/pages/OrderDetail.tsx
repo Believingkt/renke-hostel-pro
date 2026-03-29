@@ -117,6 +117,10 @@ interface EditFormState {
   meal_plan: string;
   notes: string;
   room_type_id: string;
+  total_price: number;
+  discount_amount: number;
+  deposit_amount: number;
+  paid_amount: number;
 }
 
 const OrderDetailPage = () => {
