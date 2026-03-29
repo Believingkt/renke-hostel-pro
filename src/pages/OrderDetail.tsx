@@ -205,13 +205,13 @@ const OrderDetailPage = () => {
 
       // Handle status timestamp updates
       if (editForm.order_status !== order.order_status) {
-        if (editForm.order_status === "confirmed" && !order.confirmed_at) {
+        if (editForm.order_status === "confirmed") {
           updateData.confirmed_at = new Date().toISOString();
         }
-        if (editForm.order_status === "checked_in" && !order.checked_in_at) {
+        if (editForm.order_status === "checked_in") {
           updateData.checked_in_at = new Date().toISOString();
         }
-        if (editForm.order_status === "checked_out" && !order.checked_out_at) {
+        if (editForm.order_status === "checked_out") {
           updateData.checked_out_at = new Date().toISOString();
         }
         if (editForm.order_status === "cancelled") {
