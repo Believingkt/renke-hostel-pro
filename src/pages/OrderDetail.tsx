@@ -170,9 +170,9 @@ const OrderDetailPage = () => {
       order_source: order.order_source || "website",
       order_status: order.order_status || "pending",
       payment_status: order.payment_status || "unpaid",
-      deposit_payment_method: order.deposit_payment_method || "",
-      balance_payment_method: order.balance_payment_method || "",
-      meal_plan: order.meal_plan || "",
+      deposit_payment_method: order.deposit_payment_method || "none",
+      balance_payment_method: order.balance_payment_method || "none",
+      meal_plan: order.meal_plan || "none",
       notes: order.notes || "",
       room_type_id: order.room_type_id || "",
     });
