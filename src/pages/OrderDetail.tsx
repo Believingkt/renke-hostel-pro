@@ -624,7 +624,7 @@ const OrderDetailPage = () => {
     { value: "checked_in", label: "已入住" },
     { value: "checked_out", label: "已退房" },
     { value: "cancelled", label: "已取消" },
-    { value: "hold", label: "hold" },
+    { value: "hold", label: "保留中" },
   ];
 
   const paymentStatusOptions = [
