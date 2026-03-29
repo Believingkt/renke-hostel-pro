@@ -693,10 +693,6 @@ const OrderDetailPage = () => {
             </>
           ) : (
             <>
-              <Button variant="outline" onClick={startEditing} className="w-full sm:w-auto text-sm">
-                <Pencil className="h-4 w-4 mr-2" />
-                編輯
-              </Button>
               {order.payment_status !== 'paid' && order.order_status !== 'cancelled' && (
                 <Button 
                   onClick={() => setShowPaymentDialog(true)}
@@ -707,6 +703,10 @@ const OrderDetailPage = () => {
                   <span className="sm:hidden">收款</span>
                 </Button>
               )}
+              <Button variant="outline" onClick={startEditing} className="w-full sm:w-auto text-sm">
+                <Pencil className="h-4 w-4 mr-2" />
+                編輯
+              </Button>
               {order.guest_email && (
                 <Button 
                   variant="outline" 
