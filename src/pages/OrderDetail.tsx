@@ -183,6 +183,10 @@ const OrderDetailPage = () => {
       meal_plan: order.meal_plan || "none",
       notes: order.notes || "",
       room_type_id: order.room_type_id || "",
+      total_price: order.total_price || 0,
+      discount_amount: order.discount_amount || 0,
+      deposit_amount: order.deposit_amount || 0,
+      paid_amount: order.paid_amount || 0,
     });
     setIsEditing(true);
   };
