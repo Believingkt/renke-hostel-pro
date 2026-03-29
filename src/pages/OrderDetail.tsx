@@ -161,6 +161,10 @@ const OrderDetailPage = () => {
     meal_plan: "",
     notes: "",
     room_type_id: "",
+    total_price: 0,
+    discount_amount: 0,
+    deposit_amount: 0,
+    paid_amount: 0,
   });
 
   const startEditing = () => {
