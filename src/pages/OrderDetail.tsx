@@ -636,7 +636,7 @@ const OrderDetailPage = () => {
   ];
 
   const paymentMethodOptions = [
-    { value: "", label: "無" },
+    { value: "none", label: "無" },
     { value: "credit_card", label: "信用卡" },
     { value: "line_pay", label: "LINE Pay" },
     { value: "bank_transfer", label: "轉帳匯款" },
