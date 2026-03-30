@@ -34,6 +34,7 @@ const PaymentResult = lazy(() => import("./pages/PaymentResult"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const OgImagePreview = lazy(() => import("./pages/OgImagePreview"));
 const KolApiDocs = lazy(() => import("./pages/KolApiDocs"));
+const PointsApiDocs = lazy(() => import("./pages/PointsApiDocs"));
 const ChangePassword = lazy(() => import("./pages/ChangePassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
