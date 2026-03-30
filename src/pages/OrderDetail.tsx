@@ -462,6 +462,14 @@ const OrderDetailPage = () => {
           if (templatesData?.meal_plans && Array.isArray(templatesData.meal_plans)) {
             setCustomMealPlans(templatesData.meal_plans as unknown as CustomMealPlan[]);
           }
+
+          // Fetch addon settings for edit mode
+          const { data: addonData } = await supabase
+            .from("addon_settings")
+            .select("id, addon_type, description, unit_label, price_per_unit, max_quantity, enabled")
+            .eq("accommodation_id", orderData.accommodation_id)
+            .eq("enabled", true);
+          if (addonData) setAddonSettings(addonData as AddonSetting[]);
         }
       }
     } catch (error) {
