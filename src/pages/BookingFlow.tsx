@@ -1467,7 +1467,7 @@ const BookingFlow = () => {
     }
 
     // 切換到下一步 - 如果沒有加購方案則跳過 addons 步驟
-    const hasAddons = petPlanSettings.enabled || mealPlanSettings.enabled;
+    const hasAddons = petPlanSettings.enabled || mealPlanSettings.enabled || customAddonSettings.length > 0;
     const steps: BookingStep[] = hasAddons 
       ? ["dates", "room", "addons", "guest", "payment", "confirm"]
       : ["dates", "room", "guest", "payment", "confirm"];
@@ -1479,7 +1479,7 @@ const BookingFlow = () => {
 
   const handlePrevStep = () => {
     // 如果沒有加購方案則跳過 addons 步驟
-    const hasAddons = petPlanSettings.enabled || mealPlanSettings.enabled;
+    const hasAddons = petPlanSettings.enabled || mealPlanSettings.enabled || customAddonSettings.length > 0;
     const steps: BookingStep[] = hasAddons 
       ? ["dates", "room", "addons", "guest", "payment", "confirm"]
       : ["dates", "room", "guest", "payment", "confirm"];
@@ -2237,7 +2237,7 @@ const BookingFlow = () => {
   }
 
   // 如果沒有加購方案則不顯示 addons 步驟
-  const hasAddons = petPlanSettings.enabled || mealPlanSettings.enabled;
+  const hasAddons = petPlanSettings.enabled || mealPlanSettings.enabled || customAddonSettings.length > 0;
   
   const stepIndicators = hasAddons 
     ? [
