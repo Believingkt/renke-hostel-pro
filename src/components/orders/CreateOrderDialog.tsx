@@ -361,7 +361,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     };
 
     checkInventoryAndPrice();
-  }, [form.check_in_date, form.check_out_date, form.room_type_id, form.meal_plan, currentAccommodationId, pricingTemplates]);
+  }, [form.check_in_date, form.check_out_date, form.room_type_id, selectedTemplateId, currentAccommodationId, pricingTemplates]);
 
   const handleApplyDiscount = async () => {
     if (!discountCode.trim() || !currentAccommodationId) {
