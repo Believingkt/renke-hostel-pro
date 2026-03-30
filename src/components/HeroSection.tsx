@@ -232,6 +232,39 @@ const HeroSection = ({
     loadPublicHolidays();
   }, []);
 
+  // 載入房間庫存可用日期
+  useEffect(() => {
+    const loadAvailability = async () => {
+      const accId = currentAccommodationId;
+      if (!accId) return;
+
+      const from = formatISO(startOfMonth(new Date()), { representation: 'date' });
+      const to = formatISO(endOfMonth(addMonths(new Date(), 6)), { representation: 'date' });
+
+      const { data } = await supabase
+        .from('room_inventory_pricing')
+        .select('date, available_rooms, is_available, room_type_id')
+        .gte('date', from)
+        .lte('date', to);
+
+      if (data) {
+        // 某個日期只要有任何一個房型有空房就算可用
+        const dateMap = new Map<string, boolean>();
+        for (const row of data) {
+          const isAvail = (row.is_available !== false) && (row.available_rooms > 0);
+          if (isAvail) {
+            dateMap.set(row.date, true);
+          } else if (!dateMap.has(row.date)) {
+            dateMap.set(row.date, false);
+          }
+        }
+        setAvailableDates(new Set([...dateMap.entries()].filter(([, v]) => v).map(([k]) => k)));
+      }
+    };
+
+    loadAvailability();
+  }, [currentAccommodationId]);
+
   // 生成圖片模糊預覽 - 延遲執行以避免阻塞關鍵內容
   // 生成模糊預覽 - 僅為默認圖片
   useEffect(() => {
