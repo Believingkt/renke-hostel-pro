@@ -1131,6 +1131,15 @@ const BookingFlow = () => {
 
   // 獲取餐食方案顯示名稱
   const getMealPlanDisplayName = (planId: string) => {
+    // 先檢查是否匹配選中的模板
+    if (selectedTemplate && planId === selectedTemplate.template_name) {
+      return selectedTemplate.project_name || selectedTemplate.template_name;
+    }
+    // 檢查所有模板
+    const matchedTemplate = pricingTemplates.find(t => t.template_name === planId);
+    if (matchedTemplate) {
+      return matchedTemplate.project_name || matchedTemplate.template_name;
+    }
     const customPlan = customMealPlans.find(p => p.id === planId);
     if (customPlan) {
       return customPlan.name;
