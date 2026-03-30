@@ -813,7 +813,7 @@ const BookingFlow = () => {
           // 建立價格資料索引 (room_id -> date -> data)
           const pricingIndex: Record<
             string,
-            Record<string, { price: number | null; available_rooms: number | null; is_available: boolean | null }>
+            Record<string, { price: number | null; price_2_meals: number | null; price_3_meals: number | null; available_rooms: number | null; is_available: boolean | null }>
           > = {};
           if (allPricingData) {
             for (const item of allPricingData) {
@@ -822,6 +822,8 @@ const BookingFlow = () => {
               }
               pricingIndex[item.room_type_id][item.date] = {
                 price: item.price,
+                price_2_meals: item.price_2_meals,
+                price_3_meals: item.price_3_meals,
                 available_rooms: item.available_rooms,
                 is_available: item.is_available,
               };
