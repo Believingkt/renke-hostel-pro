@@ -190,6 +190,13 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       if (!addonsResult.error && addonsResult.data) {
         setAddonSettings(addonsResult.data);
       }
+      if (!templatesResult.error && templatesResult.data) {
+        setPricingTemplates(templatesResult.data);
+        // Set default meal_plan to first template if available
+        if (templatesResult.data.length > 0) {
+          setForm(prev => ({ ...prev, meal_plan: templatesResult.data[0].template_name }));
+        }
+      }
     };
 
     fetchData();
