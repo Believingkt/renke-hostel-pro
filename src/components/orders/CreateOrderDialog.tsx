@@ -331,7 +331,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         setInventoryWarnings(warnings);
 
         // Determine which price column to use based on selected template's meal_plans
-        const selectedTemplate = pricingTemplates.find(t => t.template_name === form.meal_plan);
+        const selectedTemplate = pricingTemplates.find(t => t.id === selectedTemplateId);
         let priceColumn = 'price';
         if (selectedTemplate?.meal_plans && Array.isArray(selectedTemplate.meal_plans)) {
           const mealCount = selectedTemplate.meal_plans.length;
