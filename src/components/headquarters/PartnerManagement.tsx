@@ -363,6 +363,200 @@ export const PartnerManagement = forwardRef<PartnerManagementRef>((_, ref) => {
     );
   }
 
+  // If viewing settlement report
+  if (showSettlement && selectedPartner) {
+    const summary = getSettlementSummary();
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => setShowSettlement(false)}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <CalendarDays className="h-5 w-5" />
+                {selectedPartner.platform_name} — 每月點數結算報表
+              </h2>
+              <p className="text-sm text-muted-foreground">按月份查看點數扣款與退款結算明細</p>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" onClick={exportSettlement} disabled={settlementData.length === 0}>
+            <Download className="h-4 w-4 mr-1" /> 匯出 Excel
+          </Button>
+        </div>
+
+        {/* Month Picker */}
+        <div className="flex items-center justify-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => changeSettlementMonth(-1)}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h3 className="text-xl font-bold min-w-[140px] text-center">
+            {format(settlementMonth, "yyyy 年 M 月", { locale: zhTW })}
+          </h3>
+          <Button variant="ghost" size="icon" onClick={() => changeSettlementMonth(1)}>
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+        </div>
+
+        {loadingSettlement ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : settlementData.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            <FileText className="h-10 w-10 mx-auto mb-3 opacity-50" />
+            <p>本月無交易記錄</p>
+          </div>
+        ) : (
+          <>
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="pt-4 pb-3">
+                  <p className="text-xs text-muted-foreground">訂單數</p>
+                  <p className="text-2xl font-bold">{summary.orderCount}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4 pb-3">
+                  <p className="text-xs text-muted-foreground">扣點金額</p>
+                  <p className="text-2xl font-bold">${summary.totalCurrency.toLocaleString()}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4 pb-3">
+                  <p className="text-xs text-muted-foreground">退點金額</p>
+                  <p className="text-2xl font-bold text-orange-600">${summary.refundCurrency.toLocaleString()}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4 pb-3">
+                  <p className="text-xs text-muted-foreground">淨結算金額</p>
+                  <p className="text-2xl font-bold text-primary">${summary.netCurrency.toLocaleString()}</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Per-Accommodation Breakdown */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">各民宿結算明細</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>民宿</TableHead>
+                        <TableHead className="text-right">訂單數</TableHead>
+                        <TableHead className="text-right">扣點數</TableHead>
+                        <TableHead className="text-right">扣點金額</TableHead>
+                        <TableHead className="text-right">退點數</TableHead>
+                        <TableHead className="text-right">退點金額</TableHead>
+                        <TableHead className="text-right">淨點數</TableHead>
+                        <TableHead className="text-right">淨金額</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {Object.entries(summary.byAccommodation).map(([accId, data]) => (
+                        <TableRow key={accId}>
+                          <TableCell className="font-medium">{accommodationNames[accId] || accId}</TableCell>
+                          <TableCell className="text-right">{data.count}</TableCell>
+                          <TableCell className="text-right">{data.deductionPoints.toLocaleString()}</TableCell>
+                          <TableCell className="text-right">${data.deductionCurrency.toLocaleString()}</TableCell>
+                          <TableCell className="text-right text-orange-600">{data.refundPoints.toLocaleString()}</TableCell>
+                          <TableCell className="text-right text-orange-600">${data.refundCurrency.toLocaleString()}</TableCell>
+                          <TableCell className="text-right font-medium">{(data.deductionPoints - data.refundPoints).toLocaleString()}</TableCell>
+                          <TableCell className="text-right font-medium">${(data.deductionCurrency - data.refundCurrency).toLocaleString()}</TableCell>
+                        </TableRow>
+                      ))}
+                      <TableRow className="bg-muted/50 font-semibold">
+                        <TableCell>合計</TableCell>
+                        <TableCell className="text-right">{summary.orderCount}</TableCell>
+                        <TableCell className="text-right">{summary.totalPoints.toLocaleString()}</TableCell>
+                        <TableCell className="text-right">${summary.totalCurrency.toLocaleString()}</TableCell>
+                        <TableCell className="text-right text-orange-600">{summary.refundPoints.toLocaleString()}</TableCell>
+                        <TableCell className="text-right text-orange-600">${summary.refundCurrency.toLocaleString()}</TableCell>
+                        <TableCell className="text-right">{summary.netPoints.toLocaleString()}</TableCell>
+                        <TableCell className="text-right">${summary.netCurrency.toLocaleString()}</TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Transaction Details */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">交易明細</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>時間</TableHead>
+                        <TableHead>訂單編號</TableHead>
+                        <TableHead>民宿</TableHead>
+                        <TableHead>房型</TableHead>
+                        <TableHead>旅客</TableHead>
+                        <TableHead>入住日期</TableHead>
+                        <TableHead>類型</TableHead>
+                        <TableHead className="text-right">點數</TableHead>
+                        <TableHead className="text-right">金額</TableHead>
+                        <TableHead>狀態</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {settlementData.map((t) => (
+                        <TableRow key={t.id}>
+                          <TableCell className="text-xs whitespace-nowrap">
+                            {format(new Date(t.created_at), "MM/dd HH:mm")}
+                          </TableCell>
+                          <TableCell>
+                            <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                              {t.orders?.order_number || "-"}
+                            </code>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {t.orders?.accommodation_id ? accommodationNames[t.orders.accommodation_id] || "-" : "-"}
+                          </TableCell>
+                          <TableCell className="text-sm">{t.orders?.room_types?.name || "-"}</TableCell>
+                          <TableCell className="text-sm">{t.orders?.guest_name || t.external_user_id}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">
+                            {t.orders ? `${t.orders.check_in_date} ~ ${t.orders.check_out_date}` : "-"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={t.transaction_type === "deduction" ? "default" : "secondary"}>
+                              {t.transaction_type === "deduction" ? "扣點" : "退點"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            {t.transaction_type === "deduction" ? "-" : "+"}{t.points_amount.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            ${t.currency_amount.toLocaleString()}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={t.status === "completed" ? "default" : t.status === "refunded" ? "secondary" : "outline"}>
+                              {t.status === "completed" ? "完成" : t.status === "refunded" ? "已退款" : t.status}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
+      </div>
+    );
+  }
+
   // If viewing transactions, show full-page view
   if (showTransactions && selectedPartner) {
     return (
