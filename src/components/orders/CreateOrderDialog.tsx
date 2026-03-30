@@ -71,6 +71,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   
   const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
   const [pricingTemplates, setPricingTemplates] = useState<PricingTemplate[]>([]);
+  const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
   const [roomPrice, setRoomPrice] = useState(0);
   const [inventoryWarnings, setInventoryWarnings] = useState<{ date: string; available: number; blocked?: boolean; blockedBy?: string }[]>([]);
   const [isCheckingInventory, setIsCheckingInventory] = useState(false);
