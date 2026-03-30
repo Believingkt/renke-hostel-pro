@@ -738,7 +738,7 @@ const BookingFlow = () => {
     };
 
     fetchRoomPricingAndAvailability();
-  }, [selectedRoom, checkInDate, checkOutDate, accommodationId]);
+  }, [selectedRoom, checkInDate, checkOutDate, accommodationId, selectedTemplate]);
 
   // 當日期改變時，預先檢查所有房型的可用性（批次查詢優化版 + 快取）
   useEffect(() => {
