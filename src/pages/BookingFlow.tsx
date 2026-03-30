@@ -2126,6 +2126,18 @@ const BookingFlow = () => {
           pet_plan_price: petPlanPrice,
           meal_plan_details: mealPlanDetailsData,
           meal_plan_total: mealPlanTotalPrice,
+          custom_addon_details: Object.entries(customAddonCounts).filter(([_, count]) => count > 0).length > 0
+            ? Object.entries(customAddonCounts).filter(([_, count]) => count > 0).map(([type, count]) => {
+                const setting = customAddonSettings.find(s => s.addon_type === type);
+                return {
+                  addon_type: type,
+                  count,
+                  price_per_unit: setting?.price_per_unit || 0,
+                  total: count * (setting?.price_per_unit || 0) * calculateNights(),
+                  unit_label: setting?.unit_label || '',
+                };
+              })
+            : null,
         }])
         .select()
         .single();
