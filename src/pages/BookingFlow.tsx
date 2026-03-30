@@ -654,7 +654,7 @@ const BookingFlow = () => {
           // 獲取價格、可用房間數與販售狀態
           const { data: priceData, error: priceError } = await supabase
             .from('room_inventory_pricing')
-            .select(`${priceCol}, price, available_rooms, is_available`)
+            .select('price, price_2_meals, price_3_meals, available_rooms, is_available')
             .eq('room_type_id', selectedRoom.id)
             .eq('date', dateStr)
             .maybeSingle();
