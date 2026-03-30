@@ -258,6 +258,7 @@ const OrderDetailPage = () => {
         pet_plan_price: editForm.pet_plan_price,
         meal_plan_details: editForm.meal_plan_details.length > 0 ? editForm.meal_plan_details : null,
         meal_plan_total: editForm.meal_plan_total,
+        custom_addon_details: editForm.custom_addon_details.length > 0 ? editForm.custom_addon_details : null,
       };
 
       // Handle status timestamp updates
