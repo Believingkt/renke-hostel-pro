@@ -23,8 +23,32 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Copy, Eye, EyeOff, Loader2, Trash2, ExternalLink, Handshake } from "lucide-react";
+import { format } from "date-fns";
+import { Plus, Copy, Eye, EyeOff, Loader2, Trash2, ExternalLink, Handshake, FileText, ArrowDownUp } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
+
+interface PointTransaction {
+  id: string;
+  order_id: string | null;
+  external_user_id: string;
+  external_transaction_id: string | null;
+  points_amount: number;
+  currency_amount: number;
+  transaction_type: string;
+  status: string;
+  created_at: string;
+  metadata: any;
+  orders: {
+    order_number: string;
+    guest_name: string;
+    check_in_date: string;
+    check_out_date: string;
+    final_price: number;
+    order_status: string;
+    room_types: { name: string } | null;
+    accommodation_id: string;
+  } | null;
+}
 
 interface Partner {
   id: string;
@@ -50,6 +74,11 @@ export const PartnerManagement = forwardRef<PartnerManagementRef>((_, ref) => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
+  const [showTransactions, setShowTransactions] = useState(false);
+  const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
+  const [transactions, setTransactions] = useState<PointTransaction[]>([]);
+  const [loadingTransactions, setLoadingTransactions] = useState(false);
+  const [accommodationNames, setAccommodationNames] = useState<Record<string, string>>({});
 
   // Form state
   const [formName, setFormName] = useState("");
@@ -81,6 +110,42 @@ export const PartnerManagement = forwardRef<PartnerManagementRef>((_, ref) => {
       setPartners((data as any) || []);
     }
     setLoading(false);
+  };
+
+  const loadTransactions = async (partner: Partner) => {
+    setSelectedPartner(partner);
+    setShowTransactions(true);
+    setLoadingTransactions(true);
+
+    const { data, error } = await supabase
+      .from("point_transactions")
+      .select("*, orders(order_number, guest_name, check_in_date, check_out_date, final_price, order_status, room_types(name), accommodation_id)")
+      .eq("partner_id", partner.id)
+      .order("created_at", { ascending: false })
+      .limit(100);
+
+    if (error) {
+      toast.error("載入交易記錄失敗");
+      console.error(error);
+    } else {
+      const txns = (data as any) || [];
+      setTransactions(txns);
+      
+      // Load accommodation names
+      const accIds = [...new Set(txns.map((t: any) => t.orders?.accommodation_id).filter(Boolean))] as string[];
+      if (accIds.length > 0) {
+        const { data: accData } = await supabase
+          .from("accommodation_info")
+          .select("id, name")
+          .in("id", accIds);
+        if (accData) {
+          const map: Record<string, string> = {};
+          accData.forEach((a: any) => { map[a.id] = a.name; });
+          setAccommodationNames(map);
+        }
+      }
+    }
+    setLoadingTransactions(false);
   };
 
   const handleCreate = async () => {
@@ -260,6 +325,15 @@ export const PartnerManagement = forwardRef<PartnerManagementRef>((_, ref) => {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
+                            title="查看交易記錄"
+                            onClick={() => loadTransactions(p)}
+                          >
+                            <ArrowDownUp className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
                             onClick={() => window.open("/points-api-docs", "_blank")}
                           >
                             <ExternalLink className="h-4 w-4" />
@@ -325,6 +399,122 @@ export const PartnerManagement = forwardRef<PartnerManagementRef>((_, ref) => {
               建立
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Transactions Dialog */}
+      <Dialog open={showTransactions} onOpenChange={setShowTransactions}>
+        <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowDownUp className="h-5 w-5" />
+              {selectedPartner?.platform_name} — 點數交易記錄
+            </DialogTitle>
+            <DialogDescription>
+              透過此平台進行的所有點數訂房交易明細
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-auto flex-1">
+            {loadingTransactions ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : transactions.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <FileText className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                <p>尚無交易記錄</p>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-3 gap-4 mb-4">
+                  <Card>
+                    <CardContent className="pt-4 pb-3">
+                      <p className="text-xs text-muted-foreground">總交易筆數</p>
+                      <p className="text-2xl font-bold">{transactions.length}</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-4 pb-3">
+                      <p className="text-xs text-muted-foreground">總點數使用</p>
+                      <p className="text-2xl font-bold">
+                        {transactions
+                          .filter(t => t.transaction_type === "deduction" && t.status === "completed")
+                          .reduce((sum, t) => sum + t.points_amount, 0)
+                          .toLocaleString()}
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-4 pb-3">
+                      <p className="text-xs text-muted-foreground">總折抵金額</p>
+                      <p className="text-2xl font-bold">
+                        ${transactions
+                          .filter(t => t.transaction_type === "deduction" && t.status === "completed")
+                          .reduce((sum, t) => sum + t.currency_amount, 0)
+                          .toLocaleString()}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>時間</TableHead>
+                      <TableHead>訂單編號</TableHead>
+                      <TableHead>民宿</TableHead>
+                      <TableHead>房型</TableHead>
+                      <TableHead>旅客</TableHead>
+                      <TableHead>入住日期</TableHead>
+                      <TableHead>類型</TableHead>
+                      <TableHead className="text-right">點數</TableHead>
+                      <TableHead className="text-right">折抵金額</TableHead>
+                      <TableHead>狀態</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {transactions.map((t) => (
+                      <TableRow key={t.id}>
+                        <TableCell className="text-xs whitespace-nowrap">
+                          {format(new Date(t.created_at), "yyyy-MM-dd HH:mm")}
+                        </TableCell>
+                        <TableCell>
+                          <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                            {t.orders?.order_number || "-"}
+                          </code>
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {t.orders?.accommodation_id ? accommodationNames[t.orders.accommodation_id] || "-" : "-"}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {t.orders?.room_types?.name || "-"}
+                        </TableCell>
+                        <TableCell className="text-sm">{t.orders?.guest_name || t.external_user_id}</TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">
+                          {t.orders ? `${t.orders.check_in_date} ~ ${t.orders.check_out_date}` : "-"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={t.transaction_type === "deduction" ? "default" : "secondary"}>
+                            {t.transaction_type === "deduction" ? "扣點" : "退點"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          {t.transaction_type === "deduction" ? "-" : "+"}{t.points_amount.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          ${t.currency_amount.toLocaleString()}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={t.status === "completed" ? "default" : t.status === "refunded" ? "secondary" : "outline"}>
+                            {t.status === "completed" ? "完成" : t.status === "refunded" ? "已退款" : t.status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
