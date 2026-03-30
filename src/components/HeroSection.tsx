@@ -606,7 +606,7 @@ const HeroSection = ({
                         }}
                         modifiersClassNames={{
                           holiday: "bg-primary/10 text-primary font-semibold rounded-md",
-                          available: "font-bold text-foreground"
+                          available: "!font-extrabold text-foreground"
                         }}
                         initialFocus
                         className="pointer-events-auto"
@@ -666,7 +666,7 @@ const HeroSection = ({
                         }}
                         modifiersClassNames={{
                           holiday: "bg-primary/10 text-primary font-semibold rounded-md",
-                          available: "font-bold text-foreground"
+                          available: "!font-extrabold text-foreground"
                         }}
                         initialFocus
                         className="pointer-events-auto"
