@@ -599,12 +599,14 @@ const HeroSection = ({
                             }, 100);
                           }
                         }}
-                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                        disabled={isDateUnavailable}
                         modifiers={{
-                          holiday: (date) => isHoliday(date)
+                          holiday: (date) => isHoliday(date) && !isDateUnavailable(date),
+                          available: (date) => !isDateUnavailable(date)
                         }}
                         modifiersClassNames={{
-                          holiday: "bg-primary/10 text-primary font-semibold rounded-md"
+                          holiday: "bg-primary/10 text-primary font-semibold rounded-md",
+                          available: "font-bold text-foreground"
                         }}
                         initialFocus
                         className="pointer-events-auto"
