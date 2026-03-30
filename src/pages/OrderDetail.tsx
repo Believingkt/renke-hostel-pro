@@ -221,6 +221,7 @@ const OrderDetailPage = () => {
       pet_plan_price: order.pet_plan_price || 0,
       meal_plan_details: order.meal_plan_details || [],
       meal_plan_total: order.meal_plan_total || 0,
+      custom_addon_details: (order.custom_addon_details as CustomAddonDetail[]) || [],
     });
     setIsEditing(true);
   };
