@@ -865,11 +865,17 @@ const BookingFlow = () => {
           const missingDates: string[] = [];
           const unavailableDates: string[] = [];
 
-          // 檢查每個日期的價格和庫存
+          // 檢查每個日期的價格和庫存（根據選擇的方案）
+          const batchPriceCol = getPriceColumn();
           for (const dateStr of dateRange) {
             const priceData = pricingIndex[room.id]?.[dateStr];
+            const selectedPrice = batchPriceCol === 'price_3_meals' 
+              ? priceData?.price_3_meals 
+              : batchPriceCol === 'price_2_meals' 
+                ? priceData?.price_2_meals 
+                : priceData?.price;
             
-            if (!priceData || priceData.price === null || priceData.price === undefined) {
+            if (!priceData || selectedPrice === null || selectedPrice === undefined) {
               hasMissingPricing = true;
               missingDates.push(dateStr);
             } else if (priceData.is_available === false) {
