@@ -95,6 +95,7 @@ const HeroSection = ({
   const [isCheckOutDateOpen, setIsCheckOutDateOpen] = useState(false);
   const [publicHolidays, setPublicHolidays] = useState<Date[]>([]);
   const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
+  const [hasInventoryData, setHasInventoryData] = useState(false);
   const [heroPhotos, setHeroPhotos] = useState<HeroPhoto[]>([]);
   const [isLoadingPhotos, setIsLoadingPhotos] = useState(true);
   const [blurDataURLs, setBlurDataURLs] = useState<Map<string, string>>(new Map());
