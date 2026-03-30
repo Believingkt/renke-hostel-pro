@@ -103,6 +103,16 @@ interface RoomTypeOption {
   name: string;
 }
 
+interface AddonSetting {
+  id: string;
+  addon_type: string;
+  description: string | null;
+  unit_label: string;
+  price_per_unit: number;
+  max_quantity: number;
+  enabled: boolean;
+}
+
 interface EditFormState {
   guest_name: string;
   guest_phone: string;
@@ -121,6 +131,10 @@ interface EditFormState {
   discount_amount: number;
   deposit_amount: number;
   paid_amount: number;
+  pet_count: number;
+  pet_plan_price: number;
+  meal_plan_details: MealPlanDetail[];
+  meal_plan_total: number;
 }
 
 const OrderDetailPage = () => {
