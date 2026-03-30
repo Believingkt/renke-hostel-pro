@@ -753,12 +753,14 @@ const BookingFlow = () => {
     const currentRoomTypeIds = roomTypes.map(r => r.id).sort().join(',');
     const cache = availabilityCacheRef.current;
 
-    // 檢查快取是否有效
+    // 檢查快取是否有效（加入 selectedTemplate 以避免切換方案時使用舊快取）
+    const cacheTemplateId = (cache as any).templateId || null;
     if (
       cache.checkInDate === checkInDateStr &&
       cache.checkOutDate === checkOutDateStr &&
       cache.accommodationId === accommodationId &&
       cache.roomTypeIds.sort().join(',') === currentRoomTypeIds &&
+      cacheTemplateId === (selectedTemplate?.id || null) &&
       Object.keys(cache.data).length > 0
     ) {
       // 使用快取資料
