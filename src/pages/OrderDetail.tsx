@@ -206,6 +206,10 @@ const OrderDetailPage = () => {
       discount_amount: order.discount_amount || 0,
       deposit_amount: order.deposit_amount || 0,
       paid_amount: order.paid_amount || 0,
+      pet_count: order.pet_count || 0,
+      pet_plan_price: order.pet_plan_price || 0,
+      meal_plan_details: order.meal_plan_details || [],
+      meal_plan_total: order.meal_plan_total || 0,
     });
     setIsEditing(true);
   };
