@@ -239,27 +239,41 @@ const HeroSection = ({
       const accId = currentAccommodationId;
       if (!accId) return;
 
-      const from = formatISO(startOfMonth(new Date()), { representation: 'date' });
-      const to = formatISO(endOfMonth(addMonths(new Date(), 6)), { representation: 'date' });
+      // 取得該住宿所有房型
+      const { data: roomTypes } = await supabase
+        .from('room_types')
+        .select('id')
+        .eq('accommodation_id', accId);
+
+      if (!roomTypes || roomTypes.length === 0) return;
+
+      const today = new Date();
+      const todayStr = formatISO(today, { representation: 'date' });
+      const sixMonthsLater = addMonths(today, 6);
+      const endStr = formatISO(endOfMonth(sixMonthsLater), { representation: 'date' });
 
       const { data } = await supabase
         .from('room_inventory_pricing')
-        .select('date, available_rooms, is_available, room_type_id')
-        .gte('date', from)
-        .lte('date', to);
+        .select('date, available_rooms, is_available, price, room_type_id')
+        .in('room_type_id', roomTypes.map(r => r.id))
+        .gte('date', todayStr)
+        .lte('date', endStr);
 
-      if (data) {
-        // 某個日期只要有任何一個房型有空房就算可用
-        const dateMap = new Map<string, boolean>();
+      if (data && data.length > 0) {
+        setHasInventoryData(true);
+        // 按日期聚合：某日期只要有任一房型可用即算可用
+        const dateAvailMap = new Map<string, boolean>();
         for (const row of data) {
-          const isAvail = (row.is_available !== false) && (row.available_rooms > 0);
+          const isAvail = (row.is_available !== false) && (row.available_rooms > 0) && (row.price !== null && row.price !== undefined);
           if (isAvail) {
-            dateMap.set(row.date, true);
-          } else if (!dateMap.has(row.date)) {
-            dateMap.set(row.date, false);
+            dateAvailMap.set(row.date, true);
+          } else if (!dateAvailMap.has(row.date)) {
+            dateAvailMap.set(row.date, false);
           }
         }
-        setAvailableDates(new Set([...dateMap.entries()].filter(([, v]) => v).map(([k]) => k)));
+        setAvailableDates(new Set([...dateAvailMap.entries()].filter(([, v]) => v).map(([k]) => k)));
+      } else {
+        setHasInventoryData(false);
       }
     };
 
