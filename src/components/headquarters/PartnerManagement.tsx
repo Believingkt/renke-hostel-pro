@@ -23,7 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Copy, Eye, EyeOff, Loader2, Trash2, ExternalLink } from "lucide-react";
+import { Plus, Copy, Eye, EyeOff, Loader2, Trash2, ExternalLink, Handshake } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 
 interface Partner {
