@@ -84,12 +84,21 @@ interface OrderDetail {
   pet_plan_price: number;
   meal_plan_details: MealPlanDetail[];
   meal_plan_total: number;
+  custom_addon_details: CustomAddonDetail[] | null;
   order_source: string;
   room_type_id: string | null;
   room_types: {
     name: string;
     name_en: string | null;
   } | null;
+}
+
+interface CustomAddonDetail {
+  addon_type: string;
+  count: number;
+  price_per_unit: number;
+  total: number;
+  unit_label: string;
 }
 
 interface CustomMealPlan {
