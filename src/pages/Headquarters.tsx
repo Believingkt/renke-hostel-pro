@@ -916,6 +916,7 @@ const Headquarters = () => {
       case 'accommodations': return '新增、編輯或停用民宿';
       case 'facilities': return '管理全民宿共用的設施服務項目';
       case 'users': return '邀請新用戶並管理所有帳號的權限設定';
+      case 'partners': return '管理點數平台合作夥伴與 API 串接設定';
       case 'system': return '查看系統操作日誌與進行全平台系統設定';
       default: return undefined;
     }
