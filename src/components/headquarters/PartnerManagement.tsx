@@ -775,6 +775,15 @@ export const PartnerManagement = forwardRef<PartnerManagementRef>((_, ref) => {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
+                            title="每月結算報表"
+                            onClick={() => loadSettlement(p, new Date())}
+                          >
+                            <CalendarDays className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
                             onClick={() => window.open("/points-api-docs", "_blank")}
                           >
                             <ExternalLink className="h-4 w-4" />
