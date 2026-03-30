@@ -7,7 +7,7 @@ import type { CarouselApi } from "@/components/ui/carousel";
 import { Calendar as CalendarIcon, Users, Search, Image as ImageIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format, isSaturday } from "date-fns";
+import { format, isSaturday, addMonths, startOfMonth, endOfMonth, formatISO } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useAccommodation } from "@/contexts/AccommodationContext";
@@ -94,6 +94,7 @@ const HeroSection = ({
   const [isCheckInDateOpen, setIsCheckInDateOpen] = useState(false);
   const [isCheckOutDateOpen, setIsCheckOutDateOpen] = useState(false);
   const [publicHolidays, setPublicHolidays] = useState<Date[]>([]);
+  const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
   const [heroPhotos, setHeroPhotos] = useState<HeroPhoto[]>([]);
   const [isLoadingPhotos, setIsLoadingPhotos] = useState(true);
   const [blurDataURLs, setBlurDataURLs] = useState<Map<string, string>>(new Map());
@@ -231,6 +232,39 @@ const HeroSection = ({
     loadPublicHolidays();
   }, []);
 
+  // 載入房間庫存可用日期
+  useEffect(() => {
+    const loadAvailability = async () => {
+      const accId = currentAccommodationId;
+      if (!accId) return;
+
+      const from = formatISO(startOfMonth(new Date()), { representation: 'date' });
+      const to = formatISO(endOfMonth(addMonths(new Date(), 6)), { representation: 'date' });
+
+      const { data } = await supabase
+        .from('room_inventory_pricing')
+        .select('date, available_rooms, is_available, room_type_id')
+        .gte('date', from)
+        .lte('date', to);
+
+      if (data) {
+        // 某個日期只要有任何一個房型有空房就算可用
+        const dateMap = new Map<string, boolean>();
+        for (const row of data) {
+          const isAvail = (row.is_available !== false) && (row.available_rooms > 0);
+          if (isAvail) {
+            dateMap.set(row.date, true);
+          } else if (!dateMap.has(row.date)) {
+            dateMap.set(row.date, false);
+          }
+        }
+        setAvailableDates(new Set([...dateMap.entries()].filter(([, v]) => v).map(([k]) => k)));
+      }
+    };
+
+    loadAvailability();
+  }, [currentAccommodationId]);
+
   // 生成圖片模糊預覽 - 延遲執行以避免阻塞關鍵內容
   // 生成模糊預覽 - 僅為默認圖片
   useEffect(() => {
@@ -270,6 +304,21 @@ const HeroSection = ({
       holiday.getMonth() === date.getMonth() &&
       holiday.getDate() === date.getDate()
     );
+  };
+
+  // 檢查日期是否有空房
+  const isDateAvailable = (date: Date) => {
+    const dateStr = formatISO(date, { representation: 'date' });
+    // 若沒有庫存資料（尚未設定），視為可用
+    if (availableDates.size === 0) return true;
+    return availableDates.has(dateStr);
+  };
+
+  // 檢查日期是否無法預訂（過去 + 無庫存）
+  const isDateUnavailable = (date: Date) => {
+    const today = new Date(new Date().setHours(0, 0, 0, 0));
+    if (date < today) return true;
+    return !isDateAvailable(date);
   };
 
   useEffect(() => {
@@ -550,18 +599,20 @@ const HeroSection = ({
                             }, 100);
                           }
                         }}
-                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                        disabled={isDateUnavailable}
                         modifiers={{
-                          holiday: (date) => isHoliday(date)
+                          holiday: (date) => isHoliday(date) && !isDateUnavailable(date),
+                          available: (date) => !isDateUnavailable(date)
                         }}
                         modifiersClassNames={{
-                          holiday: "bg-primary/10 text-primary font-semibold rounded-md"
+                          holiday: "bg-primary/10 text-primary font-semibold rounded-md",
+                          available: "font-bold text-foreground"
                         }}
                         initialFocus
                         className="pointer-events-auto"
                         variant="frontend"
                       />
-                      <div className="flex items-center gap-4 mt-3 pt-3 border-t text-xs">
+                      <div className="flex items-center gap-4 mt-3 pt-3 border-t text-xs flex-wrap">
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 bg-primary/10 rounded-md border border-primary/20"></div>
                           <span className="text-muted-foreground">假日定價</span>
@@ -569,6 +620,10 @@ const HeroSection = ({
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 bg-background rounded-md border border-border"></div>
                           <span className="text-muted-foreground">平日定價</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-6 h-6 flex items-center justify-center text-muted-foreground/40 text-sm">30</span>
+                          <span className="text-muted-foreground">已滿房</span>
                         </div>
                       </div>
                     </div>
@@ -601,22 +656,23 @@ const HeroSection = ({
                           }
                         }}
                         disabled={(date) => {
-                          const today = new Date(new Date().setHours(0, 0, 0, 0));
-                          if (date < today) return true;
+                          if (isDateUnavailable(date)) return true;
                           if (checkInDate && date <= checkInDate) return true;
                           return false;
                         }}
                         modifiers={{
-                          holiday: (date) => isHoliday(date)
+                          holiday: (date) => isHoliday(date) && !isDateUnavailable(date),
+                          available: (date) => !isDateUnavailable(date)
                         }}
                         modifiersClassNames={{
-                          holiday: "bg-primary/10 text-primary font-semibold rounded-md"
+                          holiday: "bg-primary/10 text-primary font-semibold rounded-md",
+                          available: "font-bold text-foreground"
                         }}
                         initialFocus
                         className="pointer-events-auto"
                         variant="frontend"
                       />
-                      <div className="flex items-center gap-4 mt-3 pt-3 border-t text-xs">
+                      <div className="flex items-center gap-4 mt-3 pt-3 border-t text-xs flex-wrap">
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 bg-primary/10 rounded-md border border-primary/20"></div>
                           <span className="text-muted-foreground">假日定價</span>
@@ -624,6 +680,10 @@ const HeroSection = ({
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 bg-background rounded-md border border-border"></div>
                           <span className="text-muted-foreground">平日定價</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-6 h-6 flex items-center justify-center text-muted-foreground/40 text-sm">30</span>
+                          <span className="text-muted-foreground">已滿房</span>
                         </div>
                       </div>
                     </div>
