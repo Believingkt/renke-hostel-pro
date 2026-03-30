@@ -23,8 +23,32 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Copy, Eye, EyeOff, Loader2, Trash2, ExternalLink, Handshake } from "lucide-react";
+import { format } from "date-fns";
+import { Plus, Copy, Eye, EyeOff, Loader2, Trash2, ExternalLink, Handshake, FileText, ArrowDownUp } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
+
+interface PointTransaction {
+  id: string;
+  order_id: string | null;
+  external_user_id: string;
+  external_transaction_id: string | null;
+  points_amount: number;
+  currency_amount: number;
+  transaction_type: string;
+  status: string;
+  created_at: string;
+  metadata: any;
+  orders: {
+    order_number: string;
+    guest_name: string;
+    check_in_date: string;
+    check_out_date: string;
+    final_price: number;
+    order_status: string;
+    room_types: { name: string } | null;
+    accommodation_id: string;
+  } | null;
+}
 
 interface Partner {
   id: string;
