@@ -1313,19 +1313,74 @@ const OrderDetailPage = () => {
                 ) : null;
               })()}
 
-              {(editForm.pet_count > 0 || editForm.meal_plan_total > 0) && (
-                <>
-                  <Separator />
-                  <div className="flex justify-between items-center gap-2 pt-2">
-                    <span className="text-xs md:text-sm font-semibold">加購總計</span>
-                    <span className="font-bold text-base md:text-lg text-primary">
-                      NT$ {(editForm.pet_plan_price + editForm.meal_plan_total).toLocaleString()}
-                    </span>
-                  </div>
-                </>
-              )}
+              {/* 其他自訂加購方案 - 編輯模式 */}
+              {(() => {
+                const genericAddons = addonSettings.filter(a => a.addon_type !== 'pet' && a.addon_type !== 'meal' && a.addon_type !== 'bbq');
+                return genericAddons.map(addon => {
+                  const existing = editForm.custom_addon_details.find(d => d.addon_type === addon.addon_type);
+                  const count = existing?.count || 0;
+                  const total = existing?.total || 0;
+                  return (
+                    <div key={addon.addon_type} className="space-y-2">
+                      <div className="flex justify-between items-center gap-2">
+                        <span className="text-xs md:text-sm font-medium">📦 {addon.addon_type}</span>
+                      </div>
+                      <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
+                        <span className="text-xs md:text-sm text-muted-foreground">數量（{addon.unit_label}）</span>
+                        <Input
+                          className="w-[100px] h-8 text-sm text-right"
+                          type="number"
+                          min={0}
+                          max={addon.max_quantity}
+                          value={count}
+                          onChange={(e) => {
+                            const newCount = Math.max(0, Math.min(addon.max_quantity, parseInt(e.target.value) || 0));
+                            const newTotal = newCount * addon.price_per_unit * nights;
+                            const newDetails = editForm.custom_addon_details.filter(d => d.addon_type !== addon.addon_type);
+                            if (newCount > 0) {
+                              newDetails.push({
+                                addon_type: addon.addon_type,
+                                count: newCount,
+                                price_per_unit: addon.price_per_unit,
+                                total: newTotal,
+                                unit_label: addon.unit_label,
+                              });
+                            }
+                            setEditForm(f => ({ ...f, custom_addon_details: newDetails }));
+                          }}
+                        />
+                      </div>
+                      <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
+                        <span className="text-xs md:text-sm text-muted-foreground">單價</span>
+                        <span className="text-sm">NT$ {addon.price_per_unit.toLocaleString()} / {addon.unit_label} / 晚</span>
+                      </div>
+                      <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
+                        <span className="text-xs md:text-sm text-muted-foreground">小計</span>
+                        <span className="font-medium text-sm">NT$ {total.toLocaleString()}</span>
+                      </div>
+                      <Separator />
+                    </div>
+                  );
+                });
+              })()}
 
-              {editForm.pet_count === 0 && editForm.meal_plan_details.length === 0 && addonSettings.length === 0 && (
+              {(() => {
+                const customTotal = editForm.custom_addon_details.reduce((sum, d) => sum + d.total, 0);
+                const grandTotal = editForm.pet_plan_price + editForm.meal_plan_total + customTotal;
+                return grandTotal > 0 ? (
+                  <>
+                    <Separator />
+                    <div className="flex justify-between items-center gap-2 pt-2">
+                      <span className="text-xs md:text-sm font-semibold">加購總計</span>
+                      <span className="font-bold text-base md:text-lg text-primary">
+                        NT$ {grandTotal.toLocaleString()}
+                      </span>
+                    </div>
+                  </>
+                ) : null;
+              })()}
+
+              {editForm.pet_count === 0 && editForm.meal_plan_details.length === 0 && editForm.custom_addon_details.length === 0 && addonSettings.filter(a => a.addon_type !== 'pet' && a.addon_type !== 'meal' && a.addon_type !== 'bbq').length === 0 && addonSettings.length === 0 && (
                 <div className="text-center py-4">
                   <p className="text-xs md:text-sm text-muted-foreground">無可用的加購方案</p>
                 </div>
