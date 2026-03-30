@@ -922,11 +922,12 @@ const BookingFlow = () => {
       }
 
       // 更新快取
-      availabilityCacheRef.current = {
+      (availabilityCacheRef as any).current = {
         checkInDate: checkInDateStr,
         checkOutDate: checkOutDateStr,
         accommodationId,
         roomTypeIds: roomTypes.map(r => r.id),
+        templateId: selectedTemplate?.id || null,
         data: newAvailability
       };
 
