@@ -180,6 +180,10 @@ const OrderDetailPage = () => {
     discount_amount: 0,
     deposit_amount: 0,
     paid_amount: 0,
+    pet_count: 0,
+    pet_plan_price: 0,
+    meal_plan_details: [],
+    meal_plan_total: 0,
   });
 
   const startEditing = () => {
