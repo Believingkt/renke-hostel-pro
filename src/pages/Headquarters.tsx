@@ -47,7 +47,8 @@ import {
   Utensils,
   GripVertical,
   Calendar,
-  Download
+  Download,
+  Handshake
 } from "lucide-react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
@@ -82,6 +83,7 @@ import { OperationalOverview, OperationalOverviewRef } from "@/components/headqu
 import { SystemManagement } from "@/components/headquarters/SystemManagement";
 import { SplitManagement, SplitManagementRef } from "@/components/headquarters/SplitManagement";
 import { FacilityManagement, FacilityManagementRef } from "@/components/headquarters/FacilityManagement";
+import { PartnerManagement, PartnerManagementRef } from "@/components/headquarters/PartnerManagement";
 import { HQUsersSkeleton } from "@/components/skeletons/HQSkeleton";
 import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
 
@@ -205,6 +207,8 @@ const Headquarters = () => {
   const splitManagementRef = useRef<SplitManagementRef>(null);
   // Ref for FacilityManagement
   const facilityManagementRef = useRef<FacilityManagementRef>(null);
+  // Ref for PartnerManagement
+  const partnerManagementRef = useRef<PartnerManagementRef>(null);
   // Ref for OperationalOverview
   const overviewRef = useRef<OperationalOverviewRef>(null);
 
@@ -849,6 +853,7 @@ const Headquarters = () => {
       case 'accommodations': return '民宿管理';
       case 'facilities': return '設施管理';
       case 'users': return '帳號管理';
+      case 'partners': return '合作夥伴';
       case 'system': return '系統管理';
       default: return '營運分析';
     }
@@ -881,6 +886,7 @@ const Headquarters = () => {
       case 'accommodations': return Building2;
       case 'facilities': return Utensils;
       case 'users': return Users;
+      case 'partners': return Handshake;
       case 'system': return Settings;
       default: return BarChart3;
     }
@@ -911,6 +917,7 @@ const Headquarters = () => {
       case 'accommodations': return '新增、編輯或停用民宿';
       case 'facilities': return '管理全民宿共用的設施服務項目';
       case 'users': return '邀請新用戶並管理所有帳號的權限設定';
+      case 'partners': return '管理點數平台合作夥伴與 API 串接設定';
       case 'system': return '查看系統操作日誌與進行全平台系統設定';
       default: return undefined;
     }
@@ -943,6 +950,8 @@ const Headquarters = () => {
         );
       case 'facilities':
         return <FacilityManagement ref={facilityManagementRef} />;
+      case 'partners':
+        return <PartnerManagement ref={partnerManagementRef} />;
       case 'users':
         return (
           <div className="space-y-6">
@@ -1259,6 +1268,7 @@ const Headquarters = () => {
       case 'split': return '金流拆帳';
       case 'accommodations': return '民宿管理';
       case 'users': return '帳號管理';
+      case 'partners': return '合作夥伴';
       case 'system': return '系統管理';
       default: return '營運分析';
     }
@@ -1377,6 +1387,14 @@ const Headquarters = () => {
               >
                 <Plus className="h-4 w-4" />
                 新增設施
+              </Button>
+            ) : currentTab === 'partners' ? (
+              <Button 
+                onClick={() => partnerManagementRef.current?.openCreateDialog()} 
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                新增合作夥伴
               </Button>
             ) : undefined
           }

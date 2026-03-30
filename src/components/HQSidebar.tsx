@@ -7,7 +7,8 @@ import {
   ChevronDown,
   FileText,
   ClipboardList,
-  Utensils
+  Utensils,
+  Handshake
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { PreloadLink } from "@/components/PreloadLink";
@@ -43,6 +44,7 @@ const menuItems = [
   { title: "民宿管理", url: "/hq?tab=accommodations", icon: Building2, tab: "accommodations" },
   { title: "設施管理", url: "/hq?tab=facilities", icon: Utensils, tab: "facilities" },
   { title: "帳號管理", url: "/hq?tab=users", icon: Users, tab: "users" },
+  { title: "合作夥伴", url: "/hq?tab=partners", icon: Handshake, tab: "partners" },
   { title: "系統管理", url: "/hq?tab=system&section=settings", icon: Settings, tab: "system" },
 ];
 
