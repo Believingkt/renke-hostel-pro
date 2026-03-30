@@ -74,6 +74,11 @@ export const PartnerManagement = forwardRef<PartnerManagementRef>((_, ref) => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
+  const [showTransactions, setShowTransactions] = useState(false);
+  const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
+  const [transactions, setTransactions] = useState<PointTransaction[]>([]);
+  const [loadingTransactions, setLoadingTransactions] = useState(false);
+  const [accommodationNames, setAccommodationNames] = useState<Record<string, string>>({});
 
   // Form state
   const [formName, setFormName] = useState("");
