@@ -801,7 +801,7 @@ const BookingFlow = () => {
           // 批次查詢：一次取得所有房型在日期範圍內的價格、庫存與販售狀態
           const { data: allPricingData, error: pricingError } = await supabase
             .from('room_inventory_pricing')
-            .select('room_type_id, date, price, available_rooms, is_available')
+            .select('room_type_id, date, price, price_2_meals, price_3_meals, available_rooms, is_available')
             .in('room_type_id', roomTypeIds)
             .gte('date', checkInDateStr)
             .lt('date', checkOutDateStr);
