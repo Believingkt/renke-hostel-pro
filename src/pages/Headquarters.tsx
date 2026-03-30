@@ -82,6 +82,7 @@ import { OperationalOverview, OperationalOverviewRef } from "@/components/headqu
 import { SystemManagement } from "@/components/headquarters/SystemManagement";
 import { SplitManagement, SplitManagementRef } from "@/components/headquarters/SplitManagement";
 import { FacilityManagement, FacilityManagementRef } from "@/components/headquarters/FacilityManagement";
+import { PartnerManagement, PartnerManagementRef } from "@/components/headquarters/PartnerManagement";
 import { HQUsersSkeleton } from "@/components/skeletons/HQSkeleton";
 import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
 
