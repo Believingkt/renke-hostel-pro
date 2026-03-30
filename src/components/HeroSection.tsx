@@ -646,6 +646,7 @@ const HeroSection = ({
                   <PopoverContent className="w-auto p-0" align="start">
                     <div className="p-3">
                       <Calendar
+                        defaultMonth={checkInDate || undefined}
                         mode="single"
                         selected={checkOutDate}
                         onSelect={(date) => {
