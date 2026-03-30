@@ -184,8 +184,7 @@ export const PartnerManagement = forwardRef<PartnerManagementRef>((_, ref) => {
           icon={Handshake}
           title="尚未建立合作夥伴"
           description="新增點數平台合作夥伴，讓會員可透過點數訂房"
-          actionLabel="新增合作夥伴"
-          onAction={() => setShowCreateDialog(true)}
+          action={{ label: "新增合作夥伴", onClick: () => setShowCreateDialog(true) }}
         />
       ) : (
         <Card>
