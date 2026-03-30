@@ -3340,6 +3340,17 @@ const BookingFlow = () => {
                                 <span className="font-semibold">NT$ {(count * mealPlanSettings.pricePerUnit).toLocaleString()}</span>
                               </div>
                             ))}
+                            {Object.entries(customAddonCounts).filter(([_, count]) => count > 0).map(([type, count]) => {
+                              const setting = customAddonSettings.find(s => s.addon_type === type);
+                              return (
+                                <div key={type} className="flex justify-between text-base">
+                                  <span className="text-muted-foreground">
+                                    🛏️ {setting?.description || type} × {count} × {calculateNights()} 晚
+                                  </span>
+                                  <span className="font-semibold">NT$ {(count * (setting?.price_per_unit || 0) * calculateNights()).toLocaleString()}</span>
+                                </div>
+                              );
+                            })}
                             <Separator className="my-3" />
                             <div className="flex justify-between text-xl">
                               <span className="font-bold">總計</span>
@@ -3350,7 +3361,7 @@ const BookingFlow = () => {
                       </Card>
                     )}
 
-                    {(petCount === 0 && !Object.values(bbqMealsByDate).some(count => count > 0)) && (
+                    {(petCount === 0 && !Object.values(bbqMealsByDate).some(count => count > 0) && !Object.values(customAddonCounts).some(c => c > 0)) && (
                       <div className="text-center py-8 text-muted-foreground">
                         <p>您可以選擇加購方案，或直接進入下一步</p>
                       </div>
