@@ -195,6 +195,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         setPricingTemplates(templatesResult.data);
         // Set default meal_plan to first template if available
         if (templatesResult.data.length > 0) {
+          setSelectedTemplateId(templatesResult.data[0].id);
           setForm(prev => ({ ...prev, meal_plan: templatesResult.data[0].template_name }));
         }
       }
