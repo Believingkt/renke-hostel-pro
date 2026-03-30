@@ -341,6 +341,17 @@ const BookingFlow = () => {
   }
   const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
   
+  // 價格方案（專案模板）
+  interface PricingTemplateOption {
+    id: string;
+    template_name: string;
+    project_name: string | null;
+    meal_plans: any[] | null;
+    mealCount: number; // 0,1 → price, 2 → price_2_meals, 3 → price_3_meals
+  }
+  const [pricingTemplates, setPricingTemplates] = useState<PricingTemplateOption[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<PricingTemplateOption | null>(null);
+  
   // 將 context 日期轉換為字串格式，並提供預設值
   const checkInDateStr = checkInDate ? format(checkInDate, "yyyy-MM-dd") : "";
   const checkOutDateStr = checkOutDate ? format(checkOutDate, "yyyy-MM-dd") : "";
