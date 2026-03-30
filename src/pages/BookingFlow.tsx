@@ -4028,12 +4028,10 @@ const BookingFlow = () => {
           {/* Right: Summary Sidebar - 只在有可用房型時顯示 */}
           {(() => {
             // 檢查是否所有房型都無法預訂
-            const hasAvailableRooms = !checkInDate || !checkOutDate || !isCheckingAvailability && roomTypes.some(room => {
+            const hasAvailableRooms = !checkInDate || !checkOutDate || isCheckingAvailability || roomTypes.some(room => {
               const availability = roomAvailability[room.id];
-              const isBlocked = availability?.isBlocked || false;
-              const hasMissingPricing = availability?.hasMissingPricing || false;
-              const hasNoAvailability = availability?.hasNoAvailability || false;
-              return !isBlocked && !hasMissingPricing && !hasNoAvailability;
+              if (!availability) return false;
+              return !availability.isBlocked && !availability.hasMissingPricing && !availability.hasNoAvailability;
             });
             
             // 如果在房型選擇步驟且所有房型都無法預訂，隱藏訂單摘要
