@@ -1413,6 +1413,111 @@ export type Database = {
         }
         Relationships: []
       }
+      point_transactions: {
+        Row: {
+          created_at: string
+          currency_amount: number
+          external_transaction_id: string | null
+          external_user_id: string
+          id: string
+          metadata: Json | null
+          order_id: string | null
+          partner_id: string
+          points_amount: number
+          status: string
+          transaction_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency_amount: number
+          external_transaction_id?: string | null
+          external_user_id: string
+          id?: string
+          metadata?: Json | null
+          order_id?: string | null
+          partner_id: string
+          points_amount: number
+          status?: string
+          transaction_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency_amount?: number
+          external_transaction_id?: string | null
+          external_user_id?: string
+          id?: string
+          metadata?: Json | null
+          order_id?: string | null
+          partner_id?: string
+          points_amount?: number
+          status?: string
+          transaction_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "point_transactions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "point_transactions_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "points_platform_partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      points_platform_partners: {
+        Row: {
+          api_key: string
+          contact_email: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          platform_code: string
+          platform_name: string
+          point_to_currency_rate: number
+          updated_at: string
+          webhook_secret: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          api_key?: string
+          contact_email?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          platform_code: string
+          platform_name: string
+          point_to_currency_rate?: number
+          updated_at?: string
+          webhook_secret?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          api_key?: string
+          contact_email?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          platform_code?: string
+          platform_name?: string
+          point_to_currency_rate?: number
+          updated_at?: string
+          webhook_secret?: string | null
+          webhook_url?: string | null
+        }
+        Relationships: []
+      }
       pricing_rules: {
         Row: {
           accommodation_id: string
