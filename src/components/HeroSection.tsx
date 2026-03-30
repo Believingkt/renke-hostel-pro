@@ -323,9 +323,9 @@ const HeroSection = ({
 
   // 檢查日期是否有空房
   const isDateAvailable = (date: Date) => {
+    // 若尚無庫存資料（未設定），視為可用
+    if (!hasInventoryData) return true;
     const dateStr = formatISO(date, { representation: 'date' });
-    // 若沒有庫存資料（尚未設定），視為可用
-    if (availableDates.size === 0) return true;
     return availableDates.has(dateStr);
   };
 
