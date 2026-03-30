@@ -151,7 +151,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     const fetchData = async () => {
       if (!currentAccommodationId) return;
       
-      const [roomTypesResult, holidaysResult, customersResult, addonsResult] = await Promise.all([
+      const [roomTypesResult, holidaysResult, customersResult, addonsResult, templatesResult] = await Promise.all([
         supabase
           .from("room_types")
           .select("id, name, capacity")
@@ -170,7 +170,12 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           .from("addon_settings")
           .select("id, addon_type, description, price_per_unit, unit_label, enabled, max_quantity")
           .eq("accommodation_id", currentAccommodationId)
-          .eq("enabled", true)
+          .eq("enabled", true),
+        supabase
+          .from("pricing_templates")
+          .select("id, template_name, meal_plans, project_name")
+          .eq("accommodation_id", currentAccommodationId)
+          .order("display_order")
       ]);
 
       if (!roomTypesResult.error && roomTypesResult.data) {
