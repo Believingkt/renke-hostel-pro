@@ -3224,8 +3224,102 @@ const BookingFlow = () => {
                     </Card>
                     )}
 
+                    {/* 自訂加購方案（如加床服務等） */}
+                    {customAddonSettings.map((addon) => {
+                      const count = customAddonCounts[addon.addon_type] || 0;
+                      const nights = calculateNights();
+                      return (
+                        <Card key={addon.addon_type} className="border-2">
+                          <CardHeader className="pb-4">
+                            <div className="flex items-center justify-between">
+                              <CardTitle className="text-xl font-bold flex items-center gap-2">
+                                🛏️ {addon.description || addon.addon_type}
+                              </CardTitle>
+                              {addon.detailed_description && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    toast({
+                                      title: addon.description || addon.addon_type,
+                                      description: addon.detailed_description || '',
+                                    });
+                                  }}
+                                >
+                                  詳細內容
+                                </Button>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-2">
+                              每{addon.unit_label} NT$ {addon.price_per_unit.toLocaleString()} / 每晚・上限 {addon.max_quantity} {addon.unit_label}
+                            </p>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            {count === 0 ? (
+                              <Button
+                                onClick={() => setCustomAddonCounts(prev => ({ ...prev, [addon.addon_type]: 1 }))}
+                                variant="outline"
+                                size="lg"
+                                className="w-full h-12"
+                              >
+                                <ShoppingBag className="mr-2 h-5 w-5" />
+                                加購{addon.description || addon.addon_type}
+                              </Button>
+                            ) : (
+                              <div className="space-y-4">
+                                <div className="flex items-center justify-between bg-muted/50 rounded-lg p-4">
+                                  <div>
+                                    <p className="font-semibold">數量</p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {count} {addon.unit_label} × NT$ {addon.price_per_unit.toLocaleString()} × {nights} 晚
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <Button
+                                      onClick={() => {
+                                        const newCount = count - 1;
+                                        if (newCount <= 0) {
+                                          setCustomAddonCounts(prev => {
+                                            const next = { ...prev };
+                                            delete next[addon.addon_type];
+                                            return next;
+                                          });
+                                        } else {
+                                          setCustomAddonCounts(prev => ({ ...prev, [addon.addon_type]: newCount }));
+                                        }
+                                      }}
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-10 w-10 rounded-lg"
+                                    >
+                                      -
+                                    </Button>
+                                    <span className="w-8 text-center text-lg font-bold">{count}</span>
+                                    <Button
+                                      onClick={() => setCustomAddonCounts(prev => ({ ...prev, [addon.addon_type]: Math.min(addon.max_quantity, count + 1) }))}
+                                      disabled={count >= addon.max_quantity}
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-10 w-10 rounded-lg"
+                                    >
+                                      +
+                                    </Button>
+                                  </div>
+                                </div>
+                                <div className="bg-primary/10 border border-primary/20 p-4 rounded-lg text-center">
+                                  <p className="font-bold text-base">
+                                    小計：NT$ {(count * addon.price_per_unit * nights).toLocaleString()}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+
                     {/* 加購總計 */}
-                    {((petPlanSettings.enabled && petCount > 0) || (mealPlanSettings.enabled && Object.values(bbqMealsByDate).some(count => count > 0))) && (
+                    {((petPlanSettings.enabled && petCount > 0) || (mealPlanSettings.enabled && Object.values(bbqMealsByDate).some(count => count > 0)) || Object.values(customAddonCounts).some(c => c > 0)) && (
                       <Card className="bg-primary/5 border-2 border-primary/30">
                         <CardContent className="p-6">
                           <div className="space-y-3">
