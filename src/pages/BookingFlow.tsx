@@ -933,7 +933,7 @@ const BookingFlow = () => {
     };
 
     checkAllRoomsAvailability();
-  }, [checkInDate, checkOutDate, accommodationId, roomTypes]);
+  }, [checkInDate, checkOutDate, accommodationId, roomTypes, selectedTemplate]);
 
   // 當在選擇房型步驟時，自動預選第一個可用房型
   useEffect(() => {
