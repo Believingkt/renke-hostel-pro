@@ -2542,6 +2542,39 @@ const BookingFlow = () => {
                 {/* Step 1: Room Selection */}
                 {currentStep === "room" && (
                   <div className="space-y-4">
+                    {/* 方案選擇器 */}
+                    {pricingTemplates.length > 1 && (
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2 text-base font-semibold">
+                          📋 選擇方案
+                        </Label>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          {pricingTemplates.map((template) => (
+                            <button
+                              key={template.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedTemplate(template);
+                                setSelectedMealPlan(template.template_name);
+                                if (template.meal_plans && template.meal_plans.length > 0) {
+                                  setCustomMealPlans(template.meal_plans as CustomMealPlan[]);
+                                } else {
+                                  setCustomMealPlans([]);
+                                }
+                              }}
+                              className={cn(
+                                "px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all text-center",
+                                selectedTemplate?.id === template.id
+                                  ? "border-primary bg-primary/10 text-primary"
+                                  : "border-border bg-background hover:border-primary/50 text-foreground"
+                              )}
+                            >
+                              {template.project_name || template.template_name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     {/* 顯示載入狀態 */}
                     {checkInDate && checkOutDate && isCheckingAvailability && (
                       <div className="bg-muted p-6 rounded-lg text-center">
