@@ -273,6 +273,19 @@ const BookingFlow = () => {
   const [bbqMealsByDate, setBbqMealsByDate] = useState<Record<string, number>>({});
   const [hiddenBbqDates, setHiddenBbqDates] = useState<Set<string>>(new Set());
   const [isBbqMealsExpanded, setIsBbqMealsExpanded] = useState(false);
+
+  // 自訂加購方案（非 pet/meal 類型）
+  interface CustomAddonSetting {
+    addon_type: string;
+    description: string | null;
+    detailed_description: string | null;
+    price_per_unit: number;
+    max_quantity: number;
+    unit_label: string;
+    enabled: boolean;
+  }
+  const [customAddonSettings, setCustomAddonSettings] = useState<CustomAddonSetting[]>([]);
+  const [customAddonCounts, setCustomAddonCounts] = useState<Record<string, number>>({});
   const [isBbqDetailsDialogOpen, setIsBbqDetailsDialogOpen] = useState(false);
   const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
   
