@@ -1188,6 +1188,7 @@ export type Database = {
           checked_out_at: string | null
           confirmed_at: string | null
           created_at: string | null
+          custom_addon_details: Json | null
           customer_id: string | null
           deposit_amount: number | null
           deposit_payment_method: string | null
@@ -1231,6 +1232,7 @@ export type Database = {
           checked_out_at?: string | null
           confirmed_at?: string | null
           created_at?: string | null
+          custom_addon_details?: Json | null
           customer_id?: string | null
           deposit_amount?: number | null
           deposit_payment_method?: string | null
@@ -1274,6 +1276,7 @@ export type Database = {
           checked_out_at?: string | null
           confirmed_at?: string | null
           created_at?: string | null
+          custom_addon_details?: Json | null
           customer_id?: string | null
           deposit_amount?: number | null
           deposit_payment_method?: string | null

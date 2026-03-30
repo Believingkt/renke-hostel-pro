@@ -1,0 +1,1 @@
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS custom_addon_details jsonb DEFAULT NULL;
