@@ -835,15 +835,19 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           <div className="space-y-1.5">
             <Label className="text-xs">專案 <span className="text-destructive">*</span></Label>
             <Select
-              value={form.meal_plan}
-              onValueChange={(value) => setForm({...form, meal_plan: value})}
+              value={selectedTemplateId}
+              onValueChange={(value) => {
+                setSelectedTemplateId(value);
+                const template = pricingTemplates.find(t => t.id === value);
+                setForm({...form, meal_plan: template?.template_name || value});
+              }}
             >
               <SelectTrigger className="h-10 text-sm">
                 <SelectValue placeholder="選擇專案" />
               </SelectTrigger>
               <SelectContent>
                 {pricingTemplates.map((template) => (
-                  <SelectItem key={template.id} value={template.template_name}>
+                  <SelectItem key={template.id} value={template.id}>
                     {template.project_name || template.template_name}
                   </SelectItem>
                 ))}
