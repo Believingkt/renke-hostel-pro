@@ -154,6 +154,121 @@ export const PartnerManagement = forwardRef<PartnerManagementRef>((_, ref) => {
     setLoadingTransactions(false);
   };
 
+  const loadSettlement = async (partner: Partner, month: Date) => {
+    setSelectedPartner(partner);
+    setShowSettlement(true);
+    setSettlementMonth(month);
+    setLoadingSettlement(true);
+
+    const from = format(startOfMonth(month), "yyyy-MM-dd'T'00:00:00");
+    const to = format(endOfMonth(month), "yyyy-MM-dd'T'23:59:59");
+
+    const { data, error } = await supabase
+      .from("point_transactions")
+      .select("*, orders(order_number, guest_name, check_in_date, check_out_date, final_price, order_status, room_types(name), accommodation_id)")
+      .eq("partner_id", partner.id)
+      .gte("created_at", from)
+      .lte("created_at", to)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      toast.error("載入結算資料失敗");
+      console.error(error);
+    } else {
+      const txns = (data as any) || [];
+      setSettlementData(txns);
+
+      const accIds = [...new Set(txns.map((t: any) => t.orders?.accommodation_id).filter(Boolean))] as string[];
+      if (accIds.length > 0) {
+        const { data: accData } = await supabase
+          .from("accommodation_info")
+          .select("id, name")
+          .in("id", accIds);
+        if (accData) {
+          const map: Record<string, string> = {};
+          accData.forEach((a: any) => { map[a.id] = a.name; });
+          setAccommodationNames(prev => ({ ...prev, ...map }));
+        }
+      }
+    }
+    setLoadingSettlement(false);
+  };
+
+  const changeSettlementMonth = (delta: number) => {
+    if (!selectedPartner) return;
+    const newMonth = delta > 0 ? addMonths(settlementMonth, 1) : subMonths(settlementMonth, 1);
+    loadSettlement(selectedPartner, newMonth);
+  };
+
+  const getSettlementSummary = () => {
+    const deductions = settlementData.filter(t => t.transaction_type === "deduction" && t.status === "completed");
+    const refunds = settlementData.filter(t => t.transaction_type === "refund" && t.status === "completed");
+
+    const totalPoints = deductions.reduce((s, t) => s + t.points_amount, 0);
+    const totalCurrency = deductions.reduce((s, t) => s + t.currency_amount, 0);
+    const refundPoints = refunds.reduce((s, t) => s + t.points_amount, 0);
+    const refundCurrency = refunds.reduce((s, t) => s + t.currency_amount, 0);
+
+    // Group by accommodation
+    const byAccommodation: Record<string, { deductionPoints: number; deductionCurrency: number; refundPoints: number; refundCurrency: number; count: number }> = {};
+    settlementData.forEach(t => {
+      const accId = t.orders?.accommodation_id || "unknown";
+      if (!byAccommodation[accId]) {
+        byAccommodation[accId] = { deductionPoints: 0, deductionCurrency: 0, refundPoints: 0, refundCurrency: 0, count: 0 };
+      }
+      if (t.transaction_type === "deduction" && t.status === "completed") {
+        byAccommodation[accId].deductionPoints += t.points_amount;
+        byAccommodation[accId].deductionCurrency += t.currency_amount;
+        byAccommodation[accId].count++;
+      } else if (t.transaction_type === "refund" && t.status === "completed") {
+        byAccommodation[accId].refundPoints += t.points_amount;
+        byAccommodation[accId].refundCurrency += t.currency_amount;
+      }
+    });
+
+    return { totalPoints, totalCurrency, refundPoints, refundCurrency, netPoints: totalPoints - refundPoints, netCurrency: totalCurrency - refundCurrency, byAccommodation, orderCount: deductions.length };
+  };
+
+  const exportSettlement = () => {
+    if (!selectedPartner) return;
+    const summary = getSettlementSummary();
+    const monthStr = format(settlementMonth, "yyyy-MM");
+
+    const rows = Object.entries(summary.byAccommodation).map(([accId, data]) => ({
+      "民宿": accommodationNames[accId] || accId,
+      "訂單數": data.count,
+      "扣點數": data.deductionPoints,
+      "扣點金額": data.deductionCurrency,
+      "退點數": data.refundPoints,
+      "退點金額": data.refundCurrency,
+      "淨點數": data.deductionPoints - data.refundPoints,
+      "淨金額": data.deductionCurrency - data.refundCurrency,
+    }));
+
+    rows.push({
+      "民宿": "合計",
+      "訂單數": summary.orderCount,
+      "扣點數": summary.totalPoints,
+      "扣點金額": summary.totalCurrency,
+      "退點數": summary.refundPoints,
+      "退點金額": summary.refundCurrency,
+      "淨點數": summary.netPoints,
+      "淨金額": summary.netCurrency,
+    });
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const colWidths = Object.keys(rows[0]).map(key => {
+      const maxLen = Math.max(key.length, ...rows.map(r => String((r as any)[key] ?? "").length));
+      return { wch: Math.min(Math.max(maxLen + 2, 8), 20) };
+    });
+    ws["!cols"] = colWidths;
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "月結報表");
+    XLSX.writeFile(wb, `${selectedPartner.platform_name}_點數結算_${monthStr}.xlsx`);
+    toast.success("報表已匯出");
+  };
+
   const handleCreate = async () => {
     if (!formName.trim() || !formCode.trim()) {
       toast.error("請填寫平台名稱和代碼");
