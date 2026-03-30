@@ -852,6 +852,7 @@ const Headquarters = () => {
       case 'accommodations': return '民宿管理';
       case 'facilities': return '設施管理';
       case 'users': return '帳號管理';
+      case 'partners': return '合作夥伴';
       case 'system': return '系統管理';
       default: return '營運分析';
     }
