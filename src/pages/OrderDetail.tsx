@@ -161,6 +161,7 @@ const OrderDetailPage = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [roomTypes, setRoomTypes] = useState<RoomTypeOption[]>([]);
+  const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
   const [editForm, setEditForm] = useState<EditFormState>({
     guest_name: "",
     guest_phone: "",
