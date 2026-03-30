@@ -306,6 +306,21 @@ const HeroSection = ({
     );
   };
 
+  // 檢查日期是否有空房
+  const isDateAvailable = (date: Date) => {
+    const dateStr = formatISO(date, { representation: 'date' });
+    // 若沒有庫存資料（尚未設定），視為可用
+    if (availableDates.size === 0) return true;
+    return availableDates.has(dateStr);
+  };
+
+  // 檢查日期是否無法預訂（過去 + 無庫存）
+  const isDateUnavailable = (date: Date) => {
+    const today = new Date(new Date().setHours(0, 0, 0, 0));
+    if (date < today) return true;
+    return !isDateAvailable(date);
+  };
+
   useEffect(() => {
     if (!carouselApi || !autoplayEnabled) return;
 
