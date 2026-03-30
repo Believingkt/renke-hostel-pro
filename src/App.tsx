@@ -109,6 +109,11 @@ function App() {
                     <KolApiDocs />
                   </Suspense>
                 } />
+                <Route path="/points-api-docs" element={
+                  <Suspense fallback={<FrontendSkeleton />}>
+                    <PointsApiDocs />
+                  </Suspense>
+                } />
                 <Route path="/pay" element={
                   <Suspense fallback={<FrontendSkeleton />}>
                     <PublicPayment />
