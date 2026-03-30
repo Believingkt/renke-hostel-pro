@@ -23,9 +23,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { format } from "date-fns";
-import { Plus, Copy, Eye, EyeOff, Loader2, Trash2, ExternalLink, Handshake, FileText, ArrowDownUp, ArrowLeft } from "lucide-react";
+import { format, startOfMonth, endOfMonth, subMonths, addMonths } from "date-fns";
+import { zhTW } from "date-fns/locale";
+import { Plus, Copy, Eye, EyeOff, Loader2, Trash2, ExternalLink, Handshake, FileText, ArrowDownUp, ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
+import * as XLSX from "xlsx";
 
 interface PointTransaction {
   id: string;
@@ -75,10 +77,14 @@ export const PartnerManagement = forwardRef<PartnerManagementRef>((_, ref) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
   const [showTransactions, setShowTransactions] = useState(false);
+  const [showSettlement, setShowSettlement] = useState(false);
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
   const [transactions, setTransactions] = useState<PointTransaction[]>([]);
   const [loadingTransactions, setLoadingTransactions] = useState(false);
   const [accommodationNames, setAccommodationNames] = useState<Record<string, string>>({});
+  const [settlementMonth, setSettlementMonth] = useState(new Date());
+  const [settlementData, setSettlementData] = useState<PointTransaction[]>([]);
+  const [loadingSettlement, setLoadingSettlement] = useState(false);
 
   // Form state
   const [formName, setFormName] = useState("");
@@ -146,6 +152,121 @@ export const PartnerManagement = forwardRef<PartnerManagementRef>((_, ref) => {
       }
     }
     setLoadingTransactions(false);
+  };
+
+  const loadSettlement = async (partner: Partner, month: Date) => {
+    setSelectedPartner(partner);
+    setShowSettlement(true);
+    setSettlementMonth(month);
+    setLoadingSettlement(true);
+
+    const from = format(startOfMonth(month), "yyyy-MM-dd'T'00:00:00");
+    const to = format(endOfMonth(month), "yyyy-MM-dd'T'23:59:59");
+
+    const { data, error } = await supabase
+      .from("point_transactions")
+      .select("*, orders(order_number, guest_name, check_in_date, check_out_date, final_price, order_status, room_types(name), accommodation_id)")
+      .eq("partner_id", partner.id)
+      .gte("created_at", from)
+      .lte("created_at", to)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      toast.error("載入結算資料失敗");
+      console.error(error);
+    } else {
+      const txns = (data as any) || [];
+      setSettlementData(txns);
+
+      const accIds = [...new Set(txns.map((t: any) => t.orders?.accommodation_id).filter(Boolean))] as string[];
+      if (accIds.length > 0) {
+        const { data: accData } = await supabase
+          .from("accommodation_info")
+          .select("id, name")
+          .in("id", accIds);
+        if (accData) {
+          const map: Record<string, string> = {};
+          accData.forEach((a: any) => { map[a.id] = a.name; });
+          setAccommodationNames(prev => ({ ...prev, ...map }));
+        }
+      }
+    }
+    setLoadingSettlement(false);
+  };
+
+  const changeSettlementMonth = (delta: number) => {
+    if (!selectedPartner) return;
+    const newMonth = delta > 0 ? addMonths(settlementMonth, 1) : subMonths(settlementMonth, 1);
+    loadSettlement(selectedPartner, newMonth);
+  };
+
+  const getSettlementSummary = () => {
+    const deductions = settlementData.filter(t => t.transaction_type === "deduction" && t.status === "completed");
+    const refunds = settlementData.filter(t => t.transaction_type === "refund" && t.status === "completed");
+
+    const totalPoints = deductions.reduce((s, t) => s + t.points_amount, 0);
+    const totalCurrency = deductions.reduce((s, t) => s + t.currency_amount, 0);
+    const refundPoints = refunds.reduce((s, t) => s + t.points_amount, 0);
+    const refundCurrency = refunds.reduce((s, t) => s + t.currency_amount, 0);
+
+    // Group by accommodation
+    const byAccommodation: Record<string, { deductionPoints: number; deductionCurrency: number; refundPoints: number; refundCurrency: number; count: number }> = {};
+    settlementData.forEach(t => {
+      const accId = t.orders?.accommodation_id || "unknown";
+      if (!byAccommodation[accId]) {
+        byAccommodation[accId] = { deductionPoints: 0, deductionCurrency: 0, refundPoints: 0, refundCurrency: 0, count: 0 };
+      }
+      if (t.transaction_type === "deduction" && t.status === "completed") {
+        byAccommodation[accId].deductionPoints += t.points_amount;
+        byAccommodation[accId].deductionCurrency += t.currency_amount;
+        byAccommodation[accId].count++;
+      } else if (t.transaction_type === "refund" && t.status === "completed") {
+        byAccommodation[accId].refundPoints += t.points_amount;
+        byAccommodation[accId].refundCurrency += t.currency_amount;
+      }
+    });
+
+    return { totalPoints, totalCurrency, refundPoints, refundCurrency, netPoints: totalPoints - refundPoints, netCurrency: totalCurrency - refundCurrency, byAccommodation, orderCount: deductions.length };
+  };
+
+  const exportSettlement = () => {
+    if (!selectedPartner) return;
+    const summary = getSettlementSummary();
+    const monthStr = format(settlementMonth, "yyyy-MM");
+
+    const rows = Object.entries(summary.byAccommodation).map(([accId, data]) => ({
+      "民宿": accommodationNames[accId] || accId,
+      "訂單數": data.count,
+      "扣點數": data.deductionPoints,
+      "扣點金額": data.deductionCurrency,
+      "退點數": data.refundPoints,
+      "退點金額": data.refundCurrency,
+      "淨點數": data.deductionPoints - data.refundPoints,
+      "淨金額": data.deductionCurrency - data.refundCurrency,
+    }));
+
+    rows.push({
+      "民宿": "合計",
+      "訂單數": summary.orderCount,
+      "扣點數": summary.totalPoints,
+      "扣點金額": summary.totalCurrency,
+      "退點數": summary.refundPoints,
+      "退點金額": summary.refundCurrency,
+      "淨點數": summary.netPoints,
+      "淨金額": summary.netCurrency,
+    });
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const colWidths = Object.keys(rows[0]).map(key => {
+      const maxLen = Math.max(key.length, ...rows.map(r => String((r as any)[key] ?? "").length));
+      return { wch: Math.min(Math.max(maxLen + 2, 8), 20) };
+    });
+    ws["!cols"] = colWidths;
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "月結報表");
+    XLSX.writeFile(wb, `${selectedPartner.platform_name}_點數結算_${monthStr}.xlsx`);
+    toast.success("報表已匯出");
   };
 
   const handleCreate = async () => {
@@ -238,6 +359,200 @@ export const PartnerManagement = forwardRef<PartnerManagementRef>((_, ref) => {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // If viewing settlement report
+  if (showSettlement && selectedPartner) {
+    const summary = getSettlementSummary();
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => setShowSettlement(false)}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <CalendarDays className="h-5 w-5" />
+                {selectedPartner.platform_name} — 每月點數結算報表
+              </h2>
+              <p className="text-sm text-muted-foreground">按月份查看點數扣款與退款結算明細</p>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" onClick={exportSettlement} disabled={settlementData.length === 0}>
+            <Download className="h-4 w-4 mr-1" /> 匯出 Excel
+          </Button>
+        </div>
+
+        {/* Month Picker */}
+        <div className="flex items-center justify-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => changeSettlementMonth(-1)}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h3 className="text-xl font-bold min-w-[140px] text-center">
+            {format(settlementMonth, "yyyy 年 M 月", { locale: zhTW })}
+          </h3>
+          <Button variant="ghost" size="icon" onClick={() => changeSettlementMonth(1)}>
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+        </div>
+
+        {loadingSettlement ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : settlementData.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            <FileText className="h-10 w-10 mx-auto mb-3 opacity-50" />
+            <p>本月無交易記錄</p>
+          </div>
+        ) : (
+          <>
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="pt-4 pb-3">
+                  <p className="text-xs text-muted-foreground">訂單數</p>
+                  <p className="text-2xl font-bold">{summary.orderCount}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4 pb-3">
+                  <p className="text-xs text-muted-foreground">扣點金額</p>
+                  <p className="text-2xl font-bold">${summary.totalCurrency.toLocaleString()}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4 pb-3">
+                  <p className="text-xs text-muted-foreground">退點金額</p>
+                  <p className="text-2xl font-bold text-orange-600">${summary.refundCurrency.toLocaleString()}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4 pb-3">
+                  <p className="text-xs text-muted-foreground">淨結算金額</p>
+                  <p className="text-2xl font-bold text-primary">${summary.netCurrency.toLocaleString()}</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Per-Accommodation Breakdown */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">各民宿結算明細</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>民宿</TableHead>
+                        <TableHead className="text-right">訂單數</TableHead>
+                        <TableHead className="text-right">扣點數</TableHead>
+                        <TableHead className="text-right">扣點金額</TableHead>
+                        <TableHead className="text-right">退點數</TableHead>
+                        <TableHead className="text-right">退點金額</TableHead>
+                        <TableHead className="text-right">淨點數</TableHead>
+                        <TableHead className="text-right">淨金額</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {Object.entries(summary.byAccommodation).map(([accId, data]) => (
+                        <TableRow key={accId}>
+                          <TableCell className="font-medium">{accommodationNames[accId] || accId}</TableCell>
+                          <TableCell className="text-right">{data.count}</TableCell>
+                          <TableCell className="text-right">{data.deductionPoints.toLocaleString()}</TableCell>
+                          <TableCell className="text-right">${data.deductionCurrency.toLocaleString()}</TableCell>
+                          <TableCell className="text-right text-orange-600">{data.refundPoints.toLocaleString()}</TableCell>
+                          <TableCell className="text-right text-orange-600">${data.refundCurrency.toLocaleString()}</TableCell>
+                          <TableCell className="text-right font-medium">{(data.deductionPoints - data.refundPoints).toLocaleString()}</TableCell>
+                          <TableCell className="text-right font-medium">${(data.deductionCurrency - data.refundCurrency).toLocaleString()}</TableCell>
+                        </TableRow>
+                      ))}
+                      <TableRow className="bg-muted/50 font-semibold">
+                        <TableCell>合計</TableCell>
+                        <TableCell className="text-right">{summary.orderCount}</TableCell>
+                        <TableCell className="text-right">{summary.totalPoints.toLocaleString()}</TableCell>
+                        <TableCell className="text-right">${summary.totalCurrency.toLocaleString()}</TableCell>
+                        <TableCell className="text-right text-orange-600">{summary.refundPoints.toLocaleString()}</TableCell>
+                        <TableCell className="text-right text-orange-600">${summary.refundCurrency.toLocaleString()}</TableCell>
+                        <TableCell className="text-right">{summary.netPoints.toLocaleString()}</TableCell>
+                        <TableCell className="text-right">${summary.netCurrency.toLocaleString()}</TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Transaction Details */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">交易明細</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>時間</TableHead>
+                        <TableHead>訂單編號</TableHead>
+                        <TableHead>民宿</TableHead>
+                        <TableHead>房型</TableHead>
+                        <TableHead>旅客</TableHead>
+                        <TableHead>入住日期</TableHead>
+                        <TableHead>類型</TableHead>
+                        <TableHead className="text-right">點數</TableHead>
+                        <TableHead className="text-right">金額</TableHead>
+                        <TableHead>狀態</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {settlementData.map((t) => (
+                        <TableRow key={t.id}>
+                          <TableCell className="text-xs whitespace-nowrap">
+                            {format(new Date(t.created_at), "MM/dd HH:mm")}
+                          </TableCell>
+                          <TableCell>
+                            <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                              {t.orders?.order_number || "-"}
+                            </code>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {t.orders?.accommodation_id ? accommodationNames[t.orders.accommodation_id] || "-" : "-"}
+                          </TableCell>
+                          <TableCell className="text-sm">{t.orders?.room_types?.name || "-"}</TableCell>
+                          <TableCell className="text-sm">{t.orders?.guest_name || t.external_user_id}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">
+                            {t.orders ? `${t.orders.check_in_date} ~ ${t.orders.check_out_date}` : "-"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={t.transaction_type === "deduction" ? "default" : "secondary"}>
+                              {t.transaction_type === "deduction" ? "扣點" : "退點"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            {t.transaction_type === "deduction" ? "-" : "+"}{t.points_amount.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            ${t.currency_amount.toLocaleString()}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={t.status === "completed" ? "default" : t.status === "refunded" ? "secondary" : "outline"}>
+                              {t.status === "completed" ? "完成" : t.status === "refunded" ? "已退款" : t.status}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
     );
   }
@@ -455,6 +770,15 @@ export const PartnerManagement = forwardRef<PartnerManagementRef>((_, ref) => {
                             onClick={() => loadTransactions(p)}
                           >
                             <ArrowDownUp className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            title="每月結算報表"
+                            onClick={() => loadSettlement(p, new Date())}
+                          >
+                            <CalendarDays className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
