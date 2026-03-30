@@ -885,6 +885,7 @@ const Headquarters = () => {
       case 'accommodations': return Building2;
       case 'facilities': return Utensils;
       case 'users': return Users;
+      case 'partners': return DollarSign;
       case 'system': return Settings;
       default: return BarChart3;
     }
