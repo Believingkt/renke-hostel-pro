@@ -43,6 +43,13 @@ interface AddonSetting {
   max_quantity: number;
 }
 
+interface PricingTemplate {
+  id: string;
+  template_name: string;
+  meal_plans: any;
+  project_name: string | null;
+}
+
 interface CreateOrderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -63,6 +70,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   
   const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
+  const [pricingTemplates, setPricingTemplates] = useState<PricingTemplate[]>([]);
   const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
   const [roomPrice, setRoomPrice] = useState(0);
   const [inventoryWarnings, setInventoryWarnings] = useState<{ date: string; available: number; blocked?: boolean; blockedBy?: string }[]>([]);
@@ -94,7 +102,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     check_in_date: "",
     check_out_date: "",
     room_type_id: "",
-    meal_plan: "2_meals",
+    meal_plan: "",
     guest_count: 2,
     order_status: "confirmed",
     deposit_payment_method: "",
@@ -117,7 +125,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         check_in_date: initialData?.check_in_date || "",
         check_out_date: initialData?.check_out_date || "",
         room_type_id: initialData?.room_type_id || "",
-        meal_plan: "2_meals",
+        meal_plan: "",
         guest_count: 2,
         order_status: "confirmed",
         deposit_payment_method: "",
@@ -143,7 +151,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     const fetchData = async () => {
       if (!currentAccommodationId) return;
       
-      const [roomTypesResult, holidaysResult, customersResult, addonsResult] = await Promise.all([
+      const [roomTypesResult, holidaysResult, customersResult, addonsResult, templatesResult] = await Promise.all([
         supabase
           .from("room_types")
           .select("id, name, capacity")
@@ -162,7 +170,12 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           .from("addon_settings")
           .select("id, addon_type, description, price_per_unit, unit_label, enabled, max_quantity")
           .eq("accommodation_id", currentAccommodationId)
-          .eq("enabled", true)
+          .eq("enabled", true),
+        supabase
+          .from("pricing_templates")
+          .select("id, template_name, meal_plans, project_name")
+          .eq("accommodation_id", currentAccommodationId)
+          .order("display_order")
       ]);
 
       if (!roomTypesResult.error && roomTypesResult.data) {
@@ -176,6 +189,13 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       }
       if (!addonsResult.error && addonsResult.data) {
         setAddonSettings(addonsResult.data);
+      }
+      if (!templatesResult.error && templatesResult.data) {
+        setPricingTemplates(templatesResult.data);
+        // Set default meal_plan to first template if available
+        if (templatesResult.data.length > 0) {
+          setForm(prev => ({ ...prev, meal_plan: templatesResult.data[0].template_name }));
+        }
       }
     };
 
@@ -308,18 +328,28 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         }
         setInventoryWarnings(warnings);
 
+        // Determine which price column to use based on selected template's meal_plans
+        const selectedTemplate = pricingTemplates.find(t => t.template_name === form.meal_plan);
+        let priceColumn = 'price';
+        if (selectedTemplate?.meal_plans && Array.isArray(selectedTemplate.meal_plans)) {
+          const mealCount = selectedTemplate.meal_plans.length;
+          if (mealCount === 3) priceColumn = 'price_3_meals';
+          else if (mealCount === 2) priceColumn = 'price_2_meals';
+        }
+
         // Calculate price
         let total = 0;
         for (const dateStr of dates) {
           const { data: priceData } = await supabase
             .from("room_inventory_pricing")
-            .select("price")
+            .select("price, price_2_meals, price_3_meals")
             .eq("room_type_id", form.room_type_id)
             .eq("date", dateStr)
             .maybeSingle();
           
-          if (priceData?.price) {
-            total += priceData.price;
+          if (priceData) {
+            const selectedPrice = (priceData as any)[priceColumn] ?? priceData.price;
+            if (selectedPrice) total += selectedPrice;
           }
         }
         setRoomPrice(total);
@@ -329,7 +359,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     };
 
     checkInventoryAndPrice();
-  }, [form.check_in_date, form.check_out_date, form.room_type_id, currentAccommodationId]);
+  }, [form.check_in_date, form.check_out_date, form.room_type_id, form.meal_plan, currentAccommodationId, pricingTemplates]);
 
   const handleApplyDiscount = async () => {
     if (!discountCode.trim() || !currentAccommodationId) {
@@ -810,8 +840,11 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                 <SelectValue placeholder="選擇專案" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="2_meals">一泊二食</SelectItem>
-                <SelectItem value="3_meals">一泊三食</SelectItem>
+                {pricingTemplates.map((template) => (
+                  <SelectItem key={template.id} value={template.template_name}>
+                    {template.project_name || template.template_name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
