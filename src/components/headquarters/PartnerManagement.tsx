@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Plus, Copy, Eye, EyeOff, Loader2, Trash2, ExternalLink, Handshake, FileText, ArrowDownUp } from "lucide-react";
+import { Plus, Copy, Eye, EyeOff, Loader2, Trash2, ExternalLink, Handshake, FileText, ArrowDownUp, ArrowLeft } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 
 interface PointTransaction {
