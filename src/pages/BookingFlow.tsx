@@ -4120,6 +4120,19 @@ const BookingFlow = () => {
                               </span>
                             </div>
                           ))}
+                          {Object.entries(customAddonCounts).filter(([_, count]) => count > 0).map(([type, count]) => {
+                            const setting = customAddonSettings.find(s => s.addon_type === type);
+                            return (
+                              <div key={type} className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                  🛏️ {setting?.description || type} × {count} × {calculateNights()} 晚
+                                </span>
+                                <span className="font-medium">
+                                  NT$ {(count * (setting?.price_per_unit || 0) * calculateNights()).toLocaleString()}
+                                </span>
+                              </div>
+                            );
+                          })}
                           {appliedDiscount && (
                             <div className="flex justify-between text-primary">
                               <span>折扣 ({appliedDiscount.code})</span>
