@@ -102,7 +102,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     check_in_date: "",
     check_out_date: "",
     room_type_id: "",
-    meal_plan: "2_meals",
+    meal_plan: "",
     guest_count: 2,
     order_status: "confirmed",
     deposit_payment_method: "",
