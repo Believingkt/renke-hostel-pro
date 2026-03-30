@@ -7,7 +7,8 @@ import {
   ChevronDown,
   FileText,
   ClipboardList,
-  Utensils
+  Utensils,
+  Handshake
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { PreloadLink } from "@/components/PreloadLink";
