@@ -144,6 +144,7 @@ interface EditFormState {
   pet_plan_price: number;
   meal_plan_details: MealPlanDetail[];
   meal_plan_total: number;
+  custom_addon_details: CustomAddonDetail[];
 }
 
 const OrderDetailPage = () => {
