@@ -341,6 +341,17 @@ const BookingFlow = () => {
   }
   const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
   
+  // 價格方案（專案模板）
+  interface PricingTemplateOption {
+    id: string;
+    template_name: string;
+    project_name: string | null;
+    meal_plans: any[] | null;
+    mealCount: number; // 0,1 → price, 2 → price_2_meals, 3 → price_3_meals
+  }
+  const [pricingTemplates, setPricingTemplates] = useState<PricingTemplateOption[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<PricingTemplateOption | null>(null);
+  
   // 將 context 日期轉換為字串格式，並提供預設值
   const checkInDateStr = checkInDate ? format(checkInDate, "yyyy-MM-dd") : "";
   const checkOutDateStr = checkOutDate ? format(checkOutDate, "yyyy-MM-dd") : "";
@@ -471,20 +482,34 @@ const BookingFlow = () => {
           setPublicHolidays(holidaysData.map(h => h.holiday_date));
         }
 
-        // 獲取自訂餐食方案（從價格模板）
-        const { data: templatesData } = await supabase
+        // 獲取所有價格方案（專案模板）
+        const { data: allTemplatesData } = await supabase
           .from("pricing_templates")
-          .select("meal_plans")
+          .select("id, template_name, project_name, meal_plans, display_order")
           .eq("accommodation_id", accommodationId)
-          .eq("is_default", true)
-          .maybeSingle();
+          .order("display_order", { ascending: true });
 
-        if (templatesData?.meal_plans && Array.isArray(templatesData.meal_plans)) {
-          const mealPlans = templatesData.meal_plans as { id: string; name: string; description: string }[];
-          if (mealPlans.length > 0) {
-            setCustomMealPlans(mealPlans);
-            // 預設選擇第一個方案
-            setSelectedMealPlan(mealPlans[0].id);
+        if (allTemplatesData && allTemplatesData.length > 0) {
+          const templates: PricingTemplateOption[] = allTemplatesData.map(t => {
+            const meals = t.meal_plans && Array.isArray(t.meal_plans) ? t.meal_plans as any[] : [];
+            return {
+              id: t.id,
+              template_name: t.template_name,
+              project_name: t.project_name,
+              meal_plans: meals,
+              mealCount: meals.length,
+            };
+          });
+          setPricingTemplates(templates);
+
+          // 找預設模板 or 第一個
+          const defaultTemplate = templates[0];
+          setSelectedTemplate(defaultTemplate);
+          setSelectedMealPlan(defaultTemplate.template_name);
+
+          // 設定自訂餐食方案（來自選中模板的 meal_plans）
+          if (defaultTemplate.meal_plans && defaultTemplate.meal_plans.length > 0) {
+            setCustomMealPlans(defaultTemplate.meal_plans as CustomMealPlan[]);
           }
         }
       } catch (error) {
@@ -625,23 +650,31 @@ const BookingFlow = () => {
         const dateStr = currentDate.toISOString().split('T')[0];
 
         try {
+          const priceCol = getPriceColumn();
           // 獲取價格、可用房間數與販售狀態
           const { data: priceData, error: priceError } = await supabase
             .from('room_inventory_pricing')
-            .select('price, available_rooms, is_available')
+            .select('price, price_2_meals, price_3_meals, available_rooms, is_available')
             .eq('room_type_id', selectedRoom.id)
             .eq('date', dateStr)
             .maybeSingle();
 
           if (priceError) throw priceError;
 
+          // 根據選擇的方案取得對應價格
+          const selectedPrice = priceCol === 'price_3_meals' 
+            ? priceData?.price_3_meals 
+            : priceCol === 'price_2_meals' 
+              ? priceData?.price_2_meals 
+              : priceData?.price;
+
           // 檢查是否有設定價格
-          if (!priceData || priceData.price === null || priceData.price === undefined) {
+          if (!priceData || selectedPrice === null || selectedPrice === undefined) {
             hasMissingPricing = true;
             missingDates.push(dateStr);
             pricing[dateStr] = 0; // 標記為無價格
           } else {
-            pricing[dateStr] = priceData.price;
+            pricing[dateStr] = selectedPrice;
 
             // 關閉販售：前台視為不可預訂
             const isClosed = priceData.is_available === false;
@@ -705,7 +738,7 @@ const BookingFlow = () => {
     };
 
     fetchRoomPricingAndAvailability();
-  }, [selectedRoom, checkInDate, checkOutDate, accommodationId]);
+  }, [selectedRoom, checkInDate, checkOutDate, accommodationId, selectedTemplate]);
 
   // 當日期改變時，預先檢查所有房型的可用性（批次查詢優化版 + 快取）
   useEffect(() => {
@@ -720,12 +753,14 @@ const BookingFlow = () => {
     const currentRoomTypeIds = roomTypes.map(r => r.id).sort().join(',');
     const cache = availabilityCacheRef.current;
 
-    // 檢查快取是否有效
+    // 檢查快取是否有效（加入 selectedTemplate 以避免切換方案時使用舊快取）
+    const cacheTemplateId = (cache as any).templateId || null;
     if (
       cache.checkInDate === checkInDateStr &&
       cache.checkOutDate === checkOutDateStr &&
       cache.accommodationId === accommodationId &&
       cache.roomTypeIds.sort().join(',') === currentRoomTypeIds &&
+      cacheTemplateId === (selectedTemplate?.id || null) &&
       Object.keys(cache.data).length > 0
     ) {
       // 使用快取資料
@@ -768,7 +803,7 @@ const BookingFlow = () => {
           // 批次查詢：一次取得所有房型在日期範圍內的價格、庫存與販售狀態
           const { data: allPricingData, error: pricingError } = await supabase
             .from('room_inventory_pricing')
-            .select('room_type_id, date, price, available_rooms, is_available')
+            .select('room_type_id, date, price, price_2_meals, price_3_meals, available_rooms, is_available')
             .in('room_type_id', roomTypeIds)
             .gte('date', checkInDateStr)
             .lt('date', checkOutDateStr);
@@ -780,7 +815,7 @@ const BookingFlow = () => {
           // 建立價格資料索引 (room_id -> date -> data)
           const pricingIndex: Record<
             string,
-            Record<string, { price: number | null; available_rooms: number | null; is_available: boolean | null }>
+            Record<string, { price: number | null; price_2_meals: number | null; price_3_meals: number | null; available_rooms: number | null; is_available: boolean | null }>
           > = {};
           if (allPricingData) {
             for (const item of allPricingData) {
@@ -789,6 +824,8 @@ const BookingFlow = () => {
               }
               pricingIndex[item.room_type_id][item.date] = {
                 price: item.price,
+                price_2_meals: item.price_2_meals,
+                price_3_meals: item.price_3_meals,
                 available_rooms: item.available_rooms,
                 is_available: item.is_available,
               };
@@ -830,11 +867,17 @@ const BookingFlow = () => {
           const missingDates: string[] = [];
           const unavailableDates: string[] = [];
 
-          // 檢查每個日期的價格和庫存
+          // 檢查每個日期的價格和庫存（根據選擇的方案）
+          const batchPriceCol = getPriceColumn();
           for (const dateStr of dateRange) {
             const priceData = pricingIndex[room.id]?.[dateStr];
+            const selectedPrice = batchPriceCol === 'price_3_meals' 
+              ? priceData?.price_3_meals 
+              : batchPriceCol === 'price_2_meals' 
+                ? priceData?.price_2_meals 
+                : priceData?.price;
             
-            if (!priceData || priceData.price === null || priceData.price === undefined) {
+            if (!priceData || selectedPrice === null || selectedPrice === undefined) {
               hasMissingPricing = true;
               missingDates.push(dateStr);
             } else if (priceData.is_available === false) {
@@ -879,11 +922,12 @@ const BookingFlow = () => {
       }
 
       // 更新快取
-      availabilityCacheRef.current = {
+      (availabilityCacheRef as any).current = {
         checkInDate: checkInDateStr,
         checkOutDate: checkOutDateStr,
         accommodationId,
         roomTypeIds: roomTypes.map(r => r.id),
+        templateId: selectedTemplate?.id || null,
         data: newAvailability
       };
 
@@ -892,7 +936,7 @@ const BookingFlow = () => {
     };
 
     checkAllRoomsAvailability();
-  }, [checkInDate, checkOutDate, accommodationId, roomTypes]);
+  }, [checkInDate, checkOutDate, accommodationId, roomTypes, selectedTemplate]);
 
   // 當在選擇房型步驟時，自動預選第一個可用房型
   useEffect(() => {
@@ -1056,6 +1100,14 @@ const BookingFlow = () => {
     return dates;
   };
 
+  // 根據選擇的專案模板取得對應的價格欄位
+  const getPriceColumn = (): string => {
+    if (!selectedTemplate) return 'price';
+    if (selectedTemplate.mealCount >= 3) return 'price_3_meals';
+    if (selectedTemplate.mealCount === 2) return 'price_2_meals';
+    return 'price';
+  };
+
   // 當日期變更時，清空已選擇的烤肉日期
   useEffect(() => {
     setBbqMealsByDate({});
@@ -1079,6 +1131,15 @@ const BookingFlow = () => {
 
   // 獲取餐食方案顯示名稱
   const getMealPlanDisplayName = (planId: string) => {
+    // 先檢查是否匹配選中的模板
+    if (selectedTemplate && planId === selectedTemplate.template_name) {
+      return selectedTemplate.project_name || selectedTemplate.template_name;
+    }
+    // 檢查所有模板
+    const matchedTemplate = pricingTemplates.find(t => t.template_name === planId);
+    if (matchedTemplate) {
+      return matchedTemplate.project_name || matchedTemplate.template_name;
+    }
     const customPlan = customMealPlans.find(p => p.id === planId);
     if (customPlan) {
       return customPlan.name;
@@ -2490,6 +2551,39 @@ const BookingFlow = () => {
                 {/* Step 1: Room Selection */}
                 {currentStep === "room" && (
                   <div className="space-y-4">
+                    {/* 方案選擇器 */}
+                    {pricingTemplates.length > 1 && (
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2 text-base font-semibold">
+                          📋 選擇方案
+                        </Label>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          {pricingTemplates.map((template) => (
+                            <button
+                              key={template.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedTemplate(template);
+                                setSelectedMealPlan(template.template_name);
+                                if (template.meal_plans && template.meal_plans.length > 0) {
+                                  setCustomMealPlans(template.meal_plans as CustomMealPlan[]);
+                                } else {
+                                  setCustomMealPlans([]);
+                                }
+                              }}
+                              className={cn(
+                                "px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all text-center",
+                                selectedTemplate?.id === template.id
+                                  ? "border-primary bg-primary/10 text-primary"
+                                  : "border-border bg-background hover:border-primary/50 text-foreground"
+                              )}
+                            >
+                              {template.project_name || template.template_name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     {/* 顯示載入狀態 */}
                     {checkInDate && checkOutDate && isCheckingAvailability && (
                       <div className="bg-muted p-6 rounded-lg text-center">
