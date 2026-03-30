@@ -242,6 +242,10 @@ const OrderDetailPage = () => {
         final_price: editFinalPriceCalc,
         deposit_amount: editForm.deposit_amount,
         paid_amount: editForm.paid_amount,
+        pet_count: editForm.pet_count,
+        pet_plan_price: editForm.pet_plan_price,
+        meal_plan_details: editForm.meal_plan_details.length > 0 ? editForm.meal_plan_details : null,
+        meal_plan_total: editForm.meal_plan_total,
       };
 
       // Handle status timestamp updates
