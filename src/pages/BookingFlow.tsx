@@ -1140,7 +1140,11 @@ const BookingFlow = () => {
   const calculateAddonsTotal = () => {
     const nights = calculateNights();
     const bbqTotal = Object.values(bbqMealsByDate).reduce((sum, count) => sum + (count * mealPlanSettings.pricePerUnit), 0);
-    return (petCount * petPlanSettings.pricePerUnit * nights) + bbqTotal;
+    const customTotal = Object.entries(customAddonCounts).reduce((sum, [type, count]) => {
+      const setting = customAddonSettings.find(s => s.addon_type === type);
+      return sum + (count * (setting?.price_per_unit || 0) * nights);
+    }, 0);
+    return (petCount * petPlanSettings.pricePerUnit * nights) + bbqTotal + customTotal;
   };
 
   const calculateFinalTotal = () => {
