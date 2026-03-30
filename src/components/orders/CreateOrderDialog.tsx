@@ -830,8 +830,11 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                 <SelectValue placeholder="選擇專案" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="2_meals">一泊二食</SelectItem>
-                <SelectItem value="3_meals">一泊三食</SelectItem>
+                {pricingTemplates.map((template) => (
+                  <SelectItem key={template.id} value={template.template_name}>
+                    {template.project_name || template.template_name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
