@@ -242,7 +242,7 @@ const HeroSection = ({
       // 取得該住宿所有房型
       const { data: roomTypes } = await supabase
         .from('room_types')
-        .select('id')
+        .select('id, is_exclusive_package, is_bound_to_exclusive')
         .eq('accommodation_id', accId);
 
       if (!roomTypes || roomTypes.length === 0) return;
@@ -252,12 +252,43 @@ const HeroSection = ({
       const sixMonthsLater = addMonths(today, 6);
       const endStr = formatISO(endOfMonth(sixMonthsLater), { representation: 'date' });
 
-      const { data } = await supabase
-        .from('room_inventory_pricing')
-        .select('date, available_rooms, is_available, price, room_type_id')
-        .in('room_type_id', roomTypes.map(r => r.id))
-        .gte('date', todayStr)
-        .lte('date', endStr);
+      // 同時查詢庫存資料和包區訂單
+      const [inventoryResult, exclusiveOrdersResult] = await Promise.all([
+        supabase
+          .from('room_inventory_pricing')
+          .select('date, available_rooms, is_available, price, room_type_id')
+          .in('room_type_id', roomTypes.map(r => r.id))
+          .gte('date', todayStr)
+          .lte('date', endStr),
+        supabase
+          .from('orders')
+          .select('check_in_date, check_out_date, room_type_id')
+          .eq('accommodation_id', accId)
+          .not('order_status', 'eq', 'cancelled')
+          .gte('check_out_date', todayStr)
+          .lte('check_in_date', endStr)
+      ]);
+
+      const data = inventoryResult.data;
+
+      // 建立被包區訂單佔用的日期集合
+      const exclusiveBlockedDates = new Set<string>();
+      const exclusiveRoomIds = new Set(roomTypes.filter(r => r.is_exclusive_package).map(r => r.id));
+      const allBoundOrExclusive = roomTypes.every(r => r.is_exclusive_package || r.is_bound_to_exclusive);
+
+      if (exclusiveOrdersResult.data && allBoundOrExclusive) {
+        for (const order of exclusiveOrdersResult.data) {
+          if (!exclusiveRoomIds.has(order.room_type_id)) continue;
+          // 標記該訂單覆蓋的每一天為被佔用
+          const startDate = new Date(order.check_in_date + 'T00:00:00');
+          const endDate = new Date(order.check_out_date + 'T00:00:00');
+          const current = new Date(startDate);
+          while (current < endDate) {
+            exclusiveBlockedDates.add(formatISO(current, { representation: 'date' }));
+            current.setDate(current.getDate() + 1);
+          }
+        }
+      }
 
       if (data && data.length > 0) {
         setHasInventoryData(true);
@@ -270,6 +301,10 @@ const HeroSection = ({
           } else if (!dateAvailMap.has(row.date)) {
             dateAvailMap.set(row.date, false);
           }
+        }
+        // 移除被包區訂單佔用的日期
+        for (const blockedDate of exclusiveBlockedDates) {
+          dateAvailMap.set(blockedDate, false);
         }
         setAvailableDates(new Set([...dateAvailMap.entries()].filter(([, v]) => v).map(([k]) => k)));
       } else {
