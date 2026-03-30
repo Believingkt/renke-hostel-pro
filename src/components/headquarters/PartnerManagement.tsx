@@ -132,7 +132,7 @@ export const PartnerManagement = forwardRef<PartnerManagementRef>((_, ref) => {
       setTransactions(txns);
       
       // Load accommodation names
-      const accIds = [...new Set(txns.map((t: any) => t.orders?.accommodation_id).filter(Boolean))];
+      const accIds = [...new Set(txns.map((t: any) => t.orders?.accommodation_id).filter(Boolean))] as string[];
       if (accIds.length > 0) {
         const { data: accData } = await supabase
           .from("accommodation_info")
