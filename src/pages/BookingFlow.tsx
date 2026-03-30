@@ -482,20 +482,34 @@ const BookingFlow = () => {
           setPublicHolidays(holidaysData.map(h => h.holiday_date));
         }
 
-        // 獲取自訂餐食方案（從價格模板）
-        const { data: templatesData } = await supabase
+        // 獲取所有價格方案（專案模板）
+        const { data: allTemplatesData } = await supabase
           .from("pricing_templates")
-          .select("meal_plans")
+          .select("id, template_name, project_name, meal_plans, display_order")
           .eq("accommodation_id", accommodationId)
-          .eq("is_default", true)
-          .maybeSingle();
+          .order("display_order", { ascending: true });
 
-        if (templatesData?.meal_plans && Array.isArray(templatesData.meal_plans)) {
-          const mealPlans = templatesData.meal_plans as { id: string; name: string; description: string }[];
-          if (mealPlans.length > 0) {
-            setCustomMealPlans(mealPlans);
-            // 預設選擇第一個方案
-            setSelectedMealPlan(mealPlans[0].id);
+        if (allTemplatesData && allTemplatesData.length > 0) {
+          const templates: PricingTemplateOption[] = allTemplatesData.map(t => {
+            const meals = t.meal_plans && Array.isArray(t.meal_plans) ? t.meal_plans as any[] : [];
+            return {
+              id: t.id,
+              template_name: t.template_name,
+              project_name: t.project_name,
+              meal_plans: meals,
+              mealCount: meals.length,
+            };
+          });
+          setPricingTemplates(templates);
+
+          // 找預設模板 or 第一個
+          const defaultTemplate = templates[0];
+          setSelectedTemplate(defaultTemplate);
+          setSelectedMealPlan(defaultTemplate.template_name);
+
+          // 設定自訂餐食方案（來自選中模板的 meal_plans）
+          if (defaultTemplate.meal_plans && defaultTemplate.meal_plans.length > 0) {
+            setCustomMealPlans(defaultTemplate.meal_plans as CustomMealPlan[]);
           }
         }
       } catch (error) {
