@@ -47,7 +47,8 @@ import {
   Utensils,
   GripVertical,
   Calendar,
-  Download
+  Download,
+  Handshake
 } from "lucide-react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
