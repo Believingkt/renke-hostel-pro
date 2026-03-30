@@ -946,6 +946,8 @@ const Headquarters = () => {
         );
       case 'facilities':
         return <FacilityManagement ref={facilityManagementRef} />;
+      case 'partners':
+        return <PartnerManagement ref={partnerManagementRef} />;
       case 'users':
         return (
           <div className="space-y-6">
