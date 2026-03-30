@@ -93,6 +93,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   // Selected addons
   const [selectedAddons, setSelectedAddons] = useState<{ addon_id: string; quantity: number }[]>([]);
 
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [form, setForm] = useState({
     guest_name: "",
     guest_phone: "",
@@ -194,6 +195,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         setPricingTemplates(templatesResult.data);
         // Set default meal_plan to first template if available
         if (templatesResult.data.length > 0) {
+          setSelectedTemplateId(templatesResult.data[0].id);
           setForm(prev => ({ ...prev, meal_plan: templatesResult.data[0].template_name }));
         }
       }
@@ -329,7 +331,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         setInventoryWarnings(warnings);
 
         // Determine which price column to use based on selected template's meal_plans
-        const selectedTemplate = pricingTemplates.find(t => t.template_name === form.meal_plan);
+        const selectedTemplate = pricingTemplates.find(t => t.id === selectedTemplateId);
         let priceColumn = 'price';
         if (selectedTemplate?.meal_plans && Array.isArray(selectedTemplate.meal_plans)) {
           const mealCount = selectedTemplate.meal_plans.length;
@@ -359,7 +361,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     };
 
     checkInventoryAndPrice();
-  }, [form.check_in_date, form.check_out_date, form.room_type_id, form.meal_plan, currentAccommodationId, pricingTemplates]);
+  }, [form.check_in_date, form.check_out_date, form.room_type_id, selectedTemplateId, currentAccommodationId, pricingTemplates]);
 
   const handleApplyDiscount = async () => {
     if (!discountCode.trim() || !currentAccommodationId) {
@@ -833,15 +835,19 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           <div className="space-y-1.5">
             <Label className="text-xs">專案 <span className="text-destructive">*</span></Label>
             <Select
-              value={form.meal_plan}
-              onValueChange={(value) => setForm({...form, meal_plan: value})}
+              value={selectedTemplateId}
+              onValueChange={(value) => {
+                setSelectedTemplateId(value);
+                const template = pricingTemplates.find(t => t.id === value);
+                setForm({...form, meal_plan: template?.template_name || value});
+              }}
             >
               <SelectTrigger className="h-10 text-sm">
                 <SelectValue placeholder="選擇專案" />
               </SelectTrigger>
               <SelectContent>
                 {pricingTemplates.map((template) => (
-                  <SelectItem key={template.id} value={template.template_name}>
+                  <SelectItem key={template.id} value={template.id}>
                     {template.project_name || template.template_name}
                   </SelectItem>
                 ))}
