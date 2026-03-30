@@ -43,6 +43,13 @@ interface AddonSetting {
   max_quantity: number;
 }
 
+interface PricingTemplate {
+  id: string;
+  template_name: string;
+  meal_plans: any;
+  project_name: string | null;
+}
+
 interface CreateOrderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
