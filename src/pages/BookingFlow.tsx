@@ -661,13 +661,20 @@ const BookingFlow = () => {
 
           if (priceError) throw priceError;
 
+          // 根據選擇的方案取得對應價格
+          const selectedPrice = priceCol === 'price_3_meals' 
+            ? priceData?.price_3_meals 
+            : priceCol === 'price_2_meals' 
+              ? priceData?.price_2_meals 
+              : priceData?.price;
+
           // 檢查是否有設定價格
-          if (!priceData || priceData.price === null || priceData.price === undefined) {
+          if (!priceData || selectedPrice === null || selectedPrice === undefined) {
             hasMissingPricing = true;
             missingDates.push(dateStr);
             pricing[dateStr] = 0; // 標記為無價格
           } else {
-            pricing[dateStr] = priceData.price;
+            pricing[dateStr] = selectedPrice;
 
             // 關閉販售：前台視為不可預訂
             const isClosed = priceData.is_available === false;
