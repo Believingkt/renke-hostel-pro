@@ -403,6 +403,20 @@ const BookingFlow = () => {
               detailedDescription: mealData.detailed_description || ""
             });
           }
+
+          // 載入其他自訂加購方案（非 pet/meal）
+          const otherAddons = addonData.filter(a => a.addon_type !== 'pet' && a.addon_type !== 'meal' && a.enabled);
+          if (otherAddons.length > 0) {
+            setCustomAddonSettings(otherAddons.map(a => ({
+              addon_type: a.addon_type,
+              description: a.description,
+              detailed_description: a.detailed_description,
+              price_per_unit: a.price_per_unit,
+              max_quantity: a.max_quantity,
+              unit_label: a.unit_label,
+              enabled: a.enabled || false,
+            })));
+          }
         }
 
         // 獲取房型資料，包括照片和設施
