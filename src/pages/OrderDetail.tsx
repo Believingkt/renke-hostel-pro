@@ -1132,59 +1132,249 @@ const OrderDetailPage = () => {
           <CardTitle className="text-base md:text-lg">加購方案</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {(order.pet_count > 0 || order.meal_plan_total > 0) ? (
+          {isEditing ? (
             <>
-              {order.pet_count > 0 && (
-                <>
+              {/* 寵物方案 - 編輯模式 */}
+              {(() => {
+                const petAddon = addonSettings.find(a => a.addon_type === 'pet');
+                return petAddon ? (
                   <div className="space-y-2">
                     <div className="flex justify-between items-center gap-2">
-                      <span className="text-xs md:text-sm font-medium">🐾 寵物方案</span>
-                      <Badge variant="outline" className="text-xs">{order.pet_count} 隻 × {nights} 晚</Badge>
+                      <span className="text-xs md:text-sm font-medium">🐾 {petAddon.description || '寵物方案'}</span>
+                    </div>
+                    <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
+                      <span className="text-xs md:text-sm text-muted-foreground">數量（{petAddon.unit_label}）</span>
+                      <Input
+                        className="w-[100px] h-8 text-sm text-right"
+                        type="number"
+                        min={0}
+                        max={petAddon.max_quantity}
+                        value={editForm.pet_count}
+                        onChange={(e) => {
+                          const count = Math.max(0, Math.min(petAddon.max_quantity, parseInt(e.target.value) || 0));
+                          const price = count * petAddon.price_per_unit * nights;
+                          setEditForm(f => ({ ...f, pet_count: count, pet_plan_price: price }));
+                        }}
+                      />
+                    </div>
+                    <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
+                      <span className="text-xs md:text-sm text-muted-foreground">單價</span>
+                      <span className="text-sm">NT$ {petAddon.price_per_unit.toLocaleString()} / {petAddon.unit_label} / 晚</span>
                     </div>
                     <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
                       <span className="text-xs md:text-sm text-muted-foreground">小計</span>
-                      <span className="font-medium text-sm md:text-base">NT$ {order.pet_plan_price.toLocaleString()}</span>
+                      <span className="font-medium text-sm">NT$ {editForm.pet_plan_price.toLocaleString()}</span>
+                    </div>
+                    <Separator />
+                  </div>
+                ) : editForm.pet_count > 0 ? (
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="text-xs md:text-sm font-medium">🐾 寵物方案</span>
+                    </div>
+                    <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
+                      <span className="text-xs md:text-sm text-muted-foreground">數量</span>
+                      <Input className="w-[100px] h-8 text-sm text-right" type="number" min={0} value={editForm.pet_count} onChange={(e) => setEditForm(f => ({ ...f, pet_count: Math.max(0, parseInt(e.target.value) || 0) }))} />
+                    </div>
+                    <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
+                      <span className="text-xs md:text-sm text-muted-foreground">金額</span>
+                      <Input className="w-[120px] h-8 text-sm text-right" type="number" min={0} value={editForm.pet_plan_price} onChange={(e) => setEditForm(f => ({ ...f, pet_plan_price: Math.max(0, parseInt(e.target.value) || 0) }))} />
+                    </div>
+                    <Separator />
+                  </div>
+                ) : null;
+              })()}
+
+              {/* 餐食方案 - 編輯模式 */}
+              {(() => {
+                const mealAddon = addonSettings.find(a => a.addon_type === 'meal' || a.addon_type === 'bbq');
+                return mealAddon ? (
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="text-xs md:text-sm font-medium">🍖 {mealAddon.description || '餐食方案'}</span>
+                    </div>
+                    <div className="pl-2 md:pl-4 space-y-2">
+                      {editForm.meal_plan_details.map((detail, index) => (
+                        <div key={index} className="flex items-center gap-2 text-xs md:text-sm">
+                          <span className="text-muted-foreground flex-shrink-0 w-[90px]">
+                            {format(new Date(detail.date), "yyyy/MM/dd")}
+                          </span>
+                          <Input
+                            className="w-[70px] h-7 text-xs text-right"
+                            type="number"
+                            min={0}
+                            max={mealAddon.max_quantity}
+                            value={detail.count}
+                            onChange={(e) => {
+                              const count = Math.max(0, parseInt(e.target.value) || 0);
+                              const newDetails = [...editForm.meal_plan_details];
+                              newDetails[index] = { ...detail, count, price: count * detail.pricePerUnit };
+                              const newTotal = newDetails.reduce((sum, d) => sum + d.price, 0);
+                              setEditForm(f => ({ ...f, meal_plan_details: newDetails, meal_plan_total: newTotal }));
+                            }}
+                          />
+                          <span className="text-muted-foreground">份</span>
+                          <span className="font-medium ml-auto">NT$ {detail.price.toLocaleString()}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 text-destructive"
+                            onClick={() => {
+                              const newDetails = editForm.meal_plan_details.filter((_, i) => i !== index);
+                              const newTotal = newDetails.reduce((sum, d) => sum + d.price, 0);
+                              setEditForm(f => ({ ...f, meal_plan_details: newDetails, meal_plan_total: newTotal }));
+                            }}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ))}
+                      {/* 新增餐食日期按鈕 */}
+                      {(() => {
+                        // 計算訂單入住期間的日期列表（不含退房日）
+                        const checkIn = new Date(order.check_in_date);
+                        const checkOut = new Date(order.check_out_date);
+                        const existingDates = new Set(editForm.meal_plan_details.map(d => d.date));
+                        const availableDates: string[] = [];
+                        const current = new Date(checkIn);
+                        while (current < checkOut) {
+                          const dateStr = format(current, "yyyy-MM-dd");
+                          if (!existingDates.has(dateStr)) {
+                            availableDates.push(dateStr);
+                          }
+                          current.setDate(current.getDate() + 1);
+                        }
+                        return availableDates.length > 0 ? (
+                          <Select onValueChange={(dateStr) => {
+                            const newDetail: MealPlanDetail = {
+                              date: dateStr,
+                              count: 1,
+                              pricePerUnit: mealAddon.price_per_unit,
+                              price: mealAddon.price_per_unit,
+                            };
+                            const newDetails = [...editForm.meal_plan_details, newDetail].sort((a, b) => a.date.localeCompare(b.date));
+                            const newTotal = newDetails.reduce((sum, d) => sum + d.price, 0);
+                            setEditForm(f => ({ ...f, meal_plan_details: newDetails, meal_plan_total: newTotal }));
+                          }}>
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder="+ 新增日期" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableDates.map(d => (
+                                <SelectItem key={d} value={d}>{format(new Date(d), "yyyy/MM/dd")}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : null;
+                      })()}
+                      {editForm.meal_plan_details.length > 0 && (
+                        <>
+                          <Separator className="my-2" />
+                          <div className="flex justify-between items-center gap-2">
+                            <span className="text-xs md:text-sm text-muted-foreground">小計</span>
+                            <span className="font-medium text-sm">NT$ {editForm.meal_plan_total.toLocaleString()}</span>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
-                  {order.meal_plan_total > 0 && <Separator />}
+                ) : editForm.meal_plan_details.length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="text-xs md:text-sm font-medium">🍖 餐食方案</span>
+                    </div>
+                    <div className="pl-2 md:pl-4 space-y-2">
+                      {editForm.meal_plan_details.map((detail, index) => (
+                        <div key={index} className="flex items-center gap-2 text-xs md:text-sm">
+                          <span className="text-muted-foreground">{format(new Date(detail.date), "yyyy/MM/dd")} - {detail.count} 份</span>
+                          <span className="font-medium ml-auto">NT$ {detail.price.toLocaleString()}</span>
+                        </div>
+                      ))}
+                      <Separator className="my-2" />
+                      <div className="flex justify-between items-center gap-2">
+                        <span className="text-xs md:text-sm text-muted-foreground">小計</span>
+                        <span className="font-medium text-sm">NT$ {editForm.meal_plan_total.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : null;
+              })()}
+
+              {(editForm.pet_count > 0 || editForm.meal_plan_total > 0) && (
+                <>
+                  <Separator />
+                  <div className="flex justify-between items-center gap-2 pt-2">
+                    <span className="text-xs md:text-sm font-semibold">加購總計</span>
+                    <span className="font-bold text-base md:text-lg text-primary">
+                      NT$ {(editForm.pet_plan_price + editForm.meal_plan_total).toLocaleString()}
+                    </span>
+                  </div>
                 </>
               )}
-              
-              {order.meal_plan_total > 0 && order.meal_plan_details && order.meal_plan_details.length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center gap-2">
-                    <span className="text-xs md:text-sm font-medium">🍖 烤肉餐食方案</span>
-                  </div>
-                  <div className="pl-2 md:pl-4 space-y-2">
-                    {order.meal_plan_details.map((detail, index) => (
-                      <div key={index} className="flex justify-between items-center gap-2 text-xs md:text-sm">
-                        <span className="text-muted-foreground flex-shrink-0">
-                          {format(new Date(detail.date), "yyyy/MM/dd")} - {detail.count} 份
-                        </span>
-                        <span className="font-medium">NT$ {detail.price.toLocaleString()}</span>
-                      </div>
-                    ))}
-                    <Separator className="my-2" />
-                    <div className="flex justify-between items-center gap-2">
-                      <span className="text-xs md:text-sm text-muted-foreground">小計</span>
-                      <span className="font-medium text-sm md:text-base">NT$ {order.meal_plan_total.toLocaleString()}</span>
-                    </div>
-                  </div>
+
+              {editForm.pet_count === 0 && editForm.meal_plan_details.length === 0 && addonSettings.length === 0 && (
+                <div className="text-center py-4">
+                  <p className="text-xs md:text-sm text-muted-foreground">無可用的加購方案</p>
                 </div>
               )}
-              
-              <Separator />
-              <div className="flex justify-between items-center gap-2 pt-2">
-                <span className="text-xs md:text-sm font-semibold">加購總計</span>
-                <span className="font-bold text-base md:text-lg text-primary">
-                  NT$ {(order.pet_plan_price + order.meal_plan_total).toLocaleString()}
-                </span>
-              </div>
             </>
           ) : (
-            <div className="text-center py-4 md:py-6">
-              <p className="text-xs md:text-sm text-muted-foreground">此訂單無加購方案</p>
-            </div>
+            <>
+              {(order.pet_count > 0 || order.meal_plan_total > 0) ? (
+                <>
+                  {order.pet_count > 0 && (
+                    <>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center gap-2">
+                          <span className="text-xs md:text-sm font-medium">🐾 寵物方案</span>
+                          <Badge variant="outline" className="text-xs">{order.pet_count} 隻 × {nights} 晚</Badge>
+                        </div>
+                        <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
+                          <span className="text-xs md:text-sm text-muted-foreground">小計</span>
+                          <span className="font-medium text-sm md:text-base">NT$ {order.pet_plan_price.toLocaleString()}</span>
+                        </div>
+                      </div>
+                      {order.meal_plan_total > 0 && <Separator />}
+                    </>
+                  )}
+                  
+                  {order.meal_plan_total > 0 && order.meal_plan_details && order.meal_plan_details.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center gap-2">
+                        <span className="text-xs md:text-sm font-medium">🍖 烤肉餐食方案</span>
+                      </div>
+                      <div className="pl-2 md:pl-4 space-y-2">
+                        {order.meal_plan_details.map((detail, index) => (
+                          <div key={index} className="flex justify-between items-center gap-2 text-xs md:text-sm">
+                            <span className="text-muted-foreground flex-shrink-0">
+                              {format(new Date(detail.date), "yyyy/MM/dd")} - {detail.count} 份
+                            </span>
+                            <span className="font-medium">NT$ {detail.price.toLocaleString()}</span>
+                          </div>
+                        ))}
+                        <Separator className="my-2" />
+                        <div className="flex justify-between items-center gap-2">
+                          <span className="text-xs md:text-sm text-muted-foreground">小計</span>
+                          <span className="font-medium text-sm md:text-base">NT$ {order.meal_plan_total.toLocaleString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <Separator />
+                  <div className="flex justify-between items-center gap-2 pt-2">
+                    <span className="text-xs md:text-sm font-semibold">加購總計</span>
+                    <span className="font-bold text-base md:text-lg text-primary">
+                      NT$ {(order.pet_plan_price + order.meal_plan_total).toLocaleString()}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-4 md:py-6">
+                  <p className="text-xs md:text-sm text-muted-foreground">此訂單無加購方案</p>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
