@@ -328,18 +328,28 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         }
         setInventoryWarnings(warnings);
 
+        // Determine which price column to use based on selected template's meal_plans
+        const selectedTemplate = pricingTemplates.find(t => t.template_name === form.meal_plan);
+        let priceColumn = 'price';
+        if (selectedTemplate?.meal_plans && Array.isArray(selectedTemplate.meal_plans)) {
+          const mealCount = selectedTemplate.meal_plans.length;
+          if (mealCount === 3) priceColumn = 'price_3_meals';
+          else if (mealCount === 2) priceColumn = 'price_2_meals';
+        }
+
         // Calculate price
         let total = 0;
         for (const dateStr of dates) {
           const { data: priceData } = await supabase
             .from("room_inventory_pricing")
-            .select("price")
+            .select("price, price_2_meals, price_3_meals")
             .eq("room_type_id", form.room_type_id)
             .eq("date", dateStr)
             .maybeSingle();
           
-          if (priceData?.price) {
-            total += priceData.price;
+          if (priceData) {
+            const selectedPrice = (priceData as any)[priceColumn] ?? priceData.price;
+            if (selectedPrice) total += selectedPrice;
           }
         }
         setRoomPrice(total);
@@ -349,7 +359,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     };
 
     checkInventoryAndPrice();
-  }, [form.check_in_date, form.check_out_date, form.room_type_id, currentAccommodationId]);
+  }, [form.check_in_date, form.check_out_date, form.room_type_id, form.meal_plan, currentAccommodationId, pricingTemplates]);
 
   const handleApplyDiscount = async () => {
     if (!discountCode.trim() || !currentAccommodationId) {
