@@ -1081,6 +1081,14 @@ const BookingFlow = () => {
     return dates;
   };
 
+  // 根據選擇的專案模板取得對應的價格欄位
+  const getPriceColumn = (): string => {
+    if (!selectedTemplate) return 'price';
+    if (selectedTemplate.mealCount >= 3) return 'price_3_meals';
+    if (selectedTemplate.mealCount === 2) return 'price_2_meals';
+    return 'price';
+  };
+
   // 當日期變更時，清空已選擇的烤肉日期
   useEffect(() => {
     setBbqMealsByDate({});
