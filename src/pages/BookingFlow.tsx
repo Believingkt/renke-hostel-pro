@@ -273,6 +273,19 @@ const BookingFlow = () => {
   const [bbqMealsByDate, setBbqMealsByDate] = useState<Record<string, number>>({});
   const [hiddenBbqDates, setHiddenBbqDates] = useState<Set<string>>(new Set());
   const [isBbqMealsExpanded, setIsBbqMealsExpanded] = useState(false);
+
+  // 自訂加購方案（非 pet/meal 類型）
+  interface CustomAddonSetting {
+    addon_type: string;
+    description: string | null;
+    detailed_description: string | null;
+    price_per_unit: number;
+    max_quantity: number;
+    unit_label: string;
+    enabled: boolean;
+  }
+  const [customAddonSettings, setCustomAddonSettings] = useState<CustomAddonSetting[]>([]);
+  const [customAddonCounts, setCustomAddonCounts] = useState<Record<string, number>>({});
   const [isBbqDetailsDialogOpen, setIsBbqDetailsDialogOpen] = useState(false);
   const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
   
@@ -389,6 +402,20 @@ const BookingFlow = () => {
               maxQuantity: mealData.max_quantity,
               detailedDescription: mealData.detailed_description || ""
             });
+          }
+
+          // 載入其他自訂加購方案（非 pet/meal）
+          const otherAddons = addonData.filter(a => a.addon_type !== 'pet' && a.addon_type !== 'meal' && a.enabled);
+          if (otherAddons.length > 0) {
+            setCustomAddonSettings(otherAddons.map(a => ({
+              addon_type: a.addon_type,
+              description: a.description,
+              detailed_description: a.detailed_description,
+              price_per_unit: a.price_per_unit,
+              max_quantity: a.max_quantity,
+              unit_label: a.unit_label,
+              enabled: a.enabled || false,
+            })));
           }
         }
 
@@ -1113,7 +1140,11 @@ const BookingFlow = () => {
   const calculateAddonsTotal = () => {
     const nights = calculateNights();
     const bbqTotal = Object.values(bbqMealsByDate).reduce((sum, count) => sum + (count * mealPlanSettings.pricePerUnit), 0);
-    return (petCount * petPlanSettings.pricePerUnit * nights) + bbqTotal;
+    const customTotal = Object.entries(customAddonCounts).reduce((sum, [type, count]) => {
+      const setting = customAddonSettings.find(s => s.addon_type === type);
+      return sum + (count * (setting?.price_per_unit || 0) * nights);
+    }, 0);
+    return (petCount * petPlanSettings.pricePerUnit * nights) + bbqTotal + customTotal;
   };
 
   const calculateFinalTotal = () => {
@@ -1436,7 +1467,7 @@ const BookingFlow = () => {
     }
 
     // 切換到下一步 - 如果沒有加購方案則跳過 addons 步驟
-    const hasAddons = petPlanSettings.enabled || mealPlanSettings.enabled;
+    const hasAddons = petPlanSettings.enabled || mealPlanSettings.enabled || customAddonSettings.length > 0;
     const steps: BookingStep[] = hasAddons 
       ? ["dates", "room", "addons", "guest", "payment", "confirm"]
       : ["dates", "room", "guest", "payment", "confirm"];
@@ -1448,7 +1479,7 @@ const BookingFlow = () => {
 
   const handlePrevStep = () => {
     // 如果沒有加購方案則跳過 addons 步驟
-    const hasAddons = petPlanSettings.enabled || mealPlanSettings.enabled;
+    const hasAddons = petPlanSettings.enabled || mealPlanSettings.enabled || customAddonSettings.length > 0;
     const steps: BookingStep[] = hasAddons 
       ? ["dates", "room", "addons", "guest", "payment", "confirm"]
       : ["dates", "room", "guest", "payment", "confirm"];
@@ -2095,6 +2126,18 @@ const BookingFlow = () => {
           pet_plan_price: petPlanPrice,
           meal_plan_details: mealPlanDetailsData,
           meal_plan_total: mealPlanTotalPrice,
+          custom_addon_details: Object.entries(customAddonCounts).filter(([_, count]) => count > 0).length > 0
+            ? Object.entries(customAddonCounts).filter(([_, count]) => count > 0).map(([type, count]) => {
+                const setting = customAddonSettings.find(s => s.addon_type === type);
+                return {
+                  addon_type: type,
+                  count,
+                  price_per_unit: setting?.price_per_unit || 0,
+                  total: count * (setting?.price_per_unit || 0) * calculateNights(),
+                  unit_label: setting?.unit_label || '',
+                };
+              })
+            : null,
         }])
         .select()
         .single();
@@ -2206,7 +2249,7 @@ const BookingFlow = () => {
   }
 
   // 如果沒有加購方案則不顯示 addons 步驟
-  const hasAddons = petPlanSettings.enabled || mealPlanSettings.enabled;
+  const hasAddons = petPlanSettings.enabled || mealPlanSettings.enabled || customAddonSettings.length > 0;
   
   const stepIndicators = hasAddons 
     ? [
@@ -3181,8 +3224,102 @@ const BookingFlow = () => {
                     </Card>
                     )}
 
+                    {/* 自訂加購方案（如加床服務等） */}
+                    {customAddonSettings.map((addon) => {
+                      const count = customAddonCounts[addon.addon_type] || 0;
+                      const nights = calculateNights();
+                      return (
+                        <Card key={addon.addon_type} className="border-2">
+                          <CardHeader className="pb-4">
+                            <div className="flex items-center justify-between">
+                              <CardTitle className="text-xl font-bold flex items-center gap-2">
+                                🛏️ {addon.description || addon.addon_type}
+                              </CardTitle>
+                              {addon.detailed_description && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    toast({
+                                      title: addon.description || addon.addon_type,
+                                      description: addon.detailed_description || '',
+                                    });
+                                  }}
+                                >
+                                  詳細內容
+                                </Button>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-2">
+                              每{addon.unit_label} NT$ {addon.price_per_unit.toLocaleString()} / 每晚・上限 {addon.max_quantity} {addon.unit_label}
+                            </p>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            {count === 0 ? (
+                              <Button
+                                onClick={() => setCustomAddonCounts(prev => ({ ...prev, [addon.addon_type]: 1 }))}
+                                variant="outline"
+                                size="lg"
+                                className="w-full h-12"
+                              >
+                                <ShoppingBag className="mr-2 h-5 w-5" />
+                                加購{addon.description || addon.addon_type}
+                              </Button>
+                            ) : (
+                              <div className="space-y-4">
+                                <div className="flex items-center justify-between bg-muted/50 rounded-lg p-4">
+                                  <div>
+                                    <p className="font-semibold">數量</p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {count} {addon.unit_label} × NT$ {addon.price_per_unit.toLocaleString()} × {nights} 晚
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <Button
+                                      onClick={() => {
+                                        const newCount = count - 1;
+                                        if (newCount <= 0) {
+                                          setCustomAddonCounts(prev => {
+                                            const next = { ...prev };
+                                            delete next[addon.addon_type];
+                                            return next;
+                                          });
+                                        } else {
+                                          setCustomAddonCounts(prev => ({ ...prev, [addon.addon_type]: newCount }));
+                                        }
+                                      }}
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-10 w-10 rounded-lg"
+                                    >
+                                      -
+                                    </Button>
+                                    <span className="w-8 text-center text-lg font-bold">{count}</span>
+                                    <Button
+                                      onClick={() => setCustomAddonCounts(prev => ({ ...prev, [addon.addon_type]: Math.min(addon.max_quantity, count + 1) }))}
+                                      disabled={count >= addon.max_quantity}
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-10 w-10 rounded-lg"
+                                    >
+                                      +
+                                    </Button>
+                                  </div>
+                                </div>
+                                <div className="bg-primary/10 border border-primary/20 p-4 rounded-lg text-center">
+                                  <p className="font-bold text-base">
+                                    小計：NT$ {(count * addon.price_per_unit * nights).toLocaleString()}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+
                     {/* 加購總計 */}
-                    {((petPlanSettings.enabled && petCount > 0) || (mealPlanSettings.enabled && Object.values(bbqMealsByDate).some(count => count > 0))) && (
+                    {((petPlanSettings.enabled && petCount > 0) || (mealPlanSettings.enabled && Object.values(bbqMealsByDate).some(count => count > 0)) || Object.values(customAddonCounts).some(c => c > 0)) && (
                       <Card className="bg-primary/5 border-2 border-primary/30">
                         <CardContent className="p-6">
                           <div className="space-y-3">
@@ -3203,6 +3340,17 @@ const BookingFlow = () => {
                                 <span className="font-semibold">NT$ {(count * mealPlanSettings.pricePerUnit).toLocaleString()}</span>
                               </div>
                             ))}
+                            {Object.entries(customAddonCounts).filter(([_, count]) => count > 0).map(([type, count]) => {
+                              const setting = customAddonSettings.find(s => s.addon_type === type);
+                              return (
+                                <div key={type} className="flex justify-between text-base">
+                                  <span className="text-muted-foreground">
+                                    🛏️ {setting?.description || type} × {count} × {calculateNights()} 晚
+                                  </span>
+                                  <span className="font-semibold">NT$ {(count * (setting?.price_per_unit || 0) * calculateNights()).toLocaleString()}</span>
+                                </div>
+                              );
+                            })}
                             <Separator className="my-3" />
                             <div className="flex justify-between text-xl">
                               <span className="font-bold">總計</span>
@@ -3213,7 +3361,7 @@ const BookingFlow = () => {
                       </Card>
                     )}
 
-                    {(petCount === 0 && !Object.values(bbqMealsByDate).some(count => count > 0)) && (
+                    {(petCount === 0 && !Object.values(bbqMealsByDate).some(count => count > 0) && !Object.values(customAddonCounts).some(c => c > 0)) && (
                       <div className="text-center py-8 text-muted-foreground">
                         <p>您可以選擇加購方案，或直接進入下一步</p>
                       </div>
@@ -3972,6 +4120,19 @@ const BookingFlow = () => {
                               </span>
                             </div>
                           ))}
+                          {Object.entries(customAddonCounts).filter(([_, count]) => count > 0).map(([type, count]) => {
+                            const setting = customAddonSettings.find(s => s.addon_type === type);
+                            return (
+                              <div key={type} className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                  🛏️ {setting?.description || type} × {count} × {calculateNights()} 晚
+                                </span>
+                                <span className="font-medium">
+                                  NT$ {(count * (setting?.price_per_unit || 0) * calculateNights()).toLocaleString()}
+                                </span>
+                              </div>
+                            );
+                          })}
                           {appliedDiscount && (
                             <div className="flex justify-between text-primary">
                               <span>折扣 ({appliedDiscount.code})</span>
