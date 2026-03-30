@@ -1386,6 +1386,14 @@ const Headquarters = () => {
                 <Plus className="h-4 w-4" />
                 新增設施
               </Button>
+            ) : currentTab === 'partners' ? (
+              <Button 
+                onClick={() => partnerManagementRef.current?.openCreateDialog()} 
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                新增合作夥伴
+              </Button>
             ) : undefined
           }
         />
