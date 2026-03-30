@@ -672,7 +672,7 @@ const HeroSection = ({
                         className="pointer-events-auto"
                         variant="frontend"
                       />
-                      <div className="flex items-center gap-4 mt-3 pt-3 border-t text-xs">
+                      <div className="flex items-center gap-4 mt-3 pt-3 border-t text-xs flex-wrap">
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 bg-primary/10 rounded-md border border-primary/20"></div>
                           <span className="text-muted-foreground">假日定價</span>
@@ -680,6 +680,10 @@ const HeroSection = ({
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 bg-background rounded-md border border-border"></div>
                           <span className="text-muted-foreground">平日定價</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-6 h-6 flex items-center justify-center text-muted-foreground/40 text-sm">30</span>
+                          <span className="text-muted-foreground">已滿房</span>
                         </div>
                       </div>
                     </div>
