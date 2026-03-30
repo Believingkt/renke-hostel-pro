@@ -112,6 +112,42 @@ export const PartnerManagement = forwardRef<PartnerManagementRef>((_, ref) => {
     setLoading(false);
   };
 
+  const loadTransactions = async (partner: Partner) => {
+    setSelectedPartner(partner);
+    setShowTransactions(true);
+    setLoadingTransactions(true);
+
+    const { data, error } = await supabase
+      .from("point_transactions")
+      .select("*, orders(order_number, guest_name, check_in_date, check_out_date, final_price, order_status, room_types(name), accommodation_id)")
+      .eq("partner_id", partner.id)
+      .order("created_at", { ascending: false })
+      .limit(100);
+
+    if (error) {
+      toast.error("載入交易記錄失敗");
+      console.error(error);
+    } else {
+      const txns = (data as any) || [];
+      setTransactions(txns);
+      
+      // Load accommodation names
+      const accIds = [...new Set(txns.map((t: any) => t.orders?.accommodation_id).filter(Boolean))];
+      if (accIds.length > 0) {
+        const { data: accData } = await supabase
+          .from("accommodation_info")
+          .select("id, name")
+          .in("id", accIds);
+        if (accData) {
+          const map: Record<string, string> = {};
+          accData.forEach((a: any) => { map[a.id] = a.name; });
+          setAccommodationNames(map);
+        }
+      }
+    }
+    setLoadingTransactions(false);
+  };
+
   const handleCreate = async () => {
     if (!formName.trim() || !formCode.trim()) {
       toast.error("請填寫平台名稱和代碼");
