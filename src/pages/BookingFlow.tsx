@@ -243,7 +243,10 @@ const BookingFlow = () => {
   
   // 預選房型的日期可用性（用於日期選擇器標記不可預訂日期）
   const [unavailableDatesForRoom, setUnavailableDatesForRoom] = useState<Set<string>>(new Set());
+  const [availableDatesForCalendar, setAvailableDatesForCalendar] = useState<Set<string>>(new Set());
   const [isLoadingRoomDates, setIsLoadingRoomDates] = useState(false);
+  const [checkInCalendarMonth, setCheckInCalendarMonth] = useState<Date>(new Date());
+  const [checkOutCalendarMonth, setCheckOutCalendarMonth] = useState<Date>(new Date());
   
   // 可用性快取機制
   const availabilityCacheRef = useRef<{
@@ -547,14 +550,15 @@ const BookingFlow = () => {
     }
   }, [searchParams, roomTypes, selectedRoom]);
 
-  // 當預選房型時，載入該房型未來 6 個月的日期可用性（供日期選擇器使用）
+  // 載入日期可用性（供日期選擇器使用），支援有無預選房型
   useEffect(() => {
-    if (!selectedRoom || !accommodationId) {
+    if (!accommodationId) {
       setUnavailableDatesForRoom(new Set());
+      setAvailableDatesForCalendar(new Set());
       return;
     }
 
-    const loadRoomDateAvailability = async () => {
+    const loadDateAvailability = async () => {
       setIsLoadingRoomDates(true);
       try {
         const today = new Date();
@@ -564,47 +568,56 @@ const BookingFlow = () => {
         const todayStr = today.toISOString().split('T')[0];
         const endStr = sixMonthsLater.toISOString().split('T')[0];
 
-        // 取得該房型在未來 6 個月的庫存資料
-        const { data, error } = await supabase
+        // 根據是否有預選房型決定查詢範圍
+        let query = supabase
           .from('room_inventory_pricing')
-          .select('date, available_rooms, is_available, price')
-          .eq('room_type_id', selectedRoom.id)
+          .select('date, available_rooms, is_available, price, room_type_id')
           .gte('date', todayStr)
           .lte('date', endStr);
 
+        if (selectedRoom) {
+          query = query.eq('room_type_id', selectedRoom.id);
+        } else {
+          // 沒選房型時，查所有屬於該民宿的房型
+          const roomTypeIds = roomTypes.map(r => r.id);
+          if (roomTypeIds.length === 0) {
+            setIsLoadingRoomDates(false);
+            return;
+          }
+          query = query.in('room_type_id', roomTypeIds);
+        }
+
+        const { data, error } = await query;
         if (error) throw error;
 
-        // 建立已有庫存紀錄的日期 Map
-        const inventoryMap = new Map<string, { available_rooms: number; is_available: boolean | null; price: number | null }>();
+        // 建立日期 → 可用性 Map
+        // 如果有多個房型，只要任一房型有空房，該日期即可預訂
+        const dateAvailabilityMap = new Map<string, boolean>();
         if (data) {
           for (const row of data) {
-            inventoryMap.set(row.date, {
-              available_rooms: row.available_rooms,
-              is_available: row.is_available,
-              price: row.price,
-            });
+            const isAvail = row.is_available !== false &&
+              row.available_rooms > 0 &&
+              row.price !== null && row.price !== undefined;
+            
+            if (isAvail) {
+              dateAvailabilityMap.set(row.date, true);
+            } else if (!dateAvailabilityMap.has(row.date)) {
+              dateAvailabilityMap.set(row.date, false);
+            }
           }
         }
 
-        // 判斷不可預訂的日期
         const unavailable = new Set<string>();
+        const available = new Set<string>();
         const current = new Date(today);
         current.setHours(0, 0, 0, 0);
         while (current <= sixMonthsLater) {
           const dateStr = current.toISOString().split('T')[0];
-          const inv = inventoryMap.get(dateStr);
+          const isAvail = dateAvailabilityMap.get(dateStr);
 
-          // 沒有庫存紀錄 → 不可預訂
-          if (!inv) {
-            unavailable.add(dateStr);
-          } else if (inv.is_available === false) {
-            // 關閉販售
-            unavailable.add(dateStr);
-          } else if (inv.available_rooms <= 0) {
-            // 無可用房間
-            unavailable.add(dateStr);
-          } else if (inv.price === null || inv.price === undefined) {
-            // 無價格設定
+          if (isAvail === true) {
+            available.add(dateStr);
+          } else {
             unavailable.add(dateStr);
           }
 
@@ -612,17 +625,18 @@ const BookingFlow = () => {
         }
 
         setUnavailableDatesForRoom(unavailable);
+        setAvailableDatesForCalendar(available);
       } catch (err) {
         if (import.meta.env.DEV) {
-          console.error('Error loading room date availability:', err);
+          console.error('Error loading date availability:', err);
         }
       } finally {
         setIsLoadingRoomDates(false);
       }
     };
 
-    loadRoomDateAvailability();
-  }, [selectedRoom?.id, accommodationId]);
+    loadDateAvailability();
+  }, [selectedRoom?.id, accommodationId, roomTypes]);
 
   // 當日期或房型變化時，預先獲取價格和檢查可用性
   useEffect(() => {
@@ -2829,19 +2843,17 @@ const BookingFlow = () => {
                 {/* Step 2: Date Selection */}
                 {currentStep === "dates" && (
                   <div className="space-y-6">
-                    {/* 預選房型提示 */}
-                    {selectedRoom && (
-                      <div className="flex items-center gap-2 p-3 bg-primary/5 border border-primary/20 rounded-lg">
-                        <Home className="h-4 w-4 text-primary flex-shrink-0" />
-                        <p className="text-sm text-foreground">
-                          已選擇房型：<span className="font-semibold">{selectedRoom.name}</span>
-                          {isLoadingRoomDates && <span className="text-muted-foreground ml-2">（載入可預訂日期中...）</span>}
-                          {!isLoadingRoomDates && unavailableDatesForRoom.size > 0 && (
-                            <span className="text-muted-foreground ml-2">（灰色日期表示不可預訂）</span>
-                          )}
-                        </p>
-                      </div>
-                    )}
+                    {/* 可預訂日期提示 */}
+                    <div className="flex items-center gap-2 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                      <Home className="h-4 w-4 text-primary flex-shrink-0" />
+                      <p className="text-sm text-foreground">
+                        {selectedRoom && <>已選擇房型：<span className="font-semibold">{selectedRoom.name}</span>　</>}
+                        {isLoadingRoomDates 
+                          ? <span className="text-muted-foreground">（載入可預訂日期中...）</span>
+                          : <span className="text-muted-foreground">（<span className="font-extrabold text-foreground">粗體</span>日期表示可預訂，灰色日期表示不可預訂）</span>
+                        }
+                      </p>
+                    </div>
                     <div className="grid md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <Label className="flex items-center gap-2">
@@ -2864,14 +2876,16 @@ const BookingFlow = () => {
                             <CalendarComponent
                               mode="single"
                               selected={checkInDate}
+                              month={checkInCalendarMonth}
+                              onMonthChange={(month) => {
+                                setCheckInCalendarMonth(month);
+                                setCheckOutCalendarMonth(month);
+                              }}
                               onSelect={(date) => {
-                                // 驗證選擇的日期
                                 if (date && !isNaN(date.getTime())) {
                                   setCheckInDate(date);
-                                  // 自動關閉並打開退房日期選擇器
                                   setTimeout(() => {
                                     setIsCheckInDateOpen(false);
-                                    // 如果退房日期早於或等於新的入住日期，清除退房日期
                                     if (checkOutDate && checkOutDate <= date) {
                                       setCheckOutDate(undefined);
                                     }
@@ -2886,16 +2900,23 @@ const BookingFlow = () => {
                                 }
                               }}
                               disabled={(date) => {
-                                // 禁用過去的日期
                                 const today = new Date();
                                 today.setHours(0, 0, 0, 0);
                                 if (date < today) return true;
-                                // 禁用該房型不可預訂的日期
-                                if (selectedRoom && unavailableDatesForRoom.size > 0) {
+                                if (unavailableDatesForRoom.size > 0) {
                                   const dateStr = date.toISOString().split('T')[0];
                                   if (unavailableDatesForRoom.has(dateStr)) return true;
                                 }
                                 return false;
+                              }}
+                              modifiers={{
+                                available: (date) => {
+                                  const dateStr = date.toISOString().split('T')[0];
+                                  return availableDatesForCalendar.has(dateStr);
+                                },
+                              }}
+                              modifiersClassNames={{
+                                available: "font-extrabold",
                               }}
                               initialFocus
                               className={cn("p-3 pointer-events-auto")}
@@ -2930,10 +2951,10 @@ const BookingFlow = () => {
                             <CalendarComponent
                               mode="single"
                               selected={checkOutDate}
+                              month={checkOutCalendarMonth}
+                              onMonthChange={setCheckOutCalendarMonth}
                               onSelect={(date) => {
-                                // 驗證選擇的日期
                                 if (date && !isNaN(date.getTime())) {
-                                  // 確保退房日期晚於入住日期
                                   if (checkInDate && date <= checkInDate) {
                                     toast({
                                       title: "日期錯誤",
@@ -2943,7 +2964,6 @@ const BookingFlow = () => {
                                     return;
                                   }
                                   setCheckOutDate(date);
-                                  // 關閉日期選擇器
                                   setTimeout(() => {
                                     setIsCheckOutDateOpen(false);
                                   }, 100);
@@ -2958,13 +2978,18 @@ const BookingFlow = () => {
                               disabled={(date) => {
                                 const today = new Date();
                                 today.setHours(0, 0, 0, 0);
-                                // 禁用過去的日期和入住日期當天及之前
                                 if (date < today) return true;
                                 if (checkInDate && date <= checkInDate) return true;
-                                // 禁用該房型不可預訂的日期（退房日當天不需要有庫存，所以檢查前一天）
-                                // 退房日期本身不需要庫存，但入住期間的每一晚都需要
-                                // 這裡不限制退房日期的不可用，因為退房日不佔房
                                 return false;
+                              }}
+                              modifiers={{
+                                available: (date) => {
+                                  const dateStr = date.toISOString().split('T')[0];
+                                  return availableDatesForCalendar.has(dateStr);
+                                },
+                              }}
+                              modifiersClassNames={{
+                                available: "font-extrabold",
                               }}
                               initialFocus
                               className={cn("p-3 pointer-events-auto")}
