@@ -213,6 +213,11 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         return;
       }
 
+      // Wait for templates to be loaded first
+      if (pricingTemplates.length === 0) {
+        return;
+      }
+
       setIsLoadingTemplates(true);
       try {
         // Check which price columns have data for this room type
