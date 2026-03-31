@@ -393,7 +393,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           // 一食 or no match → use default 'price'
         }
 
-        // Calculate price
+        // Calculate price - use inventory first, fall back to template price
         let total = 0;
         for (const dateStr of dates) {
           const { data: priceData } = await supabase
@@ -405,7 +405,22 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           
           if (priceData) {
             const selectedPrice = (priceData as any)[priceColumn] ?? priceData.price;
-            if (selectedPrice) total += selectedPrice;
+            if (selectedPrice) {
+              total += selectedPrice;
+              continue;
+            }
+          }
+          
+          // Fallback: use template price (weekday/weekend)
+          if (selectedTemplate) {
+            const d = new Date(dateStr);
+            const dayOfWeek = d.getDay();
+            const isHoliday = publicHolidays.includes(dateStr);
+            const isWeekend = dayOfWeek === 0 || dayOfWeek === 5 || dayOfWeek === 6 || isHoliday;
+            const fallbackPrice = isWeekend
+              ? (selectedTemplate.weekend_price ?? selectedTemplate.price ?? 0)
+              : (selectedTemplate.weekday_price ?? selectedTemplate.price ?? 0);
+            total += fallbackPrice;
           }
         }
         setRoomPrice(total);
