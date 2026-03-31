@@ -238,6 +238,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       template_name: "",
       description: "",
       price: null,
+      room_type_id: "",
     });
     setErrors({});
     setShowForm(true);
