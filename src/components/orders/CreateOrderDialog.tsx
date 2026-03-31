@@ -203,38 +203,46 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     fetchData();
   }, [currentAccommodationId]);
 
-  // Filter templates based on selected room type's available price columns
+  // Show templates after room type selection; only narrow them when pricing rules clearly match
   useEffect(() => {
     const filterTemplatesByRoomType = async () => {
-      if (!form.room_type_id || !currentAccommodationId) {
+      if (!form.room_type_id) {
         setFilteredTemplates([]);
         setSelectedTemplateId("");
         setForm(prev => ({ ...prev, meal_plan: "" }));
+        setIsLoadingTemplates(false);
         return;
       }
 
-      // Wait for templates to be loaded first
       if (pricingTemplates.length === 0) {
+        setFilteredTemplates([]);
+        setSelectedTemplateId("");
+        setIsLoadingTemplates(false);
+        return;
+      }
+
+      // Optimistic default: show all templates immediately so UI never gets stuck
+      setFilteredTemplates(pricingTemplates);
+      setSelectedTemplateId(prev => prev || pricingTemplates[0]?.id || "");
+      setForm(prev => ({
+        ...prev,
+        meal_plan: prev.meal_plan || pricingTemplates[0]?.template_name || "",
+      }));
+
+      if (!currentAccommodationId) {
         return;
       }
 
       setIsLoadingTemplates(true);
       try {
-        // Check which price columns have data for this room type
-        const { data: rules } = await supabase
+        const { data: rules, error } = await supabase
           .from("pricing_rules")
           .select("price, price_2_meals, price_3_meals")
           .eq("room_type_id", form.room_type_id)
           .eq("accommodation_id", currentAccommodationId)
           .eq("is_active", true);
 
-        // If no pricing rules exist for this room type, show all templates
-        if (!rules || rules.length === 0) {
-          setFilteredTemplates(pricingTemplates);
-          if (pricingTemplates.length > 0) {
-            setSelectedTemplateId(pricingTemplates[0].id);
-            setForm(prev => ({ ...prev, meal_plan: pricingTemplates[0].template_name }));
-          }
+        if (error || !rules || rules.length === 0) {
           return;
         }
 
@@ -246,28 +254,25 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           const mealCount = Array.isArray(t.meal_plans) ? t.meal_plans.length : 0;
           if (mealCount >= 3) return hasPrice3;
           if (mealCount === 2) return hasPrice2;
-          return hasPrice; // 0 or 1 meal
+          return hasPrice;
         });
 
-        // If filtering excluded everything but rules exist, show all as fallback
         if (filtered.length === 0) {
-          setFilteredTemplates(pricingTemplates);
-          if (pricingTemplates.length > 0) {
-            setSelectedTemplateId(pricingTemplates[0].id);
-            setForm(prev => ({ ...prev, meal_plan: pricingTemplates[0].template_name }));
-          }
           return;
         }
 
         setFilteredTemplates(filtered);
-        // Auto-select first filtered template
-        if (filtered.length > 0) {
-          setSelectedTemplateId(filtered[0].id);
-          setForm(prev => ({ ...prev, meal_plan: filtered[0].template_name }));
-        } else {
-          setSelectedTemplateId("");
-          setForm(prev => ({ ...prev, meal_plan: "" }));
-        }
+        setSelectedTemplateId(prev => {
+          const stillExists = filtered.some(template => template.id === prev);
+          return stillExists ? prev : filtered[0].id;
+        });
+        setForm(prev => {
+          const currentStillExists = filtered.some(template => template.template_name === prev.meal_plan);
+          return {
+            ...prev,
+            meal_plan: currentStillExists ? prev.meal_plan : filtered[0].template_name,
+          };
+        });
       } finally {
         setIsLoadingTemplates(false);
       }
