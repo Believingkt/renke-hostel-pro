@@ -478,15 +478,14 @@ const OrderDetailPage = () => {
           const { data: templatesData } = await templatesQuery;
 
           if (templatesData && templatesData.length > 0) {
+            setRoomTemplates(templatesData.map(t => ({ id: t.id, template_name: t.template_name })));
             // Derive meal plan options from template names
             const derivedPlans: CustomMealPlan[] = [];
-            // Check if any template has explicit meal_plans array
             const defaultTemplate = templatesData.find(t => (t as any).meal_plans && Array.isArray((t as any).meal_plans) && ((t as any).meal_plans as any[]).length > 0);
             if (defaultTemplate) {
               const plans = (defaultTemplate as any).meal_plans as CustomMealPlan[];
               derivedPlans.push(...plans);
             }
-            // Also derive from template names (e.g. "一泊二食 - 平日")
             for (const t of templatesData) {
               const name = t.template_name || "";
               if (name.includes("二食") || name.includes("2食")) {
@@ -502,6 +501,7 @@ const OrderDetailPage = () => {
             }
             setCustomMealPlans(derivedPlans);
           } else {
+            setRoomTemplates([]);
             setCustomMealPlans([]);
           }
 
