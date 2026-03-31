@@ -45,7 +45,7 @@ const PointsApiDocs = () => {
     {
       method: "GET",
       path: "/accommodations/:id/room-types",
-      desc: "取得民宿的房型列表（含照片、設備）",
+      desc: "取得民宿的房型列表（含照片、設備、適用專案）",
       response: `{
   "room_types": [
     {
@@ -54,7 +54,16 @@ const PointsApiDocs = () => {
       "capacity": 4,
       "base_price": 6000,
       "photos": [...],
-      "amenities": [...]
+      "amenities": [...],
+      "pricing_templates": [
+        {
+          "id": "uuid",
+          "template_name": "一泊二食 - 平日",
+          "price": 6000,
+          "weekday_price": 6000,
+          "weekend_price": 8000
+        }
+      ]
     }
   ]
 }`,
@@ -100,7 +109,7 @@ const PointsApiDocs = () => {
   "guest_phone": "0912345678",
   "guest_email": "user@example.com",
   "guest_count": 2,
-  "meal_plan": "一泊二食",            // 可選
+  "pricing_template_id": "uuid",      // 專案ID（從房型的 pricing_templates 取得）
   "points_amount": 5000,              // 使用的點數（1點=1元）
   "external_user_id": "user_123",     // 外部平台用戶ID
   "external_transaction_id": "txn_456", // 外部交易ID（可選）
@@ -303,7 +312,7 @@ Content-Type: application/json`}</pre>
               <ol className="space-y-3 text-sm">
                 <li className="flex gap-3">
                   <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">1</span>
-                  <span><strong>查詢民宿與房型</strong> — GET /accommodations → GET /accommodations/:id/room-types</span>
+                  <span><strong>查詢民宿與房型</strong> — GET /accommodations → GET /accommodations/:id/room-types（含各房型適用專案）</span>
                 </li>
                 <li className="flex gap-3">
                   <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">2</span>
@@ -343,7 +352,7 @@ Content-Type: application/json`}</pre>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="bg-muted p-4 rounded text-sm space-y-2">
-                <p><strong>1.</strong> 訂房總價 = 每晚房價加總（依庫存定價）</p>
+                <p><strong>1.</strong> 訂房總價 = 專案定價 × 晚數（若專案價格為 0 則改用庫存每日定價加總）</p>
                 <p><strong>2.</strong> 點數折抵 = 使用點數 × 兌換比率（預設 1:1）</p>
                 <p><strong>3.</strong> 剩餘金額 = 訂房總價 - 點數折抵</p>
                 <p><strong>4.</strong> 訂金 = 剩餘金額 × 30%（無條件進位）</p>
