@@ -879,28 +879,43 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-xs">專案 <span className="text-destructive">*</span></Label>
-            <Select
-              value={selectedTemplateId}
-              onValueChange={(value) => {
-                setSelectedTemplateId(value);
-                const template = pricingTemplates.find(t => t.id === value);
-                setForm({...form, meal_plan: template?.template_name || value});
-              }}
-            >
-              <SelectTrigger className="h-10 text-sm">
-                <SelectValue placeholder="選擇專案" />
-              </SelectTrigger>
-              <SelectContent>
-                {pricingTemplates.map((template) => (
-                  <SelectItem key={template.id} value={template.id}>
-                    {template.project_name || template.template_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {form.room_type_id && (
+            <div className="space-y-1.5">
+              <Label className="text-xs">專案 <span className="text-destructive">*</span></Label>
+              {isLoadingTemplates ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  載入專案中...
+                </div>
+              ) : filteredTemplates.length > 0 ? (
+                <Select
+                  value={selectedTemplateId}
+                  onValueChange={(value) => {
+                    setSelectedTemplateId(value);
+                    const template = filteredTemplates.find(t => t.id === value);
+                    setForm({...form, meal_plan: template?.template_name || value});
+                  }}
+                >
+                  <SelectTrigger className="h-10 text-sm">
+                    <SelectValue placeholder="選擇專案" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredTemplates.map((template) => (
+                      <SelectItem key={template.id} value={template.id}>
+                        {template.project_name || template.template_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="text-sm text-muted-foreground py-2">此房型尚無對應專案</p>
+              )}
+            </div>
+          )}
+
+          {!form.room_type_id && (
+            <p className="text-sm text-muted-foreground">請先選擇房型以顯示對應專案</p>
+          )}
 
           {/* Addons */}
           {addonSettings.length > 0 && (
