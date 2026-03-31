@@ -550,14 +550,15 @@ const BookingFlow = () => {
     }
   }, [searchParams, roomTypes, selectedRoom]);
 
-  // 當預選房型時，載入該房型未來 6 個月的日期可用性（供日期選擇器使用）
+  // 載入日期可用性（供日期選擇器使用），支援有無預選房型
   useEffect(() => {
-    if (!selectedRoom || !accommodationId) {
+    if (!accommodationId) {
       setUnavailableDatesForRoom(new Set());
+      setAvailableDatesForCalendar(new Set());
       return;
     }
 
-    const loadRoomDateAvailability = async () => {
+    const loadDateAvailability = async () => {
       setIsLoadingRoomDates(true);
       try {
         const today = new Date();
@@ -567,47 +568,56 @@ const BookingFlow = () => {
         const todayStr = today.toISOString().split('T')[0];
         const endStr = sixMonthsLater.toISOString().split('T')[0];
 
-        // 取得該房型在未來 6 個月的庫存資料
-        const { data, error } = await supabase
+        // 根據是否有預選房型決定查詢範圍
+        let query = supabase
           .from('room_inventory_pricing')
-          .select('date, available_rooms, is_available, price')
-          .eq('room_type_id', selectedRoom.id)
+          .select('date, available_rooms, is_available, price, room_type_id')
           .gte('date', todayStr)
           .lte('date', endStr);
 
+        if (selectedRoom) {
+          query = query.eq('room_type_id', selectedRoom.id);
+        } else {
+          // 沒選房型時，查所有屬於該民宿的房型
+          const roomTypeIds = roomTypes.map(r => r.id);
+          if (roomTypeIds.length === 0) {
+            setIsLoadingRoomDates(false);
+            return;
+          }
+          query = query.in('room_type_id', roomTypeIds);
+        }
+
+        const { data, error } = await query;
         if (error) throw error;
 
-        // 建立已有庫存紀錄的日期 Map
-        const inventoryMap = new Map<string, { available_rooms: number; is_available: boolean | null; price: number | null }>();
+        // 建立日期 → 可用性 Map
+        // 如果有多個房型，只要任一房型有空房，該日期即可預訂
+        const dateAvailabilityMap = new Map<string, boolean>();
         if (data) {
           for (const row of data) {
-            inventoryMap.set(row.date, {
-              available_rooms: row.available_rooms,
-              is_available: row.is_available,
-              price: row.price,
-            });
+            const isAvail = row.is_available !== false &&
+              row.available_rooms > 0 &&
+              row.price !== null && row.price !== undefined;
+            
+            if (isAvail) {
+              dateAvailabilityMap.set(row.date, true);
+            } else if (!dateAvailabilityMap.has(row.date)) {
+              dateAvailabilityMap.set(row.date, false);
+            }
           }
         }
 
-        // 判斷不可預訂的日期
         const unavailable = new Set<string>();
+        const available = new Set<string>();
         const current = new Date(today);
         current.setHours(0, 0, 0, 0);
         while (current <= sixMonthsLater) {
           const dateStr = current.toISOString().split('T')[0];
-          const inv = inventoryMap.get(dateStr);
+          const isAvail = dateAvailabilityMap.get(dateStr);
 
-          // 沒有庫存紀錄 → 不可預訂
-          if (!inv) {
-            unavailable.add(dateStr);
-          } else if (inv.is_available === false) {
-            // 關閉販售
-            unavailable.add(dateStr);
-          } else if (inv.available_rooms <= 0) {
-            // 無可用房間
-            unavailable.add(dateStr);
-          } else if (inv.price === null || inv.price === undefined) {
-            // 無價格設定
+          if (isAvail === true) {
+            available.add(dateStr);
+          } else {
             unavailable.add(dateStr);
           }
 
@@ -615,17 +625,18 @@ const BookingFlow = () => {
         }
 
         setUnavailableDatesForRoom(unavailable);
+        setAvailableDatesForCalendar(available);
       } catch (err) {
         if (import.meta.env.DEV) {
-          console.error('Error loading room date availability:', err);
+          console.error('Error loading date availability:', err);
         }
       } finally {
         setIsLoadingRoomDates(false);
       }
     };
 
-    loadRoomDateAvailability();
-  }, [selectedRoom?.id, accommodationId]);
+    loadDateAvailability();
+  }, [selectedRoom?.id, accommodationId, roomTypes]);
 
   // 當日期或房型變化時，預先獲取價格和檢查可用性
   useEffect(() => {
