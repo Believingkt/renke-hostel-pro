@@ -250,6 +250,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       template_name: template.template_name,
       description: template.description || "",
       price: (template as any).price ?? template.weekday_price ?? template.weekend_price ?? null,
+      room_type_id: template.room_type_id || "",
     });
     setErrors({});
     setShowForm(true);
