@@ -1,0 +1,1 @@
+ALTER TABLE public.orders DROP CONSTRAINT IF EXISTS orders_meal_plan_check;
