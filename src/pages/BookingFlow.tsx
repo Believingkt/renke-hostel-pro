@@ -2951,10 +2951,10 @@ const BookingFlow = () => {
                             <CalendarComponent
                               mode="single"
                               selected={checkOutDate}
+                              month={checkOutCalendarMonth}
+                              onMonthChange={setCheckOutCalendarMonth}
                               onSelect={(date) => {
-                                // 驗證選擇的日期
                                 if (date && !isNaN(date.getTime())) {
-                                  // 確保退房日期晚於入住日期
                                   if (checkInDate && date <= checkInDate) {
                                     toast({
                                       title: "日期錯誤",
@@ -2964,7 +2964,6 @@ const BookingFlow = () => {
                                     return;
                                   }
                                   setCheckOutDate(date);
-                                  // 關閉日期選擇器
                                   setTimeout(() => {
                                     setIsCheckOutDateOpen(false);
                                   }, 100);
@@ -2979,13 +2978,18 @@ const BookingFlow = () => {
                               disabled={(date) => {
                                 const today = new Date();
                                 today.setHours(0, 0, 0, 0);
-                                // 禁用過去的日期和入住日期當天及之前
                                 if (date < today) return true;
                                 if (checkInDate && date <= checkInDate) return true;
-                                // 禁用該房型不可預訂的日期（退房日當天不需要有庫存，所以檢查前一天）
-                                // 退房日期本身不需要庫存，但入住期間的每一晚都需要
-                                // 這裡不限制退房日期的不可用，因為退房日不佔房
                                 return false;
+                              }}
+                              modifiers={{
+                                available: (date) => {
+                                  const dateStr = date.toISOString().split('T')[0];
+                                  return availableDatesForCalendar.has(dateStr);
+                                },
+                              }}
+                              modifiersClassNames={{
+                                available: "font-extrabold",
                               }}
                               initialFocus
                               className={cn("p-3 pointer-events-auto")}
