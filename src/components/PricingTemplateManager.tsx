@@ -138,6 +138,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
     template_name: "",
     description: "",
     price: null as number | null,
+    room_type_id: "" as string,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
