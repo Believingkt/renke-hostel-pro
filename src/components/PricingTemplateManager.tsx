@@ -287,6 +287,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
         description: formData.description || null,
         price: formData.price,
         accommodation_id: accommodationId,
+        room_type_id: formData.room_type_id || null,
       };
 
       if (editingTemplate) {
