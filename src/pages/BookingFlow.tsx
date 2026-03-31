@@ -490,32 +490,30 @@ const BookingFlow = () => {
         // 獲取所有價格方案（專案模板）
         const { data: allTemplatesData } = await supabase
           .from("pricing_templates")
-          .select("id, template_name, project_name, meal_plans, display_order")
+          .select("id, template_name, project_name, meal_plans, display_order, room_type_id")
           .eq("accommodation_id", accommodationId)
           .order("display_order", { ascending: true });
 
         if (allTemplatesData && allTemplatesData.length > 0) {
           const templates: PricingTemplateOption[] = allTemplatesData.map(t => {
             const meals = t.meal_plans && Array.isArray(t.meal_plans) ? t.meal_plans as any[] : [];
+            let mealCount = meals.length;
+            if (mealCount === 0) {
+              const name = t.template_name || '';
+              if (name.includes('三食') || name.includes('3食')) mealCount = 3;
+              else if (name.includes('二食') || name.includes('2食')) mealCount = 2;
+            }
             return {
               id: t.id,
               template_name: t.template_name,
               project_name: t.project_name,
               meal_plans: meals,
-              mealCount: meals.length,
+              mealCount,
+              room_type_id: t.room_type_id,
             };
           });
-          setPricingTemplates(templates);
-
-          // 找預設模板 or 第一個
-          const defaultTemplate = templates[0];
-          setSelectedTemplate(defaultTemplate);
-          setSelectedMealPlan(defaultTemplate.template_name);
-
-          // 設定自訂餐食方案（來自選中模板的 meal_plans）
-          if (defaultTemplate.meal_plans && defaultTemplate.meal_plans.length > 0) {
-            setCustomMealPlans(defaultTemplate.meal_plans as CustomMealPlan[]);
-          }
+          setAllPricingTemplates(templates);
+          // 不在這裡設定 pricingTemplates，改由 selectedRoom 變化時篩選
         }
       } catch (error) {
         if (import.meta.env.DEV) {
