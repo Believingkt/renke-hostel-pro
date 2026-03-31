@@ -1,7 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Shield, Server, Zap, CreditCard, FileText } from "lucide-react";
+import { ArrowLeft, Shield, Server, Zap, CreditCard, FileText, Workflow } from "lucide-react";
 import { Link } from "react-router-dom";
 import { SEOHead } from "@/components/SEOHead";
 
@@ -22,8 +21,6 @@ const PointsApiDocs = () => {
       "address": "宜蘭縣...",
       "region_1": "宜蘭縣",
       "region_2": "冬山鄉",
-      "latitude": 24.6,
-      "longitude": 121.7,
       "photos": ["https://..."],
       "rating": 4.8,
       "review_count": 12
@@ -83,8 +80,8 @@ const PointsApiDocs = () => {
       "nights": 2,
       "total_price": 12000,
       "daily_prices": [
-        { "date": "2026-05-01", "price": 6000, "price_2_meals": 7000, "price_3_meals": 8000 },
-        { "date": "2026-05-02", "price": 6000, "price_2_meals": 7000, "price_3_meals": 8000 }
+        { "date": "2026-05-01", "price": 6000 },
+        { "date": "2026-05-02", "price": 6000 }
       ]
     }
   ]
@@ -93,7 +90,7 @@ const PointsApiDocs = () => {
     {
       method: "POST",
       path: "/orders",
-      desc: "建立點數訂房訂單（支援全額點數或點數+現金混合）",
+      desc: "建立點數訂房訂單。點數先折抵總價，剩餘金額的 30% 為訂金，需透過刷卡支付。",
       body: `{
   "accommodation_id": "uuid",
   "room_type_id": "uuid",
@@ -103,11 +100,10 @@ const PointsApiDocs = () => {
   "guest_phone": "0912345678",
   "guest_email": "user@example.com",
   "guest_count": 2,
-  "meal_plan": "一泊二食",         // 可選
-  "points_amount": 10000,          // 使用的點數
-  "cash_amount": 2000,             // 現金補差額（可選）
-  "external_user_id": "user_123",  // 外部平台用戶ID
-  "external_transaction_id": "txn_456", // 外部交易ID
+  "meal_plan": "一泊二食",            // 可選
+  "points_amount": 5000,              // 使用的點數（1點=1元）
+  "external_user_id": "user_123",     // 外部平台用戶ID
+  "external_transaction_id": "txn_456", // 外部交易ID（可選）
   "notes": "備註"
 }`,
       response: `{
@@ -116,13 +112,58 @@ const PointsApiDocs = () => {
     "order_number": "RK5M72B9",
     "total_price": 12000,
     "final_price": 12000,
-    "payment_status": "paid",
-    "order_status": "confirmed",
-    "points_used": 10000,
-    "points_currency": 10000,
-    "cash_amount": 2000,
-    "payment_method": "points_and_cash"
+    "points_used": 5000,
+    "points_discount": 5000,
+    "remaining_after_points": 7000,
+    "deposit_amount": 2100,
+    "requires_card_payment": true,
+    "payment_status": "unpaid",
+    "order_status": "pending",
+    "payment_method": "points_and_card"
   }
+}`,
+    },
+    {
+      method: "POST",
+      path: "/orders/:id/pay-deposit",
+      desc: "使用信用卡支付訂金。需先透過 TapPay SDK 取得 prime token。",
+      body: `{
+  "prime": "tappay_prime_token",
+  "cardholder": {
+    "name": "王小明",
+    "email": "user@example.com",
+    "phoneNumber": "0912345678"
+  },
+  "frontend_redirect_url": "https://your-site.com/payment-result",
+  "backend_notify_url": "https://your-site.com/webhook"
+}`,
+      response: `// 成功（無需3D驗證）：
+{
+  "success": true,
+  "requires_3d_secure": false,
+  "rec_trade_id": "D20260501...",
+  "deposit_amount": 2100,
+  "message": "訂金付款成功"
+}
+
+// 需要3D驗證：
+{
+  "success": true,
+  "requires_3d_secure": true,
+  "payment_url": "https://...",
+  "deposit_amount": 2100,
+  "message": "需要進行 3D 驗證"
+}`,
+    },
+    {
+      method: "GET",
+      path: "/tappay-config",
+      desc: "取得 TapPay SDK 前端設定（App ID、App Key、環境）",
+      response: `{
+  "app_id": 12345,
+  "app_key": "app_key_string",
+  "env": "sandbox",
+  "sdk_url": "https://js.tappaysdk.com/sdk/tpdirect/v5.18.0"
 }`,
     },
     {
@@ -135,12 +176,15 @@ const PointsApiDocs = () => {
     "order_number": "RK5M72B9",
     "accommodation_name": "森山寫照精品民宿",
     "room_type_name": "豪華雙人房",
-    "check_in_date": "2026-05-01",
-    "check_out_date": "2026-05-03",
+    "total_price": 12000,
+    "points_discount": 5000,
+    "remaining_after_points": 7000,
+    "deposit_amount": 2100,
+    "payment_status": "deposit_paid",
     "order_status": "confirmed",
     "point_transaction": {
-      "points_amount": 10000,
-      "currency_amount": 10000,
+      "points_amount": 5000,
+      "currency_amount": 5000,
       "status": "completed"
     }
   }
@@ -154,7 +198,7 @@ const PointsApiDocs = () => {
   "message": "Order cancelled successfully",
   "order_id": "uuid",
   "order_number": "RK5M72B9",
-  "refunded_points": 10000
+  "refunded_points": 5000
 }`,
     },
   ];
@@ -194,8 +238,8 @@ const PointsApiDocs = () => {
                 API 概述
               </CardTitle>
               <CardDescription>
-                提供給會員點數平台串接，允許用戶使用點數（1 點 = 1 元）預訂人客多平台上所有合作民宿的房間。
-                支援全額點數或點數 + 現金混合付款。
+                提供給會員點數平台串接，允許用戶使用點數（1 點 = 1 元）折抵訂房總價，
+                剩餘金額的 30% 作為訂金，透過信用卡（TapPay）支付。
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -214,15 +258,15 @@ const PointsApiDocs = () => {
                 <div className="flex items-start gap-2">
                   <CreditCard className="h-5 w-5 text-primary mt-0.5" />
                   <div>
-                    <p className="font-medium text-sm">混合付款</p>
-                    <p className="text-xs text-muted-foreground">支援點數 + 現金</p>
+                    <p className="font-medium text-sm">點數 + 刷卡</p>
+                    <p className="text-xs text-muted-foreground">點數折抵後，訂金刷卡支付</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
                   <Zap className="h-5 w-5 text-primary mt-0.5" />
                   <div>
-                    <p className="font-medium text-sm">即時扣款</p>
-                    <p className="text-xs text-muted-foreground">建立訂單即完成扣款</p>
+                    <p className="font-medium text-sm">即時扣點</p>
+                    <p className="text-xs text-muted-foreground">建立訂單即扣除點數</p>
                   </div>
                 </div>
               </div>
@@ -251,7 +295,7 @@ Content-Type: application/json`}</pre>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Server className="h-5 w-5" />
+                <Workflow className="h-5 w-5" />
                 串接流程
               </CardTitle>
             </CardHeader>
@@ -259,25 +303,62 @@ Content-Type: application/json`}</pre>
               <ol className="space-y-3 text-sm">
                 <li className="flex gap-3">
                   <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">1</span>
-                  <span><strong>查詢民宿列表</strong> — GET /accommodations 取得所有合作民宿</span>
+                  <span><strong>查詢民宿與房型</strong> — GET /accommodations → GET /accommodations/:id/room-types</span>
                 </li>
                 <li className="flex gap-3">
                   <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">2</span>
-                  <span><strong>查詢房型</strong> — GET /accommodations/:id/room-types 取得房型與定價</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">3</span>
                   <span><strong>檢查空房</strong> — POST /availability 確認指定日期的空房與價格</span>
                 </li>
                 <li className="flex gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">3</span>
+                  <span><strong>建立訂單</strong> — POST /orders 使用點數折抵，取得 deposit_amount</span>
+                </li>
+                <li className="flex gap-3">
                   <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">4</span>
-                  <span><strong>建立訂單</strong> — POST /orders 使用點數（+現金）完成訂房</span>
+                  <span><strong>取得刷卡設定</strong> — GET /tappay-config 取得 TapPay SDK 前端金鑰</span>
                 </li>
                 <li className="flex gap-3">
                   <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">5</span>
-                  <span><strong>查詢/取消</strong> — GET /orders/:id 或 POST /orders/:id/cancel</span>
+                  <span><strong>前端取得 Prime</strong> — 在星鏈頁面載入 TapPay SDK，取得信用卡 prime token</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">6</span>
+                  <span><strong>支付訂金</strong> — POST /orders/:id/pay-deposit 以 prime 支付訂金</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">7</span>
+                  <span><strong>完成</strong> — 訂金付款成功後，訂單自動確認</span>
                 </li>
               </ol>
+            </CardContent>
+          </Card>
+
+          {/* Pricing Logic */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                計價邏輯
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="bg-muted p-4 rounded text-sm space-y-2">
+                <p><strong>1.</strong> 訂房總價 = 每晚房價加總（依庫存定價）</p>
+                <p><strong>2.</strong> 點數折抵 = 使用點數 × 兌換比率（預設 1:1）</p>
+                <p><strong>3.</strong> 剩餘金額 = 訂房總價 - 點數折抵</p>
+                <p><strong>4.</strong> 訂金 = 剩餘金額 × 30%（無條件進位）</p>
+                <p><strong>5.</strong> 訂金透過信用卡（TapPay）支付</p>
+              </div>
+              <div className="bg-muted p-4 rounded text-sm">
+                <p className="font-medium mb-2">範例：</p>
+                <p>訂房總價：NT$ 12,000</p>
+                <p>使用 5,000 點 → 折抵 NT$ 5,000</p>
+                <p>剩餘金額：NT$ 7,000</p>
+                <p>訂金 = 7,000 × 30% = NT$ 2,100（刷卡支付）</p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                ※ 若點數完全覆蓋總價，則無需刷卡，訂單直接確認。
+              </p>
             </CardContent>
           </Card>
 
@@ -307,7 +388,7 @@ Content-Type: application/json`}</pre>
                   )}
                   <div>
                     <p className="text-sm font-medium mb-1">Response</p>
-                    <pre className="bg-muted p-4 rounded text-xs overflow-x-auto">{ep.response}</pre>
+                    <pre className="bg-muted p-4 rounded text-xs overflow-x-auto whitespace-pre-wrap">{ep.response}</pre>
                   </div>
                 </CardContent>
               </Card>
@@ -351,29 +432,41 @@ Content-Type: application/json`}</pre>
           <Card>
             <CardHeader>
               <CardTitle>Webhook 通知</CardTitle>
-              <CardDescription>若設定了 Webhook URL，系統會在訂單建立或取消時發送通知</CardDescription>
+              <CardDescription>若設定了 Webhook URL，系統會在訂單狀態變更時發送通知</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <p className="text-sm font-medium mb-1">order.created</p>
+                <p className="text-sm font-medium mb-1">order.created（訂單建立，等待刷卡）</p>
                 <pre className="bg-muted p-4 rounded text-xs overflow-x-auto">{`{
   "event": "order.created",
   "order_id": "uuid",
   "order_number": "RK5M72B9",
   "external_user_id": "user_123",
-  "points_amount": 10000,
-  "cash_amount": 2000,
-  "total_price": 12000
+  "total_price": 12000,
+  "points_discount": 5000,
+  "remaining_after_points": 7000,
+  "deposit_amount": 2100,
+  "requires_card_payment": true
 }`}</pre>
               </div>
               <div>
-                <p className="text-sm font-medium mb-1">order.cancelled</p>
+                <p className="text-sm font-medium mb-1">deposit.paid（訂金刷卡成功）</p>
+                <pre className="bg-muted p-4 rounded text-xs overflow-x-auto">{`{
+  "event": "deposit.paid",
+  "order_id": "uuid",
+  "order_number": "RK5M72B9",
+  "deposit_amount": 2100,
+  "rec_trade_id": "D20260501..."
+}`}</pre>
+              </div>
+              <div>
+                <p className="text-sm font-medium mb-1">order.cancelled（訂單取消，退還點數）</p>
                 <pre className="bg-muted p-4 rounded text-xs overflow-x-auto">{`{
   "event": "order.cancelled",
   "order_id": "uuid",
   "order_number": "RK5M72B9",
   "external_user_id": "user_123",
-  "refund_points": 10000
+  "refund_points": 5000
 }`}</pre>
               </div>
             </CardContent>

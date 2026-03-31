@@ -12,6 +12,7 @@ interface Partner {
   platform_code: string;
   point_to_currency_rate: number;
   is_active: boolean;
+  webhook_url?: string;
 }
 
 Deno.serve(async (req) => {
@@ -32,7 +33,7 @@ Deno.serve(async (req) => {
 
     const { data: partner, error: partnerError } = await supabase
       .from("points_platform_partners")
-      .select("id, platform_name, platform_code, point_to_currency_rate, is_active")
+      .select("id, platform_name, platform_code, point_to_currency_rate, is_active, webhook_url")
       .eq("api_key", apiKey)
       .maybeSingle();
 
@@ -46,8 +47,6 @@ Deno.serve(async (req) => {
     // --- Route requests ---
     const url = new URL(req.url);
     const pathParts = url.pathname.split("/").filter(Boolean);
-    // Edge function path: /points-booking-api/...
-    // pathParts[0] = "points-booking-api", rest is the route
     const route = pathParts.slice(1);
 
     // GET /accommodations
@@ -82,9 +81,20 @@ Deno.serve(async (req) => {
       return await handleGetOrder(supabase, partner, route[1]);
     }
 
+    // POST /orders/:id/pay-deposit
+    if (req.method === "POST" && route[0] === "orders" && route[1] && route[2] === "pay-deposit") {
+      const body = await req.json();
+      return await handlePayDeposit(supabase, partner, route[1], body);
+    }
+
     // POST /orders/:id/cancel
     if (req.method === "POST" && route[0] === "orders" && route[1] && route[2] === "cancel") {
       return await handleCancelOrder(supabase, partner, route[1]);
+    }
+
+    // GET /tappay-config
+    if (req.method === "GET" && route[0] === "tappay-config") {
+      return handleTapPayConfig();
     }
 
     return jsonResponse({ error: "Not found", available_routes: [
@@ -94,7 +104,9 @@ Deno.serve(async (req) => {
       "POST /availability",
       "POST /orders",
       "GET /orders/:id",
+      "POST /orders/:id/pay-deposit",
       "POST /orders/:id/cancel",
+      "GET /tappay-config",
     ]}, 404);
 
   } catch (err) {
@@ -118,7 +130,6 @@ async function handleListAccommodations(supabase: any) {
 
   if (error) throw error;
 
-  // Fetch hero photos for each accommodation
   const ids = data.map((a: any) => a.id);
   const { data: photos } = await supabase
     .from("accommodation_photos")
@@ -133,7 +144,6 @@ async function handleListAccommodations(supabase: any) {
     photoMap[p.accommodation_id].push(p.photo_url);
   }
 
-  // Fetch reviews avg rating
   const { data: reviews } = await supabase
     .from("reviews")
     .select("accommodation_id, rating")
@@ -175,21 +185,18 @@ async function handleGetAccommodation(supabase: any, accId: string) {
   if (error) throw error;
   if (!data) return jsonResponse({ error: "Accommodation not found" }, 404);
 
-  // Photos
   const { data: photos } = await supabase
     .from("accommodation_photos")
     .select("photo_url, display_order, photo_type")
     .eq("accommodation_id", accId)
     .order("display_order", { ascending: true });
 
-  // Facilities
   const { data: facilities } = await supabase
     .from("accommodation_facilities")
     .select("facility_name, category")
     .eq("accommodation_id", accId)
     .eq("is_available", true);
 
-  // Reviews
   const { data: reviews } = await supabase
     .from("reviews")
     .select("reviewer_name, rating, comment, review_date")
@@ -224,7 +231,6 @@ async function handleGetRoomTypes(supabase: any, accId: string) {
 
   const ids = roomTypes.map((r: any) => r.id);
 
-  // Photos
   const { data: photos } = await supabase
     .from("room_photos")
     .select("room_type_id, photo_url, display_order")
@@ -237,7 +243,6 @@ async function handleGetRoomTypes(supabase: any, accId: string) {
     photoMap[p.room_type_id].push(p.photo_url);
   }
 
-  // Amenities
   const { data: amenities } = await supabase
     .from("room_amenities")
     .select("room_type_id, amenity_name, category")
@@ -265,14 +270,12 @@ async function handleCheckAvailability(supabase: any, body: any) {
     return jsonResponse({ error: "accommodation_id, check_in_date, check_out_date are required" }, 400);
   }
 
-  // Validate dates
   const checkIn = new Date(check_in_date);
   const checkOut = new Date(check_out_date);
   if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime()) || checkOut <= checkIn) {
     return jsonResponse({ error: "Invalid date range" }, 400);
   }
 
-  // Get room types to check
   let roomTypeFilter = supabase
     .from("room_types")
     .select("id, name, name_en, capacity, base_price, is_exclusive_package, is_bound_to_exclusive")
@@ -285,7 +288,6 @@ async function handleCheckAvailability(supabase: any, body: any) {
   const { data: roomTypes, error: rtError } = await roomTypeFilter;
   if (rtError) throw rtError;
 
-  // Generate date list
   const dates: string[] = [];
   const d = new Date(check_in_date);
   const endD = new Date(check_out_date);
@@ -297,7 +299,6 @@ async function handleCheckAvailability(supabase: any, body: any) {
   const availability = [];
 
   for (const rt of roomTypes) {
-    // Get inventory for all dates
     const { data: inventory } = await supabase
       .from("room_inventory_pricing")
       .select("date, price, price_2_meals, price_3_meals, available_rooms, is_available, min_nights, max_nights")
@@ -309,7 +310,6 @@ async function handleCheckAvailability(supabase: any, body: any) {
       inventoryMap[inv.date] = inv;
     }
 
-    // Check exclusive room conflicts
     let hasExclusiveConflict = false;
     if (rt.is_exclusive_package || rt.is_bound_to_exclusive) {
       for (const date of dates) {
@@ -337,7 +337,6 @@ async function handleCheckAvailability(supabase: any, body: any) {
       continue;
     }
 
-    // Check each date availability
     let isAvailable = true;
     let minAvailableRooms = Infinity;
     const dailyPrices: any[] = [];
@@ -363,7 +362,6 @@ async function handleCheckAvailability(supabase: any, body: any) {
       totalPrice += inv.price;
     }
 
-    // Check min/max nights
     const nights = dates.length;
     const firstInv = inventoryMap[dates[0]];
     if (firstInv) {
@@ -403,7 +401,6 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
     guest_count = 2,
     meal_plan,
     points_amount,
-    cash_amount = 0,
     external_user_id,
     external_transaction_id,
     notes,
@@ -421,11 +418,10 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
     return jsonResponse({ error: "points_amount must be non-negative" }, 400);
   }
 
-  // Calculate currency from points
+  // Calculate currency from points (1 point = 1 TWD by default)
   const pointsCurrency = Math.floor(points_amount * partner.point_to_currency_rate);
-  const totalPaid = pointsCurrency + (cash_amount || 0);
 
-  // Check availability first
+  // Generate date list
   const dates: string[] = [];
   const d = new Date(check_in_date);
   const endD = new Date(check_out_date);
@@ -437,7 +433,6 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
   // Get price based on meal plan
   let priceColumn = "price";
   if (meal_plan) {
-    // Lookup template to determine column
     const { data: template } = await supabase
       .from("pricing_templates")
       .select("meal_plans")
@@ -470,24 +465,24 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
     totalPrice += inv[priceColumn] || inv.price;
   }
 
-  // Verify payment covers total
-  if (totalPaid < totalPrice) {
-    return jsonResponse({
-      error: "Insufficient payment",
-      total_price: totalPrice,
-      points_currency: pointsCurrency,
-      cash_amount: cash_amount || 0,
-      total_paid: totalPaid,
-      shortfall: totalPrice - totalPaid,
-    }, 400);
-  }
+  // --- New flow: points deduct from total, remaining × 30% = deposit ---
+  // Points discount cannot exceed total price
+  const pointsDiscount = Math.min(pointsCurrency, totalPrice);
+  const remainingAfterPoints = totalPrice - pointsDiscount;
+  // Deposit = 30% of remaining amount (rounded up)
+  const depositAmount = Math.ceil(remainingAfterPoints * 0.3);
+  const finalPrice = totalPrice; // final_price is still the full price
 
-  // Determine payment status and method
-  const paymentMethod = cash_amount > 0 ? "points_and_cash" : "points";
-  const discountAmount = pointsCurrency; // Points used as discount
-  const finalPrice = totalPrice;
+  // Determine payment status
+  // If no deposit needed (fully covered by points), mark as paid
+  const isFullyPaidByPoints = remainingAfterPoints === 0;
+  const paymentStatus = isFullyPaidByPoints ? "paid" : "unpaid";
+  const orderStatus = isFullyPaidByPoints ? "confirmed" : "pending";
+  const paymentMethod = isFullyPaidByPoints ? "points" : "points_and_card";
 
-  // Create order via direct insert (trigger will validate)
+  // Generate order number
+  const orderNumber = generateOrderNumber();
+
   const orderData = {
     accommodation_id,
     room_type_id,
@@ -501,20 +496,22 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
     total_price: totalPrice,
     final_price: finalPrice,
     payment_method: paymentMethod,
-    payment_status: "paid",
-    paid_amount: totalPaid,
-    order_status: "confirmed",
+    payment_status: paymentStatus,
+    paid_amount: isFullyPaidByPoints ? totalPrice : pointsDiscount,
+    deposit_amount: depositAmount,
+    order_status: orderStatus,
     order_source: `points_${partner.platform_code}`,
+    order_number: orderNumber,
+    discount_amount: 0,
     notes: notes
       ? `[${partner.platform_name}] ${notes}`
       : `[${partner.platform_name}] 點數訂房 - 用戶ID: ${external_user_id}`,
-    discount_amount: 0, // We don't use discount_code mechanism
   };
 
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .insert(orderData)
-    .select("id, order_number, total_price, final_price, payment_status, order_status, check_in_date, check_out_date")
+    .select("id, order_number, total_price, final_price, payment_status, order_status, deposit_amount, check_in_date, check_out_date")
     .single();
 
   if (orderError) {
@@ -522,26 +519,29 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
     return jsonResponse({ error: "Failed to create order", details: orderError.message }, 400);
   }
 
-  // Record point transaction
+  // Record point transaction (deduction)
   await supabase.from("point_transactions").insert({
     partner_id: partner.id,
     order_id: order.id,
     transaction_type: "deduct",
     points_amount,
-    currency_amount: pointsCurrency,
+    currency_amount: pointsDiscount,
     external_user_id,
     external_transaction_id: external_transaction_id || null,
     status: "completed",
     metadata: {
-      cash_amount: cash_amount || 0,
+      total_price: totalPrice,
+      points_discount: pointsDiscount,
+      remaining_after_points: remainingAfterPoints,
+      deposit_amount: depositAmount,
+      deposit_rate: 0.3,
       payment_method: paymentMethod,
       rate: partner.point_to_currency_rate,
     },
   });
 
-  // Send webhook notification if configured
+  // Webhook notification
   if (partner.webhook_url) {
-    // Fire and forget
     fetch(partner.webhook_url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -551,9 +551,11 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
         order_number: order.order_number,
         external_user_id,
         external_transaction_id,
-        points_amount,
-        cash_amount: cash_amount || 0,
         total_price: totalPrice,
+        points_discount: pointsDiscount,
+        remaining_after_points: remainingAfterPoints,
+        deposit_amount: depositAmount,
+        requires_card_payment: !isFullyPaidByPoints,
       }),
     }).catch((e) => console.error("Webhook error:", e));
   }
@@ -562,11 +564,203 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
     order: {
       ...order,
       points_used: points_amount,
-      points_currency: pointsCurrency,
-      cash_amount: cash_amount || 0,
+      points_discount: pointsDiscount,
+      remaining_after_points: remainingAfterPoints,
+      deposit_amount: depositAmount,
+      requires_card_payment: !isFullyPaidByPoints,
       payment_method: paymentMethod,
     },
   }, 201);
+}
+
+// ========== Pay Deposit with TapPay ==========
+
+async function handlePayDeposit(supabase: any, partner: Partner, orderId: string, body: any) {
+  const { prime, cardholder, frontend_redirect_url, backend_notify_url } = body;
+
+  if (!prime || typeof prime !== "string" || prime.length < 10) {
+    return jsonResponse({ error: "Invalid prime token" }, 400);
+  }
+
+  // Get order and verify it belongs to this partner
+  const { data: order, error } = await supabase
+    .from("orders")
+    .select("id, order_number, order_status, payment_status, deposit_amount, final_price, total_price, paid_amount, order_source, accommodation_id")
+    .eq("id", orderId)
+    .like("order_source", `points_${partner.platform_code}%`)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!order) return jsonResponse({ error: "Order not found" }, 404);
+
+  if (order.payment_status === "paid") {
+    return jsonResponse({ error: "Order is already paid" }, 400);
+  }
+  if (order.order_status === "cancelled") {
+    return jsonResponse({ error: "Order is cancelled" }, 400);
+  }
+
+  const depositAmount = order.deposit_amount || 0;
+  if (depositAmount <= 0) {
+    return jsonResponse({ error: "No deposit required for this order" }, 400);
+  }
+
+  // Get TapPay credentials
+  const partnerKey = Deno.env.get("TAPPAY_PARTNER_KEY");
+  const merchantId = Deno.env.get("TAPPAY_MERCHANT_ID");
+  if (!partnerKey || !merchantId) {
+    console.error("Missing TapPay credentials");
+    return jsonResponse({ error: "Payment system not configured" }, 500);
+  }
+
+  // Normalize phone
+  const phone = cardholder?.phoneNumber || cardholder?.phone_number || "";
+  const phoneE164 = normalizePhoneE164(phone);
+
+  // Build TapPay request
+  const envRaw = Deno.env.get("TAPPAY_ENV");
+  const env = envRaw === "sandbox" ? "sandbox" : "production";
+  const endpoint = env === "sandbox"
+    ? "https://sandbox.tappaysdk.com/tpc/payment/pay-by-prime"
+    : "https://prod.tappaysdk.com/tpc/payment/pay-by-prime";
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const defaultBackendNotify = `${supabaseUrl}/functions/v1/tappay-notify`;
+
+  const tappayBody: Record<string, unknown> = {
+    prime,
+    partner_key: partnerKey,
+    merchant_id: merchantId,
+    amount: depositAmount,
+    currency: "TWD",
+    details: `點數訂房訂金 - ${order.order_number}`,
+    order_number: order.order_number,
+    cardholder: {
+      phone_number: phoneE164,
+      name: cardholder?.name || "",
+      email: cardholder?.email || "",
+    },
+    remember: false,
+    three_domain_secure: true,
+  };
+
+  if (frontend_redirect_url || backend_notify_url) {
+    tappayBody.result_url = {
+      frontend_redirect_url: frontend_redirect_url || "",
+      backend_notify_url: backend_notify_url || defaultBackendNotify,
+    };
+  }
+
+  console.log("Processing deposit payment:", { orderId, depositAmount, env });
+
+  const tappayResponse = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": partnerKey,
+    },
+    body: JSON.stringify(tappayBody),
+  });
+
+  const result = await tappayResponse.json();
+
+  console.log("TapPay deposit response:", {
+    status: result.status,
+    msg: result.msg,
+    orderId,
+    depositAmount,
+    hasPaymentUrl: !!result.payment_url,
+  });
+
+  if (result.status === 0) {
+    // Check if 3D Secure redirect is required
+    if (result.payment_url) {
+      return jsonResponse({
+        success: true,
+        requires_3d_secure: true,
+        payment_url: result.payment_url,
+        rec_trade_id: result.rec_trade_id,
+        deposit_amount: depositAmount,
+        message: "需要進行 3D 驗證",
+      });
+    }
+
+    // Direct success (no 3D)
+    // Update order status
+    await supabase
+      .from("orders")
+      .update({
+        payment_status: "deposit_paid",
+        deposit_payment_method: "credit_card",
+        paid_amount: (order.paid_amount || 0) + depositAmount,
+        order_status: "confirmed",
+        confirmed_at: new Date().toISOString(),
+      })
+      .eq("id", orderId);
+
+    // Webhook
+    if (partner.webhook_url) {
+      fetch(partner.webhook_url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event: "deposit.paid",
+          order_id: orderId,
+          order_number: order.order_number,
+          deposit_amount: depositAmount,
+          rec_trade_id: result.rec_trade_id,
+        }),
+      }).catch((e) => console.error("Webhook error:", e));
+    }
+
+    return jsonResponse({
+      success: true,
+      requires_3d_secure: false,
+      rec_trade_id: result.rec_trade_id,
+      bank_transaction_id: result.bank_transaction_id,
+      deposit_amount: depositAmount,
+      message: "訂金付款成功",
+    });
+  } else {
+    // Payment failed
+    let userMessage = "付款失敗";
+    let suggestion = "請檢查卡片資訊或聯繫發卡銀行";
+
+    switch (result.status) {
+      case 1: userMessage = "系統錯誤"; suggestion = "請稍後再試"; break;
+      case 3: userMessage = "卡片資訊錯誤"; suggestion = "請檢查卡號、有效期限和安全碼"; break;
+      case 10: userMessage = "授權失敗"; suggestion = "卡片餘額不足，請更換卡片"; break;
+      case 924: userMessage = "3D驗證失敗"; suggestion = "請完成銀行身份驗證"; break;
+    }
+
+    return jsonResponse({
+      success: false,
+      message: userMessage,
+      suggestion,
+      error_code: result.status,
+      technical_message: result.msg,
+    });
+  }
+}
+
+// ========== TapPay Config for external platforms ==========
+
+function handleTapPayConfig() {
+  const appId = Deno.env.get("TAPPAY_APP_ID");
+  const appKey = Deno.env.get("TAPPAY_APP_KEY");
+  const envRaw = Deno.env.get("TAPPAY_ENV");
+  const env = envRaw === "sandbox" ? "sandbox" : "production";
+
+  if (!appId || !appKey) {
+    return jsonResponse({ error: "TapPay not configured" }, 500);
+  }
+
+  return jsonResponse({
+    app_id: Number(appId),
+    app_key: appKey,
+    env,
+    sdk_url: "https://js.tappaysdk.com/sdk/tpdirect/v5.18.0",
+  });
 }
 
 async function handleGetOrder(supabase: any, partner: Partner, orderId: string) {
@@ -575,9 +769,9 @@ async function handleGetOrder(supabase: any, partner: Partner, orderId: string) 
     .select(`
       id, order_number, accommodation_id, room_type_id,
       check_in_date, check_out_date, guest_name, guest_phone, guest_email,
-      guest_count, meal_plan, total_price, final_price,
+      guest_count, meal_plan, total_price, final_price, deposit_amount,
       payment_status, payment_method, order_status, order_source,
-      notes, created_at
+      paid_amount, notes, created_at
     `)
     .eq("id", orderId)
     .like("order_source", `points_${partner.platform_code}%`)
@@ -586,27 +780,28 @@ async function handleGetOrder(supabase: any, partner: Partner, orderId: string) 
   if (error) throw error;
   if (!order) return jsonResponse({ error: "Order not found" }, 404);
 
-  // Get point transaction
   const { data: transaction } = await supabase
     .from("point_transactions")
     .select("points_amount, currency_amount, external_user_id, external_transaction_id, status, metadata")
     .eq("order_id", orderId)
     .eq("partner_id", partner.id)
+    .eq("transaction_type", "deduct")
     .maybeSingle();
 
-  // Get room type name
   const { data: roomType } = await supabase
     .from("room_types")
     .select("name, name_en")
     .eq("id", order.room_type_id)
     .maybeSingle();
 
-  // Get accommodation name
   const { data: acc } = await supabase
     .from("accommodation_info")
     .select("name")
     .eq("id", order.accommodation_id)
     .maybeSingle();
+
+  const pointsDiscount = transaction?.currency_amount || 0;
+  const remainingAfterPoints = order.total_price - pointsDiscount;
 
   return jsonResponse({
     order: {
@@ -614,13 +809,14 @@ async function handleGetOrder(supabase: any, partner: Partner, orderId: string) 
       accommodation_name: acc?.name,
       room_type_name: roomType?.name,
       room_type_name_en: roomType?.name_en,
+      points_discount: pointsDiscount,
+      remaining_after_points: remainingAfterPoints,
       point_transaction: transaction,
     },
   });
 }
 
 async function handleCancelOrder(supabase: any, partner: Partner, orderId: string) {
-  // Get order
   const { data: order, error } = await supabase
     .from("orders")
     .select("id, order_number, order_status, order_source, final_price")
@@ -638,7 +834,6 @@ async function handleCancelOrder(supabase: any, partner: Partner, orderId: strin
     return jsonResponse({ error: "Cannot cancel a checked-out order" }, 400);
   }
 
-  // Cancel the order
   const { error: updateError } = await supabase
     .from("orders")
     .update({
@@ -649,7 +844,6 @@ async function handleCancelOrder(supabase: any, partner: Partner, orderId: strin
 
   if (updateError) throw updateError;
 
-  // Get original point transaction and create refund record
   const { data: origTransaction } = await supabase
     .from("point_transactions")
     .select("*")
@@ -659,13 +853,11 @@ async function handleCancelOrder(supabase: any, partner: Partner, orderId: strin
     .maybeSingle();
 
   if (origTransaction) {
-    // Update original transaction status
     await supabase
       .from("point_transactions")
       .update({ status: "refunded" })
       .eq("id", origTransaction.id);
 
-    // Create refund record
     await supabase.from("point_transactions").insert({
       partner_id: partner.id,
       order_id: orderId,
@@ -678,7 +870,6 @@ async function handleCancelOrder(supabase: any, partner: Partner, orderId: strin
       metadata: { original_transaction_id: origTransaction.id },
     });
 
-    // Webhook notification
     if (partner.webhook_url) {
       fetch(partner.webhook_url, {
         method: "POST",
@@ -703,6 +894,23 @@ async function handleCancelOrder(supabase: any, partner: Partner, orderId: strin
 }
 
 // ========== Helpers ==========
+
+function generateOrderNumber(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let result = "";
+  for (let i = 0; i < 8; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+function normalizePhoneE164(phone: string): string {
+  const cleaned = phone.replace(/[^\d+]/g, "");
+  if (cleaned.startsWith("+")) return cleaned;
+  if (cleaned.startsWith("09") && cleaned.length === 10) return "+886" + cleaned.substring(1);
+  if (cleaned.startsWith("886")) return "+" + cleaned;
+  return "+886" + cleaned;
+}
 
 function jsonResponse(data: any, status = 200) {
   return new Response(JSON.stringify(data), {
