@@ -48,6 +48,9 @@ interface PricingTemplate {
   template_name: string;
   meal_plans: any;
   project_name: string | null;
+  price: number | null;
+  weekday_price: number | null;
+  weekend_price: number | null;
 }
 
 interface CreateOrderDialogProps {
