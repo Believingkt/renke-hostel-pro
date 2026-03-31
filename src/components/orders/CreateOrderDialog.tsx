@@ -48,6 +48,9 @@ interface PricingTemplate {
   template_name: string;
   meal_plans: any;
   project_name: string | null;
+  price: number | null;
+  weekday_price: number | null;
+  weekend_price: number | null;
 }
 
 interface CreateOrderDialogProps {
@@ -178,7 +181,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           .eq("enabled", true),
         supabase
           .from("pricing_templates")
-          .select("id, template_name, meal_plans, project_name, room_type_id")
+          .select("id, template_name, meal_plans, project_name, room_type_id, price, weekday_price, weekend_price")
           .eq("accommodation_id", currentAccommodationId)
           .order("display_order")
       ]);
@@ -390,7 +393,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           // 一食 or no match → use default 'price'
         }
 
-        // Calculate price
+        // Calculate price - use inventory first, fall back to template price
         let total = 0;
         for (const dateStr of dates) {
           const { data: priceData } = await supabase
@@ -402,7 +405,22 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           
           if (priceData) {
             const selectedPrice = (priceData as any)[priceColumn] ?? priceData.price;
-            if (selectedPrice) total += selectedPrice;
+            if (selectedPrice) {
+              total += selectedPrice;
+              continue;
+            }
+          }
+          
+          // Fallback: use template price (weekday/weekend)
+          if (selectedTemplate) {
+            const d = new Date(dateStr);
+            const dayOfWeek = d.getDay();
+            const isHoliday = publicHolidays.includes(dateStr);
+            const isWeekend = dayOfWeek === 0 || dayOfWeek === 5 || dayOfWeek === 6 || isHoliday;
+            const fallbackPrice = isWeekend
+              ? (selectedTemplate.weekend_price ?? selectedTemplate.price ?? 0)
+              : (selectedTemplate.weekday_price ?? selectedTemplate.price ?? 0);
+            total += fallbackPrice;
           }
         }
         setRoomPrice(total);
@@ -412,7 +430,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     };
 
     checkInventoryAndPrice();
-  }, [form.check_in_date, form.check_out_date, form.room_type_id, selectedTemplateId, currentAccommodationId, pricingTemplates]);
+  }, [form.check_in_date, form.check_out_date, form.room_type_id, selectedTemplateId, currentAccommodationId, pricingTemplates, publicHolidays]);
 
   const handleApplyDiscount = async () => {
     if (!discountCode.trim() || !currentAccommodationId) {
