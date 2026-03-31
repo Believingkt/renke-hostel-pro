@@ -2876,14 +2876,16 @@ const BookingFlow = () => {
                             <CalendarComponent
                               mode="single"
                               selected={checkInDate}
+                              month={checkInCalendarMonth}
+                              onMonthChange={(month) => {
+                                setCheckInCalendarMonth(month);
+                                setCheckOutCalendarMonth(month);
+                              }}
                               onSelect={(date) => {
-                                // 驗證選擇的日期
                                 if (date && !isNaN(date.getTime())) {
                                   setCheckInDate(date);
-                                  // 自動關閉並打開退房日期選擇器
                                   setTimeout(() => {
                                     setIsCheckInDateOpen(false);
-                                    // 如果退房日期早於或等於新的入住日期，清除退房日期
                                     if (checkOutDate && checkOutDate <= date) {
                                       setCheckOutDate(undefined);
                                     }
@@ -2898,16 +2900,23 @@ const BookingFlow = () => {
                                 }
                               }}
                               disabled={(date) => {
-                                // 禁用過去的日期
                                 const today = new Date();
                                 today.setHours(0, 0, 0, 0);
                                 if (date < today) return true;
-                                // 禁用該房型不可預訂的日期
-                                if (selectedRoom && unavailableDatesForRoom.size > 0) {
+                                if (unavailableDatesForRoom.size > 0) {
                                   const dateStr = date.toISOString().split('T')[0];
                                   if (unavailableDatesForRoom.has(dateStr)) return true;
                                 }
                                 return false;
+                              }}
+                              modifiers={{
+                                available: (date) => {
+                                  const dateStr = date.toISOString().split('T')[0];
+                                  return availableDatesForCalendar.has(dateStr);
+                                },
+                              }}
+                              modifiersClassNames={{
+                                available: "font-extrabold",
                               }}
                               initialFocus
                               className={cn("p-3 pointer-events-auto")}
