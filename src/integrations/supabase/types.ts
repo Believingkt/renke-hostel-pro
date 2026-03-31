@@ -1662,6 +1662,7 @@ export type Database = {
           price: number | null
           project_description: string | null
           project_name: string | null
+          room_type_id: string | null
           template_name: string
           updated_at: string
           weekday_price: number | null
@@ -1678,6 +1679,7 @@ export type Database = {
           price?: number | null
           project_description?: string | null
           project_name?: string | null
+          room_type_id?: string | null
           template_name: string
           updated_at?: string
           weekday_price?: number | null
@@ -1694,6 +1696,7 @@ export type Database = {
           price?: number | null
           project_description?: string | null
           project_name?: string | null
+          room_type_id?: string | null
           template_name?: string
           updated_at?: string
           weekday_price?: number | null
@@ -1705,6 +1708,13 @@ export type Database = {
             columns: ["accommodation_id"]
             isOneToOne: false
             referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_templates_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "room_types"
             referencedColumns: ["id"]
           },
         ]

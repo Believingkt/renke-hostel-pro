@@ -178,7 +178,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           .eq("enabled", true),
         supabase
           .from("pricing_templates")
-          .select("id, template_name, meal_plans, project_name")
+          .select("id, template_name, meal_plans, project_name, room_type_id")
           .eq("accommodation_id", currentAccommodationId)
           .order("display_order")
       ]);
@@ -203,83 +203,50 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     fetchData();
   }, [currentAccommodationId]);
 
-  // Show templates after room type selection; only narrow them when pricing rules clearly match
+  // Filter templates by room_type_id
   useEffect(() => {
-    const filterTemplatesByRoomType = async () => {
-      if (!form.room_type_id) {
-        setFilteredTemplates([]);
-        setSelectedTemplateId("");
-        setForm(prev => ({ ...prev, meal_plan: "" }));
-        setIsLoadingTemplates(false);
-        return;
-      }
+    if (!form.room_type_id) {
+      setFilteredTemplates([]);
+      setSelectedTemplateId("");
+      setForm(prev => ({ ...prev, meal_plan: "" }));
+      setIsLoadingTemplates(false);
+      return;
+    }
 
-      if (pricingTemplates.length === 0) {
-        setFilteredTemplates([]);
-        setSelectedTemplateId("");
-        setIsLoadingTemplates(false);
-        return;
-      }
+    if (pricingTemplates.length === 0) {
+      setFilteredTemplates([]);
+      setSelectedTemplateId("");
+      setIsLoadingTemplates(false);
+      return;
+    }
 
-      // Optimistic default: show all templates immediately so UI never gets stuck
-      setFilteredTemplates(pricingTemplates);
-      setSelectedTemplateId(prev => prev || pricingTemplates[0]?.id || "");
-      setForm(prev => ({
+    // Filter by room_type_id: show templates that match the selected room type or have no room_type_id set
+    const filtered = pricingTemplates.filter(t =>
+      (t as any).room_type_id === form.room_type_id
+    );
+
+    // If no templates are linked to this room type, fall back to unlinked templates
+    const result = filtered.length > 0
+      ? filtered
+      : pricingTemplates.filter(t => !(t as any).room_type_id);
+
+    // If still nothing, show all as last resort
+    const finalList = result.length > 0 ? result : pricingTemplates;
+
+    setFilteredTemplates(finalList);
+    setSelectedTemplateId(prev => {
+      const stillExists = finalList.some(t => t.id === prev);
+      return stillExists ? prev : finalList[0]?.id || "";
+    });
+    setForm(prev => {
+      const stillExists = finalList.some(t => t.template_name === prev.meal_plan);
+      return {
         ...prev,
-        meal_plan: prev.meal_plan || pricingTemplates[0]?.template_name || "",
-      }));
-
-      if (!currentAccommodationId) {
-        return;
-      }
-
-      setIsLoadingTemplates(true);
-      try {
-        const { data: rules, error } = await supabase
-          .from("pricing_rules")
-          .select("price, price_2_meals, price_3_meals")
-          .eq("room_type_id", form.room_type_id)
-          .eq("accommodation_id", currentAccommodationId)
-          .eq("is_active", true);
-
-        if (error || !rules || rules.length === 0) {
-          return;
-        }
-
-        const hasPrice = rules.some(r => r.price != null && r.price > 0);
-        const hasPrice2 = rules.some(r => r.price_2_meals != null && r.price_2_meals > 0);
-        const hasPrice3 = rules.some(r => r.price_3_meals != null && r.price_3_meals > 0);
-
-        const filtered = pricingTemplates.filter(t => {
-          const mealCount = Array.isArray(t.meal_plans) ? t.meal_plans.length : 0;
-          if (mealCount >= 3) return hasPrice3;
-          if (mealCount === 2) return hasPrice2;
-          return hasPrice;
-        });
-
-        if (filtered.length === 0) {
-          return;
-        }
-
-        setFilteredTemplates(filtered);
-        setSelectedTemplateId(prev => {
-          const stillExists = filtered.some(template => template.id === prev);
-          return stillExists ? prev : filtered[0].id;
-        });
-        setForm(prev => {
-          const currentStillExists = filtered.some(template => template.template_name === prev.meal_plan);
-          return {
-            ...prev,
-            meal_plan: currentStillExists ? prev.meal_plan : filtered[0].template_name,
-          };
-        });
-      } finally {
-        setIsLoadingTemplates(false);
-      }
-    };
-
-    filterTemplatesByRoomType();
-  }, [form.room_type_id, currentAccommodationId, pricingTemplates]);
+        meal_plan: stillExists ? prev.meal_plan : finalList[0]?.template_name || "",
+      };
+    });
+    setIsLoadingTemplates(false);
+  }, [form.room_type_id, pricingTemplates]);
 
   // Handle customer name search
   const handleNameChange = useCallback((value: string) => {

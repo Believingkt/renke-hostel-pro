@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Pencil, Trash2, Check, X, CheckSquare, Square, CalendarCheck, Clock, History, GripVertical } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -70,6 +71,7 @@ interface PricingTemplate {
   meal_plans: any[];
   is_default: boolean;
   display_order: number;
+  room_type_id?: string | null;
 }
 
 interface TemplateApplication {
@@ -137,6 +139,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
     template_name: "",
     description: "",
     price: null as number | null,
+    room_type_id: "" as string,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -236,6 +239,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       template_name: "",
       description: "",
       price: null,
+      room_type_id: "",
     });
     setErrors({});
     setShowForm(true);
@@ -247,6 +251,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       template_name: template.template_name,
       description: template.description || "",
       price: (template as any).price ?? template.weekday_price ?? template.weekend_price ?? null,
+      room_type_id: template.room_type_id || "",
     });
     setErrors({});
     setShowForm(true);
@@ -283,6 +288,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
         description: formData.description || null,
         price: formData.price,
         accommodation_id: accommodationId,
+        room_type_id: formData.room_type_id || null,
       };
 
       if (editingTemplate) {
@@ -914,6 +920,23 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
             {errors.price && (
               <p className="text-sm text-destructive">{errors.price}</p>
             )}
+          </div>
+
+          {/* 對應房型 */}
+          <div className="space-y-2">
+            <Label htmlFor="room_type_id">對應房型 *</Label>
+            <Select value={formData.room_type_id || "none"} onValueChange={(v) => setFormData({ ...formData, room_type_id: v === "none" ? "" : v })}>
+              <SelectTrigger className="h-12 sm:h-10">
+                <SelectValue placeholder="選擇對應房型" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">不指定房型</SelectItem>
+                {roomTypes.map((rt) => (
+                  <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-sm text-muted-foreground">指定房型後，新增訂單時僅顯示該房型對應的專案</p>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 pt-4">

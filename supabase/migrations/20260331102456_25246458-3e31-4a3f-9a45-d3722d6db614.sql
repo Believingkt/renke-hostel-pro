@@ -1,0 +1,1 @@
+ALTER TABLE public.pricing_templates ADD COLUMN room_type_id uuid REFERENCES public.room_types(id) ON DELETE SET NULL;
