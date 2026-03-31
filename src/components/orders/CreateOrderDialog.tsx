@@ -197,16 +197,59 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       }
       if (!templatesResult.error && templatesResult.data) {
         setPricingTemplates(templatesResult.data);
-        // Set default meal_plan to first template if available
-        if (templatesResult.data.length > 0) {
-          setSelectedTemplateId(templatesResult.data[0].id);
-          setForm(prev => ({ ...prev, meal_plan: templatesResult.data[0].template_name }));
-        }
       }
     };
 
     fetchData();
   }, [currentAccommodationId]);
+
+  // Filter templates based on selected room type's available price columns
+  useEffect(() => {
+    const filterTemplatesByRoomType = async () => {
+      if (!form.room_type_id || !currentAccommodationId) {
+        setFilteredTemplates([]);
+        setSelectedTemplateId("");
+        setForm(prev => ({ ...prev, meal_plan: "" }));
+        return;
+      }
+
+      setIsLoadingTemplates(true);
+      try {
+        // Check which price columns have data for this room type
+        const { data: rules } = await supabase
+          .from("pricing_rules")
+          .select("price, price_2_meals, price_3_meals")
+          .eq("room_type_id", form.room_type_id)
+          .eq("accommodation_id", currentAccommodationId)
+          .eq("is_active", true);
+
+        const hasPrice = rules?.some(r => r.price != null && r.price > 0) ?? false;
+        const hasPrice2 = rules?.some(r => r.price_2_meals != null && r.price_2_meals > 0) ?? false;
+        const hasPrice3 = rules?.some(r => r.price_3_meals != null && r.price_3_meals > 0) ?? false;
+
+        const filtered = pricingTemplates.filter(t => {
+          const mealCount = Array.isArray(t.meal_plans) ? t.meal_plans.length : 0;
+          if (mealCount >= 3) return hasPrice3;
+          if (mealCount === 2) return hasPrice2;
+          return hasPrice; // 0 or 1 meal
+        });
+
+        setFilteredTemplates(filtered);
+        // Auto-select first filtered template
+        if (filtered.length > 0) {
+          setSelectedTemplateId(filtered[0].id);
+          setForm(prev => ({ ...prev, meal_plan: filtered[0].template_name }));
+        } else {
+          setSelectedTemplateId("");
+          setForm(prev => ({ ...prev, meal_plan: "" }));
+        }
+      } finally {
+        setIsLoadingTemplates(false);
+      }
+    };
+
+    filterTemplatesByRoomType();
+  }, [form.room_type_id, currentAccommodationId, pricingTemplates]);
 
   // Handle customer name search
   const handleNameChange = useCallback((value: string) => {
