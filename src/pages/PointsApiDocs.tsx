@@ -109,7 +109,7 @@ const PointsApiDocs = () => {
   "guest_phone": "0912345678",
   "guest_email": "user@example.com",
   "guest_count": 2,
-  "meal_plan": "一泊二食",            // 可選
+  "pricing_template_id": "uuid",      // 專案ID（從房型的 pricing_templates 取得）
   "points_amount": 5000,              // 使用的點數（1點=1元）
   "external_user_id": "user_123",     // 外部平台用戶ID
   "external_transaction_id": "txn_456", // 外部交易ID（可選）
