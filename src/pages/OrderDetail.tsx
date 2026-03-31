@@ -157,6 +157,7 @@ const OrderDetailPage = () => {
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
+  const [roomTemplates, setRoomTemplates] = useState<{ id: string; template_name: string }[]>([]);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showPriceEditDialog, setShowPriceEditDialog] = useState(false);
@@ -477,15 +478,14 @@ const OrderDetailPage = () => {
           const { data: templatesData } = await templatesQuery;
 
           if (templatesData && templatesData.length > 0) {
+            setRoomTemplates(templatesData.map(t => ({ id: t.id, template_name: t.template_name })));
             // Derive meal plan options from template names
             const derivedPlans: CustomMealPlan[] = [];
-            // Check if any template has explicit meal_plans array
             const defaultTemplate = templatesData.find(t => (t as any).meal_plans && Array.isArray((t as any).meal_plans) && ((t as any).meal_plans as any[]).length > 0);
             if (defaultTemplate) {
               const plans = (defaultTemplate as any).meal_plans as CustomMealPlan[];
               derivedPlans.push(...plans);
             }
-            // Also derive from template names (e.g. "一泊二食 - 平日")
             for (const t of templatesData) {
               const name = t.template_name || "";
               if (name.includes("二食") || name.includes("2食")) {
@@ -501,6 +501,7 @@ const OrderDetailPage = () => {
             }
             setCustomMealPlans(derivedPlans);
           } else {
+            setRoomTemplates([]);
             setCustomMealPlans([]);
           }
 
@@ -603,6 +604,14 @@ const OrderDetailPage = () => {
       return customPlan.name;
     }
     return planId === "2_meals" ? "一泊二食" : planId === "3_meals" ? "一泊三食" : planId;
+  };
+
+  const getTemplateDisplayName = (planId: string | null) => {
+    if (!planId) return "-";
+    const template = roomTemplates.find(t => t.id === planId);
+    if (template) return template.template_name;
+    // Fallback to meal plan display
+    return getMealPlanDisplayName(planId);
   };
 
   const handleResendConfirmation = async () => {
@@ -1065,28 +1074,20 @@ const OrderDetailPage = () => {
               <>
                 <Separator />
                 <div className="flex justify-between items-center gap-2">
-                  <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">餐食方案</span>
+                  <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">專案</span>
                   {isEditing ? (
                     <Select value={editForm.meal_plan} onValueChange={(v) => setEditForm(f => ({ ...f, meal_plan: v }))}>
-                      <SelectTrigger className="w-[160px] h-8 text-xs">
-                        <SelectValue placeholder="選擇" />
+                      <SelectTrigger className="w-[200px] h-8 text-xs">
+                        <SelectValue placeholder="選擇專案" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">無</SelectItem>
-                        {customMealPlans.length > 0 ? (
-                          customMealPlans.map(mp => (
-                            <SelectItem key={mp.id} value={mp.id}>{mp.name}</SelectItem>
-                          ))
-                        ) : (
-                          <>
-                            <SelectItem value="2_meals">一泊二食</SelectItem>
-                            <SelectItem value="3_meals">一泊三食</SelectItem>
-                          </>
-                        )}
+                        {roomTemplates.map(t => (
+                          <SelectItem key={t.id} value={t.id}>{t.template_name}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   ) : (
-                    <span className="font-medium text-sm md:text-base text-right">{getMealPlanDisplayName(order.meal_plan)}</span>
+                    <span className="font-medium text-sm md:text-base text-right">{getTemplateDisplayName(order.meal_plan)}</span>
                   )}
                 </div>
               </>
