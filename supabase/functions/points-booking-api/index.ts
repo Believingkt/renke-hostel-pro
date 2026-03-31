@@ -535,7 +535,7 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
     guest_phone,
     guest_email: guest_email || null,
     guest_count,
-    meal_plan: meal_plan || null,
+    meal_plan: selectedTemplate.template_name || null,
     total_price: totalPrice,
     final_price: finalPrice,
     payment_method: paymentMethod,
