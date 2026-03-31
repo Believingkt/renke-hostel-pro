@@ -530,7 +530,37 @@ const BookingFlow = () => {
     loadData();
   }, [accommodationId, subdomainLoading, toast]);
 
-  // 處理從房型頁面傳來的 roomId 和 step 參數
+  // 當選擇房型變化時，篩選對應的專案模板
+  useEffect(() => {
+    if (allPricingTemplates.length === 0) return;
+    
+    let filtered: PricingTemplateOption[];
+    if (selectedRoom) {
+      // 優先顯示與該房型關聯的專案
+      filtered = allPricingTemplates.filter(t => t.room_type_id === selectedRoom.id);
+      // 若無關聯專案，回退顯示未指定房型的專案
+      if (filtered.length === 0) {
+        filtered = allPricingTemplates.filter(t => !t.room_type_id);
+      }
+    } else {
+      filtered = allPricingTemplates;
+    }
+    
+    setPricingTemplates(filtered);
+    
+    // 如果當前選中的模板不在篩選結果中，重新選擇第一個
+    if (filtered.length > 0 && (!selectedTemplate || !filtered.find(t => t.id === selectedTemplate.id))) {
+      const defaultTemplate = filtered[0];
+      setSelectedTemplate(defaultTemplate);
+      setSelectedMealPlan(defaultTemplate.template_name);
+      if (defaultTemplate.meal_plans && defaultTemplate.meal_plans.length > 0) {
+        setCustomMealPlans(defaultTemplate.meal_plans as CustomMealPlan[]);
+      } else {
+        setCustomMealPlans([]);
+      }
+    }
+  }, [selectedRoom, allPricingTemplates]);
+
   useEffect(() => {
     const roomId = searchParams.get("roomId");
     const step = searchParams.get("step");
