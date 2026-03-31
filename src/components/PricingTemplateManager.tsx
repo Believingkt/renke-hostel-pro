@@ -922,6 +922,23 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
             )}
           </div>
 
+          {/* 對應房型 */}
+          <div className="space-y-2">
+            <Label htmlFor="room_type_id">對應房型 *</Label>
+            <Select value={formData.room_type_id || "none"} onValueChange={(v) => setFormData({ ...formData, room_type_id: v === "none" ? "" : v })}>
+              <SelectTrigger className="h-12 sm:h-10">
+                <SelectValue placeholder="選擇對應房型" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">不指定房型</SelectItem>
+                {roomTypes.map((rt) => (
+                  <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-sm text-muted-foreground">指定房型後，新增訂單時僅顯示該房型對應的專案</p>
+          </div>
+
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
             <Button onClick={handleSubmit} className="flex items-center justify-center gap-2 w-full sm:w-auto h-11 sm:h-10 touch-manipulation">
               <Check className="h-4 w-4" />
