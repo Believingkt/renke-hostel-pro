@@ -243,7 +243,10 @@ const BookingFlow = () => {
   
   // 預選房型的日期可用性（用於日期選擇器標記不可預訂日期）
   const [unavailableDatesForRoom, setUnavailableDatesForRoom] = useState<Set<string>>(new Set());
+  const [availableDatesForCalendar, setAvailableDatesForCalendar] = useState<Set<string>>(new Set());
   const [isLoadingRoomDates, setIsLoadingRoomDates] = useState(false);
+  const [checkInCalendarMonth, setCheckInCalendarMonth] = useState<Date>(new Date());
+  const [checkOutCalendarMonth, setCheckOutCalendarMonth] = useState<Date>(new Date());
   
   // 可用性快取機制
   const availabilityCacheRef = useRef<{
