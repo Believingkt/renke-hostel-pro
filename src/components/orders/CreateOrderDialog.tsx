@@ -223,9 +223,19 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           .eq("accommodation_id", currentAccommodationId)
           .eq("is_active", true);
 
-        const hasPrice = rules?.some(r => r.price != null && r.price > 0) ?? false;
-        const hasPrice2 = rules?.some(r => r.price_2_meals != null && r.price_2_meals > 0) ?? false;
-        const hasPrice3 = rules?.some(r => r.price_3_meals != null && r.price_3_meals > 0) ?? false;
+        // If no pricing rules exist for this room type, show all templates
+        if (!rules || rules.length === 0) {
+          setFilteredTemplates(pricingTemplates);
+          if (pricingTemplates.length > 0) {
+            setSelectedTemplateId(pricingTemplates[0].id);
+            setForm(prev => ({ ...prev, meal_plan: pricingTemplates[0].template_name }));
+          }
+          return;
+        }
+
+        const hasPrice = rules.some(r => r.price != null && r.price > 0);
+        const hasPrice2 = rules.some(r => r.price_2_meals != null && r.price_2_meals > 0);
+        const hasPrice3 = rules.some(r => r.price_3_meals != null && r.price_3_meals > 0);
 
         const filtered = pricingTemplates.filter(t => {
           const mealCount = Array.isArray(t.meal_plans) ? t.meal_plans.length : 0;
@@ -233,6 +243,16 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           if (mealCount === 2) return hasPrice2;
           return hasPrice; // 0 or 1 meal
         });
+
+        // If filtering excluded everything but rules exist, show all as fallback
+        if (filtered.length === 0) {
+          setFilteredTemplates(pricingTemplates);
+          if (pricingTemplates.length > 0) {
+            setSelectedTemplateId(pricingTemplates[0].id);
+            setForm(prev => ({ ...prev, meal_plan: pricingTemplates[0].template_name }));
+          }
+          return;
+        }
 
         setFilteredTemplates(filtered);
         // Auto-select first filtered template
