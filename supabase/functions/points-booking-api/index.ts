@@ -254,10 +254,32 @@ async function handleGetRoomTypes(supabase: any, accId: string) {
     amenityMap[a.room_type_id].push({ name: a.amenity_name, category: a.category });
   }
 
+  // Fetch pricing templates for each room type
+  const { data: templates } = await supabase
+    .from("pricing_templates")
+    .select("id, template_name, price, weekday_price, weekend_price, room_type_id")
+    .eq("accommodation_id", accId)
+    .order("display_order", { ascending: true, nullsFirst: false });
+
+  const templateMap: Record<string, any[]> = {};
+  for (const t of templates || []) {
+    const key = t.room_type_id;
+    if (!key) continue;
+    if (!templateMap[key]) templateMap[key] = [];
+    templateMap[key].push({
+      id: t.id,
+      template_name: t.template_name,
+      price: t.price,
+      weekday_price: t.weekday_price,
+      weekend_price: t.weekend_price,
+    });
+  }
+
   const result = roomTypes.map((r: any) => ({
     ...r,
     photos: photoMap[r.id] || [],
     amenities: amenityMap[r.id] || [],
+    pricing_templates: templateMap[r.id] || [],
   }));
 
   return jsonResponse({ room_types: result });
