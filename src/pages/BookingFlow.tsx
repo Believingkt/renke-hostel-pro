@@ -351,7 +351,9 @@ const BookingFlow = () => {
     project_name: string | null;
     meal_plans: any[] | null;
     mealCount: number; // 0,1 → price, 2 → price_2_meals, 3 → price_3_meals
+    room_type_id: string | null;
   }
+  const [allPricingTemplates, setAllPricingTemplates] = useState<PricingTemplateOption[]>([]);
   const [pricingTemplates, setPricingTemplates] = useState<PricingTemplateOption[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<PricingTemplateOption | null>(null);
   
