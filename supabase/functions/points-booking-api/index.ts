@@ -421,7 +421,7 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
     guest_phone,
     guest_email,
     guest_count = 2,
-    meal_plan,
+    pricing_template_id,
     points_amount,
     external_user_id,
     external_transaction_id,
@@ -429,7 +429,7 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
   } = body;
 
   // Validate required fields
-  const required = { accommodation_id, room_type_id, check_in_date, check_out_date, guest_name, guest_phone, points_amount, external_user_id };
+  const required = { accommodation_id, room_type_id, check_in_date, check_out_date, guest_name, guest_phone, points_amount, external_user_id, pricing_template_id };
   for (const [key, val] of Object.entries(required)) {
     if (!val && val !== 0) {
       return jsonResponse({ error: `${key} is required` }, 400);
@@ -438,6 +438,22 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
 
   if (points_amount < 0) {
     return jsonResponse({ error: "points_amount must be non-negative" }, 400);
+  }
+
+  // Fetch pricing template
+  const { data: selectedTemplate, error: templateError } = await supabase
+    .from("pricing_templates")
+    .select("id, template_name, price, weekday_price, weekend_price, meal_plans, room_type_id")
+    .eq("id", pricing_template_id)
+    .maybeSingle();
+
+  if (templateError || !selectedTemplate) {
+    return jsonResponse({ error: "Invalid pricing_template_id" }, 400);
+  }
+
+  // Verify template belongs to the specified room type
+  if (selectedTemplate.room_type_id && selectedTemplate.room_type_id !== room_type_id) {
+    return jsonResponse({ error: "pricing_template_id does not match the specified room_type_id" }, 400);
   }
 
   // Calculate currency from points (1 point = 1 TWD by default)
@@ -452,26 +468,19 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
     d.setDate(d.getDate() + 1);
   }
 
-  // Get price based on meal plan
+  // Determine price column for inventory fallback
   let priceColumn = "price";
-  if (meal_plan) {
-    const { data: template } = await supabase
-      .from("pricing_templates")
-      .select("meal_plans")
-      .eq("accommodation_id", accommodation_id)
-      .eq("template_name", meal_plan)
-      .maybeSingle();
-
-    if (template?.meal_plans && Array.isArray(template.meal_plans)) {
-      const mealCount = template.meal_plans.length;
-      if (mealCount >= 3) priceColumn = "price_3_meals";
-      else if (mealCount === 2) priceColumn = "price_2_meals";
-    }
+  const templateName = selectedTemplate.template_name || "";
+  if (templateName.includes("三食") || templateName.includes("3_meals")) {
+    priceColumn = "price_3_meals";
+  } else if (templateName.includes("二食") || templateName.includes("2_meals")) {
+    priceColumn = "price_2_meals";
   }
 
+  // Check availability
   const { data: inventory } = await supabase
     .from("room_inventory_pricing")
-    .select(`date, ${priceColumn}, available_rooms, is_available`)
+    .select(`date, price, price_2_meals, price_3_meals, available_rooms, is_available`)
     .eq("room_type_id", room_type_id)
     .in("date", dates);
 
@@ -479,12 +488,24 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
     return jsonResponse({ error: "Some dates have no inventory configured" }, 400);
   }
 
-  let totalPrice = 0;
   for (const inv of inventory) {
     if (inv.is_available === false || inv.available_rooms <= 0) {
       return jsonResponse({ error: `No availability on ${inv.date}` }, 400);
     }
-    totalPrice += inv[priceColumn] || inv.price;
+  }
+
+  // Calculate total price: template price × nights, fallback to inventory sum
+  const nights = dates.length;
+  let totalPrice = 0;
+
+  if (selectedTemplate.price != null && selectedTemplate.price > 0) {
+    totalPrice = selectedTemplate.price * nights;
+  } else {
+    // Fallback: sum inventory prices
+    for (const inv of inventory) {
+      const mealPrice = inv[priceColumn];
+      totalPrice += (mealPrice != null && mealPrice > 0) ? mealPrice : (inv.price || 0);
+    }
   }
 
   // --- New flow: points deduct from total, remaining × 30% = deposit ---
