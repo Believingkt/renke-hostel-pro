@@ -45,7 +45,7 @@ const PointsApiDocs = () => {
     {
       method: "GET",
       path: "/accommodations/:id/room-types",
-      desc: "取得民宿的房型列表（含照片、設備）",
+      desc: "取得民宿的房型列表（含照片、設備、適用專案）",
       response: `{
   "room_types": [
     {
@@ -54,7 +54,16 @@ const PointsApiDocs = () => {
       "capacity": 4,
       "base_price": 6000,
       "photos": [...],
-      "amenities": [...]
+      "amenities": [...],
+      "pricing_templates": [
+        {
+          "id": "uuid",
+          "template_name": "一泊二食 - 平日",
+          "price": 6000,
+          "weekday_price": 6000,
+          "weekend_price": 8000
+        }
+      ]
     }
   ]
 }`,
