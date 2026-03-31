@@ -352,7 +352,7 @@ Content-Type: application/json`}</pre>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="bg-muted p-4 rounded text-sm space-y-2">
-                <p><strong>1.</strong> 訂房總價 = 每晚房價加總（依庫存定價）</p>
+                <p><strong>1.</strong> 訂房總價 = 專案定價 × 晚數（若專案價格為 0 則改用庫存每日定價加總）</p>
                 <p><strong>2.</strong> 點數折抵 = 使用點數 × 兌換比率（預設 1:1）</p>
                 <p><strong>3.</strong> 剩餘金額 = 訂房總價 - 點數折抵</p>
                 <p><strong>4.</strong> 訂金 = 剩餘金額 × 30%（無條件進位）</p>
