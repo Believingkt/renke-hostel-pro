@@ -2843,19 +2843,17 @@ const BookingFlow = () => {
                 {/* Step 2: Date Selection */}
                 {currentStep === "dates" && (
                   <div className="space-y-6">
-                    {/* 預選房型提示 */}
-                    {selectedRoom && (
-                      <div className="flex items-center gap-2 p-3 bg-primary/5 border border-primary/20 rounded-lg">
-                        <Home className="h-4 w-4 text-primary flex-shrink-0" />
-                        <p className="text-sm text-foreground">
-                          已選擇房型：<span className="font-semibold">{selectedRoom.name}</span>
-                          {isLoadingRoomDates && <span className="text-muted-foreground ml-2">（載入可預訂日期中...）</span>}
-                          {!isLoadingRoomDates && unavailableDatesForRoom.size > 0 && (
-                            <span className="text-muted-foreground ml-2">（灰色日期表示不可預訂）</span>
-                          )}
-                        </p>
-                      </div>
-                    )}
+                    {/* 可預訂日期提示 */}
+                    <div className="flex items-center gap-2 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                      <Home className="h-4 w-4 text-primary flex-shrink-0" />
+                      <p className="text-sm text-foreground">
+                        {selectedRoom && <>已選擇房型：<span className="font-semibold">{selectedRoom.name}</span>　</>}
+                        {isLoadingRoomDates 
+                          ? <span className="text-muted-foreground">（載入可預訂日期中...）</span>
+                          : <span className="text-muted-foreground">（<span className="font-extrabold text-foreground">粗體</span>日期表示可預訂，灰色日期表示不可預訂）</span>
+                        }
+                      </p>
+                    </div>
                     <div className="grid md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <Label className="flex items-center gap-2">
