@@ -707,7 +707,8 @@ const HeroSection = ({
                           }
                         }}
                         disabled={(date) => {
-                          if (isDateUnavailable(date)) return true;
+                          const today = new Date(new Date().setHours(0, 0, 0, 0));
+                          if (date < today) return true;
                           if (checkInDate && date <= checkInDate) return true;
                           return false;
                         }}
