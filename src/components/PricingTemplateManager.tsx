@@ -70,6 +70,7 @@ interface PricingTemplate {
   meal_plans: any[];
   is_default: boolean;
   display_order: number;
+  room_type_id?: string | null;
 }
 
 interface TemplateApplication {
