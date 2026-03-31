@@ -1066,28 +1066,20 @@ const OrderDetailPage = () => {
               <>
                 <Separator />
                 <div className="flex justify-between items-center gap-2">
-                  <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">餐食方案</span>
+                  <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">專案</span>
                   {isEditing ? (
                     <Select value={editForm.meal_plan} onValueChange={(v) => setEditForm(f => ({ ...f, meal_plan: v }))}>
-                      <SelectTrigger className="w-[160px] h-8 text-xs">
-                        <SelectValue placeholder="選擇" />
+                      <SelectTrigger className="w-[200px] h-8 text-xs">
+                        <SelectValue placeholder="選擇專案" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">無</SelectItem>
-                        {customMealPlans.length > 0 ? (
-                          customMealPlans.map(mp => (
-                            <SelectItem key={mp.id} value={mp.id}>{mp.name}</SelectItem>
-                          ))
-                        ) : (
-                          <>
-                            <SelectItem value="2_meals">一泊二食</SelectItem>
-                            <SelectItem value="3_meals">一泊三食</SelectItem>
-                          </>
-                        )}
+                        {roomTemplates.map(t => (
+                          <SelectItem key={t.id} value={t.id}>{t.template_name}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   ) : (
-                    <span className="font-medium text-sm md:text-base text-right">{getMealPlanDisplayName(order.meal_plan)}</span>
+                    <span className="font-medium text-sm md:text-base text-right">{getTemplateDisplayName(order.meal_plan)}</span>
                   )}
                 </div>
               </>
