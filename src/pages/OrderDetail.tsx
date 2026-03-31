@@ -465,15 +465,43 @@ const OrderDetailPage = () => {
             .order("display_order", { ascending: true });
           if (rtData) setRoomTypes(rtData);
 
-          const { data: templatesData } = await supabase
+          // Fetch pricing templates linked to the order's room type
+          const roomTypeId = orderData.room_type_id;
+          let templatesQuery = supabase
             .from("pricing_templates")
-            .select("meal_plans")
-            .eq("accommodation_id", orderData.accommodation_id)
-            .eq("is_default", true)
-            .maybeSingle();
+            .select("id, template_name, meal_plans")
+            .eq("accommodation_id", orderData.accommodation_id);
+          if (roomTypeId) {
+            templatesQuery = templatesQuery.eq("room_type_id", roomTypeId);
+          }
+          const { data: templatesData } = await templatesQuery;
 
-          if (templatesData?.meal_plans && Array.isArray(templatesData.meal_plans)) {
-            setCustomMealPlans(templatesData.meal_plans as unknown as CustomMealPlan[]);
+          if (templatesData && templatesData.length > 0) {
+            // Derive meal plan options from template names
+            const derivedPlans: CustomMealPlan[] = [];
+            // Check if any template has explicit meal_plans array
+            const defaultTemplate = templatesData.find(t => (t as any).meal_plans && Array.isArray((t as any).meal_plans) && ((t as any).meal_plans as any[]).length > 0);
+            if (defaultTemplate) {
+              const plans = (defaultTemplate as any).meal_plans as CustomMealPlan[];
+              derivedPlans.push(...plans);
+            }
+            // Also derive from template names (e.g. "一泊二食 - 平日")
+            for (const t of templatesData) {
+              const name = t.template_name || "";
+              if (name.includes("二食") || name.includes("2食")) {
+                if (!derivedPlans.some(p => p.id === "2_meals")) {
+                  derivedPlans.push({ id: "2_meals", name: "一泊二食", description: "" });
+                }
+              }
+              if (name.includes("三食") || name.includes("3食")) {
+                if (!derivedPlans.some(p => p.id === "3_meals")) {
+                  derivedPlans.push({ id: "3_meals", name: "一泊三食", description: "" });
+                }
+              }
+            }
+            setCustomMealPlans(derivedPlans);
+          } else {
+            setCustomMealPlans([]);
           }
 
           // Fetch addon settings for edit mode
