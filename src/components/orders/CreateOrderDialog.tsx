@@ -850,7 +850,10 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               <Label className="text-xs">房型 <span className="text-destructive">*</span></Label>
               <Select
                 value={form.room_type_id}
-                onValueChange={(value) => setForm({...form, room_type_id: value})}
+                onValueChange={(value) => {
+                  setSelectedTemplateId("");
+                  setForm({...form, room_type_id: value, meal_plan: ""});
+                }}
               >
                 <SelectTrigger className="h-10 text-sm">
                   <SelectValue placeholder="選擇房型" />
