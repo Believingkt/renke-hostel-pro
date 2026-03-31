@@ -1073,11 +1073,16 @@ const OrderDetailPage = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">無</SelectItem>
-                        <SelectItem value="2_meals">一泊二食</SelectItem>
-                        <SelectItem value="3_meals">一泊三食</SelectItem>
-                        {customMealPlans.map(mp => (
-                          <SelectItem key={mp.id} value={mp.id}>{mp.name}</SelectItem>
-                        ))}
+                        {customMealPlans.length > 0 ? (
+                          customMealPlans.map(mp => (
+                            <SelectItem key={mp.id} value={mp.id}>{mp.name}</SelectItem>
+                          ))
+                        ) : (
+                          <>
+                            <SelectItem value="2_meals">一泊二食</SelectItem>
+                            <SelectItem value="3_meals">一泊三食</SelectItem>
+                          </>
+                        )}
                       </SelectContent>
                     </Select>
                   ) : (
