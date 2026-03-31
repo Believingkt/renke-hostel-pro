@@ -377,52 +377,38 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         }
         setInventoryWarnings(warnings);
 
-        // Determine which price column to use based on selected template
+        // Calculate price using selected template's price directly
         const selectedTemplate = pricingTemplates.find(t => t.id === selectedTemplateId) 
           || filteredTemplates.find(t => t.id === selectedTemplateId);
-        let priceColumn = 'price';
-        if (selectedTemplate?.meal_plans && Array.isArray(selectedTemplate.meal_plans) && selectedTemplate.meal_plans.length > 0) {
-          const mealCount = selectedTemplate.meal_plans.length;
-          if (mealCount === 3) priceColumn = 'price_3_meals';
-          else if (mealCount === 2) priceColumn = 'price_2_meals';
-        } else if (selectedTemplate) {
-          // Fallback: parse template name for meal count
-          const name = selectedTemplate.template_name || selectedTemplate.project_name || '';
-          if (name.includes('三食') || name.includes('3食')) priceColumn = 'price_3_meals';
-          else if (name.includes('二食') || name.includes('2食') || name.includes('兩食')) priceColumn = 'price_2_meals';
-          // 一食 or no match → use default 'price'
-        }
-
-        // Calculate price
-        // Priority: 1) inventory price for the correct meal column, 2) template price
-        let total = 0;
-        for (const dateStr of dates) {
-          const { data: priceData } = await supabase
-            .from("room_inventory_pricing")
-            .select("price, price_2_meals, price_3_meals")
-            .eq("room_type_id", form.room_type_id)
-            .eq("date", dateStr)
-            .maybeSingle();
-          
-          if (priceData) {
-            const selectedPrice = (priceData as any)[priceColumn];
-            if (selectedPrice != null && selectedPrice > 0) {
-              total += selectedPrice;
-              continue;
-            }
-            // If the specific meal column is null, try base price
-            if (priceData.price != null && priceData.price > 0) {
-              total += priceData.price;
-              continue;
-            }
-          }
-          
-          // Fallback: use template's own price
+        
+        if (selectedTemplate && selectedTemplate.price != null && selectedTemplate.price > 0) {
+          // Use template price directly × nights
+          setRoomPrice(selectedTemplate.price * nights);
+        } else {
+          // Fallback: sum inventory prices
+          let priceColumn = 'price';
           if (selectedTemplate) {
-            total += selectedTemplate.price ?? 0;
+            const name = selectedTemplate.template_name || selectedTemplate.project_name || '';
+            if (name.includes('三食') || name.includes('3食')) priceColumn = 'price_3_meals';
+            else if (name.includes('二食') || name.includes('2食') || name.includes('兩食')) priceColumn = 'price_2_meals';
           }
+          
+          let total = 0;
+          for (const dateStr of dates) {
+            const { data: priceData } = await supabase
+              .from("room_inventory_pricing")
+              .select("price, price_2_meals, price_3_meals")
+              .eq("room_type_id", form.room_type_id)
+              .eq("date", dateStr)
+              .maybeSingle();
+            
+            if (priceData) {
+              const selectedPrice = (priceData as any)[priceColumn];
+              total += (selectedPrice != null && selectedPrice > 0) ? selectedPrice : (priceData.price ?? 0);
+            }
+          }
+          setRoomPrice(total);
         }
-        setRoomPrice(total);
       } finally {
         setIsCheckingInventory(false);
       }
