@@ -351,7 +351,9 @@ const BookingFlow = () => {
     project_name: string | null;
     meal_plans: any[] | null;
     mealCount: number; // 0,1 → price, 2 → price_2_meals, 3 → price_3_meals
+    room_type_id: string | null;
   }
+  const [allPricingTemplates, setAllPricingTemplates] = useState<PricingTemplateOption[]>([]);
   const [pricingTemplates, setPricingTemplates] = useState<PricingTemplateOption[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<PricingTemplateOption | null>(null);
   
@@ -488,32 +490,30 @@ const BookingFlow = () => {
         // 獲取所有價格方案（專案模板）
         const { data: allTemplatesData } = await supabase
           .from("pricing_templates")
-          .select("id, template_name, project_name, meal_plans, display_order")
+          .select("id, template_name, project_name, meal_plans, display_order, room_type_id")
           .eq("accommodation_id", accommodationId)
           .order("display_order", { ascending: true });
 
         if (allTemplatesData && allTemplatesData.length > 0) {
           const templates: PricingTemplateOption[] = allTemplatesData.map(t => {
             const meals = t.meal_plans && Array.isArray(t.meal_plans) ? t.meal_plans as any[] : [];
+            let mealCount = meals.length;
+            if (mealCount === 0) {
+              const name = t.template_name || '';
+              if (name.includes('三食') || name.includes('3食')) mealCount = 3;
+              else if (name.includes('二食') || name.includes('2食')) mealCount = 2;
+            }
             return {
               id: t.id,
               template_name: t.template_name,
               project_name: t.project_name,
               meal_plans: meals,
-              mealCount: meals.length,
+              mealCount,
+              room_type_id: t.room_type_id,
             };
           });
-          setPricingTemplates(templates);
-
-          // 找預設模板 or 第一個
-          const defaultTemplate = templates[0];
-          setSelectedTemplate(defaultTemplate);
-          setSelectedMealPlan(defaultTemplate.template_name);
-
-          // 設定自訂餐食方案（來自選中模板的 meal_plans）
-          if (defaultTemplate.meal_plans && defaultTemplate.meal_plans.length > 0) {
-            setCustomMealPlans(defaultTemplate.meal_plans as CustomMealPlan[]);
-          }
+          setAllPricingTemplates(templates);
+          // 不在這裡設定 pricingTemplates，改由 selectedRoom 變化時篩選
         }
       } catch (error) {
         if (import.meta.env.DEV) {
@@ -530,7 +530,37 @@ const BookingFlow = () => {
     loadData();
   }, [accommodationId, subdomainLoading, toast]);
 
-  // 處理從房型頁面傳來的 roomId 和 step 參數
+  // 當選擇房型變化時，篩選對應的專案模板
+  useEffect(() => {
+    if (allPricingTemplates.length === 0) return;
+    
+    let filtered: PricingTemplateOption[];
+    if (selectedRoom) {
+      // 優先顯示與該房型關聯的專案
+      filtered = allPricingTemplates.filter(t => t.room_type_id === selectedRoom.id);
+      // 若無關聯專案，回退顯示未指定房型的專案
+      if (filtered.length === 0) {
+        filtered = allPricingTemplates.filter(t => !t.room_type_id);
+      }
+    } else {
+      filtered = allPricingTemplates;
+    }
+    
+    setPricingTemplates(filtered);
+    
+    // 如果當前選中的模板不在篩選結果中，重新選擇第一個
+    if (filtered.length > 0 && (!selectedTemplate || !filtered.find(t => t.id === selectedTemplate.id))) {
+      const defaultTemplate = filtered[0];
+      setSelectedTemplate(defaultTemplate);
+      setSelectedMealPlan(defaultTemplate.template_name);
+      if (defaultTemplate.meal_plans && defaultTemplate.meal_plans.length > 0) {
+        setCustomMealPlans(defaultTemplate.meal_plans as CustomMealPlan[]);
+      } else {
+        setCustomMealPlans([]);
+      }
+    }
+  }, [selectedRoom, allPricingTemplates]);
+
   useEffect(() => {
     const roomId = searchParams.get("roomId");
     const step = searchParams.get("step");
