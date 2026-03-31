@@ -312,7 +312,7 @@ Content-Type: application/json`}</pre>
               <ol className="space-y-3 text-sm">
                 <li className="flex gap-3">
                   <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">1</span>
-                  <span><strong>查詢民宿與房型</strong> — GET /accommodations → GET /accommodations/:id/room-types</span>
+                  <span><strong>查詢民宿與房型</strong> — GET /accommodations → GET /accommodations/:id/room-types（含各房型適用專案）</span>
                 </li>
                 <li className="flex gap-3">
                   <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">2</span>
