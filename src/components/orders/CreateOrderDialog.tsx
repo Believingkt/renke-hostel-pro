@@ -374,13 +374,20 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         }
         setInventoryWarnings(warnings);
 
-        // Determine which price column to use based on selected template's meal_plans
-        const selectedTemplate = pricingTemplates.find(t => t.id === selectedTemplateId);
+        // Determine which price column to use based on selected template
+        const selectedTemplate = pricingTemplates.find(t => t.id === selectedTemplateId) 
+          || filteredTemplates.find(t => t.id === selectedTemplateId);
         let priceColumn = 'price';
-        if (selectedTemplate?.meal_plans && Array.isArray(selectedTemplate.meal_plans)) {
+        if (selectedTemplate?.meal_plans && Array.isArray(selectedTemplate.meal_plans) && selectedTemplate.meal_plans.length > 0) {
           const mealCount = selectedTemplate.meal_plans.length;
           if (mealCount === 3) priceColumn = 'price_3_meals';
           else if (mealCount === 2) priceColumn = 'price_2_meals';
+        } else if (selectedTemplate) {
+          // Fallback: parse template name for meal count
+          const name = selectedTemplate.template_name || selectedTemplate.project_name || '';
+          if (name.includes('三食') || name.includes('3食')) priceColumn = 'price_3_meals';
+          else if (name.includes('二食') || name.includes('2食') || name.includes('兩食')) priceColumn = 'price_2_meals';
+          // 一食 or no match → use default 'price'
         }
 
         // Calculate price
