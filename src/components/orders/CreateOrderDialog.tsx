@@ -94,6 +94,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const [selectedAddons, setSelectedAddons] = useState<{ addon_id: string; quantity: number }[]>([]);
 
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const [filteredTemplates, setFilteredTemplates] = useState<PricingTemplate[]>([]);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
   const [form, setForm] = useState({
     guest_name: "",
     guest_phone: "",
