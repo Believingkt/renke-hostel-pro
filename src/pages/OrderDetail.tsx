@@ -606,6 +606,14 @@ const OrderDetailPage = () => {
     return planId === "2_meals" ? "一泊二食" : planId === "3_meals" ? "一泊三食" : planId;
   };
 
+  const getTemplateDisplayName = (planId: string | null) => {
+    if (!planId) return "-";
+    const template = roomTemplates.find(t => t.id === planId);
+    if (template) return template.template_name;
+    // Fallback to meal plan display
+    return getMealPlanDisplayName(planId);
+  };
+
   const handleResendConfirmation = async () => {
     if (!order || !order.guest_email) {
       toast({
