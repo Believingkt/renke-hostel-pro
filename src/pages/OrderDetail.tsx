@@ -157,6 +157,7 @@ const OrderDetailPage = () => {
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
+  const [roomTemplates, setRoomTemplates] = useState<{ id: string; template_name: string }[]>([]);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showPriceEditDialog, setShowPriceEditDialog] = useState(false);
