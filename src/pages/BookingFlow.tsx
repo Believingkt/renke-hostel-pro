@@ -592,11 +592,10 @@ const BookingFlow = () => {
       setIsLoadingRoomDates(true);
       try {
         const today = new Date();
-        const sixMonthsLater = new Date(today);
-        sixMonthsLater.setMonth(today.getMonth() + 6);
+        const sixMonthsLater = addMonths(today, 6);
 
-        const todayStr = today.toISOString().split('T')[0];
-        const endStr = sixMonthsLater.toISOString().split('T')[0];
+        const todayStr = formatISO(today, { representation: 'date' });
+        const endStr = formatISO(endOfMonth(sixMonthsLater), { representation: 'date' });
 
         // 取得房型資訊（含包區屬性）
         const roomTypeIds = roomTypes.map(r => r.id);
