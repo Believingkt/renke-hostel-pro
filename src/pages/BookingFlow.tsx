@@ -639,7 +639,7 @@ const BookingFlow = () => {
             const endDate = new Date(order.check_out_date + 'T00:00:00');
             const current = new Date(startDate);
             while (current < endDate) {
-              exclusiveBlockedDates.add(current.toISOString().split('T')[0]);
+              exclusiveBlockedDates.add(formatISO(current, { representation: 'date' }));
               current.setDate(current.getDate() + 1);
             }
           }
