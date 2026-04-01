@@ -465,6 +465,8 @@ const BookingFlow = () => {
             room_count: room.room_count,
             quad_room_count: room.quad_room_count,
             double_room_count: room.double_room_count,
+            is_exclusive_package: room.is_exclusive_package,
+            is_bound_to_exclusive: room.is_bound_to_exclusive,
             room_photos: (room.room_photos || []).sort((a, b) => a.display_order - b.display_order),
             amenities: (room.room_amenities || []).map((a: any) => a.amenity_name).slice(0, 8),
           }));
