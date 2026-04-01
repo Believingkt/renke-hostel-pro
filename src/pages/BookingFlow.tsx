@@ -2903,6 +2903,7 @@ const BookingFlow = () => {
                             </button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
+                            <div className="p-3">
                             <CalendarComponent
                               mode="single"
                               selected={checkInDate}
@@ -2940,18 +2941,42 @@ const BookingFlow = () => {
                                 return false;
                               }}
                               modifiers={{
+                                holiday: (date) => {
+                                  const today = new Date();
+                                  today.setHours(0, 0, 0, 0);
+                                  if (date < today) return false;
+                                  const dateStr = date.toISOString().split('T')[0];
+                                  if (unavailableDatesForRoom.has(dateStr)) return false;
+                                  return isWeekend(date);
+                                },
                                 available: (date) => {
                                   const dateStr = date.toISOString().split('T')[0];
                                   return availableDatesForCalendar.has(dateStr);
                                 },
                               }}
                               modifiersClassNames={{
-                                available: "font-extrabold",
+                                holiday: "bg-primary/10 text-primary font-semibold rounded-md",
+                                available: "!font-extrabold text-foreground",
                               }}
                               initialFocus
-                              className={cn("p-3 pointer-events-auto")}
+                              className="pointer-events-auto"
                               variant="frontend"
                             />
+                            <div className="flex items-center gap-4 mt-3 pt-3 border-t text-xs flex-wrap">
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 bg-primary/10 rounded-md border border-primary/20"></div>
+                                <span className="text-muted-foreground">假日定價</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 bg-background rounded-md border border-border"></div>
+                                <span className="text-muted-foreground">平日定價</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="w-6 h-6 flex items-center justify-center text-muted-foreground/40 text-sm">30</span>
+                                <span className="text-muted-foreground">已滿房</span>
+                              </div>
+                            </div>
+                            </div>
                           </PopoverContent>
                         </Popover>
                         {bookingSettings && (
