@@ -2976,10 +2976,10 @@ const BookingFlow = () => {
                                   if (unavailableDatesForRoom.has(dateStr)) return false;
                                   return isWeekend(date);
                                 },
-                                available: (date) => {
-                                  const dateStr = date.toISOString().split('T')[0];
-                                  return availableDatesForCalendar.has(dateStr);
-                                },
+                                 available: (date) => {
+                                   const dateStr = formatISO(date, { representation: 'date' });
+                                   return availableDatesForCalendar.has(dateStr);
+                                 },
                               }}
                               modifiersClassNames={{
                                 holiday: "bg-primary/10 text-primary font-semibold rounded-md",
