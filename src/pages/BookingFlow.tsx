@@ -2972,7 +2972,7 @@ const BookingFlow = () => {
                                   const today = new Date();
                                   today.setHours(0, 0, 0, 0);
                                   if (date < today) return false;
-                                  const dateStr = date.toISOString().split('T')[0];
+                                  const dateStr = formatISO(date, { representation: 'date' });
                                   if (unavailableDatesForRoom.has(dateStr)) return false;
                                   return isWeekend(date);
                                 },
