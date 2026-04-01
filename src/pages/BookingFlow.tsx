@@ -597,22 +597,19 @@ const BookingFlow = () => {
         const todayStr = formatISO(today, { representation: 'date' });
         const endStr = formatISO(endOfMonth(sixMonthsLater), { representation: 'date' });
 
-        // 取得房型資訊（含包區屬性）
-        const roomTypeIds = roomTypes.map(r => r.id);
+        const roomTypeIds = roomTypes.map((room) => room.id);
         if (roomTypeIds.length === 0) {
-          setIsLoadingRoomDates(false);
+          setUnavailableDatesForRoom(new Set());
+          setAvailableDatesForCalendar(new Set());
           return;
         }
 
-        // 根據是否有預選房型決定查詢範圍
-        const inventoryRoomIds = selectedRoom ? [selectedRoom.id] : roomTypeIds;
-
-        // 同時查詢庫存資料和包區訂單（與首頁一致）
+        // 這裡固定沿用首頁做法：以全部房型聚合可訂日期，不受預選房型影響
         const [inventoryResult, exclusiveOrdersResult] = await Promise.all([
           supabase
             .from('room_inventory_pricing')
             .select('date, available_rooms, is_available, price, room_type_id')
-            .in('room_type_id', inventoryRoomIds)
+            .in('room_type_id', roomTypeIds)
             .gte('date', todayStr)
             .lte('date', endStr),
           supabase
@@ -621,23 +618,24 @@ const BookingFlow = () => {
             .eq('accommodation_id', accommodationId)
             .not('order_status', 'eq', 'cancelled')
             .gte('check_out_date', todayStr)
-            .lte('check_in_date', endStr)
+            .lte('check_in_date', endStr),
         ]);
 
         if (inventoryResult.error) throw inventoryResult.error;
         const data = inventoryResult.data;
 
-        // 建立被包區訂單佔用的日期集合（與首頁一致）
         const exclusiveBlockedDates = new Set<string>();
-        const exclusiveRoomIds = new Set(roomTypes.filter(r => r.is_exclusive_package).map(r => r.id));
-        const allBoundOrExclusive = roomTypes.every(r => r.is_exclusive_package || r.is_bound_to_exclusive);
+        const exclusiveRoomIds = new Set(roomTypes.filter((room) => room.is_exclusive_package).map((room) => room.id));
+        const allBoundOrExclusive = roomTypes.every((room) => room.is_exclusive_package || room.is_bound_to_exclusive);
 
         if (exclusiveOrdersResult.data && allBoundOrExclusive) {
           for (const order of exclusiveOrdersResult.data) {
             if (!exclusiveRoomIds.has(order.room_type_id)) continue;
+
             const startDate = new Date(order.check_in_date + 'T00:00:00');
             const endDate = new Date(order.check_out_date + 'T00:00:00');
             const current = new Date(startDate);
+
             while (current < endDate) {
               exclusiveBlockedDates.add(formatISO(current, { representation: 'date' }));
               current.setDate(current.getDate() + 1);
@@ -645,31 +643,26 @@ const BookingFlow = () => {
           }
         }
 
-        // 建立日期 → 可用性 Map（與首頁一致）
-        const dateAvailabilityMap = new Map<string, boolean>();
         if (data && data.length > 0) {
+          const dateAvailabilityMap = new Map<string, boolean>();
+
           for (const row of data) {
-            const isAvail = row.is_available !== false &&
-              row.available_rooms > 0 &&
-              row.price !== null && row.price !== undefined;
-            
+            const isAvail = row.is_available !== false && row.available_rooms > 0 && row.price !== null && row.price !== undefined;
+
             if (isAvail) {
               dateAvailabilityMap.set(row.date, true);
             } else if (!dateAvailabilityMap.has(row.date)) {
               dateAvailabilityMap.set(row.date, false);
             }
           }
-          // 移除被包區訂單佔用的日期
+
           for (const blockedDate of exclusiveBlockedDates) {
             dateAvailabilityMap.set(blockedDate, false);
           }
-        }
 
-        const unavailable = new Set<string>();
-        const available = new Set<string>();
+          const unavailable = new Set<string>();
+          const available = new Set<string>();
 
-        if (data && data.length > 0) {
-          // 與首頁一致：只從庫存資料中取出可用日期，不主動把沒出現的日期標為不可用
           for (const [dateStr, isAvail] of dateAvailabilityMap.entries()) {
             if (isAvail) {
               available.add(dateStr);
@@ -677,11 +670,13 @@ const BookingFlow = () => {
               unavailable.add(dateStr);
             }
           }
-        }
-        // 無庫存資料時，available 和 unavailable 都為空集合，不禁用任何日期
 
-        setUnavailableDatesForRoom(unavailable);
-        setAvailableDatesForCalendar(available);
+          setUnavailableDatesForRoom(unavailable);
+          setAvailableDatesForCalendar(available);
+        } else {
+          setUnavailableDatesForRoom(new Set());
+          setAvailableDatesForCalendar(new Set());
+        }
       } catch (err) {
         if (import.meta.env.DEV) {
           console.error('Error loading date availability:', err);
@@ -692,7 +687,7 @@ const BookingFlow = () => {
     };
 
     loadDateAvailability();
-  }, [selectedRoom?.id, accommodationId, roomTypes]);
+  }, [accommodationId, roomTypes]);
 
   // 當日期或房型變化時，預先獲取價格和檢查可用性
   useEffect(() => {
