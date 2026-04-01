@@ -670,20 +670,13 @@ const BookingFlow = () => {
         const available = new Set<string>();
 
         if (data && data.length > 0) {
-          // 有庫存資料時，根據庫存判斷
-          const current = new Date(today);
-          current.setHours(0, 0, 0, 0);
-          while (current <= sixMonthsLater) {
-            const dateStr = current.toISOString().split('T')[0];
-            const isAvail = dateAvailabilityMap.get(dateStr);
-
-            if (isAvail === true) {
+          // 與首頁一致：只從庫存資料中取出可用日期，不主動把沒出現的日期標為不可用
+          for (const [dateStr, isAvail] of dateAvailabilityMap.entries()) {
+            if (isAvail) {
               available.add(dateStr);
             } else {
               unavailable.add(dateStr);
             }
-
-            current.setDate(current.getDate() + 1);
           }
         }
         // 無庫存資料時，available 和 unavailable 都為空集合，不禁用任何日期
