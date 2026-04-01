@@ -2962,7 +2962,7 @@ const BookingFlow = () => {
                                 if (date < today) return true;
                                 // 有庫存資料時才禁用無庫存日期；無庫存資料時不禁用（與首頁一致）
                                 if (unavailableDatesForRoom.size > 0 || availableDatesForCalendar.size > 0) {
-                                  const dateStr = date.toISOString().split('T')[0];
+                                   const dateStr = formatISO(date, { representation: 'date' });
                                   if (unavailableDatesForRoom.has(dateStr)) return true;
                                 }
                                 return false;
