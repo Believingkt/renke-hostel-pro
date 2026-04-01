@@ -32,7 +32,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { z } from "zod";
-import { format } from "date-fns";
+import { format, formatISO, addMonths, endOfMonth } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import {
@@ -592,11 +592,10 @@ const BookingFlow = () => {
       setIsLoadingRoomDates(true);
       try {
         const today = new Date();
-        const sixMonthsLater = new Date(today);
-        sixMonthsLater.setMonth(today.getMonth() + 6);
+        const sixMonthsLater = addMonths(today, 6);
 
-        const todayStr = today.toISOString().split('T')[0];
-        const endStr = sixMonthsLater.toISOString().split('T')[0];
+        const todayStr = formatISO(today, { representation: 'date' });
+        const endStr = formatISO(endOfMonth(sixMonthsLater), { representation: 'date' });
 
         // 取得房型資訊（含包區屬性）
         const roomTypeIds = roomTypes.map(r => r.id);
@@ -640,7 +639,7 @@ const BookingFlow = () => {
             const endDate = new Date(order.check_out_date + 'T00:00:00');
             const current = new Date(startDate);
             while (current < endDate) {
-              exclusiveBlockedDates.add(current.toISOString().split('T')[0]);
+              exclusiveBlockedDates.add(formatISO(current, { representation: 'date' }));
               current.setDate(current.getDate() + 1);
             }
           }
@@ -2963,7 +2962,7 @@ const BookingFlow = () => {
                                 if (date < today) return true;
                                 // 有庫存資料時才禁用無庫存日期；無庫存資料時不禁用（與首頁一致）
                                 if (unavailableDatesForRoom.size > 0 || availableDatesForCalendar.size > 0) {
-                                  const dateStr = date.toISOString().split('T')[0];
+                                   const dateStr = formatISO(date, { representation: 'date' });
                                   if (unavailableDatesForRoom.has(dateStr)) return true;
                                 }
                                 return false;
@@ -2973,14 +2972,14 @@ const BookingFlow = () => {
                                   const today = new Date();
                                   today.setHours(0, 0, 0, 0);
                                   if (date < today) return false;
-                                  const dateStr = date.toISOString().split('T')[0];
+                                  const dateStr = formatISO(date, { representation: 'date' });
                                   if (unavailableDatesForRoom.has(dateStr)) return false;
                                   return isWeekend(date);
                                 },
-                                available: (date) => {
-                                  const dateStr = date.toISOString().split('T')[0];
-                                  return availableDatesForCalendar.has(dateStr);
-                                },
+                                 available: (date) => {
+                                   const dateStr = formatISO(date, { representation: 'date' });
+                                   return availableDatesForCalendar.has(dateStr);
+                                 },
                               }}
                               modifiersClassNames={{
                                 holiday: "bg-primary/10 text-primary font-semibold rounded-md",
@@ -3075,10 +3074,10 @@ const BookingFlow = () => {
                                   if (checkInDate && date <= checkInDate) return false;
                                   return isWeekend(date);
                                 },
-                                available: (date) => {
-                                  const dateStr = date.toISOString().split('T')[0];
-                                  return availableDatesForCalendar.has(dateStr);
-                                },
+                                 available: (date) => {
+                                   const dateStr = formatISO(date, { representation: 'date' });
+                                   return availableDatesForCalendar.has(dateStr);
+                                 },
                               }}
                               modifiersClassNames={{
                                 holiday: "bg-primary/10 text-primary font-semibold rounded-md",
