@@ -83,6 +83,8 @@ interface SplitRecord {
     check_in_date: string;
     check_out_date: string;
     payment_status: string;
+    payment_method: string | null;
+    deposit_payment_method: string | null;
   };
 }
 
@@ -135,7 +137,7 @@ export default function Settlement() {
         .from("split_records")
         .select(`
           *,
-          orders!inner(order_number, guest_name, check_in_date, check_out_date, payment_status)
+          orders!inner(order_number, guest_name, check_in_date, check_out_date, payment_status, payment_method, deposit_payment_method)
         `)
         .eq("accommodation_id", currentAccommodationId)
         .gte("created_at", monthStart.toISOString())
@@ -152,7 +154,15 @@ export default function Settlement() {
 
       const { data, error } = await query;
       if (error) throw error;
-      setSplitRecords(data || []);
+      
+      // 只保留刷卡與 LINE Pay 付款的訂單
+      const onlinePaymentMethods = ['credit_card', 'credit_card_3ds', 'line_pay', 'LINE Pay'];
+      const filtered = (data || []).filter(r => {
+        const pm = r.orders?.payment_method;
+        const dpm = r.orders?.deposit_payment_method;
+        return onlinePaymentMethods.includes(pm || '') || onlinePaymentMethods.includes(dpm || '');
+      });
+      setSplitRecords(filtered);
     } catch (error) {
       console.error("Error loading data:", error);
       toast.error("載入資料失敗");
