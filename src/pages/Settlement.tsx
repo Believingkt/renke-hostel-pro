@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { getPaymentStatusConfig } from "@/utils/orderHelpers";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
