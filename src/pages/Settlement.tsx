@@ -665,7 +665,9 @@ export default function Settlement() {
                         {splitRecords.map(record => (
                           <TableRow key={record.id}>
                             <TableCell className="font-mono text-sm">
-                              {record.orders?.order_number}
+                              <Link to={`/admin/orders/${record.order_id}`} className="text-primary hover:underline">
+                                {record.orders?.order_number}
+                              </Link>
                             </TableCell>
                             <TableCell className="text-sm">
                               {record.orders?.check_in_date && format(new Date(record.orders.check_in_date), "yyyy/MM/dd")}
