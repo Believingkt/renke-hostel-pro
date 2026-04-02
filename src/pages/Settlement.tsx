@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { getPaymentStatusConfig } from "@/utils/orderHelpers";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
@@ -514,11 +515,14 @@ export default function Settlement() {
                               NT$ {record.accommodation_amount.toLocaleString()}
                             </TableCell>
                             <TableCell>
-                              {record.orders?.payment_status === "paid" ? (
-                                <Badge className="bg-primary">已付款</Badge>
-                              ) : (
-                                <Badge variant="outline">{record.orders?.payment_status}</Badge>
-                              )}
+                              {(() => {
+                                const config = getPaymentStatusConfig(record.orders?.payment_status || "unpaid");
+                                return (
+                                  <Badge className={`${config.className} border`}>
+                                    {config.label}
+                                  </Badge>
+                                );
+                              })()}
                             </TableCell>
                           </TableRow>
                         ))}
