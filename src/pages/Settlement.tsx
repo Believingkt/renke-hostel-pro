@@ -137,7 +137,7 @@ export default function Settlement() {
         .from("split_records")
         .select(`
           *,
-          orders!inner(order_number, guest_name, check_in_date, check_out_date, payment_status, payment_method)
+          orders!inner(order_number, guest_name, check_in_date, check_out_date, payment_status, payment_method, deposit_payment_method)
         `)
         .eq("accommodation_id", currentAccommodationId)
         .gte("created_at", monthStart.toISOString())
