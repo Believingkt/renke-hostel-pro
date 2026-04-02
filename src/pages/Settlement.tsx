@@ -83,6 +83,7 @@ interface SplitRecord {
     check_in_date: string;
     check_out_date: string;
     payment_status: string;
+    payment_method: string | null;
   };
 }
 
