@@ -238,7 +238,15 @@ const OrderDetailPage = () => {
     setIsEditing(true);
   };
 
-  // Auto-enter editing mode from URL param
+  // Auto-sync addon_total when individual addons change
+  useEffect(() => {
+    if (!isEditing) return;
+    const computed = editForm.pet_plan_price + editForm.meal_plan_total + editForm.custom_addon_details.reduce((sum, d) => sum + d.total, 0);
+    if (computed !== editForm.addon_total) {
+      setEditForm(f => ({ ...f, addon_total: computed }));
+    }
+  }, [isEditing, editForm.pet_plan_price, editForm.meal_plan_total, editForm.custom_addon_details]);
+
   useEffect(() => {
     if (searchParams.get("editing") === "true" && order && !isEditing) {
       startEditing();
