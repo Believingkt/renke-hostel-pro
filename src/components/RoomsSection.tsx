@@ -197,8 +197,8 @@ const RoomCard = ({ room, isFirstRoom = false, sharedTemplateLabels, sharedHolid
                     alt={`${room.name} - ${imgIndex + 1}`}
                     className="w-full h-full object-cover"
                     loading={isFirstRoom && imgIndex === 0 ? "eager" : "lazy"}
-                    width={800}
-                    height={600}
+                    width="800"
+                    height="600"
                     sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
                   />
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center">
