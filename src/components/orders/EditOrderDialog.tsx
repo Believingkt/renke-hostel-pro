@@ -866,6 +866,18 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
                   );
                 })}
               </div>
+              {(() => {
+                const addonSubtotal = editForm.selected_addons.reduce((sum, sa) => {
+                  const a = addonSettings.find(x => x.id === sa.addon_id);
+                  return sum + (a ? a.price_per_unit * sa.quantity : 0);
+                }, 0);
+                return addonSubtotal > 0 ? (
+                  <div className="flex justify-between items-center pt-1">
+                    <span className="text-sm font-medium text-muted-foreground">加購小計</span>
+                    <span className="font-medium">NT$ {addonSubtotal.toLocaleString()}</span>
+                  </div>
+                ) : null;
+              })()}
             </div>
           )}
 
