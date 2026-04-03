@@ -203,6 +203,7 @@ const OrderDetailPage = () => {
     meal_plan_details: [],
     meal_plan_total: 0,
     custom_addon_details: [],
+    addon_total: 0,
   });
 
   const startEditing = () => {
