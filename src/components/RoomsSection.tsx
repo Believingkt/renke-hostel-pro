@@ -196,7 +196,7 @@ const RoomCard = ({ room, isFirstRoom = false, sharedTemplateLabels, sharedHolid
                     src={image}
                     alt={`${room.name} - ${imgIndex + 1}`}
                     className="w-full h-full object-cover"
-                    loading={isFirstRoom && imgIndex === 0 ? "eager" : "lazy"}
+                    lazy={!(isFirstRoom && imgIndex === 0)}
                     width="800"
                     height="600"
                     sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
