@@ -178,6 +178,7 @@ const OrderDetailPage = () => {
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [roomTypes, setRoomTypes] = useState<RoomTypeOption[]>([]);
   const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
+  const [depositRatioRef] = useState<{ current: number }>({ current: 0 });
   const [editForm, setEditForm] = useState<EditFormState>({
     guest_name: "",
     guest_phone: "",
