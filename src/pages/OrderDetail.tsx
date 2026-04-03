@@ -1459,7 +1459,6 @@ const OrderDetailPage = () => {
                         <span className="text-xs md:text-sm text-muted-foreground">小計</span>
                         <span className="font-medium text-sm">NT$ {total.toLocaleString()}</span>
                       </div>
-                      <Separator />
                     </div>
                   );
                 });
