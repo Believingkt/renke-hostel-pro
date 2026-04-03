@@ -64,6 +64,12 @@ Deno.serve(async (req) => {
       return await handleGetRoomTypes(supabase, route[1]);
     }
 
+    // GET /accommodations/:id/day-type-rules
+    if (req.method === "GET" && route[0] === "accommodations" && route[1] && route[2] === "day-type-rules") {
+      const year = url.searchParams.get("year");
+      return await handleGetDayTypeRules(supabase, route[1], year ? parseInt(year) : null);
+    }
+
     // POST /availability
     if (req.method === "POST" && route[0] === "availability") {
       const body = await req.json();
