@@ -326,7 +326,7 @@ const OrderDetailPage = () => {
         .eq("id", order.id);
       if (error) throw error;
       toast({ title: "訂單已取消", description: `訂單 ${order.order_number} 已成功取消` });
-      fetchOrder();
+      navigate(backTo);
     } catch (error) {
       console.error("取消訂單失敗:", error);
       toast({ title: "取消失敗", description: "無法取消訂單，請稍後再試", variant: "destructive" });
