@@ -172,18 +172,6 @@ const OrderDetailPage = () => {
 
   // Edit mode
   const [isEditing, setIsEditing] = useState(false);
-
-  // Auto-enter editing mode from URL param
-  useEffect(() => {
-    if (searchParams.get("editing") === "true" && order && !isEditing) {
-      startEditing();
-      // Remove the editing param from URL
-      const next = new URLSearchParams(searchParams);
-      next.delete("editing");
-      setSearchParams(next, { replace: true });
-    }
-  }, [searchParams, order]);
-
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [roomTypes, setRoomTypes] = useState<RoomTypeOption[]>([]);
   const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
@@ -240,6 +228,17 @@ const OrderDetailPage = () => {
     });
     setIsEditing(true);
   };
+
+  // Auto-enter editing mode from URL param
+  useEffect(() => {
+    if (searchParams.get("editing") === "true" && order && !isEditing) {
+      startEditing();
+      // Remove the editing param from URL
+      const next = new URLSearchParams(searchParams);
+      next.delete("editing");
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, order]);
 
   const cancelEditing = () => {
     setIsEditing(false);
