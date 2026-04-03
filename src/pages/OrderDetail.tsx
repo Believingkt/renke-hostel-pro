@@ -212,7 +212,7 @@ const OrderDetailPage = () => {
       guest_email: order.guest_email || "",
       guest_address: order.guest_address || "",
       guest_gender: order.guest_gender || "",
-      guest_nationality: order.guest_nationality || "",
+      guest_count: order.guest_count || 1,
       order_source: order.order_source || "website",
       order_status: order.order_status || "pending",
       payment_status: order.payment_status || "unpaid",
