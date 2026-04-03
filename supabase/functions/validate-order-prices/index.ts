@@ -39,6 +39,7 @@ interface ValidationResult {
     finalPrice: number;
     mealPlanTotal: number;
     petPlanPrice: number;
+    customAddonTotal: number;
   };
 }
 
