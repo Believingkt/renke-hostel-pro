@@ -71,6 +71,7 @@ const SOURCE_LABELS: Record<string, string> = {
   trip: "Trip",
    travel_agency: "旅行社",
    kol: "KOL互惠",
+   points_starchain: "星鏈會員",
 };
 
 const getSourceLabel = (source: string, paymentMethod?: string) => {

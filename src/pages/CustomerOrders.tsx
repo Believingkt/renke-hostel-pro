@@ -181,6 +181,7 @@ const CustomerOrders = () => {
       trip: { label: "Trip", variant: "outline" },
        travel_agency: { label: "旅行社", variant: "outline" },
        kol: { label: "KOL互惠", variant: "outline" },
+       points_starchain: { label: "星鏈會員", variant: "outline" },
     };
     const config = sourceConfig[source] || { label: source || "官網訂房", variant: "default" };
     return <Badge variant={config.variant}>{config.label}</Badge>;
