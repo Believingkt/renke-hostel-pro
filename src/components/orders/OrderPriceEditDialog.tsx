@@ -216,11 +216,8 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
               id="list-edit-total-price"
               type="number"
               min={0}
-              value={editTotalPrice}
-              onChange={(e) => {
-                const val = e.target.value;
-                setEditTotalPrice(val === '' ? 0 : Math.max(0, parseInt(val) || 0));
-              }}
+              value={editTotalPriceStr}
+              onChange={(e) => setEditTotalPriceStr(e.target.value)}
             />
           </div>
           <div className="space-y-2">
