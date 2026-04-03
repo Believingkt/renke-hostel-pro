@@ -1284,7 +1284,7 @@ const OrderDetailPage = () => {
                     <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">待付金額</span>
                     <span className="font-medium text-sm md:text-base text-destructive">
                       NT$ {isEditing
-                        ? ((editForm.total_price - editForm.discount_amount) - editForm.paid_amount).toLocaleString()
+                        ? ((editForm.total_price + editForm.addon_total - editForm.discount_amount) - editForm.paid_amount).toLocaleString()
                         : (effectiveFinalPrice - order.paid_amount).toLocaleString()
                       }
                     </span>
