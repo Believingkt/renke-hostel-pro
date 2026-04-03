@@ -1154,40 +1154,53 @@ const OrderDetailPage = () => {
               return null;
             })()}
             <Separator />
-            <div className="flex justify-between items-center gap-2">
-              <span className="text-xs md:text-sm font-semibold">實收金額</span>
-              <span className={`font-bold text-base md:text-lg ${isEditing && (editForm.total_price - editForm.discount_amount) < 0 ? 'text-destructive' : ''}`}>
-                NT$ {isEditing ? (editForm.total_price - editForm.discount_amount).toLocaleString() : order.final_price.toLocaleString()}
-              </span>
-            </div>
-            <Separator />
-            <div className="flex justify-between items-center gap-2">
-              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">訂金金額</span>
-              {isEditing ? (
-                <Input className="w-[140px] h-8 text-sm text-right" type="number" min={0} value={editForm.deposit_amount} onChange={(e) => setEditForm(f => ({ ...f, deposit_amount: Math.max(0, parseInt(e.target.value) || 0) }))} />
-              ) : (
-                <span className="font-medium text-sm md:text-base">NT$ {order.deposit_amount.toLocaleString()}</span>
-              )}
-            </div>
-            <Separator />
-            <div className="flex justify-between items-center gap-2">
-              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">已付金額</span>
-              {isEditing ? (
-                <Input className="w-[140px] h-8 text-sm text-right" type="number" min={0} value={editForm.paid_amount} onChange={(e) => setEditForm(f => ({ ...f, paid_amount: Math.max(0, parseInt(e.target.value) || 0) }))} />
-              ) : (
-                <span className="font-medium text-sm md:text-base text-primary">NT$ {order.paid_amount.toLocaleString()}</span>
-              )}
-            </div>
-            <Separator />
-            <div className="flex justify-between items-center gap-2">
-              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">待付金額</span>
-              <span className="font-medium text-sm md:text-base text-destructive">
-                NT$ {isEditing
-                  ? ((editForm.total_price - editForm.discount_amount) - editForm.paid_amount).toLocaleString()
-                  : (order.final_price - order.paid_amount).toLocaleString()
-                }
-              </span>
-            </div>
+            {/* 實收金額 = total_price - discount + addon（若 addon 未含在 total_price 內） */}
+            {(() => {
+              const customAddons = (order.custom_addon_details as CustomAddonDetail[]) || [];
+              const addonTotal = order.pet_plan_price + order.meal_plan_total + customAddons.reduce((sum, d) => sum + d.total, 0);
+              // 判斷 total_price 是否已包含加購：若 final_price ≈ total_price - discount（未含加購），則需額外加上
+              const storedFinalWithoutAddon = order.total_price - order.discount_amount;
+              const addonAlreadyIncluded = addonTotal > 0 && Math.abs(order.final_price - (storedFinalWithoutAddon + addonTotal)) < 10;
+              const effectiveFinalPrice = addonAlreadyIncluded ? order.final_price : order.final_price + addonTotal;
+              return (
+                <>
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="text-xs md:text-sm font-semibold">實收金額</span>
+                    <span className={`font-bold text-base md:text-lg ${isEditing && (editForm.total_price - editForm.discount_amount) < 0 ? 'text-destructive' : ''}`}>
+                      NT$ {isEditing ? (editForm.total_price - editForm.discount_amount).toLocaleString() : effectiveFinalPrice.toLocaleString()}
+                    </span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">訂金金額</span>
+                    {isEditing ? (
+                      <Input className="w-[140px] h-8 text-sm text-right" type="number" min={0} value={editForm.deposit_amount} onChange={(e) => setEditForm(f => ({ ...f, deposit_amount: Math.max(0, parseInt(e.target.value) || 0) }))} />
+                    ) : (
+                      <span className="font-medium text-sm md:text-base">NT$ {order.deposit_amount.toLocaleString()}</span>
+                    )}
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">已付金額</span>
+                    {isEditing ? (
+                      <Input className="w-[140px] h-8 text-sm text-right" type="number" min={0} value={editForm.paid_amount} onChange={(e) => setEditForm(f => ({ ...f, paid_amount: Math.max(0, parseInt(e.target.value) || 0) }))} />
+                    ) : (
+                      <span className="font-medium text-sm md:text-base text-primary">NT$ {order.paid_amount.toLocaleString()}</span>
+                    )}
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">待付金額</span>
+                    <span className="font-medium text-sm md:text-base text-destructive">
+                      NT$ {isEditing
+                        ? ((editForm.total_price - editForm.discount_amount) - editForm.paid_amount).toLocaleString()
+                        : (effectiveFinalPrice - order.paid_amount).toLocaleString()
+                      }
+                    </span>
+                  </div>
+                </>
+              );
+            })()}
           </CardContent>
         </Card>
       </div>
