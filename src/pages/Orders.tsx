@@ -71,7 +71,7 @@ const Orders = () => {
   // 編輯對話框狀態
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
-  const suppressReopenRef = useRef<{ orderId: string | null; until: number }>({ orderId: null, until: 0 });
+  const suppressReopenRef = useRef(0);
   
   // 新增對話框狀態
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -136,6 +136,10 @@ const Orders = () => {
   useEffect(() => {
     const editOrderId = searchParams.get("edit");
     if (editOrderId && orders.length > 0 && !loading) {
+      if (Date.now() < suppressReopenRef.current) {
+        return;
+      }
+
       const orderToEdit = orders.find(order => order.id === editOrderId);
       if (orderToEdit) {
         setEditingOrder(orderToEdit);
@@ -148,11 +152,15 @@ const Orders = () => {
   const handleEditDialogClose = (open: boolean) => {
     setEditDialogOpen(open);
     if (!open) {
-      suppressReopenRef.current = {
-        orderId: editingOrder?.id ?? null,
-        until: Date.now() + 2000,
-      };
+      suppressReopenRef.current = Date.now() + 2000;
       setEditingOrder(null);
+
+      if (!isFromRoomInventory && searchParams.get("edit")) {
+        const nextSearchParams = new URLSearchParams(searchParams);
+        nextSearchParams.delete("edit");
+        setSearchParams(nextSearchParams, { replace: true });
+      }
+
       if (isFromRoomInventory) {
         // 通知預訂管理頁面重新載入
         localStorage.setItem('room-inventory-refresh', Date.now().toString());
@@ -464,10 +472,7 @@ const Orders = () => {
   };
 
   const handleEditOrder = (order: Order) => {
-    if (
-      suppressReopenRef.current.orderId === order.id &&
-      Date.now() < suppressReopenRef.current.until
-    ) {
+    if (Date.now() < suppressReopenRef.current) {
       return;
     }
 
