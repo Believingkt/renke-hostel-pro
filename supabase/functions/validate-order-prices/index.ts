@@ -6,6 +6,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface CustomAddonInput {
+  addon_type: string;
+  count: number;
+  price_per_unit: number;
+  total: number;
+}
+
 interface OrderValidationRequest {
   accommodationId: string;
   roomTypeId: string;
@@ -20,6 +27,7 @@ interface OrderValidationRequest {
   mealPlanTotal?: number;
   petCount?: number;
   petPlanPrice?: number;
+  customAddonDetails?: CustomAddonInput[] | null;
 }
 
 interface ValidationResult {
@@ -31,6 +39,7 @@ interface ValidationResult {
     finalPrice: number;
     mealPlanTotal: number;
     petPlanPrice: number;
+    customAddonTotal: number;
   };
 }
 
@@ -61,6 +70,7 @@ serve(async (req) => {
       mealPlanTotal = 0,
       petCount = 0,
       petPlanPrice = 0,
+      customAddonDetails = null,
     } = body;
 
     const errors: string[] = [];
@@ -211,8 +221,18 @@ serve(async (req) => {
       }
     }
 
+    // Calculate custom addon total
+    let calculatedCustomAddonTotal = 0;
+    if (customAddonDetails && Array.isArray(customAddonDetails)) {
+      for (const addon of customAddonDetails) {
+        if (typeof addon.count === 'number' && typeof addon.price_per_unit === 'number') {
+          calculatedCustomAddonTotal += addon.count * addon.price_per_unit * nights;
+        }
+      }
+    }
+
     // Calculate server-side total price
-    const calculatedTotalPrice = calculatedRoomTotal + calculatedPetPrice + calculatedMealPlanTotal;
+    const calculatedTotalPrice = calculatedRoomTotal + calculatedPetPrice + calculatedMealPlanTotal + calculatedCustomAddonTotal;
 
     // Validate discount code if provided
     let calculatedDiscount = 0;
@@ -271,13 +291,14 @@ serve(async (req) => {
       accommodationId,
       roomTypeId,
       nights,
-      clientPrices: { totalPrice, discountAmount, finalPrice, mealPlanTotal, petPlanPrice },
+      clientPrices: { totalPrice, discountAmount, finalPrice, mealPlanTotal, petPlanPrice, customAddonTotal: customAddonDetails?.reduce((s, a) => s + a.total, 0) || 0 },
       serverPrices: { 
         totalPrice: calculatedTotalPrice, 
         discountAmount: calculatedDiscount, 
         finalPrice: calculatedFinalPrice,
         mealPlanTotal: calculatedMealPlanTotal,
-        petPlanPrice: calculatedPetPrice
+        petPlanPrice: calculatedPetPrice,
+        customAddonTotal: calculatedCustomAddonTotal
       },
       isValid: errors.length === 0,
       errors
@@ -291,7 +312,8 @@ serve(async (req) => {
         discountAmount: calculatedDiscount,
         finalPrice: calculatedFinalPrice,
         mealPlanTotal: calculatedMealPlanTotal,
-        petPlanPrice: calculatedPetPrice
+        petPlanPrice: calculatedPetPrice,
+        customAddonTotal: calculatedCustomAddonTotal
       }
     };
 
