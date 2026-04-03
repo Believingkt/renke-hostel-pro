@@ -182,6 +182,8 @@ const OrderDetailPage = () => {
     guest_phone: "",
     guest_email: "",
     guest_address: "",
+    guest_gender: "",
+    guest_nationality: "",
     guest_count: 1,
     order_source: "",
     order_status: "",
