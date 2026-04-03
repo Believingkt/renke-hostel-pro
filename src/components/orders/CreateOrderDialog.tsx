@@ -550,7 +550,19 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         final_price: totals.final,
         discount_code: appliedDiscount?.code || null,
         meal_plan: form.meal_plan || null,
-        meal_plan_details: selectedAddons.length > 0 ? selectedAddons : null,
+        meal_plan_details: null,
+        custom_addon_details: selectedAddons.length > 0
+          ? selectedAddons.map(a => {
+              const addon = addonSettings.find(ad => ad.id === a.addon_id);
+              return {
+                addon_type: addon?.addon_type || '',
+                count: a.quantity,
+                price_per_unit: addon?.price_per_unit || 0,
+                total: (addon?.price_per_unit || 0) * a.quantity,
+                unit_label: addon?.unit_label || '',
+              };
+            })
+          : null,
         confirmed_at: form.order_status === "confirmed" ? new Date().toISOString() : null,
         order_source: form.order_source || "manual",
       }).select('id').single();
