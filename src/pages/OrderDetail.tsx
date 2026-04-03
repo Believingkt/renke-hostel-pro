@@ -1545,8 +1545,10 @@ const OrderDetailPage = () => {
                       </>
                     )}
 
-                    {customAddons.map(addon => (
+                    {customAddons.map((addon, idx) => (
                       <React.Fragment key={addon.addon_type}>
+                        {idx > 0 && <Separator />}
+                        {idx === 0 && (order.pet_count > 0 || order.meal_plan_total > 0) && <Separator />}
                         <div className="space-y-2">
                           <div className="flex justify-between items-center gap-2">
                             <span className="text-xs md:text-sm font-medium">📦 {addon.addon_type}</span>
@@ -1557,10 +1559,10 @@ const OrderDetailPage = () => {
                             <span className="font-medium text-sm md:text-base">NT$ {addon.total.toLocaleString()}</span>
                           </div>
                         </div>
-                        <Separator />
                       </React.Fragment>
                     ))}
 
+                    <Separator />
                     <div className="flex justify-between items-center gap-2 pt-2">
                       <span className="text-xs md:text-sm font-semibold">加購總計</span>
                       <span className="font-bold text-base md:text-lg text-primary">
