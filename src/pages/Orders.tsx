@@ -146,11 +146,14 @@ const Orders = () => {
   // 處理編輯對話框關閉（從預訂管理頁面開啟時）
   const handleEditDialogClose = (open: boolean) => {
     setEditDialogOpen(open);
-    if (!open && isFromRoomInventory) {
-      // 通知預訂管理頁面重新載入
-      localStorage.setItem('room-inventory-refresh', Date.now().toString());
-      // 關閉視窗
-      window.close();
+    if (!open) {
+      setEditingOrder(null);
+      if (isFromRoomInventory) {
+        // 通知預訂管理頁面重新載入
+        localStorage.setItem('room-inventory-refresh', Date.now().toString());
+        // 關閉視窗
+        window.close();
+      }
     }
   };
 
