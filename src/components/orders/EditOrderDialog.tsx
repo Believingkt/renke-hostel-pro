@@ -164,6 +164,38 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
     fetchData();
   }, [currentAccommodationId]);
 
+  // Filter templates by room_type_id
+  useEffect(() => {
+    if (!editForm.room_type_id) {
+      setFilteredTemplates([]);
+      setSelectedTemplateId("");
+      return;
+    }
+
+    if (pricingTemplates.length === 0) {
+      setFilteredTemplates([]);
+      setSelectedTemplateId("");
+      return;
+    }
+
+    const filtered = pricingTemplates.filter(t => t.room_type_id === editForm.room_type_id);
+    const result = filtered.length > 0
+      ? filtered
+      : pricingTemplates.filter(t => !t.room_type_id);
+    const finalList = result.length > 0 ? result : pricingTemplates;
+
+    setFilteredTemplates(finalList);
+    
+    // Try to match current meal_plan to a template
+    const currentMatch = finalList.find(t => t.template_name === editForm.meal_plan);
+    if (currentMatch) {
+      setSelectedTemplateId(currentMatch.id);
+    } else {
+      setSelectedTemplateId(finalList[0]?.id || "");
+      setEditForm(prev => ({ ...prev, meal_plan: finalList[0]?.template_name || "" }));
+    }
+  }, [editForm.room_type_id, pricingTemplates]);
+
   // 當 order 變化時更新表單
   useEffect(() => {
     if (!order) return;
