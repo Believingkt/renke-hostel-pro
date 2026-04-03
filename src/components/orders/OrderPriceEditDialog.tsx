@@ -42,8 +42,10 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
   const [editDiscountAmountStr, setEditDiscountAmountStr] = useState("0");
   const editTotalPrice = Math.max(0, parseInt(editTotalPriceStr) || 0);
   const editDiscountAmount = Math.max(0, parseInt(editDiscountAmountStr) || 0);
-  const [editDepositAmount, setEditDepositAmount] = useState(0);
-  const [editPaidAmount, setEditPaidAmount] = useState(0);
+  const [editDepositAmountStr, setEditDepositAmountStr] = useState("0");
+  const [editPaidAmountStr, setEditPaidAmountStr] = useState("0");
+  const editDepositAmount = Math.max(0, parseInt(editDepositAmountStr) || 0);
+  const editPaidAmount = Math.max(0, parseInt(editPaidAmountStr) || 0);
   const [editReason, setEditReason] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
@@ -76,8 +78,8 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
     if (open && order) {
       setEditTotalPriceStr(String(order.total_price));
       setEditDiscountAmountStr(String(order.discount_amount));
-      setEditDepositAmount(order.deposit_amount ?? 0);
-      setEditPaidAmount(order.paid_amount);
+      setEditDepositAmountStr(String(order.deposit_amount ?? 0));
+      setEditPaidAmountStr(String(order.paid_amount ?? 0));
       setEditReason("");
 
       // Fetch existing addon data from the order
@@ -312,20 +314,20 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
             <Label htmlFor="list-edit-deposit">訂金金額</Label>
             <Input
               id="list-edit-deposit"
-              type="number"
-              min={0}
-              value={editDepositAmount}
-              onChange={(e) => setEditDepositAmount(Math.max(0, parseInt(e.target.value) || 0))}
+              type="text"
+              inputMode="numeric"
+              value={editDepositAmountStr}
+              onChange={(e) => setEditDepositAmountStr(e.target.value.replace(/[^0-9]/g, ''))}
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="list-edit-paid">已付金額</Label>
             <Input
               id="list-edit-paid"
-              type="number"
-              min={0}
-              value={editPaidAmount}
-              onChange={(e) => setEditPaidAmount(Math.max(0, parseInt(e.target.value) || 0))}
+              type="text"
+              inputMode="numeric"
+              value={editPaidAmountStr}
+              onChange={(e) => setEditPaidAmountStr(e.target.value.replace(/[^0-9]/g, ''))}
             />
           </div>
           <Separator />
