@@ -1182,7 +1182,13 @@ const OrderDetailPage = () => {
                 </>
               );
             })()}
-            <Separator />
+            {/* 加購區塊存在時不重複分隔線 */}
+            {!isEditing && (() => {
+              const customAddons = (order.custom_addon_details as CustomAddonDetail[]) || [];
+              const addonTotal = order.pet_plan_price + order.meal_plan_total + customAddons.reduce((sum, d) => sum + d.total, 0);
+              return addonTotal <= 0 ? <Separator /> : null;
+            })()}
+            {isEditing && <Separator />}
             {/* 實收金額 = total_price - discount + addon（若 addon 未含在 total_price 內） */}
             {(() => {
               const customAddons = (order.custom_addon_details as CustomAddonDetail[]) || [];
