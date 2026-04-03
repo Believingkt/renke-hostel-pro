@@ -1520,6 +1520,7 @@ const OrderDetailPage = () => {
 
                     {order.meal_plan_total > 0 && order.meal_plan_details && order.meal_plan_details.length > 0 && (
                       <>
+                        {order.pet_count > 0 && <Separator />}
                         <div className="space-y-2">
                           <div className="flex justify-between items-center gap-2">
                             <span className="text-xs md:text-sm font-medium">🍖 烤肉餐食方案</span>
@@ -1540,14 +1541,12 @@ const OrderDetailPage = () => {
                             </div>
                           </div>
                         </div>
-                        <Separator />
                       </>
                     )}
 
                     {customAddons.map((addon, idx) => (
                       <React.Fragment key={addon.addon_type}>
-                        {idx > 0 && <Separator />}
-                        {idx === 0 && (order.pet_count > 0 || order.meal_plan_total > 0) && <Separator />}
+                        {(idx > 0 || order.pet_count > 0 || order.meal_plan_total > 0) && <Separator />}
                         <div className="space-y-2">
                           <div className="flex justify-between items-center gap-2">
                             <span className="text-xs md:text-sm font-medium">📦 {addon.addon_type}</span>
