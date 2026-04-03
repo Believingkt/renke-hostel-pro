@@ -221,8 +221,18 @@ serve(async (req) => {
       }
     }
 
+    // Calculate custom addon total
+    let calculatedCustomAddonTotal = 0;
+    if (customAddonDetails && Array.isArray(customAddonDetails)) {
+      for (const addon of customAddonDetails) {
+        if (typeof addon.count === 'number' && typeof addon.price_per_unit === 'number') {
+          calculatedCustomAddonTotal += addon.count * addon.price_per_unit * nights;
+        }
+      }
+    }
+
     // Calculate server-side total price
-    const calculatedTotalPrice = calculatedRoomTotal + calculatedPetPrice + calculatedMealPlanTotal;
+    const calculatedTotalPrice = calculatedRoomTotal + calculatedPetPrice + calculatedMealPlanTotal + calculatedCustomAddonTotal;
 
     // Validate discount code if provided
     let calculatedDiscount = 0;
