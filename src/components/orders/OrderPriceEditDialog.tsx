@@ -16,6 +16,14 @@ interface OrderPriceEditDialogProps {
   onSuccess: () => void;
 }
 
+interface AddonDetail {
+  addon_type: string;
+  count: number;
+  price_per_unit: number;
+  total: number;
+  unit_label: string;
+}
+
 export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: OrderPriceEditDialogProps) {
   const { toast } = useToast();
   const [editTotalPrice, setEditTotalPrice] = useState(0);
@@ -25,7 +33,14 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
   const [editReason, setEditReason] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  const editFinalPrice = editTotalPrice - editDiscountAmount;
+  // Addon data
+  const [petPlanPrice, setPetPlanPrice] = useState(0);
+  const [mealPlanTotal, setMealPlanTotal] = useState(0);
+  const [customAddons, setCustomAddons] = useState<AddonDetail[]>([]);
+
+  const customAddonTotal = customAddons.reduce((sum, a) => sum + a.total, 0);
+  const addonTotal = petPlanPrice + mealPlanTotal + customAddonTotal;
+  const editFinalPrice = editTotalPrice - editDiscountAmount + addonTotal;
 
   useEffect(() => {
     if (open && order) {
@@ -34,12 +49,37 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
       setEditDepositAmount(order.deposit_amount ?? 0);
       setEditPaidAmount(order.paid_amount);
       setEditReason("");
+
+      // Fetch addon data from the order
+      supabase
+        .from("orders")
+        .select("pet_plan_price, meal_plan_total, custom_addon_details")
+        .eq("id", order.id)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            setPetPlanPrice(data.pet_plan_price ?? 0);
+            setMealPlanTotal(data.meal_plan_total ?? 0);
+            const rawAddons = data.custom_addon_details;
+            if (Array.isArray(rawAddons)) {
+              setCustomAddons(
+                rawAddons
+                  .filter((a: any) => a && typeof a.total === "number" && a.total > 0)
+                  .map((a: any) => ({
+                    addon_type: a.addon_type ?? "",
+                    count: a.count ?? 0,
+                    price_per_unit: a.price_per_unit ?? 0,
+                    total: a.total ?? 0,
+                    unit_label: a.unit_label ?? "",
+                  }))
+              );
+            } else {
+              setCustomAddons([]);
+            }
+          }
+        });
     }
   }, [open, order]);
-
-  const handleOpen = (isOpen: boolean) => {
-    onOpenChange(isOpen);
-  };
 
   const handleSave = async () => {
     if (!order) return;
@@ -121,7 +161,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpen}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>修改訂單金額</DialogTitle>
@@ -129,7 +169,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <Label htmlFor="list-edit-total-price">原始金額</Label>
+            <Label htmlFor="list-edit-total-price">房費金額</Label>
             <Input
               id="list-edit-total-price"
               type="number"
@@ -148,6 +188,39 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
               onChange={(e) => setEditDiscountAmount(Math.max(0, parseInt(e.target.value) || 0))}
             />
           </div>
+
+          {/* Addon summary */}
+          {addonTotal > 0 && (
+            <>
+              <Separator />
+              <div className="space-y-1.5">
+                <span className="text-sm font-medium text-muted-foreground">加購方案明細</span>
+                {petPlanPrice > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span>🐾 寵物方案</span>
+                    <span>NT$ {petPlanPrice.toLocaleString()}</span>
+                  </div>
+                )}
+                {mealPlanTotal > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span>🍽️ 餐食方案</span>
+                    <span>NT$ {mealPlanTotal.toLocaleString()}</span>
+                  </div>
+                )}
+                {customAddons.map((addon, idx) => (
+                  <div key={idx} className="flex justify-between text-sm">
+                    <span>📦 {addon.addon_type} × {addon.count} {addon.unit_label}</span>
+                    <span>NT$ {addon.total.toLocaleString()}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between text-sm font-medium pt-1">
+                  <span>加購小計</span>
+                  <span>NT$ {addonTotal.toLocaleString()}</span>
+                </div>
+              </div>
+            </>
+          )}
+
           <Separator />
           <div className="flex justify-between items-center">
             <span className="text-sm font-semibold">實收金額</span>
@@ -155,6 +228,9 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
               NT$ {editFinalPrice.toLocaleString()}
             </span>
           </div>
+          {addonTotal > 0 && (
+            <p className="text-xs text-muted-foreground">= 房費 {editTotalPrice.toLocaleString()} - 折扣 {editDiscountAmount.toLocaleString()} + 加購 {addonTotal.toLocaleString()}</p>
+          )}
           <Separator />
           <div className="space-y-2">
             <Label htmlFor="list-edit-deposit">訂金金額</Label>
