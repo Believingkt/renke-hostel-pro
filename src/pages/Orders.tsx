@@ -13,7 +13,6 @@ import { Order, QuickFilterType, CustomMealPlan } from "@/types/order";
 import { QuickFilters } from "@/components/orders/QuickFilters";
 import { OrderFilters } from "@/components/orders/OrderFilters";
 import { OrdersTable } from "@/components/orders/OrdersTable";
-import { EditOrderDialog } from "@/components/orders/EditOrderDialog";
 import { OrderPriceEditDialog } from "@/components/orders/OrderPriceEditDialog";
 import { PaymentStatusDialog } from "@/components/orders/PaymentStatusDialog";
 import { OrderStatusDialog } from "@/components/orders/OrderStatusDialog";
@@ -67,11 +66,6 @@ const Orders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
-  
-  // 編輯對話框狀態
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
-  const suppressReopenRef = useRef(0);
   
   // 新增對話框狀態
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -128,49 +122,6 @@ const Orders = () => {
       setActiveTab(tab);
     }
   }, [searchParams]);
-
-  // 檢查是否從預訂管理頁面開啟
-  const isFromRoomInventory = searchParams.get("edit") !== null;
-
-  // 處理 URL 中的 edit 參數，自動開啟編輯對話框
-  useEffect(() => {
-    const editOrderId = searchParams.get("edit");
-    if (editOrderId && orders.length > 0 && !loading) {
-      if (Date.now() < suppressReopenRef.current) {
-        return;
-      }
-
-      const orderToEdit = orders.find(order => order.id === editOrderId);
-      if (orderToEdit) {
-        setEditingOrder(orderToEdit);
-        setEditDialogOpen(true);
-      }
-    }
-  }, [searchParams, orders, loading]);
-
-  // 處理編輯對話框關閉（從預訂管理頁面開啟時）
-  const handleEditDialogClose = (open: boolean) => {
-    if (open) {
-      return;
-    }
-
-    setEditDialogOpen(false);
-    suppressReopenRef.current = Date.now() + 2000;
-    setEditingOrder(null);
-
-    if (!isFromRoomInventory && searchParams.get("edit")) {
-      const nextSearchParams = new URLSearchParams(searchParams);
-      nextSearchParams.delete("edit");
-      setSearchParams(nextSearchParams, { replace: true });
-    }
-
-    if (isFromRoomInventory) {
-      // 通知預訂管理頁面重新載入
-      localStorage.setItem('room-inventory-refresh', Date.now().toString());
-      // 關閉視窗
-      window.close();
-    }
-  };
 
   // 載入訂單資料
   const fetchOrders = async () => {
@@ -473,15 +424,6 @@ const Orders = () => {
     }
   };
 
-  const handleEditOrder = (order: Order) => {
-    if (Date.now() < suppressReopenRef.current) {
-      return;
-    }
-
-    setEditingOrder(order);
-    setEditDialogOpen(true);
-  };
-
   const handleEditPrice = (order: Order) => {
     setPriceEditingOrder(order);
     setPriceEditDialogOpen(true);
@@ -500,188 +442,6 @@ const Orders = () => {
   const handleChangeOrderSource = (order: Order) => {
     setOrderSourceOrder(order);
     setOrderSourceDialogOpen(true);
-  };
-
-  const handleSaveEdit = async (form: { 
-    order_status: string; 
-    payment_status: string;
-    deposit_payment_method: string;
-    balance_payment_method: string;
-    deposit_amount: number;
-    notes: string;
-    check_in_date: string;
-    check_out_date: string;
-    room_type_id: string;
-    guest_count: number;
-    total_price: number;
-    discount_amount: number;
-    final_price: number;
-    discount_code: string | null;
-    meal_plan: string | null;
-    meal_plan_details: { addon_id: string; quantity: number }[] | null;
-    custom_addon_details?: any[] | null;
-    guest_name: string;
-    guest_phone: string;
-    guest_email: string;
-  }) => {
-    if (!editingOrder) return;
-
-    try {
-      // 準備更新資料
-      const updateData: any = {
-        order_status: form.order_status,
-        payment_status: form.payment_status,
-        deposit_payment_method: form.deposit_payment_method || null,
-        balance_payment_method: form.balance_payment_method || null,
-        deposit_amount: form.deposit_amount || 0,
-        paid_amount: form.payment_status === "deposit_paid" ? form.deposit_amount : (form.payment_status === "paid" ? form.final_price : 0),
-        notes: form.notes || null,
-        check_in_date: form.check_in_date,
-        check_out_date: form.check_out_date,
-        room_type_id: form.room_type_id,
-        guest_count: form.guest_count,
-        total_price: form.total_price,
-        discount_amount: form.discount_amount,
-        discount_code: form.discount_code,
-        final_price: form.final_price,
-        meal_plan: form.meal_plan,
-        meal_plan_details: form.meal_plan_details,
-        custom_addon_details: form.custom_addon_details || null,
-        guest_name: form.guest_name.trim(),
-        guest_phone: form.guest_phone.trim(),
-        guest_email: form.guest_email.trim() || null,
-        updated_at: new Date().toISOString(),
-      };
-
-      // 如果訂單狀態改變，自動記錄時間戳
-      const now = new Date().toISOString();
-      const statusChanged = editingOrder.order_status !== form.order_status;
-      
-      if (statusChanged) {
-        switch (form.order_status) {
-          case "confirmed":
-            updateData.confirmed_at = now;
-            break;
-          case "checked_in":
-            updateData.checked_in_at = now;
-            break;
-          case "checked_out":
-            updateData.checked_out_at = now;
-            break;
-          case "cancelled":
-            updateData.cancelled_at = now;
-            break;
-        }
-      }
-
-      const { error } = await supabase
-        .from("orders")
-        .update(updateData)
-        .eq("id", editingOrder.id);
-
-      if (error) throw error;
-
-      // Update or create customer record
-      const guestName = form.guest_name.trim();
-      const guestPhone = form.guest_phone.trim();
-      const guestEmail = form.guest_email.trim() || null;
-
-      if (accommodationId && guestPhone) {
-        // Check if customer already exists by phone number
-        const { data: existingCustomer } = await supabase
-          .from("customers")
-          .select("id, visit_count")
-          .eq("accommodation_id", accommodationId)
-          .eq("phone", guestPhone)
-          .maybeSingle();
-
-        if (existingCustomer) {
-          // Update existing customer and link to order if not already linked
-          if (!editingOrder.customer_id) {
-            await supabase
-              .from("orders")
-              .update({ customer_id: existingCustomer.id })
-              .eq("id", editingOrder.id);
-          }
-          // Update customer info
-          await supabase
-            .from("customers")
-            .update({
-              name: guestName,
-              email: guestEmail,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", existingCustomer.id);
-        } else if (!editingOrder.customer_id) {
-          // Create new customer if order doesn't have one
-          const { data: newCustomer } = await supabase
-            .from("customers")
-            .insert({
-              accommodation_id: accommodationId,
-              name: guestName,
-              phone: guestPhone,
-              email: guestEmail,
-              visit_count: 1,
-              first_order_date: form.check_in_date,
-            })
-            .select("id")
-            .single();
-
-          // Link customer to order
-          if (newCustomer?.id) {
-            await supabase
-              .from("orders")
-              .update({ customer_id: newCustomer.id })
-              .eq("id", editingOrder.id);
-          }
-        }
-      }
-
-      // 重新載入訂單
-      await fetchOrders();
-
-      // 記錄操作日誌
-      const isCancelled = form.order_status === "cancelled" && editingOrder.order_status !== "cancelled";
-      await logAction({
-        actionType: isCancelled ? "delete" : "update",
-        actionCategory: "order",
-        entityType: "order",
-        entityId: editingOrder.id,
-        entityName: editingOrder.order_number,
-        accommodationId: accommodationId,
-        details: isCancelled ? {
-          reason: "訂單已取消",
-          guest_name: editingOrder.guest_name,
-          check_in_date: form.check_in_date,
-          check_out_date: form.check_out_date,
-          final_price: form.final_price,
-        } : {
-          changes: {
-            order_status: statusChanged ? { from: editingOrder.order_status, to: form.order_status } : undefined,
-            payment_status: editingOrder.payment_status !== form.payment_status ? { from: editingOrder.payment_status, to: form.payment_status } : undefined,
-            check_in_date: editingOrder.check_in_date !== form.check_in_date ? { from: editingOrder.check_in_date, to: form.check_in_date } : undefined,
-            check_out_date: editingOrder.check_out_date !== form.check_out_date ? { from: editingOrder.check_out_date, to: form.check_out_date } : undefined,
-            final_price: editingOrder.final_price !== form.final_price ? { from: editingOrder.final_price, to: form.final_price } : undefined,
-          },
-          guest_name: editingOrder.guest_name,
-        },
-      });
-
-      toast({
-        title: isCancelled ? "訂單已取消" : "更新成功",
-        description: isCancelled ? "訂單已成功取消" : "訂單資訊已更新",
-      });
-
-      // 使用新的關閉處理函數
-      handleEditDialogClose(false);
-    } catch (error) {
-      console.error("Error updating order:", error);
-      toast({
-        title: "更新失敗",
-        description: "無法更新訂單資訊",
-        variant: "destructive",
-      });
-    }
   };
 
   if (loading) {
@@ -879,7 +639,7 @@ const Orders = () => {
                 <>
                   <OrdersTable 
                     orders={paginatedOrders} 
-                    onEditOrder={handleEditOrder}
+                    onEditOrder={() => {}}
                     onEditPrice={handleEditPrice}
                     onChangePaymentStatus={handleChangePaymentStatus}
                     onChangeOrderStatus={handleChangeOrderStatus}
@@ -975,40 +735,6 @@ const Orders = () => {
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* 編輯訂單對話框 */}
-      {editingOrder && (
-        <EditOrderDialog
-          open={editDialogOpen}
-          order={editingOrder}
-          onOpenChange={handleEditDialogClose}
-          onSave={handleSaveEdit}
-          onCancel={async (orderId) => {
-          const { error } = await supabase
-            .from("orders")
-            .update({ order_status: "cancelled", cancelled_at: new Date().toISOString() })
-            .eq("id", orderId);
-          if (error) {
-            toast({ title: "取消失敗", description: error.message, variant: "destructive" });
-          } else {
-            toast({ title: "訂單已取消" });
-            fetchOrders();
-          }
-          }}
-          onDelete={async (orderId) => {
-          const { error } = await supabase
-            .from("orders")
-            .delete()
-            .eq("id", orderId);
-          if (error) {
-            toast({ title: "刪除失敗", description: error.message, variant: "destructive" });
-          } else {
-            toast({ title: "訂單已刪除" });
-            fetchOrders();
-          }
-          }}
-        />
-      )}
 
       {/* 新增訂單對話框 */}
       <CreateOrderDialog
