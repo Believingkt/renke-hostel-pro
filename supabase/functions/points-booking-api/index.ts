@@ -959,6 +959,69 @@ async function handleCancelOrder(supabase: any, partner: Partner, orderId: strin
   });
 }
 
+// ========== Day Type Rules ==========
+
+async function handleGetDayTypeRules(supabase: any, accId: string, year: number | null) {
+  const targetYear = year || new Date().getFullYear();
+
+  // Fetch public holidays for this accommodation and year
+  const startDate = `${targetYear}-01-01`;
+  const endDate = `${targetYear}-12-31`;
+
+  const { data: holidays, error } = await supabase
+    .from("public_holidays")
+    .select("holiday_date, holiday_name, holiday_type")
+    .eq("accommodation_id", accId)
+    .gte("holiday_date", startDate)
+    .lte("holiday_date", endDate)
+    .order("holiday_date", { ascending: true });
+
+  if (error) throw error;
+
+  const publicHolidays = (holidays || [])
+    .filter((h: any) => h.holiday_type === "holiday")
+    .map((h: any) => ({
+      date: h.holiday_date,
+      name: h.holiday_name,
+    }));
+
+  const compensatoryWorkdays = (holidays || [])
+    .filter((h: any) => h.holiday_type === "workday")
+    .map((h: any) => ({
+      date: h.holiday_date,
+      name: h.holiday_name,
+    }));
+
+  return jsonResponse({
+    year: targetYear,
+    rules: {
+      description: "平日為週日至週五（不含國定假日），假日為週六與國定假日。補班日視為平日。",
+      description_en: "Weekday = Sunday to Friday (excluding public holidays). Weekend = Saturday + public holidays. Compensatory workdays are treated as weekdays.",
+      weekend_days: ["Saturday"],
+      weekend_days_number: [6],
+    },
+    public_holidays: publicHolidays,
+    compensatory_workdays: compensatoryWorkdays,
+  });
+}
+
+/**
+ * Determine day type for a given date considering holidays
+ */
+function getDayTypeForDate(
+  dateObj: Date,
+  dateStr: string,
+  holidayMap: Record<string, { name: string; type: string }>
+): "weekday" | "weekend" | "holiday" {
+  const holiday = holidayMap[dateStr];
+  if (holiday) {
+    if (holiday.type === "workday") return "weekday"; // 補班日
+    return "holiday"; // 國定假日
+  }
+  if (dateObj.getDay() === 6) return "weekend"; // Saturday
+  return "weekday";
+}
+
 // ========== Helpers ==========
 
 function generateOrderNumber(): string {
