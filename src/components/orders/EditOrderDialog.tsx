@@ -85,7 +85,9 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmAction, setConfirmAction] = useState<"cancel" | "delete" | null>(null);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
-  
+  const [pricingTemplates, setPricingTemplates] = useState<PricingTemplate[]>([]);
+  const [filteredTemplates, setFilteredTemplates] = useState<PricingTemplate[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
   const [isValidating, setIsValidating] = useState(false);
   const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
