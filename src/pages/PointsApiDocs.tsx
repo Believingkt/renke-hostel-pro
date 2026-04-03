@@ -380,6 +380,14 @@ Content-Type: application/json`}</pre>
                 <p><strong>4.</strong> 訂金 = 剩餘金額 × 30%（無條件進位）</p>
                 <p><strong>5.</strong> 訂金透過信用卡（TapPay）支付</p>
               </div>
+              <div className="bg-muted p-4 rounded text-sm space-y-2">
+                <p className="font-medium mb-1">⚡ 平假日規則</p>
+                <p>• <strong>平日</strong>：週日～週五（不含國定假日），補班日也視為平日</p>
+                <p>• <strong>假日</strong>：週六 + 國定假日（如春節、端午、中秋等）</p>
+                <p>• 專案模板可設定 <code>weekday_price</code> 與 <code>weekend_price</code> 供前端參考</p>
+                <p>• 查詢空房（POST /availability）回傳的 <code>daily_prices</code> 會包含每日的 <code>day_type</code>（weekday / weekend / holiday）</p>
+                <p>• 可透過 <code>GET /accommodations/:id/day-type-rules?year=2026</code> 取得完整的國定假日與補班日清單</p>
+              </div>
               <div className="bg-muted p-4 rounded text-sm">
                 <p className="font-medium mb-2">範例：</p>
                 <p>訂房總價：NT$ 12,000</p>
