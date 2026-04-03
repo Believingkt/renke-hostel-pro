@@ -225,7 +225,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
             <Label htmlFor="list-edit-total-price">房費金額</Label>
             <Input
               id="list-edit-total-price"
-              type="number"
+              type="text" inputMode="numeric"
               min={0}
               value={editTotalPriceStr}
               onChange={(e) => setEditTotalPriceStr(e.target.value)}
@@ -235,7 +235,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
             <Label htmlFor="list-edit-discount">折扣金額</Label>
             <Input
               id="list-edit-discount"
-              type="number"
+              type="text" inputMode="numeric"
               min={0}
               value={editDiscountAmountStr}
               onChange={(e) => setEditDiscountAmountStr(e.target.value)}
