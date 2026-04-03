@@ -69,9 +69,31 @@ const PointsApiDocs = () => {
 }`,
     },
     {
+      method: "GET",
+      path: "/accommodations/:id/day-type-rules?year=2026",
+      desc: "取得民宿的平假日規則（含國定假日與補班日）",
+      response: `{
+  "year": 2026,
+  "rules": {
+    "description": "平日為週日至週五（不含國定假日），假日為週六與國定假日。補班日視為平日。",
+    "description_en": "Weekday = Sunday to Friday (excluding public holidays). Weekend = Saturday + public holidays. Compensatory workdays are treated as weekdays.",
+    "weekend_days": ["Saturday"],
+    "weekend_days_number": [6]
+  },
+  "public_holidays": [
+    { "date": "2026-01-01", "name": "元旦" },
+    { "date": "2026-02-16", "name": "除夕" },
+    { "date": "2026-02-17", "name": "春節" }
+  ],
+  "compensatory_workdays": [
+    { "date": "2026-02-14", "name": "補班日" }
+  ]
+}`,
+    },
+    {
       method: "POST",
       path: "/availability",
-      desc: "查詢指定日期的空房與價格",
+      desc: "查詢指定日期的空房與價格（含每日平假日類型）",
       body: `{
   "accommodation_id": "uuid",
   "check_in_date": "2026-05-01",
@@ -89,8 +111,8 @@ const PointsApiDocs = () => {
       "nights": 2,
       "total_price": 12000,
       "daily_prices": [
-        { "date": "2026-05-01", "price": 6000 },
-        { "date": "2026-05-02", "price": 6000 }
+        { "date": "2026-05-01", "price": 6000, "day_type": "weekday" },
+        { "date": "2026-05-02", "price": 8000, "day_type": "weekend" }
       ]
     }
   ]
