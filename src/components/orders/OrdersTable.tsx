@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -24,6 +24,7 @@ interface OrdersTableProps {
 
 export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentStatus, onChangeOrderStatus, onChangeOrderSource, sortField, sortDirection, onSort, customMealPlans = [] }: OrdersTableProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const backTo = `${location.pathname}${location.search}`;
 
   const getSortIcon = (field: keyof Order) => {
@@ -209,9 +210,11 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                                 variant="ghost"
                                 size="sm"
                                 className="h-9 w-9 p-0 touch-manipulation"
-                                onClick={() => onEditOrder(order)}
+                                asChild
                               >
-                                <Edit className="h-4 w-4" />
+                                <Link to={`/admin/orders/${order.id}?editing=true`} state={{ from: backTo }}>
+                                  <Edit className="h-4 w-4" />
+                                </Link>
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -358,10 +361,12 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                       variant="outline"
                       size="default"
                       className="flex-1 h-12 touch-manipulation gap-2"
-                      onClick={() => onEditOrder(order)}
+                      asChild
                     >
-                      <Edit className="h-5 w-5" />
-                      <span>編輯訂單</span>
+                      <Link to={`/admin/orders/${order.id}?editing=true`} state={{ from: backTo }}>
+                        <Edit className="h-5 w-5" />
+                        <span>編輯訂單</span>
+                      </Link>
                     </Button>
                   </div>
                 </CardContent>

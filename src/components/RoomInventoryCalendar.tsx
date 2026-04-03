@@ -2339,7 +2339,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                               <Button
                                 size="sm"
                                 className="flex-1 h-10 gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors touch-manipulation"
-                                onClick={() => window.open(`/admin/orders?tab=list&edit=${order.id}`, '_blank')}
+                                onClick={() => window.open(`/admin/orders/${order.id}?editing=true`, '_blank')}
                               >
                                 <Edit className="h-4 w-4" />
                                 編輯訂單
@@ -2564,7 +2564,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                               <Button
                                 size="sm"
                                 className="flex-1 h-9 gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-                                onClick={() => window.open(`/admin/orders?tab=list&edit=${order.id}`, '_blank')}
+                                onClick={() => window.open(`/admin/orders/${order.id}?editing=true`, '_blank')}
                               >
                                 <Edit className="h-4 w-4" />
                                 編輯訂單

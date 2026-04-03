@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
+import { useParams, useNavigate, useLocation, Link, useSearchParams as useSearchParamsHook } from "react-router-dom";
 import { ArrowLeft, Mail, Home, ShoppingBag, Globe, UserPlus, CreditCard, XCircle, Pencil, Save, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,7 +46,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-
 interface MealPlanDetail {
   date: string;
   count: number;
@@ -151,6 +150,7 @@ const OrderDetailPage = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParamsHook();
   const backTo = (location.state as any)?.from || "/admin/orders";
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -226,6 +226,17 @@ const OrderDetailPage = () => {
     });
     setIsEditing(true);
   };
+
+  // Auto-enter editing mode from URL param
+  useEffect(() => {
+    if (searchParams.get("editing") === "true" && order && !isEditing) {
+      startEditing();
+      // Remove the editing param from URL
+      const next = new URLSearchParams(searchParams);
+      next.delete("editing");
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, order]);
 
   const cancelEditing = () => {
     setIsEditing(false);
