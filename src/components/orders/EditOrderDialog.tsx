@@ -148,38 +148,35 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
     if (!order) return;
 
     const loadOrderAddons = async () => {
-      // Parse meal_plan_details from order
       let selectedAddons: { addon_id: string; quantity: number }[] = [];
-      if (order.meal_plan_details && Array.isArray(order.meal_plan_details)) {
-        selectedAddons = order.meal_plan_details as { addon_id: string; quantity: number }[];
-      }
 
-      // If no addons from meal_plan_details, try to reconstruct from custom_addon_details
-      if (selectedAddons.length === 0) {
-        const { data } = await supabase
-          .from("orders")
-          .select("custom_addon_details")
-          .eq("id", order.id)
-          .single();
+      // Always prefer custom_addon_details as the source of truth (updated by both EditOrder and PriceEdit dialogs)
+      const { data } = await supabase
+        .from("orders")
+        .select("custom_addon_details")
+        .eq("id", order.id)
+        .single();
 
-        if (data?.custom_addon_details && Array.isArray(data.custom_addon_details)) {
-          // Also fetch addon settings to match by addon_type
-          const { data: addons } = await supabase
-            .from("addon_settings")
-            .select("id, addon_type")
-            .eq("accommodation_id", currentAccommodationId || "");
+      if (data?.custom_addon_details && Array.isArray(data.custom_addon_details) && (data.custom_addon_details as any[]).length > 0) {
+        // Fetch addon settings to match by addon_type
+        const { data: addons } = await supabase
+          .from("addon_settings")
+          .select("id, addon_type")
+          .eq("accommodation_id", currentAccommodationId || "");
 
-          if (addons) {
-            const addonMap = new Map(addons.map(a => [a.addon_type, a.id]));
-            selectedAddons = (data.custom_addon_details as any[])
-              .filter((d: any) => d && d.addon_type && d.count > 0)
-              .map((d: any) => ({
-                addon_id: addonMap.get(d.addon_type) || "",
-                quantity: d.count,
-              }))
-              .filter(a => a.addon_id);
-          }
+        if (addons) {
+          const addonMap = new Map(addons.map(a => [a.addon_type, a.id]));
+          selectedAddons = (data.custom_addon_details as any[])
+            .filter((d: any) => d && d.addon_type && d.count > 0)
+            .map((d: any) => ({
+              addon_id: addonMap.get(d.addon_type) || "",
+              quantity: d.count,
+            }))
+            .filter(a => a.addon_id);
         }
+      } else if (order.meal_plan_details && Array.isArray(order.meal_plan_details)) {
+        // Fallback to meal_plan_details for legacy data
+        selectedAddons = order.meal_plan_details as { addon_id: string; quantity: number }[];
       }
 
       // Determine deposit_paid and balance_paid from existing payment_status and paid_amount
