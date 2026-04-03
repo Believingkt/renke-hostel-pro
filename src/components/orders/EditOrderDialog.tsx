@@ -94,6 +94,8 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
   const [calculatedPrice, setCalculatedPrice] = useState({ total: 0, discount: 0, final: 0 });
   const [inventoryWarnings, setInventoryWarnings] = useState<{ date: string; available: number; blocked?: boolean; blockedBy?: string }[]>([]);
   const [isCheckingInventory, setIsCheckingInventory] = useState(false);
+  const [manualTotalPriceStr, setManualTotalPriceStr] = useState<string | null>(null);
+  const [manualDiscountStr, setManualDiscountStr] = useState<string | null>(null);
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; type: "percentage" | "amount"; value: number } | null>(null);
   const [isValidatingCode, setIsValidatingCode] = useState(false);
@@ -271,6 +273,10 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         setDiscountCode("");
         setAppliedDiscount(null);
       }
+
+      // Reset manual overrides
+      setManualTotalPriceStr(null);
+      setManualDiscountStr(null);
     };
 
     loadOrderAddons();
@@ -556,7 +562,9 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         const addon = addonSettings.find(a => a.id === selectedAddon.addon_id);
         return sum + (addon ? addon.price_per_unit * selectedAddon.quantity : 0);
       }, 0);
-      const totalFinal = calculatedPrice.final + addonTotal;
+      const effectiveTotal = manualTotalPriceStr !== null ? Math.max(0, parseInt(manualTotalPriceStr) || 0) : calculatedPrice.total;
+      const effectiveDiscount = manualDiscountStr !== null ? Math.max(0, parseInt(manualDiscountStr) || 0) : calculatedPrice.discount;
+      const totalFinal = Math.max(0, effectiveTotal - effectiveDiscount + addonTotal);
       const depositAmount = Math.round(totalFinal * 0.3);
       
       // Determine payment_status based on deposit_paid and balance_paid
@@ -593,8 +601,8 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         check_out_date: editForm.check_out_date,
         room_type_id: editForm.room_type_id,
         guest_count: editForm.guest_count,
-        total_price: calculatedPrice.total,
-        discount_amount: calculatedPrice.discount,
+        total_price: effectiveTotal,
+        discount_amount: effectiveDiscount,
         final_price: totalFinal,
         discount_code: appliedDiscount?.code || null,
         meal_plan: editForm.meal_plan || null,
@@ -914,7 +922,9 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
               const addon = addonSettings.find(a => a.id === selectedAddon.addon_id);
               return sum + (addon ? addon.price_per_unit * selectedAddon.quantity : 0);
             }, 0);
-            const totalFinal = calculatedPrice.final + addonTotal;
+            const effectiveTotal = manualTotalPriceStr !== null ? Math.max(0, parseInt(manualTotalPriceStr) || 0) : calculatedPrice.total;
+            const effectiveDiscount = manualDiscountStr !== null ? Math.max(0, parseInt(manualDiscountStr) || 0) : calculatedPrice.discount;
+            const totalFinal = Math.max(0, effectiveTotal - effectiveDiscount + addonTotal);
             const depositAmount = Math.round(totalFinal * 0.3);
             const balanceAmount = totalFinal - depositAmount;
             
@@ -927,20 +937,32 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
                   {calculateNights()} 晚
                 </span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">房價小計</span>
-                <span className="font-medium">NT$ {calculatedPrice.total.toLocaleString()}</span>
+              <div className="space-y-2">
+                <Label htmlFor="edit-total-price">房費金額</Label>
+                <Input
+                  id="edit-total-price"
+                  type="number"
+                  min={0}
+                  value={manualTotalPriceStr !== null ? manualTotalPriceStr : String(calculatedPrice.total)}
+                  onChange={(e) => setManualTotalPriceStr(e.target.value)}
+                  className="h-12 text-base sm:h-10 sm:text-sm"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-discount-amount">折扣金額</Label>
+                <Input
+                  id="edit-discount-amount"
+                  type="number"
+                  min={0}
+                  value={manualDiscountStr !== null ? manualDiscountStr : String(calculatedPrice.discount)}
+                  onChange={(e) => setManualDiscountStr(e.target.value)}
+                  className="h-12 text-base sm:h-10 sm:text-sm"
+                />
               </div>
               {editForm.selected_addons.length > 0 && (
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">加購小計</span>
                   <span className="font-medium">NT$ {addonTotal.toLocaleString()}</span>
-                </div>
-              )}
-              {calculatedPrice.discount > 0 && (
-                <div className="flex justify-between items-center text-primary">
-                  <span className="text-sm">折扣</span>
-                  <span className="font-medium">- NT$ {calculatedPrice.discount.toLocaleString()}</span>
                 </div>
               )}
               <div className="flex justify-between items-center py-3 bg-primary/5 px-4 rounded-lg">
