@@ -226,7 +226,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
             <Input
               id="list-edit-total-price"
               type="text" inputMode="numeric"
-              min={0}
+             
               value={editTotalPriceStr}
               onChange={(e) => setEditTotalPriceStr(e.target.value)}
             />
@@ -236,7 +236,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
             <Input
               id="list-edit-discount"
               type="text" inputMode="numeric"
-              min={0}
+             
               value={editDiscountAmountStr}
               onChange={(e) => setEditDiscountAmountStr(e.target.value)}
             />
