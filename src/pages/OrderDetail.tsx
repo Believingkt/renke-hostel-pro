@@ -148,6 +148,7 @@ interface EditFormState {
   meal_plan_details: MealPlanDetail[];
   meal_plan_total: number;
   custom_addon_details: CustomAddonDetail[];
+  addon_total: number;
 }
 
 const OrderDetailPage = () => {
@@ -202,6 +203,7 @@ const OrderDetailPage = () => {
     meal_plan_details: [],
     meal_plan_total: 0,
     custom_addon_details: [],
+    addon_total: 0,
   });
 
   const startEditing = () => {
@@ -231,6 +233,7 @@ const OrderDetailPage = () => {
       meal_plan_details: order.meal_plan_details || [],
       meal_plan_total: order.meal_plan_total || 0,
       custom_addon_details: (order.custom_addon_details as CustomAddonDetail[]) || [],
+      addon_total: (order.pet_plan_price || 0) + (order.meal_plan_total || 0) + ((order.custom_addon_details as CustomAddonDetail[]) || []).reduce((sum, d) => sum + d.total, 0),
     });
     setIsEditing(true);
   };
@@ -254,7 +257,7 @@ const OrderDetailPage = () => {
     if (!order) return;
     setIsSavingEdit(true);
     try {
-      const editFinalPriceCalc = editForm.total_price - editForm.discount_amount;
+      const editFinalPriceCalc = editForm.total_price + editForm.addon_total - editForm.discount_amount;
       const updateData: Record<string, any> = {
         guest_name: editForm.guest_name.trim(),
         guest_phone: editForm.guest_phone.trim(),
@@ -1172,14 +1175,12 @@ const OrderDetailPage = () => {
                 <>
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">加購方案金額</span>
-                    <span className="font-medium text-sm md:text-base">
-                      NT$ {isEditing
-                        ? (editForm.pet_plan_price + editForm.meal_plan_total + editForm.custom_addon_details.reduce((sum, d) => sum + d.total, 0)).toLocaleString()
-                        : addonTotal.toLocaleString()
-                      }
-                    </span>
+                    {isEditing ? (
+                      <Input className="w-[140px] h-8 text-sm text-right" type="text" inputMode="numeric" value={editForm.addon_total} onChange={(e) => setEditForm(f => ({ ...f, addon_total: Math.max(0, parseInt(e.target.value) || 0) }))} />
+                    ) : (
+                      <span className="font-medium text-sm md:text-base">NT$ {addonTotal.toLocaleString()}</span>
+                    )}
                   </div>
-                  <Separator />
                 </>
               );
             })()}
@@ -1256,8 +1257,8 @@ const OrderDetailPage = () => {
                 <>
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-xs md:text-sm font-semibold">實收金額</span>
-                    <span className={`font-bold text-base md:text-lg ${isEditing && (editForm.total_price - editForm.discount_amount) < 0 ? 'text-destructive' : ''}`}>
-                      NT$ {isEditing ? (editForm.total_price - editForm.discount_amount).toLocaleString() : effectiveFinalPrice.toLocaleString()}
+                    <span className={`font-bold text-base md:text-lg ${isEditing && (editForm.total_price + editForm.addon_total - editForm.discount_amount) < 0 ? 'text-destructive' : ''}`}>
+                      NT$ {isEditing ? (editForm.total_price + editForm.addon_total - editForm.discount_amount).toLocaleString() : effectiveFinalPrice.toLocaleString()}
                     </span>
                   </div>
                   <Separator />
@@ -1283,7 +1284,7 @@ const OrderDetailPage = () => {
                     <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">待付金額</span>
                     <span className="font-medium text-sm md:text-base text-destructive">
                       NT$ {isEditing
-                        ? ((editForm.total_price - editForm.discount_amount) - editForm.paid_amount).toLocaleString()
+                        ? ((editForm.total_price + editForm.addon_total - editForm.discount_amount) - editForm.paid_amount).toLocaleString()
                         : (effectiveFinalPrice - order.paid_amount).toLocaleString()
                       }
                     </span>
