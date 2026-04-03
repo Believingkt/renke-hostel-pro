@@ -6,6 +6,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface CustomAddonInput {
+  addon_type: string;
+  count: number;
+  price_per_unit: number;
+  total: number;
+}
+
 interface OrderValidationRequest {
   accommodationId: string;
   roomTypeId: string;
@@ -20,6 +27,7 @@ interface OrderValidationRequest {
   mealPlanTotal?: number;
   petCount?: number;
   petPlanPrice?: number;
+  customAddonDetails?: CustomAddonInput[] | null;
 }
 
 interface ValidationResult {
