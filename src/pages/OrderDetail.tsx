@@ -1257,8 +1257,8 @@ const OrderDetailPage = () => {
                 <>
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-xs md:text-sm font-semibold">實收金額</span>
-                    <span className={`font-bold text-base md:text-lg ${isEditing && (editForm.total_price - editForm.discount_amount) < 0 ? 'text-destructive' : ''}`}>
-                      NT$ {isEditing ? (editForm.total_price - editForm.discount_amount).toLocaleString() : effectiveFinalPrice.toLocaleString()}
+                    <span className={`font-bold text-base md:text-lg ${isEditing && (editForm.total_price + editForm.addon_total - editForm.discount_amount) < 0 ? 'text-destructive' : ''}`}>
+                      NT$ {isEditing ? (editForm.total_price + editForm.addon_total - editForm.discount_amount).toLocaleString() : effectiveFinalPrice.toLocaleString()}
                     </span>
                   </div>
                   <Separator />
