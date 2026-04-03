@@ -150,23 +150,25 @@ const Orders = () => {
 
   // 處理編輯對話框關閉（從預訂管理頁面開啟時）
   const handleEditDialogClose = (open: boolean) => {
-    setEditDialogOpen(open);
-    if (!open) {
-      suppressReopenRef.current = Date.now() + 2000;
-      setEditingOrder(null);
+    if (open) {
+      return;
+    }
 
-      if (!isFromRoomInventory && searchParams.get("edit")) {
-        const nextSearchParams = new URLSearchParams(searchParams);
-        nextSearchParams.delete("edit");
-        setSearchParams(nextSearchParams, { replace: true });
-      }
+    setEditDialogOpen(false);
+    suppressReopenRef.current = Date.now() + 2000;
+    setEditingOrder(null);
 
-      if (isFromRoomInventory) {
-        // 通知預訂管理頁面重新載入
-        localStorage.setItem('room-inventory-refresh', Date.now().toString());
-        // 關閉視窗
-        window.close();
-      }
+    if (!isFromRoomInventory && searchParams.get("edit")) {
+      const nextSearchParams = new URLSearchParams(searchParams);
+      nextSearchParams.delete("edit");
+      setSearchParams(nextSearchParams, { replace: true });
+    }
+
+    if (isFromRoomInventory) {
+      // 通知預訂管理頁面重新載入
+      localStorage.setItem('room-inventory-refresh', Date.now().toString());
+      // 關閉視窗
+      window.close();
     }
   };
 
@@ -975,12 +977,13 @@ const Orders = () => {
       </Tabs>
 
       {/* 編輯訂單對話框 */}
-      <EditOrderDialog
-        open={editDialogOpen}
-        order={editingOrder}
-        onOpenChange={handleEditDialogClose}
-        onSave={handleSaveEdit}
-        onCancel={async (orderId) => {
+      {editingOrder && (
+        <EditOrderDialog
+          open={editDialogOpen}
+          order={editingOrder}
+          onOpenChange={handleEditDialogClose}
+          onSave={handleSaveEdit}
+          onCancel={async (orderId) => {
           const { error } = await supabase
             .from("orders")
             .update({ order_status: "cancelled", cancelled_at: new Date().toISOString() })
@@ -991,8 +994,8 @@ const Orders = () => {
             toast({ title: "訂單已取消" });
             fetchOrders();
           }
-        }}
-        onDelete={async (orderId) => {
+          }}
+          onDelete={async (orderId) => {
           const { error } = await supabase
             .from("orders")
             .delete()
@@ -1003,8 +1006,9 @@ const Orders = () => {
             toast({ title: "訂單已刪除" });
             fetchOrders();
           }
-        }}
-      />
+          }}
+        />
+      )}
 
       {/* 新增訂單對話框 */}
       <CreateOrderDialog
