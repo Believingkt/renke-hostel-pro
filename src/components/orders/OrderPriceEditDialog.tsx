@@ -145,6 +145,14 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
           };
         });
 
+      // Also build meal_plan_details format for EditOrderDialog sync
+      const newMealPlanDetails = addonSettings
+        .filter(s => (addonQuantities[s.addon_type] || 0) > 0)
+        .map(s => ({
+          addon_id: s.id,
+          quantity: addonQuantities[s.addon_type] || 0,
+        }));
+
       let newPaymentStatus = order.payment_status;
       if (editPaidAmount <= 0) {
         newPaymentStatus = "unpaid";
