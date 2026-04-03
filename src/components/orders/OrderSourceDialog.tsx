@@ -25,6 +25,7 @@ const ORDER_SOURCES = [
   { value: "trip", label: "Trip" },
   { value: "travel_agency", label: "旅行社" },
   { value: "kol", label: "KOL互惠" },
+  { value: "points_starchain", label: "星鏈會員" },
 ];
 
 export function OrderSourceDialog({ order, open, onOpenChange, onSuccess }: OrderSourceDialogProps) {
