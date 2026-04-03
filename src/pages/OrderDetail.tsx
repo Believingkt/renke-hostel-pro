@@ -1150,14 +1150,8 @@ const OrderDetailPage = () => {
 
         {/* 價格資訊 */}
         <Card>
-          <CardHeader className="pb-3 flex flex-row items-center justify-between">
+          <CardHeader className="pb-3">
             <CardTitle className="text-base md:text-lg">價格明細</CardTitle>
-            {order.order_status !== 'cancelled' && !isEditing && (
-              <Button variant="ghost" size="sm" onClick={openPriceEditDialog} className="h-8 px-2">
-                <Pencil className="h-3.5 w-3.5 mr-1" />
-                <span className="text-xs">修改金額</span>
-              </Button>
-            )}
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex justify-between items-center gap-2">
@@ -1168,6 +1162,27 @@ const OrderDetailPage = () => {
                 <span className="font-medium text-sm md:text-base">NT$ {order.total_price.toLocaleString()}</span>
               )}
             </div>
+            <Separator />
+            {/* 加購方案金額 */}
+            {(() => {
+              const customAddons = (order.custom_addon_details as CustomAddonDetail[]) || [];
+              const addonTotal = order.pet_plan_price + order.meal_plan_total + customAddons.reduce((sum, d) => sum + d.total, 0);
+              if (addonTotal <= 0 && !isEditing) return null;
+              return (
+                <>
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">加購方案金額</span>
+                    <span className="font-medium text-sm md:text-base">
+                      NT$ {isEditing
+                        ? (editForm.pet_plan_price + editForm.meal_plan_total + editForm.custom_addon_details.reduce((sum, d) => sum + d.total, 0)).toLocaleString()
+                        : addonTotal.toLocaleString()
+                      }
+                    </span>
+                  </div>
+                  <Separator />
+                </>
+              );
+            })()}
             <Separator />
             <div className="flex justify-between items-center gap-2">
               <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">折扣金額</span>
