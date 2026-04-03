@@ -69,9 +69,31 @@ const PointsApiDocs = () => {
 }`,
     },
     {
+      method: "GET",
+      path: "/accommodations/:id/day-type-rules?year=2026",
+      desc: "取得民宿的平假日規則（含國定假日與補班日）",
+      response: `{
+  "year": 2026,
+  "rules": {
+    "description": "平日為週日至週五（不含國定假日），假日為週六與國定假日。補班日視為平日。",
+    "description_en": "Weekday = Sunday to Friday (excluding public holidays). Weekend = Saturday + public holidays. Compensatory workdays are treated as weekdays.",
+    "weekend_days": ["Saturday"],
+    "weekend_days_number": [6]
+  },
+  "public_holidays": [
+    { "date": "2026-01-01", "name": "元旦" },
+    { "date": "2026-02-16", "name": "除夕" },
+    { "date": "2026-02-17", "name": "春節" }
+  ],
+  "compensatory_workdays": [
+    { "date": "2026-02-14", "name": "補班日" }
+  ]
+}`,
+    },
+    {
       method: "POST",
       path: "/availability",
-      desc: "查詢指定日期的空房與價格",
+      desc: "查詢指定日期的空房與價格（含每日平假日類型）",
       body: `{
   "accommodation_id": "uuid",
   "check_in_date": "2026-05-01",
@@ -89,8 +111,8 @@ const PointsApiDocs = () => {
       "nights": 2,
       "total_price": 12000,
       "daily_prices": [
-        { "date": "2026-05-01", "price": 6000 },
-        { "date": "2026-05-02", "price": 6000 }
+        { "date": "2026-05-01", "price": 6000, "day_type": "weekday" },
+        { "date": "2026-05-02", "price": 8000, "day_type": "weekend" }
       ]
     }
   ]
@@ -312,7 +334,11 @@ Content-Type: application/json`}</pre>
               <ol className="space-y-3 text-sm">
                 <li className="flex gap-3">
                   <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">1</span>
-                  <span><strong>查詢民宿與房型</strong> — GET /accommodations → GET /accommodations/:id/room-types（含各房型適用專案）</span>
+                  <span><strong>查詢民宿與房型</strong> — GET /accommodations → GET /accommodations/:id/room-types（含各房型適用專案與平假日價格）</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">1.5</span>
+                  <span><strong>取得平假日規則</strong> — GET /accommodations/:id/day-type-rules?year=2026（取得國定假日、補班日清單）</span>
                 </li>
                 <li className="flex gap-3">
                   <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">2</span>
@@ -357,6 +383,14 @@ Content-Type: application/json`}</pre>
                 <p><strong>3.</strong> 剩餘金額 = 訂房總價 - 點數折抵</p>
                 <p><strong>4.</strong> 訂金 = 剩餘金額 × 30%（無條件進位）</p>
                 <p><strong>5.</strong> 訂金透過信用卡（TapPay）支付</p>
+              </div>
+              <div className="bg-muted p-4 rounded text-sm space-y-2">
+                <p className="font-medium mb-1">⚡ 平假日規則</p>
+                <p>• <strong>平日</strong>：週日～週五（不含國定假日），補班日也視為平日</p>
+                <p>• <strong>假日</strong>：週六 + 國定假日（如春節、端午、中秋等）</p>
+                <p>• 專案模板可設定 <code>weekday_price</code> 與 <code>weekend_price</code> 供前端參考</p>
+                <p>• 查詢空房（POST /availability）回傳的 <code>daily_prices</code> 會包含每日的 <code>day_type</code>（weekday / weekend / holiday）</p>
+                <p>• 可透過 <code>GET /accommodations/:id/day-type-rules?year=2026</code> 取得完整的國定假日與補班日清單</p>
               </div>
               <div className="bg-muted p-4 rounded text-sm">
                 <p className="font-medium mb-2">範例：</p>

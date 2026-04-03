@@ -64,6 +64,12 @@ Deno.serve(async (req) => {
       return await handleGetRoomTypes(supabase, route[1]);
     }
 
+    // GET /accommodations/:id/day-type-rules
+    if (req.method === "GET" && route[0] === "accommodations" && route[1] && route[2] === "day-type-rules") {
+      const year = url.searchParams.get("year");
+      return await handleGetDayTypeRules(supabase, route[1], year ? parseInt(year) : null);
+    }
+
     // POST /availability
     if (req.method === "POST" && route[0] === "availability") {
       const body = await req.json();
@@ -101,6 +107,7 @@ Deno.serve(async (req) => {
       "GET /accommodations",
       "GET /accommodations/:id",
       "GET /accommodations/:id/room-types",
+      "GET /accommodations/:id/day-type-rules?year=2026",
       "POST /availability",
       "POST /orders",
       "GET /orders/:id",
@@ -318,6 +325,19 @@ async function handleCheckAvailability(supabase: any, body: any) {
     d.setDate(d.getDate() + 1);
   }
 
+  // Fetch public holidays for date range
+  const { data: holidays } = await supabase
+    .from("public_holidays")
+    .select("holiday_date, holiday_name, holiday_type")
+    .eq("accommodation_id", accommodation_id)
+    .gte("holiday_date", dates[0])
+    .lte("holiday_date", dates[dates.length - 1]);
+
+  const holidayMap: Record<string, { name: string; type: string }> = {};
+  for (const h of holidays || []) {
+    holidayMap[h.holiday_date] = { name: h.holiday_name, type: h.holiday_type };
+  }
+
   const availability = [];
 
   for (const rt of roomTypes) {
@@ -375,11 +395,14 @@ async function handleCheckAvailability(supabase: any, body: any) {
         break;
       }
       minAvailableRooms = Math.min(minAvailableRooms, inv.available_rooms);
+      const dateObj = new Date(date + "T00:00:00");
+      const dayType = getDayTypeForDate(dateObj, date, holidayMap);
       dailyPrices.push({
         date,
         price: inv.price,
         price_2_meals: inv.price_2_meals,
         price_3_meals: inv.price_3_meals,
+        day_type: dayType,
       });
       totalPrice += inv.price;
     }
@@ -934,6 +957,69 @@ async function handleCancelOrder(supabase: any, partner: Partner, orderId: strin
     order_number: order.order_number,
     refunded_points: origTransaction?.points_amount || 0,
   });
+}
+
+// ========== Day Type Rules ==========
+
+async function handleGetDayTypeRules(supabase: any, accId: string, year: number | null) {
+  const targetYear = year || new Date().getFullYear();
+
+  // Fetch public holidays for this accommodation and year
+  const startDate = `${targetYear}-01-01`;
+  const endDate = `${targetYear}-12-31`;
+
+  const { data: holidays, error } = await supabase
+    .from("public_holidays")
+    .select("holiday_date, holiday_name, holiday_type")
+    .eq("accommodation_id", accId)
+    .gte("holiday_date", startDate)
+    .lte("holiday_date", endDate)
+    .order("holiday_date", { ascending: true });
+
+  if (error) throw error;
+
+  const publicHolidays = (holidays || [])
+    .filter((h: any) => h.holiday_type === "holiday")
+    .map((h: any) => ({
+      date: h.holiday_date,
+      name: h.holiday_name,
+    }));
+
+  const compensatoryWorkdays = (holidays || [])
+    .filter((h: any) => h.holiday_type === "workday")
+    .map((h: any) => ({
+      date: h.holiday_date,
+      name: h.holiday_name,
+    }));
+
+  return jsonResponse({
+    year: targetYear,
+    rules: {
+      description: "平日為週日至週五（不含國定假日），假日為週六與國定假日。補班日視為平日。",
+      description_en: "Weekday = Sunday to Friday (excluding public holidays). Weekend = Saturday + public holidays. Compensatory workdays are treated as weekdays.",
+      weekend_days: ["Saturday"],
+      weekend_days_number: [6],
+    },
+    public_holidays: publicHolidays,
+    compensatory_workdays: compensatoryWorkdays,
+  });
+}
+
+/**
+ * Determine day type for a given date considering holidays
+ */
+function getDayTypeForDate(
+  dateObj: Date,
+  dateStr: string,
+  holidayMap: Record<string, { name: string; type: string }>
+): "weekday" | "weekend" | "holiday" {
+  const holiday = holidayMap[dateStr];
+  if (holiday) {
+    if (holiday.type === "workday") return "weekday"; // 補班日
+    return "holiday"; // 國定假日
+  }
+  if (dateObj.getDay() === 6) return "weekend"; // Saturday
+  return "weekday";
 }
 
 // ========== Helpers ==========
