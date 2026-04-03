@@ -1175,14 +1175,12 @@ const OrderDetailPage = () => {
                 <>
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">加購方案金額</span>
-                    <span className="font-medium text-sm md:text-base">
-                      NT$ {isEditing
-                        ? (editForm.pet_plan_price + editForm.meal_plan_total + editForm.custom_addon_details.reduce((sum, d) => sum + d.total, 0)).toLocaleString()
-                        : addonTotal.toLocaleString()
-                      }
-                    </span>
+                    {isEditing ? (
+                      <Input className="w-[140px] h-8 text-sm text-right" type="text" inputMode="numeric" value={editForm.addon_total} onChange={(e) => setEditForm(f => ({ ...f, addon_total: Math.max(0, parseInt(e.target.value) || 0) }))} />
+                    ) : (
+                      <span className="font-medium text-sm md:text-base">NT$ {addonTotal.toLocaleString()}</span>
+                    )}
                   </div>
-                  <Separator />
                 </>
               );
             })()}
