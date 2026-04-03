@@ -382,11 +382,14 @@ async function handleCheckAvailability(supabase: any, body: any) {
         break;
       }
       minAvailableRooms = Math.min(minAvailableRooms, inv.available_rooms);
+      const dateObj = new Date(date + "T00:00:00");
+      const dayType = getDayTypeForDate(dateObj, date, holidayMap);
       dailyPrices.push({
         date,
         price: inv.price,
         price_2_meals: inv.price_2_meals,
         price_3_meals: inv.price_3_meals,
+        day_type: dayType,
       });
       totalPrice += inv.price;
     }
