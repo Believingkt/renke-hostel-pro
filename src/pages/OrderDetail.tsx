@@ -61,6 +61,8 @@ interface OrderDetail {
   guest_phone: string;
   guest_email: string | null;
   guest_address: string | null;
+  guest_gender: string | null;
+  guest_nationality: string | null;
   check_in_date: string;
   check_out_date: string;
   guest_count: number;
@@ -126,6 +128,8 @@ interface EditFormState {
   guest_phone: string;
   guest_email: string;
   guest_address: string;
+  guest_gender: string;
+  guest_nationality: string;
   guest_count: number;
   order_source: string;
   order_status: string;
@@ -178,6 +182,8 @@ const OrderDetailPage = () => {
     guest_phone: "",
     guest_email: "",
     guest_address: "",
+    guest_gender: "",
+    guest_nationality: "",
     guest_count: 1,
     order_source: "",
     order_status: "",
@@ -205,6 +211,8 @@ const OrderDetailPage = () => {
       guest_phone: order.guest_phone || "",
       guest_email: order.guest_email || "",
       guest_address: order.guest_address || "",
+      guest_gender: order.guest_gender || "",
+      guest_nationality: order.guest_nationality || "",
       guest_count: order.guest_count || 1,
       order_source: order.order_source || "website",
       order_status: order.order_status || "pending",
@@ -252,6 +260,8 @@ const OrderDetailPage = () => {
         guest_phone: editForm.guest_phone.trim(),
         guest_email: editForm.guest_email.trim() || null,
         guest_address: editForm.guest_address.trim() || null,
+        guest_gender: editForm.guest_gender || null,
+        guest_nationality: editForm.guest_nationality.trim() || null,
         guest_count: editForm.guest_count,
         order_source: editForm.order_source,
         order_status: editForm.order_status,
@@ -1031,6 +1041,36 @@ const OrderDetailPage = () => {
                 <Input className="w-[200px] h-8 text-sm" value={editForm.guest_address} onChange={(e) => setEditForm(f => ({ ...f, guest_address: e.target.value }))} placeholder="選填" />
               ) : (
                 <span className="font-medium text-xs md:text-sm break-words sm:text-right sm:max-w-[60%]">{order.guest_address || "-"}</span>
+              )}
+            </div>
+            <Separator />
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">性別</span>
+              {isEditing ? (
+                <Select value={editForm.guest_gender || "none"} onValueChange={(v) => setEditForm(f => ({ ...f, guest_gender: v === "none" ? "" : v }))}>
+                  <SelectTrigger className="w-[200px] h-8 text-xs">
+                    <SelectValue placeholder="選填" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">未填寫</SelectItem>
+                    <SelectItem value="male">男</SelectItem>
+                    <SelectItem value="female">女</SelectItem>
+                    <SelectItem value="other">其他</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <span className="font-medium text-sm md:text-base">
+                  {order.guest_gender === "male" ? "男" : order.guest_gender === "female" ? "女" : order.guest_gender === "other" ? "其他" : "-"}
+                </span>
+              )}
+            </div>
+            <Separator />
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">國籍</span>
+              {isEditing ? (
+                <Input className="w-[200px] h-8 text-sm" value={editForm.guest_nationality} onChange={(e) => setEditForm(f => ({ ...f, guest_nationality: e.target.value }))} placeholder="選填" />
+              ) : (
+                <span className="font-medium text-sm md:text-base">{order.guest_nationality || "-"}</span>
               )}
             </div>
           </CardContent>
