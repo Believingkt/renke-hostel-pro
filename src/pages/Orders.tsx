@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
@@ -71,6 +71,7 @@ const Orders = () => {
   // 編輯對話框狀態
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const suppressEditReopenUntilRef = useRef(0);
   
   // 新增對話框狀態
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -147,6 +148,7 @@ const Orders = () => {
   const handleEditDialogClose = (open: boolean) => {
     setEditDialogOpen(open);
     if (!open) {
+      suppressEditReopenUntilRef.current = Date.now() + 400;
       setEditingOrder(null);
       if (isFromRoomInventory) {
         // 通知預訂管理頁面重新載入
@@ -459,6 +461,7 @@ const Orders = () => {
   };
 
   const handleEditOrder = (order: Order) => {
+    if (Date.now() < suppressEditReopenUntilRef.current) return;
     setEditingOrder(order);
     setEditDialogOpen(true);
   };

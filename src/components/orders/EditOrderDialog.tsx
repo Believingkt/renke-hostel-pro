@@ -612,7 +612,6 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         guest_phone: editForm.guest_phone,
         guest_email: editForm.guest_email,
       });
-      onOpenChange(false);
     } finally {
       setIsSaving(false);
     }
