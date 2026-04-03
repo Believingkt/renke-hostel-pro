@@ -7,13 +7,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAccommodation } from "@/contexts/AccommodationContext";
 import { Order } from "@/types/order";
+import { Minus, Plus } from "lucide-react";
 
 interface OrderPriceEditDialogProps {
   order: Order | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+}
+
+interface AddonSetting {
+  id: string;
+  addon_type: string;
+  description: string | null;
+  price_per_unit: number;
+  unit_label: string;
+  max_quantity: number;
 }
 
 interface AddonDetail {
@@ -26,6 +37,7 @@ interface AddonDetail {
 
 export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: OrderPriceEditDialogProps) {
   const { toast } = useToast();
+  const { currentAccommodationId } = useAccommodation();
   const [editTotalPrice, setEditTotalPrice] = useState(0);
   const [editDiscountAmount, setEditDiscountAmount] = useState(0);
   const [editDepositAmount, setEditDepositAmount] = useState(0);
@@ -33,14 +45,30 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
   const [editReason, setEditReason] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  // Addon data
-  const [petPlanPrice, setPetPlanPrice] = useState(0);
-  const [mealPlanTotal, setMealPlanTotal] = useState(0);
-  const [customAddons, setCustomAddons] = useState<AddonDetail[]>([]);
+  // Addon settings & editable addon quantities
+  const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
+  const [addonQuantities, setAddonQuantities] = useState<Record<string, number>>({});
 
-  const customAddonTotal = customAddons.reduce((sum, a) => sum + a.total, 0);
-  const addonTotal = petPlanPrice + mealPlanTotal + customAddonTotal;
+  // Compute addon total from editable quantities
+  const addonTotal = addonSettings.reduce((sum, s) => {
+    const qty = addonQuantities[s.addon_type] || 0;
+    return sum + s.price_per_unit * qty;
+  }, 0);
+
   const editFinalPrice = editTotalPrice - editDiscountAmount + addonTotal;
+
+  // Fetch addon settings once
+  useEffect(() => {
+    if (!currentAccommodationId) return;
+    supabase
+      .from("addon_settings")
+      .select("id, addon_type, description, price_per_unit, unit_label, max_quantity")
+      .eq("accommodation_id", currentAccommodationId)
+      .eq("enabled", true)
+      .then(({ data }) => {
+        if (data) setAddonSettings(data);
+      });
+  }, [currentAccommodationId]);
 
   useEffect(() => {
     if (open && order) {
@@ -50,36 +78,33 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
       setEditPaidAmount(order.paid_amount);
       setEditReason("");
 
-      // Fetch addon data from the order
+      // Fetch existing addon data from the order
       supabase
         .from("orders")
-        .select("pet_plan_price, meal_plan_total, custom_addon_details")
+        .select("custom_addon_details")
         .eq("id", order.id)
         .single()
         .then(({ data }) => {
-          if (data) {
-            setPetPlanPrice(data.pet_plan_price ?? 0);
-            setMealPlanTotal(data.meal_plan_total ?? 0);
-            const rawAddons = data.custom_addon_details;
-            if (Array.isArray(rawAddons)) {
-              setCustomAddons(
-                rawAddons
-                  .filter((a: any) => a && typeof a.total === "number" && a.total > 0)
-                  .map((a: any) => ({
-                    addon_type: a.addon_type ?? "",
-                    count: a.count ?? 0,
-                    price_per_unit: a.price_per_unit ?? 0,
-                    total: a.total ?? 0,
-                    unit_label: a.unit_label ?? "",
-                  }))
-              );
-            } else {
-              setCustomAddons([]);
+          const quantities: Record<string, number> = {};
+          if (data?.custom_addon_details && Array.isArray(data.custom_addon_details)) {
+            for (const a of data.custom_addon_details as any[]) {
+              if (a?.addon_type && a.count > 0) {
+                quantities[a.addon_type] = a.count;
+              }
             }
           }
+          setAddonQuantities(quantities);
         });
     }
   }, [open, order]);
+
+  const updateAddonQty = (addonType: string, delta: number, max: number) => {
+    setAddonQuantities(prev => {
+      const current = prev[addonType] || 0;
+      const next = Math.max(0, Math.min(max, current + delta));
+      return { ...prev, [addonType]: next };
+    });
+  };
 
   const handleSave = async () => {
     if (!order) return;
@@ -104,6 +129,20 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
         paid_amount: editPaidAmount,
       };
 
+      // Build custom_addon_details from current quantities
+      const newCustomAddonDetails: AddonDetail[] = addonSettings
+        .filter(s => (addonQuantities[s.addon_type] || 0) > 0)
+        .map(s => {
+          const qty = addonQuantities[s.addon_type] || 0;
+          return {
+            addon_type: s.addon_type,
+            count: qty,
+            price_per_unit: s.price_per_unit,
+            total: s.price_per_unit * qty,
+            unit_label: s.unit_label,
+          };
+        });
+
       let newPaymentStatus = order.payment_status;
       if (editPaidAmount <= 0) {
         newPaymentStatus = "unpaid";
@@ -122,6 +161,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
           deposit_amount: editDepositAmount,
           paid_amount: editPaidAmount,
           payment_status: newPaymentStatus,
+          custom_addon_details: newCustomAddonDetails as any,
           ...(editReason.trim() ? {
             notes: order.notes
               ? `${order.notes}\n【金額修改】${editReason.trim()}`
@@ -162,7 +202,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>修改訂單金額</DialogTitle>
           <DialogDescription>修改訂單 {order?.order_number} 的價格明細</DialogDescription>
@@ -189,34 +229,59 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
             />
           </div>
 
-          {/* Addon summary */}
-          {addonTotal > 0 && (
+          {/* Editable addon section */}
+          {addonSettings.length > 0 && (
             <>
               <Separator />
-              <div className="space-y-1.5">
-                <span className="text-sm font-medium text-muted-foreground">加購方案明細</span>
-                {petPlanPrice > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span>🐾 寵物方案</span>
-                    <span>NT$ {petPlanPrice.toLocaleString()}</span>
+              <div className="space-y-3">
+                <span className="text-sm font-medium text-muted-foreground">加購方案</span>
+                {addonSettings.map((addon) => {
+                  const qty = addonQuantities[addon.addon_type] || 0;
+                  return (
+                    <div key={addon.id} className="flex items-center justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{addon.addon_type}</p>
+                        <p className="text-xs text-muted-foreground">
+                          NT$ {addon.price_per_unit.toLocaleString()} / {addon.unit_label}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="h-7 w-7"
+                          disabled={qty <= 0}
+                          onClick={() => updateAddonQty(addon.addon_type, -1, addon.max_quantity)}
+                        >
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        <span className="w-6 text-center text-sm font-medium">{qty}</span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="h-7 w-7"
+                          disabled={qty >= addon.max_quantity}
+                          onClick={() => updateAddonQty(addon.addon_type, 1, addon.max_quantity)}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                        {qty > 0 && (
+                          <span className="text-sm w-20 text-right">
+                            NT$ {(addon.price_per_unit * qty).toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+                {addonTotal > 0 && (
+                  <div className="flex justify-between text-sm font-medium pt-1">
+                    <span>加購小計</span>
+                    <span>NT$ {addonTotal.toLocaleString()}</span>
                   </div>
                 )}
-                {mealPlanTotal > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span>🍽️ 餐食方案</span>
-                    <span>NT$ {mealPlanTotal.toLocaleString()}</span>
-                  </div>
-                )}
-                {customAddons.map((addon, idx) => (
-                  <div key={idx} className="flex justify-between text-sm">
-                    <span>📦 {addon.addon_type} × {addon.count} {addon.unit_label}</span>
-                    <span>NT$ {addon.total.toLocaleString()}</span>
-                  </div>
-                ))}
-                <div className="flex justify-between text-sm font-medium pt-1">
-                  <span>加購小計</span>
-                  <span>NT$ {addonTotal.toLocaleString()}</span>
-                </div>
               </div>
             </>
           )}
