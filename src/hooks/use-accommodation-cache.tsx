@@ -267,12 +267,9 @@ export const useAccommodationCache = (accommodationId: string | null) => {
     setIsLoading(true);
     setError(null);
     
-    // 同時發起首屏與次要資料請求
-    loadPrimaryData(accommodationId).then((infoData) => {
-      if (infoData?.id) {
-        loadSecondaryData(infoData.id);
-      }
-    });
+    // 同時發起首屏與次要資料請求，不需等首屏完成
+    loadPrimaryData(accommodationId);
+    loadSecondaryData(accommodationId);
   }, [accommodationId, loadPrimaryData, loadSecondaryData]);
 
   // 手動重新載入（強制繞過快取）
