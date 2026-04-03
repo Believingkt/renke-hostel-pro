@@ -1147,22 +1147,40 @@ const OrderDetailPage = () => {
                 <Badge variant="outline" className="text-xs">{order.discount_code}</Badge>
               </div>
             )}
-            {/* 加購明細 */}
+            {/* 加購明細 - 逐項顯示 */}
             {!isEditing && (() => {
               const customAddons = (order.custom_addon_details as CustomAddonDetail[]) || [];
-              const addonTotal = order.pet_plan_price + order.meal_plan_total + customAddons.reduce((sum, d) => sum + d.total, 0);
-              if (addonTotal > 0) {
-                return (
-                  <>
-                    <Separator />
-                    <div className="flex justify-between items-center gap-2">
-                      <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">加購金額</span>
+              const items: { label: string; amount: number }[] = [];
+              if (order.pet_plan_price > 0) {
+                items.push({ label: `寵物加購 (${order.pet_count || 1}隻)`, amount: order.pet_plan_price });
+              }
+              if (order.meal_plan_total > 0) {
+                items.push({ label: '餐食加購', amount: order.meal_plan_total });
+              }
+              customAddons.forEach(d => {
+                if (d.total > 0) {
+                  items.push({ label: `${d.addon_type} (${d.count}${d.unit_label || '份'})`, amount: d.total });
+                }
+              });
+              if (items.length === 0) return null;
+              const addonTotal = items.reduce((sum, i) => sum + i.amount, 0);
+              return (
+                <>
+                  <Separator />
+                  {items.map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-center gap-2">
+                      <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">{item.label}</span>
+                      <span className="font-medium text-sm md:text-base">NT$ {item.amount.toLocaleString()}</span>
+                    </div>
+                  ))}
+                  {items.length > 1 && (
+                    <div className="flex justify-between items-center gap-2 pt-1">
+                      <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">加購小計</span>
                       <span className="font-medium text-sm md:text-base">NT$ {addonTotal.toLocaleString()}</span>
                     </div>
-                  </>
-                );
-              }
-              return null;
+                  )}
+                </>
+              );
             })()}
             <Separator />
             {/* 實收金額 = total_price - discount + addon（若 addon 未含在 total_price 內） */}
