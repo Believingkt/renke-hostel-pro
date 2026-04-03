@@ -216,7 +216,7 @@ const Index = () => {
               );
             case 'faq':
               return info.show_faq_section !== false && (
-                <FaqSection key="faq" customTitle={titles.title} customSubtitle={titles.subtitle} />
+                <FaqSection key="faq" accommodationId={info.id} customTitle={titles.title} customSubtitle={titles.subtitle} />
               );
             case 'custom_images':
               // Legacy support: render all custom sections together

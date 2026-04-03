@@ -15,66 +15,61 @@ interface FaqItem {
   answer: string;
 }
 
-const FaqSection = ({ customTitle, customSubtitle }: { customTitle?: string; customSubtitle?: string }) => {
+const FaqSection = ({ accommodationId, customTitle, customSubtitle }: { accommodationId?: string; customTitle?: string; customSubtitle?: string }) => {
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
 
   useEffect(() => {
-    loadFaqs();
-  }, []);
-
-  const loadFaqs = async () => {
-    try {
-      const { data: infoData } = await supabase
-        .from("accommodation_info")
-        .select("id")
-        .maybeSingle();
-
-      if (infoData) {
+    if (!accommodationId) return;
+    
+    const loadFaqs = async () => {
+      try {
         const { data: faqData } = await supabase
           .from("faqs")
           .select("id, question, answer")
-          .eq("accommodation_id", infoData.id)
+          .eq("accommodation_id", accommodationId)
           .eq("is_published", true)
           .order("display_order");
 
         if (faqData) {
           setFaqs(faqData);
         }
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.error("Error loading FAQs:", error);
+        }
       }
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error("Error loading FAQs:", error);
-      }
-    }
-  };
+    };
 
-  // 沒有資料時直接隱藏
+    loadFaqs();
+  }, [accommodationId]);
+
   if (faqs.length === 0) {
     return null;
   }
 
   return (
-    <section id="faq" className="py-12 md:py-16 lg:py-20 bg-secondary/20">
+    <section id="faq" className="py-12 md:py-16 lg:py-20">
       <div className="container mx-auto px-4 md:px-6">
-        <div className="text-center mb-10 md:mb-12 lg:mb-16">
-          <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-3 lg:mb-4">{customTitle || '常見問題'}</h2>
-          <p className="text-center text-muted-foreground mb-0 text-base md:text-base lg:text-lg max-w-3xl mx-auto">
-            {customSubtitle || '關於住宿的常見問題解答'}
-          </p>
-        </div>
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-8 md:mb-12 lg:mb-16">
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <FileQuestion className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+              <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold">{customTitle || '常見問題'}</h2>
+            </div>
+            <p className="text-muted-foreground text-base md:text-base lg:text-lg max-w-2xl mx-auto">{customSubtitle || '以下是住客最常詢問的問題，希望能幫助您更了解我們'}</p>
+          </div>
 
-        <div className="max-w-4xl mx-auto bg-card rounded-lg border border-border/50 overflow-hidden shadow-lg">
-          <Accordion type="single" collapsible>
-            {faqs.map((faq, index) => (
+          <Accordion type="single" collapsible className="w-full space-y-4">
+            {faqs.map((faq) => (
               <AccordionItem
                 key={faq.id}
                 value={faq.id}
-                className={index === faqs.length - 1 ? "border-b-0" : ""}
+                className="border border-border/50 rounded-lg px-6 bg-card hover:shadow-md transition-shadow"
               >
-                <AccordionTrigger className="text-left hover:no-underline px-4 md:px-5 lg:px-6 py-3.5 md:py-4 lg:py-5 text-sm md:text-sm lg:text-base font-normal">
+                <AccordionTrigger className="text-left text-sm md:text-base hover:no-underline py-4">
                   {faq.question}
                 </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground px-4 md:px-5 lg:px-6 pb-3.5 md:pb-4 lg:pb-5 pt-0 text-xs md:text-sm lg:text-sm leading-relaxed prose prose-sm max-w-none">
+                <AccordionContent className="text-muted-foreground text-sm md:text-base pb-4">
                   <div dangerouslySetInnerHTML={createSanitizedHtml(faq.answer)} />
                 </AccordionContent>
               </AccordionItem>
