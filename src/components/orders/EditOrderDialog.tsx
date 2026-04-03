@@ -144,23 +144,50 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
 
   // 當 order 變化時更新表單
   useEffect(() => {
-    if (order) {
+    if (!order) return;
+
+    const loadOrderAddons = async () => {
       // Parse meal_plan_details from order
       let selectedAddons: { addon_id: string; quantity: number }[] = [];
       if (order.meal_plan_details && Array.isArray(order.meal_plan_details)) {
         selectedAddons = order.meal_plan_details as { addon_id: string; quantity: number }[];
       }
-      
+
+      // If no addons from meal_plan_details, try to reconstruct from custom_addon_details
+      if (selectedAddons.length === 0) {
+        const { data } = await supabase
+          .from("orders")
+          .select("custom_addon_details")
+          .eq("id", order.id)
+          .single();
+
+        if (data?.custom_addon_details && Array.isArray(data.custom_addon_details)) {
+          // Also fetch addon settings to match by addon_type
+          const { data: addons } = await supabase
+            .from("addon_settings")
+            .select("id, addon_type")
+            .eq("accommodation_id", currentAccommodationId || "");
+
+          if (addons) {
+            const addonMap = new Map(addons.map(a => [a.addon_type, a.id]));
+            selectedAddons = (data.custom_addon_details as any[])
+              .filter((d: any) => d && d.addon_type && d.count > 0)
+              .map((d: any) => ({
+                addon_id: addonMap.get(d.addon_type) || "",
+                quantity: d.count,
+              }))
+              .filter(a => a.addon_id);
+          }
+        }
+      }
+
       // Determine deposit_paid and balance_paid from existing payment_status and paid_amount
       const depositAmount = Math.round((order.final_price || 0) * 0.3);
-      const balanceAmount = (order.final_price || 0) - depositAmount;
       const paidAmount = (order as any).paid_amount || 0;
-      
-      // Determine if deposit is paid based on payment status or paid amount
+
       const depositPaid = order.payment_status === 'deposit_paid' || order.payment_status === 'paid' || paidAmount >= depositAmount;
-      // Determine if balance is paid based on payment status being fully paid
       const balancePaid = order.payment_status === 'paid' || paidAmount >= (order.final_price || 0);
-      
+
       setEditForm({
         order_status: order.order_status,
         deposit_payment_method: (order as any).deposit_payment_method || "",
@@ -178,13 +205,13 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         guest_phone: order.guest_phone,
         guest_email: order.guest_email || "",
       });
-      
+
       // 載入現有的折扣碼
       if (order.discount_code) {
         setDiscountCode(order.discount_code);
         setAppliedDiscount({
           code: order.discount_code,
-          type: order.discount_amount && order.total_price 
+          type: order.discount_amount && order.total_price
             ? (order.discount_amount / order.total_price > 1 ? "amount" : "percentage")
             : "amount",
           value: order.discount_amount || 0
@@ -193,8 +220,10 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         setDiscountCode("");
         setAppliedDiscount(null);
       }
-    }
-  }, [order]);
+    };
+
+    loadOrderAddons();
+  }, [order, currentAccommodationId]);
 
   // Helper functions for price calculation
   const isSaturday = (date: Date) => date.getDay() === 6;
