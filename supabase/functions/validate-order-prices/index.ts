@@ -70,6 +70,7 @@ serve(async (req) => {
       mealPlanTotal = 0,
       petCount = 0,
       petPlanPrice = 0,
+      customAddonDetails = null,
     } = body;
 
     const errors: string[] = [];
