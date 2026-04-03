@@ -107,6 +107,7 @@ Deno.serve(async (req) => {
       "GET /accommodations",
       "GET /accommodations/:id",
       "GET /accommodations/:id/room-types",
+      "GET /accommodations/:id/day-type-rules?year=2026",
       "POST /availability",
       "POST /orders",
       "GET /orders/:id",
