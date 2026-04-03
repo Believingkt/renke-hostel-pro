@@ -156,6 +156,7 @@ export function OrderFilters({
             <option value="trip">Trip</option>
              <option value="travel_agency">旅行社</option>
              <option value="kol">KOL互惠</option>
+             <option value="points_starchain">星鏈會員</option>
           </select>
         </div>
 
