@@ -236,6 +236,9 @@ const OrderDetailPage = () => {
       custom_addon_details: (order.custom_addon_details as CustomAddonDetail[]) || [],
       addon_total: (order.pet_plan_price || 0) + (order.meal_plan_total || 0) + ((order.custom_addon_details as CustomAddonDetail[]) || []).reduce((sum, d) => sum + d.total, 0),
     });
+    // Store deposit ratio based on original final price
+    const originalFinal = (order.total_price || 0) + ((order.pet_plan_price || 0) + (order.meal_plan_total || 0) + ((order.custom_addon_details as CustomAddonDetail[]) || []).reduce((sum, d) => sum + d.total, 0)) - (order.discount_amount || 0);
+    depositRatioRef.current = originalFinal > 0 ? (order.deposit_amount || 0) / originalFinal : 0;
     setIsEditing(true);
   };
 
