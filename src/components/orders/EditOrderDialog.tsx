@@ -25,6 +25,16 @@ interface RoomType {
   capacity: number;
 }
 
+interface PricingTemplate {
+  id: string;
+  template_name: string;
+  meal_plans: any;
+  project_name: string | null;
+  price: number | null;
+  weekday_price: number | null;
+  weekend_price: number | null;
+  room_type_id: string | null;
+}
 
 interface AddonSetting {
   id: string;
@@ -75,7 +85,9 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmAction, setConfirmAction] = useState<"cancel" | "delete" | null>(null);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
-  
+  const [pricingTemplates, setPricingTemplates] = useState<PricingTemplate[]>([]);
+  const [filteredTemplates, setFilteredTemplates] = useState<PricingTemplate[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
   const [isValidating, setIsValidating] = useState(false);
   const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
@@ -110,7 +122,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
     const fetchData = async () => {
       if (!currentAccommodationId) return;
       
-      const [roomTypesResult, holidaysResult, addonsResult] = await Promise.all([
+      const [roomTypesResult, holidaysResult, addonsResult, templatesResult] = await Promise.all([
         supabase
           .from("room_types")
           .select("id, name, capacity")
@@ -124,7 +136,12 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
           .from("addon_settings")
           .select("id, addon_type, description, price_per_unit, unit_label, enabled, max_quantity")
           .eq("accommodation_id", currentAccommodationId)
-          .eq("enabled", true)
+          .eq("enabled", true),
+        supabase
+          .from("pricing_templates")
+          .select("id, template_name, meal_plans, project_name, room_type_id, price, weekday_price, weekend_price")
+          .eq("accommodation_id", currentAccommodationId)
+          .order("display_order")
       ]);
 
       if (!roomTypesResult.error && roomTypesResult.data) {
@@ -138,10 +155,46 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
       if (!addonsResult.error && addonsResult.data) {
         setAddonSettings(addonsResult.data);
       }
+
+      if (!templatesResult.error && templatesResult.data) {
+        setPricingTemplates(templatesResult.data);
+      }
     };
 
     fetchData();
   }, [currentAccommodationId]);
+
+  // Filter templates by room_type_id
+  useEffect(() => {
+    if (!editForm.room_type_id) {
+      setFilteredTemplates([]);
+      setSelectedTemplateId("");
+      return;
+    }
+
+    if (pricingTemplates.length === 0) {
+      setFilteredTemplates([]);
+      setSelectedTemplateId("");
+      return;
+    }
+
+    const filtered = pricingTemplates.filter(t => t.room_type_id === editForm.room_type_id);
+    const result = filtered.length > 0
+      ? filtered
+      : pricingTemplates.filter(t => !t.room_type_id);
+    const finalList = result.length > 0 ? result : pricingTemplates;
+
+    setFilteredTemplates(finalList);
+    
+    // Try to match current meal_plan to a template
+    const currentMatch = finalList.find(t => t.template_name === editForm.meal_plan);
+    if (currentMatch) {
+      setSelectedTemplateId(currentMatch.id);
+    } else {
+      setSelectedTemplateId(finalList[0]?.id || "");
+      setEditForm(prev => ({ ...prev, meal_plan: finalList[0]?.template_name || "" }));
+    }
+  }, [editForm.room_type_id, pricingTemplates]);
 
   // 當 order 變化時更新表單
   useEffect(() => {
@@ -258,24 +311,39 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
     if (nights === 0) return { total: 0, discount: 0, final: 0 };
 
     let total = 0;
-    const start = new Date(editForm.check_in_date);
 
-    // Fetch prices from room_inventory_pricing for each night
-    for (let i = 0; i < nights; i++) {
-      const currentDate = new Date(start);
-      currentDate.setDate(start.getDate() + i);
-      const dateStr = format(currentDate, "yyyy-MM-dd");
-      
-      // Query price from inventory
-      const { data: inventoryData } = await supabase
-        .from("room_inventory_pricing")
-        .select("price")
-        .eq("room_type_id", editForm.room_type_id)
-        .eq("date", dateStr)
-        .maybeSingle();
-      
-      if (inventoryData?.price) {
-        total += inventoryData.price;
+    // Use selected template price if available
+    const selectedTemplate = pricingTemplates.find(t => t.id === selectedTemplateId)
+      || filteredTemplates.find(t => t.id === selectedTemplateId);
+
+    if (selectedTemplate && selectedTemplate.price != null && selectedTemplate.price > 0) {
+      total = selectedTemplate.price * nights;
+    } else {
+      // Fallback: sum inventory prices based on template meal type
+      let priceColumn = 'price';
+      if (selectedTemplate) {
+        const name = selectedTemplate.template_name || selectedTemplate.project_name || '';
+        if (name.includes('三食') || name.includes('3食')) priceColumn = 'price_3_meals';
+        else if (name.includes('二食') || name.includes('2食') || name.includes('兩食')) priceColumn = 'price_2_meals';
+      }
+
+      const start = new Date(editForm.check_in_date);
+      for (let i = 0; i < nights; i++) {
+        const currentDate = new Date(start);
+        currentDate.setDate(start.getDate() + i);
+        const dateStr = format(currentDate, "yyyy-MM-dd");
+
+        const { data: priceData } = await supabase
+          .from("room_inventory_pricing")
+          .select("price, price_2_meals, price_3_meals")
+          .eq("room_type_id", editForm.room_type_id)
+          .eq("date", dateStr)
+          .maybeSingle();
+
+        if (priceData) {
+          const selectedPrice = (priceData as any)[priceColumn];
+          total += (selectedPrice != null && selectedPrice > 0) ? selectedPrice : (priceData.price ?? 0);
+        }
       }
     }
 
@@ -363,7 +431,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
     };
 
     checkInventoryAndPrice();
-  }, [editForm.check_in_date, editForm.check_out_date, editForm.room_type_id, appliedDiscount, currentAccommodationId, order]);
+  }, [editForm.check_in_date, editForm.check_out_date, editForm.room_type_id, selectedTemplateId, appliedDiscount, currentAccommodationId, order, pricingTemplates]);
 
   const handleApplyDiscount = async () => {
     if (!discountCode.trim() || !currentAccommodationId) {
@@ -701,15 +769,25 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
           <div className="space-y-2">
             <Label>專案 <span className="text-destructive">*</span></Label>
             <Select 
-              value={editForm.meal_plan} 
-              onValueChange={(value) => setEditForm({...editForm, meal_plan: value})}
+              value={selectedTemplateId} 
+              onValueChange={(value) => {
+                setSelectedTemplateId(value);
+                const template = filteredTemplates.find(t => t.id === value);
+                if (template) {
+                  setEditForm(prev => ({ ...prev, meal_plan: template.template_name }));
+                }
+              }}
+              disabled={filteredTemplates.length === 0}
             >
               <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
-                <SelectValue placeholder="選擇專案" />
+                <SelectValue placeholder={filteredTemplates.length === 0 ? "請先選擇房型" : "選擇專案"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="2_meals">一泊二食</SelectItem>
-                <SelectItem value="3_meals">一泊三食</SelectItem>
+                {filteredTemplates.map((template) => (
+                  <SelectItem key={template.id} value={template.id}>
+                    {template.template_name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
