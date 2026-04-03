@@ -1383,10 +1383,8 @@ const OrderDetailPage = () => {
                             {format(new Date(detail.date), "yyyy/MM/dd")}
                           </span>
                           <Input
-                            className="w-[70px] h-7 text-xs text-right"
+                            className="w-[70px] h-7 text-xs text-center"
                             type="text" inputMode="numeric"
-                           
-                           
                             value={detail.count}
                             onChange={(e) => {
                               const count = Math.max(0, parseInt(e.target.value) || 0);
