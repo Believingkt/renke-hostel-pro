@@ -524,6 +524,7 @@ const Orders = () => {
         final_price: form.final_price,
         meal_plan: form.meal_plan,
         meal_plan_details: form.meal_plan_details,
+        custom_addon_details: form.custom_addon_details || null,
         guest_name: form.guest_name.trim(),
         guest_phone: form.guest_phone.trim(),
         guest_email: form.guest_email.trim() || null,
