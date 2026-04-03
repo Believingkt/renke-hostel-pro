@@ -257,7 +257,7 @@ const OrderDetailPage = () => {
     if (!order) return;
     setIsSavingEdit(true);
     try {
-      const editFinalPriceCalc = editForm.total_price - editForm.discount_amount;
+      const editFinalPriceCalc = editForm.total_price + editForm.addon_total - editForm.discount_amount;
       const updateData: Record<string, any> = {
         guest_name: editForm.guest_name.trim(),
         guest_phone: editForm.guest_phone.trim(),
