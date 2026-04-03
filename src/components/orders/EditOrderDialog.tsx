@@ -274,9 +274,9 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         setAppliedDiscount(null);
       }
 
-      // Reset manual overrides
-      setManualTotalPriceStr(null);
-      setManualDiscountStr(null);
+      // Initialize manual overrides from saved order values
+      setManualTotalPriceStr(String(order.total_price));
+      setManualDiscountStr(String(order.discount_amount));
     };
 
     loadOrderAddons();
