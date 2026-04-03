@@ -38,8 +38,10 @@ interface AddonDetail {
 export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: OrderPriceEditDialogProps) {
   const { toast } = useToast();
   const { currentAccommodationId } = useAccommodation();
-  const [editTotalPrice, setEditTotalPrice] = useState(0);
-  const [editDiscountAmount, setEditDiscountAmount] = useState(0);
+  const [editTotalPriceStr, setEditTotalPriceStr] = useState("0");
+  const [editDiscountAmountStr, setEditDiscountAmountStr] = useState("0");
+  const editTotalPrice = Math.max(0, parseInt(editTotalPriceStr) || 0);
+  const editDiscountAmount = Math.max(0, parseInt(editDiscountAmountStr) || 0);
   const [editDepositAmount, setEditDepositAmount] = useState(0);
   const [editPaidAmount, setEditPaidAmount] = useState(0);
   const [editReason, setEditReason] = useState("");
@@ -72,8 +74,8 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
 
   useEffect(() => {
     if (open && order) {
-      setEditTotalPrice(order.total_price);
-      setEditDiscountAmount(order.discount_amount);
+      setEditTotalPriceStr(String(order.total_price));
+      setEditDiscountAmountStr(String(order.discount_amount));
       setEditDepositAmount(order.deposit_amount ?? 0);
       setEditPaidAmount(order.paid_amount);
       setEditReason("");
@@ -214,8 +216,8 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
               id="list-edit-total-price"
               type="number"
               min={0}
-              value={editTotalPrice}
-              onChange={(e) => setEditTotalPrice(Math.max(0, parseInt(e.target.value) || 0))}
+              value={editTotalPriceStr}
+              onChange={(e) => setEditTotalPriceStr(e.target.value)}
             />
           </div>
           <div className="space-y-2">
@@ -224,8 +226,8 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
               id="list-edit-discount"
               type="number"
               min={0}
-              value={editDiscountAmount}
-              onChange={(e) => setEditDiscountAmount(Math.max(0, parseInt(e.target.value) || 0))}
+              value={editDiscountAmountStr}
+              onChange={(e) => setEditDiscountAmountStr(e.target.value)}
             />
           </div>
 
