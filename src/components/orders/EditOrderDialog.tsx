@@ -769,15 +769,25 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
           <div className="space-y-2">
             <Label>專案 <span className="text-destructive">*</span></Label>
             <Select 
-              value={editForm.meal_plan} 
-              onValueChange={(value) => setEditForm({...editForm, meal_plan: value})}
+              value={selectedTemplateId} 
+              onValueChange={(value) => {
+                setSelectedTemplateId(value);
+                const template = filteredTemplates.find(t => t.id === value);
+                if (template) {
+                  setEditForm(prev => ({ ...prev, meal_plan: template.template_name }));
+                }
+              }}
+              disabled={filteredTemplates.length === 0}
             >
               <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
-                <SelectValue placeholder="選擇專案" />
+                <SelectValue placeholder={filteredTemplates.length === 0 ? "請先選擇房型" : "選擇專案"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="2_meals">一泊二食</SelectItem>
-                <SelectItem value="3_meals">一泊三食</SelectItem>
+                {filteredTemplates.map((template) => (
+                  <SelectItem key={template.id} value={template.id}>
+                    {template.template_name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
