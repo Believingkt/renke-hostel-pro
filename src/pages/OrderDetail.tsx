@@ -1134,6 +1134,23 @@ const OrderDetailPage = () => {
                 <Badge variant="outline" className="text-xs">{order.discount_code}</Badge>
               </div>
             )}
+            {/* 加購明細 */}
+            {!isEditing && (() => {
+              const customAddons = (order.custom_addon_details as CustomAddonDetail[]) || [];
+              const addonTotal = order.pet_plan_price + order.meal_plan_total + customAddons.reduce((sum, d) => sum + d.total, 0);
+              if (addonTotal > 0) {
+                return (
+                  <>
+                    <Separator />
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">加購金額</span>
+                      <span className="font-medium text-sm md:text-base">NT$ {addonTotal.toLocaleString()}</span>
+                    </div>
+                  </>
+                );
+              }
+              return null;
+            })()}
             <Separator />
             <div className="flex justify-between items-center gap-2">
               <span className="text-xs md:text-sm font-semibold">實收金額</span>
