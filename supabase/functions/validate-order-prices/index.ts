@@ -291,13 +291,14 @@ serve(async (req) => {
       accommodationId,
       roomTypeId,
       nights,
-      clientPrices: { totalPrice, discountAmount, finalPrice, mealPlanTotal, petPlanPrice },
+      clientPrices: { totalPrice, discountAmount, finalPrice, mealPlanTotal, petPlanPrice, customAddonTotal: customAddonDetails?.reduce((s, a) => s + a.total, 0) || 0 },
       serverPrices: { 
         totalPrice: calculatedTotalPrice, 
         discountAmount: calculatedDiscount, 
         finalPrice: calculatedFinalPrice,
         mealPlanTotal: calculatedMealPlanTotal,
-        petPlanPrice: calculatedPetPrice
+        petPlanPrice: calculatedPetPrice,
+        customAddonTotal: calculatedCustomAddonTotal
       },
       isValid: errors.length === 0,
       errors
@@ -311,7 +312,8 @@ serve(async (req) => {
         discountAmount: calculatedDiscount,
         finalPrice: calculatedFinalPrice,
         mealPlanTotal: calculatedMealPlanTotal,
-        petPlanPrice: calculatedPetPrice
+        petPlanPrice: calculatedPetPrice,
+        customAddonTotal: calculatedCustomAddonTotal
       }
     };
 
