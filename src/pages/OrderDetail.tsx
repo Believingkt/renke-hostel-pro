@@ -1417,49 +1417,50 @@ const OrderDetailPage = () => {
               {/* 其他自訂加購方案 - 編輯模式 */}
               {(() => {
                 const genericAddons = addonSettings.filter(a => a.addon_type !== 'pet' && a.addon_type !== 'meal' && a.addon_type !== 'bbq');
-                return genericAddons.map(addon => {
+                return genericAddons.map((addon, idx) => {
                   const existing = editForm.custom_addon_details.find(d => d.addon_type === addon.addon_type);
                   const count = existing?.count || 0;
                   const total = existing?.total || 0;
                   return (
-                    <div key={addon.addon_type} className="space-y-2">
-                      <div className="flex justify-between items-center gap-2">
-                        <span className="text-xs md:text-sm font-medium">📦 {addon.addon_type}</span>
+                    <React.Fragment key={addon.addon_type}>
+                      {idx > 0 && <Separator />}
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center gap-2">
+                          <span className="text-xs md:text-sm font-medium">📦 {addon.addon_type}</span>
+                        </div>
+                        <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
+                          <span className="text-xs md:text-sm text-muted-foreground">數量（{addon.unit_label}）</span>
+                          <Input
+                            className="w-[100px] h-8 text-sm text-right"
+                            type="text" inputMode="numeric"
+                            value={count}
+                            onChange={(e) => {
+                              const newCount = Math.max(0, Math.min(addon.max_quantity, parseInt(e.target.value) || 0));
+                              const newTotal = newCount * addon.price_per_unit * nights;
+                              const newDetails = editForm.custom_addon_details.filter(d => d.addon_type !== addon.addon_type);
+                              if (newCount > 0) {
+                                newDetails.push({
+                                  addon_type: addon.addon_type,
+                                  count: newCount,
+                                  price_per_unit: addon.price_per_unit,
+                                  total: newTotal,
+                                  unit_label: addon.unit_label,
+                                });
+                              }
+                              setEditForm(f => ({ ...f, custom_addon_details: newDetails }));
+                            }}
+                          />
+                        </div>
+                        <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
+                          <span className="text-xs md:text-sm text-muted-foreground">單價</span>
+                          <span className="text-sm">NT$ {addon.price_per_unit.toLocaleString()} / {addon.unit_label} / 晚</span>
+                        </div>
+                        <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
+                          <span className="text-xs md:text-sm text-muted-foreground">小計</span>
+                          <span className="font-medium text-sm">NT$ {total.toLocaleString()}</span>
+                        </div>
                       </div>
-                      <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
-                        <span className="text-xs md:text-sm text-muted-foreground">數量（{addon.unit_label}）</span>
-                        <Input
-                          className="w-[100px] h-8 text-sm text-right"
-                          type="text" inputMode="numeric"
-                         
-                         
-                          value={count}
-                          onChange={(e) => {
-                            const newCount = Math.max(0, Math.min(addon.max_quantity, parseInt(e.target.value) || 0));
-                            const newTotal = newCount * addon.price_per_unit * nights;
-                            const newDetails = editForm.custom_addon_details.filter(d => d.addon_type !== addon.addon_type);
-                            if (newCount > 0) {
-                              newDetails.push({
-                                addon_type: addon.addon_type,
-                                count: newCount,
-                                price_per_unit: addon.price_per_unit,
-                                total: newTotal,
-                                unit_label: addon.unit_label,
-                              });
-                            }
-                            setEditForm(f => ({ ...f, custom_addon_details: newDetails }));
-                          }}
-                        />
-                      </div>
-                      <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
-                        <span className="text-xs md:text-sm text-muted-foreground">單價</span>
-                        <span className="text-sm">NT$ {addon.price_per_unit.toLocaleString()} / {addon.unit_label} / 晚</span>
-                      </div>
-                      <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
-                        <span className="text-xs md:text-sm text-muted-foreground">小計</span>
-                        <span className="font-medium text-sm">NT$ {total.toLocaleString()}</span>
-                      </div>
-                    </div>
+                    </React.Fragment>
                   );
                 });
               })()}
@@ -1514,12 +1515,12 @@ const OrderDetailPage = () => {
                             <span className="font-medium text-sm md:text-base">NT$ {order.pet_plan_price.toLocaleString()}</span>
                           </div>
                         </div>
-                        <Separator />
                       </>
                     )}
 
                     {order.meal_plan_total > 0 && order.meal_plan_details && order.meal_plan_details.length > 0 && (
                       <>
+                        {order.pet_count > 0 && <Separator />}
                         <div className="space-y-2">
                           <div className="flex justify-between items-center gap-2">
                             <span className="text-xs md:text-sm font-medium">🍖 烤肉餐食方案</span>
@@ -1540,12 +1541,12 @@ const OrderDetailPage = () => {
                             </div>
                           </div>
                         </div>
-                        <Separator />
                       </>
                     )}
 
-                    {customAddons.map(addon => (
+                    {customAddons.map((addon, idx) => (
                       <React.Fragment key={addon.addon_type}>
+                        {(idx > 0 || order.pet_count > 0 || order.meal_plan_total > 0) && <Separator />}
                         <div className="space-y-2">
                           <div className="flex justify-between items-center gap-2">
                             <span className="text-xs md:text-sm font-medium">📦 {addon.addon_type}</span>
@@ -1556,10 +1557,10 @@ const OrderDetailPage = () => {
                             <span className="font-medium text-sm md:text-base">NT$ {addon.total.toLocaleString()}</span>
                           </div>
                         </div>
-                        <Separator />
                       </React.Fragment>
                     ))}
 
+                    <Separator />
                     <div className="flex justify-between items-center gap-2 pt-2">
                       <span className="text-xs md:text-sm font-semibold">加購總計</span>
                       <span className="font-bold text-base md:text-lg text-primary">
