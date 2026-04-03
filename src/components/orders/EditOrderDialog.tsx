@@ -25,6 +25,16 @@ interface RoomType {
   capacity: number;
 }
 
+interface PricingTemplate {
+  id: string;
+  template_name: string;
+  meal_plans: any;
+  project_name: string | null;
+  price: number | null;
+  weekday_price: number | null;
+  weekend_price: number | null;
+  room_type_id: string | null;
+}
 
 interface AddonSetting {
   id: string;
