@@ -1898,6 +1898,17 @@ const BookingFlow = () => {
               mealPlanTotal: mealPlanTotalPrice,
               petCount,
               petPlanPrice,
+              customAddonDetails: Object.entries(customAddonCounts)
+                .filter(([_, count]) => count > 0)
+                .map(([type, count]) => {
+                  const setting = customAddonSettings.find(s => s.addon_type === type);
+                  return {
+                    addon_type: type,
+                    count,
+                    price_per_unit: setting?.price_per_unit || 0,
+                    total: count * (setting?.price_per_unit || 0) * nights,
+                  };
+                }),
             },
           }
         );
