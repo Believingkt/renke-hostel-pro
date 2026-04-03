@@ -311,24 +311,39 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
     if (nights === 0) return { total: 0, discount: 0, final: 0 };
 
     let total = 0;
-    const start = new Date(editForm.check_in_date);
 
-    // Fetch prices from room_inventory_pricing for each night
-    for (let i = 0; i < nights; i++) {
-      const currentDate = new Date(start);
-      currentDate.setDate(start.getDate() + i);
-      const dateStr = format(currentDate, "yyyy-MM-dd");
-      
-      // Query price from inventory
-      const { data: inventoryData } = await supabase
-        .from("room_inventory_pricing")
-        .select("price")
-        .eq("room_type_id", editForm.room_type_id)
-        .eq("date", dateStr)
-        .maybeSingle();
-      
-      if (inventoryData?.price) {
-        total += inventoryData.price;
+    // Use selected template price if available
+    const selectedTemplate = pricingTemplates.find(t => t.id === selectedTemplateId)
+      || filteredTemplates.find(t => t.id === selectedTemplateId);
+
+    if (selectedTemplate && selectedTemplate.price != null && selectedTemplate.price > 0) {
+      total = selectedTemplate.price * nights;
+    } else {
+      // Fallback: sum inventory prices based on template meal type
+      let priceColumn = 'price';
+      if (selectedTemplate) {
+        const name = selectedTemplate.template_name || selectedTemplate.project_name || '';
+        if (name.includes('三食') || name.includes('3食')) priceColumn = 'price_3_meals';
+        else if (name.includes('二食') || name.includes('2食') || name.includes('兩食')) priceColumn = 'price_2_meals';
+      }
+
+      const start = new Date(editForm.check_in_date);
+      for (let i = 0; i < nights; i++) {
+        const currentDate = new Date(start);
+        currentDate.setDate(start.getDate() + i);
+        const dateStr = format(currentDate, "yyyy-MM-dd");
+
+        const { data: priceData } = await supabase
+          .from("room_inventory_pricing")
+          .select("price, price_2_meals, price_3_meals")
+          .eq("room_type_id", editForm.room_type_id)
+          .eq("date", dateStr)
+          .maybeSingle();
+
+        if (priceData) {
+          const selectedPrice = (priceData as any)[priceColumn];
+          total += (selectedPrice != null && selectedPrice > 0) ? selectedPrice : (priceData.price ?? 0);
+        }
       }
     }
 
