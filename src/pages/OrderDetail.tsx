@@ -1515,7 +1515,6 @@ const OrderDetailPage = () => {
                             <span className="font-medium text-sm md:text-base">NT$ {order.pet_plan_price.toLocaleString()}</span>
                           </div>
                         </div>
-                        <Separator />
                       </>
                     )}
 
