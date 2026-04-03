@@ -1042,6 +1042,36 @@ const OrderDetailPage = () => {
                 <span className="font-medium text-xs md:text-sm break-words sm:text-right sm:max-w-[60%]">{order.guest_address || "-"}</span>
               )}
             </div>
+            <Separator />
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">性別</span>
+              {isEditing ? (
+                <Select value={editForm.guest_gender || "none"} onValueChange={(v) => setEditForm(f => ({ ...f, guest_gender: v === "none" ? "" : v }))}>
+                  <SelectTrigger className="w-[200px] h-8 text-xs">
+                    <SelectValue placeholder="選填" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">未填寫</SelectItem>
+                    <SelectItem value="male">男</SelectItem>
+                    <SelectItem value="female">女</SelectItem>
+                    <SelectItem value="other">其他</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <span className="font-medium text-sm md:text-base">
+                  {order.guest_gender === "male" ? "男" : order.guest_gender === "female" ? "女" : order.guest_gender === "other" ? "其他" : "-"}
+                </span>
+              )}
+            </div>
+            <Separator />
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">國籍</span>
+              {isEditing ? (
+                <Input className="w-[200px] h-8 text-sm" value={editForm.guest_nationality} onChange={(e) => setEditForm(f => ({ ...f, guest_nationality: e.target.value }))} placeholder="選填" />
+              ) : (
+                <span className="font-medium text-sm md:text-base">{order.guest_nationality || "-"}</span>
+              )}
+            </div>
           </CardContent>
         </Card>
 
