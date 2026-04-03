@@ -59,6 +59,7 @@ const SOURCE_ICONS: Record<string, string> = {
   trip: "✈️",
   travel_agency: "🏢",
   kol: "💗",
+  points_starchain: "⭐",
 };
 
 const SOURCE_LABELS: Record<string, string> = {
