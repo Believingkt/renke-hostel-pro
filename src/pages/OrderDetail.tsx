@@ -46,6 +46,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { useSearchParams as useSearchParamsHook } from "react-router-dom";
 
 interface MealPlanDetail {
   date: string;
@@ -151,6 +152,7 @@ const OrderDetailPage = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParamsHook();
   const backTo = (location.state as any)?.from || "/admin/orders";
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -170,6 +172,18 @@ const OrderDetailPage = () => {
 
   // Edit mode
   const [isEditing, setIsEditing] = useState(false);
+
+  // Auto-enter editing mode from URL param
+  useEffect(() => {
+    if (searchParams.get("editing") === "true" && order && !isEditing) {
+      startEditing();
+      // Remove the editing param from URL
+      const next = new URLSearchParams(searchParams);
+      next.delete("editing");
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, order]);
+
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [roomTypes, setRoomTypes] = useState<RoomTypeOption[]>([]);
   const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
