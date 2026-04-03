@@ -273,6 +273,10 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         setDiscountCode("");
         setAppliedDiscount(null);
       }
+
+      // Reset manual overrides
+      setManualTotalPriceStr(null);
+      setManualDiscountStr(null);
     };
 
     loadOrderAddons();
