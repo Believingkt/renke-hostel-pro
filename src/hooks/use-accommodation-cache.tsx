@@ -257,7 +257,7 @@ export const useAccommodationCache = (accommodationId: string | null) => {
     }
   }, []);
 
-  // 第一階段：載入首屏資料
+  // 並行載入首屏和次要資料
   useEffect(() => {
     if (!accommodationId) {
       setIsLoading(false);
@@ -266,15 +266,14 @@ export const useAccommodationCache = (accommodationId: string | null) => {
 
     setIsLoading(true);
     setError(null);
-    loadPrimaryData(accommodationId);
-  }, [accommodationId, loadPrimaryData]);
-
-  // 第二階段：首屏載入完成後載入次要資料
-  useEffect(() => {
-    if (info?.id) {
-      loadSecondaryData(info.id);
-    }
-  }, [info?.id, loadSecondaryData]);
+    
+    // 同時發起首屏與次要資料請求
+    loadPrimaryData(accommodationId).then((infoData) => {
+      if (infoData?.id) {
+        loadSecondaryData(infoData.id);
+      }
+    });
+  }, [accommodationId, loadPrimaryData, loadSecondaryData]);
 
   // 手動重新載入（強制繞過快取）
   const refetch = useCallback(() => {
