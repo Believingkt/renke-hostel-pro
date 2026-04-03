@@ -514,7 +514,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         guest_count: editForm.guest_count,
         total_price: calculatedPrice.total,
         discount_amount: calculatedPrice.discount,
-        final_price: calculatedPrice.final,
+        final_price: totalFinal,
         discount_code: appliedDiscount?.code || null,
         meal_plan: editForm.meal_plan || null,
         meal_plan_details: editForm.selected_addons.length > 0 ? editForm.selected_addons : null,
