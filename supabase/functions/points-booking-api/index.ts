@@ -325,6 +325,19 @@ async function handleCheckAvailability(supabase: any, body: any) {
     d.setDate(d.getDate() + 1);
   }
 
+  // Fetch public holidays for date range
+  const { data: holidays } = await supabase
+    .from("public_holidays")
+    .select("holiday_date, holiday_name, holiday_type")
+    .eq("accommodation_id", accommodation_id)
+    .gte("holiday_date", dates[0])
+    .lte("holiday_date", dates[dates.length - 1]);
+
+  const holidayMap: Record<string, { name: string; type: string }> = {};
+  for (const h of holidays || []) {
+    holidayMap[h.holiday_date] = { name: h.holiday_name, type: h.holiday_type };
+  }
+
   const availability = [];
 
   for (const rt of roomTypes) {
