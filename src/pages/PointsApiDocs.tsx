@@ -334,7 +334,11 @@ Content-Type: application/json`}</pre>
               <ol className="space-y-3 text-sm">
                 <li className="flex gap-3">
                   <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">1</span>
-                  <span><strong>查詢民宿與房型</strong> — GET /accommodations → GET /accommodations/:id/room-types（含各房型適用專案）</span>
+                  <span><strong>查詢民宿與房型</strong> — GET /accommodations → GET /accommodations/:id/room-types（含各房型適用專案與平假日價格）</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">1.5</span>
+                  <span><strong>取得平假日規則</strong> — GET /accommodations/:id/day-type-rules?year=2026（取得國定假日、補班日清單）</span>
                 </li>
                 <li className="flex gap-3">
                   <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">2</span>
