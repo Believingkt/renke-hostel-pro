@@ -128,6 +128,8 @@ interface EditFormState {
   guest_phone: string;
   guest_email: string;
   guest_address: string;
+  guest_gender: string;
+  guest_nationality: string;
   guest_count: number;
   order_source: string;
   order_status: string;
