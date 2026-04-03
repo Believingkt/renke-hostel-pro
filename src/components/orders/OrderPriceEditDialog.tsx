@@ -172,6 +172,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
           paid_amount: editPaidAmount,
           payment_status: newPaymentStatus,
           custom_addon_details: newCustomAddonDetails as any,
+          meal_plan_details: newMealPlanDetails.length > 0 ? newMealPlanDetails as any : null,
           ...(editReason.trim() ? {
             notes: order.notes
               ? `${order.notes}\n【金額修改】${editReason.trim()}`
