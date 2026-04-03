@@ -920,7 +920,9 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
               const addon = addonSettings.find(a => a.id === selectedAddon.addon_id);
               return sum + (addon ? addon.price_per_unit * selectedAddon.quantity : 0);
             }, 0);
-            const totalFinal = calculatedPrice.final + addonTotal;
+            const effectiveTotal = manualTotalPriceStr !== null ? Math.max(0, parseInt(manualTotalPriceStr) || 0) : calculatedPrice.total;
+            const effectiveDiscount = manualDiscountStr !== null ? Math.max(0, parseInt(manualDiscountStr) || 0) : calculatedPrice.discount;
+            const totalFinal = Math.max(0, effectiveTotal - effectiveDiscount + addonTotal);
             const depositAmount = Math.round(totalFinal * 0.3);
             const balanceAmount = totalFinal - depositAmount;
             
@@ -933,20 +935,32 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
                   {calculateNights()} 晚
                 </span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">房價小計</span>
-                <span className="font-medium">NT$ {calculatedPrice.total.toLocaleString()}</span>
+              <div className="space-y-2">
+                <Label htmlFor="edit-total-price">房費金額</Label>
+                <Input
+                  id="edit-total-price"
+                  type="number"
+                  min={0}
+                  value={manualTotalPriceStr !== null ? manualTotalPriceStr : String(calculatedPrice.total)}
+                  onChange={(e) => setManualTotalPriceStr(e.target.value)}
+                  className="h-12 text-base sm:h-10 sm:text-sm"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-discount-amount">折扣金額</Label>
+                <Input
+                  id="edit-discount-amount"
+                  type="number"
+                  min={0}
+                  value={manualDiscountStr !== null ? manualDiscountStr : String(calculatedPrice.discount)}
+                  onChange={(e) => setManualDiscountStr(e.target.value)}
+                  className="h-12 text-base sm:h-10 sm:text-sm"
+                />
               </div>
               {editForm.selected_addons.length > 0 && (
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">加購小計</span>
                   <span className="font-medium">NT$ {addonTotal.toLocaleString()}</span>
-                </div>
-              )}
-              {calculatedPrice.discount > 0 && (
-                <div className="flex justify-between items-center text-primary">
-                  <span className="text-sm">折扣</span>
-                  <span className="font-medium">- NT$ {calculatedPrice.discount.toLocaleString()}</span>
                 </div>
               )}
               <div className="flex justify-between items-center py-3 bg-primary/5 px-4 rounded-lg">
