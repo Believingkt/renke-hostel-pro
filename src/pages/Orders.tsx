@@ -497,6 +497,7 @@ const Orders = () => {
     discount_code: string | null;
     meal_plan: string | null;
     meal_plan_details: { addon_id: string; quantity: number }[] | null;
+    custom_addon_details?: any[] | null;
     guest_name: string;
     guest_phone: string;
     guest_email: string;
