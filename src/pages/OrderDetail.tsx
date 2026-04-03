@@ -1078,7 +1078,7 @@ const OrderDetailPage = () => {
             <div className="flex justify-between items-center gap-2">
               <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">入住人數</span>
               {isEditing ? (
-                <Input className="w-[100px] h-8 text-sm text-right" type="number" min={1} value={editForm.guest_count} onChange={(e) => setEditForm(f => ({ ...f, guest_count: Math.max(1, parseInt(e.target.value) || 1) }))} />
+                <Input className="w-[100px] h-8 text-sm text-right" type="text" inputMode="numeric" min={1} value={editForm.guest_count} onChange={(e) => setEditForm(f => ({ ...f, guest_count: Math.max(1, parseInt(e.target.value) || 1) }))} />
               ) : (
                 <span className="font-medium text-sm md:text-base">{order.guest_count} 人</span>
               )}
@@ -1123,7 +1123,7 @@ const OrderDetailPage = () => {
             <div className="flex justify-between items-center gap-2">
               <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">原始金額</span>
               {isEditing ? (
-                <Input className="w-[140px] h-8 text-sm text-right" type="number" min={0} value={editForm.total_price} onChange={(e) => setEditForm(f => ({ ...f, total_price: Math.max(0, parseInt(e.target.value) || 0) }))} />
+                <Input className="w-[140px] h-8 text-sm text-right" type="text" inputMode="numeric" min={0} value={editForm.total_price} onChange={(e) => setEditForm(f => ({ ...f, total_price: Math.max(0, parseInt(e.target.value) || 0) }))} />
               ) : (
                 <span className="font-medium text-sm md:text-base">NT$ {order.total_price.toLocaleString()}</span>
               )}
@@ -1132,7 +1132,7 @@ const OrderDetailPage = () => {
             <div className="flex justify-between items-center gap-2">
               <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">折扣金額</span>
               {isEditing ? (
-                <Input className="w-[140px] h-8 text-sm text-right" type="number" min={0} value={editForm.discount_amount} onChange={(e) => setEditForm(f => ({ ...f, discount_amount: Math.max(0, parseInt(e.target.value) || 0) }))} />
+                <Input className="w-[140px] h-8 text-sm text-right" type="text" inputMode="numeric" min={0} value={editForm.discount_amount} onChange={(e) => setEditForm(f => ({ ...f, discount_amount: Math.max(0, parseInt(e.target.value) || 0) }))} />
               ) : (
                 order.discount_amount > 0 ? (
                   <span className="font-medium text-sm md:text-base text-destructive">- NT$ {order.discount_amount.toLocaleString()}</span>
@@ -1185,7 +1185,7 @@ const OrderDetailPage = () => {
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">訂金金額</span>
                     {isEditing ? (
-                      <Input className="w-[140px] h-8 text-sm text-right" type="number" min={0} value={editForm.deposit_amount} onChange={(e) => setEditForm(f => ({ ...f, deposit_amount: Math.max(0, parseInt(e.target.value) || 0) }))} />
+                      <Input className="w-[140px] h-8 text-sm text-right" type="text" inputMode="numeric" min={0} value={editForm.deposit_amount} onChange={(e) => setEditForm(f => ({ ...f, deposit_amount: Math.max(0, parseInt(e.target.value) || 0) }))} />
                     ) : (
                       <span className="font-medium text-sm md:text-base">NT$ {order.deposit_amount.toLocaleString()}</span>
                     )}
@@ -1194,7 +1194,7 @@ const OrderDetailPage = () => {
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">已付金額</span>
                     {isEditing ? (
-                      <Input className="w-[140px] h-8 text-sm text-right" type="number" min={0} value={editForm.paid_amount} onChange={(e) => setEditForm(f => ({ ...f, paid_amount: Math.max(0, parseInt(e.target.value) || 0) }))} />
+                      <Input className="w-[140px] h-8 text-sm text-right" type="text" inputMode="numeric" min={0} value={editForm.paid_amount} onChange={(e) => setEditForm(f => ({ ...f, paid_amount: Math.max(0, parseInt(e.target.value) || 0) }))} />
                     ) : (
                       <span className="font-medium text-sm md:text-base text-primary">NT$ {order.paid_amount.toLocaleString()}</span>
                     )}
@@ -1236,7 +1236,7 @@ const OrderDetailPage = () => {
                       <span className="text-xs md:text-sm text-muted-foreground">數量（{petAddon.unit_label}）</span>
                       <Input
                         className="w-[100px] h-8 text-sm text-right"
-                        type="number"
+                        type="text" inputMode="numeric"
                         min={0}
                         max={petAddon.max_quantity}
                         value={editForm.pet_count}
@@ -1264,11 +1264,11 @@ const OrderDetailPage = () => {
                     </div>
                     <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
                       <span className="text-xs md:text-sm text-muted-foreground">數量</span>
-                      <Input className="w-[100px] h-8 text-sm text-right" type="number" min={0} value={editForm.pet_count} onChange={(e) => setEditForm(f => ({ ...f, pet_count: Math.max(0, parseInt(e.target.value) || 0) }))} />
+                      <Input className="w-[100px] h-8 text-sm text-right" type="text" inputMode="numeric" min={0} value={editForm.pet_count} onChange={(e) => setEditForm(f => ({ ...f, pet_count: Math.max(0, parseInt(e.target.value) || 0) }))} />
                     </div>
                     <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
                       <span className="text-xs md:text-sm text-muted-foreground">金額</span>
-                      <Input className="w-[120px] h-8 text-sm text-right" type="number" min={0} value={editForm.pet_plan_price} onChange={(e) => setEditForm(f => ({ ...f, pet_plan_price: Math.max(0, parseInt(e.target.value) || 0) }))} />
+                      <Input className="w-[120px] h-8 text-sm text-right" type="text" inputMode="numeric" min={0} value={editForm.pet_plan_price} onChange={(e) => setEditForm(f => ({ ...f, pet_plan_price: Math.max(0, parseInt(e.target.value) || 0) }))} />
                     </div>
                     <Separator />
                   </div>
@@ -1291,7 +1291,7 @@ const OrderDetailPage = () => {
                           </span>
                           <Input
                             className="w-[70px] h-7 text-xs text-right"
-                            type="number"
+                            type="text" inputMode="numeric"
                             min={0}
                             max={mealAddon.max_quantity}
                             value={detail.count}
@@ -1406,7 +1406,7 @@ const OrderDetailPage = () => {
                         <span className="text-xs md:text-sm text-muted-foreground">數量（{addon.unit_label}）</span>
                         <Input
                           className="w-[100px] h-8 text-sm text-right"
-                          type="number"
+                          type="text" inputMode="numeric"
                           min={0}
                           max={addon.max_quantity}
                           value={count}
@@ -1606,7 +1606,7 @@ const OrderDetailPage = () => {
               <Label htmlFor="edit-total-price">原始金額</Label>
               <Input
                 id="edit-total-price"
-                type="number"
+                type="text" inputMode="numeric"
                 min={0}
                 value={editTotalPrice}
                 onChange={(e) => setEditTotalPrice(Math.max(0, parseInt(e.target.value) || 0))}
@@ -1616,7 +1616,7 @@ const OrderDetailPage = () => {
               <Label htmlFor="edit-discount">折扣金額</Label>
               <Input
                 id="edit-discount"
-                type="number"
+                type="text" inputMode="numeric"
                 min={0}
                 value={editDiscountAmount}
                 onChange={(e) => setEditDiscountAmount(Math.max(0, parseInt(e.target.value) || 0))}
@@ -1634,7 +1634,7 @@ const OrderDetailPage = () => {
               <Label htmlFor="edit-deposit">訂金金額</Label>
               <Input
                 id="edit-deposit"
-                type="number"
+                type="text" inputMode="numeric"
                 min={0}
                 value={editDepositAmount}
                 onChange={(e) => setEditDepositAmount(Math.max(0, parseInt(e.target.value) || 0))}
@@ -1644,7 +1644,7 @@ const OrderDetailPage = () => {
               <Label htmlFor="edit-paid">已付金額</Label>
               <Input
                 id="edit-paid"
-                type="number"
+                type="text" inputMode="numeric"
                 min={0}
                 value={editPaidAmount}
                 onChange={(e) => setEditPaidAmount(Math.max(0, parseInt(e.target.value) || 0))}
