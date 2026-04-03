@@ -226,8 +226,8 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
               id="list-edit-discount"
               type="number"
               min={0}
-              value={editDiscountAmount}
-              onChange={(e) => setEditDiscountAmount(Math.max(0, parseInt(e.target.value) || 0))}
+              value={editDiscountAmountStr}
+              onChange={(e) => setEditDiscountAmountStr(e.target.value)}
             />
           </div>
 
