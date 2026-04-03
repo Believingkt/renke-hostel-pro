@@ -261,9 +261,10 @@ const OrderDetailPage = () => {
     }
   }, [isEditing, editForm.total_price, editForm.addon_total, editForm.discount_amount]);
 
+  // Auto-enter editing mode from URL param
+  useEffect(() => {
     if (searchParams.get("editing") === "true" && order && !isEditing) {
       startEditing();
-      // Remove the editing param from URL
       const next = new URLSearchParams(searchParams);
       next.delete("editing");
       setSearchParams(next, { replace: true });
