@@ -971,12 +971,6 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
                   className="h-12 text-base sm:h-10 sm:text-sm"
                 />
               </div>
-              {editForm.selected_addons.length > 0 && (
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">加購小計</span>
-                  <span className="font-medium">NT$ {addonTotal.toLocaleString()}</span>
-                </div>
-              )}
               <div className="flex justify-between items-center py-3 bg-primary/5 px-4 rounded-lg">
                 <span className="font-semibold">總金額</span>
                 <span className="font-bold text-lg text-primary">
