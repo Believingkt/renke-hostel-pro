@@ -1322,18 +1322,23 @@ const OrderDetailPage = () => {
                     </div>
                     <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
                       <span className="text-xs md:text-sm text-muted-foreground">數量（{petAddon.unit_label}）</span>
-                      <Input
-                        className="w-[100px] h-8 text-sm text-right"
-                        type="text" inputMode="numeric"
-                       
-                       
-                        value={editForm.pet_count}
-                        onChange={(e) => {
-                          const count = Math.max(0, Math.min(petAddon.max_quantity, parseInt(e.target.value) || 0));
-                          const price = count * petAddon.price_per_unit * nights;
-                          setEditForm(f => ({ ...f, pet_count: count, pet_plan_price: price }));
-                        }}
-                      />
+                      <div className="flex items-center gap-2">
+                        <Button type="button" variant="outline" size="icon" className="h-7 w-7" disabled={editForm.pet_count <= 0}
+                          onClick={() => {
+                            const count = Math.max(0, editForm.pet_count - 1);
+                            setEditForm(f => ({ ...f, pet_count: count, pet_plan_price: count * petAddon.price_per_unit * nights }));
+                          }}>
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        <span className="w-8 text-center text-sm font-medium">{editForm.pet_count}</span>
+                        <Button type="button" variant="outline" size="icon" className="h-7 w-7" disabled={editForm.pet_count >= petAddon.max_quantity}
+                          onClick={() => {
+                            const count = Math.min(petAddon.max_quantity, editForm.pet_count + 1);
+                            setEditForm(f => ({ ...f, pet_count: count, pet_plan_price: count * petAddon.price_per_unit * nights }));
+                          }}>
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
                     <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
                       <span className="text-xs md:text-sm text-muted-foreground">單價</span>
