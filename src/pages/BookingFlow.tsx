@@ -1801,7 +1801,9 @@ const BookingFlow = () => {
 
 
     try {
-      const totalPrice = calculateTotal();
+      const roomTotal = calculateTotal();
+      const addonsTotal = calculateAddonsTotal();
+      const totalPrice = roomTotal + addonsTotal;
       const discountAmount = calculateDiscount();
       const finalPrice = calculateFinalTotal();
       const depositAmount = calculateDeposit();
