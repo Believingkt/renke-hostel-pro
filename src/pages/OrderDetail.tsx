@@ -61,6 +61,8 @@ interface OrderDetail {
   guest_phone: string;
   guest_email: string | null;
   guest_address: string | null;
+  guest_gender: string | null;
+  guest_nationality: string | null;
   check_in_date: string;
   check_out_date: string;
   guest_count: number;
