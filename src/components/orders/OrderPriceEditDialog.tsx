@@ -38,8 +38,10 @@ interface AddonDetail {
 export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: OrderPriceEditDialogProps) {
   const { toast } = useToast();
   const { currentAccommodationId } = useAccommodation();
-  const [editTotalPrice, setEditTotalPrice] = useState(0);
-  const [editDiscountAmount, setEditDiscountAmount] = useState(0);
+  const [editTotalPriceStr, setEditTotalPriceStr] = useState("0");
+  const [editDiscountAmountStr, setEditDiscountAmountStr] = useState("0");
+  const editTotalPrice = Math.max(0, parseInt(editTotalPriceStr) || 0);
+  const editDiscountAmount = Math.max(0, parseInt(editDiscountAmountStr) || 0);
   const [editDepositAmount, setEditDepositAmount] = useState(0);
   const [editPaidAmount, setEditPaidAmount] = useState(0);
   const [editReason, setEditReason] = useState("");
