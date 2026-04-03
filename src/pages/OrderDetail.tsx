@@ -1497,26 +1497,33 @@ const OrderDetailPage = () => {
                         </div>
                         <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
                           <span className="text-xs md:text-sm text-muted-foreground">數量（{addon.unit_label}）</span>
-                          <Input
-                            className="w-[100px] h-8 text-sm text-right"
-                            type="text" inputMode="numeric"
-                            value={count}
-                            onChange={(e) => {
-                              const newCount = Math.max(0, Math.min(addon.max_quantity, parseInt(e.target.value) || 0));
-                              const newTotal = newCount * addon.price_per_unit * nights;
-                              const newDetails = editForm.custom_addon_details.filter(d => d.addon_type !== addon.addon_type);
-                              if (newCount > 0) {
-                                newDetails.push({
-                                  addon_type: addon.addon_type,
-                                  count: newCount,
-                                  price_per_unit: addon.price_per_unit,
-                                  total: newTotal,
-                                  unit_label: addon.unit_label,
-                                });
-                              }
-                              setEditForm(f => ({ ...f, custom_addon_details: newDetails }));
-                            }}
-                          />
+                          <div className="flex items-center gap-2">
+                            <Button type="button" variant="outline" size="icon" className="h-7 w-7" disabled={count <= 0}
+                              onClick={() => {
+                                const newCount = Math.max(0, count - 1);
+                                const newTotal = newCount * addon.price_per_unit * nights;
+                                const newDetails = editForm.custom_addon_details.filter(d => d.addon_type !== addon.addon_type);
+                                if (newCount > 0) {
+                                  newDetails.push({ addon_type: addon.addon_type, count: newCount, price_per_unit: addon.price_per_unit, total: newTotal, unit_label: addon.unit_label });
+                                }
+                                setEditForm(f => ({ ...f, custom_addon_details: newDetails }));
+                              }}>
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <span className="w-8 text-center text-sm font-medium">{count}</span>
+                            <Button type="button" variant="outline" size="icon" className="h-7 w-7" disabled={count >= addon.max_quantity}
+                              onClick={() => {
+                                const newCount = Math.min(addon.max_quantity, count + 1);
+                                const newTotal = newCount * addon.price_per_unit * nights;
+                                const newDetails = editForm.custom_addon_details.filter(d => d.addon_type !== addon.addon_type);
+                                if (newCount > 0) {
+                                  newDetails.push({ addon_type: addon.addon_type, count: newCount, price_per_unit: addon.price_per_unit, total: newTotal, unit_label: addon.unit_label });
+                                }
+                                setEditForm(f => ({ ...f, custom_addon_details: newDetails }));
+                              }}>
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
                         </div>
                         <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
                           <span className="text-xs md:text-sm text-muted-foreground">單價</span>
