@@ -262,6 +262,7 @@ const OrderDetailPage = () => {
         guest_address: editForm.guest_address.trim() || null,
         guest_gender: editForm.guest_gender || null,
         guest_nationality: editForm.guest_nationality.trim() || null,
+        guest_count: editForm.guest_count,
         order_source: editForm.order_source,
         order_status: editForm.order_status,
         payment_status: editForm.payment_status,
