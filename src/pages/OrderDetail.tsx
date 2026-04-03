@@ -178,6 +178,7 @@ const OrderDetailPage = () => {
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [roomTypes, setRoomTypes] = useState<RoomTypeOption[]>([]);
   const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
+  const [depositRatioRef] = useState<{ current: number }>({ current: 0 });
   const [editForm, setEditForm] = useState<EditFormState>({
     guest_name: "",
     guest_phone: "",
@@ -235,6 +236,9 @@ const OrderDetailPage = () => {
       custom_addon_details: (order.custom_addon_details as CustomAddonDetail[]) || [],
       addon_total: (order.pet_plan_price || 0) + (order.meal_plan_total || 0) + ((order.custom_addon_details as CustomAddonDetail[]) || []).reduce((sum, d) => sum + d.total, 0),
     });
+    // Store deposit ratio based on original final price
+    const originalFinal = (order.total_price || 0) + ((order.pet_plan_price || 0) + (order.meal_plan_total || 0) + ((order.custom_addon_details as CustomAddonDetail[]) || []).reduce((sum, d) => sum + d.total, 0)) - (order.discount_amount || 0);
+    depositRatioRef.current = originalFinal > 0 ? (order.deposit_amount || 0) / originalFinal : 0;
     setIsEditing(true);
   };
 
@@ -247,10 +251,20 @@ const OrderDetailPage = () => {
     }
   }, [isEditing, editForm.pet_plan_price, editForm.meal_plan_total, editForm.custom_addon_details]);
 
+  // Auto-sync deposit_amount when final price changes
+  useEffect(() => {
+    if (!isEditing || depositRatioRef.current <= 0) return;
+    const newFinal = editForm.total_price + editForm.addon_total - editForm.discount_amount;
+    const newDeposit = Math.max(0, Math.round(newFinal * depositRatioRef.current));
+    if (newDeposit !== editForm.deposit_amount) {
+      setEditForm(f => ({ ...f, deposit_amount: newDeposit }));
+    }
+  }, [isEditing, editForm.total_price, editForm.addon_total, editForm.discount_amount]);
+
+  // Auto-enter editing mode from URL param
   useEffect(() => {
     if (searchParams.get("editing") === "true" && order && !isEditing) {
       startEditing();
-      // Remove the editing param from URL
       const next = new URLSearchParams(searchParams);
       next.delete("editing");
       setSearchParams(next, { replace: true });
