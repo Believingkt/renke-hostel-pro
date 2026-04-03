@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation, Link, useSearchParams as useSearchParamsHook } from "react-router-dom";
-import { ArrowLeft, Mail, Home, ShoppingBag, Globe, UserPlus, CreditCard, XCircle, Pencil, Save, X } from "lucide-react";
+import { ArrowLeft, Mail, Home, ShoppingBag, Globe, UserPlus, CreditCard, XCircle, Pencil, Save, X, Minus, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -1322,18 +1322,23 @@ const OrderDetailPage = () => {
                     </div>
                     <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
                       <span className="text-xs md:text-sm text-muted-foreground">數量（{petAddon.unit_label}）</span>
-                      <Input
-                        className="w-[100px] h-8 text-sm text-right"
-                        type="text" inputMode="numeric"
-                       
-                       
-                        value={editForm.pet_count}
-                        onChange={(e) => {
-                          const count = Math.max(0, Math.min(petAddon.max_quantity, parseInt(e.target.value) || 0));
-                          const price = count * petAddon.price_per_unit * nights;
-                          setEditForm(f => ({ ...f, pet_count: count, pet_plan_price: price }));
-                        }}
-                      />
+                      <div className="flex items-center gap-2">
+                        <Button type="button" variant="outline" size="icon" className="h-7 w-7" disabled={editForm.pet_count <= 0}
+                          onClick={() => {
+                            const count = Math.max(0, editForm.pet_count - 1);
+                            setEditForm(f => ({ ...f, pet_count: count, pet_plan_price: count * petAddon.price_per_unit * nights }));
+                          }}>
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        <span className="w-8 text-center text-sm font-medium">{editForm.pet_count}</span>
+                        <Button type="button" variant="outline" size="icon" className="h-7 w-7" disabled={editForm.pet_count >= petAddon.max_quantity}
+                          onClick={() => {
+                            const count = Math.min(petAddon.max_quantity, editForm.pet_count + 1);
+                            setEditForm(f => ({ ...f, pet_count: count, pet_plan_price: count * petAddon.price_per_unit * nights }));
+                          }}>
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
                     <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
                       <span className="text-xs md:text-sm text-muted-foreground">單價</span>
@@ -1378,10 +1383,8 @@ const OrderDetailPage = () => {
                             {format(new Date(detail.date), "yyyy/MM/dd")}
                           </span>
                           <Input
-                            className="w-[70px] h-7 text-xs text-right"
+                            className="w-[70px] h-7 text-xs text-center"
                             type="text" inputMode="numeric"
-                           
-                           
                             value={detail.count}
                             onChange={(e) => {
                               const count = Math.max(0, parseInt(e.target.value) || 0);
@@ -1494,26 +1497,33 @@ const OrderDetailPage = () => {
                         </div>
                         <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
                           <span className="text-xs md:text-sm text-muted-foreground">數量（{addon.unit_label}）</span>
-                          <Input
-                            className="w-[100px] h-8 text-sm text-right"
-                            type="text" inputMode="numeric"
-                            value={count}
-                            onChange={(e) => {
-                              const newCount = Math.max(0, Math.min(addon.max_quantity, parseInt(e.target.value) || 0));
-                              const newTotal = newCount * addon.price_per_unit * nights;
-                              const newDetails = editForm.custom_addon_details.filter(d => d.addon_type !== addon.addon_type);
-                              if (newCount > 0) {
-                                newDetails.push({
-                                  addon_type: addon.addon_type,
-                                  count: newCount,
-                                  price_per_unit: addon.price_per_unit,
-                                  total: newTotal,
-                                  unit_label: addon.unit_label,
-                                });
-                              }
-                              setEditForm(f => ({ ...f, custom_addon_details: newDetails }));
-                            }}
-                          />
+                          <div className="flex items-center gap-2">
+                            <Button type="button" variant="outline" size="icon" className="h-7 w-7" disabled={count <= 0}
+                              onClick={() => {
+                                const newCount = Math.max(0, count - 1);
+                                const newTotal = newCount * addon.price_per_unit * nights;
+                                const newDetails = editForm.custom_addon_details.filter(d => d.addon_type !== addon.addon_type);
+                                if (newCount > 0) {
+                                  newDetails.push({ addon_type: addon.addon_type, count: newCount, price_per_unit: addon.price_per_unit, total: newTotal, unit_label: addon.unit_label });
+                                }
+                                setEditForm(f => ({ ...f, custom_addon_details: newDetails }));
+                              }}>
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <span className="w-8 text-center text-sm font-medium">{count}</span>
+                            <Button type="button" variant="outline" size="icon" className="h-7 w-7" disabled={count >= addon.max_quantity}
+                              onClick={() => {
+                                const newCount = Math.min(addon.max_quantity, count + 1);
+                                const newTotal = newCount * addon.price_per_unit * nights;
+                                const newDetails = editForm.custom_addon_details.filter(d => d.addon_type !== addon.addon_type);
+                                if (newCount > 0) {
+                                  newDetails.push({ addon_type: addon.addon_type, count: newCount, price_per_unit: addon.price_per_unit, total: newTotal, unit_label: addon.unit_label });
+                                }
+                                setEditForm(f => ({ ...f, custom_addon_details: newDetails }));
+                              }}>
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
                         </div>
                         <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
                           <span className="text-xs md:text-sm text-muted-foreground">單價</span>
