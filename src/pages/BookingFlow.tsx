@@ -4057,7 +4057,7 @@ const BookingFlow = () => {
                           </div>
                         </div>
 
-                        {(petCount > 0 || Object.values(bbqMealsByDate).some(count => count > 0)) && (
+                        {(petCount > 0 || Object.values(bbqMealsByDate).some(count => count > 0) || Object.values(customAddonCounts).some(c => c > 0)) && (
                           <>
                             <Separator />
                             <div className="space-y-3">
@@ -4068,8 +4068,8 @@ const BookingFlow = () => {
                               {petCount > 0 && (
                                 <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
                                   <div className="flex items-center justify-between">
-                                    <span className="text-sm">🐾 寵物方案</span>
-                                    <span className="text-sm font-medium">{petCount} 隻 × {calculateNights()} 晚</span>
+                                    <span className="text-sm">🐾 寵物方案 × {petCount} 隻 × {calculateNights()} 晚</span>
+                                    <span className="text-sm font-semibold">NT$ {(petCount * petPlanSettings.pricePerUnit * calculateNights()).toLocaleString()}</span>
                                   </div>
                                 </div>
                               )}
@@ -4084,15 +4084,26 @@ const BookingFlow = () => {
                                       .map(([dateStr, count]) => (
                                         <div key={dateStr} className="flex justify-between text-xs">
                                           <span className="text-muted-foreground">
-                                            {format(new Date(dateStr), "yyyy/MM/dd (E)", { locale: zhTW })}
+                                            {format(new Date(dateStr), "yyyy/MM/dd (E)", { locale: zhTW })} × {count} 人
                                           </span>
-                                          <span className="font-medium">{count} 人</span>
+                                          <span className="font-medium">NT$ {(count * mealPlanSettings.pricePerUnit).toLocaleString()}</span>
                                         </div>
                                       ))
                                     }
                                   </div>
                                 </div>
                               )}
+                              {Object.entries(customAddonCounts).filter(([_, count]) => count > 0).map(([type, count]) => {
+                                const setting = customAddonSettings.find(s => s.addon_type === type);
+                                return (
+                                  <div key={type} className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm">🛏️ {setting?.description || type} × {count} × {calculateNights()} 晚</span>
+                                      <span className="text-sm font-semibold">NT$ {(count * (setting?.price_per_unit || 0) * calculateNights()).toLocaleString()}</span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </>
                         )}
