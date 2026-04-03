@@ -57,6 +57,7 @@ interface EditOrderDialogProps {
     discount_code: string | null;
     meal_plan: string | null;
     meal_plan_details: { addon_id: string; quantity: number }[] | null;
+    custom_addon_details?: any[] | null;
     guest_name: string;
     guest_phone: string;
     guest_email: string;
@@ -501,6 +502,21 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         payment_status = "deposit_paid";
       }
       
+      // Build custom_addon_details for persistence
+      const customAddonDetails = editForm.selected_addons
+        .filter(sa => sa.quantity > 0)
+        .map(sa => {
+          const addon = addonSettings.find(a => a.id === sa.addon_id);
+          return addon ? {
+            addon_type: addon.addon_type,
+            count: sa.quantity,
+            price_per_unit: addon.price_per_unit,
+            total: addon.price_per_unit * sa.quantity,
+            unit_label: addon.unit_label,
+          } : null;
+        })
+        .filter(Boolean);
+
       await onSave({
         order_status: editForm.order_status,
         payment_status,
@@ -518,6 +534,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         discount_code: appliedDiscount?.code || null,
         meal_plan: editForm.meal_plan || null,
         meal_plan_details: editForm.selected_addons.length > 0 ? editForm.selected_addons : null,
+        custom_addon_details: customAddonDetails.length > 0 ? customAddonDetails : null,
         guest_name: editForm.guest_name,
         guest_phone: editForm.guest_phone,
         guest_email: editForm.guest_email,
