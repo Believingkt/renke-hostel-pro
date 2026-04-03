@@ -94,6 +94,8 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
   const [calculatedPrice, setCalculatedPrice] = useState({ total: 0, discount: 0, final: 0 });
   const [inventoryWarnings, setInventoryWarnings] = useState<{ date: string; available: number; blocked?: boolean; blockedBy?: string }[]>([]);
   const [isCheckingInventory, setIsCheckingInventory] = useState(false);
+  const [manualTotalPriceStr, setManualTotalPriceStr] = useState<string | null>(null);
+  const [manualDiscountStr, setManualDiscountStr] = useState<string | null>(null);
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; type: "percentage" | "amount"; value: number } | null>(null);
   const [isValidatingCode, setIsValidatingCode] = useState(false);
