@@ -562,7 +562,9 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         const addon = addonSettings.find(a => a.id === selectedAddon.addon_id);
         return sum + (addon ? addon.price_per_unit * selectedAddon.quantity : 0);
       }, 0);
-      const totalFinal = calculatedPrice.final + addonTotal;
+      const effectiveTotal = manualTotalPriceStr !== null ? Math.max(0, parseInt(manualTotalPriceStr) || 0) : calculatedPrice.total;
+      const effectiveDiscount = manualDiscountStr !== null ? Math.max(0, parseInt(manualDiscountStr) || 0) : calculatedPrice.discount;
+      const totalFinal = Math.max(0, effectiveTotal - effectiveDiscount + addonTotal);
       const depositAmount = Math.round(totalFinal * 0.3);
       
       // Determine payment_status based on deposit_paid and balance_paid
