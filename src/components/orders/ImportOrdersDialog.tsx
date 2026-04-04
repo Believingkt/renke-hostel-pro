@@ -280,7 +280,7 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
                 </Badge>
               )}
               {unmatchedCount > 0 && (
-                <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200">
+                <Badge className="bg-warning/10 text-warning border-warning/20">
                   <AlertTriangle className="h-3 w-3 mr-1" />
                   {unmatchedCount} 筆未匹配房型
                 </Badge>
