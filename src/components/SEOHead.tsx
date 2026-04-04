@@ -13,7 +13,7 @@ export const SEOHead = ({
   title,
   description,
   url = window.location.href,
-  image = `${window.location.origin}/og-image.jpg`,
+  image,
   type = "website",
   keywords = ["豪華露營", "民宿", "住宿", "日式", "山林", "度假", "台灣旅遊"]
 }: SEOHeadProps) => {
@@ -54,7 +54,9 @@ export const SEOHead = ({
     setMetaTag('og:title', title, true);
     setMetaTag('og:description', description, true);
     setMetaTag('og:url', url, true);
-    setMetaTag('og:image', image, true);
+    if (image) {
+      setMetaTag('og:image', image, true);
+    }
     setMetaTag('og:type', type, true);
     setMetaTag('og:locale', 'zh_TW', true);
     setMetaTag('og:site_name', title, true);
@@ -63,7 +65,9 @@ export const SEOHead = ({
     setMetaTag('twitter:card', 'summary_large_image');
     setMetaTag('twitter:title', title);
     setMetaTag('twitter:description', description);
-    setMetaTag('twitter:image', image);
+    if (image) {
+      setMetaTag('twitter:image', image);
+    }
 
     // 設置 canonical URL
     let canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
