@@ -189,7 +189,7 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
       if (o.checkOutDate <= today) orderStatus = "checked_out";
       else if (o.checkInDate <= today && o.checkOutDate > today) orderStatus = "checked_in";
 
-      const { error } = await supabase.from("orders").insert({
+      const insertData: Record<string, unknown> = {
         accommodation_id: accommodationId,
         guest_name: o.guestName || "未填",
         guest_phone: o.guestPhone || "0000000000",
@@ -206,7 +206,8 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
         order_date: o.orderDate || new Date().toISOString(),
         room_type_id: o.matchedRoomTypeId || null,
         notes: noteWithTag,
-      });
+      };
+      const { error } = await supabase.from("orders").insert(insertData as never);
 
       if (error) {
         console.error("Import error:", error);
