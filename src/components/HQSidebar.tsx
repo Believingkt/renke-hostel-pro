@@ -48,6 +48,9 @@ const menuItems = [
   { title: "設施管理", url: "/hq?tab=facilities", icon: Utensils, tab: "facilities" },
   { title: "帳號管理", url: "/hq?tab=users", icon: Users, tab: "users" },
   { title: "合作夥伴", url: "/hq?tab=partners", icon: Handshake, tab: "partners" },
+  { title: "會員管理", url: "/hq?tab=members", icon: UserCheck, tab: "members" },
+  { title: "優惠券管理", url: "/hq?tab=coupons", icon: Ticket, tab: "coupons" },
+  { title: "點數規則", url: "/hq?tab=point-rules", icon: Gift, tab: "point-rules" },
   { title: "系統管理", url: "/hq?tab=system&section=settings", icon: Settings, tab: "system" },
 ];
 
