@@ -53,48 +53,18 @@ export function splitOrderRevenueByMonth(
     final_price: number;
     meal_plan?: string | null;
   },
-  pricingMap: PricingMap
+  _pricingMap?: PricingMap
 ): Map<string, number> {
   const result = new Map<string, number>();
   const checkIn = new Date(order.check_in_date);
   const checkOut = new Date(order.check_out_date);
   const totalNights = Math.max(1, differenceInDays(checkOut, checkIn));
-
-  // Collect daily prices from inventory
-  const dailyPrices: { monthKey: string; price: number }[] = [];
-  let totalInventoryPrice = 0;
-  let hasInventory = false;
+  const dailyRevenue = order.final_price / totalNights;
 
   for (let i = 0; i < totalNights; i++) {
     const day = addDays(checkIn, i);
-    const dateStr = format(day, 'yyyy-MM-dd');
     const monthKey = format(day, 'yyyy-MM');
-
-    let dailyPrice = 0;
-    if (order.room_type_id) {
-      const inv = pricingMap.get(`${order.room_type_id}_${dateStr}`);
-      if (inv) {
-        dailyPrice = pickDailyPrice(inv, order.meal_plan ?? null);
-        hasInventory = true;
-      }
-    }
-
-    dailyPrices.push({ monthKey, price: dailyPrice });
-    totalInventoryPrice += dailyPrice;
-  }
-
-  if (hasInventory && totalInventoryPrice > 0) {
-    // Use inventory prices as weights to proportionally split final_price
-    dailyPrices.forEach(({ monthKey, price }) => {
-      const share = (price / totalInventoryPrice) * order.final_price;
-      result.set(monthKey, (result.get(monthKey) || 0) + share);
-    });
-  } else {
-    // Fallback: equal distribution
-    const fallbackDailyPrice = order.final_price / totalNights;
-    dailyPrices.forEach(({ monthKey }) => {
-      result.set(monthKey, (result.get(monthKey) || 0) + fallbackDailyPrice);
-    });
+    result.set(monthKey, (result.get(monthKey) || 0) + dailyRevenue);
   }
 
   return result;
