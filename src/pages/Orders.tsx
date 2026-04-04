@@ -214,13 +214,13 @@ const Orders = () => {
           filtered = filtered.filter(order => order.order_status === "pending");
           break;
         case "today_checkin":
-          filtered = filtered.filter(order => order.check_in_date === today);
+          filtered = filtered.filter(order => order.check_in_date === today && order.order_status !== "cancelled");
           break;
         case "today_checkout":
-          filtered = filtered.filter(order => order.check_out_date === today);
+          filtered = filtered.filter(order => order.check_out_date === today && order.order_status !== "cancelled");
           break;
         case "unpaid":
-          filtered = filtered.filter(order => order.payment_status === "unpaid");
+          filtered = filtered.filter(order => order.payment_status === "unpaid" && order.order_status !== "cancelled");
           break;
         case "upcoming":
           filtered = filtered.filter(order => 
