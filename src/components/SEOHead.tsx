@@ -65,7 +65,9 @@ export const SEOHead = ({
     setMetaTag('twitter:card', 'summary_large_image');
     setMetaTag('twitter:title', title);
     setMetaTag('twitter:description', description);
-    setMetaTag('twitter:image', image);
+    if (image) {
+      setMetaTag('twitter:image', image);
+    }
 
     // 設置 canonical URL
     let canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;

@@ -135,7 +135,7 @@ const Index = () => {
                 info.address?.includes("南投") ? "南投民宿" : "民宿"
               ]
         }
-        image={info.og_image_url}
+        image={info.og_image_url || heroPhotos?.[0]?.photo_url || galleryPhotos?.[0]?.photo_url}
       />
       
       {/* 結構化資料 */}
