@@ -767,6 +767,7 @@ const OrderDetailPage = () => {
     { value: "travel_agency", label: "旅行社" },
     { value: "kol", label: "KOL互惠" },
     { value: "points_starchain", label: "星鏈會員" },
+    { value: "official_use", label: "公務使用" },
   ];
 
   const orderStatusOptions = [
