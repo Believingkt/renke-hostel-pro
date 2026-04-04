@@ -428,7 +428,7 @@ const KolDiscount = () => {
   };
 
   const handleCopyReferralLink = (code: string) => {
-    const referralLink = `https://sensaninn.lakeze.com/booking?ref=${code}`;
+    const referralLink = `https://sensaninn.lakeze.com/book?ref=${code}`;
     navigator.clipboard.writeText(referralLink);
     setCopiedLink(code);
     setTimeout(() => setCopiedLink(null), 2000);

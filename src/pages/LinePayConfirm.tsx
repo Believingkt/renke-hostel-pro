@@ -289,7 +289,7 @@ export default function LinePayConfirm() {
               </Alert>
               
               <div className="space-y-3 pt-4">
-                <Button onClick={() => navigate('/booking')} className="w-full">
+                <Button onClick={() => navigate('/book')} className="w-full">
                   重新訂房
                 </Button>
                 <Button onClick={() => navigate('/')} variant="outline" className="w-full">

@@ -234,7 +234,7 @@ export default function PaymentResult() {
     if (paymentSource === 'admin') {
       navigate('/orders');
     } else if (paymentSource === 'booking') {
-      navigate('/booking?step=payment');
+      navigate('/book?step=payment');
     } else {
       navigate(-1);
     }

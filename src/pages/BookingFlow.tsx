@@ -2123,8 +2123,8 @@ const BookingFlow = () => {
                 orderData: {
                   roomTypeId: selectedRoom.id,
                   roomTypeName: selectedRoom.name,
-                  confirmUrl: `${currentUrl}/booking/linepay-confirm`,
-                  cancelUrl: `${currentUrl}/booking?step=payment`,
+                  confirmUrl: `${currentUrl}/book/linepay-confirm`,
+                  cancelUrl: `${currentUrl}/book?step=payment`,
                 },
               },
             }
