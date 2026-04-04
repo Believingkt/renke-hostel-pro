@@ -231,13 +231,11 @@ export default function RoomPriceCalendar() {
       setRoomTypes(loadedRoomTypes);
       setTemplates(loadedTemplates);
       
-      // 建立庫存查找表
-
-      // 建立庫存查找表
+      // 建立庫存查找表（含預訂數量）
       const invMap = new Map<string, InventoryData>();
       loadedInventory.forEach(item => {
         const key = `${item.room_type_id}_${item.date}`;
-        invMap.set(key, item);
+        invMap.set(key, { ...item, booked_count: bookingCountMap.get(key) || 0 });
       });
       setInventory(invMap);
 
