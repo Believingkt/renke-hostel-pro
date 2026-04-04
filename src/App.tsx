@@ -21,6 +21,15 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import HQAuth from "./pages/HQAuth";
 
+// 平台入口 & 會員頁面 - lazy load
+const BookingPortal = lazy(() => import("./pages/BookingPortal"));
+const MemberAuth = lazy(() => import("./pages/MemberAuth"));
+const MemberLayout = lazy(() => import("./components/member/MemberLayout"));
+const MemberProfile = lazy(() => import("./pages/MemberProfile"));
+const MemberPoints = lazy(() => import("./pages/MemberPoints"));
+const MemberCoupons = lazy(() => import("./pages/MemberCoupons"));
+const MemberOrders = lazy(() => import("./pages/MemberOrders"));
+
 // 前台頁面 - lazy load
 const BookingFlow = lazy(() => import("./pages/BookingFlow"));
 const LinePayConfirm = lazy(() => import("./pages/LinePayConfirm"));
