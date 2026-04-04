@@ -1407,6 +1407,14 @@ const Headquarters = () => {
                 <Plus className="h-4 w-4" />
                 新增合作夥伴
               </Button>
+            ) : currentTab === 'coupons' ? (
+              <Button 
+                onClick={() => couponManagementRef.current?.openCreateDialog()} 
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                新增優惠券
+              </Button>
             ) : undefined
           }
         />
