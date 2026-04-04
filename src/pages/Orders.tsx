@@ -408,11 +408,11 @@ const Orders = () => {
       case "pending":
         return orders.filter(order => order.order_status === "pending").length;
       case "today_checkin":
-        return orders.filter(order => order.check_in_date === today).length;
+        return orders.filter(order => order.check_in_date === today && order.order_status !== "cancelled").length;
       case "today_checkout":
-        return orders.filter(order => order.check_out_date === today).length;
+        return orders.filter(order => order.check_out_date === today && order.order_status !== "cancelled").length;
       case "unpaid":
-        return orders.filter(order => order.payment_status === "unpaid").length;
+        return orders.filter(order => order.payment_status === "unpaid" && order.order_status !== "cancelled").length;
       case "upcoming":
         return orders.filter(order => 
           order.check_in_date >= today && 
