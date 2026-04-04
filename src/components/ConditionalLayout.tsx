@@ -46,7 +46,7 @@ export function ConditionalLayout() {
     const metadataNeedsChange = session.user.user_metadata?.force_password_change === true;
     
     // 以 profile 表為最終判斷依據，避免 metadata 未同步導致誤判
-    supabase
+    void supabase
       .from("profiles")
       .select("force_password_change")
       .eq("id", session.user.id)
@@ -54,10 +54,8 @@ export function ConditionalLayout() {
       .then(({ data: profile }) => {
         const needsChange = profile ? profile.force_password_change === true : metadataNeedsChange;
         setNeedsPasswordChange(needsChange);
-      })
-      .catch(() => {
-        // 查詢失敗時回退到 metadata 判斷
-        setNeedsPasswordChange(metadataNeedsChange);
+      }, () => {
+        setNeedsPasswordChange(metadataNeedsChange); 
       });
   }, []);
 
