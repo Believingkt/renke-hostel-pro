@@ -1,4 +1,5 @@
 import { Hotel, Users, Calendar, DollarSign, Radio, Zap, X, BarChart3, Home, ChevronLeft, ChevronRight } from "lucide-react";
+import { OccupancyRevenueTable } from "@/components/charts/OccupancyRevenueTable";
 import { Link } from "react-router-dom";
 import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -510,6 +511,11 @@ const Dashboard = () => {
             </Card>
           </>
         )}
+      </div>
+
+      {/* 住房率與營業分析報表 */}
+      <div className="px-2 md:px-0">
+        <OccupancyRevenueTable accommodationId={accommodationId!} selectedYear={selectedYear} />
       </div>
 
     </div>
