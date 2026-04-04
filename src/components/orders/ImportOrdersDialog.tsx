@@ -287,7 +287,7 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
               )}
             </div>
 
-            <ScrollArea className="flex-1 min-h-0">
+            <ScrollArea className="flex-1 min-h-0 max-h-[50vh]">
               <Table>
                 <TableHeader>
                   <TableRow>
