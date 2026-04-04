@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
@@ -126,12 +126,14 @@ const Orders = () => {
   }, [searchParams]);
 
   // 載入訂單資料
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async ({ showLoading = false }: { showLoading?: boolean } = {}) => {
     if (!accommodationId) return;
     
     try {
-      setLoading(true);
-      setError(null);
+      if (showLoading) {
+        setLoading(true);
+        setError(null);
+      }
       
       // 同時獲取訂單和自訂餐食方案
       const [ordersResult, templatesResult] = await Promise.all([
@@ -164,17 +166,23 @@ const Orders = () => {
       if (templatesResult.data?.meal_plans && Array.isArray(templatesResult.data.meal_plans)) {
         setCustomMealPlans(templatesResult.data.meal_plans as unknown as CustomMealPlan[]);
       }
+
+      setError(null);
     } catch (error) {
       console.error("Error fetching orders:", error);
-      setError(error instanceof Error ? error.message : "載入訂單時發生錯誤");
+      if (showLoading) {
+        setError(error instanceof Error ? error.message : "載入訂單時發生錯誤");
+      }
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
-  };
+  }, [accommodationId]);
 
   useEffect(() => {
-    fetchOrders();
-  }, [accommodationId]);
+    fetchOrders({ showLoading: true });
+  }, [fetchOrders]);
 
   // Set up real-time subscription to refetch orders on changes
   useEffect(() => {
@@ -191,7 +199,6 @@ const Orders = () => {
           filter: `accommodation_id=eq.${accommodationId}`
         },
         () => {
-          // Refetch orders when any change occurs
           fetchOrders();
         }
       )
@@ -200,7 +207,7 @@ const Orders = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [accommodationId]);
+  }, [accommodationId, fetchOrders]);
 
   // 套用篩選
   const applyFilters = () => {
