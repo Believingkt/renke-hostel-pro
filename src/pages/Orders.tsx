@@ -20,8 +20,9 @@ import { OrderSourceDialog } from "@/components/orders/OrderSourceDialog";
 import { CreateOrderDialog } from "@/components/orders/CreateOrderDialog";
 import { CreateHoldOrderDialog } from "@/components/orders/CreateHoldOrderDialog";
 import { Button } from "@/components/ui/button";
-import { Filter, ShoppingCart, CalendarDays, CreditCard, Package, ShoppingBag, Home, Plus, CalendarClock, Download } from "lucide-react";
+import { Filter, ShoppingCart, CalendarDays, CreditCard, Package, ShoppingBag, Home, Plus, CalendarClock, Download, Upload } from "lucide-react";
 import { exportOrdersToExcel } from "@/utils/exportOrders";
+import { ImportOrdersDialog } from "@/components/orders/ImportOrdersDialog";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -68,6 +69,7 @@ const Orders = () => {
   const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
   
   // 新增對話框狀態
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [holdDialogOpen, setHoldDialogOpen] = useState(false);
 
@@ -508,6 +510,10 @@ const Orders = () => {
               <Download className="h-4 w-4" />
               <span className="hidden sm:inline">匯出 Excel</span>
             </Button>
+            <Button variant="outline" onClick={() => setImportDialogOpen(true)} className="gap-2">
+              <Upload className="h-4 w-4" />
+              <span className="hidden sm:inline">匯入訂單</span>
+            </Button>
             <Button variant="outline" onClick={() => setHoldDialogOpen(true)} className="gap-2">
               <CalendarClock className="h-4 w-4" />
               <span className="hidden sm:inline">新增保留單</span>
@@ -785,6 +791,16 @@ const Orders = () => {
         onOpenChange={setOrderSourceDialogOpen}
         onSuccess={fetchOrders}
       />
+
+      {/* 匯入訂單對話框 */}
+      {accommodationId && (
+        <ImportOrdersDialog
+          open={importDialogOpen}
+          onOpenChange={setImportDialogOpen}
+          accommodationId={accommodationId}
+          onSuccess={fetchOrders}
+        />
+      )}
     </div>
   );
 };
