@@ -1,16 +1,13 @@
-import { Wifi, WifiOff, Zap } from "lucide-react";
+import { useState } from "react";
+import { Wifi, WifiOff, Zap, X } from "lucide-react";
 import { useNetworkStatus } from "@/hooks/use-network-status";
 import { cn } from "@/lib/utils";
 
-/**
- * 網路狀態指示器組件
- * 顯示當前網路連線速度
- */
 export const NetworkIndicator = () => {
   const { speed, effectiveType, saveData } = useNetworkStatus();
+  const [dismissed, setDismissed] = useState(false);
 
-  // 不顯示快速網路的指示器
-  if (speed === 'fast' && !saveData) {
+  if (dismissed || (speed === 'fast' && !saveData)) {
     return null;
   }
 
@@ -40,6 +37,13 @@ export const NetworkIndicator = () => {
           <span>數據節省模式</span>
         </>
       )}
+      <button
+        onClick={() => setDismissed(true)}
+        className="ml-1 p-0.5 rounded-full hover:bg-white/20 transition-colors"
+        aria-label="關閉"
+      >
+        <X className="h-3.5 w-3.5" />
+      </button>
     </div>
   );
 };
