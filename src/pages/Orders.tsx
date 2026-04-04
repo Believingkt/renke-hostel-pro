@@ -791,6 +791,16 @@ const Orders = () => {
         onOpenChange={setOrderSourceDialogOpen}
         onSuccess={fetchOrders}
       />
+
+      {/* 匯入訂單對話框 */}
+      {accommodationId && (
+        <ImportOrdersDialog
+          open={importDialogOpen}
+          onOpenChange={setImportDialogOpen}
+          accommodationId={accommodationId}
+          onSuccess={fetchOrders}
+        />
+      )}
     </div>
   );
 };
