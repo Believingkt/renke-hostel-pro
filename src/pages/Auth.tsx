@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +11,6 @@ import { toast } from "sonner";
 import { Loader2, KeyRound, LogIn, Eye, EyeOff, Mail } from "lucide-react";
 import lokezeLogo from "@/assets/lokeze-logo-auth.png";
 import { getPasswordIssues } from "@/utils/passwordPolicy";
-
 
 const AUTH_REMEMBER_EMAIL_KEY = "auth_remember_email";
 
@@ -32,6 +32,41 @@ export default function Auth() {
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
 
+  const handleAuthenticatedSession = useCallback(async (session: Session, showInviteToast = false) => {
+    const needsPasswordChange = session.user.user_metadata?.force_password_change === true;
+
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("force_password_change")
+        .eq("id", session.user.id)
+        .maybeSingle();
+
+      if (needsPasswordChange || profile?.force_password_change) {
+        setInviteEmail(session.user.email || "");
+        setIsInviteMode(true);
+
+        if (showInviteToast) {
+          toast.info("請設定您的登入密碼");
+        }
+        return;
+      }
+
+      setIsInviteMode(false);
+      navigate("/admin");
+    } catch (error) {
+      console.error("Error resolving auth destination:", error);
+
+      if (needsPasswordChange) {
+        setInviteEmail(session.user.email || "");
+        setIsInviteMode(true);
+        return;
+      }
+
+      navigate("/admin");
+    }
+  }, [navigate]);
+
   // Load remembered email on mount
   useEffect(() => {
     const savedEmail = localStorage.getItem(AUTH_REMEMBER_EMAIL_KEY);
@@ -42,77 +77,36 @@ export default function Auth() {
   }, []);
 
   useEffect(() => {
-    // Check for expired/invalid invite link from URL params
-    const error = searchParams.get('error');
-    const errorDescription = searchParams.get('error_description');
-    
+    const error = searchParams.get("error");
+    const errorDescription = searchParams.get("error_description");
+
     if (error || errorDescription) {
       setInviteLinkExpired(true);
       toast.error("邀請連結已失效，請聯繫管理員重新發送邀請信");
       return;
     }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("Auth state changed:", event, session?.user?.email);
-      
-      // For PASSWORD_RECOVERY or SIGNED_IN events, check if user needs to set password
+
       if ((event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") && session) {
-        const needsPasswordChange = session.user.user_metadata?.force_password_change === true;
-        
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("force_password_change")
-          .eq("id", session.user.id)
-          .single();
-        
-        // Show password setup if force_password_change is true in either metadata or profile
-        if (needsPasswordChange || profile?.force_password_change) {
-          setInviteEmail(session.user.email || "");
-          setIsInviteMode(true);
-          toast.info("請設定您的登入密碼");
-        } else {
-          navigate("/admin");
-        }
-      } else if (event === "USER_UPDATED" && session) {
-        // After password update, check if we should redirect to admin
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("force_password_change")
-          .eq("id", session.user.id)
-          .single();
-        
-        const needsPasswordChange = session.user.user_metadata?.force_password_change === true;
-        
-        if (!profile?.force_password_change && !needsPasswordChange) {
-          // Password has been set successfully
-          navigate("/admin");
-        }
+        void handleAuthenticatedSession(session, true);
+        return;
+      }
+
+      if (event === "USER_UPDATED" && session) {
+        void handleAuthenticatedSession(session);
       }
     });
 
-    // Check for existing session on mount
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    void supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        const needsPasswordChange = session.user.user_metadata?.force_password_change === true;
-        
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("force_password_change")
-          .eq("id", session.user.id)
-          .single();
-        
-        if (needsPasswordChange || profile?.force_password_change) {
-          setInviteEmail(session.user.email || "");
-          setIsInviteMode(true);
-        } else {
-          navigate("/admin");
-        }
+        void handleAuthenticatedSession(session);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate, searchParams]);
-
+  }, [handleAuthenticatedSession, searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,7 +125,6 @@ export default function Auth() {
           toast.error(error.message);
         }
       } else {
-        // Handle remember me
         if (rememberMe) {
           localStorage.setItem(AUTH_REMEMBER_EMAIL_KEY, loginEmail);
         } else {
