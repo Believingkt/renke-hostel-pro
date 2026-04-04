@@ -89,16 +89,13 @@ interface ApiHoliday {
   type: 'holiday' | 'workday';
 }
 
-// 常見假日模板 (fallback)
+// 常見假日模板 (僅固定日期，避免誤導性農曆節日示例日期)
 const COMMON_HOLIDAYS = [
   { name: "元旦", month: 1, day: 1 },
-  { name: "農曆春節", month: 2, day: 1 }, // 示例日期
   { name: "和平紀念日", month: 2, day: 28 },
   { name: "兒童節", month: 4, day: 4 },
   { name: "清明節", month: 4, day: 5 },
   { name: "勞動節", month: 5, day: 1 },
-  { name: "端午節", month: 6, day: 10 }, // 示例日期
-  { name: "中秋節", month: 9, day: 29 }, // 示例日期
   { name: "國慶日", month: 10, day: 10 },
 ];
 
