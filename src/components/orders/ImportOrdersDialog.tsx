@@ -265,8 +265,7 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
         )}
 
         {step === "preview" && (
-          <>
-            {/* Summary badges */}
+          <div className="flex flex-1 min-h-0 flex-col gap-4">
             <div className="flex flex-wrap gap-2">
               <Badge variant="secondary">共 {parsedOrders.length} 筆</Badge>
               <Badge className="bg-primary/10 text-primary border-primary/20">
@@ -287,7 +286,7 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
               )}
             </div>
 
-            <ScrollArea className="flex-1 min-h-0 max-h-[50vh]">
+            <div className="flex-1 min-h-0 overflow-y-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -345,15 +344,15 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
                   ))}
                 </TableBody>
               </Table>
-            </ScrollArea>
+            </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t">
+            <div className="flex justify-end gap-2 border-t pt-2">
               <Button variant="outline" onClick={() => setStep("upload")}>重新選擇</Button>
               <Button onClick={handleImport} disabled={importableCount === 0}>
                 確認匯入 {importableCount} 筆訂單
               </Button>
             </div>
-          </>
+          </div>
         )}
 
         {step === "importing" && (
