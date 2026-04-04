@@ -76,7 +76,7 @@ export function HQSidebar() {
   };
 
   return (
-    <Sidebar collapsible="none" className="admin-theme border-r">
+    <Sidebar collapsible="icon" className="admin-theme border-r">
       <SidebarHeader className="border-b px-6 py-4">
         <PreloadLink 
           to="/hq" 
