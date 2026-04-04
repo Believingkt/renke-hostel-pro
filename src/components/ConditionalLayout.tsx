@@ -43,8 +43,20 @@ export function ConditionalLayout() {
   }, [isAdminPage, isHQPage, isAuthPage, isHQAuthPage]);
 
   const checkPasswordChangeRequired = useCallback((session: Session) => {
-    const needsChange = session.user.user_metadata?.force_password_change === true;
-    setNeedsPasswordChange(needsChange);
+    const metadataNeedsChange = session.user.user_metadata?.force_password_change === true;
+    
+    // 以 profile 表為最終判斷依據，避免 metadata 未同步導致誤判
+    void supabase
+      .from("profiles")
+      .select("force_password_change")
+      .eq("id", session.user.id)
+      .maybeSingle()
+      .then(({ data: profile }) => {
+        const needsChange = profile ? profile.force_password_change === true : metadataNeedsChange;
+        setNeedsPasswordChange(needsChange);
+      }, () => {
+        setNeedsPasswordChange(metadataNeedsChange); 
+      });
   }, []);
 
   const checkUserValidity = useCallback(async (userId: string) => {

@@ -33,7 +33,7 @@ export default function Auth() {
   const [rememberMe, setRememberMe] = useState(false);
 
   const handleAuthenticatedSession = useCallback(async (session: Session, showInviteToast = false) => {
-    const needsPasswordChange = session.user.user_metadata?.force_password_change === true;
+    const metadataNeedsChange = session.user.user_metadata?.force_password_change === true;
 
     try {
       const { data: profile } = await supabase
@@ -42,7 +42,11 @@ export default function Auth() {
         .eq("id", session.user.id)
         .maybeSingle();
 
-      if (needsPasswordChange || profile?.force_password_change) {
+      // Profile 表為最終判斷依據：若 profile 明確為 false，即使 metadata 為 true 也不要求改密碼
+      const profileNeedsChange = profile?.force_password_change === true;
+      const needsPasswordChange = profile ? profileNeedsChange : metadataNeedsChange;
+
+      if (needsPasswordChange) {
         setInviteEmail(session.user.email || "");
         setIsInviteMode(true);
 
@@ -57,7 +61,7 @@ export default function Auth() {
     } catch (error) {
       console.error("Error resolving auth destination:", error);
 
-      if (needsPasswordChange) {
+      if (metadataNeedsChange) {
         setInviteEmail(session.user.email || "");
         setIsInviteMode(true);
         return;
