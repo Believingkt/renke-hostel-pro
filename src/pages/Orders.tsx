@@ -69,6 +69,7 @@ const Orders = () => {
   const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
   
   // 新增對話框狀態
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [holdDialogOpen, setHoldDialogOpen] = useState(false);
 
