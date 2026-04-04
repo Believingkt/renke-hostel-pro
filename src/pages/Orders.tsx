@@ -232,17 +232,21 @@ const Orders = () => {
       }
     }
 
-    // 日期篩選
-    if (startDate && endDate) {
+    // 日期篩選（支援只填開始或只填結束）
+    if (startDate || endDate) {
       if (dateType === "check_in") {
-        filtered = filtered.filter(
-          order => order.check_in_date >= startDate && order.check_in_date <= endDate
-        );
+        filtered = filtered.filter(order => {
+          if (startDate && endDate) return order.check_in_date >= startDate && order.check_in_date <= endDate;
+          if (startDate) return order.check_in_date >= startDate;
+          return order.check_in_date <= endDate;
+        });
       } else if (dateType === "order") {
-        filtered = filtered.filter(
-          order => format(new Date(order.order_date), "yyyy-MM-dd") >= startDate &&
-                   format(new Date(order.order_date), "yyyy-MM-dd") <= endDate
-        );
+        filtered = filtered.filter(order => {
+          const orderDateStr = format(new Date(order.order_date), "yyyy-MM-dd");
+          if (startDate && endDate) return orderDateStr >= startDate && orderDateStr <= endDate;
+          if (startDate) return orderDateStr >= startDate;
+          return orderDateStr <= endDate;
+        });
       }
     }
 
