@@ -66,30 +66,39 @@ export function ConditionalLayout() {
   }, []);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    void supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      
+
       if (session) {
         checkPasswordChangeRequired(session);
-        // Use microtask to avoid blocking render
-        queueMicrotask(() => checkUserValidity(session.user.id));
+        queueMicrotask(() => {
+          void checkUserValidity(session.user.id);
+        });
       } else {
         setNeedsPasswordChange(false);
       }
-      
+
       setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         setSession(session);
-        
-        if ((event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') && session) {
-          checkPasswordChangeRequired(session);
-          queueMicrotask(() => checkUserValidity(session.user.id));
+
+        if (!session) {
+          setNeedsPasswordChange(false);
+          return;
         }
-        
-        if (event === 'USER_UPDATED' && session) {
+
+        if (event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') {
+          checkPasswordChangeRequired(session);
+          queueMicrotask(() => {
+            void checkUserValidity(session.user.id);
+          });
+          return;
+        }
+
+        if (event === 'USER_UPDATED' || event === 'INITIAL_SESSION') {
           checkPasswordChangeRequired(session);
         }
       }
