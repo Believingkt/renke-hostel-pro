@@ -8,7 +8,10 @@ import {
   FileText,
   ClipboardList,
   Utensils,
-  Handshake
+  Handshake,
+  UserCheck,
+  Ticket,
+  Gift,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { PreloadLink } from "@/components/PreloadLink";
