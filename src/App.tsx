@@ -80,15 +80,45 @@ function App() {
             <ChunkErrorBoundary>
               <Routes>
                 <Route element={<ConditionalLayout />}>
+                {/* 平台入口 & 會員頁面 */}
+                <Route path="/booking" element={
+                  <Suspense fallback={<FrontendSkeleton />}>
+                    <BookingPortal />
+                  </Suspense>
+                } />
+                <Route path="/member/auth" element={
+                  <Suspense fallback={<FrontendSkeleton />}>
+                    <MemberAuth />
+                  </Suspense>
+                } />
+                <Route path="/member" element={
+                  <Suspense fallback={<FrontendSkeleton />}>
+                    <MemberLayout />
+                  </Suspense>
+                }>
+                  <Route path="profile" element={
+                    <Suspense fallback={<FrontendSkeleton />}><MemberProfile /></Suspense>
+                  } />
+                  <Route path="points" element={
+                    <Suspense fallback={<FrontendSkeleton />}><MemberPoints /></Suspense>
+                  } />
+                  <Route path="coupons" element={
+                    <Suspense fallback={<FrontendSkeleton />}><MemberCoupons /></Suspense>
+                  } />
+                  <Route path="orders" element={
+                    <Suspense fallback={<FrontendSkeleton />}><MemberOrders /></Suspense>
+                  } />
+                </Route>
+
                 {/* 前台頁面 */}
                 <Route path="/__cb/:ts" element={<Index />} />
                 <Route path="/" element={<Index />} />
-                <Route path="/booking" element={
+                <Route path="/book" element={
                   <Suspense fallback={<FrontendSkeleton />}>
                     <BookingFlow />
                   </Suspense>
                 } />
-                <Route path="/booking/linepay-confirm" element={
+                <Route path="/book/linepay-confirm" element={
                   <Suspense fallback={<FrontendSkeleton />}>
                     <LinePayConfirm />
                   </Suspense>
