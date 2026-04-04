@@ -112,7 +112,7 @@ export default function RoomPriceCalendar() {
       const monthEnd = format(endOfMonth(currentMonth), 'yyyy-MM-dd');
 
       // 並行載入所有數據
-      const [roomTypesResult, templatesResult, inventoryResult, holidaysResult] = await Promise.all([
+      const [roomTypesResult, templatesResult, inventoryResult, holidaysResult, ordersResult] = await Promise.all([
         supabase
           .from('room_types')
           .select('id, name, is_exclusive_package, base_price, room_count')
@@ -134,6 +134,13 @@ export default function RoomPriceCalendar() {
           .eq('accommodation_id', currentAccommodationId)
           .gte('holiday_date', monthStart)
           .lte('holiday_date', monthEnd),
+        supabase
+          .from('orders')
+          .select('check_in_date, check_out_date, room_type_id')
+          .eq('accommodation_id', currentAccommodationId)
+          .neq('order_status', 'cancelled')
+          .gte('check_out_date', monthStart)
+          .lte('check_in_date', monthEnd),
       ]);
 
       if (roomTypesResult.error) throw roomTypesResult.error;
