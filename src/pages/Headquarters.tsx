@@ -212,6 +212,8 @@ const Headquarters = () => {
   const facilityManagementRef = useRef<FacilityManagementRef>(null);
   // Ref for PartnerManagement
   const partnerManagementRef = useRef<PartnerManagementRef>(null);
+  const memberManagementRef = useRef<MemberManagementRef>(null);
+  const couponManagementRef = useRef<CouponManagementRef>(null);
   // Ref for OperationalOverview
   const overviewRef = useRef<OperationalOverviewRef>(null);
 
