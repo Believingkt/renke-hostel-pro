@@ -310,7 +310,7 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
                         ) : order.matchedRoomTypeId ? (
                           <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">OK</Badge>
                         ) : (
-                          <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 text-xs">未匹配</Badge>
+                          <Badge className="bg-warning/10 text-warning border-warning/20 text-xs">未匹配</Badge>
                         )}
                       </TableCell>
                       <TableCell className="font-medium">{order.guestName}</TableCell>
