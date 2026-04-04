@@ -507,11 +507,11 @@ const Orders = () => {
               }}
               className="gap-2"
             >
-              <Download className="h-4 w-4" />
+              <Upload className="h-4 w-4" />
               <span className="hidden sm:inline">匯出 Excel</span>
             </Button>
             <Button variant="outline" onClick={() => setImportDialogOpen(true)} className="gap-2">
-              <Upload className="h-4 w-4" />
+              <Download className="h-4 w-4" />
               <span className="hidden sm:inline">匯入訂單</span>
             </Button>
             <Button variant="outline" onClick={() => setHoldDialogOpen(true)} className="gap-2">
