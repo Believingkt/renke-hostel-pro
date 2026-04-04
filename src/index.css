@@ -1032,84 +1032,97 @@ All colors MUST be HSL.
 
   /* Admin theme - Blue & Orange colors */
   .admin-theme {
-    --primary: 203 78% 43%;
+    /* Lakeze 風格 - 溫暖橘色系 */
+    --background: 30 25% 96%;
+    --foreground: 25 20% 20%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 25 20% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 25 20% 20%;
+
+    --primary: 25 70% 55%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 203 70% 94%;
-    --secondary-foreground: 220 15% 20%;
+    --secondary: 30 30% 92%;
+    --secondary-foreground: 25 20% 22%;
 
-    --muted: 203 40% 96%;
-    --muted-foreground: 220 10% 50%;
+    --muted: 30 20% 94%;
+    --muted-foreground: 25 12% 48%;
 
-    --accent: 203 78% 90%;
-    --accent-foreground: 203 78% 25%;
+    --accent: 25 70% 50%;
+    --accent-foreground: 0 0% 100%;
 
-    --border: 203 30% 90%;
-    --input: 203 30% 92%;
-    --ring: 203 78% 43%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
 
-    --hero-gradient-start: 203 78% 43%;
-    --hero-gradient-end: 19 82% 51%;
+    --border: 30 18% 88%;
+    --input: 30 18% 90%;
+    --ring: 25 70% 55%;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 220 15% 30%;
-    --sidebar-primary: 203 78% 43%;
+    --hero-gradient-start: 25 70% 55%;
+    --hero-gradient-end: 16 65% 48%;
+
+    --sidebar-background: 30 20% 97%;
+    --sidebar-foreground: 25 15% 30%;
+    --sidebar-primary: 25 70% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 203 40% 96%;
-    --sidebar-accent-foreground: 220 15% 20%;
-    --sidebar-border: 203 20% 92%;
-    --sidebar-ring: 203 78% 43%;
+    --sidebar-accent: 30 25% 93%;
+    --sidebar-accent-foreground: 25 20% 22%;
+    --sidebar-border: 30 15% 90%;
+    --sidebar-ring: 25 70% 55%;
 
     /* Status colors */
-    --success: 189 75% 48%;
+    --success: 160 55% 45%;
     --success-foreground: 0 0% 100%;
-    --success-light: 189 75% 96%;
-    --success-dark: 189 75% 40%;
+    --success-light: 160 45% 94%;
+    --success-dark: 160 55% 38%;
     
-    --warning: 38 92% 50%;
+    --warning: 38 85% 52%;
     --warning-foreground: 0 0% 100%;
-    --warning-light: 38 92% 95%;
-    --warning-dark: 38 92% 40%;
+    --warning-light: 38 80% 94%;
+    --warning-dark: 38 85% 42%;
     
-    --error: 0 84% 60%;
+    --error: 0 72% 55%;
     --error-foreground: 0 0% 100%;
-    --error-light: 0 84% 96%;
-    --error-dark: 0 84% 50%;
+    --error-light: 0 70% 95%;
+    --error-dark: 0 72% 46%;
     
-    --info: 271 81% 56%;
+    --info: 200 70% 50%;
     --info-foreground: 0 0% 100%;
-    --info-light: 271 81% 96%;
-    --info-dark: 271 81% 48%;
+    --info-light: 200 65% 94%;
+    --info-dark: 200 70% 42%;
 
-    --stat-coral: 0 84% 60%;
-    --stat-coral-light: 0 84% 95%;
-    --stat-cyan: 189 75% 48%;
-    --stat-cyan-light: 189 75% 96%;
-    --stat-blue: 203 78% 43%;
-    --stat-blue-light: 203 78% 95%;
-    --stat-purple: 271 81% 56%;
-    --stat-purple-light: 271 81% 95%;
+    --stat-coral: 350 60% 58%;
+    --stat-coral-light: 350 55% 94%;
+    --stat-cyan: 180 55% 48%;
+    --stat-cyan-light: 180 50% 94%;
+    --stat-blue: 200 70% 50%;
+    --stat-blue-light: 200 65% 94%;
+    --stat-purple: 25 70% 55%;
+    --stat-purple-light: 25 60% 94%;
 
-    --chart-1: 203 78% 43%;
-    --chart-2: 19 82% 51%;
-    --chart-3: 0 84% 60%;
-    --chart-4: 45 93% 58%;
-    --chart-5: 271 81% 56%;
+    --chart-1: 25 70% 55%;
+    --chart-2: 16 65% 48%;
+    --chart-3: 350 60% 58%;
+    --chart-4: 38 85% 52%;
+    --chart-5: 200 70% 50%;
 
-    /* 圖表語義化顏色 - 營收圖表（寶藍湖水綠系）*/
-    --chart-revenue-primary: 220 85% 55%;
-    --chart-revenue-secondary: 180 70% 50%;
-    --chart-revenue-bg: 220 85% 95%;
+    /* 圖表語義化顏色 - 營收圖表（橘色暖色系）*/
+    --chart-revenue-primary: 25 70% 55%;
+    --chart-revenue-secondary: 16 65% 48%;
+    --chart-revenue-bg: 25 50% 94%;
     
-    /* 圖表語義化顏色 - 訂單趨勢（紅色橘色系）*/
-    --chart-booking-primary: 0 80% 60%;
-    --chart-booking-secondary: 25 90% 60%;
-    --chart-booking-bg: 0 80% 95%;
+    /* 圖表語義化顏色 - 訂單趨勢（玫紅色系）*/
+    --chart-booking-primary: 350 60% 58%;
+    --chart-booking-secondary: 0 65% 55%;
+    --chart-booking-bg: 350 50% 94%;
     
     /* 圖表語義化顏色 - 入住率（琥珀色系）*/
-    --chart-occupancy-primary: 38 92% 50%;
-    --chart-occupancy-secondary: 45 93% 58%;
-    --chart-occupancy-bg: 45 93% 95%;
+    --chart-occupancy-primary: 38 85% 52%;
+    --chart-occupancy-secondary: 45 80% 55%;
+    --chart-occupancy-bg: 45 75% 94%;
   }
 
   .dark {
