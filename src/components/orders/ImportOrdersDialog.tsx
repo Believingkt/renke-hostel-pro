@@ -218,13 +218,17 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
       setImportProgress(Math.round(((i + 1) / toImport.length) * 100));
     }
 
+    // Close dialog first, then refresh orders after a brief delay to avoid flicker
+    handleOpenChange(false);
     toast({
       title: "匯入完成",
       description: `成功 ${successCount} 筆${failCount > 0 ? `，失敗 ${failCount} 筆` : ""}`,
       variant: failCount > 0 ? "destructive" : "default",
     });
-    onSuccess();
-    handleOpenChange(false);
+    // Delay refresh so the dialog closing animation completes first
+    setTimeout(() => {
+      onSuccess();
+    }, 300);
   };
 
   const duplicateCount = parsedOrders.filter(o => o.isDuplicate).length;
