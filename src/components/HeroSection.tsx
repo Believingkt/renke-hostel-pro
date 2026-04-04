@@ -808,7 +808,7 @@ const HeroSection = ({
               </div>
 
               {/* 搜尋按鈕 */}
-              <Link to="/booking" className="block">
+              <Link to="/book" className="block">
                 <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-sm md:text-base h-11 md:h-14 font-medium rounded-lg shadow-md hover:shadow-lg transition-all">
                   <Search className="mr-2 h-5 w-5" />
                   搜尋空房

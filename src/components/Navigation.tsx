@@ -99,7 +99,7 @@ const Navigation = ({
               查詢訂單
             </Button>
           </PreloadLink>
-          <PreloadLink to="/booking">
+          <PreloadLink to="/book">
             <Button className="bg-primary hover:bg-primary/90 text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4">
               立即預訂
             </Button>
@@ -140,7 +140,7 @@ const Navigation = ({
                     查詢訂單
                   </Button>
                 </PreloadLink>
-                <PreloadLink to="/booking" className="block">
+                <PreloadLink to="/book" className="block">
                   <Button 
                     className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-12 text-base font-medium rounded-lg shadow-lg"
                     onClick={() => setOpen(false)}
