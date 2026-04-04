@@ -513,6 +513,11 @@ const Dashboard = () => {
         )}
       </div>
 
+      {/* 住房率與營業分析報表 */}
+      <div className="px-2 md:px-0">
+        <OccupancyRevenueTable accommodationId={accommodationId!} selectedYear={selectedYear} />
+      </div>
+
     </div>
   );
 
