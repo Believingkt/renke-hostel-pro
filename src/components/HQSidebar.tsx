@@ -49,7 +49,8 @@ const menuItems = [
 ];
 
 export function HQSidebar() {
-  const { setOpenMobile, isMobile } = useSidebar();
+  const { setOpenMobile, isMobile, state } = useSidebar();
+  const collapsed = state === "collapsed";
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const currentTab = searchParams.get('tab') || 'overview';
