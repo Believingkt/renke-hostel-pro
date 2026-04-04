@@ -146,40 +146,50 @@ serve(async (req) => {
 
 // Fallback holiday data with proper lunar calendar dates for each year
 function getFallbackHolidays(year: number): TaiwanHoliday[] {
-  // Lunar calendar dates vary each year, these are approximations
   const lunarDates: Record<number, {
-    springFestival: string[];  // 除夕到初五
-    dragonBoat: string;        // 端午節
-    midAutumn: string;         // 中秋節
-    tombSweeping: string;      // 清明節 (usually April 4-6)
+    springFestival: string[];
+    dragonBoat: string;
+    midAutumn: string;
+    tombSweeping: string;
+    compensatoryHolidays: { date: string; name: string }[];
   }> = {
     2024: {
       springFestival: ['02-08', '02-09', '02-10', '02-11', '02-12', '02-13', '02-14'],
       dragonBoat: '06-10',
       midAutumn: '09-17',
       tombSweeping: '04-04',
+      compensatoryHolidays: [],
     },
     2025: {
       springFestival: ['01-27', '01-28', '01-29', '01-30', '01-31', '02-01', '02-02'],
       dragonBoat: '05-31',
       midAutumn: '10-06',
       tombSweeping: '04-04',
+      compensatoryHolidays: [
+        { date: '06-02', name: '端午節補假' },
+      ],
     },
     2026: {
       springFestival: ['02-16', '02-17', '02-18', '02-19', '02-20', '02-21', '02-22'],
       dragonBoat: '06-19',
       midAutumn: '09-25',
       tombSweeping: '04-05',
+      compensatoryHolidays: [
+        { date: '04-06', name: '清明節補假' },
+      ],
     },
     2027: {
       springFestival: ['02-05', '02-06', '02-07', '02-08', '02-09', '02-10', '02-11'],
       dragonBoat: '06-09',
       midAutumn: '09-15',
       tombSweeping: '04-05',
+      compensatoryHolidays: [
+        { date: '04-06', name: '清明節補假' },
+      ],
     },
   };
 
-  const lunar = lunarDates[year] || lunarDates[2025]; // Default to 2025 if year not found
+  const lunar = lunarDates[year] || lunarDates[2025];
   
   const holidays: TaiwanHoliday[] = [
     // 固定假日
@@ -202,6 +212,13 @@ function getFallbackHolidays(year: number): TaiwanHoliday[] {
     
     // 中秋節
     { date: `${year}-${lunar.midAutumn}`, name: '中秋節', type: 'holiday' },
+
+    // 補假日（國定假日遇週末之補假）
+    ...(lunar.compensatoryHolidays || []).map(h => ({
+      date: `${year}-${h.date}`,
+      name: h.name,
+      type: 'holiday' as const,
+    })),
   ];
 
   return holidays;
