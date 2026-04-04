@@ -48,6 +48,7 @@ interface InventoryData {
   available_rooms: number;
   is_available: boolean;
   notes: string | null;
+  booked_count: number;
 }
 
 interface PublicHoliday {
@@ -111,7 +112,7 @@ export default function RoomPriceCalendar() {
       const monthEnd = format(endOfMonth(currentMonth), 'yyyy-MM-dd');
 
       // 並行載入所有數據
-      const [roomTypesResult, templatesResult, inventoryResult, holidaysResult] = await Promise.all([
+      const [roomTypesResult, templatesResult, inventoryResult, holidaysResult, ordersResult] = await Promise.all([
         supabase
           .from('room_types')
           .select('id, name, is_exclusive_package, base_price, room_count')
@@ -133,6 +134,13 @@ export default function RoomPriceCalendar() {
           .eq('accommodation_id', currentAccommodationId)
           .gte('holiday_date', monthStart)
           .lte('holiday_date', monthEnd),
+        supabase
+          .from('orders')
+          .select('check_in_date, check_out_date, room_type_id')
+          .eq('accommodation_id', currentAccommodationId)
+          .neq('order_status', 'cancelled')
+          .gte('check_out_date', monthStart)
+          .lte('check_in_date', monthEnd),
       ]);
 
       if (roomTypesResult.error) throw roomTypesResult.error;
@@ -140,6 +148,24 @@ export default function RoomPriceCalendar() {
       if (inventoryResult.error) throw inventoryResult.error;
       if (holidaysResult.error) throw holidaysResult.error;
       if (holidaysResult.error) throw holidaysResult.error;
+
+      if (ordersResult.error) console.error('查詢訂單失敗:', ordersResult.error);
+
+      // 計算每個房型每個日期的預訂數量
+      const bookingCountMap = new Map<string, number>();
+      if (ordersResult.data) {
+        ordersResult.data.forEach(order => {
+          if (!order.room_type_id) return;
+          const checkIn = new Date(order.check_in_date);
+          const checkOut = new Date(order.check_out_date);
+          let cur = new Date(checkIn);
+          while (cur < checkOut) {
+            const key = `${order.room_type_id}_${format(cur, 'yyyy-MM-dd')}`;
+            bookingCountMap.set(key, (bookingCountMap.get(key) || 0) + 1);
+            cur = addDays(cur, 1);
+          }
+        });
+      }
 
       const loadedRoomTypes = (roomTypesResult.data || []) as RoomType[];
       const loadedTemplates = (templatesResult.data || []) as PricingTemplate[];
@@ -205,13 +231,11 @@ export default function RoomPriceCalendar() {
       setRoomTypes(loadedRoomTypes);
       setTemplates(loadedTemplates);
       
-      // 建立庫存查找表
-
-      // 建立庫存查找表
+      // 建立庫存查找表（含預訂數量）
       const invMap = new Map<string, InventoryData>();
       loadedInventory.forEach(item => {
         const key = `${item.room_type_id}_${item.date}`;
-        invMap.set(key, item);
+        invMap.set(key, { ...item, booked_count: bookingCountMap.get(key) || 0 });
       });
       setInventory(invMap);
 
@@ -632,8 +656,10 @@ function RoomTypeRows({
 
           // 當日被「關閉販售」時，前台視為不可預定，因此表格庫存顯示為 0
           const isUnavailable = cellData?.is_available === false;
-          const displayRooms = isUnavailable ? 0 : (cellData ? cellData.available_rooms : 0);
-          const isZeroRooms = (displayRooms ?? 0) === 0;
+          const bookedCount = cellData?.booked_count || 0;
+          const rawRooms = cellData ? cellData.available_rooms : 0;
+          const remainingRooms = isUnavailable ? 0 : Math.max(0, rawRooms - bookedCount);
+          const isZeroRooms = remainingRooms === 0;
 
           return (
             <td
@@ -661,7 +687,7 @@ function RoomTypeRows({
                 aria-label={isUnavailable ? '無法預定' : undefined}
                 title={isUnavailable ? '無法預定' : undefined}
               >
-                {displayRooms ?? '-'}
+                {remainingRooms ?? '-'}
               </span>
             </td>
           );
