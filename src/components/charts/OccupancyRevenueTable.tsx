@@ -120,7 +120,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
     if (!data) return null;
 
     const { roomTypes, orders, holidays, inventoryData } = data;
-    const totalRoomCount = roomTypes.reduce((sum, rt) => sum + (rt.room_count || 0), 0);
+    const totalRoomCount = Math.min(roomTypes.reduce((sum, rt) => sum + (rt.room_count || 0), 0), 6);
     if (totalRoomCount === 0) return null;
 
     const pricingMap = buildPricingMap(inventoryData);
