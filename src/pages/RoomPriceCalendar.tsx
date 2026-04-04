@@ -687,7 +687,7 @@ function RoomTypeRows({
                 aria-label={isUnavailable ? '無法預定' : undefined}
                 title={isUnavailable ? '無法預定' : undefined}
               >
-                {displayRooms ?? '-'}
+                {remainingRooms ?? '-'}
               </span>
             </td>
           );
