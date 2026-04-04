@@ -1348,6 +1348,7 @@ export type Database = {
           meal_plan: string | null
           meal_plan_details: Json | null
           meal_plan_total: number | null
+          member_id: string | null
           notes: string | null
           order_date: string | null
           order_number: string
@@ -1392,6 +1393,7 @@ export type Database = {
           meal_plan?: string | null
           meal_plan_details?: Json | null
           meal_plan_total?: number | null
+          member_id?: string | null
           notes?: string | null
           order_date?: string | null
           order_number: string
@@ -1436,6 +1438,7 @@ export type Database = {
           meal_plan?: string | null
           meal_plan_details?: Json | null
           meal_plan_total?: number | null
+          member_id?: string | null
           notes?: string | null
           order_date?: string | null
           order_number?: string
@@ -1458,6 +1461,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "platform_members"
             referencedColumns: ["id"]
           },
           {
@@ -2759,6 +2769,21 @@ export type Database = {
               message: string
             }[]
           }
+      validate_platform_coupon: {
+        Args: {
+          p_accommodation_id?: string
+          p_code: string
+          p_member_id: string
+          p_order_amount: number
+        }
+        Returns: {
+          coupon_id: string
+          coupon_type: string
+          coupon_value: number
+          is_valid: boolean
+          message: string
+        }[]
+      }
     }
     Enums: {
       app_role: "super_admin" | "hotel_admin" | "staff"

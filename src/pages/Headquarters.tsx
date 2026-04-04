@@ -84,6 +84,9 @@ import { SystemManagement } from "@/components/headquarters/SystemManagement";
 import { SplitManagement, SplitManagementRef } from "@/components/headquarters/SplitManagement";
 import { FacilityManagement, FacilityManagementRef } from "@/components/headquarters/FacilityManagement";
 import { PartnerManagement, PartnerManagementRef } from "@/components/headquarters/PartnerManagement";
+import { MemberManagement, MemberManagementRef } from "@/components/headquarters/MemberManagement";
+import { CouponManagement, CouponManagementRef } from "@/components/headquarters/CouponManagement";
+import PointRulesManagement from "@/components/headquarters/PointRulesManagement";
 import { HQUsersSkeleton } from "@/components/skeletons/HQSkeleton";
 import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
 
@@ -209,6 +212,8 @@ const Headquarters = () => {
   const facilityManagementRef = useRef<FacilityManagementRef>(null);
   // Ref for PartnerManagement
   const partnerManagementRef = useRef<PartnerManagementRef>(null);
+  const memberManagementRef = useRef<MemberManagementRef>(null);
+  const couponManagementRef = useRef<CouponManagementRef>(null);
   // Ref for OperationalOverview
   const overviewRef = useRef<OperationalOverviewRef>(null);
 
@@ -952,6 +957,12 @@ const Headquarters = () => {
         return <FacilityManagement ref={facilityManagementRef} />;
       case 'partners':
         return <PartnerManagement ref={partnerManagementRef} />;
+      case 'members':
+        return <MemberManagement ref={memberManagementRef} />;
+      case 'coupons':
+        return <CouponManagement ref={couponManagementRef} />;
+      case 'point-rules':
+        return <PointRulesManagement />;
       case 'users':
         return (
           <div className="space-y-6">
@@ -1395,6 +1406,14 @@ const Headquarters = () => {
               >
                 <Plus className="h-4 w-4" />
                 新增合作夥伴
+              </Button>
+            ) : currentTab === 'coupons' ? (
+              <Button 
+                onClick={() => couponManagementRef.current?.openCreateDialog()} 
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                新增優惠券
               </Button>
             ) : undefined
           }
