@@ -54,7 +54,9 @@ export const SEOHead = ({
     setMetaTag('og:title', title, true);
     setMetaTag('og:description', description, true);
     setMetaTag('og:url', url, true);
-    setMetaTag('og:image', image, true);
+    if (image) {
+      setMetaTag('og:image', image, true);
+    }
     setMetaTag('og:type', type, true);
     setMetaTag('og:locale', 'zh_TW', true);
     setMetaTag('og:site_name', title, true);
