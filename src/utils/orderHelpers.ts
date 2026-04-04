@@ -59,6 +59,7 @@ export const getOrderSourceConfig = (source: string) => {
     travel_agency: { label: "旅行社", className: "bg-teal-100 text-teal-700 border-teal-200" },
     kol: { label: "KOL互惠", className: "bg-pink-100 text-pink-700 border-pink-200" },
     points_starchain: { label: "星鏈會員", className: "bg-amber-100 text-amber-700 border-amber-200" },
+    official_use: { label: "公務使用", className: "bg-slate-100 text-slate-700 border-slate-200" },
   };
   return sourceMap[source] || { label: source || "官網訂房", className: "bg-muted text-muted-foreground border-border" };
 };
