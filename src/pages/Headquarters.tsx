@@ -84,6 +84,9 @@ import { SystemManagement } from "@/components/headquarters/SystemManagement";
 import { SplitManagement, SplitManagementRef } from "@/components/headquarters/SplitManagement";
 import { FacilityManagement, FacilityManagementRef } from "@/components/headquarters/FacilityManagement";
 import { PartnerManagement, PartnerManagementRef } from "@/components/headquarters/PartnerManagement";
+import { MemberManagement, MemberManagementRef } from "@/components/headquarters/MemberManagement";
+import { CouponManagement, CouponManagementRef } from "@/components/headquarters/CouponManagement";
+import PointRulesManagement from "@/components/headquarters/PointRulesManagement";
 import { HQUsersSkeleton } from "@/components/skeletons/HQSkeleton";
 import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
 
