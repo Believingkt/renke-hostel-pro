@@ -99,7 +99,7 @@ const Navigation = ({
               查詢訂單
             </Button>
           </PreloadLink>
-          <PreloadLink to="/booking">
+          <PreloadLink to="/book">
             <Button className="bg-primary hover:bg-primary/90 text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4">
               立即預訂
             </Button>
