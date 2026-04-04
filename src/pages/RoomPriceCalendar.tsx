@@ -48,6 +48,7 @@ interface InventoryData {
   available_rooms: number;
   is_available: boolean;
   notes: string | null;
+  booked_count: number;
 }
 
 interface PublicHoliday {
