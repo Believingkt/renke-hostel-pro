@@ -149,6 +149,24 @@ export default function RoomPriceCalendar() {
       if (holidaysResult.error) throw holidaysResult.error;
       if (holidaysResult.error) throw holidaysResult.error;
 
+      if (ordersResult.error) console.error('查詢訂單失敗:', ordersResult.error);
+
+      // 計算每個房型每個日期的預訂數量
+      const bookingCountMap = new Map<string, number>();
+      if (ordersResult.data) {
+        ordersResult.data.forEach(order => {
+          if (!order.room_type_id) return;
+          const checkIn = new Date(order.check_in_date);
+          const checkOut = new Date(order.check_out_date);
+          let cur = new Date(checkIn);
+          while (cur < checkOut) {
+            const key = `${order.room_type_id}_${format(cur, 'yyyy-MM-dd')}`;
+            bookingCountMap.set(key, (bookingCountMap.get(key) || 0) + 1);
+            cur = addDays(cur, 1);
+          }
+        });
+      }
+
       const loadedRoomTypes = (roomTypesResult.data || []) as RoomType[];
       const loadedTemplates = (templatesResult.data || []) as PricingTemplate[];
       let loadedInventory = (inventoryResult.data || []) as InventoryData[];
