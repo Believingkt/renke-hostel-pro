@@ -78,14 +78,21 @@ const menuItems = [
     ]
   },
   { 
-    title: "物件管理", 
+    title: "房型設施", 
     url: "/admin/pricing", 
     icon: Hotel,
     subItems: [
-      { title: "房價庫存", url: "/admin/room-price-calendar", icon: DollarSign },
       { title: "房型管理", url: "/admin/pricing?tab=rooms", icon: Bed },
-      { title: "專案設定", url: "/admin/pricing?tab=basic", icon: TrendingUp },
       { title: "客房設施", url: "/admin/pricing?tab=facilities", icon: Wrench },
+    ]
+  },
+  { 
+    title: "房價庫存", 
+    url: "/admin/room-price-calendar", 
+    icon: DollarSign,
+    subItems: [
+      { title: "房價庫存設定", url: "/admin/room-price-calendar", icon: DollarSign },
+      { title: "專案設定", url: "/admin/pricing?tab=basic", icon: TrendingUp },
       { title: "國定假日", url: "/admin/pricing?tab=holidays", icon: Calendar },
     ]
   },
