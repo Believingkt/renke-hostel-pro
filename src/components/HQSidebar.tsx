@@ -78,18 +78,20 @@ export function HQSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="admin-theme border-r">
-      <SidebarHeader className="border-b px-6 py-4">
-        <PreloadLink 
-          to="/hq" 
-          onClick={handleLinkClick}
-          className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity duration-200"
-        >
-          <div className="flex items-center gap-2">
-            <img src={lokezeLogo} alt="Lokeze" className="h-8 object-contain" />
-            <span className="text-sm font-medium text-muted-foreground">總部</span>
-          </div>
-        </PreloadLink>
-      </SidebarHeader>
+      {!collapsed && (
+        <SidebarHeader className="border-b px-6 py-4">
+          <PreloadLink 
+            to="/hq" 
+            onClick={handleLinkClick}
+            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity duration-200"
+          >
+            <div className="flex items-center gap-2">
+              <img src={lokezeLogo} alt="Lokeze" className="h-8 object-contain" />
+              <span className="text-sm font-medium text-muted-foreground">總部</span>
+            </div>
+          </PreloadLink>
+        </SidebarHeader>
+      )}
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
