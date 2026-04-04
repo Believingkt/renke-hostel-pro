@@ -783,6 +783,52 @@ export type Database = {
           },
         ]
       }
+      coupon_usages: {
+        Row: {
+          coupon_id: string
+          id: string
+          member_id: string
+          order_id: string
+          used_at: string
+        }
+        Insert: {
+          coupon_id: string
+          id?: string
+          member_id: string
+          order_id: string
+          used_at?: string
+        }
+        Update: {
+          coupon_id?: string
+          id?: string
+          member_id?: string
+          order_id?: string
+          used_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_usages_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "platform_coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_usages_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "platform_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_usages_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custom_sections: {
         Row: {
           accommodation_id: string
@@ -1129,6 +1175,102 @@ export type Database = {
         }
         Relationships: []
       }
+      member_point_transactions: {
+        Row: {
+          accommodation_id: string | null
+          amount: number
+          balance_after: number
+          created_at: string
+          description: string | null
+          expires_at: string | null
+          id: string
+          member_id: string
+          order_id: string | null
+          type: Database["public"]["Enums"]["member_point_type"]
+        }
+        Insert: {
+          accommodation_id?: string | null
+          amount: number
+          balance_after: number
+          created_at?: string
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          member_id: string
+          order_id?: string | null
+          type: Database["public"]["Enums"]["member_point_type"]
+        }
+        Update: {
+          accommodation_id?: string | null
+          amount?: number
+          balance_after?: number
+          created_at?: string
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          member_id?: string
+          order_id?: string | null
+          type?: Database["public"]["Enums"]["member_point_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_point_transactions_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_point_transactions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "platform_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_point_transactions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_points: {
+        Row: {
+          balance: number
+          id: string
+          lifetime_earned: number
+          lifetime_used: number
+          member_id: string
+          updated_at: string
+        }
+        Insert: {
+          balance?: number
+          id?: string
+          lifetime_earned?: number
+          lifetime_used?: number
+          member_id: string
+          updated_at?: string
+        }
+        Update: {
+          balance?: number
+          id?: string
+          lifetime_earned?: number
+          lifetime_used?: number
+          member_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_points_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: true
+            referencedRelation: "platform_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           accommodation_id: string
@@ -1412,6 +1554,142 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      platform_coupons: {
+        Row: {
+          accommodation_id: string | null
+          code: string
+          coupon_type: Database["public"]["Enums"]["coupon_type"]
+          coupon_value: number
+          created_at: string
+          id: string
+          is_active: boolean
+          min_order_amount: number
+          per_member_limit: number
+          scope: Database["public"]["Enums"]["coupon_scope"]
+          updated_at: string
+          usage_limit: number
+          used_count: number
+          valid_from: string
+          valid_until: string | null
+        }
+        Insert: {
+          accommodation_id?: string | null
+          code: string
+          coupon_type?: Database["public"]["Enums"]["coupon_type"]
+          coupon_value?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          min_order_amount?: number
+          per_member_limit?: number
+          scope?: Database["public"]["Enums"]["coupon_scope"]
+          updated_at?: string
+          usage_limit?: number
+          used_count?: number
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Update: {
+          accommodation_id?: string | null
+          code?: string
+          coupon_type?: Database["public"]["Enums"]["coupon_type"]
+          coupon_value?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          min_order_amount?: number
+          per_member_limit?: number
+          scope?: Database["public"]["Enums"]["coupon_scope"]
+          updated_at?: string
+          usage_limit?: number
+          used_count?: number
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_coupons_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_members: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      point_rules: {
+        Row: {
+          accommodation_id: string | null
+          created_at: string
+          earn_rate: number
+          id: string
+          is_active: boolean
+          min_order_amount: number
+          points_per_dollar: number
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id?: string | null
+          created_at?: string
+          earn_rate?: number
+          id?: string
+          is_active?: boolean
+          min_order_amount?: number
+          points_per_dollar?: number
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string | null
+          created_at?: string
+          earn_rate?: number
+          id?: string
+          is_active?: boolean
+          min_order_amount?: number
+          points_per_dollar?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "point_rules_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       point_transactions: {
         Row: {
@@ -2484,6 +2762,14 @@ export type Database = {
     }
     Enums: {
       app_role: "super_admin" | "hotel_admin" | "staff"
+      coupon_scope: "platform" | "accommodation"
+      coupon_type: "percentage" | "fixed"
+      member_point_type:
+        | "earn_order"
+        | "earn_event"
+        | "redeem"
+        | "expire"
+        | "admin_adjust"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2612,6 +2898,15 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["super_admin", "hotel_admin", "staff"],
+      coupon_scope: ["platform", "accommodation"],
+      coupon_type: ["percentage", "fixed"],
+      member_point_type: [
+        "earn_order",
+        "earn_event",
+        "redeem",
+        "expire",
+        "admin_adjust",
+      ],
     },
   },
 } as const
