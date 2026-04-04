@@ -295,59 +295,26 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
       toast.error("請至少選擇一個年份");
       return;
     }
-    
+
     setSyncingHolidays(true);
     const toastId = toast.loading("正在同步國定假日...");
-    
+
     try {
-      let totalSynced = 0;
-      
-      for (const year of selectedYears) {
-        // Call the fetch-taiwan-holidays edge function
-        const { data, error } = await supabase.functions.invoke("fetch-taiwan-holidays", {
-          body: { year }
-        });
-        
-        if (error) {
-          console.error(`Error fetching holidays for ${year}:`, error);
-          continue;
-        }
+      const { data, error } = await supabase.functions.invoke("sync-taiwan-holidays", {
+        body: { years: selectedYears },
+      });
 
-        if (data?.holidays && Array.isArray(data.holidays)) {
-          // Save holidays to all accommodations
-          for (const acc of accommodations) {
-            // Delete existing holidays for this year and accommodation
-            await supabase
-              .from("public_holidays")
-              .delete()
-              .eq("accommodation_id", acc.id)
-              .gte("holiday_date", `${year}-01-01`)
-              .lte("holiday_date", `${year}-12-31`);
-
-            // Insert new holidays
-            const holidaysToInsert = data.holidays.map((holiday: { date: string; name: string; type: string }) => ({
-              accommodation_id: acc.id,
-              holiday_date: holiday.date,
-              holiday_name: holiday.name,
-              holiday_type: holiday.type || "holiday",
-            }));
-
-            if (holidaysToInsert.length > 0) {
-              const { error: insertError } = await supabase
-                .from("public_holidays")
-                .insert(holidaysToInsert);
-
-              if (insertError) {
-                console.error(`Error inserting holidays for ${acc.name}:`, insertError);
-              } else {
-                totalSynced += holidaysToInsert.length;
-              }
-            }
-          }
-        }
+      if (error) {
+        throw error;
       }
 
-      // Update the last sync time
+      if (!data?.success) {
+        throw new Error(data?.error || "同步國定假日失敗");
+      }
+
+      const totalSynced = Number(data.totalSynced || 0);
+      const accommodationsCount = Number(data.accommodationsCount || accommodations.length);
+
       const holidaySetting = systemSettings.find(s => s.setting_key === "holiday_sync");
       if (holidaySetting && typeof holidaySetting.setting_value === "object" && holidaySetting.setting_value !== null) {
         const currentValue = holidaySetting.setting_value as Record<string, unknown>;
@@ -360,13 +327,15 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
       await logAction("sync", "system", "holidays", "taiwan", "台灣國定假日", {
         years: selectedYears,
         total_synced: totalSynced,
-        accommodations_count: accommodations.length,
+        accommodations_count: accommodationsCount,
       });
 
+      await loadSyncedHolidays();
       toast.success(`國定假日同步完成，共更新 ${totalSynced} 筆資料`, { id: toastId });
     } catch (error) {
       console.error("Error syncing holidays:", error);
-      toast.error("同步國定假日失敗", { id: toastId });
+      const message = error instanceof Error ? error.message : "同步國定假日失敗";
+      toast.error(message, { id: toastId });
     } finally {
       setSyncingHolidays(false);
     }
