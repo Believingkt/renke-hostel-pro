@@ -13,7 +13,7 @@ export const SEOHead = ({
   title,
   description,
   url = window.location.href,
-  image = `${window.location.origin}/og-image.jpg`,
+  image,
   type = "website",
   keywords = ["豪華露營", "民宿", "住宿", "日式", "山林", "度假", "台灣旅遊"]
 }: SEOHeadProps) => {
