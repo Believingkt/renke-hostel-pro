@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -6,9 +6,20 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, MapPin, Star, Users, Calendar, User, LogIn } from "lucide-react";
-import { format } from "date-fns";
-import { zhTW } from "date-fns/locale";
+import {
+  Search,
+  MapPin,
+  Star,
+  User,
+  LogIn,
+  CalendarDays,
+  Users,
+  ChevronRight,
+  Gift,
+  Ticket,
+  TrendingUp,
+  Building2,
+} from "lucide-react";
 
 interface AccommodationCard {
   id: string;
@@ -38,7 +49,9 @@ const BookingPortal = () => {
   }, []);
 
   const checkAuth = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (user) {
       setIsLoggedIn(true);
       const { data: member } = await supabase
@@ -54,30 +67,32 @@ const BookingPortal = () => {
     try {
       const { data: accs, error } = await supabase
         .from("accommodation_info")
-        .select("id, name, description, address, region_1, region_2, star_rating, short_url_alias, type")
+        .select(
+          "id, name, description, address, region_1, region_2, star_rating, short_url_alias, type"
+        )
         .eq("is_active", true)
         .order("display_order", { ascending: true, nullsFirst: false });
 
       if (error) throw error;
       if (!accs) return;
 
-      // Fetch hero photos and min prices for each accommodation
       const enriched = await Promise.all(
         accs.map(async (acc) => {
-          const { data: photos } = await supabase
-            .from("accommodation_photos")
-            .select("photo_url")
-            .eq("accommodation_id", acc.id)
-            .eq("photo_type", "hero")
-            .order("display_order", { ascending: true })
-            .limit(1);
-
-          const { data: rooms } = await supabase
-            .from("room_types")
-            .select("base_price")
-            .eq("accommodation_id", acc.id)
-            .order("base_price", { ascending: true })
-            .limit(1);
+          const [{ data: photos }, { data: rooms }] = await Promise.all([
+            supabase
+              .from("accommodation_photos")
+              .select("photo_url")
+              .eq("accommodation_id", acc.id)
+              .eq("photo_type", "hero")
+              .order("display_order", { ascending: true })
+              .limit(1),
+            supabase
+              .from("room_types")
+              .select("base_price")
+              .eq("accommodation_id", acc.id)
+              .order("base_price", { ascending: true })
+              .limit(1),
+          ]);
 
           return {
             ...acc,
@@ -95,16 +110,27 @@ const BookingPortal = () => {
     }
   };
 
-  const filtered = accommodations.filter((acc) => {
-    if (!searchQuery) return true;
+  const filtered = useMemo(() => {
+    if (!searchQuery) return accommodations;
     const q = searchQuery.toLowerCase();
-    return (
-      acc.name.toLowerCase().includes(q) ||
-      acc.address?.toLowerCase().includes(q) ||
-      acc.region_1?.toLowerCase().includes(q) ||
-      acc.region_2?.toLowerCase().includes(q)
+    return accommodations.filter(
+      (acc) =>
+        acc.name.toLowerCase().includes(q) ||
+        acc.address?.toLowerCase().includes(q) ||
+        acc.region_1?.toLowerCase().includes(q) ||
+        acc.region_2?.toLowerCase().includes(q)
     );
-  });
+  }, [accommodations, searchQuery]);
+
+  // Group accommodations by region
+  const regions = useMemo(() => {
+    const map = new Map<string, number>();
+    accommodations.forEach((acc) => {
+      const region = acc.region_1 || "其他";
+      map.set(region, (map.get(region) || 0) + 1);
+    });
+    return Array.from(map.entries());
+  }, [accommodations]);
 
   const handleCardClick = (acc: AccommodationCard) => {
     if (acc.short_url_alias) {
@@ -115,23 +141,42 @@ const BookingPortal = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+    <div className="min-h-screen bg-background">
+      {/* ── Header ── */}
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-border">
+        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link to="/booking" className="flex items-center gap-2">
-            <h1 className="text-xl font-bold" style={{ color: "hsl(24, 100%, 50%)" }}>
+            <div
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm"
+              style={{ background: "hsl(25, 70%, 55%)" }}
+            >
+              人
+            </div>
+            <span className="font-bold text-lg" style={{ color: "hsl(25, 70%, 45%)" }}>
               人客多
-            </h1>
-            <span className="text-sm text-muted-foreground hidden sm:inline">訂房平台</span>
+            </span>
           </Link>
+
+          {/* Desktop search bar in header */}
+          <div className="hidden md:flex items-center flex-1 max-w-md mx-8">
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="搜尋民宿、地區..."
+                className="pl-9 h-9 rounded-full bg-muted/50 border-transparent focus-visible:border-border text-sm"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </div>
+
           <div className="flex items-center gap-2">
             {isLoggedIn ? (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate("/member/profile")}
-                className="gap-1"
+                className="gap-1.5"
               >
                 <User className="h-4 w-4" />
                 <span className="hidden sm:inline">{memberName || "會員中心"}</span>
@@ -140,7 +185,8 @@ const BookingPortal = () => {
               <Button
                 size="sm"
                 onClick={() => navigate("/member/auth")}
-                className="gap-1 bg-[hsl(24,100%,50%)] hover:bg-[hsl(24,100%,45%)] text-white"
+                className="gap-1.5 rounded-full text-white"
+                style={{ background: "hsl(25, 70%, 55%)" }}
               >
                 <LogIn className="h-4 w-4" />
                 <span className="hidden sm:inline">登入 / 註冊</span>
@@ -150,34 +196,220 @@ const BookingPortal = () => {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="py-12 md:py-20 px-4">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl md:text-5xl font-bold mb-4" style={{ color: "hsl(24, 100%, 40%)" }}>
-            探索優質住宿
-          </h2>
-          <p className="text-lg text-muted-foreground mb-8">
-            人客多精選民宿，讓每次旅行都成為美好回憶
+      {/* ── Hero Banner with Search ── */}
+      <section
+        className="relative overflow-hidden"
+        style={{
+          background: "linear-gradient(135deg, hsl(25, 80%, 55%) 0%, hsl(30, 90%, 60%) 50%, hsl(35, 85%, 58%) 100%)",
+        }}
+      >
+        <div className="absolute inset-0 opacity-10">
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at 20% 50%, rgba(255,255,255,0.3) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.2) 0%, transparent 40%)",
+            }}
+          />
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-4 py-12 md:py-20 text-center text-white">
+          <h1 className="text-3xl md:text-5xl font-bold mb-3 drop-shadow-sm">
+            探索台灣優質民宿
+          </h1>
+          <p className="text-base md:text-lg opacity-90 mb-8">
+            安全付款 | 精選住宿 | 會員獨享優惠
           </p>
-          <div className="relative max-w-lg mx-auto">
-            <Search className="absolute left-4 top-3.5 h-5 w-5 text-muted-foreground" />
-            <Input
-              placeholder="搜尋地區、民宿名稱..."
-              className="pl-12 h-12 text-base rounded-full shadow-md border-orange-200 focus-visible:ring-orange-400"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+
+          {/* Search Card */}
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-white rounded-2xl shadow-xl p-4 md:p-6">
+              <div className="flex flex-col md:flex-row gap-3 md:gap-4 items-stretch md:items-end">
+                {/* Destination */}
+                <div className="flex-1 text-left">
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                    目的地
+                  </label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="城市、地區或民宿名稱"
+                      className="pl-9 h-10 border-border text-foreground"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Check-in / Check-out placeholders */}
+                <div className="flex gap-3 flex-1">
+                  <div className="flex-1 text-left">
+                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                      入住日期
+                    </label>
+                    <div className="relative">
+                      <CalendarDays className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="選擇日期"
+                        className="pl-9 h-10 border-border text-foreground"
+                        readOnly
+                      />
+                    </div>
+                  </div>
+                  <div className="flex-1 text-left">
+                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                      退房日期
+                    </label>
+                    <div className="relative">
+                      <CalendarDays className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="選擇日期"
+                        className="pl-9 h-10 border-border text-foreground"
+                        readOnly
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Guests */}
+                <div className="w-full md:w-36 text-left">
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                    房客人數
+                  </label>
+                  <div className="relative">
+                    <Users className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="2 位成人"
+                      className="pl-9 h-10 border-border text-foreground"
+                      readOnly
+                    />
+                  </div>
+                </div>
+
+                {/* Search Button */}
+                <Button
+                  className="h-10 px-8 rounded-lg text-white font-medium shrink-0"
+                  style={{ background: "hsl(25, 70%, 55%)" }}
+                >
+                  <Search className="h-4 w-4 mr-2" />
+                  搜尋
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Accommodation List */}
-      <section className="max-w-6xl mx-auto px-4 pb-16">
+      {/* ── Mobile search (visible only on small) ── */}
+      <div className="md:hidden px-4 -mt-4 relative z-10 mb-4">
+        {/* Already handled by hero card */}
+      </div>
+
+      {/* ── Promo Cards ── */}
+      <section className="max-w-7xl mx-auto px-4 py-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          {[
+            {
+              icon: Gift,
+              title: "新會員優惠",
+              desc: "註冊即享首訂折扣",
+              color: "hsl(25, 80%, 55%)",
+              bg: "hsl(25, 80%, 96%)",
+            },
+            {
+              icon: Ticket,
+              title: "限時優惠券",
+              desc: "平台專屬折扣碼",
+              color: "hsl(200, 70%, 50%)",
+              bg: "hsl(200, 70%, 96%)",
+            },
+            {
+              icon: TrendingUp,
+              title: "紅利回饋",
+              desc: "消費累積紅利點數",
+              color: "hsl(142, 70%, 40%)",
+              bg: "hsl(142, 70%, 96%)",
+            },
+            {
+              icon: Building2,
+              title: "精選民宿",
+              desc: `${accommodations.length} 間優質住宿`,
+              color: "hsl(270, 60%, 55%)",
+              bg: "hsl(270, 60%, 96%)",
+            },
+          ].map((promo, i) => (
+            <Card
+              key={i}
+              className="border-none shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+              style={{ background: promo.bg }}
+            >
+              <CardContent className="p-4 flex items-start gap-3">
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ background: promo.color }}
+                >
+                  <promo.icon className="h-5 w-5 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-semibold text-sm text-foreground">{promo.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{promo.desc}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Region Quick Links ── */}
+      {regions.length > 1 && (
+        <section className="max-w-7xl mx-auto px-4 pb-6">
+          <h2 className="text-xl font-bold text-foreground mb-4">熱門地區</h2>
+          <div className="flex gap-2 flex-wrap">
+            {regions.map(([region, count]) => (
+              <Button
+                key={region}
+                variant="outline"
+                size="sm"
+                className="rounded-full gap-1 text-sm"
+                onClick={() => setSearchQuery(region)}
+              >
+                <MapPin className="h-3.5 w-3.5" />
+                {region}
+                <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">
+                  {count}
+                </Badge>
+              </Button>
+            ))}
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="rounded-full text-sm text-muted-foreground"
+                onClick={() => setSearchQuery("")}
+              >
+                清除篩選
+              </Button>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* ── Accommodation List ── */}
+      <section className="max-w-7xl mx-auto px-4 pb-16">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-foreground">
+            {searchQuery ? `「${searchQuery}」的搜尋結果` : "推薦住宿"}
+          </h2>
+          <span className="text-sm text-muted-foreground">
+            共 {filtered.length} 間
+          </span>
+        </div>
+
         {loading ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3].map((i) => (
-              <Card key={i}>
-                <Skeleton className="h-48 rounded-t-lg" />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i} className="overflow-hidden">
+                <Skeleton className="h-44 w-full" />
                 <CardContent className="p-4 space-y-2">
                   <Skeleton className="h-5 w-2/3" />
                   <Skeleton className="h-4 w-1/2" />
@@ -187,58 +419,86 @@ const BookingPortal = () => {
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-16 text-muted-foreground">
-            <MapPin className="h-12 w-12 mx-auto mb-4 opacity-30" />
-            <p className="text-lg">目前沒有符合條件的民宿</p>
+          <div className="text-center py-20 text-muted-foreground">
+            <Search className="h-12 w-12 mx-auto mb-4 opacity-30" />
+            <p className="text-lg">沒有找到符合條件的民宿</p>
+            <p className="text-sm mt-1">試試其他關鍵字或清除篩選</p>
           </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filtered.map((acc) => (
               <Card
                 key={acc.id}
-                className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow group"
+                className="overflow-hidden cursor-pointer group border-border/50 hover:border-border"
                 onClick={() => handleCardClick(acc)}
               >
-                <div className="relative h-48 bg-muted overflow-hidden">
+                {/* Image */}
+                <div className="relative h-44 bg-muted overflow-hidden">
                   {acc.hero_photos[0] ? (
                     <img
                       src={acc.hero_photos[0]}
                       alt={acc.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       loading="lazy"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-orange-100">
-                      <MapPin className="h-12 w-12 text-orange-300" />
+                    <div className="w-full h-full flex items-center justify-center" style={{ background: "hsl(25, 60%, 95%)" }}>
+                      <Building2 className="h-12 w-12" style={{ color: "hsl(25, 60%, 75%)" }} />
                     </div>
                   )}
-                  {acc.min_price && (
-                    <Badge className="absolute bottom-3 right-3 bg-white/90 text-foreground shadow">
-                      NT$ {acc.min_price.toLocaleString()} 起
-                    </Badge>
-                  )}
-                </div>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-semibold text-lg line-clamp-1">{acc.name}</h3>
-                    {acc.star_rating && (
-                      <div className="flex items-center gap-0.5 text-amber-500 shrink-0">
-                        <Star className="h-4 w-4 fill-current" />
-                        <span className="text-sm">{acc.star_rating}</span>
-                      </div>
-                    )}
-                  </div>
-                  {(acc.region_1 || acc.region_2) && (
-                    <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
-                      <MapPin className="h-3.5 w-3.5" />
-                      {[acc.region_1, acc.region_2].filter(Boolean).join(" ")}
-                    </p>
-                  )}
                   {acc.type && (
-                    <Badge variant="secondary" className="mt-2 text-xs">
+                    <Badge
+                      className="absolute top-3 left-3 text-xs font-medium border-none text-white"
+                      style={{ background: "hsla(25, 70%, 45%, 0.85)" }}
+                    >
                       {acc.type}
                     </Badge>
                   )}
+                </div>
+
+                {/* Info */}
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <h3 className="font-semibold text-base line-clamp-1 text-foreground">
+                      {acc.name}
+                    </h3>
+                    {acc.star_rating && (
+                      <div className="flex items-center gap-0.5 shrink-0" style={{ color: "hsl(40, 90%, 50%)" }}>
+                        <Star className="h-3.5 w-3.5 fill-current" />
+                        <span className="text-xs font-medium">{acc.star_rating}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {(acc.region_1 || acc.region_2) && (
+                    <p className="text-sm text-muted-foreground flex items-center gap-1 mb-3">
+                      <MapPin className="h-3.5 w-3.5 shrink-0" />
+                      {[acc.region_1, acc.region_2].filter(Boolean).join(" ")}
+                    </p>
+                  )}
+
+                  {/* Price & CTA */}
+                  <div className="flex items-end justify-between pt-2 border-t border-border/50">
+                    {acc.min_price ? (
+                      <div>
+                        <span className="text-xs text-muted-foreground">每晚最低</span>
+                        <p className="font-bold text-lg" style={{ color: "hsl(25, 70%, 50%)" }}>
+                          NT$ {acc.min_price.toLocaleString()}
+                        </p>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">洽詢價格</span>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-xs gap-1 shrink-0"
+                      style={{ color: "hsl(25, 70%, 50%)" }}
+                    >
+                      查看詳情
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -246,9 +506,33 @@ const BookingPortal = () => {
         )}
       </section>
 
-      {/* Footer */}
-      <footer className="border-t py-8 text-center text-sm text-muted-foreground">
-        <p>© {new Date().getFullYear()} 人客多訂房平台. All rights reserved.</p>
+      {/* ── Footer ── */}
+      <footer className="border-t border-border bg-muted/30">
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <div
+                className="w-6 h-6 rounded flex items-center justify-center text-white font-bold text-xs"
+                style={{ background: "hsl(25, 70%, 55%)" }}
+              >
+                人
+              </div>
+              <span className="font-semibold text-sm" style={{ color: "hsl(25, 70%, 45%)" }}>
+                人客多訂房平台
+              </span>
+            </div>
+            <div className="flex gap-6 text-sm text-muted-foreground">
+              <button onClick={() => navigate("/member/auth")} className="hover:text-foreground transition-colors">
+                會員中心
+              </button>
+              <button className="hover:text-foreground transition-colors">關於我們</button>
+              <button className="hover:text-foreground transition-colors">聯繫客服</button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              © {new Date().getFullYear()} 人客多. All rights reserved.
+            </p>
+          </div>
+        </div>
       </footer>
     </div>
   );
