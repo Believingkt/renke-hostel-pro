@@ -1154,7 +1154,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               <SelectItem value="trip">Trip</SelectItem>
                <SelectItem value="travel_agency">旅行社</SelectItem>
                <SelectItem value="kol">KOL互惠</SelectItem>
-               <SelectItem value="points_starchain">星鏈會員</SelectItem>
+                <SelectItem value="points_starchain">星鏈會員</SelectItem>
+                <SelectItem value="official_use">公務使用</SelectItem>
             </SelectContent>
           </Select>
         </div>
