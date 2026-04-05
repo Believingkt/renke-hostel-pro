@@ -6,10 +6,10 @@ import { User, Gift, Ticket, ShoppingBag, LogOut, Home } from "lucide-react";
 import { toast } from "sonner";
 
 const navItems = [
-  { path: "/member/profile", label: "個人資料", icon: User },
-  { path: "/member/points", label: "紅利點數", icon: Gift },
-  { path: "/member/coupons", label: "我的優惠券", icon: Ticket },
   { path: "/member/orders", label: "訂房紀錄", icon: ShoppingBag },
+  { path: "/member/coupons", label: "我的優惠券", icon: Ticket },
+  { path: "/member/points", label: "紅利點數", icon: Gift },
+  { path: "/member/profile", label: "個人資料", icon: User },
 ];
 
 const MemberLayout = () => {
