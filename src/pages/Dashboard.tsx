@@ -1,12 +1,10 @@
-import { Hotel, Users, Calendar, DollarSign, Radio, Zap, X, BarChart3, Home, ChevronLeft, ChevronRight } from "lucide-react";
+import { Hotel, Users, Calendar, DollarSign, Radio, X, BarChart3, Home, ChevronLeft, ChevronRight } from "lucide-react";
 import { OccupancyRevenueTable } from "@/components/charts/OccupancyRevenueTable";
 import { Link } from "react-router-dom";
 import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccommodation } from "@/contexts/AccommodationContext";
@@ -40,9 +38,6 @@ const Dashboard = () => {
   const isMobile = useIsMobile();
   const [isLiveUpdating, setIsLiveUpdating] = useState(false);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date());
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [testDataCount, setTestDataCount] = useState(20);
-  const [generateYears, setGenerateYears] = useState<number[]>([2025, 2026]);
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   
@@ -53,41 +48,6 @@ const Dashboard = () => {
     error, 
     refreshData 
   } = useDashboardData(accommodationId, 'lastYear', undefined, selectedYear);
-
-  const handleGenerateTestData = async () => {
-    if (!accommodationId) {
-      toast.error("無法取得住宿 ID");
-      return;
-    }
-
-    if (testDataCount < 1 || testDataCount > 1000) {
-      toast.error("請輸入 1-1000 之間的數量");
-      return;
-    }
-
-    setIsGenerating(true);
-    try {
-      const requestBody: any = {
-        accommodationId,
-        count: testDataCount,
-        years: generateYears.length > 0 ? generateYears : undefined,
-      };
-      
-      const { data, error } = await supabase.functions.invoke('generate-test-orders', {
-        body: requestBody,
-      });
-
-      if (error) throw error;
-
-      toast.success(data.message || '成功生成測試數據');
-      refreshData();
-    } catch (error) {
-      console.error('Error generating test data:', error);
-      toast.error('生成測試數據失敗');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
 
   useEffect(() => {
     if (!accommodationId) return;
@@ -162,7 +122,7 @@ const Dashboard = () => {
 
   // 如果是空狀態，顯示引導頁面
   if (isEmptyState) {
-    return <EmptyDashboard onGenerateData={accommodationId !== '5f764d55-ae11-4631-80fe-2e611853deae' ? handleGenerateTestData : undefined} />;
+    return <EmptyDashboard />;
   }
 
   // Sanitize all chart data to prevent NaN values - only include properties that are actually numbers
@@ -277,77 +237,6 @@ const Dashboard = () => {
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
-            {accommodationId !== '5f764d55-ae11-4631-80fe-2e611853deae' && (
-            <Popover>
-              <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={isGenerating}
-                className="gap-2 h-11 sm:h-9 touch-manipulation"
-              >
-                <Zap className={`h-4 w-4 ${isGenerating ? 'animate-pulse' : ''}`} />
-                {isGenerating ? '生成中...' : '生成測試數據'}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-72">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <h4 className="font-medium leading-none">生成測試數據</h4>
-                  <p className="text-sm text-muted-foreground">
-                    選擇要生成的測試訂單數量（1-1000）
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="test-count">訂單數量</Label>
-                  <Input
-                    id="test-count"
-                    type="number"
-                    min="1"
-                    max="1000"
-                    value={testDataCount}
-                    onChange={(e) => setTestDataCount(Number(e.target.value))}
-                    placeholder="輸入數量"
-                    className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">生成年份</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {[2025, 2026].map((year) => (
-                      <label key={year} className="flex items-center space-x-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={generateYears.includes(year)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setGenerateYears([...generateYears, year].sort());
-                            } else {
-                              setGenerateYears(generateYears.filter(y => y !== year));
-                            }
-                          }}
-                          className="h-4 w-4 rounded border-input"
-                        />
-                        <span className="text-sm">{year} 年</span>
-                      </label>
-                    ))}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {generateYears.length === 0 ? '未選擇則生成最近 6 個月資料' : `將生成 ${generateYears.join(' 和 ')} 年的資料`}
-                  </p>
-                </div>
-                <Button
-                  onClick={handleGenerateTestData}
-                  disabled={isGenerating}
-                  className="w-full gap-2 h-11 sm:h-10 touch-manipulation"
-                >
-                  <Zap className="h-4 w-4" />
-                  {isGenerating ? '生成中...' : `生成 ${testDataCount} 筆資料`}
-                </Button>
-              </div>
-              </PopoverContent>
-            </Popover>
-            )}
             <Badge
               variant={isLiveUpdating ? "default" : "secondary"} 
               className={`transition-all touch-manipulation select-none h-8 px-3 ${isLiveUpdating ? 'animate-pulse' : ''}`}
