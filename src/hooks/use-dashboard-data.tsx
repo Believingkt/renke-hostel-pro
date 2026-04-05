@@ -398,32 +398,34 @@ const fetchDashboardData = async (
       return checkOut > lastYearMonthStart && checkIn <= lastYearMonthEnd;
     });
     
+    // Helper: count stay nights in a month using day-by-day iteration (matches report logic)
+    const countNightsInMonth = (orders: typeof ordersData, mStart: Date, mKey: string) => {
+      let nights = 0;
+      orders.forEach(order => {
+        if (!order.check_in_date || !order.check_out_date) return;
+        const checkIn = new Date(order.check_in_date);
+        const checkOut = new Date(order.check_out_date);
+        const totalN = Math.max(1, Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)));
+        for (let i = 0; i < totalN; i++) {
+          const day = new Date(checkIn);
+          day.setDate(day.getDate() + i);
+          if (format(day, 'yyyy-MM') === mKey) nights++;
+        }
+      });
+      return nights;
+    };
+
+    const monthKey = format(monthDate, 'yyyy-MM');
+    const lastYearMonthKey = format(lastYearMonthDate, 'yyyy-MM');
+
     roomTypesData.forEach(roomType => {
       const roomCount = roomType.room_count || 1;
       
       const roomOrders = monthOrders.filter(o => o.room_type_id === roomType.id);
-      let totalNights = 0;
-      
-      roomOrders.forEach(order => {
-        const checkIn = new Date(order.check_in_date);
-        const checkOut = new Date(order.check_out_date);
-        const overlapStart = checkIn < monthStart ? monthStart : checkIn;
-        const overlapEnd = checkOut > monthEnd ? monthEnd : checkOut;
-        const nights = Math.ceil((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24));
-        if (nights > 0 && Number.isFinite(nights)) totalNights += nights;
-      });
+      const totalNights = countNightsInMonth(roomOrders, monthStart, monthKey);
       
       const lastYearRoomOrders = lastYearMonthOrders.filter(o => o.room_type_id === roomType.id);
-      let lastYearNights = 0;
-      
-      lastYearRoomOrders.forEach(order => {
-        const checkIn = new Date(order.check_in_date);
-        const checkOut = new Date(order.check_out_date);
-        const overlapStart = checkIn < lastYearMonthStart ? lastYearMonthStart : checkIn;
-        const overlapEnd = checkOut > lastYearMonthEnd ? lastYearMonthEnd : checkOut;
-        const nights = Math.ceil((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24));
-        if (nights > 0 && Number.isFinite(nights)) lastYearNights += nights;
-      });
+      const lastYearNights = countNightsInMonth(lastYearRoomOrders, lastYearMonthStart, lastYearMonthKey);
       
       const maxPossibleNights = roomCount * daysInMonth;
       const occupancyRate = maxPossibleNights > 0 
