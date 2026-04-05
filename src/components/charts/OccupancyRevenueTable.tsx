@@ -249,10 +249,8 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
       });
     }
 
-    // Filter months that have any data
-    const rows = Array.from(monthsWithData.values()).filter(
-      r => r.weekday.rooms > 0 || r.friSun.rooms > 0 || r.holiday.rooms > 0 || r.totalRevenue > 0
-    );
+    // Show all 12 months regardless of whether they have orders
+    const rows = Array.from(monthsWithData.values());
 
     // Compute totals
     const totals = rows.reduce(
