@@ -606,6 +606,38 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
     },
   });
 
+  // Send booking confirmation email if guest_email is provided
+  if (guest_email) {
+    // Fetch room type name for the email
+    const { data: roomType } = await supabase
+      .from("room_types")
+      .select("name")
+      .eq("id", room_type_id)
+      .maybeSingle();
+
+    const supabaseUrlForFn = Deno.env.get("SUPABASE_URL")!;
+    fetch(`${supabaseUrlForFn}/functions/v1/send-booking-confirmation`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+      },
+      body: JSON.stringify({
+        guestName: guest_name,
+        guestEmail: guest_email,
+        orderNumber: order.order_number,
+        roomName: roomType?.name || "房型",
+        checkInDate: check_in_date,
+        checkOutDate: check_out_date,
+        guestCount: guest_count,
+        mealPlan: selectedTemplate.template_name || "純住宿",
+        finalPrice: totalPrice,
+        depositAmount: depositAmount,
+        paymentMethod: paymentMethod,
+      }),
+    }).catch((e) => console.error("Booking confirmation email error:", e));
+  }
+
   // Webhook notification
   if (partner.webhook_url) {
     fetch(partner.webhook_url, {
