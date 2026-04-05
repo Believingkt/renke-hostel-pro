@@ -15,6 +15,7 @@ interface OccupancyRevenueTableProps {
 
 interface DayTypeStats {
   rooms: number;       // 間數 (room-nights sold)
+  available: number;   // 當月該類別總可用房晚
   occupancyRate: number; // 住房率
   revenue: number;     // 訂單金額
 }
@@ -227,16 +228,19 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         label: monthKey,
         weekday: {
           rooms: soldByType.weekday,
+          available: availableByType.weekday,
           occupancyRate: availableByType.weekday > 0 ? (soldByType.weekday / availableByType.weekday) * 100 : 0,
           revenue: Math.round(revenueByType.weekday),
         },
         friSun: {
           rooms: soldByType.friSun,
+          available: availableByType.friSun,
           occupancyRate: availableByType.friSun > 0 ? (soldByType.friSun / availableByType.friSun) * 100 : 0,
           revenue: Math.round(revenueByType.friSun),
         },
         holiday: {
           rooms: soldByType.holiday,
+          available: availableByType.holiday,
           occupancyRate: availableByType.holiday > 0 ? (soldByType.holiday / availableByType.holiday) * 100 : 0,
           revenue: Math.round(revenueByType.holiday),
         },
@@ -288,6 +292,9 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
       rows,
       totals: {
         ...totals,
+        weekdayAvailable: totalWeekdayAvailable,
+        friSunAvailable: totalFriSunAvailable,
+        holidayAvailable: totalHolidayAvailable,
         weekdayOccupancy: totalWeekdayAvailable > 0 ? (totals.weekdayRooms / totalWeekdayAvailable) * 100 : 0,
         friSunOccupancy: totalFriSunAvailable > 0 ? (totals.friSunRooms / totalFriSunAvailable) * 100 : 0,
         holidayOccupancy: totalHolidayAvailable > 0 ? (totals.holidayRooms / totalHolidayAvailable) * 100 : 0,
@@ -417,19 +424,19 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
                 <TableRow key={row.monthKey} className="hover:bg-muted/30">
                   <TableCell className="text-center font-semibold border-r bg-muted/20">{row.label}</TableCell>
                   {/* 一到四 */}
-                  <TableCell className="text-center border-r text-sm">{row.weekday.rooms || <span className="text-muted-foreground">0</span>}</TableCell>
+                  <TableCell className="text-center border-r text-sm">{row.weekday.rooms}/{row.weekday.available}</TableCell>
                   <TableCell className={`text-center border-r text-sm ${getRateColor(row.weekday.occupancyRate)}`}>
                     {formatRate(row.weekday.occupancyRate)}
                   </TableCell>
                   <TableCell className="text-center border-r text-sm tabular-nums">{formatCurrency(row.weekday.revenue)}</TableCell>
                   {/* 五/日 */}
-                  <TableCell className="text-center border-r text-sm">{row.friSun.rooms || <span className="text-muted-foreground">0</span>}</TableCell>
+                  <TableCell className="text-center border-r text-sm">{row.friSun.rooms}/{row.friSun.available}</TableCell>
                   <TableCell className={`text-center border-r text-sm ${getRateColor(row.friSun.occupancyRate)}`}>
                     {formatRate(row.friSun.occupancyRate)}
                   </TableCell>
                   <TableCell className="text-center border-r text-sm tabular-nums">{formatCurrency(row.friSun.revenue)}</TableCell>
                   {/* 假日 */}
-                  <TableCell className="text-center border-r text-sm">{row.holiday.rooms || <span className="text-muted-foreground">0</span>}</TableCell>
+                  <TableCell className="text-center border-r text-sm">{row.holiday.rooms}/{row.holiday.available}</TableCell>
                   <TableCell className={`text-center border-r text-sm ${getRateColor(row.holiday.occupancyRate)}`}>
                     {formatRate(row.holiday.occupancyRate)}
                   </TableCell>
@@ -445,17 +452,17 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
               {/* 合計/平均 row */}
               <TableRow className="border-t-2 bg-muted/40 font-bold">
                 <TableCell className="text-center border-r font-bold">合計 / 平均</TableCell>
-                <TableCell className="text-center border-r">{totals.weekdayRooms}</TableCell>
+                <TableCell className="text-center border-r">{totals.weekdayRooms}/{totals.weekdayAvailable}</TableCell>
                 <TableCell className={`text-center border-r ${getRateColor(totals.weekdayOccupancy)}`}>
                   {formatRate(totals.weekdayOccupancy)}
                 </TableCell>
                 <TableCell className="text-center border-r tabular-nums">{formatCurrency(totals.weekdayRevenue)}</TableCell>
-                <TableCell className="text-center border-r">{totals.friSunRooms}</TableCell>
+                <TableCell className="text-center border-r">{totals.friSunRooms}/{totals.friSunAvailable}</TableCell>
                 <TableCell className={`text-center border-r ${getRateColor(totals.friSunOccupancy)}`}>
                   {formatRate(totals.friSunOccupancy)}
                 </TableCell>
                 <TableCell className="text-center border-r tabular-nums">{formatCurrency(totals.friSunRevenue)}</TableCell>
-                <TableCell className="text-center border-r">{totals.holidayRooms}</TableCell>
+                <TableCell className="text-center border-r">{totals.holidayRooms}/{totals.holidayAvailable}</TableCell>
                 <TableCell className={`text-center border-r ${getRateColor(totals.holidayOccupancy)}`}>
                   {formatRate(totals.holidayOccupancy)}
                 </TableCell>
@@ -473,7 +480,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         <div className="mt-4 space-y-1 text-xs text-muted-foreground border-t pt-3">
           <p>說明：</p>
           <ul className="list-disc list-inside space-y-0.5 ml-2">
-            <li>間數：該類別被訂房佔用的房間總數（每日上限 {totalRoomCount} 間）</li>
+            <li>間數：售出間數 / 當月該類別總可用間數（每日上限 {totalRoomCount} 間）</li>
             <li>住房率：該類別佔用房間數 ÷ 該類別總供應房間數(天數×{totalRoomCount}) × 100%</li>
             <li>一到四：週一至週四 | 五/日：週五及週日 | 假日：週六、台灣國定假日(含連假補假)</li>
             <li>金額分配：跨日訂單的總金額已平均分配至每一晚</li>
