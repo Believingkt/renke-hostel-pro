@@ -136,7 +136,16 @@ const fetchDashboardData = async (
     pricingMap
   );
   
-  const roomNightsByMonth = computeRoomNightsByMonth(confirmedWithDates);
+  // Build exclusive package lookup
+  const exclusiveSet = new Set(roomTypesData.filter(rt => rt.is_exclusive_package).map(rt => rt.id));
+  
+  const roomNightsByMonth = computeRoomNightsByMonth(
+    confirmedWithDates.map(o => ({
+      check_in_date: o.check_in_date,
+      check_out_date: o.check_out_date,
+      is_exclusive_package: exclusiveSet.has(o.room_type_id),
+    }))
+  );
   const bookingCountByMonth = computeBookingCountByMonth(confirmedWithDates);
   
   // Keep ordersByMonth for backward compat (stats cards use order_date for current/last month comparison)
