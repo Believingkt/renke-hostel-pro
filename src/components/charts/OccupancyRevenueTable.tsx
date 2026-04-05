@@ -74,7 +74,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
       const endDate = `${selectedYear}-12-31`;
 
       const [roomTypesRes, ordersRes, holidaysRes] = await Promise.all([
-        supabase.from('room_types').select('id, name, room_count').eq('accommodation_id', accommodationId),
+        supabase.from('room_types').select('id, name, room_count, is_exclusive_package').eq('accommodation_id', accommodationId),
         supabase.from('orders')
           .select('id, check_in_date, check_out_date, room_type_id, final_price, meal_plan, order_status')
           .eq('accommodation_id', accommodationId)
