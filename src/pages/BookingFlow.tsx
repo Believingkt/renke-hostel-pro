@@ -2271,6 +2271,7 @@ const BookingFlow = () => {
           room_type_id: selectedRoom.id,
            customer_id: customerId,
            member_id: loggedInMember?.id || null,
+           order_number: "", // 由資料庫 trigger 自動生成
           guest_name: guestInfo.name,
           guest_phone: guestInfo.phone,
           guest_email: guestInfo.email || null,
