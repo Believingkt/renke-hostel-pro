@@ -415,7 +415,7 @@ const MemberAuth = () => {
                       <Input
                         id="signup-phone"
                         placeholder="0912345678"
-                        className="!pl-10"
+                        className="!pl-10 focus-visible:ring-[hsl(24,100%,50%)]"
                         value={signupPhone}
                         onChange={(e) => setSignupPhone(e.target.value)}
                       />
