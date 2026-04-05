@@ -429,7 +429,7 @@ const MemberAuth = () => {
                         id="signup-password"
                         type="password"
                         placeholder="至少 8 個字元，含大小寫與數字"
-                        className="!pl-10"
+                        className="!pl-10 focus-visible:ring-[hsl(24,100%,50%)]"
                         value={signupPassword}
                         onChange={(e) => setSignupPassword(e.target.value)}
                         required
