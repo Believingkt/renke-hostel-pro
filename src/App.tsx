@@ -110,6 +110,11 @@ function App() {
                     <Suspense fallback={<FrontendSkeleton />}><MemberOrders /></Suspense>
                   } />
                 </Route>
+                <Route path="/member/reset-password" element={
+                  <Suspense fallback={<FrontendSkeleton />}>
+                    <MemberResetPassword />
+                  </Suspense>
+                } />
 
                 {/* 前台頁面 */}
                 <Route path="/__cb/:ts" element={<Index />} />
