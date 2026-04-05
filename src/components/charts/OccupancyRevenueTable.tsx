@@ -228,16 +228,19 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         label: monthKey,
         weekday: {
           rooms: soldByType.weekday,
+          available: availableByType.weekday,
           occupancyRate: availableByType.weekday > 0 ? (soldByType.weekday / availableByType.weekday) * 100 : 0,
           revenue: Math.round(revenueByType.weekday),
         },
         friSun: {
           rooms: soldByType.friSun,
+          available: availableByType.friSun,
           occupancyRate: availableByType.friSun > 0 ? (soldByType.friSun / availableByType.friSun) * 100 : 0,
           revenue: Math.round(revenueByType.friSun),
         },
         holiday: {
           rooms: soldByType.holiday,
+          available: availableByType.holiday,
           occupancyRate: availableByType.holiday > 0 ? (soldByType.holiday / availableByType.holiday) * 100 : 0,
           revenue: Math.round(revenueByType.holiday),
         },
