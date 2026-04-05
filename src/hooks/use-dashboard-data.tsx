@@ -408,8 +408,10 @@ const fetchDashboardData = async (
     });
     
     // Helper: count stay nights in a month using day-by-day iteration (matches report logic)
-    const countNightsInMonth = (orders: typeof ordersData, mStart: Date, mKey: string) => {
+    // For exclusive packages, each night counts as DAILY_ROOM_CAP rooms
+    const countNightsInMonth = (orders: typeof ordersData, mStart: Date, mKey: string, isExclusive: boolean) => {
       let nights = 0;
+      const multiplier = isExclusive ? DAILY_ROOM_CAP : 1;
       orders.forEach(order => {
         if (!order.check_in_date || !order.check_out_date) return;
         const checkIn = new Date(order.check_in_date);
@@ -418,7 +420,7 @@ const fetchDashboardData = async (
         for (let i = 0; i < totalN; i++) {
           const day = new Date(checkIn);
           day.setDate(day.getDate() + i);
-          if (format(day, 'yyyy-MM') === mKey) nights++;
+          if (format(day, 'yyyy-MM') === mKey) nights += multiplier;
         }
       });
       return nights;
@@ -429,14 +431,15 @@ const fetchDashboardData = async (
 
     roomTypesData.forEach(roomType => {
       const roomCount = roomType.room_count || 1;
+      const isExclusive = !!roomType.is_exclusive_package;
       
       const roomOrders = monthOrders.filter(o => o.room_type_id === roomType.id);
-      const totalNights = countNightsInMonth(roomOrders, monthStart, monthKey);
+      const totalNights = countNightsInMonth(roomOrders, monthStart, monthKey, isExclusive);
       
       const lastYearRoomOrders = lastYearMonthOrders.filter(o => o.room_type_id === roomType.id);
-      const lastYearNights = countNightsInMonth(lastYearRoomOrders, lastYearMonthStart, lastYearMonthKey);
+      const lastYearNights = countNightsInMonth(lastYearRoomOrders, lastYearMonthStart, lastYearMonthKey, isExclusive);
       
-      const maxPossibleNights = roomCount * daysInMonth;
+      const maxPossibleNights = (isExclusive ? DAILY_ROOM_CAP : roomCount) * daysInMonth;
       const occupancyRate = maxPossibleNights > 0 
         ? Math.round((totalNights / maxPossibleNights) * 100)
         : 0;
