@@ -248,10 +248,10 @@ const BookingPortal = () => {
                       入住日期
                     </label>
                     <div className="relative">
-                      <CalendarDays className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                       <Input
                         placeholder="選擇日期"
-                        className="pl-9 h-10 border-border text-foreground"
+                        className="pl-10 h-10 border-border text-foreground"
                         readOnly
                       />
                     </div>
