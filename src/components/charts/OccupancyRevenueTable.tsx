@@ -74,7 +74,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
       const endDate = `${selectedYear}-12-31`;
 
       const [roomTypesRes, ordersRes, holidaysRes] = await Promise.all([
-        supabase.from('room_types').select('id, name, room_count').eq('accommodation_id', accommodationId),
+        supabase.from('room_types').select('id, name, room_count, is_exclusive_package').eq('accommodation_id', accommodationId),
         supabase.from('orders')
           .select('id, check_in_date, check_out_date, room_type_id, final_price, meal_plan, order_status')
           .eq('accommodation_id', accommodationId)
@@ -120,7 +120,9 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
     if (!data) return null;
 
     const { roomTypes, orders, holidays, inventoryData } = data;
-    const totalRoomCount = Math.min(roomTypes.reduce((sum, rt) => sum + (rt.room_count || 0), 0), 6);
+    const DAILY_ROOM_CAP = 6;
+    const totalRoomCount = Math.min(roomTypes.reduce((sum, rt) => sum + (rt.room_count || 0), 0), DAILY_ROOM_CAP);
+    const exclusiveRoomTypeIds = new Set(roomTypes.filter(rt => rt.is_exclusive_package).map(rt => rt.id));
     if (totalRoomCount === 0) return null;
 
     const pricingMap = buildPricingMap(inventoryData);
@@ -165,6 +167,8 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         const checkIn = new Date(order.check_in_date);
         const checkOut = new Date(order.check_out_date);
         const nights = Math.max(1, differenceInDays(checkOut, checkIn));
+        const isExclusive = order.room_type_id ? exclusiveRoomTypeIds.has(order.room_type_id) : false;
+        const roomNightsPerDay = isExclusive ? DAILY_ROOM_CAP : 1;
 
         // Collect daily prices for proportional revenue split
         const dailyEntries: { dayType: DayType; price: number }[] = [];
@@ -177,7 +181,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
           if (dayMonth !== monthKey) continue; // only count nights in this month
 
           const dayType = classifyDay(day, holidaySet);
-          soldByType[dayType]++;
+          soldByType[dayType] += roomNightsPerDay;
 
           let dailyPrice = 0;
           if (order.room_type_id) {
