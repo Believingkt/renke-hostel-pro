@@ -481,7 +481,7 @@ const fetchDashboardData = async (
     monthlyAveragePrice.push({
       month: monthLabel,
       occupancyRate: 0,
-      averagePrice: isFutureMonth ? 0 : averagePrice,
+      averagePrice: averagePrice,
       lastYearAveragePrice: lastYearAveragePrice,
       isFuture: isFutureMonth,
     });
