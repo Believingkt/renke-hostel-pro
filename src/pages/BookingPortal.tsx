@@ -231,10 +231,10 @@ const BookingPortal = () => {
                     目的地
                   </label>
                   <div className="relative">
-                    <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                     <Input
                       placeholder="城市、地區或民宿名稱"
-                      className="pl-9 h-10 border-border text-foreground"
+                      className="pl-10 h-10 border-border text-foreground"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
