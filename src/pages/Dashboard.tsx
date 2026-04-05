@@ -1,4 +1,4 @@
-import { Hotel, Users, Calendar, DollarSign, Radio, Zap, X, BarChart3, Home, ChevronLeft, ChevronRight } from "lucide-react";
+import { Hotel, Users, Calendar, DollarSign, Radio, X, BarChart3, Home, ChevronLeft, ChevronRight } from "lucide-react";
 import { OccupancyRevenueTable } from "@/components/charts/OccupancyRevenueTable";
 import { Link } from "react-router-dom";
 import { StatCard } from "@/components/StatCard";
