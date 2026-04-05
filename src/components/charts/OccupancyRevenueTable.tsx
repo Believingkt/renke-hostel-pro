@@ -453,7 +453,58 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
             <TableBody>
               {rows.map((row) => (
                 <TableRow key={row.monthKey} className="hover:bg-muted/30">
-                  <TableCell className="text-center font-semibold border-r bg-muted/20">{row.label}</TableCell>
+                  <TableCell className="text-center font-semibold border-r bg-muted/20 p-0">
+                    <HoverCard openDelay={200} closeDelay={100}>
+                      <HoverCardTrigger asChild>
+                        <button className="w-full h-full px-4 py-2 cursor-pointer hover:text-primary transition-colors underline decoration-dotted underline-offset-4">
+                          {row.label}
+                        </button>
+                      </HoverCardTrigger>
+                      <HoverCardContent className="w-[420px] p-0" side="right" align="start">
+                        <div className="p-3 border-b bg-muted/30">
+                          <p className="font-semibold text-sm">{row.label} 每日營運明細</p>
+                        </div>
+                        <ScrollArea className="h-[320px]">
+                          <Table className="text-xs">
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="text-center py-1.5 px-2 w-[90px]">日期</TableHead>
+                                <TableHead className="text-center py-1.5 px-2 w-[40px]">星期</TableHead>
+                                <TableHead className="text-center py-1.5 px-2 w-[55px]">類別</TableHead>
+                                <TableHead className="text-center py-1.5 px-2 w-[55px]">住房數</TableHead>
+                                <TableHead className="text-center py-1.5 px-2 w-[80px]">營業額</TableHead>
+                                <TableHead className="text-center py-1.5 px-2 w-[70px]">平均房價</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {row.dailyDetails.map((dd) => {
+                                const dayTypeBg = dd.dayType === 'holiday'
+                                  ? 'bg-red-50/50 dark:bg-red-950/20'
+                                  : dd.dayType === 'friSun'
+                                    ? 'bg-amber-50/50 dark:bg-amber-950/20'
+                                    : '';
+                                const dayTypeLabel = dd.dayType === 'holiday' ? '假日' : dd.dayType === 'friSun' ? '五/日' : '平日';
+                                return (
+                                  <TableRow key={dd.date} className={dayTypeBg}>
+                                    <TableCell className="text-center py-1 px-2">{dd.date.slice(5)}</TableCell>
+                                    <TableCell className="text-center py-1 px-2">{dd.dayLabel}</TableCell>
+                                    <TableCell className="text-center py-1 px-2">{dayTypeLabel}</TableCell>
+                                    <TableCell className="text-center py-1 px-2 font-medium">{dd.roomsSold}/{totalRoomCount}</TableCell>
+                                    <TableCell className="text-center py-1 px-2 tabular-nums">{dd.revenue > 0 ? `$${dd.revenue.toLocaleString('zh-TW')}` : '-'}</TableCell>
+                                    <TableCell className="text-center py-1 px-2 tabular-nums">{dd.avgPrice > 0 ? `$${dd.avgPrice.toLocaleString('zh-TW')}` : '-'}</TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        </ScrollArea>
+                        <div className="p-2 border-t bg-muted/30 text-xs text-muted-foreground flex justify-between">
+                          <span>合計住房: {row.dailyDetails.reduce((s, d) => s + d.roomsSold, 0)} 間</span>
+                          <span>合計營業: ${row.totalRevenue.toLocaleString('zh-TW')}</span>
+                        </div>
+                      </HoverCardContent>
+                    </HoverCard>
+                  </TableCell>
                   {/* 一到四 */}
                   <TableCell className="text-center border-r text-sm">{row.weekday.rooms}/{row.weekday.available}</TableCell>
                   <TableCell className={`text-center border-r text-sm ${getRateColor(row.weekday.occupancyRate)}`}>
