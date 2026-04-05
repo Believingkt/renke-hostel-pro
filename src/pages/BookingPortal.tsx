@@ -277,10 +277,10 @@ const BookingPortal = () => {
                     房客人數
                   </label>
                   <div className="relative">
-                    <Users className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                     <Input
                       placeholder="2 位成人"
-                      className="pl-9 h-10 border-border text-foreground"
+                      className="pl-10 h-10 border-border text-foreground"
                       readOnly
                     />
                   </div>
