@@ -284,7 +284,7 @@ const MemberAuth = () => {
           <CardContent>
             <Button
               variant="outline"
-              className="w-full mb-2"
+              className="w-full mb-2 border-[hsl(24,100%,50%)]/40 hover:bg-[hsl(24,100%,50%)]/10"
               onClick={() => handleOAuthLogin("apple")}
               disabled={loading}
             >
