@@ -334,7 +334,7 @@ const MemberAuth = () => {
                         id="login-email"
                         type="email"
                         placeholder="your@email.com"
-                        className="!pl-10"
+                        className="!pl-10 focus-visible:ring-[hsl(24,100%,50%)]"
                         value={loginEmail}
                         onChange={(e) => setLoginEmail(e.target.value)}
                         required
