@@ -7,6 +7,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Hotel } from 'lucide-react';
 import { buildPricingMap, type PricingMap } from '@/utils/revenueByMonth';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface OccupancyRevenueTableProps {
   accommodationId: string;
@@ -20,6 +22,15 @@ interface DayTypeStats {
   revenue: number;     // 訂單金額
 }
 
+interface DailyDetail {
+  date: string;        // yyyy-MM-dd
+  dayLabel: string;    // 一, 二, ... 日
+  dayType: DayType;
+  roomsSold: number;
+  revenue: number;
+  avgPrice: number;    // revenue / roomsSold (or 0)
+}
+
 interface MonthRow {
   monthKey: string;     // yyyy-MM
   label: string;        // 2026-01
@@ -28,6 +39,7 @@ interface MonthRow {
   holiday: DayTypeStats;  // 假日
   avgOccupancy: number;   // 月平均住房率
   totalRevenue: number;   // 總金額
+  dailyDetails: DailyDetail[];
 }
 
 type DayType = 'weekday' | 'friSun' | 'holiday';
@@ -162,6 +174,15 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
       const soldByType: Record<DayType, number> = { weekday: 0, friSun: 0, holiday: 0 };
       const revenueByType: Record<DayType, number> = { weekday: 0, friSun: 0, holiday: 0 };
 
+      // Daily tracking for hover details
+      const dailyRoomsSold: Record<string, number> = {};
+      const dailyRevenue: Record<string, number> = {};
+      for (let d = 0; d < daysInMonth; d++) {
+        const dateStr = format(addDays(monthStart, d), 'yyyy-MM-dd');
+        dailyRoomsSold[dateStr] = 0;
+        dailyRevenue[dateStr] = 0;
+      }
+
       // For each order, iterate through stay nights
       orders.forEach(order => {
         if (!order.check_in_date || !order.check_out_date) return;
@@ -172,53 +193,64 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         const roomNightsPerDay = isExclusive ? DAILY_ROOM_CAP : 1;
 
         // Collect daily prices for proportional revenue split
-        const dailyEntries: { dayType: DayType; price: number }[] = [];
+        const dailyEntries: { dayType: DayType; price: number; dateStr: string }[] = [];
         let totalPrice = 0;
         let hasInventory = false;
 
         for (let i = 0; i < nights; i++) {
           const day = addDays(checkIn, i);
           const dayMonth = format(day, 'yyyy-MM');
-          if (dayMonth !== monthKey) continue; // only count nights in this month
+          if (dayMonth !== monthKey) continue;
 
+          const dateStr = format(day, 'yyyy-MM-dd');
           const dayType = classifyDay(day, holidaySet);
           soldByType[dayType] += roomNightsPerDay;
+          dailyRoomsSold[dateStr] = (dailyRoomsSold[dateStr] || 0) + roomNightsPerDay;
 
           let dailyPrice = 0;
           if (order.room_type_id) {
-            const dateStr = format(day, 'yyyy-MM-dd');
             const inv = pricingMap.get(`${order.room_type_id}_${dateStr}`);
             if (inv) {
               dailyPrice = pickDailyPrice(inv, order.meal_plan ?? null);
               hasInventory = true;
             }
           }
-          dailyEntries.push({ dayType, price: dailyPrice });
+          dailyEntries.push({ dayType, price: dailyPrice, dateStr });
           totalPrice += dailyPrice;
         }
 
         // Split revenue proportionally
         if (dailyEntries.length > 0) {
           const orderFinalPrice = Number(order.final_price) || 0;
-          // Calculate total order nights for fallback
           const totalOrderNights = Math.max(1, differenceInDays(checkOut, checkIn));
+          const dailyShare = orderFinalPrice / totalOrderNights;
 
-          if (hasInventory && totalPrice > 0) {
-            // Proportional split based on inventory prices
-            // But we need total inventory price across ALL nights (not just this month)
-            // For simplicity, use equal distribution based on final_price / total nights
-            const dailyShare = orderFinalPrice / totalOrderNights;
-            dailyEntries.forEach(({ dayType }) => {
-              revenueByType[dayType] += dailyShare;
-            });
-          } else {
-            const dailyShare = orderFinalPrice / totalOrderNights;
-            dailyEntries.forEach(({ dayType }) => {
-              revenueByType[dayType] += dailyShare;
-            });
-          }
+          dailyEntries.forEach(({ dayType, dateStr }) => {
+            revenueByType[dayType] += dailyShare;
+            dailyRevenue[dateStr] = (dailyRevenue[dateStr] || 0) + dailyShare;
+          });
         }
       });
+
+      // Build daily details
+      const weekdayLabels = ['日', '一', '二', '三', '四', '五', '六'];
+      const dailyDetails: DailyDetail[] = [];
+      for (let d = 0; d < daysInMonth; d++) {
+        const day = addDays(monthStart, d);
+        const dateStr = format(day, 'yyyy-MM-dd');
+        const dow = getDay(day);
+        const dayType = classifyDay(day, holidaySet);
+        const sold = dailyRoomsSold[dateStr] || 0;
+        const rev = dailyRevenue[dateStr] || 0;
+        dailyDetails.push({
+          date: dateStr,
+          dayLabel: weekdayLabels[dow],
+          dayType,
+          roomsSold: sold,
+          revenue: Math.round(rev),
+          avgPrice: sold > 0 ? Math.round(rev / sold) : 0,
+        });
+      }
 
       const totalAvailable = availableByType.weekday + availableByType.friSun + availableByType.holiday;
       const totalSold = soldByType.weekday + soldByType.friSun + soldByType.holiday;
@@ -246,6 +278,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         },
         avgOccupancy: totalAvailable > 0 ? (totalSold / totalAvailable) * 100 : 0,
         totalRevenue: Math.round(revenueByType.weekday + revenueByType.friSun + revenueByType.holiday),
+        dailyDetails,
       });
     }
 
@@ -420,7 +453,58 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
             <TableBody>
               {rows.map((row) => (
                 <TableRow key={row.monthKey} className="hover:bg-muted/30">
-                  <TableCell className="text-center font-semibold border-r bg-muted/20">{row.label}</TableCell>
+                  <TableCell className="text-center font-semibold border-r bg-muted/20 p-0">
+                    <HoverCard openDelay={200} closeDelay={100}>
+                      <HoverCardTrigger asChild>
+                        <button className="w-full h-full px-4 py-2 cursor-pointer hover:text-primary transition-colors underline decoration-dotted underline-offset-4">
+                          {row.label}
+                        </button>
+                      </HoverCardTrigger>
+                      <HoverCardContent className="w-[420px] p-0" side="right" align="start">
+                        <div className="p-3 border-b bg-muted/30">
+                          <p className="font-semibold text-sm">{row.label} 每日營運明細</p>
+                        </div>
+                        <ScrollArea className="h-[320px]">
+                          <Table className="text-xs">
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="text-center py-1.5 px-2 w-[90px]">日期</TableHead>
+                                <TableHead className="text-center py-1.5 px-2 w-[40px]">星期</TableHead>
+                                <TableHead className="text-center py-1.5 px-2 w-[55px]">類別</TableHead>
+                                <TableHead className="text-center py-1.5 px-2 w-[55px]">住房數</TableHead>
+                                <TableHead className="text-center py-1.5 px-2 w-[80px]">營業額</TableHead>
+                                <TableHead className="text-center py-1.5 px-2 w-[70px]">平均房價</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {row.dailyDetails.map((dd) => {
+                                const dayTypeBg = dd.dayType === 'holiday'
+                                  ? 'bg-red-50/50 dark:bg-red-950/20'
+                                  : dd.dayType === 'friSun'
+                                    ? 'bg-amber-50/50 dark:bg-amber-950/20'
+                                    : '';
+                                const dayTypeLabel = dd.dayType === 'holiday' ? '假日' : dd.dayType === 'friSun' ? '五/日' : '平日';
+                                return (
+                                  <TableRow key={dd.date} className={dayTypeBg}>
+                                    <TableCell className="text-center py-1 px-2">{dd.date.slice(5)}</TableCell>
+                                    <TableCell className="text-center py-1 px-2">{dd.dayLabel}</TableCell>
+                                    <TableCell className="text-center py-1 px-2">{dayTypeLabel}</TableCell>
+                                    <TableCell className="text-center py-1 px-2 font-medium">{dd.roomsSold}/{totalRoomCount}</TableCell>
+                                    <TableCell className="text-center py-1 px-2 tabular-nums">{dd.revenue > 0 ? `$${dd.revenue.toLocaleString('zh-TW')}` : '-'}</TableCell>
+                                    <TableCell className="text-center py-1 px-2 tabular-nums">{dd.avgPrice > 0 ? `$${dd.avgPrice.toLocaleString('zh-TW')}` : '-'}</TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        </ScrollArea>
+                        <div className="p-2 border-t bg-muted/30 text-xs text-muted-foreground flex justify-between">
+                          <span>合計住房: {row.dailyDetails.reduce((s, d) => s + d.roomsSold, 0)} 間</span>
+                          <span>合計營業: ${row.totalRevenue.toLocaleString('zh-TW')}</span>
+                        </div>
+                      </HoverCardContent>
+                    </HoverCard>
+                  </TableCell>
                   {/* 一到四 */}
                   <TableCell className="text-center border-r text-sm">{row.weekday.rooms}/{row.weekday.available}</TableCell>
                   <TableCell className={`text-center border-r text-sm ${getRateColor(row.weekday.occupancyRate)}`}>
