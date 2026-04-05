@@ -207,7 +207,7 @@ const MemberAuth = () => {
             <h1 className="text-3xl font-bold" style={{ color: "hsl(24, 100%, 50%)" }}>人客多</h1>
             <p className="text-muted-foreground mt-2">忘記密碼</p>
           </div>
-          <Card>
+          <Card className="border-[hsl(24,100%,50%)]/30">
             <CardHeader>
               <CardTitle>重設密碼</CardTitle>
               <CardDescription>
