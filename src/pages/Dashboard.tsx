@@ -122,7 +122,7 @@ const Dashboard = () => {
 
   // 如果是空狀態，顯示引導頁面
   if (isEmptyState) {
-    return <EmptyDashboard onGenerateData={accommodationId !== '5f764d55-ae11-4631-80fe-2e611853deae' ? handleGenerateTestData : undefined} />;
+    return <EmptyDashboard />;
   }
 
   // Sanitize all chart data to prevent NaN values - only include properties that are actually numbers
