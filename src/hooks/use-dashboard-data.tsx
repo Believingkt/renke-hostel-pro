@@ -59,6 +59,7 @@ const fetchDashboardData = async (
   customDateRange?: { from: Date; to: Date },
   selectedYear?: number
 ): Promise<DashboardData> => {
+  const DAILY_ROOM_CAP = 6;
   const now = new Date();
   const currentYear = selectedYear || now.getFullYear();
   
@@ -395,7 +396,7 @@ const fetchDashboardData = async (
       return checkOut > monthStart && checkIn <= monthEnd;
     });
     
-    const DAILY_ROOM_CAP = 6;
+    
     let totalNightsAllRooms = 0;
     let lastYearTotalNights = 0;
     
@@ -489,7 +490,7 @@ const fetchDashboardData = async (
   }
   
   const finalStats = {
-    totalRooms: Number.isFinite(totalRoomCount) ? totalRoomCount : 0,
+    totalRooms: DAILY_ROOM_CAP,
     monthlyBookings: Number.isFinite(monthlyBookingCount) ? monthlyBookingCount : 0,
     totalGuests: Number.isFinite(monthlyGuestCount) ? monthlyGuestCount : 0,
     monthlyRevenue: Number.isFinite(monthlyRev) ? monthlyRev : 0,
