@@ -59,7 +59,7 @@ const MemberAuth = () => {
       
       await ensureMemberProfile();
       toast.success("登入成功");
-      navigate("/member/profile");
+      navigate(redirectTo);
     } catch (error: any) {
       if (error.message?.includes("Email not confirmed")) {
         toast.error("Email 尚未驗證，請先查收驗證信件");
@@ -136,7 +136,7 @@ const MemberAuth = () => {
       
       await ensureMemberProfile();
       toast.success("Google 登入成功");
-      navigate("/member/profile");
+      navigate(redirectTo);
     } catch (error: any) {
       toast.error(error.message || "Google 登入失敗");
       setLoading(false);
