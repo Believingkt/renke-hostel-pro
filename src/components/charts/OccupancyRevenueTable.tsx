@@ -174,6 +174,15 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
       const soldByType: Record<DayType, number> = { weekday: 0, friSun: 0, holiday: 0 };
       const revenueByType: Record<DayType, number> = { weekday: 0, friSun: 0, holiday: 0 };
 
+      // Daily tracking for hover details
+      const dailyRoomsSold: Record<string, number> = {};
+      const dailyRevenue: Record<string, number> = {};
+      for (let d = 0; d < daysInMonth; d++) {
+        const dateStr = format(addDays(monthStart, d), 'yyyy-MM-dd');
+        dailyRoomsSold[dateStr] = 0;
+        dailyRevenue[dateStr] = 0;
+      }
+
       // For each order, iterate through stay nights
       orders.forEach(order => {
         if (!order.check_in_date || !order.check_out_date) return;
@@ -184,53 +193,64 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         const roomNightsPerDay = isExclusive ? DAILY_ROOM_CAP : 1;
 
         // Collect daily prices for proportional revenue split
-        const dailyEntries: { dayType: DayType; price: number }[] = [];
+        const dailyEntries: { dayType: DayType; price: number; dateStr: string }[] = [];
         let totalPrice = 0;
         let hasInventory = false;
 
         for (let i = 0; i < nights; i++) {
           const day = addDays(checkIn, i);
           const dayMonth = format(day, 'yyyy-MM');
-          if (dayMonth !== monthKey) continue; // only count nights in this month
+          if (dayMonth !== monthKey) continue;
 
+          const dateStr = format(day, 'yyyy-MM-dd');
           const dayType = classifyDay(day, holidaySet);
           soldByType[dayType] += roomNightsPerDay;
+          dailyRoomsSold[dateStr] = (dailyRoomsSold[dateStr] || 0) + roomNightsPerDay;
 
           let dailyPrice = 0;
           if (order.room_type_id) {
-            const dateStr = format(day, 'yyyy-MM-dd');
             const inv = pricingMap.get(`${order.room_type_id}_${dateStr}`);
             if (inv) {
               dailyPrice = pickDailyPrice(inv, order.meal_plan ?? null);
               hasInventory = true;
             }
           }
-          dailyEntries.push({ dayType, price: dailyPrice });
+          dailyEntries.push({ dayType, price: dailyPrice, dateStr });
           totalPrice += dailyPrice;
         }
 
         // Split revenue proportionally
         if (dailyEntries.length > 0) {
           const orderFinalPrice = Number(order.final_price) || 0;
-          // Calculate total order nights for fallback
           const totalOrderNights = Math.max(1, differenceInDays(checkOut, checkIn));
+          const dailyShare = orderFinalPrice / totalOrderNights;
 
-          if (hasInventory && totalPrice > 0) {
-            // Proportional split based on inventory prices
-            // But we need total inventory price across ALL nights (not just this month)
-            // For simplicity, use equal distribution based on final_price / total nights
-            const dailyShare = orderFinalPrice / totalOrderNights;
-            dailyEntries.forEach(({ dayType }) => {
-              revenueByType[dayType] += dailyShare;
-            });
-          } else {
-            const dailyShare = orderFinalPrice / totalOrderNights;
-            dailyEntries.forEach(({ dayType }) => {
-              revenueByType[dayType] += dailyShare;
-            });
-          }
+          dailyEntries.forEach(({ dayType, dateStr }) => {
+            revenueByType[dayType] += dailyShare;
+            dailyRevenue[dateStr] = (dailyRevenue[dateStr] || 0) + dailyShare;
+          });
         }
       });
+
+      // Build daily details
+      const weekdayLabels = ['日', '一', '二', '三', '四', '五', '六'];
+      const dailyDetails: DailyDetail[] = [];
+      for (let d = 0; d < daysInMonth; d++) {
+        const day = addDays(monthStart, d);
+        const dateStr = format(day, 'yyyy-MM-dd');
+        const dow = getDay(day);
+        const dayType = classifyDay(day, holidaySet);
+        const sold = dailyRoomsSold[dateStr] || 0;
+        const rev = dailyRevenue[dateStr] || 0;
+        dailyDetails.push({
+          date: dateStr,
+          dayLabel: weekdayLabels[dow],
+          dayType,
+          roomsSold: sold,
+          revenue: Math.round(rev),
+          avgPrice: sold > 0 ? Math.round(rev / sold) : 0,
+        });
+      }
 
       const totalAvailable = availableByType.weekday + availableByType.friSun + availableByType.holiday;
       const totalSold = soldByType.weekday + soldByType.friSun + soldByType.holiday;
@@ -258,6 +278,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         },
         avgOccupancy: totalAvailable > 0 ? (totalSold / totalAvailable) * 100 : 0,
         totalRevenue: Math.round(revenueByType.weekday + revenueByType.friSun + revenueByType.holiday),
+        dailyDetails,
       });
     }
 
