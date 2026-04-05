@@ -207,7 +207,7 @@ const MemberAuth = () => {
             <h1 className="text-3xl font-bold" style={{ color: "hsl(24, 100%, 50%)" }}>人客多</h1>
             <p className="text-muted-foreground mt-2">忘記密碼</p>
           </div>
-          <Card>
+          <Card className="border-[hsl(24,100%,50%)]/30">
             <CardHeader>
               <CardTitle>重設密碼</CardTitle>
               <CardDescription>
@@ -238,7 +238,7 @@ const MemberAuth = () => {
                         id="forgot-email"
                         type="email"
                         placeholder="your@email.com"
-                        className="!pl-10"
+                        className="!pl-10 focus-visible:ring-[hsl(24,100%,50%)]"
                         value={forgotEmail}
                         onChange={(e) => setForgotEmail(e.target.value)}
                         required
@@ -276,7 +276,7 @@ const MemberAuth = () => {
           <p className="text-muted-foreground mt-2">訂房平台會員中心</p>
         </div>
 
-        <Card>
+        <Card className="border-[hsl(24,100%,50%)]/30">
           <CardHeader>
             <CardTitle>會員登入 / 註冊</CardTitle>
             <CardDescription>登入即可享受紅利點數與優惠券</CardDescription>
@@ -284,7 +284,7 @@ const MemberAuth = () => {
           <CardContent>
             <Button
               variant="outline"
-              className="w-full mb-2"
+              className="w-full mb-2 border-[hsl(24,100%,50%)]/40 hover:bg-[hsl(24,100%,50%)]/10"
               onClick={() => handleOAuthLogin("apple")}
               disabled={loading}
             >
@@ -296,7 +296,7 @@ const MemberAuth = () => {
 
             <Button
               variant="outline"
-              className="w-full mb-4"
+              className="w-full mb-4 border-[hsl(24,100%,50%)]/40 hover:bg-[hsl(24,100%,50%)]/10"
               onClick={() => handleOAuthLogin("google")}
               disabled={loading}
             >
@@ -319,9 +319,9 @@ const MemberAuth = () => {
             </div>
 
             <Tabs defaultValue="login">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">登入</TabsTrigger>
-                <TabsTrigger value="signup">註冊</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 bg-[hsl(24,100%,50%)]/10">
+                <TabsTrigger value="login" className="data-[state=active]:bg-[hsl(24,100%,50%)] data-[state=active]:text-white">登入</TabsTrigger>
+                <TabsTrigger value="signup" className="data-[state=active]:bg-[hsl(24,100%,50%)] data-[state=active]:text-white">註冊</TabsTrigger>
               </TabsList>
 
               <TabsContent value="login">
@@ -334,7 +334,7 @@ const MemberAuth = () => {
                         id="login-email"
                         type="email"
                         placeholder="your@email.com"
-                        className="!pl-10"
+                        className="!pl-10 focus-visible:ring-[hsl(24,100%,50%)]"
                         value={loginEmail}
                         onChange={(e) => setLoginEmail(e.target.value)}
                         required
@@ -359,7 +359,7 @@ const MemberAuth = () => {
                         id="login-password"
                         type="password"
                         placeholder="••••••••"
-                        className="!pl-10"
+                        className="!pl-10 focus-visible:ring-[hsl(24,100%,50%)]"
                         value={loginPassword}
                         onChange={(e) => setLoginPassword(e.target.value)}
                         required
@@ -386,7 +386,7 @@ const MemberAuth = () => {
                       <Input
                         id="signup-name"
                         placeholder="您的姓名"
-                        className="!pl-10"
+                        className="!pl-10 focus-visible:ring-[hsl(24,100%,50%)]"
                         value={signupName}
                         onChange={(e) => setSignupName(e.target.value)}
                         required
@@ -401,7 +401,7 @@ const MemberAuth = () => {
                         id="signup-email"
                         type="email"
                         placeholder="your@email.com"
-                        className="!pl-10"
+                        className="!pl-10 focus-visible:ring-[hsl(24,100%,50%)]"
                         value={signupEmail}
                         onChange={(e) => setSignupEmail(e.target.value)}
                         required
@@ -415,7 +415,7 @@ const MemberAuth = () => {
                       <Input
                         id="signup-phone"
                         placeholder="0912345678"
-                        className="!pl-10"
+                        className="!pl-10 focus-visible:ring-[hsl(24,100%,50%)]"
                         value={signupPhone}
                         onChange={(e) => setSignupPhone(e.target.value)}
                       />
@@ -429,7 +429,7 @@ const MemberAuth = () => {
                         id="signup-password"
                         type="password"
                         placeholder="至少 8 個字元，含大小寫與數字"
-                        className="!pl-10"
+                        className="!pl-10 focus-visible:ring-[hsl(24,100%,50%)]"
                         value={signupPassword}
                         onChange={(e) => setSignupPassword(e.target.value)}
                         required
@@ -458,7 +458,7 @@ const MemberAuth = () => {
                         id="signup-confirm"
                         type="password"
                         placeholder="再次輸入密碼"
-                        className="!pl-10"
+                        className="!pl-10 focus-visible:ring-[hsl(24,100%,50%)]"
                         value={signupConfirmPassword}
                         onChange={(e) => setSignupConfirmPassword(e.target.value)}
                         required
