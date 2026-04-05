@@ -276,7 +276,7 @@ const MemberAuth = () => {
           <p className="text-muted-foreground mt-2">訂房平台會員中心</p>
         </div>
 
-        <Card>
+        <Card className="border-[hsl(24,100%,50%)]/30">
           <CardHeader>
             <CardTitle>會員登入 / 註冊</CardTitle>
             <CardDescription>登入即可享受紅利點數與優惠券</CardDescription>
