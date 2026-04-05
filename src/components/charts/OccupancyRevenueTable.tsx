@@ -459,7 +459,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
                   {formatRate(totals.friSunOccupancy)}
                 </TableCell>
                 <TableCell className="text-center border-r tabular-nums">{formatCurrency(totals.friSunRevenue)}</TableCell>
-                <TableCell className="text-center border-r">{totals.holidayRooms}</TableCell>
+                <TableCell className="text-center border-r">{totals.holidayRooms}/{totals.holidayAvailable}</TableCell>
                 <TableCell className={`text-center border-r ${getRateColor(totals.holidayOccupancy)}`}>
                   {formatRate(totals.holidayOccupancy)}
                 </TableCell>
