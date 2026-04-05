@@ -439,11 +439,11 @@ const fetchDashboardData = async (
     // Use hard cap of 6 rooms/day, matching the Occupancy & Revenue Report
     const totalAvailableNights = DAILY_ROOM_CAP * daysInMonth;
     const overallOccupancyRate = totalAvailableNights > 0
-      ? Math.round((totalNightsAllRooms / totalAvailableNights) * 100)
+      ? Math.round((totalNightsAllRooms / totalAvailableNights) * 1000) / 10
       : 0;
     
     const lastYearOverallOccupancyRate = totalAvailableNights > 0
-      ? Math.round((lastYearTotalNights / totalAvailableNights) * 100)
+      ? Math.round((lastYearTotalNights / totalAvailableNights) * 1000) / 10
       : 0;
     
     monthlyOccupancyRate.push({
