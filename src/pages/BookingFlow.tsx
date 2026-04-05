@@ -190,6 +190,9 @@ const BookingFlow = () => {
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [roomPricing, setRoomPricing] = useState<Record<string, number>>({});
   
+  // 會員登入狀態
+  const [loggedInMember, setLoggedInMember] = useState<{ id: string; name: string; email: string; phone: string } | null>(null);
+
   // 訂房資料
   const [selectedRoom, setSelectedRoom] = useState<RoomType | null>(null);
   const [selectedMealPlan, setSelectedMealPlan] = useState<string>("2_meals");
@@ -361,6 +364,30 @@ const BookingFlow = () => {
   const checkInDateStr = checkInDate ? format(checkInDate, "yyyy-MM-dd") : "";
   const checkOutDateStr = checkOutDate ? format(checkOutDate, "yyyy-MM-dd") : "";
   const totalGuests = (contextGuests?.adults || 2) + (contextGuests?.children || 0);
+
+  // 檢查會員登入狀態
+  useEffect(() => {
+    const checkMember = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setLoggedInMember(null); return; }
+      const { data: member } = await supabase
+        .from("platform_members")
+        .select("id, name, email, phone")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (member) {
+        setLoggedInMember(member);
+        // 自動填入會員資料
+        setGuestInfo(prev => ({
+          ...prev,
+          name: prev.name || member.name || "",
+          email: prev.email || member.email || "",
+          phone: prev.phone || member.phone || "",
+        }));
+      }
+    };
+    checkMember();
+  }, []);
 
   useEffect(() => {
     if (subdomainLoading || !accommodationId) return;
@@ -2242,8 +2269,9 @@ const BookingFlow = () => {
         .insert([{
           accommodation_id: accommodationId,
           room_type_id: selectedRoom.id,
-          customer_id: customerId,
-          order_number: "", // 由資料庫 trigger 自動生成
+           customer_id: customerId,
+           member_id: loggedInMember?.id || null,
+           order_number: "", // 由資料庫 trigger 自動生成
           guest_name: guestInfo.name,
           guest_phone: guestInfo.phone,
           guest_email: guestInfo.email || null,
@@ -3612,6 +3640,43 @@ const BookingFlow = () => {
                 {/* Step 4: Guest Info */}
                 {currentStep === "guest" && (
                   <div className="space-y-6">
+                    {/* 會員登入提示 */}
+                    {!loggedInMember ? (
+                      <Card className="border-2 border-dashed border-orange-300 bg-orange-50/50">
+                        <CardContent className="py-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">登入會員可自動帶入資料並累積紅利點數</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">訂房消費即享回饋</p>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="shrink-0 border-orange-400 text-orange-600 hover:bg-orange-50"
+                              onClick={() => {
+                                const returnUrl = window.location.pathname + window.location.search;
+                                window.location.href = `/member/auth?redirect=${encodeURIComponent(returnUrl)}`;
+                              }}
+                            >
+                              <User className="h-3.5 w-3.5 mr-1" />
+                              登入 / 註冊
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <Card className="border-2 border-green-200 bg-green-50/50">
+                        <CardContent className="py-4">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
+                            <p className="text-sm font-medium text-green-800">
+                              已登入會員：{loggedInMember.name}，訂房可累積紅利點數
+                            </p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
                     {/* 基本資料卡片 */}
                     <Card className="border-2">
                       <CardHeader className="pb-4">
