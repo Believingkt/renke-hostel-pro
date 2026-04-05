@@ -40,7 +40,7 @@ const MemberAuth = () => {
           .eq("user_id", user.id)
           .maybeSingle();
         if (member) {
-          navigate("/member/profile", { replace: true });
+          navigate(redirectTo, { replace: true });
         }
       }
     };
