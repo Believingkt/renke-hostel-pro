@@ -2269,8 +2269,8 @@ const BookingFlow = () => {
         .insert([{
           accommodation_id: accommodationId,
           room_type_id: selectedRoom.id,
-          customer_id: customerId,
-          order_number: "", // 由資料庫 trigger 自動生成
+           customer_id: customerId,
+           member_id: loggedInMember?.id || null,
           guest_name: guestInfo.name,
           guest_phone: guestInfo.phone,
           guest_email: guestInfo.email || null,
