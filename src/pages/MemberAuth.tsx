@@ -238,7 +238,7 @@ const MemberAuth = () => {
                         id="forgot-email"
                         type="email"
                         placeholder="your@email.com"
-                        className="pl-10"
+                        className="!pl-10"
                         value={forgotEmail}
                         onChange={(e) => setForgotEmail(e.target.value)}
                         required
@@ -334,7 +334,7 @@ const MemberAuth = () => {
                         id="login-email"
                         type="email"
                         placeholder="your@email.com"
-                        className="pl-10"
+                        className="!pl-10"
                         value={loginEmail}
                         onChange={(e) => setLoginEmail(e.target.value)}
                         required
@@ -359,7 +359,7 @@ const MemberAuth = () => {
                         id="login-password"
                         type="password"
                         placeholder="••••••••"
-                        className="pl-10"
+                        className="!pl-10"
                         value={loginPassword}
                         onChange={(e) => setLoginPassword(e.target.value)}
                         required
@@ -386,7 +386,7 @@ const MemberAuth = () => {
                       <Input
                         id="signup-name"
                         placeholder="您的姓名"
-                        className="pl-10"
+                        className="!pl-10"
                         value={signupName}
                         onChange={(e) => setSignupName(e.target.value)}
                         required
@@ -401,7 +401,7 @@ const MemberAuth = () => {
                         id="signup-email"
                         type="email"
                         placeholder="your@email.com"
-                        className="pl-10"
+                        className="!pl-10"
                         value={signupEmail}
                         onChange={(e) => setSignupEmail(e.target.value)}
                         required
@@ -415,7 +415,7 @@ const MemberAuth = () => {
                       <Input
                         id="signup-phone"
                         placeholder="0912345678"
-                        className="pl-10"
+                        className="!pl-10"
                         value={signupPhone}
                         onChange={(e) => setSignupPhone(e.target.value)}
                       />
@@ -429,7 +429,7 @@ const MemberAuth = () => {
                         id="signup-password"
                         type="password"
                         placeholder="至少 8 個字元，含大小寫與數字"
-                        className="pl-10"
+                        className="!pl-10"
                         value={signupPassword}
                         onChange={(e) => setSignupPassword(e.target.value)}
                         required
@@ -458,7 +458,7 @@ const MemberAuth = () => {
                         id="signup-confirm"
                         type="password"
                         placeholder="再次輸入密碼"
-                        className="pl-10"
+                        className="!pl-10"
                         value={signupConfirmPassword}
                         onChange={(e) => setSignupConfirmPassword(e.target.value)}
                         required
