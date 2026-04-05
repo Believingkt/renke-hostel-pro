@@ -233,7 +233,7 @@ const MemberAuth = () => {
                   <div className="space-y-2">
                     <Label htmlFor="forgot-email">Email</Label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="forgot-email"
                         type="email"
@@ -329,7 +329,7 @@ const MemberAuth = () => {
                   <div className="space-y-2">
                     <Label htmlFor="login-email">Email</Label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="login-email"
                         type="email"
@@ -354,7 +354,7 @@ const MemberAuth = () => {
                       </button>
                     </div>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="login-password"
                         type="password"
@@ -382,7 +382,7 @@ const MemberAuth = () => {
                   <div className="space-y-2">
                     <Label htmlFor="signup-name">姓名</Label>
                     <div className="relative">
-                      <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="signup-name"
                         placeholder="您的姓名"
@@ -396,7 +396,7 @@ const MemberAuth = () => {
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="signup-email"
                         type="email"
@@ -411,7 +411,7 @@ const MemberAuth = () => {
                   <div className="space-y-2">
                     <Label htmlFor="signup-phone">手機</Label>
                     <div className="relative">
-                      <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="signup-phone"
                         placeholder="0912345678"
@@ -424,7 +424,7 @@ const MemberAuth = () => {
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">密碼</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="signup-password"
                         type="password"
@@ -453,7 +453,7 @@ const MemberAuth = () => {
                   <div className="space-y-2">
                     <Label htmlFor="signup-confirm">確認密碼</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="signup-confirm"
                         type="password"
