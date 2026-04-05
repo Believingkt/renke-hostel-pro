@@ -49,41 +49,6 @@ const Dashboard = () => {
     refreshData 
   } = useDashboardData(accommodationId, 'lastYear', undefined, selectedYear);
 
-  const handleGenerateTestData = async () => {
-    if (!accommodationId) {
-      toast.error("無法取得住宿 ID");
-      return;
-    }
-
-    if (testDataCount < 1 || testDataCount > 1000) {
-      toast.error("請輸入 1-1000 之間的數量");
-      return;
-    }
-
-    setIsGenerating(true);
-    try {
-      const requestBody: any = {
-        accommodationId,
-        count: testDataCount,
-        years: generateYears.length > 0 ? generateYears : undefined,
-      };
-      
-      const { data, error } = await supabase.functions.invoke('generate-test-orders', {
-        body: requestBody,
-      });
-
-      if (error) throw error;
-
-      toast.success(data.message || '成功生成測試數據');
-      refreshData();
-    } catch (error) {
-      console.error('Error generating test data:', error);
-      toast.error('生成測試數據失敗');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
   useEffect(() => {
     if (!accommodationId) return;
 
