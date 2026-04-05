@@ -319,9 +319,9 @@ const MemberAuth = () => {
             </div>
 
             <Tabs defaultValue="login">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">登入</TabsTrigger>
-                <TabsTrigger value="signup">註冊</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 bg-[hsl(24,100%,50%)]/10">
+                <TabsTrigger value="login" className="data-[state=active]:bg-[hsl(24,100%,50%)] data-[state=active]:text-white">登入</TabsTrigger>
+                <TabsTrigger value="signup" className="data-[state=active]:bg-[hsl(24,100%,50%)] data-[state=active]:text-white">註冊</TabsTrigger>
               </TabsList>
 
               <TabsContent value="login">
