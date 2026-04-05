@@ -3639,6 +3639,43 @@ const BookingFlow = () => {
                 {/* Step 4: Guest Info */}
                 {currentStep === "guest" && (
                   <div className="space-y-6">
+                    {/* 會員登入提示 */}
+                    {!loggedInMember ? (
+                      <Card className="border-2 border-dashed border-orange-300 bg-orange-50/50">
+                        <CardContent className="py-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">登入會員可自動帶入資料並累積紅利點數</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">訂房消費即享回饋</p>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="shrink-0 border-orange-400 text-orange-600 hover:bg-orange-50"
+                              onClick={() => {
+                                const returnUrl = window.location.pathname + window.location.search;
+                                window.location.href = `/member/auth?redirect=${encodeURIComponent(returnUrl)}`;
+                              }}
+                            >
+                              <User className="h-3.5 w-3.5 mr-1" />
+                              登入 / 註冊
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <Card className="border-2 border-green-200 bg-green-50/50">
+                        <CardContent className="py-4">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
+                            <p className="text-sm font-medium text-green-800">
+                              已登入會員：{loggedInMember.name}，訂房可累積紅利點數
+                            </p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
                     {/* 基本資料卡片 */}
                     <Card className="border-2">
                       <CardHeader className="pb-4">
