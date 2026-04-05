@@ -458,7 +458,7 @@ const MemberAuth = () => {
                         id="signup-confirm"
                         type="password"
                         placeholder="再次輸入密碼"
-                        className="!pl-10"
+                        className="!pl-10 focus-visible:ring-[hsl(24,100%,50%)]"
                         value={signupConfirmPassword}
                         onChange={(e) => setSignupConfirmPassword(e.target.value)}
                         required
