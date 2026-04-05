@@ -443,7 +443,7 @@ const MemberAuth = () => {
                           { check: /[a-z]/.test(signupPassword), label: "含小寫字母" },
                           { check: /[0-9]/.test(signupPassword), label: "含數字" },
                         ].map(({ check, label }) => (
-                          <p key={label} className={check ? "text-green-600" : "text-muted-foreground"}>
+                          <p key={label} className={check ? "text-[hsl(24,100%,50%)]" : "text-muted-foreground"}>
                             {check ? "✓" : "○"} {label}
                           </p>
                         ))}
