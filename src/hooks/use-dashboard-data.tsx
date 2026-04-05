@@ -450,7 +450,7 @@ const fetchDashboardData = async (
     
     monthlyOccupancyRate.push({
       month: monthLabel,
-      occupancyRate: isFutureMonth ? 0 : Math.min(100, overallOccupancyRate),
+      occupancyRate: Math.min(100, overallOccupancyRate),
       lastYearOccupancyRate: Math.min(100, lastYearOverallOccupancyRate),
       averagePrice: 0,
       isFuture: isFutureMonth,
