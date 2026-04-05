@@ -359,7 +359,7 @@ const MemberAuth = () => {
                         id="login-password"
                         type="password"
                         placeholder="••••••••"
-                        className="!pl-10"
+                        className="!pl-10 focus-visible:ring-[hsl(24,100%,50%)]"
                         value={loginPassword}
                         onChange={(e) => setLoginPassword(e.target.value)}
                         required
