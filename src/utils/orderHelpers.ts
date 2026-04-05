@@ -17,7 +17,7 @@ export const getEffectivePaymentStatus = (
   paymentStatus: string,
   paymentLinkCreatedAt?: string | null
 ): string => {
-  const unpaidStatuses = ['unpaid', 'deposit_paid', 'partial'];
+  const unpaidStatuses = ['unpaid'];
   if (unpaidStatuses.includes(paymentStatus) && isPaymentLinkExpired(paymentLinkCreatedAt)) {
     return 'overdue';
   }
