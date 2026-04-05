@@ -167,6 +167,8 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         const checkIn = new Date(order.check_in_date);
         const checkOut = new Date(order.check_out_date);
         const nights = Math.max(1, differenceInDays(checkOut, checkIn));
+        const isExclusive = order.room_type_id ? exclusiveRoomTypeIds.has(order.room_type_id) : false;
+        const roomNightsPerDay = isExclusive ? DAILY_ROOM_CAP : 1;
 
         // Collect daily prices for proportional revenue split
         const dailyEntries: { dayType: DayType; price: number }[] = [];
@@ -179,7 +181,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
           if (dayMonth !== monthKey) continue; // only count nights in this month
 
           const dayType = classifyDay(day, holidaySet);
-          soldByType[dayType]++;
+          soldByType[dayType] += roomNightsPerDay;
 
           let dailyPrice = 0;
           if (order.room_type_id) {
