@@ -386,10 +386,9 @@ const fetchDashboardData = async (
       return checkOut > monthStart && checkIn <= monthEnd;
     });
     
+    const DAILY_ROOM_CAP = 6;
     let totalNightsAllRooms = 0;
-    let totalAvailableNights = 0;
     let lastYearTotalNights = 0;
-    let lastYearTotalAvailable = 0;
     
     const lastYearMonthOrders = ordersData.filter(o => {
       if (!o.check_in_date || !o.check_out_date) return false;
