@@ -480,7 +480,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         <div className="mt-4 space-y-1 text-xs text-muted-foreground border-t pt-3">
           <p>說明：</p>
           <ul className="list-disc list-inside space-y-0.5 ml-2">
-            <li>間數：該類別被訂房佔用的房間總數（每日上限 {totalRoomCount} 間）</li>
+            <li>間數：售出間數 / 當月該類別總可用間數（每日上限 {totalRoomCount} 間）</li>
             <li>住房率：該類別佔用房間數 ÷ 該類別總供應房間數(天數×{totalRoomCount}) × 100%</li>
             <li>一到四：週一至週四 | 五/日：週五及週日 | 假日：週六、台灣國定假日(含連假補假)</li>
             <li>金額分配：跨日訂單的總金額已平均分配至每一晚</li>
