@@ -22,6 +22,15 @@ interface DayTypeStats {
   revenue: number;     // 訂單金額
 }
 
+interface DailyDetail {
+  date: string;        // yyyy-MM-dd
+  dayLabel: string;    // 一, 二, ... 日
+  dayType: DayType;
+  roomsSold: number;
+  revenue: number;
+  avgPrice: number;    // revenue / roomsSold (or 0)
+}
+
 interface MonthRow {
   monthKey: string;     // yyyy-MM
   label: string;        // 2026-01
@@ -30,6 +39,7 @@ interface MonthRow {
   holiday: DayTypeStats;  // 假日
   avgOccupancy: number;   // 月平均住房率
   totalRevenue: number;   // 總金額
+  dailyDetails: DailyDetail[];
 }
 
 type DayType = 'weekday' | 'friSun' | 'holiday';
