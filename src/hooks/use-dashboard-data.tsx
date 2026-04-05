@@ -386,10 +386,9 @@ const fetchDashboardData = async (
       return checkOut > monthStart && checkIn <= monthEnd;
     });
     
+    const DAILY_ROOM_CAP = 6;
     let totalNightsAllRooms = 0;
-    let totalAvailableNights = 0;
     let lastYearTotalNights = 0;
-    let lastYearTotalAvailable = 0;
     
     const lastYearMonthOrders = ordersData.filter(o => {
       if (!o.check_in_date || !o.check_out_date) return false;
@@ -432,19 +431,19 @@ const fetchDashboardData = async (
         : 0;
       
       totalNightsAllRooms += totalNights;
-      totalAvailableNights += maxPossibleNights;
       lastYearTotalNights += lastYearNights;
-      lastYearTotalAvailable += maxPossibleNights;
       
       monthDataPoint[roomType.name] = isFutureMonth ? 0 : Math.min(100, occupancyRate);
     });
     
+    // Use hard cap of 6 rooms/day, matching the Occupancy & Revenue Report
+    const totalAvailableNights = DAILY_ROOM_CAP * daysInMonth;
     const overallOccupancyRate = totalAvailableNights > 0
       ? Math.round((totalNightsAllRooms / totalAvailableNights) * 100)
       : 0;
     
-    const lastYearOverallOccupancyRate = lastYearTotalAvailable > 0
-      ? Math.round((lastYearTotalNights / lastYearTotalAvailable) * 100)
+    const lastYearOverallOccupancyRate = totalAvailableNights > 0
+      ? Math.round((lastYearTotalNights / totalAvailableNights) * 100)
       : 0;
     
     monthlyOccupancyRate.push({
