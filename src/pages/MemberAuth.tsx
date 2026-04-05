@@ -125,20 +125,20 @@ const MemberAuth = () => {
     }
   };
 
-  const handleGoogleLogin = async () => {
+  const handleOAuthLogin = async (provider: "google" | "apple") => {
     setLoading(true);
     try {
-      const result = await lovable.auth.signInWithOAuth("google", {
+      const result = await lovable.auth.signInWithOAuth(provider, {
         redirect_uri: window.location.origin,
       });
       if (result.error) throw result.error;
       if (result.redirected) return;
       
       await ensureMemberProfile();
-      toast.success("Google 登入成功");
+      toast.success(`${provider === "google" ? "Google" : "Apple"} 登入成功`);
       navigate(redirectTo);
     } catch (error: any) {
-      toast.error(error.message || "Google 登入失敗");
+      toast.error(error.message || `${provider === "google" ? "Google" : "Apple"} 登入失敗`);
       setLoading(false);
     }
   };
