@@ -421,7 +421,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
                 <TableRow key={row.monthKey} className="hover:bg-muted/30">
                   <TableCell className="text-center font-semibold border-r bg-muted/20">{row.label}</TableCell>
                   {/* 一到四 */}
-                  <TableCell className="text-center border-r text-sm">{row.weekday.rooms || <span className="text-muted-foreground">0</span>}</TableCell>
+                  <TableCell className="text-center border-r text-sm">{row.weekday.rooms}/{row.weekday.available}</TableCell>
                   <TableCell className={`text-center border-r text-sm ${getRateColor(row.weekday.occupancyRate)}`}>
                     {formatRate(row.weekday.occupancyRate)}
                   </TableCell>
