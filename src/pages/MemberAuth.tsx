@@ -296,7 +296,7 @@ const MemberAuth = () => {
 
             <Button
               variant="outline"
-              className="w-full mb-4"
+              className="w-full mb-4 border-[hsl(24,100%,50%)]/40 hover:bg-[hsl(24,100%,50%)]/10"
               onClick={() => handleOAuthLogin("google")}
               disabled={loading}
             >
