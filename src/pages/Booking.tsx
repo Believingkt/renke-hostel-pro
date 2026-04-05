@@ -230,13 +230,15 @@ const Booking = () => {
                     <Calendar className="h-4 w-4 text-primary" />
                     入住日期
                   </Label>
-                  <div className="flex items-center h-12 px-3 border rounded-md bg-background">
-                    <span className="text-base text-foreground">選擇日期</span>
+                  <div className="relative flex items-center h-12 px-3 border rounded-md bg-background">
+                    <span className="text-base text-foreground pointer-events-none">
+                      {checkInDate || "選擇日期"}
+                    </span>
                     <Input 
                       type="date" 
                       value={checkInDate}
                       onChange={(e) => setCheckInDate(e.target.value)}
-                      className="absolute opacity-0 inset-0 cursor-pointer"
+                      className="absolute opacity-0 inset-0 cursor-pointer min-h-0 h-full border-0 shadow-none"
                     />
                   </div>
                 </div>
@@ -245,13 +247,15 @@ const Booking = () => {
                     <Calendar className="h-4 w-4 text-primary" />
                     退房日期
                   </Label>
-                  <div className="flex items-center h-12 px-3 border rounded-md bg-background">
-                    <span className="text-base text-foreground">選擇日期</span>
+                  <div className="relative flex items-center h-12 px-3 border rounded-md bg-background">
+                    <span className="text-base text-foreground pointer-events-none">
+                      {checkOutDate || "選擇日期"}
+                    </span>
                     <Input 
                       type="date" 
                       value={checkOutDate}
                       onChange={(e) => setCheckOutDate(e.target.value)}
-                      className="absolute opacity-0 inset-0 cursor-pointer"
+                      className="absolute opacity-0 inset-0 cursor-pointer min-h-0 h-full border-0 shadow-none"
                     />
                   </div>
                 </div>
