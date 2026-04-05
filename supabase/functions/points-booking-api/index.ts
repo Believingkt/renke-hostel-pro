@@ -549,6 +549,22 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
   // Generate order number
   const orderNumber = generateOrderNumber();
 
+  // Look up platform member by email or phone
+  let memberId: string | null = null;
+  if (guest_email || guest_phone) {
+    const conditions: string[] = [];
+    if (guest_email) conditions.push(`email.eq.${guest_email}`);
+    if (guest_phone) conditions.push(`phone.eq.${guest_phone}`);
+    
+    const { data: member } = await supabase
+      .from("platform_members")
+      .select("id")
+      .or(conditions.join(","))
+      .maybeSingle();
+    
+    if (member) memberId = member.id;
+  }
+
   const orderData = {
     accommodation_id,
     room_type_id,
@@ -558,6 +574,7 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
     guest_phone,
     guest_email: guest_email || null,
     guest_count,
+    member_id: memberId,
     meal_plan: selectedTemplate.template_name || null,
     total_price: totalPrice,
     final_price: finalPrice,
