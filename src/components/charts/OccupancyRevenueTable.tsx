@@ -449,7 +449,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
               {/* 合計/平均 row */}
               <TableRow className="border-t-2 bg-muted/40 font-bold">
                 <TableCell className="text-center border-r font-bold">合計 / 平均</TableCell>
-                <TableCell className="text-center border-r">{totals.weekdayRooms}</TableCell>
+                <TableCell className="text-center border-r">{totals.weekdayRooms}/{totals.weekdayAvailable}</TableCell>
                 <TableCell className={`text-center border-r ${getRateColor(totals.weekdayOccupancy)}`}>
                   {formatRate(totals.weekdayOccupancy)}
                 </TableCell>
