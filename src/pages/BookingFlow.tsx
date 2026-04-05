@@ -1537,6 +1537,15 @@ const BookingFlow = () => {
     }
 
     if (currentStep === "guest") {
+      // 必須登入會員
+      if (!loggedInMember) {
+        toast({
+          title: "請先登入會員",
+          description: "完成訂房前需登入會員帳號",
+          variant: "destructive",
+        });
+        return;
+      }
       // 驗證客人資訊
       try {
         guestInfoSchema.parse(guestInfo);
