@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -8,11 +8,15 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Mail, Lock, User, Phone, Loader2 } from "lucide-react";
+import { Mail, Lock, User, Phone, Loader2, ArrowLeft, CheckCircle } from "lucide-react";
+import { getPasswordIssues } from "@/utils/passwordPolicy";
+
+type ViewMode = "auth" | "forgot-password" | "signup-success";
 
 const MemberAuth = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("auth");
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [signupName, setSignupName] = useState("");
@@ -20,6 +24,26 @@ const MemberAuth = () => {
   const [signupPhone, setSignupPhone] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSent, setForgotSent] = useState(false);
+
+  // 監聯 auth 狀態，已登入且有會員資料時自動跳轉
+  useEffect(() => {
+    const checkExisting = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: member } = await supabase
+          .from("platform_members")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (member) {
+          navigate("/member/profile", { replace: true });
+        }
+      }
+    };
+    checkExisting();
+  }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,12 +55,17 @@ const MemberAuth = () => {
       });
       if (error) throw error;
       
-      // Check if member exists, if not create
       await ensureMemberProfile();
       toast.success("登入成功");
       navigate("/member/profile");
     } catch (error: any) {
-      toast.error(error.message || "登入失敗");
+      if (error.message?.includes("Email not confirmed")) {
+        toast.error("Email 尚未驗證，請先查收驗證信件");
+      } else if (error.message?.includes("Invalid login")) {
+        toast.error("Email 或密碼錯誤");
+      } else {
+        toast.error(error.message || "登入失敗");
+      }
     } finally {
       setLoading(false);
     }
@@ -48,24 +77,47 @@ const MemberAuth = () => {
       toast.error("密碼不一致");
       return;
     }
-    if (signupPassword.length < 6) {
-      toast.error("密碼至少需要 6 個字元");
+    
+    const issues = getPasswordIssues(signupPassword, { email: signupEmail });
+    if (issues.length > 0) {
+      toast.error(issues[0]);
       return;
     }
+
     setLoading(true);
     try {
       const { error } = await supabase.auth.signUp({
         email: signupEmail,
         password: signupPassword,
         options: {
-          data: { name: signupName },
+          data: { name: signupName, phone: signupPhone },
           emailRedirectTo: window.location.origin + "/member/profile",
         },
       });
       if (error) throw error;
-      toast.success("註冊成功！請查收驗證信件");
+      setViewMode("signup-success");
     } catch (error: any) {
-      toast.error(error.message || "註冊失敗");
+      if (error.message?.includes("already registered")) {
+        toast.error("此 Email 已註冊，請直接登入");
+      } else {
+        toast.error(error.message || "註冊失敗");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+        redirectTo: `${window.location.origin}/member/reset-password`,
+      });
+      if (error) throw error;
+      setForgotSent(true);
+    } catch (error: any) {
+      toast.error(error.message || "發送重設信件失敗");
     } finally {
       setLoading(false);
     }
@@ -104,10 +156,113 @@ const MemberAuth = () => {
         user_id: user.id,
         name: user.user_metadata?.name || user.email?.split("@")[0] || "",
         email: user.email || "",
+        phone: user.user_metadata?.phone || null,
         avatar_url: user.user_metadata?.avatar_url || null,
       });
     }
   };
+
+  // 註冊成功畫面
+  if (viewMode === "signup-success") {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <Card>
+            <CardContent className="py-10 text-center space-y-4">
+              <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: "hsl(24, 100%, 95%)" }}>
+                <Mail className="h-8 w-8" style={{ color: "hsl(24, 100%, 50%)" }} />
+              </div>
+              <h2 className="text-xl font-bold">驗證信已送出</h2>
+              <p className="text-muted-foreground text-sm">
+                我們已將驗證信寄至 <strong>{signupEmail}</strong><br />
+                請點擊信件中的連結完成註冊
+              </p>
+              <div className="text-xs text-muted-foreground space-y-1 pt-2">
+                <p>• 請檢查垃圾郵件資料夾</p>
+                <p>• 驗證連結 24 小時內有效</p>
+                <p>• 驗證完成後即可登入會員中心</p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => { setViewMode("auth"); }}
+                className="mt-4"
+              >
+                返回登入
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // 忘記密碼畫面
+  if (viewMode === "forgot-password") {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold" style={{ color: "hsl(24, 100%, 50%)" }}>人客多</h1>
+            <p className="text-muted-foreground mt-2">忘記密碼</p>
+          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>重設密碼</CardTitle>
+              <CardDescription>
+                {forgotSent ? "重設信件已送出" : "請輸入您註冊時使用的 Email"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {forgotSent ? (
+                <div className="text-center space-y-4">
+                  <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: "hsl(24, 100%, 95%)" }}>
+                    <CheckCircle className="h-8 w-8" style={{ color: "hsl(24, 100%, 50%)" }} />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    重設密碼信已寄至 <strong>{forgotEmail}</strong><br />
+                    請點擊信件中的連結重設密碼
+                  </p>
+                  <Button variant="outline" onClick={() => { setViewMode("auth"); setForgotSent(false); setForgotEmail(""); }}>
+                    返回登入
+                  </Button>
+                </div>
+              ) : (
+                <form onSubmit={handleForgotPassword} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="forgot-email">Email</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="forgot-email"
+                        type="email"
+                        placeholder="your@email.com"
+                        className="pl-10"
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full bg-[hsl(24,100%,50%)] hover:bg-[hsl(24,100%,45%)] text-white"
+                    disabled={loading}
+                  >
+                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    發送重設信件
+                  </Button>
+                  <Button variant="ghost" className="w-full" onClick={() => setViewMode("auth")}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    返回登入
+                  </Button>
+                </form>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white flex items-center justify-center p-4">
@@ -173,7 +328,17 @@ const MemberAuth = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="login-password">密碼</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="login-password">密碼</Label>
+                      <button
+                        type="button"
+                        className="text-xs hover:underline"
+                        style={{ color: "hsl(24, 100%, 50%)" }}
+                        onClick={() => setViewMode("forgot-password")}
+                      >
+                        忘記密碼？
+                      </button>
+                    </div>
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -249,13 +414,27 @@ const MemberAuth = () => {
                       <Input
                         id="signup-password"
                         type="password"
-                        placeholder="至少 6 個字元"
+                        placeholder="至少 8 個字元，含大小寫與數字"
                         className="pl-10"
                         value={signupPassword}
                         onChange={(e) => setSignupPassword(e.target.value)}
                         required
                       />
                     </div>
+                    {signupPassword && (
+                      <div className="text-xs space-y-0.5 mt-1">
+                        {[
+                          { check: signupPassword.length >= 8, label: "至少 8 個字元" },
+                          { check: /[A-Z]/.test(signupPassword), label: "含大寫字母" },
+                          { check: /[a-z]/.test(signupPassword), label: "含小寫字母" },
+                          { check: /[0-9]/.test(signupPassword), label: "含數字" },
+                        ].map(({ check, label }) => (
+                          <p key={label} className={check ? "text-green-600" : "text-muted-foreground"}>
+                            {check ? "✓" : "○"} {label}
+                          </p>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-confirm">確認密碼</Label>
@@ -271,11 +450,14 @@ const MemberAuth = () => {
                         required
                       />
                     </div>
+                    {signupConfirmPassword && signupPassword !== signupConfirmPassword && (
+                      <p className="text-xs text-destructive">密碼不一致</p>
+                    )}
                   </div>
                   <Button
                     type="submit"
                     className="w-full bg-[hsl(24,100%,50%)] hover:bg-[hsl(24,100%,45%)] text-white"
-                    disabled={loading}
+                    disabled={loading || (!!signupConfirmPassword && signupPassword !== signupConfirmPassword)}
                   >
                     {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     註冊
