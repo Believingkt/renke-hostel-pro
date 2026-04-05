@@ -15,6 +15,8 @@ type ViewMode = "auth" | "forgot-password" | "signup-success";
 
 const MemberAuth = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/member/profile";
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("auth");
   const [loginEmail, setLoginEmail] = useState("");
