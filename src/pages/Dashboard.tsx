@@ -38,9 +38,6 @@ const Dashboard = () => {
   const isMobile = useIsMobile();
   const [isLiveUpdating, setIsLiveUpdating] = useState(false);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date());
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [testDataCount, setTestDataCount] = useState(20);
-  const [generateYears, setGenerateYears] = useState<number[]>([2025, 2026]);
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   
