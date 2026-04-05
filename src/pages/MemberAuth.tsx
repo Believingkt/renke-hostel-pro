@@ -238,7 +238,7 @@ const MemberAuth = () => {
                         id="forgot-email"
                         type="email"
                         placeholder="your@email.com"
-                        className="!pl-10"
+                        className="!pl-10 focus-visible:ring-[hsl(24,100%,50%)]"
                         value={forgotEmail}
                         onChange={(e) => setForgotEmail(e.target.value)}
                         required
