@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccommodation } from "@/contexts/AccommodationContext";
