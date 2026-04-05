@@ -15,6 +15,7 @@ interface OccupancyRevenueTableProps {
 
 interface DayTypeStats {
   rooms: number;       // 間數 (room-nights sold)
+  available: number;   // 當月該類別總可用房晚
   occupancyRate: number; // 住房率
   revenue: number;     // 訂單金額
 }
