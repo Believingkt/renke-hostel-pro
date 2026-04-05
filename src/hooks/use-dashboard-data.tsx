@@ -59,8 +59,8 @@ const fetchDashboardData = async (
   customDateRange?: { from: Date; to: Date },
   selectedYear?: number
 ): Promise<DashboardData> => {
+  const DAILY_ROOM_CAP = 6;
   const now = new Date();
-  const currentYear = selectedYear || now.getFullYear();
   
   let startDate: Date;
   let endDate: Date;
