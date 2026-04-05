@@ -365,6 +365,30 @@ const BookingFlow = () => {
   const checkOutDateStr = checkOutDate ? format(checkOutDate, "yyyy-MM-dd") : "";
   const totalGuests = (contextGuests?.adults || 2) + (contextGuests?.children || 0);
 
+  // 檢查會員登入狀態
+  useEffect(() => {
+    const checkMember = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setLoggedInMember(null); return; }
+      const { data: member } = await supabase
+        .from("platform_members")
+        .select("id, name, email, phone")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (member) {
+        setLoggedInMember(member);
+        // 自動填入會員資料
+        setGuestInfo(prev => ({
+          ...prev,
+          name: prev.name || member.name || "",
+          email: prev.email || member.email || "",
+          phone: prev.phone || member.phone || "",
+        }));
+      }
+    };
+    checkMember();
+  }, []);
+
   useEffect(() => {
     if (subdomainLoading || !accommodationId) return;
     
