@@ -3640,26 +3640,29 @@ const BookingFlow = () => {
                 {/* Step 4: Guest Info */}
                 {currentStep === "guest" && (
                   <div className="space-y-6">
-                    {/* 會員登入提示 */}
+                    {/* 會員登入區塊（必要） */}
                     {!loggedInMember ? (
-                      <Card className="border-2 border-dashed border-orange-300 bg-orange-50/50">
-                        <CardContent className="py-4">
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex-1">
-                              <p className="text-sm font-medium">登入會員可自動帶入資料並累積紅利點數</p>
-                              <p className="text-xs text-muted-foreground mt-0.5">訂房消費即享回饋</p>
+                      <Card className="border-2 border-orange-400 bg-orange-50/80">
+                        <CardContent className="py-6">
+                          <div className="flex flex-col items-center text-center gap-4">
+                            <div className="w-14 h-14 rounded-full bg-orange-100 flex items-center justify-center">
+                              <User className="h-7 w-7 text-orange-600" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-base">請先登入會員</p>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                完成訂房前需登入會員帳號，訂房消費可累積紅利點數
+                              </p>
                             </div>
                             <Button
-                              variant="outline"
-                              size="sm"
-                              className="shrink-0 border-orange-400 text-orange-600 hover:bg-orange-50"
+                              className="bg-[hsl(24,100%,50%)] hover:bg-[hsl(24,100%,45%)] text-white px-8"
                               onClick={() => {
                                 const returnUrl = window.location.pathname + window.location.search;
                                 window.location.href = `/member/auth?redirect=${encodeURIComponent(returnUrl)}`;
                               }}
                             >
-                              <User className="h-3.5 w-3.5 mr-1" />
-                              登入 / 註冊
+                              <User className="h-4 w-4 mr-2" />
+                              登入 / 註冊會員
                             </Button>
                           </div>
                         </CardContent>
