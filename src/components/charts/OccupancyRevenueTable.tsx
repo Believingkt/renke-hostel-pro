@@ -427,7 +427,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
                   </TableCell>
                   <TableCell className="text-center border-r text-sm tabular-nums">{formatCurrency(row.weekday.revenue)}</TableCell>
                   {/* 五/日 */}
-                  <TableCell className="text-center border-r text-sm">{row.friSun.rooms || <span className="text-muted-foreground">0</span>}</TableCell>
+                  <TableCell className="text-center border-r text-sm">{row.friSun.rooms}/{row.friSun.available}</TableCell>
                   <TableCell className={`text-center border-r text-sm ${getRateColor(row.friSun.occupancyRate)}`}>
                     {formatRate(row.friSun.occupancyRate)}
                   </TableCell>
