@@ -80,7 +80,7 @@ const fetchDashboardData = async (
   const [roomTypesResult, ordersResult] = await Promise.all([
     supabase
       .from("room_types")
-      .select("id, name, room_count")
+      .select("id, name, room_count, is_exclusive_package")
       .eq("accommodation_id", accommodationId),
     supabase
       .from("orders")
