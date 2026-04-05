@@ -231,10 +231,10 @@ const BookingPortal = () => {
                     目的地
                   </label>
                   <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
                     <Input
                       placeholder="城市、地區或民宿名稱"
-                      className="pl-10 h-10 border-border text-foreground"
+                      className="!pl-10 h-10 border-border text-foreground"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
@@ -248,10 +248,10 @@ const BookingPortal = () => {
                       入住日期
                     </label>
                     <div className="relative">
-                      <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
                       <Input
                         placeholder="選擇日期"
-                        className="pl-10 h-10 border-border text-foreground"
+                        className="!pl-10 h-10 border-border text-foreground"
                         readOnly
                       />
                     </div>
@@ -261,10 +261,10 @@ const BookingPortal = () => {
                       退房日期
                     </label>
                     <div className="relative">
-                      <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
                       <Input
                         placeholder="選擇日期"
-                        className="pl-10 h-10 border-border text-foreground"
+                        className="!pl-10 h-10 border-border text-foreground"
                         readOnly
                       />
                     </div>
@@ -277,10 +277,10 @@ const BookingPortal = () => {
                     房客人數
                   </label>
                   <div className="relative">
-                    <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
                     <Input
                       placeholder="2 位成人"
-                      className="pl-10 h-10 border-border text-foreground"
+                      className="!pl-10 h-10 border-border text-foreground"
                       readOnly
                     />
                   </div>
