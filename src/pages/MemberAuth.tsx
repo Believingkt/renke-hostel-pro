@@ -386,7 +386,7 @@ const MemberAuth = () => {
                       <Input
                         id="signup-name"
                         placeholder="您的姓名"
-                        className="!pl-10"
+                        className="!pl-10 focus-visible:ring-[hsl(24,100%,50%)]"
                         value={signupName}
                         onChange={(e) => setSignupName(e.target.value)}
                         required
