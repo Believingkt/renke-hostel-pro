@@ -190,6 +190,9 @@ const BookingFlow = () => {
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [roomPricing, setRoomPricing] = useState<Record<string, number>>({});
   
+  // 會員登入狀態
+  const [loggedInMember, setLoggedInMember] = useState<{ id: string; name: string; email: string; phone: string } | null>(null);
+
   // 訂房資料
   const [selectedRoom, setSelectedRoom] = useState<RoomType | null>(null);
   const [selectedMealPlan, setSelectedMealPlan] = useState<string>("2_meals");
