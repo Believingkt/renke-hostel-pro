@@ -292,6 +292,9 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
       rows,
       totals: {
         ...totals,
+        weekdayAvailable: totalWeekdayAvailable,
+        friSunAvailable: totalFriSunAvailable,
+        holidayAvailable: totalHolidayAvailable,
         weekdayOccupancy: totalWeekdayAvailable > 0 ? (totals.weekdayRooms / totalWeekdayAvailable) * 100 : 0,
         friSunOccupancy: totalFriSunAvailable > 0 ? (totals.friSunRooms / totalFriSunAvailable) * 100 : 0,
         holidayOccupancy: totalHolidayAvailable > 0 ? (totals.holidayRooms / totalHolidayAvailable) * 100 : 0,
