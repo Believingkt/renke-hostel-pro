@@ -123,6 +123,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
     const DAILY_ROOM_CAP = 6;
     const totalRoomCount = Math.min(roomTypes.reduce((sum, rt) => sum + (rt.room_count || 0), 0), DAILY_ROOM_CAP);
     const exclusiveRoomTypeIds = new Set(roomTypes.filter(rt => rt.is_exclusive_package).map(rt => rt.id));
+    if (totalRoomCount === 0) return null;
 
     const pricingMap = buildPricingMap(inventoryData);
 
