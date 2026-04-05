@@ -80,6 +80,13 @@ const Notifications = () => {
     }
   };
 
+  // Reset notifications immediately when accommodation changes
+  useEffect(() => {
+    setNotifications([]);
+    setFilter('all');
+    setTypeFilter('all');
+  }, [accommodationId]);
+
   useEffect(() => {
     fetchNotifications();
   }, [accommodationId, filter, typeFilter]);
