@@ -457,12 +457,10 @@ const fetchDashboardData = async (
     });
     
     // Average price (ADR) using daily-split revenue / room nights
-    const monthKey = format(monthDate, 'yyyy-MM');
     const monthRevenue = revenueByMonth.get(monthKey) || 0;
     const monthRoomNights = roomNightsByMonth.get(monthKey) || 0;
     const averagePrice = monthRoomNights > 0 ? Math.round(monthRevenue / monthRoomNights) : 0;
     
-    const lastYearMonthKey = format(lastYearMonthDate, 'yyyy-MM');
     const lastYearMonthRevenue = revenueByMonth.get(lastYearMonthKey) || 0;
     const lastYearMonthRoomNights = roomNightsByMonth.get(lastYearMonthKey) || 0;
     const lastYearAveragePrice = lastYearMonthRoomNights > 0 ? Math.round(lastYearMonthRevenue / lastYearMonthRoomNights) : 0;
