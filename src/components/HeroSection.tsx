@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
@@ -89,6 +89,9 @@ const HeroSection = ({
   onFirstImageLoad,
   compact = false,
 }: HeroSectionProps) => {
+  const location = useLocation();
+  const isIndividualBookingPage = /^\/booking\/[^/]+$/.test(location.pathname);
+  const useCompactHero = compact || isIndividualBookingPage;
   const { checkInDate, setCheckInDate, checkOutDate, setCheckOutDate, guests, setGuests, currentAccommodationId } = useAccommodation();
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
@@ -496,7 +499,7 @@ const HeroSection = ({
           <CarouselContent className="-ml-0">
             {slides.map((slide, index) => (
               <CarouselItem key={slide.id} className="pl-0">
-                <div className={`relative ${compact ? 'h-[400px] md:h-[500px]' : 'h-[580px] md:h-[700px]'} w-full bg-gradient-to-br from-muted to-muted/50`}>
+                <div className={`relative ${useCompactHero ? 'h-[400px] md:h-[500px]' : 'h-[580px] md:h-[700px]'} w-full bg-gradient-to-br from-muted to-muted/50`}>
                   {index === 0 ? (
                     // 首張圖片：無過渡效果，直接顯示
                     <img
@@ -560,7 +563,7 @@ const HeroSection = ({
           <div 
             className={`
               absolute left-1/2 -translate-x-1/2 pointer-events-none z-10
-              w-full max-w-4xl px-4 ${compact ? 'pb-24 md:pb-40' : 'pb-32 md:pb-56'}
+              w-full max-w-4xl px-4 ${useCompactHero ? 'pb-24 md:pb-40' : 'pb-32 md:pb-56'}
               text-center
               ${
                 currentSlide.text_position_y === 'top' ? 'flex items-start justify-center pt-32 top-0' :
@@ -572,12 +575,12 @@ const HeroSection = ({
               color: currentSlide.text_color === 'black' ? '#000' : currentSlide.text_color === 'primary' ? 'hsl(var(--primary))' : '#fff'
             }}
           >
-            <div className={`w-full ${compact ? 'space-y-0.5 md:space-y-1' : 'space-y-3 md:space-y-4'}`}>
+            <div className={`w-full ${useCompactHero ? 'space-y-0.5 md:space-y-1' : 'space-y-3 md:space-y-4'}`}>
               {/* 主標題：優先使用圖片標題，否則使用全局標題或住宿名稱 */}
               <h1 
                 className="hero-title font-bold drop-shadow-lg leading-none tracking-tight"
                 style={{
-                  fontSize: compact
+                  fontSize: useCompactHero
                     ? 'clamp(0.75rem, 1.4vw, 1.125rem)'
                     : 'clamp(1.875rem, 5vw, 5rem)',
                   fontFamily: "'Noto Sans TC', sans-serif",
@@ -592,7 +595,7 @@ const HeroSection = ({
                 <p 
                   className={cn(
                     'drop-shadow-lg leading-tight transition-opacity duration-500',
-                    compact
+                    useCompactHero
                       ? 'mt-1 md:mt-1.5 text-sm md:text-xl'
                       : (currentSlide.subtitle_size || 'medium') === 'small'
                         ? 'mt-3 md:mt-4 text-base md:text-2xl'
@@ -610,7 +613,7 @@ const HeroSection = ({
                 <p 
                   className={cn(
                     'drop-shadow-lg opacity-90 leading-relaxed transition-opacity duration-500',
-                    compact
+                    useCompactHero
                       ? 'mt-1 text-xs md:text-sm'
                       : (currentSlide.secondary_subtitle_size || 'small') === 'small'
                         ? 'mt-2 md:mt-3 text-sm md:text-xl'
@@ -629,7 +632,8 @@ const HeroSection = ({
         {/* 搜尋卡片 - 手机版垂直居中，桌面版在底部 */}
         <div className={`absolute left-1/2 -translate-x-1/2 w-full max-w-5xl px-4 z-30 
                         max-md:top-1/2 max-md:-translate-y-1/2
-                        md:top-auto md:translate-y-0 ${compact ? 'md:bottom-[80px]' : 'md:bottom-[140px]'}`}>
+                        md:top-auto md:translate-y-0 ${useCompactHero ? 'md:bottom-[80px]' : 'md:bottom-[140px]'}`}>
+
           <Card className="shadow-2xl bg-white/95 backdrop-blur-sm border-0 rounded-xl md:rounded-2xl">
             <CardContent className="p-4 md:p-8">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-3 md:mb-4">
