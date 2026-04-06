@@ -575,9 +575,9 @@ const HeroSection = ({
             <div className={`w-full ${compact ? 'space-y-1 md:space-y-2' : 'space-y-3 md:space-y-4'}`}>
               {/* 主標題：優先使用圖片標題，否則使用全局標題或住宿名稱 */}
               <h1 
-                className="hero-title font-bold drop-shadow-lg leading-tight"
+                className={`hero-title font-bold drop-shadow-lg leading-tight`}
                 style={{
-                  fontSize: 'clamp(1.875rem, 5vw, 5rem)',
+                  fontSize: compact ? 'clamp(1.5rem, 4vw, 3rem)' : 'clamp(1.875rem, 5vw, 5rem)',
                   fontFamily: "'Noto Sans TC', sans-serif",
                   fontWeight: 700
                 }}
