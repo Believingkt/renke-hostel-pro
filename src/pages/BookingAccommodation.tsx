@@ -182,6 +182,7 @@ const BookingAccommodation = () => {
           heroOverlayOpacity={info.hero_overlay_opacity}
           heroAutoplayDelay={info.hero_autoplay_delay}
           heroPhotos={heroPhotos}
+          compact
         />
 
         {(info.homepage_sections_order || DEFAULT_SECTIONS_ORDER).map((sectionKey) => {
