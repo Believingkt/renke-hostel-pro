@@ -561,7 +561,7 @@ const HeroSection = ({
           <div 
             className={`
               absolute left-1/2 -translate-x-1/2 pointer-events-none z-10
-              w-full max-w-4xl px-4 ${compact ? 'pb-24 md:pb-40' : 'pb-32 md:pb-56'}
+              w-full max-w-4xl px-4 ${useCompactHero ? 'pb-24 md:pb-40' : 'pb-32 md:pb-56'}
               text-center
               ${
                 currentSlide.text_position_y === 'top' ? 'flex items-start justify-center pt-32 top-0' :
