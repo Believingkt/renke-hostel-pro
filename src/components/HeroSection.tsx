@@ -580,9 +580,8 @@ const HeroSection = ({
               <h1 
                 className={cn(
                   "hero-title font-bold drop-shadow-lg leading-none tracking-tight font-sans",
-                  useCompactHero ? "text-4xl md:text-5xl" : "text-5xl md:text-7xl"
+                  useCompactHero ? "text-3xl md:text-4xl" : "text-5xl md:text-7xl"
                 )}
-              >
               >
                 {currentSlide.title || heroMainTitle || accommodationName}
               </h1>
