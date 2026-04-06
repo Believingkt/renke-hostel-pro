@@ -480,8 +480,7 @@ const BookingPortal = () => {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="text-xs gap-1 shrink-0 hover:text-white"
-                      style={{ color: "hsl(25, 70%, 50%)" }}
+                      className="text-xs gap-1 shrink-0 text-primary hover:text-white"
                     >
                       查看詳情
                       <ChevronRight className="h-3.5 w-3.5" />
