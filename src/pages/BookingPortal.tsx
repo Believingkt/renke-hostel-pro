@@ -393,20 +393,7 @@ const BookingPortal = () => {
           </span>
         </div>
 
-        {loading ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {[1, 2, 3, 4].map((i) => (
-              <Card key={i} className="overflow-hidden">
-                <Skeleton className="h-44 w-full" />
-                <CardContent className="p-4 space-y-2">
-                  <Skeleton className="h-5 w-2/3" />
-                  <Skeleton className="h-4 w-1/2" />
-                  <Skeleton className="h-4 w-1/3" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : filtered.length === 0 ? (
+        {filtered.length === 0 ? (
           <div className="text-center py-20 text-muted-foreground">
             <Search className="h-12 w-12 mx-auto mb-4 opacity-30" />
             <p className="text-lg">沒有找到符合條件的民宿</p>
