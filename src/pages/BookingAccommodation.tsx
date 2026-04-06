@@ -250,18 +250,7 @@ const BookingAccommodation = () => {
         })}
       </main>
 
-      <Footer
-        accommodationName={info.name}
-        address={info.address}
-        phone={info.phone}
-        email={info.email}
-        lineId={info.line_id}
-        facebookUrl={info.facebook_url}
-        instagramUrl={info.instagram_url}
-        threadsUrl={info.threads_url}
-        youtubeUrl={info.youtube_url}
-        tiktokUrl={info.tiktok_url}
-      />
+      <BookingFooter />
     </div>
   );
 };
