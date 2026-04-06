@@ -577,7 +577,7 @@ const HeroSection = ({
               <h1 
                 className={`hero-title font-bold drop-shadow-lg leading-tight`}
                 style={{
-                  fontSize: compact ? 'clamp(1.25rem, 3vw, 2.5rem)' : 'clamp(1.875rem, 5vw, 5rem)',
+                  fontSize: compact ? 'clamp(1rem, 2.5vw, 2rem)' : 'clamp(1.875rem, 5vw, 5rem)',
                   fontFamily: "'Noto Sans TC', sans-serif",
                   fontWeight: 700
                 }}
