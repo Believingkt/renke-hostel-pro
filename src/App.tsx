@@ -23,6 +23,7 @@ import HQAuth from "./pages/HQAuth";
 
 // 平台入口 & 會員頁面 - lazy load
 const BookingPortal = lazy(() => import("./pages/BookingPortal"));
+const BookingAccommodation = lazy(() => import("./pages/BookingAccommodation"));
 const MemberAuth = lazy(() => import("./pages/MemberAuth"));
 const MemberLayout = lazy(() => import("./components/member/MemberLayout"));
 const MemberProfile = lazy(() => import("./pages/MemberProfile"));
@@ -85,6 +86,11 @@ function App() {
                 <Route path="/booking" element={
                   <Suspense fallback={null}>
                     <BookingPortal />
+                  </Suspense>
+                } />
+                <Route path="/booking/:accId" element={
+                  <Suspense fallback={<FrontendSkeleton />}>
+                    <BookingAccommodation />
                   </Suspense>
                 } />
                 <Route path="/member/auth" element={

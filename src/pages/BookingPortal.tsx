@@ -134,11 +134,7 @@ const BookingPortal = () => {
   }, [accommodations]);
 
   const handleCardClick = (acc: AccommodationCard) => {
-    if (acc.short_url_alias) {
-      navigate(`/${acc.short_url_alias}`);
-    } else {
-      navigate(`/?accId=${acc.id}`);
-    }
+    navigate(`/booking/${acc.id}`);
   };
 
   return (
