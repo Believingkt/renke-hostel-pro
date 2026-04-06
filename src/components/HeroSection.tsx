@@ -86,7 +86,8 @@ const HeroSection = ({
   heroOverlayOpacity = 40,
   heroAutoplayDelay = 8,
   heroPhotos: providedHeroPhotos = [],
-  onFirstImageLoad
+  onFirstImageLoad,
+  compact = false,
 }: HeroSectionProps) => {
   const { checkInDate, setCheckInDate, checkOutDate, setCheckOutDate, guests, setGuests, currentAccommodationId } = useAccommodation();
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
