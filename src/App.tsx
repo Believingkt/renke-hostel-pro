@@ -88,6 +88,11 @@ function App() {
                     <BookingPortal />
                   </Suspense>
                 } />
+                <Route path="/booking/:accId" element={
+                  <Suspense fallback={<FrontendSkeleton />}>
+                    <BookingAccommodation />
+                  </Suspense>
+                } />
                 <Route path="/member/auth" element={
                   <Suspense fallback={<FrontendSkeleton />}>
                     <MemberAuth />
