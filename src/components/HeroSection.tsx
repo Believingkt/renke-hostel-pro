@@ -87,8 +87,9 @@ const HeroSection = ({
   heroAutoplayDelay = 8,
   heroPhotos: providedHeroPhotos = [],
   onFirstImageLoad,
-  compact = false,
-}: HeroSectionProps) => {
+  const location = useLocation();
+  const isIndividualBookingPage = /^\/booking\/[^/]+$/.test(location.pathname);
+  const useCompactHero = compact || isIndividualBookingPage;
   const { checkInDate, setCheckInDate, checkOutDate, setCheckOutDate, guests, setGuests, currentAccommodationId } = useAccommodation();
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
