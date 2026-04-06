@@ -34,6 +34,7 @@ interface HeroSectionProps {
   heroAutoplayDelay?: number;
   heroPhotos?: HeroPhoto[];
   onFirstImageLoad?: () => void;
+  compact?: boolean;
 }
 
 interface HeroPhoto {
