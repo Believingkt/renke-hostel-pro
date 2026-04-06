@@ -158,18 +158,8 @@ const BookingPortal = () => {
             </span>
           </Link>
 
-          {/* Desktop search bar in header */}
-          <div className="hidden md:flex items-center flex-1 max-w-md mx-8">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
-              <Input
-                placeholder="搜尋民宿、地區..."
-                className="!pl-10 h-9 rounded-full bg-muted/50 border-transparent focus-visible:border-border text-sm"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </div>
+          {/* Spacer for flex layout */}
+          <div className="hidden md:flex flex-1" />
 
           <div className="flex items-center gap-2">
             {isLoggedIn ? (
