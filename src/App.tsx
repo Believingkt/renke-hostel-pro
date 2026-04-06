@@ -83,7 +83,7 @@ function App() {
                 <Route element={<ConditionalLayout />}>
                 {/* 平台入口 & 會員頁面 */}
                 <Route path="/booking" element={
-                  <Suspense fallback={<FrontendSkeleton />}>
+                  <Suspense fallback={null}>
                     <BookingPortal />
                   </Suspense>
                 } />
