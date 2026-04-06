@@ -809,7 +809,7 @@ const HeroSection = ({
 
               {/* 搜尋按鈕 */}
               <Link to="/book" className="block">
-                <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-sm md:text-base h-11 md:h-14 font-medium rounded-lg shadow-md hover:shadow-lg transition-all">
+                <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-sm md:text-base h-11 md:h-14 font-medium rounded-lg transition-all" style={{ boxShadow: '0 4px 14px -3px hsl(25, 76%, 50% / 0.4)' }} onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 8px 20px -3px hsl(25, 76%, 50% / 0.5)')} onMouseLeave={e => (e.currentTarget.style.boxShadow = '0 4px 14px -3px hsl(25, 76%, 50% / 0.4)')}>
                   <Search className="mr-2 h-5 w-5" />
                   搜尋空房
                 </Button>
