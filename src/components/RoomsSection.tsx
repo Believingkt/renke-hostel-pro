@@ -296,22 +296,8 @@ const RoomCard = ({ room, isFirstRoom = false, sharedTemplateLabels, sharedHolid
           )}
         </div>
 
-        {/* Pricing legend */}
-        {pricingRows.length > 0 && (
-          <div className="mb-3">
-            {(() => {
-              const allPrices = pricingRows.flatMap(r => [r.weekday, r.weekend]).filter((p): p is number => p != null);
-              const minPrice = Math.min(...allPrices);
-              const maxPrice = Math.max(...allPrices);
-              if (minPrice === maxPrice) return null;
-              return (
-                <div className="text-xs text-muted-foreground text-center">
-                  價格範圍 NT$ {minPrice.toLocaleString()} ~ NT$ {maxPrice.toLocaleString()}
-                </div>
-              );
-            })()}
-          </div>
-        )}
+
+
         <Link to={`/booking?roomId=${room.id}&step=dates`} className="mt-auto pt-4">
           <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg h-9 md:h-10 font-medium text-sm md:text-base">
             立即預訂
