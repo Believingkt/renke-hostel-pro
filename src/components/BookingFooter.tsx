@@ -12,8 +12,7 @@ const BookingFooter = () => {
 
   return (
     <footer
-      className="border-t border-border relative"
-      style={{ background: "hsl(25, 50%, 18%)" }}
+      className="border-t border-border relative bg-white"
     >
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
