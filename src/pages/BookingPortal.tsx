@@ -147,15 +147,7 @@ const BookingPortal = () => {
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-border">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link to="/booking" className="flex items-center gap-2">
-            <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm"
-              style={{ background: "hsl(25, 70%, 55%)" }}
-            >
-              人
-            </div>
-            <span className="font-bold text-lg" style={{ color: "hsl(25, 70%, 45%)" }}>
-              人客多
-            </span>
+            <img src={lokezeLogo} alt="Lakeze 人客多" className="h-8 object-contain" />
           </Link>
 
           {/* Spacer for flex layout */}
