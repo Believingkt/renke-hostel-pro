@@ -34,6 +34,7 @@ interface HeroSectionProps {
   heroAutoplayDelay?: number;
   heroPhotos?: HeroPhoto[];
   onFirstImageLoad?: () => void;
+  compact?: boolean;
 }
 
 interface HeroPhoto {
@@ -85,7 +86,8 @@ const HeroSection = ({
   heroOverlayOpacity = 40,
   heroAutoplayDelay = 8,
   heroPhotos: providedHeroPhotos = [],
-  onFirstImageLoad
+  onFirstImageLoad,
+  compact = false,
 }: HeroSectionProps) => {
   const { checkInDate, setCheckInDate, checkOutDate, setCheckOutDate, guests, setGuests, currentAccommodationId } = useAccommodation();
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
@@ -494,7 +496,7 @@ const HeroSection = ({
           <CarouselContent className="-ml-0">
             {slides.map((slide, index) => (
               <CarouselItem key={slide.id} className="pl-0">
-                <div className="relative h-[580px] md:h-[700px] w-full bg-gradient-to-br from-muted to-muted/50">
+                <div className={`relative ${compact ? 'h-[400px] md:h-[500px]' : 'h-[580px] md:h-[700px]'} w-full bg-gradient-to-br from-muted to-muted/50`}>
                   {index === 0 ? (
                     // 首張圖片：無過渡效果，直接顯示
                     <img
