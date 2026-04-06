@@ -8,7 +8,7 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* 森山寫照 - 綠色主題 */
+    /* 人客多 - 橘色主題 */
     --background: 0 0% 100%;
     --foreground: 220 15% 20%;
 
@@ -18,30 +18,30 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 220 15% 20%;
 
-    --primary: 142 76% 36%;
+    --primary: 25 76% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 142 70% 94%;
+    --secondary: 25 70% 94%;
     --secondary-foreground: 220 15% 20%;
 
-    --muted: 142 40% 96%;
+    --muted: 25 40% 96%;
     --muted-foreground: 220 10% 50%;
 
-    --accent: 160 84% 39%;
+    --accent: 30 84% 45%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 142 30% 90%;
-    --input: 142 30% 92%;
-    --ring: 142 76% 36%;
+    --border: 25 30% 90%;
+    --input: 25 30% 92%;
+    --ring: 25 76% 50%;
 
     --radius: 0.5rem;
 
     /* Custom design tokens */
-    --hero-gradient-start: 142 76% 36%;
-    --hero-gradient-end: 160 84% 39%;
+    --hero-gradient-start: 25 76% 50%;
+    --hero-gradient-end: 30 84% 45%;
     
     --card-hover: 0 0% 98%;
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -61,12 +61,12 @@ All colors MUST be HSL.
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 220 15% 30%;
-    --sidebar-primary: 142 76% 36%;
+    --sidebar-primary: 25 76% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 142 40% 96%;
+    --sidebar-accent: 25 40% 96%;
     --sidebar-accent-foreground: 220 15% 20%;
-    --sidebar-border: 142 20% 92%;
-    --sidebar-ring: 142 76% 36%;
+    --sidebar-border: 25 20% 92%;
+    --sidebar-ring: 25 76% 50%;
 
     /* Auth branding colors */
     --auth-primary: 25 70% 55%;
