@@ -578,14 +578,11 @@ const HeroSection = ({
             <div className={`w-full ${useCompactHero ? 'space-y-0.5 md:space-y-1' : 'space-y-3 md:space-y-4'}`}>
               {/* 主標題：優先使用圖片標題，否則使用全局標題或住宿名稱 */}
               <h1 
-                className="hero-title font-bold drop-shadow-lg leading-none tracking-tight"
-                style={{
-                  fontSize: useCompactHero
-                    ? 'clamp(0.75rem, 1.4vw, 1.125rem)'
-                    : 'clamp(1.875rem, 5vw, 5rem)',
-                  fontFamily: "'Noto Sans TC', sans-serif",
-                  fontWeight: 700
-                }}
+                className={cn(
+                  "hero-title font-bold drop-shadow-lg leading-none tracking-tight font-sans",
+                  useCompactHero ? "text-4xl md:text-5xl" : "text-5xl md:text-7xl"
+                )}
+              >
               >
                 {currentSlide.title || heroMainTitle || accommodationName}
               </h1>
