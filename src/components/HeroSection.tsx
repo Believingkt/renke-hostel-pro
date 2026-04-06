@@ -575,12 +575,12 @@ const HeroSection = ({
               color: currentSlide.text_color === 'black' ? '#000' : currentSlide.text_color === 'primary' ? 'hsl(var(--primary))' : '#fff'
             }}
           >
-            <div className={`w-full ${compact ? 'space-y-0.5 md:space-y-1' : 'space-y-3 md:space-y-4'}`}>
+            <div className={`w-full ${useCompactHero ? 'space-y-0.5 md:space-y-1' : 'space-y-3 md:space-y-4'}`}>
               {/* 主標題：優先使用圖片標題，否則使用全局標題或住宿名稱 */}
               <h1 
                 className="hero-title font-bold drop-shadow-lg leading-none tracking-tight"
                 style={{
-                  fontSize: compact
+                  fontSize: useCompactHero
                     ? 'clamp(0.75rem, 1.4vw, 1.125rem)'
                     : 'clamp(1.875rem, 5vw, 5rem)',
                   fontFamily: "'Noto Sans TC', sans-serif",
@@ -595,7 +595,7 @@ const HeroSection = ({
                 <p 
                   className={cn(
                     'drop-shadow-lg leading-tight transition-opacity duration-500',
-                    compact
+                    useCompactHero
                       ? 'mt-1 md:mt-1.5 text-sm md:text-xl'
                       : (currentSlide.subtitle_size || 'medium') === 'small'
                         ? 'mt-3 md:mt-4 text-base md:text-2xl'
@@ -613,7 +613,7 @@ const HeroSection = ({
                 <p 
                   className={cn(
                     'drop-shadow-lg opacity-90 leading-relaxed transition-opacity duration-500',
-                    compact
+                    useCompactHero
                       ? 'mt-1 text-xs md:text-sm'
                       : (currentSlide.secondary_subtitle_size || 'small') === 'small'
                         ? 'mt-2 md:mt-3 text-sm md:text-xl'
