@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import bookingHeroBg from "@/assets/booking-hero.jpg";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -198,20 +199,17 @@ const BookingPortal = () => {
 
       {/* ── Hero Banner with Search ── */}
       <section
-        className="relative overflow-hidden"
+        className="relative overflow-hidden bg-cover bg-center"
         style={{
-          background: "linear-gradient(135deg, hsl(25, 80%, 55%) 0%, hsl(30, 90%, 60%) 50%, hsl(35, 85%, 58%) 100%)",
+          backgroundImage: `url(${bookingHeroBg})`,
         }}
       >
-        <div className="absolute inset-0 opacity-10">
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle at 20% 50%, rgba(255,255,255,0.3) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.2) 0%, transparent 40%)",
-            }}
-          />
-        </div>
+        <div
+          className="absolute inset-0"
+          style={{
+            background: "linear-gradient(135deg, hsla(25, 80%, 55%, 0.6) 0%, hsla(30, 90%, 60%, 0.5) 50%, hsla(35, 85%, 58%, 0.6) 100%)",
+          }}
+        />
 
         <div className="relative max-w-7xl mx-auto px-4 py-12 md:py-20 text-center text-white">
           <h1 className="text-3xl md:text-5xl font-bold mb-3 drop-shadow-sm">
