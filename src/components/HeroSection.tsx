@@ -572,12 +572,14 @@ const HeroSection = ({
               color: currentSlide.text_color === 'black' ? '#000' : currentSlide.text_color === 'primary' ? 'hsl(var(--primary))' : '#fff'
             }}
           >
-            <div className={`w-full ${compact ? 'space-y-1 md:space-y-2' : 'space-y-3 md:space-y-4'}`}>
+            <div className={`w-full ${compact ? 'space-y-0.5 md:space-y-1' : 'space-y-3 md:space-y-4'}`}>
               {/* 主標題：優先使用圖片標題，否則使用全局標題或住宿名稱 */}
               <h1 
-                className={`hero-title font-bold drop-shadow-lg leading-tight`}
+                className="hero-title font-bold drop-shadow-lg leading-none tracking-tight"
                 style={{
-                  fontSize: compact ? 'clamp(0.875rem, 2vw, 1.5rem)' : 'clamp(1.875rem, 5vw, 5rem)',
+                  fontSize: compact
+                    ? 'clamp(0.75rem, 1.4vw, 1.125rem)'
+                    : 'clamp(1.875rem, 5vw, 5rem)',
                   fontFamily: "'Noto Sans TC', sans-serif",
                   fontWeight: 700
                 }}
@@ -588,12 +590,16 @@ const HeroSection = ({
               {/* 副標題：優先使用圖片副標題，否則使用全局副標題 */}
               {(currentSlide.subtitle || heroSubtitle) && (
                 <p 
-                  className={`
-                    drop-shadow-lg mt-3 md:mt-4 leading-relaxed transition-opacity duration-500
-                    ${(currentSlide.subtitle_size || 'medium') === 'small' ? 'text-base md:text-2xl' : 
-                      (currentSlide.subtitle_size || 'medium') === 'large' ? 'text-xl md:text-4xl' : 
-                      'text-lg md:text-3xl'}
-                  `}
+                  className={cn(
+                    'drop-shadow-lg leading-tight transition-opacity duration-500',
+                    compact
+                      ? 'mt-1 md:mt-1.5 text-sm md:text-xl'
+                      : (currentSlide.subtitle_size || 'medium') === 'small'
+                        ? 'mt-3 md:mt-4 text-base md:text-2xl'
+                        : (currentSlide.subtitle_size || 'medium') === 'large'
+                          ? 'mt-3 md:mt-4 text-xl md:text-4xl'
+                          : 'mt-3 md:mt-4 text-lg md:text-3xl'
+                  )}
                 >
                   {currentSlide.subtitle || heroSubtitle}
                 </p>
@@ -602,12 +608,16 @@ const HeroSection = ({
               {/* 次標題：優先使用圖片次標題，否則使用全局次標題 */}
               {(currentSlide.secondary_subtitle || heroDescription) && (
                 <p 
-                  className={`
-                    drop-shadow-lg opacity-90 mt-2 md:mt-3 leading-relaxed transition-opacity duration-500
-                    ${(currentSlide.secondary_subtitle_size || 'small') === 'small' ? 'text-sm md:text-xl' : 
-                      (currentSlide.secondary_subtitle_size || 'small') === 'large' ? 'text-lg md:text-3xl' : 
-                      'text-base md:text-2xl'}
-                  `}
+                  className={cn(
+                    'drop-shadow-lg opacity-90 leading-relaxed transition-opacity duration-500',
+                    compact
+                      ? 'mt-1 text-xs md:text-sm'
+                      : (currentSlide.secondary_subtitle_size || 'small') === 'small'
+                        ? 'mt-2 md:mt-3 text-sm md:text-xl'
+                        : (currentSlide.secondary_subtitle_size || 'small') === 'large'
+                          ? 'mt-2 md:mt-3 text-lg md:text-3xl'
+                          : 'mt-2 md:mt-3 text-base md:text-2xl'
+                  )}
                 >
                   {currentSlide.secondary_subtitle || heroDescription}
                 </p>
