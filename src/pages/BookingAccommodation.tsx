@@ -79,7 +79,7 @@ const BookingAccommodation = () => {
   }, []);
 
   if (isLoading) {
-    return <FrontendSkeleton />;
+    return null;
   }
 
   if (dataError || !info) {
