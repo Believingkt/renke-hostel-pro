@@ -468,26 +468,7 @@ const BookingPortal = () => {
         )}
       </section>
 
-      {/* ── Footer ── */}
-      <footer className="border-t border-border bg-muted/30">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <img src={lokezeLogo} alt="Lakeze 人客多" className="h-24 object-contain" />
-            </div>
-            <div className="flex gap-6 text-sm text-muted-foreground">
-              <button onClick={() => navigate("/member/auth")} className="hover:text-foreground transition-colors">
-                會員中心
-              </button>
-              <button className="hover:text-foreground transition-colors">關於我們</button>
-              <button className="hover:text-foreground transition-colors">聯繫客服</button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              © {new Date().getFullYear()} 人客多. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <BookingFooter />
     </div>
   );
 };

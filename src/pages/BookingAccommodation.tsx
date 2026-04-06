@@ -24,6 +24,7 @@ import BookingInfoSection from "@/components/BookingInfoSection";
 import ReviewsSection from "@/components/ReviewsSection";
 import FaqSection from "@/components/FaqSection";
 import Footer from "@/components/Footer";
+import BookingFooter from "@/components/BookingFooter";
 import { CustomSectionDisplay, SingleCustomSection, CustomSection } from "@/components/CustomSectionDisplay";
 
 const BookingAccommodation = () => {
