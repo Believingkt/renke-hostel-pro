@@ -26,7 +26,7 @@ const BookingFooter = () => {
             <button className="hover:text-foreground transition-colors">關於我們</button>
             <button className="hover:text-foreground transition-colors">聯繫客服</button>
           </div>
-          <p className="text-sm text-white/50">
+          <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} 人客多. All rights reserved.
           </p>
         </div>
