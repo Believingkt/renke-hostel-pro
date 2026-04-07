@@ -268,6 +268,7 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
 
   const duplicateCount = parsedOrders.filter(o => o.isDuplicate).length;
   const unmatchedCount = parsedOrders.filter(o => !o.matchedRoomTypeId && !o.isDuplicate).length;
+  const memberMatchedCount = parsedOrders.filter(o => o.matchedMemberId && !o.isDuplicate).length;
   const importableCount = parsedOrders.filter(o => !o.isDuplicate).length;
 
   return (
