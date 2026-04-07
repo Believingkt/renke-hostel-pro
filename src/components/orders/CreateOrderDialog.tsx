@@ -268,7 +268,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const addRoomSelection = useCallback(() => {
     if (totalRoomCount >= MAX_TOTAL_ROOMS) return;
     const id = crypto.randomUUID();
-    const defaultRoomType = roomTypes[0];
+    const normalRoomTypes = roomTypes.filter(r => !r.is_exclusive_package);
+    const defaultRoomType = normalRoomTypes[0];
     if (!defaultRoomType) return;
     const templates = getTemplatesForRoomType(defaultRoomType.id);
     setRoomSelections(prev => [...prev, {
