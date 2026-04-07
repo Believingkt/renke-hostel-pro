@@ -196,6 +196,8 @@ const OrderDetailPage = () => {
   const [roomTypes, setRoomTypes] = useState<RoomTypeOption[]>([]);
   const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
   const [orderRooms, setOrderRooms] = useState<OrderRoom[]>([]);
+  const [editOrderRooms, setEditOrderRooms] = useState<EditOrderRoom[]>([]);
+  const MAX_TOTAL_ROOMS = 6;
   const [depositRatioRef] = useState<{ current: number }>({ current: 0 });
   const [editForm, setEditForm] = useState<EditFormState>({
     guest_name: "",
