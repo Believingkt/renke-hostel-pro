@@ -201,6 +201,29 @@ const OrderDetailPage = () => {
   const [editOrderRooms, setEditOrderRooms] = useState<EditOrderRoom[]>([]);
   const MAX_TOTAL_ROOMS = 6;
   const [depositRatioRef] = useState<{ current: number }>({ current: 0 });
+  const getRoomUnitPrice = useCallback((roomPrice: number, quantity: number) => {
+    return quantity > 0 ? Math.round(roomPrice / quantity) : roomPrice;
+  }, []);
+
+  const getSuggestedRoomUnitPrice = useCallback((roomTypeId: string, currentRoomId?: string) => {
+    const candidatePrices = [
+      ...editOrderRooms
+        .filter((room) => room.room_type_id === roomTypeId && room.id !== currentRoomId)
+        .map((room) => room.unit_price || getRoomUnitPrice(room.room_price, room.quantity)),
+      ...orderRooms
+        .filter((room) => room.room_type_id === roomTypeId && room.id !== currentRoomId)
+        .map((room) => getRoomUnitPrice(room.room_price, room.quantity)),
+    ].filter((price) => price > 0);
+
+    const roomTypeBasePrice = roomTypes.find((roomType) => roomType.id === roomTypeId)?.base_price ?? 0;
+
+    if (roomTypeBasePrice > 0) {
+      candidatePrices.push(roomTypeBasePrice);
+    }
+
+    return candidatePrices.length > 0 ? Math.min(...candidatePrices) : 0;
+  }, [editOrderRooms, getRoomUnitPrice, orderRooms, roomTypes]);
+
   const [editForm, setEditForm] = useState<EditFormState>({
     guest_name: "",
     guest_phone: "",
@@ -260,16 +283,31 @@ const OrderDetailPage = () => {
     });
     // Initialize edit order rooms
     if (orderRooms.length > 0) {
-      setEditOrderRooms(orderRooms.map(or => ({
-        id: or.id,
-        room_type_id: or.room_type_id,
-        quantity: or.quantity,
-        room_price: or.room_price,
-        unit_price: or.quantity > 0 ? Math.round(or.room_price / or.quantity) : or.room_price,
-        template_name: or.template_name,
-      })));
+      const normalizedRooms = orderRooms.map((or) => {
+        const currentUnitPrice = getRoomUnitPrice(or.room_price, or.quantity);
+        const sameTypeUnitPrices = orderRooms
+          .filter((room) => room.room_type_id === or.room_type_id)
+          .map((room) => getRoomUnitPrice(room.room_price, room.quantity))
+          .filter((price) => price > 0);
+        const roomTypeBasePrice = roomTypes.find((roomType) => roomType.id === or.room_type_id)?.base_price ?? 0;
+        const resolvedUnitPrice = Math.min(
+          ...[...sameTypeUnitPrices, roomTypeBasePrice].filter((price) => price > 0),
+        );
+        const unitPrice = Number.isFinite(resolvedUnitPrice) ? resolvedUnitPrice : currentUnitPrice;
+
+        return {
+          id: or.id,
+          room_type_id: or.room_type_id,
+          quantity: or.quantity,
+          room_price: unitPrice * or.quantity,
+          unit_price: unitPrice,
+          template_name: or.template_name,
+        };
+      });
+
+      setEditOrderRooms(normalizedRooms);
       // Use order_rooms total as the real total_price for editing
-      const roomsTotal = orderRooms.reduce((sum, r) => sum + r.room_price, 0);
+      const roomsTotal = normalizedRooms.reduce((sum, r) => sum + r.room_price, 0);
       setEditForm(f => ({ ...f, total_price: roomsTotal }));
     } else {
       setEditOrderRooms([]);
@@ -1204,12 +1242,13 @@ const OrderDetailPage = () => {
                           onClick={() => {
                             const rt = roomTypes[0];
                             if (!rt) return;
+                            const suggestedUnitPrice = getSuggestedRoomUnitPrice(rt.id) || rt.base_price;
                             setEditOrderRooms(prev => [...prev, {
                               id: crypto.randomUUID(),
                               room_type_id: rt.id,
                               quantity: 1,
-                              room_price: rt.base_price,
-                              unit_price: rt.base_price,
+                              room_price: suggestedUnitPrice,
+                              unit_price: suggestedUnitPrice,
                               template_name: null,
                             }]);
                           }}
@@ -1248,12 +1287,13 @@ const OrderDetailPage = () => {
                                     if (r.id !== or.id) return r;
                                     const selectedRoomType = roomTypes.find(rt => rt.id === v);
                                     if (!selectedRoomType) return { ...r, room_type_id: v };
+                                    const suggestedUnitPrice = getSuggestedRoomUnitPrice(v, r.id) || selectedRoomType.base_price;
 
                                     return {
                                       ...r,
                                       room_type_id: v,
-                                      unit_price: selectedRoomType.base_price,
-                                      room_price: selectedRoomType.base_price * r.quantity,
+                                      unit_price: suggestedUnitPrice,
+                                      room_price: suggestedUnitPrice * r.quantity,
                                     };
                                   }))}
                                 >
