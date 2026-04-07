@@ -651,8 +651,8 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
 
                     {/* Individual booking rows - group orders into "rooms" */}
                     {(() => {
-                      const roomSlots: Order[][] = [];
-                      const sortedOrders = [...rtOrders].sort((a, b) => a.check_in_date.localeCompare(b.check_in_date));
+                      const roomSlots: CalendarEntry[][] = [];
+                      const sortedEntries = [...rtEntries].sort((a, b) => a.check_in_date.localeCompare(b.check_in_date));
                       
                       sortedOrders.forEach(order => {
                         let placed = false;
