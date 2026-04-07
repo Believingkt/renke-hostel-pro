@@ -940,39 +940,143 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         </div>
       </div>
 
-      {/* Room Type Selection */}
+      {/* Multi-Room Selection */}
       <div className="space-y-3 pt-2">
-        <Label className="text-base font-semibold">房型選擇</Label>
-        <div className="p-3 border rounded-lg space-y-3 bg-muted/30">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">房型 <span className="text-destructive">*</span></Label>
-              <Select
-                value={form.room_type_id}
-                onValueChange={(value) => {
-                  setSelectedTemplateId("");
-                  setForm({...form, room_type_id: value, meal_plan: ""});
-                }}
+        <div className="flex items-center justify-between">
+          <Label className="text-base font-semibold">房型選擇</Label>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs">
+              共 {totalRoomCount} / {MAX_TOTAL_ROOMS} 間
+            </Badge>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addRoomSelection}
+              disabled={totalRoomCount >= MAX_TOTAL_ROOMS || roomTypes.length === 0}
+              className="h-8 gap-1"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              新增房間
+            </Button>
+          </div>
+        </div>
+
+        {roomSelections.length === 0 && (
+          <div className="p-4 border rounded-lg bg-muted/30 text-center text-sm text-muted-foreground">
+            請點擊「新增房間」加入房型
+          </div>
+        )}
+
+        {roomSelections.map((sel, index) => (
+          <div key={sel.id} className="p-3 border rounded-lg space-y-3 bg-muted/30">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">房間 {index + 1}</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => removeRoomSelection(sel.id)}
+                className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
               >
-                <SelectTrigger className="h-10 text-sm">
-                  <SelectValue placeholder="選擇房型" />
-                </SelectTrigger>
-                <SelectContent>
-                  {roomTypes.map((rt) => (
-                    <SelectItem key={rt.id} value={rt.id}>
-                      {rt.name} (最多{rt.capacity}人)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
             </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">房型 <span className="text-destructive">*</span></Label>
+                <Select
+                  value={sel.room_type_id}
+                  onValueChange={(value) => updateRoomSelection(sel.id, { room_type_id: value })}
+                >
+                  <SelectTrigger className="h-10 text-sm">
+                    <SelectValue placeholder="選擇房型" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roomTypes.map((rt) => (
+                      <SelectItem key={rt.id} value={rt.id}>
+                        {rt.name} (最多{rt.capacity}人)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs">專案</Label>
+                {sel.filteredTemplates.length > 0 ? (
+                  <Select
+                    value={sel.template_id}
+                    onValueChange={(value) => {
+                      const template = sel.filteredTemplates.find(t => t.id === value);
+                      updateRoomSelection(sel.id, {
+                        template_id: value,
+                        template_name: template?.template_name || "",
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="h-10 text-sm">
+                      <SelectValue placeholder="選擇專案" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sel.filteredTemplates.map((template) => (
+                        <SelectItem key={template.id} value={template.id}>
+                          {template.project_name || template.template_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-xs text-muted-foreground py-2">無對應專案</p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs">間數</Label>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-10 w-10 p-0"
+                    onClick={() => changeRoomQuantity(sel.id, -1)}
+                    disabled={sel.quantity <= 1}
+                  >
+                    <Minus className="h-3.5 w-3.5" />
+                  </Button>
+                  <span className="w-8 text-center text-sm font-medium">{sel.quantity}</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-10 w-10 p-0"
+                    onClick={() => changeRoomQuantity(sel.id, 1)}
+                    disabled={totalRoomCount >= MAX_TOTAL_ROOMS}
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {sel.roomPrice > 0 && (
+              <div className="text-xs text-right text-muted-foreground">
+                小計：NT$ {sel.roomPrice.toLocaleString()} ({sel.quantity} 間)
+              </div>
+            )}
+          </div>
+        ))}
+
+        {/* Guest count */}
+        <div className="p-3 border rounded-lg bg-muted/30">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-xs">入住人數</Label>
+              <Label className="text-xs">總入住人數</Label>
               <Input
                 type="number"
                 min="1"
-                max="20"
+                max="30"
                 value={form.guest_count}
                 onChange={(e) => setForm({...form, guest_count: parseInt(e.target.value) || 1})}
                 className="h-10 text-sm"
@@ -980,113 +1084,75 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               />
             </div>
           </div>
+        </div>
 
-          {form.room_type_id && (
-            <div className="space-y-1.5">
-              <Label className="text-xs">專案 <span className="text-destructive">*</span></Label>
-              {isLoadingTemplates ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  載入專案中...
-                </div>
-              ) : filteredTemplates.length > 0 ? (
-                <Select
-                  value={selectedTemplateId}
-                  onValueChange={(value) => {
-                    setSelectedTemplateId(value);
-                    const template = filteredTemplates.find(t => t.id === value);
-                    setForm({...form, meal_plan: template?.template_name || value});
-                  }}
-                >
-                  <SelectTrigger className="h-10 text-sm">
-                    <SelectValue placeholder="選擇專案" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredTemplates.map((template) => (
-                      <SelectItem key={template.id} value={template.id}>
-                        {template.project_name || template.template_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <p className="text-sm text-muted-foreground py-2">此房型尚無對應專案</p>
-              )}
-            </div>
-          )}
-
-          {!form.room_type_id && (
-            <p className="text-sm text-muted-foreground">請先選擇房型以顯示對應專案</p>
-          )}
-
-          {/* Addons */}
-          {addonSettings.length > 0 && (
-            <div className="space-y-2">
-              <Label className="text-xs">加購方案</Label>
-              {addonSettings.map((addon) => {
-                const selectedAddon = selectedAddons.find(a => a.addon_id === addon.id);
-                const quantity = selectedAddon?.quantity || 0;
-                
-                return (
-                  <div key={addon.id} className="flex items-center justify-between p-2 bg-background rounded-md">
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-xs">{addon.addon_type === 'pet' ? '寵物方案' : addon.addon_type === 'meal' ? '餐食方案' : addon.addon_type}</div>
-                      <div className="text-xs text-primary">
-                        NT$ {addon.price_per_unit.toLocaleString()} / {addon.unit_label}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5 ml-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-7 w-7 p-0"
-                        onClick={() => {
-                          const newAddons = quantity === 1
-                            ? selectedAddons.filter(a => a.addon_id !== addon.id)
-                            : selectedAddons.map(a => 
-                                a.addon_id === addon.id ? { ...a, quantity: a.quantity - 1 } : a
-                              );
-                          setSelectedAddons(newAddons);
-                        }}
-                        disabled={quantity === 0}
-                      >
-                        -
-                      </Button>
-                      <span className="w-6 text-center text-xs font-medium">{quantity}</span>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-7 w-7 p-0"
-                        onClick={() => {
-                          if (quantity < addon.max_quantity) {
-                            const existingIndex = selectedAddons.findIndex(a => a.addon_id === addon.id);
-                            const newAddons = existingIndex >= 0
-                              ? selectedAddons.map(a => 
-                                  a.addon_id === addon.id ? { ...a, quantity: a.quantity + 1 } : a
-                                )
-                              : [...selectedAddons, { addon_id: addon.id, quantity: 1 }];
-                            setSelectedAddons(newAddons);
-                          }
-                        }}
-                        disabled={quantity >= addon.max_quantity}
-                      >
-                        +
-                      </Button>
+        {/* Addons */}
+        {addonSettings.length > 0 && (
+          <div className="p-3 border rounded-lg bg-muted/30 space-y-2">
+            <Label className="text-xs">加購方案</Label>
+            {addonSettings.map((addon) => {
+              const selectedAddon = selectedAddons.find(a => a.addon_id === addon.id);
+              const quantity = selectedAddon?.quantity || 0;
+              
+              return (
+                <div key={addon.id} className="flex items-center justify-between p-2 bg-background rounded-md">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-xs">{addon.addon_type === 'pet' ? '寵物方案' : addon.addon_type === 'meal' ? '餐食方案' : addon.addon_type}</div>
+                    <div className="text-xs text-primary">
+                      NT$ {addon.price_per_unit.toLocaleString()} / {addon.unit_label}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
+                  <div className="flex items-center gap-1.5 ml-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      onClick={() => {
+                        const newAddons = quantity === 1
+                          ? selectedAddons.filter(a => a.addon_id !== addon.id)
+                          : selectedAddons.map(a => 
+                              a.addon_id === addon.id ? { ...a, quantity: a.quantity - 1 } : a
+                            );
+                        setSelectedAddons(newAddons);
+                      }}
+                      disabled={quantity === 0}
+                    >
+                      -
+                    </Button>
+                    <span className="w-6 text-center text-xs font-medium">{quantity}</span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      onClick={() => {
+                        if (quantity < addon.max_quantity) {
+                          const existingIndex = selectedAddons.findIndex(a => a.addon_id === addon.id);
+                          const newAddons = existingIndex >= 0
+                            ? selectedAddons.map(a => 
+                                a.addon_id === addon.id ? { ...a, quantity: a.quantity + 1 } : a
+                              )
+                            : [...selectedAddons, { addon_id: addon.id, quantity: 1 }];
+                          setSelectedAddons(newAddons);
+                        }
+                      }}
+                      disabled={quantity >= addon.max_quantity}
+                    >
+                      +
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
-          {roomPrice > 0 && (
-            <div className="text-xs text-right text-muted-foreground">
-              小計：NT$ {roomPrice.toLocaleString()}
-            </div>
-          )}
-        </div>
+        {roomPrice > 0 && (
+          <div className="text-sm text-right font-medium">
+            房費合計：NT$ {roomPrice.toLocaleString()}
+          </div>
+        )}
       </div>
 
       {/* Discount Code Section */}
