@@ -890,6 +890,7 @@ export type Database = {
           first_order_date: string | null
           gender: string | null
           id: string
+          member_id: string | null
           name: string
           nationality: string | null
           notes: string | null
@@ -904,6 +905,7 @@ export type Database = {
           first_order_date?: string | null
           gender?: string | null
           id?: string
+          member_id?: string | null
           name: string
           nationality?: string | null
           notes?: string | null
@@ -918,6 +920,7 @@ export type Database = {
           first_order_date?: string | null
           gender?: string | null
           id?: string
+          member_id?: string | null
           name?: string
           nationality?: string | null
           notes?: string | null
@@ -931,6 +934,13 @@ export type Database = {
             columns: ["accommodation_id"]
             isOneToOne: false
             referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customers_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "platform_members"
             referencedColumns: ["id"]
           },
         ]
