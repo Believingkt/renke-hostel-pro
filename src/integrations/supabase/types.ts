@@ -1329,6 +1329,61 @@ export type Database = {
           },
         ]
       }
+      order_rooms: {
+        Row: {
+          created_at: string
+          id: string
+          order_id: string
+          quantity: number
+          room_price: number
+          room_type_id: string
+          template_id: string | null
+          template_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_id: string
+          quantity?: number
+          room_price?: number
+          room_type_id: string
+          template_id?: string | null
+          template_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_id?: string
+          quantity?: number
+          room_price?: number
+          room_type_id?: string
+          template_id?: string | null
+          template_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_rooms_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_rooms_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "room_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_rooms_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           accommodation_id: string

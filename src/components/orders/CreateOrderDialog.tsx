@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Tag, X, Loader2, User, Phone, AlertTriangle } from "lucide-react";
+import { CalendarIcon, Tag, X, Loader2, User, Phone, AlertTriangle, Plus, Minus, Trash2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { format, parseISO, isAfter } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -51,6 +51,16 @@ interface PricingTemplate {
   price: number | null;
   weekday_price: number | null;
   weekend_price: number | null;
+}
+
+interface RoomSelection {
+  id: string;
+  room_type_id: string;
+  template_id: string;
+  template_name: string;
+  quantity: number;
+  roomPrice: number;
+  filteredTemplates: PricingTemplate[];
 }
 
 interface CreateOrderDialogProps {
@@ -95,6 +105,10 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   
   // Selected addons
   const [selectedAddons, setSelectedAddons] = useState<{ addon_id: string; quantity: number }[]>([]);
+
+  // Multi-room selections
+  const [roomSelections, setRoomSelections] = useState<RoomSelection[]>([]);
+  const MAX_TOTAL_ROOMS = 6;
 
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [filteredTemplates, setFilteredTemplates] = useState<PricingTemplate[]>([]);
@@ -151,6 +165,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       setShowPhoneSuggestions(false);
       setSelectedTemplateId("");
       setFilteredTemplates([]);
+      setRoomSelections([]);
     }
   }, [open, initialData]);
 
@@ -206,7 +221,15 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     fetchData();
   }, [currentAccommodationId]);
 
-  // Filter templates by room_type_id
+  // Helper: get templates for a room_type_id
+  const getTemplatesForRoomType = useCallback((roomTypeId: string) => {
+    if (!roomTypeId || pricingTemplates.length === 0) return [];
+    const filtered = pricingTemplates.filter(t => (t as any).room_type_id === roomTypeId);
+    const result = filtered.length > 0 ? filtered : pricingTemplates.filter(t => !(t as any).room_type_id);
+    return result.length > 0 ? result : pricingTemplates;
+  }, [pricingTemplates]);
+
+  // Keep legacy form.room_type_id in sync (old template filter useEffect kept for compat)
   useEffect(() => {
     if (!form.room_type_id) {
       setFilteredTemplates([]);
@@ -215,27 +238,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       setIsLoadingTemplates(false);
       return;
     }
-
-    if (pricingTemplates.length === 0) {
-      setFilteredTemplates([]);
-      setSelectedTemplateId("");
-      setIsLoadingTemplates(false);
-      return;
-    }
-
-    // Filter by room_type_id: show templates that match the selected room type or have no room_type_id set
-    const filtered = pricingTemplates.filter(t =>
-      (t as any).room_type_id === form.room_type_id
-    );
-
-    // If no templates are linked to this room type, fall back to unlinked templates
-    const result = filtered.length > 0
-      ? filtered
-      : pricingTemplates.filter(t => !(t as any).room_type_id);
-
-    // If still nothing, show all as last resort
-    const finalList = result.length > 0 ? result : pricingTemplates;
-
+    const finalList = getTemplatesForRoomType(form.room_type_id);
     setFilteredTemplates(finalList);
     setSelectedTemplateId(prev => {
       const stillExists = finalList.some(t => t.id === prev);
@@ -243,13 +246,122 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     });
     setForm(prev => {
       const stillExists = finalList.some(t => t.template_name === prev.meal_plan);
-      return {
-        ...prev,
-        meal_plan: stillExists ? prev.meal_plan : finalList[0]?.template_name || "",
-      };
+      return { ...prev, meal_plan: stillExists ? prev.meal_plan : finalList[0]?.template_name || "" };
     });
     setIsLoadingTemplates(false);
-  }, [form.room_type_id, pricingTemplates]);
+  }, [form.room_type_id, pricingTemplates, getTemplatesForRoomType]);
+
+  // Multi-room helpers
+  const totalRoomCount = roomSelections.reduce((sum, s) => sum + s.quantity, 0);
+
+  const addRoomSelection = useCallback(() => {
+    if (totalRoomCount >= MAX_TOTAL_ROOMS) return;
+    const id = crypto.randomUUID();
+    const defaultRoomType = roomTypes[0];
+    if (!defaultRoomType) return;
+    const templates = getTemplatesForRoomType(defaultRoomType.id);
+    setRoomSelections(prev => [...prev, {
+      id,
+      room_type_id: defaultRoomType.id,
+      template_id: templates[0]?.id || "",
+      template_name: templates[0]?.template_name || "",
+      quantity: 1,
+      roomPrice: 0,
+      filteredTemplates: templates,
+    }]);
+  }, [roomTypes, totalRoomCount, getTemplatesForRoomType]);
+
+  const removeRoomSelection = useCallback((selId: string) => {
+    setRoomSelections(prev => prev.filter(s => s.id !== selId));
+  }, []);
+
+  const updateRoomSelection = useCallback((selId: string, updates: Partial<RoomSelection>) => {
+    setRoomSelections(prev => prev.map(s => {
+      if (s.id !== selId) return s;
+      const updated = { ...s, ...updates };
+      // If room type changed, refresh templates
+      if (updates.room_type_id && updates.room_type_id !== s.room_type_id) {
+        const templates = getTemplatesForRoomType(updates.room_type_id);
+        updated.filteredTemplates = templates;
+        updated.template_id = templates[0]?.id || "";
+        updated.template_name = templates[0]?.template_name || "";
+      }
+      return updated;
+    }));
+  }, [getTemplatesForRoomType]);
+
+  const changeRoomQuantity = useCallback((selId: string, delta: number) => {
+    setRoomSelections(prev => {
+      const sel = prev.find(s => s.id === selId);
+      if (!sel) return prev;
+      const newQty = sel.quantity + delta;
+      const otherTotal = prev.reduce((sum, s) => sum + (s.id === selId ? 0 : s.quantity), 0);
+      if (newQty < 1 || otherTotal + newQty > MAX_TOTAL_ROOMS) return prev;
+      return prev.map(s => s.id === selId ? { ...s, quantity: newQty } : s);
+    });
+  }, []);
+
+  // Calculate room prices for all selections
+  const roomSelectionsKey = roomSelections.map(s => `${s.room_type_id}-${s.template_id}-${s.quantity}`).join(',');
+  useEffect(() => {
+    const calcPrices = async () => {
+      if (roomSelections.length === 0 || !form.check_in_date || !form.check_out_date || !currentAccommodationId) {
+        setRoomPrice(0);
+        return;
+      }
+      const nights = calculateNights();
+      if (nights === 0) { setRoomPrice(0); return; }
+
+      const dates: string[] = [];
+      const start = new Date(form.check_in_date);
+      for (let i = 0; i < nights; i++) {
+        const d = new Date(start);
+        d.setDate(start.getDate() + i);
+        dates.push(format(d, "yyyy-MM-dd"));
+      }
+
+      let totalPrice = 0;
+      const updatedSelections = [...roomSelections];
+
+      for (const sel of updatedSelections) {
+        const template = pricingTemplates.find(t => t.id === sel.template_id);
+        let selPrice = 0;
+
+        if (template && template.price != null && template.price > 0) {
+          selPrice = template.price * nights * sel.quantity;
+        } else {
+          let priceColumn = 'price';
+          if (template) {
+            const name = template.template_name || template.project_name || '';
+            if (name.includes('三食') || name.includes('3食')) priceColumn = 'price_3_meals';
+            else if (name.includes('二食') || name.includes('2食') || name.includes('兩食')) priceColumn = 'price_2_meals';
+          }
+          let sum = 0;
+          for (const dateStr of dates) {
+            const { data: priceData } = await supabase
+              .from("room_inventory_pricing")
+              .select("price, price_2_meals, price_3_meals")
+              .eq("room_type_id", sel.room_type_id)
+              .eq("date", dateStr)
+              .maybeSingle();
+            if (priceData) {
+              const selectedPrice = (priceData as any)[priceColumn];
+              sum += (selectedPrice != null && selectedPrice > 0) ? selectedPrice : (priceData.price ?? 0);
+            }
+          }
+          selPrice = sum * sel.quantity;
+        }
+        sel.roomPrice = selPrice;
+        totalPrice += selPrice;
+      }
+
+      setRoomSelections(updatedSelections);
+      setRoomPrice(totalPrice);
+    };
+
+    calcPrices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.check_in_date, form.check_out_date, roomSelectionsKey, currentAccommodationId, pricingTemplates]);
 
   // Handle customer name search
   const handleNameChange = useCallback((value: string) => {
@@ -320,102 +432,52 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     return appliedDiscount.value;
   };
 
-  // Check inventory and calculate price
+  // Check inventory warnings (for all room selections)
   useEffect(() => {
-    const checkInventoryAndPrice = async () => {
-      if (!form.room_type_id || !form.check_in_date || !form.check_out_date || !currentAccommodationId) {
-        setRoomPrice(0);
+    const checkInventory = async () => {
+      if (roomSelections.length === 0 || !form.check_in_date || !form.check_out_date || !currentAccommodationId) {
         setInventoryWarnings([]);
         return;
       }
-
       setIsCheckingInventory(true);
-      
       try {
         const nights = calculateNights();
-        if (nights === 0) {
-          setRoomPrice(0);
-          setInventoryWarnings([]);
-          return;
-        }
-
+        if (nights === 0) { setInventoryWarnings([]); return; }
         const dates: string[] = [];
         const start = new Date(form.check_in_date);
         for (let i = 0; i < nights; i++) {
-          const currentDate = new Date(start);
-          currentDate.setDate(start.getDate() + i);
-          dates.push(format(currentDate, "yyyy-MM-dd"));
+          const d = new Date(start);
+          d.setDate(start.getDate() + i);
+          dates.push(format(d, "yyyy-MM-dd"));
         }
-
-        // Check inventory
-        const { data: inventoryData } = await supabase.rpc(
-          'get_adjusted_room_inventory_batch',
-          {
-            p_room_type_id: form.room_type_id,
-            p_dates: dates,
-            p_accommodation_id: currentAccommodationId
-          }
-        );
-
         const warnings: typeof inventoryWarnings = [];
-        if (inventoryData) {
-          for (const item of inventoryData) {
-            if (item.is_blocked) {
-              warnings.push({
-                date: item.date_value,
-                available: 0,
-                blocked: true,
-                blockedBy: item.blocked_by_room_name,
-              });
-            } else if (item.available_rooms < 1) {
-              warnings.push({
-                date: item.date_value,
-                available: item.available_rooms,
-              });
+        const checkedTypes = new Set<string>();
+        for (const sel of roomSelections) {
+          if (checkedTypes.has(sel.room_type_id)) continue;
+          checkedTypes.add(sel.room_type_id);
+          const { data: inventoryData } = await supabase.rpc(
+            'get_adjusted_room_inventory_batch',
+            { p_room_type_id: sel.room_type_id, p_dates: dates, p_accommodation_id: currentAccommodationId }
+          );
+          if (inventoryData) {
+            const roomName = roomTypes.find(r => r.id === sel.room_type_id)?.name || '';
+            for (const item of inventoryData) {
+              const neededQty = roomSelections.filter(s => s.room_type_id === sel.room_type_id).reduce((sum, s) => sum + s.quantity, 0);
+              if (item.is_blocked) {
+                warnings.push({ date: item.date_value, available: 0, blocked: true, blockedBy: item.blocked_by_room_name || roomName });
+              } else if (item.available_rooms < neededQty) {
+                warnings.push({ date: item.date_value, available: item.available_rooms });
+              }
             }
           }
         }
         setInventoryWarnings(warnings);
-
-        // Calculate price using selected template's price directly
-        const selectedTemplate = pricingTemplates.find(t => t.id === selectedTemplateId) 
-          || filteredTemplates.find(t => t.id === selectedTemplateId);
-        
-        if (selectedTemplate && selectedTemplate.price != null && selectedTemplate.price > 0) {
-          // Use template price directly × nights
-          setRoomPrice(selectedTemplate.price * nights);
-        } else {
-          // Fallback: sum inventory prices
-          let priceColumn = 'price';
-          if (selectedTemplate) {
-            const name = selectedTemplate.template_name || selectedTemplate.project_name || '';
-            if (name.includes('三食') || name.includes('3食')) priceColumn = 'price_3_meals';
-            else if (name.includes('二食') || name.includes('2食') || name.includes('兩食')) priceColumn = 'price_2_meals';
-          }
-          
-          let total = 0;
-          for (const dateStr of dates) {
-            const { data: priceData } = await supabase
-              .from("room_inventory_pricing")
-              .select("price, price_2_meals, price_3_meals")
-              .eq("room_type_id", form.room_type_id)
-              .eq("date", dateStr)
-              .maybeSingle();
-            
-            if (priceData) {
-              const selectedPrice = (priceData as any)[priceColumn];
-              total += (selectedPrice != null && selectedPrice > 0) ? selectedPrice : (priceData.price ?? 0);
-            }
-          }
-          setRoomPrice(total);
-        }
       } finally {
         setIsCheckingInventory(false);
       }
     };
-
-    checkInventoryAndPrice();
-  }, [form.check_in_date, form.check_out_date, form.room_type_id, selectedTemplateId, currentAccommodationId, pricingTemplates, publicHolidays]);
+    checkInventory();
+  }, [form.check_in_date, form.check_out_date, roomSelections.length, currentAccommodationId, roomTypes]);
 
   const handleApplyDiscount = async () => {
     if (!discountCode.trim() || !currentAccommodationId) {
@@ -494,13 +556,15 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       toast({ title: "日期錯誤", description: "退房日期必須在入住日期之後", variant: "destructive" });
       return;
     }
-    if (!form.room_type_id) {
-      toast({ title: "房型錯誤", description: "請選擇房型", variant: "destructive" });
+    if (roomSelections.length === 0) {
+      toast({ title: "房型錯誤", description: "請至少新增一間房", variant: "destructive" });
       return;
     }
-    if (!form.meal_plan) {
-      toast({ title: "專案錯誤", description: "請選擇專案", variant: "destructive" });
-      return;
+    for (const sel of roomSelections) {
+      if (!sel.room_type_id) {
+        toast({ title: "房型錯誤", description: "請選擇所有房間的房型", variant: "destructive" });
+        return;
+      }
     }
     if (!currentAccommodationId) {
       toast({ title: "系統錯誤", description: "無法取得住宿資訊", variant: "destructive" });
@@ -526,6 +590,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       const { data: orderNumber, error: orderNumberError } = await supabase.rpc('generate_order_number');
       if (orderNumberError) throw orderNumberError;
 
+      // Use first room selection as primary room_type_id
+      const primaryRoom = roomSelections[0];
+
       const { data: orderData, error } = await supabase.from("orders").insert({
         accommodation_id: currentAccommodationId,
         order_number: orderNumber,
@@ -536,7 +603,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         guest_nationality: form.guest_nationality.trim() || null,
         check_in_date: form.check_in_date,
         check_out_date: form.check_out_date,
-        room_type_id: form.room_type_id,
+        room_type_id: primaryRoom.room_type_id,
         guest_count: form.guest_count,
         order_status: form.order_status,
         payment_status: paymentStatus,
@@ -549,7 +616,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         discount_amount: totals.discount,
         final_price: totals.final,
         discount_code: appliedDiscount?.code || null,
-        meal_plan: form.meal_plan || null,
+        meal_plan: primaryRoom.template_name || null,
         meal_plan_details: null,
         custom_addon_details: selectedAddons.length > 0
           ? selectedAddons.map(a => {
@@ -566,6 +633,21 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         confirmed_at: form.order_status === "confirmed" ? new Date().toISOString() : null,
         order_source: form.order_source || "manual",
       }).select('id').single();
+
+      if (error) throw error;
+
+      // Insert order_rooms
+      if (orderData?.id && roomSelections.length > 0) {
+        const orderRooms = roomSelections.map(sel => ({
+          order_id: orderData.id,
+          room_type_id: sel.room_type_id,
+          quantity: sel.quantity,
+          room_price: sel.roomPrice,
+          template_id: sel.template_id || null,
+          template_name: sel.template_name || null,
+        }));
+        await supabase.from("order_rooms").insert(orderRooms);
+      }
 
       if (error) throw error;
 
@@ -861,39 +943,143 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         </div>
       </div>
 
-      {/* Room Type Selection */}
+      {/* Multi-Room Selection */}
       <div className="space-y-3 pt-2">
-        <Label className="text-base font-semibold">房型選擇</Label>
-        <div className="p-3 border rounded-lg space-y-3 bg-muted/30">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">房型 <span className="text-destructive">*</span></Label>
-              <Select
-                value={form.room_type_id}
-                onValueChange={(value) => {
-                  setSelectedTemplateId("");
-                  setForm({...form, room_type_id: value, meal_plan: ""});
-                }}
+        <div className="flex items-center justify-between">
+          <Label className="text-base font-semibold">房型選擇</Label>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs">
+              共 {totalRoomCount} / {MAX_TOTAL_ROOMS} 間
+            </Badge>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addRoomSelection}
+              disabled={totalRoomCount >= MAX_TOTAL_ROOMS || roomTypes.length === 0}
+              className="h-8 gap-1"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              新增房間
+            </Button>
+          </div>
+        </div>
+
+        {roomSelections.length === 0 && (
+          <div className="p-4 border rounded-lg bg-muted/30 text-center text-sm text-muted-foreground">
+            請點擊「新增房間」加入房型
+          </div>
+        )}
+
+        {roomSelections.map((sel, index) => (
+          <div key={sel.id} className="p-3 border rounded-lg space-y-3 bg-muted/30">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">房間 {index + 1}</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => removeRoomSelection(sel.id)}
+                className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
               >
-                <SelectTrigger className="h-10 text-sm">
-                  <SelectValue placeholder="選擇房型" />
-                </SelectTrigger>
-                <SelectContent>
-                  {roomTypes.map((rt) => (
-                    <SelectItem key={rt.id} value={rt.id}>
-                      {rt.name} (最多{rt.capacity}人)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
             </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">房型 <span className="text-destructive">*</span></Label>
+                <Select
+                  value={sel.room_type_id}
+                  onValueChange={(value) => updateRoomSelection(sel.id, { room_type_id: value })}
+                >
+                  <SelectTrigger className="h-10 text-sm">
+                    <SelectValue placeholder="選擇房型" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roomTypes.map((rt) => (
+                      <SelectItem key={rt.id} value={rt.id}>
+                        {rt.name} (最多{rt.capacity}人)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs">專案</Label>
+                {sel.filteredTemplates.length > 0 ? (
+                  <Select
+                    value={sel.template_id}
+                    onValueChange={(value) => {
+                      const template = sel.filteredTemplates.find(t => t.id === value);
+                      updateRoomSelection(sel.id, {
+                        template_id: value,
+                        template_name: template?.template_name || "",
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="h-10 text-sm">
+                      <SelectValue placeholder="選擇專案" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sel.filteredTemplates.map((template) => (
+                        <SelectItem key={template.id} value={template.id}>
+                          {template.project_name || template.template_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-xs text-muted-foreground py-2">無對應專案</p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs">間數</Label>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-10 w-10 p-0"
+                    onClick={() => changeRoomQuantity(sel.id, -1)}
+                    disabled={sel.quantity <= 1}
+                  >
+                    <Minus className="h-3.5 w-3.5" />
+                  </Button>
+                  <span className="w-8 text-center text-sm font-medium">{sel.quantity}</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-10 w-10 p-0"
+                    onClick={() => changeRoomQuantity(sel.id, 1)}
+                    disabled={totalRoomCount >= MAX_TOTAL_ROOMS}
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {sel.roomPrice > 0 && (
+              <div className="text-xs text-right text-muted-foreground">
+                小計：NT$ {sel.roomPrice.toLocaleString()} ({sel.quantity} 間)
+              </div>
+            )}
+          </div>
+        ))}
+
+        {/* Guest count */}
+        <div className="p-3 border rounded-lg bg-muted/30">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-xs">入住人數</Label>
+              <Label className="text-xs">總入住人數</Label>
               <Input
                 type="number"
                 min="1"
-                max="20"
+                max="30"
                 value={form.guest_count}
                 onChange={(e) => setForm({...form, guest_count: parseInt(e.target.value) || 1})}
                 className="h-10 text-sm"
@@ -901,113 +1087,75 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               />
             </div>
           </div>
+        </div>
 
-          {form.room_type_id && (
-            <div className="space-y-1.5">
-              <Label className="text-xs">專案 <span className="text-destructive">*</span></Label>
-              {isLoadingTemplates ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  載入專案中...
-                </div>
-              ) : filteredTemplates.length > 0 ? (
-                <Select
-                  value={selectedTemplateId}
-                  onValueChange={(value) => {
-                    setSelectedTemplateId(value);
-                    const template = filteredTemplates.find(t => t.id === value);
-                    setForm({...form, meal_plan: template?.template_name || value});
-                  }}
-                >
-                  <SelectTrigger className="h-10 text-sm">
-                    <SelectValue placeholder="選擇專案" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredTemplates.map((template) => (
-                      <SelectItem key={template.id} value={template.id}>
-                        {template.project_name || template.template_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <p className="text-sm text-muted-foreground py-2">此房型尚無對應專案</p>
-              )}
-            </div>
-          )}
-
-          {!form.room_type_id && (
-            <p className="text-sm text-muted-foreground">請先選擇房型以顯示對應專案</p>
-          )}
-
-          {/* Addons */}
-          {addonSettings.length > 0 && (
-            <div className="space-y-2">
-              <Label className="text-xs">加購方案</Label>
-              {addonSettings.map((addon) => {
-                const selectedAddon = selectedAddons.find(a => a.addon_id === addon.id);
-                const quantity = selectedAddon?.quantity || 0;
-                
-                return (
-                  <div key={addon.id} className="flex items-center justify-between p-2 bg-background rounded-md">
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-xs">{addon.addon_type === 'pet' ? '寵物方案' : addon.addon_type === 'meal' ? '餐食方案' : addon.addon_type}</div>
-                      <div className="text-xs text-primary">
-                        NT$ {addon.price_per_unit.toLocaleString()} / {addon.unit_label}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5 ml-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-7 w-7 p-0"
-                        onClick={() => {
-                          const newAddons = quantity === 1
-                            ? selectedAddons.filter(a => a.addon_id !== addon.id)
-                            : selectedAddons.map(a => 
-                                a.addon_id === addon.id ? { ...a, quantity: a.quantity - 1 } : a
-                              );
-                          setSelectedAddons(newAddons);
-                        }}
-                        disabled={quantity === 0}
-                      >
-                        -
-                      </Button>
-                      <span className="w-6 text-center text-xs font-medium">{quantity}</span>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-7 w-7 p-0"
-                        onClick={() => {
-                          if (quantity < addon.max_quantity) {
-                            const existingIndex = selectedAddons.findIndex(a => a.addon_id === addon.id);
-                            const newAddons = existingIndex >= 0
-                              ? selectedAddons.map(a => 
-                                  a.addon_id === addon.id ? { ...a, quantity: a.quantity + 1 } : a
-                                )
-                              : [...selectedAddons, { addon_id: addon.id, quantity: 1 }];
-                            setSelectedAddons(newAddons);
-                          }
-                        }}
-                        disabled={quantity >= addon.max_quantity}
-                      >
-                        +
-                      </Button>
+        {/* Addons */}
+        {addonSettings.length > 0 && (
+          <div className="p-3 border rounded-lg bg-muted/30 space-y-2">
+            <Label className="text-xs">加購方案</Label>
+            {addonSettings.map((addon) => {
+              const selectedAddon = selectedAddons.find(a => a.addon_id === addon.id);
+              const quantity = selectedAddon?.quantity || 0;
+              
+              return (
+                <div key={addon.id} className="flex items-center justify-between p-2 bg-background rounded-md">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-xs">{addon.addon_type === 'pet' ? '寵物方案' : addon.addon_type === 'meal' ? '餐食方案' : addon.addon_type}</div>
+                    <div className="text-xs text-primary">
+                      NT$ {addon.price_per_unit.toLocaleString()} / {addon.unit_label}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
+                  <div className="flex items-center gap-1.5 ml-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      onClick={() => {
+                        const newAddons = quantity === 1
+                          ? selectedAddons.filter(a => a.addon_id !== addon.id)
+                          : selectedAddons.map(a => 
+                              a.addon_id === addon.id ? { ...a, quantity: a.quantity - 1 } : a
+                            );
+                        setSelectedAddons(newAddons);
+                      }}
+                      disabled={quantity === 0}
+                    >
+                      -
+                    </Button>
+                    <span className="w-6 text-center text-xs font-medium">{quantity}</span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      onClick={() => {
+                        if (quantity < addon.max_quantity) {
+                          const existingIndex = selectedAddons.findIndex(a => a.addon_id === addon.id);
+                          const newAddons = existingIndex >= 0
+                            ? selectedAddons.map(a => 
+                                a.addon_id === addon.id ? { ...a, quantity: a.quantity + 1 } : a
+                              )
+                            : [...selectedAddons, { addon_id: addon.id, quantity: 1 }];
+                          setSelectedAddons(newAddons);
+                        }
+                      }}
+                      disabled={quantity >= addon.max_quantity}
+                    >
+                      +
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
-          {roomPrice > 0 && (
-            <div className="text-xs text-right text-muted-foreground">
-              小計：NT$ {roomPrice.toLocaleString()}
-            </div>
-          )}
-        </div>
+        {roomPrice > 0 && (
+          <div className="text-sm text-right font-medium">
+            房費合計：NT$ {roomPrice.toLocaleString()}
+          </div>
+        )}
       </div>
 
       {/* Discount Code Section */}
