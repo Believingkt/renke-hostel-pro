@@ -568,6 +568,7 @@ const HeroSection = ({
               ${
                 currentSlide.text_position_y === 'top' ? 'flex items-start justify-center pt-32 top-0' :
                 currentSlide.text_position_y === 'bottom' ? 'flex items-end justify-center pb-32 bottom-0' :
+                useCompactHero ? 'flex items-center justify-center top-[40%] -translate-y-1/2' :
                 'flex items-center justify-center top-1/2 -translate-y-1/2'
               }
             `}
