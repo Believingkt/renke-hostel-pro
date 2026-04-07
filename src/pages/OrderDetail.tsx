@@ -1252,14 +1252,21 @@ const OrderDetailPage = () => {
                 <Separator />
               </>
             )}
-            <div className="flex justify-between items-center gap-2">
-              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">原始金額</span>
-              {isEditing ? (
-                <Input className="w-[140px] h-8 text-sm text-right" type="text" inputMode="numeric" value={editForm.total_price} onChange={(e) => setEditForm(f => ({ ...f, total_price: Math.max(0, parseInt(e.target.value) || 0) }))} />
-              ) : (
-                <span className="font-medium text-sm md:text-base">NT$ {order.total_price.toLocaleString()}</span>
-              )}
-            </div>
+            {(() => {
+              const displayTotal = orderRooms.length > 0
+                ? orderRooms.reduce((sum, r) => sum + r.room_price, 0)
+                : order.total_price;
+              return (
+                <div className="flex justify-between items-center gap-2">
+                  <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">原始金額</span>
+                  {isEditing ? (
+                    <Input className="w-[140px] h-8 text-sm text-right" type="text" inputMode="numeric" value={editForm.total_price} onChange={(e) => setEditForm(f => ({ ...f, total_price: Math.max(0, parseInt(e.target.value) || 0) }))} />
+                  ) : (
+                    <span className="font-medium text-sm md:text-base">NT$ {displayTotal.toLocaleString()}</span>
+                  )}
+                </div>
+              );
+            })()}
             <Separator />
             {/* 加購方案金額 */}
             {(() => {
