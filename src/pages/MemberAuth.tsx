@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import lokezeLogo2 from "@/assets/lokeze-logo-2.png";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -204,7 +205,7 @@ const MemberAuth = () => {
       <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold" style={{ color: "hsl(24, 100%, 50%)" }}>人客多</h1>
+            <img src={lokezeLogo2} alt="Lokeze 人客多" className="h-12 mx-auto" />
             <p className="text-muted-foreground mt-2">忘記密碼</p>
           </div>
           <Card className="border-[hsl(24,100%,50%)]/30">
@@ -270,9 +271,7 @@ const MemberAuth = () => {
     <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold" style={{ color: "hsl(24, 100%, 50%)" }}>
-            人客多
-          </h1>
+          <img src={lokezeLogo2} alt="Lokeze 人客多" className="h-12 mx-auto" />
           <p className="text-muted-foreground mt-2">訂房平台會員中心</p>
         </div>
 
