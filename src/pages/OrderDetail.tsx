@@ -1129,24 +1129,61 @@ const OrderDetailPage = () => {
             <CardTitle className="text-base md:text-lg">住宿資訊</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex justify-between items-center gap-2">
-              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">房型</span>
-              {isEditing ? (
-                <Select value={editForm.room_type_id} onValueChange={(v) => setEditForm(f => ({ ...f, room_type_id: v }))}>
-                  <SelectTrigger className="w-[200px] h-8 text-xs">
-                    <SelectValue placeholder="選擇房型" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roomTypes.map(rt => (
-                      <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <span className="font-medium text-sm md:text-base text-right">{order.room_types?.name || "-"}</span>
-              )}
-            </div>
-            <Separator />
+            {/* Multi-room details from order_rooms */}
+            {orderRooms.length > 0 ? (
+              <>
+                <div className="space-y-2">
+                  <span className="text-xs md:text-sm text-muted-foreground">預訂房間</span>
+                  {orderRooms.map((or, idx) => (
+                    <div key={or.id} className="p-2.5 rounded-lg border bg-muted/30 space-y-1">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium">
+                          {or.room_types?.name || "未知房型"}
+                        </span>
+                        <Badge variant="outline" className="text-xs">
+                          {or.quantity} 間
+                        </Badge>
+                      </div>
+                      {or.template_name && (
+                        <div className="text-xs text-muted-foreground">
+                          專案：{or.template_name}
+                        </div>
+                      )}
+                      {or.room_price > 0 && (
+                        <div className="text-xs text-muted-foreground text-right">
+                          NT$ {or.room_price.toLocaleString()}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  <div className="text-xs text-right text-muted-foreground">
+                    共 {orderRooms.reduce((sum, r) => sum + r.quantity, 0)} 間房
+                  </div>
+                </div>
+                <Separator />
+              </>
+            ) : (
+              <>
+                <div className="flex justify-between items-center gap-2">
+                  <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">房型</span>
+                  {isEditing ? (
+                    <Select value={editForm.room_type_id} onValueChange={(v) => setEditForm(f => ({ ...f, room_type_id: v }))}>
+                      <SelectTrigger className="w-[200px] h-8 text-xs">
+                        <SelectValue placeholder="選擇房型" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roomTypes.map(rt => (
+                          <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <span className="font-medium text-sm md:text-base text-right">{order.room_types?.name || "-"}</span>
+                  )}
+                </div>
+                <Separator />
+              </>
+            )}
             <div className="flex justify-between items-center gap-2">
               <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">入住日期</span>
               <span className="font-medium text-sm md:text-base">{order.check_in_date}</span>
