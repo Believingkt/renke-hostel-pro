@@ -226,6 +226,7 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
         accommodation_id: accommodationId,
         guest_name: o.guestName || "未填",
         guest_phone: o.guestPhone || "0000000000",
+        guest_email: o.guestEmail || null,
         check_in_date: o.checkInDate,
         check_out_date: o.checkOutDate,
         guest_count: o.guestCount,
@@ -238,6 +239,7 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
         order_source: o.orderSource,
         order_date: o.orderDate || new Date().toISOString(),
         room_type_id: o.matchedRoomTypeId || null,
+        member_id: o.matchedMemberId || null,
         notes: noteWithTag,
       };
       const { error } = await supabase.from("orders").insert(insertData as never);
