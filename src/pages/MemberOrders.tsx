@@ -2,8 +2,13 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ShoppingBag, Calendar, MapPin } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Loader2, ShoppingBag, Calendar, Search, PackagePlus } from "lucide-react";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 interface MemberOrder {
   id: string;
@@ -36,6 +41,10 @@ const statusColors: Record<string, string> = {
 const MemberOrders = () => {
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<MemberOrder[]>([]);
+  const [claimOpen, setClaimOpen] = useState(false);
+  const [claimOrderNumber, setClaimOrderNumber] = useState("");
+  const [claimGuestName, setClaimGuestName] = useState("");
+  const [claiming, setClaiming] = useState(false);
 
   useEffect(() => {
     loadOrders();
@@ -90,50 +99,142 @@ const MemberOrders = () => {
     setLoading(false);
   };
 
+  const handleClaim = async () => {
+    if (!claimOrderNumber.trim() || !claimGuestName.trim()) {
+      toast.error("請填寫訂單編號與訂房姓名");
+      return;
+    }
+
+    setClaiming(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("claim-order", {
+        body: {
+          order_number: claimOrderNumber.trim(),
+          guest_name: claimGuestName.trim(),
+        },
+      });
+
+      if (error) {
+        toast.error(data?.error || "認領失敗，請稍後再試");
+        setClaiming(false);
+        return;
+      }
+
+      if (data?.error) {
+        toast.error(data.error);
+        setClaiming(false);
+        return;
+      }
+
+      toast.success(`訂單 ${data.order_number} 認領成功！`);
+      setClaimOpen(false);
+      setClaimOrderNumber("");
+      setClaimGuestName("");
+      // Refresh orders
+      setLoading(true);
+      await loadOrders();
+    } catch (err) {
+      toast.error("認領失敗，請稍後再試");
+    } finally {
+      setClaiming(false);
+    }
+  };
+
   if (loading) {
     return <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <ShoppingBag className="h-5 w-5" />
-          訂房紀錄
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {orders.length === 0 ? (
-          <p className="text-center text-muted-foreground py-8">尚無訂房紀錄</p>
-        ) : (
-          <div className="space-y-4">
-            {orders.map((order) => (
-              <div key={order.id} className="border rounded-lg p-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="font-semibold">{order.accommodation_name}</p>
-                    <p className="text-sm text-muted-foreground">{order.room_type_name || "—"}</p>
-                  </div>
-                  <div className="text-right">
-                    <Badge className={statusColors[order.order_status] || ""}>
-                      {statusLabels[order.order_status] || order.order_status}
-                    </Badge>
-                    <p className="font-semibold mt-1">NT$ {order.final_price.toLocaleString()}</p>
-                  </div>
-                </div>
-                <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Calendar className="h-3.5 w-3.5" />
-                    {format(new Date(order.check_in_date), "MM/dd")} — {format(new Date(order.check_out_date), "MM/dd")}
-                  </span>
-                  <span className="font-mono text-xs">{order.order_number}</span>
-                </div>
-              </div>
-            ))}
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <ShoppingBag className="h-5 w-5" />
+              訂房紀錄
+            </CardTitle>
+            <Button variant="outline" size="sm" onClick={() => setClaimOpen(true)}>
+              <PackagePlus className="h-4 w-4 mr-1.5" />
+              認領歷史訂單
+            </Button>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </CardHeader>
+        <CardContent>
+          {orders.length === 0 ? (
+            <div className="text-center py-8 space-y-3">
+              <p className="text-muted-foreground">尚無訂房紀錄</p>
+              <Button variant="outline" size="sm" onClick={() => setClaimOpen(true)}>
+                <PackagePlus className="h-4 w-4 mr-1.5" />
+                認領歷史訂單
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {orders.map((order) => (
+                <div key={order.id} className="border rounded-lg p-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="font-semibold">{order.accommodation_name}</p>
+                      <p className="text-sm text-muted-foreground">{order.room_type_name || "—"}</p>
+                    </div>
+                    <div className="text-right">
+                      <Badge className={statusColors[order.order_status] || ""}>
+                        {statusLabels[order.order_status] || order.order_status}
+                      </Badge>
+                      <p className="font-semibold mt-1">NT$ {order.final_price.toLocaleString()}</p>
+                    </div>
+                  </div>
+                  <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-3.5 w-3.5" />
+                      {format(new Date(order.check_in_date), "MM/dd")} — {format(new Date(order.check_out_date), "MM/dd")}
+                    </span>
+                    <span className="font-mono text-xs">{order.order_number}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={claimOpen} onOpenChange={setClaimOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Search className="h-5 w-5" />
+              認領歷史訂單
+            </DialogTitle>
+            <DialogDescription>
+              輸入您過去的訂單編號與訂房姓名，即可將該訂單綁定到您的會員帳號
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label>訂單編號</Label>
+              <Input
+                placeholder="例如：RK5M72B9"
+                value={claimOrderNumber}
+                onChange={(e) => setClaimOrderNumber(e.target.value.toUpperCase())}
+                className="font-mono"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>訂房姓名</Label>
+              <Input
+                placeholder="請輸入當時填寫的姓名"
+                value={claimGuestName}
+                onChange={(e) => setClaimGuestName(e.target.value)}
+              />
+            </div>
+            <Button onClick={handleClaim} disabled={claiming} className="w-full">
+              {claiming && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              確認認領
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
