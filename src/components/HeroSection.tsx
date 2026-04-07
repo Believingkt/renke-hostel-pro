@@ -611,7 +611,7 @@ const HeroSection = ({
                   className={cn(
                     'drop-shadow-lg opacity-90 leading-relaxed transition-opacity duration-500',
                     useCompactHero
-                      ? 'mt-1 text-xs md:text-sm'
+                      ? 'mt-1 text-base md:text-xl'
                       : (currentSlide.secondary_subtitle_size || 'small') === 'small'
                         ? 'mt-2 md:mt-3 text-sm md:text-xl'
                         : (currentSlide.secondary_subtitle_size || 'small') === 'large'
