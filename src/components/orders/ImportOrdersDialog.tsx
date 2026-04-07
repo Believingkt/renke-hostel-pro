@@ -383,6 +383,13 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
                           </Select>
                         )}
                       </TableCell>
+                      <TableCell>
+                        {order.matchedMemberName ? (
+                          <Badge className="bg-blue-50 text-blue-700 border-blue-200 text-xs">{order.matchedMemberName}</Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right">${order.totalPrice.toLocaleString()}</TableCell>
                       <TableCell>
                         <span className="text-xs">{order.orderSource}</span>
