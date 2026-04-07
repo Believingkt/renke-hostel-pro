@@ -76,6 +76,18 @@ const MemberAuth = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!signupName.trim()) {
+      toast.error("請輸入姓名");
+      return;
+    }
+    if (!signupEmail.trim()) {
+      toast.error("請輸入 Email");
+      return;
+    }
+    if (!signupPhone.trim()) {
+      toast.error("請輸入手機號碼");
+      return;
+    }
     if (signupPassword !== signupConfirmPassword) {
       toast.error("密碼不一致");
       return;
@@ -417,6 +429,7 @@ const MemberAuth = () => {
                         className="!pl-10 focus-visible:ring-[hsl(24,100%,50%)]"
                         value={signupPhone}
                         onChange={(e) => setSignupPhone(e.target.value)}
+                        required
                       />
                     </div>
                   </div>
