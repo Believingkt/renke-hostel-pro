@@ -1238,6 +1238,20 @@ const OrderDetailPage = () => {
             <CardTitle className="text-base md:text-lg">價格明細</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+            {/* Multi-room price breakdown */}
+            {orderRooms.length > 0 && !isEditing && (
+              <>
+                {orderRooms.map((or) => (
+                  <div key={or.id} className="flex justify-between items-center gap-2">
+                    <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">
+                      {or.room_types?.name || "房型"} × {or.quantity} 間
+                    </span>
+                    <span className="font-medium text-sm md:text-base">NT$ {or.room_price.toLocaleString()}</span>
+                  </div>
+                ))}
+                <Separator />
+              </>
+            )}
             <div className="flex justify-between items-center gap-2">
               <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">原始金額</span>
               {isEditing ? (
