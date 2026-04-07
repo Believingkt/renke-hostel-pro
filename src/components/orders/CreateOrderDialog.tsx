@@ -1085,7 +1085,6 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                   </div>
                 );
               })()}
-              </div>
             </div>
 
             {sel.roomPrice > 0 && (
