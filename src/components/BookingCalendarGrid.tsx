@@ -298,12 +298,12 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
     const exclusiveTypes = roomTypes.filter(r => r.is_exclusive_package);
     for (const dateStr of dateStrings) {
       const hasExclusiveBooking = exclusiveTypes.some(et =>
-        orders.some(o => o.room_type_id === et.id && o.check_in_date <= dateStr && o.check_out_date > dateStr)
+        calendarEntries.some(e => e.room_type_id === et.id && e.check_in_date <= dateStr && e.check_out_date > dateStr)
       );
       if (hasExclusiveBooking) blockedDates.add(dateStr);
     }
     return blockedDates;
-  }, [roomTypes, orders, dateStrings]);
+  }, [roomTypes, calendarEntries, dateStrings]);
 
   const isBlockedByExclusive = (_roomTypeId: string, dateStr: string): boolean => {
     return isDateBlockedByAnyExclusive.has(dateStr);
