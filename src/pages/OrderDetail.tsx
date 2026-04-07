@@ -1267,7 +1267,6 @@ const OrderDetailPage = () => {
                 </div>
               );
             })()}
-            <Separator />
             {/* 加購方案金額 */}
             {(() => {
               const customAddons = (order.custom_addon_details as CustomAddonDetail[]) || [];
@@ -1275,6 +1274,7 @@ const OrderDetailPage = () => {
               if (addonTotal <= 0 && !isEditing) return null;
               return (
                 <>
+                  <Separator />
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">加購方案金額</span>
                     {isEditing ? (
