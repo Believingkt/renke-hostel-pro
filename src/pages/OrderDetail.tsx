@@ -349,14 +349,44 @@ const OrderDetailPage = () => {
     }
   }, [isEditing, editOrderRooms]);
 
+  // Re-initialize editOrderRooms when orderRooms load after editing already started
+  useEffect(() => {
+    if (!isEditing || orderRooms.length === 0 || editOrderRooms.length > 0) return;
+    const normalizedRooms = orderRooms.map((or) => {
+      const currentUnitPrice = getRoomUnitPrice(or.room_price, or.quantity);
+      const sameTypeUnitPrices = orderRooms
+        .filter((room) => room.room_type_id === or.room_type_id)
+        .map((room) => getRoomUnitPrice(room.room_price, room.quantity))
+        .filter((price) => price > 0);
+      const roomTypeBasePrice = roomTypes.find((roomType) => roomType.id === or.room_type_id)?.base_price ?? 0;
+      const resolvedUnitPrice = Math.min(
+        ...[...sameTypeUnitPrices, roomTypeBasePrice].filter((price) => price > 0),
+      );
+      const unitPrice = Number.isFinite(resolvedUnitPrice) ? resolvedUnitPrice : currentUnitPrice;
+      return {
+        id: or.id,
+        room_type_id: or.room_type_id,
+        quantity: or.quantity,
+        room_price: unitPrice * or.quantity,
+        unit_price: unitPrice,
+        template_name: or.template_name,
+      };
+    });
+    setEditOrderRooms(normalizedRooms);
+    const roomsTotal = normalizedRooms.reduce((sum, r) => sum + r.room_price, 0);
+    setEditForm(f => ({ ...f, total_price: roomsTotal }));
+  }, [isEditing, orderRooms]);
+
   useEffect(() => {
     if (searchParams.get("editing") === "true" && order && !isEditing) {
+      // Wait for orderRooms to be loaded before starting edit
+      // orderRooms are fetched alongside order, so once order is set they should follow
       startEditing();
       const next = new URLSearchParams(searchParams);
       next.delete("editing");
       setSearchParams(next, { replace: true });
     }
-  }, [searchParams, order]);
+  }, [searchParams, order, orderRooms]);
 
   const cancelEditing = () => {
     setIsEditing(false);
