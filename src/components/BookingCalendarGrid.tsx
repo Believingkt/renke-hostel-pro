@@ -716,7 +716,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                               })}
 
                               {/* Order cards positioned absolutely */}
-                              {slotOrders.map(order => {
+                              {slotEntries.map(entry => {
                                 const checkInDate = order.check_in_date;
                                 const checkOutDate = order.check_out_date;
                                 
