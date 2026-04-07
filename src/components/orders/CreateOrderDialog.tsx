@@ -566,10 +566,12 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       const addon = addonSettings.find(ad => ad.id === a.addon_id);
       return sum + (addon ? addon.price_per_unit * a.quantity : 0);
     }, 0);
-    const subtotal = roomPrice + addonTotal;
+    // Use roomSelections prices directly to avoid stale roomPrice state
+    const actualRoomTotal = roomSelections.reduce((sum, sel) => sum + sel.roomPrice, 0);
+    const subtotal = actualRoomTotal + addonTotal;
     const discount = calculateDiscount(subtotal);
     const final_ = Math.max(0, subtotal - discount);
-    return { roomTotal: roomPrice, addonTotal, subtotal, discount, final: final_ };
+    return { roomTotal: actualRoomTotal, addonTotal, subtotal, discount, final: final_ };
   };
 
   const handleSave = async () => {
