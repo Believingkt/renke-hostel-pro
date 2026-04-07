@@ -133,7 +133,7 @@ export function AppSidebar() {
         >
           {open && (
             <div className="animate-in fade-in-0 slide-in-from-left-5 duration-300">
-              <img src={lokezeLogo} alt="Lokeze" className="h-10 object-contain" />
+              <img src={lokezeLogo} alt="Lokeze" className="h-8 object-contain" />
             </div>
           )}
         </PreloadLink>
