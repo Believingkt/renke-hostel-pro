@@ -316,13 +316,13 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
     for (const et of exclusiveTypes) {
       const bookedDates = new Set<string>();
       for (const dateStr of dateStrings) {
-        const hasBooking = orders.some(o => o.room_type_id === et.id && o.check_in_date <= dateStr && o.check_out_date > dateStr);
+        const hasBooking = calendarEntries.some(e => e.room_type_id === et.id && e.check_in_date <= dateStr && e.check_out_date > dateStr);
         if (hasBooking) bookedDates.add(dateStr);
       }
       if (bookedDates.size > 0) map.set(et.id, bookedDates);
     }
     return map;
-  }, [roomTypes, orders, dateStrings]);
+  }, [roomTypes, calendarEntries, dateStrings]);
   const getOrderSpan = (order: Order, dateStr: string): { isStart: boolean; span: number } | null => {
     const checkIn = order.check_in_date;
     const checkOut = order.check_out_date;
