@@ -323,28 +323,6 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
     }
     return map;
   }, [roomTypes, calendarEntries, dateStrings]);
-  const getOrderSpan = (order: Order, dateStr: string): { isStart: boolean; span: number } | null => {
-    const checkIn = order.check_in_date;
-    const checkOut = order.check_out_date;
-    
-    // Only render from the start date of the order (or first visible date)
-    const visibleStart = checkIn < dateStrings[0] ? dateStrings[0] : checkIn;
-    if (dateStr !== visibleStart) return null;
-
-    const visibleEnd = checkOut > dateStrings[dateStrings.length - 1] 
-      ? format(addDays(parseISO(dateStrings[dateStrings.length - 1]), 1), "yyyy-MM-dd")
-      : checkOut;
-    
-    const startIdx = dateStrings.indexOf(visibleStart);
-    const endIdx = dateStrings.indexOf(visibleEnd);
-    
-    const span = endIdx === -1 
-      ? dateStrings.length - startIdx 
-      : endIdx - startIdx;
-
-    return { isStart: checkIn >= dateStrings[0], span: Math.max(1, span) };
-  };
-
   const toggleRoomType = (id: string) => {
     setExpandedRoomTypes(prev => {
       const next = new Set(prev);
