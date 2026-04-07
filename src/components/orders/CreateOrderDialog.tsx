@@ -312,7 +312,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         return updated;
       });
     });
-  }, [getTemplatesForRoomType]);
+  }, [getTemplatesForRoomType, roomTypes]);
 
   const changeRoomQuantity = useCallback((selId: string, delta: number) => {
     setRoomSelections(prev => {
