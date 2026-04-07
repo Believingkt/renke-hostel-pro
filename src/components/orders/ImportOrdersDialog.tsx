@@ -15,11 +15,19 @@ interface RoomType {
   name: string;
 }
 
+interface Member {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+}
+
 interface ParsedOrder {
   originalOrderNumber: string;
   orderDate: string;
   guestName: string;
   guestPhone: string;
+  guestEmail: string;
   checkInDate: string;
   checkOutDate: string;
   guestCount: number;
@@ -30,6 +38,8 @@ interface ParsedOrder {
   notes: string;
   roomTypeName: string;
   matchedRoomTypeId: string | null;
+  matchedMemberId: string | null;
+  matchedMemberName: string | null;
   isDuplicate: boolean;
 }
 
@@ -75,6 +85,21 @@ function fuzzyMatchRoom(name: string, roomTypes: RoomType[]): string | null {
   return null;
 }
 
+function matchMember(phone: string, email: string, members: Member[]): Member | null {
+  if (!phone && !email) return null;
+  const normalizedPhone = phone ? phone.replace(/\D/g, "") : "";
+  if (normalizedPhone) {
+    const m = members.find(m => m.phone && m.phone.replace(/\D/g, "") === normalizedPhone);
+    if (m) return m;
+  }
+  if (email) {
+    const lowerEmail = email.toLowerCase().trim();
+    const m = members.find(m => m.email && m.email.toLowerCase().trim() === lowerEmail);
+    if (m) return m;
+  }
+  return null;
+}
+
 export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSuccess }: ImportOrdersDialogProps) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -101,13 +126,15 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
     if (fileInputRef.current) fileInputRef.current.value = "";
 
     try {
-      // Load room types & existing order numbers in parallel
-      const [rtRes, existingRes] = await Promise.all([
+      // Load room types, existing order numbers & platform members in parallel
+      const [rtRes, existingRes, membersRes] = await Promise.all([
         supabase.from("room_types").select("id, name").eq("accommodation_id", accommodationId),
         supabase.from("orders").select("notes").eq("accommodation_id", accommodationId).not("notes", "is", null),
+        supabase.from("platform_members").select("id, name, email, phone"),
       ]);
       const rts: RoomType[] = rtRes.data || [];
       setRoomTypes(rts);
+      const members: Member[] = membersRes.data || [];
 
       // Extract existing imported order numbers from notes
       const existingImportedNumbers = new Set<string>();
@@ -126,6 +153,7 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
         const originalOrderNumber = String(row["訂單編號"] || "");
         const guestName = String(row["顧客"] || row["訂購人"] || "").replace(/^未填\s*/, "").trim();
         const phone = normalizePhone(row["訂購人電話"] as string | number);
+        const email = String(row["訂購人信箱"] || row["Email"] || "").trim();
         const checkIn = String(row["入住時間"] || "");
         const checkOut = String(row["退房時間"] || "");
         const adults = Number(row["成人"]) || 1;
@@ -137,11 +165,14 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
         const notes = String(row["訂單備註"] || "");
         const roomName = String(row["房型房號"] || "");
 
+        const matched = matchMember(phone, email, members);
+
         return {
           originalOrderNumber,
           orderDate: String(row["訂購日期"] || "").slice(0, 10),
           guestName,
           guestPhone: phone,
+          guestEmail: email,
           checkInDate: checkIn,
           checkOutDate: checkOut,
           guestCount: adults + kids,
@@ -152,6 +183,8 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
           notes: notes,
           roomTypeName: roomName,
           matchedRoomTypeId: fuzzyMatchRoom(roomName, rts),
+          matchedMemberId: matched?.id || null,
+          matchedMemberName: matched?.name || null,
           isDuplicate: existingImportedNumbers.has(originalOrderNumber),
         };
       });
@@ -193,6 +226,7 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
         accommodation_id: accommodationId,
         guest_name: o.guestName || "未填",
         guest_phone: o.guestPhone || "0000000000",
+        guest_email: o.guestEmail || null,
         check_in_date: o.checkInDate,
         check_out_date: o.checkOutDate,
         guest_count: o.guestCount,
@@ -205,6 +239,7 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
         order_source: o.orderSource,
         order_date: o.orderDate || new Date().toISOString(),
         room_type_id: o.matchedRoomTypeId || null,
+        member_id: o.matchedMemberId || null,
         notes: noteWithTag,
       };
       const { error } = await supabase.from("orders").insert(insertData as never);
@@ -233,6 +268,7 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
 
   const duplicateCount = parsedOrders.filter(o => o.isDuplicate).length;
   const unmatchedCount = parsedOrders.filter(o => !o.matchedRoomTypeId && !o.isDuplicate).length;
+  const memberMatchedCount = parsedOrders.filter(o => o.matchedMemberId && !o.isDuplicate).length;
   const importableCount = parsedOrders.filter(o => !o.isDuplicate).length;
 
   return (
@@ -288,6 +324,12 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
                   {unmatchedCount} 筆未匹配房型
                 </Badge>
               )}
+              {memberMatchedCount > 0 && (
+                <Badge className="bg-blue-100 text-blue-800 border-blue-200">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  {memberMatchedCount} 筆已匹配會員
+                </Badge>
+              )}
             </div>
 
             <div className="flex-1 min-h-0 overflow-y-auto">
@@ -300,6 +342,7 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
                     <TableHead className="min-w-[90px]">入住</TableHead>
                     <TableHead className="min-w-[90px]">退房</TableHead>
                     <TableHead className="min-w-[150px]">房型對應</TableHead>
+                    <TableHead className="min-w-[100px]">會員</TableHead>
                     <TableHead className="min-w-[80px] text-right">金額</TableHead>
                     <TableHead className="min-w-[80px]">來源</TableHead>
                   </TableRow>
@@ -338,6 +381,13 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
                               ))}
                             </SelectContent>
                           </Select>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {order.matchedMemberName ? (
+                          <Badge className="bg-blue-50 text-blue-700 border-blue-200 text-xs">{order.matchedMemberName}</Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
                         )}
                       </TableCell>
                       <TableCell className="text-right">${order.totalPrice.toLocaleString()}</TableCell>
