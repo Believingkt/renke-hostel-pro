@@ -201,7 +201,62 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
       if (roomTypesRes.error) throw roomTypesRes.error;
       setRoomTypes(roomTypesRes.data || []);
 
-      setOrders(ordersRes.data || []);
+      const fetchedOrders = ordersRes.data || [];
+      setOrders(fetchedOrders);
+
+      // Fetch order_rooms for multi-room orders
+      const orderIds = fetchedOrders.map(o => o.id);
+      let fetchedOrderRooms: OrderRoom[] = [];
+      if (orderIds.length > 0) {
+        const { data: orData } = await supabase
+          .from("order_rooms")
+          .select("id, order_id, room_type_id, quantity")
+          .in("order_id", orderIds);
+        fetchedOrderRooms = orData || [];
+      }
+      setOrderRooms(fetchedOrderRooms);
+
+      // Build calendar entries: expand multi-room orders
+      const entries: CalendarEntry[] = [];
+      const ordersWithRooms = new Set(fetchedOrderRooms.map(or => or.order_id));
+
+      for (const order of fetchedOrders) {
+        if (ordersWithRooms.has(order.id)) {
+          // Multi-room order: create one entry per quantity per room type
+          const rooms = fetchedOrderRooms.filter(or => or.order_id === order.id);
+          for (const room of rooms) {
+            for (let q = 0; q < room.quantity; q++) {
+              entries.push({
+                id: `${order.id}_${room.id}_${q}`,
+                orderId: order.id,
+                order_number: order.order_number,
+                guest_name: order.guest_name,
+                guest_phone: order.guest_phone,
+                check_in_date: order.check_in_date,
+                check_out_date: order.check_out_date,
+                order_status: order.order_status,
+                order_source: order.order_source,
+                room_type_id: room.room_type_id,
+              });
+            }
+          }
+        } else {
+          // Single-room order: use the order's room_type_id
+          entries.push({
+            id: order.id,
+            orderId: order.id,
+            order_number: order.order_number,
+            guest_name: order.guest_name,
+            guest_phone: order.guest_phone,
+            check_in_date: order.check_in_date,
+            check_out_date: order.check_out_date,
+            order_status: order.order_status,
+            order_source: order.order_source,
+            room_type_id: order.room_type_id,
+          });
+        }
+      }
+      setCalendarEntries(entries);
 
       const holidayMap = new Map<string, PublicHoliday>();
       holidaysRes.data?.forEach(h => holidayMap.set(h.holiday_date, h));
