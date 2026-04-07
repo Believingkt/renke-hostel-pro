@@ -24,6 +24,7 @@ interface RoomType {
   id: string;
   name: string;
   capacity: number;
+  is_exclusive_package?: boolean;
 }
 
 interface Customer {
