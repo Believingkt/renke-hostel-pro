@@ -1048,31 +1048,43 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                 )}
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs">間數</Label>
-                <div className="flex items-center gap-1.5">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-10 w-10 p-0"
-                    onClick={() => changeRoomQuantity(sel.id, -1)}
-                    disabled={sel.quantity <= 1}
-                  >
-                    <Minus className="h-3.5 w-3.5" />
-                  </Button>
-                  <span className="w-8 text-center text-sm font-medium">{sel.quantity}</span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-10 w-10 p-0"
-                    onClick={() => changeRoomQuantity(sel.id, 1)}
-                    disabled={totalRoomCount >= MAX_TOTAL_ROOMS}
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
+              {(() => {
+                const isExclusive = roomTypes.find(r => r.id === sel.room_type_id)?.is_exclusive_package;
+                return (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">間數</Label>
+                    {isExclusive ? (
+                      <div className="text-sm font-medium text-muted-foreground py-2">
+                        包區（佔 {MAX_TOTAL_ROOMS} 間）
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-10 w-10 p-0"
+                          onClick={() => changeRoomQuantity(sel.id, -1)}
+                          disabled={sel.quantity <= 1}
+                        >
+                          <Minus className="h-3.5 w-3.5" />
+                        </Button>
+                        <span className="w-8 text-center text-sm font-medium">{sel.quantity}</span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-10 w-10 p-0"
+                          onClick={() => changeRoomQuantity(sel.id, 1)}
+                          disabled={totalRoomCount >= MAX_TOTAL_ROOMS}
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
               </div>
             </div>
 
