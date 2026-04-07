@@ -10,7 +10,7 @@ import { StructuredData } from "@/components/StructuredData";
 import { FrontendSkeleton } from "@/components/skeletons/FrontendSkeleton";
 import { Button } from "@/components/ui/button";
 import { User, LogIn, ArrowLeft } from "lucide-react";
-import lokezeLogo from "@/assets/lokeze-logo.png";
+import lokezeLogo from "@/assets/lakeze-portal-logo.png";
 import { useState } from "react";
 
 // Content sections (same as Index page)

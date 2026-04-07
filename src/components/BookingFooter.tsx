@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { ArrowUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import lokezeLogo from "@/assets/lokeze-logo.png";
+import lokezeLogo from "@/assets/lakeze-portal-logo.png";
 
 const BookingFooter = () => {
   const navigate = useNavigate();

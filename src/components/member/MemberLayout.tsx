@@ -3,6 +3,7 @@ import { useNavigate, Outlet, Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { User, Gift, Ticket, ShoppingBag, LogOut, Home } from "lucide-react";
+import portalLogo from "@/assets/lakeze-portal-logo.png";
 import { toast } from "sonner";
 
 const navItems = [
