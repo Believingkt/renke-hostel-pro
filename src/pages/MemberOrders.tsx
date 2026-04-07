@@ -52,12 +52,10 @@ const MemberOrders = () => {
       .maybeSingle();
     if (!member) { setLoading(false); return; }
 
-    // Find orders by email or phone
-    const conditions: string[] = [];
+    // 優先用 member_id 查詢，同時也比對 email/phone 以涵蓋尚未回填的歷史訂單
+    const conditions: string[] = [`member_id.eq.${member.id}`];
     if (member.email) conditions.push(`guest_email.eq.${member.email}`);
     if (member.phone) conditions.push(`guest_phone.eq.${member.phone}`);
-
-    if (conditions.length === 0) { setLoading(false); return; }
 
     const { data, error } = await supabase
       .from("orders")
