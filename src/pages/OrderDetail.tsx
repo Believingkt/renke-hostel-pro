@@ -127,6 +127,7 @@ interface EditOrderRoom {
   room_type_id: string;
   quantity: number;
   room_price: number;
+  unit_price: number;
   template_name: string | null;
 }
 
@@ -263,6 +264,7 @@ const OrderDetailPage = () => {
         room_type_id: or.room_type_id,
         quantity: or.quantity,
         room_price: or.room_price,
+        unit_price: or.quantity > 0 ? Math.round(or.room_price / or.quantity) : or.room_price,
         template_name: or.template_name,
       })));
       // Use order_rooms total as the real total_price for editing
@@ -1206,6 +1208,7 @@ const OrderDetailPage = () => {
                               room_type_id: rt.id,
                               quantity: 1,
                               room_price: 0,
+                              unit_price: 0,
                               template_name: null,
                             }]);
                           }}
@@ -1259,9 +1262,8 @@ const OrderDetailPage = () => {
                                     disabled={or.quantity <= 1}
                                     onClick={() => setEditOrderRooms(prev => prev.map(r => {
                                       if (r.id !== or.id) return r;
-                                      const unitPrice = r.quantity > 0 ? r.room_price / r.quantity : 0;
                                       const newQty = r.quantity - 1;
-                                      return { ...r, quantity: newQty, room_price: Math.round(unitPrice * newQty) };
+                                      return { ...r, quantity: newQty, room_price: Math.round(r.unit_price * newQty) };
                                     }))}
                                   >
                                     <Minus className="h-3 w-3" />
@@ -1271,9 +1273,8 @@ const OrderDetailPage = () => {
                                     disabled={totalOther + or.quantity >= MAX_TOTAL_ROOMS}
                                     onClick={() => setEditOrderRooms(prev => prev.map(r => {
                                       if (r.id !== or.id) return r;
-                                      const unitPrice = r.quantity > 0 ? r.room_price / r.quantity : 0;
                                       const newQty = r.quantity + 1;
-                                      return { ...r, quantity: newQty, room_price: Math.round(unitPrice * newQty) };
+                                      return { ...r, quantity: newQty, room_price: Math.round(r.unit_price * newQty) };
                                     }))}
                                   >
                                     <Plus className="h-3 w-3" />
