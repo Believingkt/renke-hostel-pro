@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import lokezeLogo2 from "@/assets/lokeze-logo-2.png";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
