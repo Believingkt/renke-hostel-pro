@@ -369,6 +369,22 @@ const OrderDetailPage = () => {
 
       if (error) throw error;
 
+      // Save order_rooms changes if multi-room
+      if (editOrderRooms.length > 0) {
+        // Delete existing order_rooms
+        await supabase.from("order_rooms").delete().eq("order_id", order.id);
+        // Insert updated rooms
+        const newOrderRooms = editOrderRooms.map(r => ({
+          order_id: order.id,
+          room_type_id: r.room_type_id,
+          quantity: r.quantity,
+          room_price: r.room_price,
+          template_name: r.template_name,
+        }));
+        const { error: roomsError } = await supabase.from("order_rooms").insert(newOrderRooms);
+        if (roomsError) throw roomsError;
+      }
+
       // Audit log
       try {
         const { data: { user } } = await supabase.auth.getUser();
