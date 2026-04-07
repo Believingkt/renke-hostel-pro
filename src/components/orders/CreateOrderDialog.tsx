@@ -553,13 +553,15 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       toast({ title: "日期錯誤", description: "退房日期必須在入住日期之後", variant: "destructive" });
       return;
     }
-    if (!form.room_type_id) {
-      toast({ title: "房型錯誤", description: "請選擇房型", variant: "destructive" });
+    if (roomSelections.length === 0) {
+      toast({ title: "房型錯誤", description: "請至少新增一間房", variant: "destructive" });
       return;
     }
-    if (!form.meal_plan) {
-      toast({ title: "專案錯誤", description: "請選擇專案", variant: "destructive" });
-      return;
+    for (const sel of roomSelections) {
+      if (!sel.room_type_id) {
+        toast({ title: "房型錯誤", description: "請選擇所有房間的房型", variant: "destructive" });
+        return;
+      }
     }
     if (!currentAccommodationId) {
       toast({ title: "系統錯誤", description: "無法取得住宿資訊", variant: "destructive" });
@@ -585,6 +587,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       const { data: orderNumber, error: orderNumberError } = await supabase.rpc('generate_order_number');
       if (orderNumberError) throw orderNumberError;
 
+      // Use first room selection as primary room_type_id
+      const primaryRoom = roomSelections[0];
+
       const { data: orderData, error } = await supabase.from("orders").insert({
         accommodation_id: currentAccommodationId,
         order_number: orderNumber,
@@ -595,7 +600,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         guest_nationality: form.guest_nationality.trim() || null,
         check_in_date: form.check_in_date,
         check_out_date: form.check_out_date,
-        room_type_id: form.room_type_id,
+        room_type_id: primaryRoom.room_type_id,
         guest_count: form.guest_count,
         order_status: form.order_status,
         payment_status: paymentStatus,
@@ -608,7 +613,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         discount_amount: totals.discount,
         final_price: totals.final,
         discount_code: appliedDiscount?.code || null,
-        meal_plan: form.meal_plan || null,
+        meal_plan: primaryRoom.template_name || null,
         meal_plan_details: null,
         custom_addon_details: selectedAddons.length > 0
           ? selectedAddons.map(a => {
@@ -625,6 +630,21 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         confirmed_at: form.order_status === "confirmed" ? new Date().toISOString() : null,
         order_source: form.order_source || "manual",
       }).select('id').single();
+
+      if (error) throw error;
+
+      // Insert order_rooms
+      if (orderData?.id && roomSelections.length > 0) {
+        const orderRooms = roomSelections.map(sel => ({
+          order_id: orderData.id,
+          room_type_id: sel.room_type_id,
+          quantity: sel.quantity,
+          room_price: sel.roomPrice,
+          template_id: sel.template_id || null,
+          template_name: sel.template_name || null,
+        }));
+        await supabase.from("order_rooms").insert(orderRooms);
+      }
 
       if (error) throw error;
 
