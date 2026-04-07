@@ -532,8 +532,8 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
             const isExpanded = expandedRoomTypes.has(roomType.id);
             const roomCount = roomType.room_count || 0;
 
-            // Get all orders for this room type in the date range
-            const rtOrders = orders.filter(o => o.room_type_id === roomType.id);
+            // Get all calendar entries for this room type in the date range
+            const rtEntries = calendarEntries.filter(e => e.room_type_id === roomType.id);
 
             return (
               <div key={roomType.id}>
