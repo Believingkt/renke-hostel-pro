@@ -111,6 +111,7 @@ interface CustomMealPlan {
 interface RoomTypeOption {
   id: string;
   name: string;
+  base_price: number;
 }
 
 interface OrderRoom {
@@ -581,7 +582,7 @@ const OrderDetailPage = () => {
         if (orderData.accommodation_id) {
           const { data: rtData } = await supabase
             .from("room_types")
-            .select("id, name")
+            .select("id, name, base_price")
             .eq("accommodation_id", orderData.accommodation_id)
             .order("display_order", { ascending: true });
           if (rtData) setRoomTypes(rtData);
@@ -1207,8 +1208,8 @@ const OrderDetailPage = () => {
                               id: crypto.randomUUID(),
                               room_type_id: rt.id,
                               quantity: 1,
-                              room_price: 0,
-                              unit_price: 0,
+                              room_price: rt.base_price,
+                              unit_price: rt.base_price,
                               template_name: null,
                             }]);
                           }}
@@ -1243,7 +1244,18 @@ const OrderDetailPage = () => {
                                 <Label className="text-xs">房型</Label>
                                 <Select
                                   value={or.room_type_id}
-                                  onValueChange={(v) => setEditOrderRooms(prev => prev.map(r => r.id === or.id ? { ...r, room_type_id: v } : r))}
+                                  onValueChange={(v) => setEditOrderRooms(prev => prev.map(r => {
+                                    if (r.id !== or.id) return r;
+                                    const selectedRoomType = roomTypes.find(rt => rt.id === v);
+                                    if (!selectedRoomType) return { ...r, room_type_id: v };
+
+                                    return {
+                                      ...r,
+                                      room_type_id: v,
+                                      unit_price: selectedRoomType.base_price,
+                                      room_price: selectedRoomType.base_price * r.quantity,
+                                    };
+                                  }))}
                                 >
                                   <SelectTrigger className="h-8 text-xs">
                                     <SelectValue />
