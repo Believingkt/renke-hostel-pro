@@ -1289,7 +1289,10 @@ const OrderDetailPage = () => {
                                 type="text"
                                 inputMode="numeric"
                                 value={or.room_price}
-                                onChange={(e) => setEditOrderRooms(prev => prev.map(r => r.id === or.id ? { ...r, room_price: Math.max(0, parseInt(e.target.value) || 0) } : r))}
+                                onChange={(e) => {
+                                  const newPrice = Math.max(0, parseInt(e.target.value) || 0);
+                                  setEditOrderRooms(prev => prev.map(r => r.id === or.id ? { ...r, room_price: newPrice, unit_price: r.quantity > 0 ? Math.round(newPrice / r.quantity) : newPrice } : r));
+                                }}
                               />
                             </div>
                           </div>
