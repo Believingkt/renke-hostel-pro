@@ -283,20 +283,12 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
     return inv.available_rooms;
   };
 
-  // Get booked count for a room type on a date
+  // Get booked count for a room type on a date (using calendar entries for accurate multi-room counting)
   const getBookedCount = (roomTypeId: string, dateStr: string): number => {
-    return orders.filter(o => {
-      if (o.room_type_id !== roomTypeId) return false;
-      return o.check_in_date <= dateStr && o.check_out_date > dateStr;
+    return calendarEntries.filter(e => {
+      if (e.room_type_id !== roomTypeId) return false;
+      return e.check_in_date <= dateStr && e.check_out_date > dateStr;
     }).length;
-  };
-
-  // Get orders for a room type on a date
-  const getOrdersForDate = (roomTypeId: string, dateStr: string): Order[] => {
-    return orders.filter(o => {
-      if (o.room_type_id !== roomTypeId) return false;
-      return o.check_in_date <= dateStr && o.check_out_date > dateStr;
-    });
   };
 
   // Check if a date is blocked because an exclusive package is booked
