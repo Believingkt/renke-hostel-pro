@@ -256,8 +256,26 @@ const OrderDetailPage = () => {
       custom_addon_details: (order.custom_addon_details as CustomAddonDetail[]) || [],
       addon_total: (order.pet_plan_price || 0) + (order.meal_plan_total || 0) + ((order.custom_addon_details as CustomAddonDetail[]) || []).reduce((sum, d) => sum + d.total, 0),
     });
+    // Initialize edit order rooms
+    if (orderRooms.length > 0) {
+      setEditOrderRooms(orderRooms.map(or => ({
+        id: or.id,
+        room_type_id: or.room_type_id,
+        quantity: or.quantity,
+        room_price: or.room_price,
+        template_name: or.template_name,
+      })));
+      // Use order_rooms total as the real total_price for editing
+      const roomsTotal = orderRooms.reduce((sum, r) => sum + r.room_price, 0);
+      setEditForm(f => ({ ...f, total_price: roomsTotal }));
+    } else {
+      setEditOrderRooms([]);
+    }
     // Store deposit ratio based on original final price
-    const originalFinal = (order.total_price || 0) + ((order.pet_plan_price || 0) + (order.meal_plan_total || 0) + ((order.custom_addon_details as CustomAddonDetail[]) || []).reduce((sum, d) => sum + d.total, 0)) - (order.discount_amount || 0);
+    const effectiveTotal = orderRooms.length > 0
+      ? orderRooms.reduce((sum, r) => sum + r.room_price, 0)
+      : (order.total_price || 0);
+    const originalFinal = effectiveTotal + ((order.pet_plan_price || 0) + (order.meal_plan_total || 0) + ((order.custom_addon_details as CustomAddonDetail[]) || []).reduce((sum, d) => sum + d.total, 0)) - (order.discount_amount || 0);
     depositRatioRef.current = originalFinal > 0 ? (order.deposit_amount || 0) / originalFinal : 0;
     setIsEditing(true);
   };
