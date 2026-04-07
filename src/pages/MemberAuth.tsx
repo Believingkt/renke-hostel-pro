@@ -272,7 +272,7 @@ const MemberAuth = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <img src={lokezeLogo2} alt="Lokeze 人客多" className="h-36 mx-auto" />
-          <p className="text-muted-foreground mt-2">訂房平台會員中心</p>
+          <p className="text-muted-foreground mt-0">訂房平台會員中心</p>
         </div>
 
         <Card className="border-[hsl(24,100%,50%)]/30">
