@@ -47,11 +47,11 @@ export function useSubdomain() {
       const hostname = window.location.hostname.toLowerCase();
       const parts = hostname.split('.');
       
-      // ========== HQ 專屬網域檢測 ==========
-      // 若為 hq.lakeze.com，跳過住宿識別邏輯
+      // ========== HQ / Booking Portal 專屬網域檢測 ==========
       const isHQDomain = hostname === 'hq.lakeze.com' || hostname === 'www.hq.lakeze.com';
-      if (isHQDomain) {
-        // HQ 網域不需要載入住宿資料，直接結束
+      const isBookingDomain = hostname === 'booking.lakeze.com' || hostname === 'www.booking.lakeze.com';
+      if (isHQDomain || isBookingDomain) {
+        // 這些網域不需要載入住宿資料，直接結束
         setIsLoading(false);
         return;
       }
