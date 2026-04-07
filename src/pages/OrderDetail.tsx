@@ -1257,14 +1257,24 @@ const OrderDetailPage = () => {
                                 <div className="flex items-center gap-1">
                                   <Button type="button" variant="outline" size="sm" className="h-8 w-8 p-0"
                                     disabled={or.quantity <= 1}
-                                    onClick={() => setEditOrderRooms(prev => prev.map(r => r.id === or.id ? { ...r, quantity: r.quantity - 1 } : r))}
+                                    onClick={() => setEditOrderRooms(prev => prev.map(r => {
+                                      if (r.id !== or.id) return r;
+                                      const unitPrice = r.quantity > 0 ? r.room_price / r.quantity : 0;
+                                      const newQty = r.quantity - 1;
+                                      return { ...r, quantity: newQty, room_price: Math.round(unitPrice * newQty) };
+                                    }))}
                                   >
                                     <Minus className="h-3 w-3" />
                                   </Button>
                                   <span className="w-6 text-center text-sm font-medium">{or.quantity}</span>
                                   <Button type="button" variant="outline" size="sm" className="h-8 w-8 p-0"
                                     disabled={totalOther + or.quantity >= MAX_TOTAL_ROOMS}
-                                    onClick={() => setEditOrderRooms(prev => prev.map(r => r.id === or.id ? { ...r, quantity: r.quantity + 1 } : r))}
+                                    onClick={() => setEditOrderRooms(prev => prev.map(r => {
+                                      if (r.id !== or.id) return r;
+                                      const unitPrice = r.quantity > 0 ? r.room_price / r.quantity : 0;
+                                      const newQty = r.quantity + 1;
+                                      return { ...r, quantity: newQty, room_price: Math.round(unitPrice * newQty) };
+                                    }))}
                                   >
                                     <Plus className="h-3 w-3" />
                                   </Button>
