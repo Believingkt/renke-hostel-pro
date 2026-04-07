@@ -512,6 +512,17 @@ const OrderDetailPage = () => {
         } as OrderDetail;
         setOrder(orderObj);
 
+        // Fetch order_rooms (multi-room details)
+        const { data: orderRoomsData } = await supabase
+          .from("order_rooms")
+          .select("id, room_type_id, quantity, room_price, template_name, room_types(name)")
+          .eq("order_id", orderId);
+        if (orderRoomsData && orderRoomsData.length > 0) {
+          setOrderRooms(orderRoomsData as unknown as OrderRoom[]);
+        } else {
+          setOrderRooms([]);
+        }
+
         // Fetch room types for edit mode
         if (orderData.accommodation_id) {
           const { data: rtData } = await supabase
