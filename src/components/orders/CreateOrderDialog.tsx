@@ -170,6 +170,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       setSelectedTemplateId("");
       setFilteredTemplates([]);
       setRoomSelections([]);
+      setBookingMode("");
     }
   }, [open, initialData]);
 
