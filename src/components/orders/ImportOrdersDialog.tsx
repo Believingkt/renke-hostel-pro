@@ -342,6 +342,7 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
                     <TableHead className="min-w-[90px]">入住</TableHead>
                     <TableHead className="min-w-[90px]">退房</TableHead>
                     <TableHead className="min-w-[150px]">房型對應</TableHead>
+                    <TableHead className="min-w-[100px]">會員</TableHead>
                     <TableHead className="min-w-[80px] text-right">金額</TableHead>
                     <TableHead className="min-w-[80px]">來源</TableHead>
                   </TableRow>
