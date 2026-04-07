@@ -301,12 +301,18 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     setRoomSelections(prev => {
       const sel = prev.find(s => s.id === selId);
       if (!sel) return prev;
+      const rt = roomTypes.find(r => r.id === sel.room_type_id);
+      if (rt?.is_exclusive_package) return prev; // 包區不可調整數量
       const newQty = sel.quantity + delta;
-      const otherTotal = prev.reduce((sum, s) => sum + (s.id === selId ? 0 : s.quantity), 0);
+      const otherTotal = prev.reduce((sum, s) => {
+        if (s.id === selId) return sum;
+        const srt = roomTypes.find(r => r.id === s.room_type_id);
+        return sum + (srt?.is_exclusive_package ? MAX_TOTAL_ROOMS : s.quantity);
+      }, 0);
       if (newQty < 1 || otherTotal + newQty > MAX_TOTAL_ROOMS) return prev;
       return prev.map(s => s.id === selId ? { ...s, quantity: newQty } : s);
     });
-  }, []);
+  }, [roomTypes]);
 
   // Calculate room prices for all selections
   const roomSelectionsKey = roomSelections.map(s => `${s.room_type_id}-${s.template_id}-${s.quantity}`).join(',');
