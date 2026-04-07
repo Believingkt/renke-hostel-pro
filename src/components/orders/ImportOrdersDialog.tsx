@@ -85,6 +85,21 @@ function fuzzyMatchRoom(name: string, roomTypes: RoomType[]): string | null {
   return null;
 }
 
+function matchMember(phone: string, email: string, members: Member[]): Member | null {
+  if (!phone && !email) return null;
+  const normalizedPhone = phone ? phone.replace(/\D/g, "") : "";
+  if (normalizedPhone) {
+    const m = members.find(m => m.phone && m.phone.replace(/\D/g, "") === normalizedPhone);
+    if (m) return m;
+  }
+  if (email) {
+    const lowerEmail = email.toLowerCase().trim();
+    const m = members.find(m => m.email && m.email.toLowerCase().trim() === lowerEmail);
+    if (m) return m;
+  }
+  return null;
+}
+
 export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSuccess }: ImportOrdersDialogProps) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
