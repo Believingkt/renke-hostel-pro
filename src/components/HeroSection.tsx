@@ -581,7 +581,7 @@ const HeroSection = ({
               <h1 
                 className={cn(
                   "hero-title font-bold drop-shadow-lg leading-none tracking-tight font-sans",
-                  useCompactHero ? "!text-2xl md:!text-3xl" : "text-5xl md:text-7xl"
+                  useCompactHero ? "!text-4xl md:!text-5xl" : "text-5xl md:text-7xl"
                 )}
               >
                 {currentSlide.title || heroMainTitle || accommodationName}
@@ -593,7 +593,7 @@ const HeroSection = ({
                   className={cn(
                     'drop-shadow-lg leading-tight transition-opacity duration-500',
                     useCompactHero
-                      ? '!mt-1 md:!mt-1.5 !text-base md:!text-xl'
+                      ? '!mt-1 md:!mt-1.5 !text-xl md:!text-3xl'
                       : (currentSlide.subtitle_size || 'medium') === 'small'
                         ? 'mt-3 md:mt-4 text-base md:text-2xl'
                         : (currentSlide.subtitle_size || 'medium') === 'large'
@@ -611,7 +611,7 @@ const HeroSection = ({
                   className={cn(
                     'drop-shadow-lg opacity-90 leading-relaxed transition-opacity duration-500',
                     useCompactHero
-                      ? 'mt-1 text-xs md:text-sm'
+                      ? 'mt-1 text-base md:text-xl'
                       : (currentSlide.secondary_subtitle_size || 'small') === 'small'
                         ? 'mt-2 md:mt-3 text-sm md:text-xl'
                         : (currentSlide.secondary_subtitle_size || 'small') === 'large'
