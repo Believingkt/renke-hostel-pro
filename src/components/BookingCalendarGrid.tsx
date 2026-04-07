@@ -654,18 +654,18 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                       const roomSlots: CalendarEntry[][] = [];
                       const sortedEntries = [...rtEntries].sort((a, b) => a.check_in_date.localeCompare(b.check_in_date));
                       
-                      sortedOrders.forEach(order => {
+                      sortedEntries.forEach(entry => {
                         let placed = false;
                         for (const slot of roomSlots) {
-                          const lastOrder = slot[slot.length - 1];
-                          if (lastOrder.check_out_date <= order.check_in_date) {
-                            slot.push(order);
+                          const lastEntry = slot[slot.length - 1];
+                          if (lastEntry.check_out_date <= entry.check_in_date) {
+                            slot.push(entry);
                             placed = true;
                             break;
                           }
                         }
                         if (!placed) {
-                          roomSlots.push([order]);
+                          roomSlots.push([entry]);
                         }
                       });
 
