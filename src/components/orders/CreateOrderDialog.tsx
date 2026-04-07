@@ -110,6 +110,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   // Multi-room selections
   const [roomSelections, setRoomSelections] = useState<RoomSelection[]>([]);
   const MAX_TOTAL_ROOMS = 6;
+  
+  // Booking mode: "exclusive" (包區) or "normal" (非包區) or "" (not yet selected)
+  const [bookingMode, setBookingMode] = useState<"" | "exclusive" | "normal">("");
 
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [filteredTemplates, setFilteredTemplates] = useState<PricingTemplate[]>([]);
@@ -167,6 +170,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       setSelectedTemplateId("");
       setFilteredTemplates([]);
       setRoomSelections([]);
+      setBookingMode("");
     }
   }, [open, initialData]);
 
@@ -264,7 +268,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const addRoomSelection = useCallback(() => {
     if (totalRoomCount >= MAX_TOTAL_ROOMS) return;
     const id = crypto.randomUUID();
-    const defaultRoomType = roomTypes[0];
+    const normalRoomTypes = roomTypes.filter(r => !r.is_exclusive_package);
+    const defaultRoomType = normalRoomTypes[0];
     if (!defaultRoomType) return;
     const templates = getTemplatesForRoomType(defaultRoomType.id);
     setRoomSelections(prev => [...prev, {
@@ -973,145 +978,263 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         </div>
       </div>
 
-      {/* Multi-Room Selection */}
+      {/* Booking Mode Selection */}
       <div className="space-y-3 pt-2">
-        <div className="flex items-center justify-between">
-          <Label className="text-base font-semibold">房型選擇</Label>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">
-              共 {totalRoomCount} / {MAX_TOTAL_ROOMS} 間
-            </Badge>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={addRoomSelection}
-              disabled={totalRoomCount >= MAX_TOTAL_ROOMS || roomTypes.length === 0 || hasExclusivePackage}
-              className="h-8 gap-1"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              新增房間
-            </Button>
-          </div>
+        <Label className="text-base font-semibold">訂房類型</Label>
+        <div className="grid grid-cols-2 gap-3">
+          <Button
+            type="button"
+            variant={bookingMode === "exclusive" ? "default" : "outline"}
+            className="h-12"
+            onClick={() => {
+              if (bookingMode === "exclusive") return;
+              setBookingMode("exclusive");
+              setRoomSelections([]);
+              // Auto-add exclusive package room
+              const exclusiveTypes = roomTypes.filter(r => r.is_exclusive_package);
+              if (exclusiveTypes.length > 0) {
+                const rt = exclusiveTypes[0];
+                const templates = getTemplatesForRoomType(rt.id);
+                setRoomSelections([{
+                  id: crypto.randomUUID(),
+                  room_type_id: rt.id,
+                  template_id: templates[0]?.id || "",
+                  template_name: templates[0]?.template_name || "",
+                  quantity: 1,
+                  roomPrice: 0,
+                  filteredTemplates: templates,
+                }]);
+              }
+            }}
+          >
+            包區
+          </Button>
+          <Button
+            type="button"
+            variant={bookingMode === "normal" ? "default" : "outline"}
+            className="h-12"
+            onClick={() => {
+              if (bookingMode === "normal") return;
+              setBookingMode("normal");
+              setRoomSelections([]);
+            }}
+          >
+            非包區
+          </Button>
         </div>
 
-        {roomSelections.length === 0 && (
-          <div className="p-4 border rounded-lg bg-muted/30 text-center text-sm text-muted-foreground">
-            請點擊「新增房間」加入房型
-          </div>
-        )}
-
-        {roomSelections.map((sel, index) => (
-          <div key={sel.id} className="p-3 border rounded-lg space-y-3 bg-muted/30">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">房間 {index + 1}</span>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => removeRoomSelection(sel.id)}
-                className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">房型 <span className="text-destructive">*</span></Label>
-                <Select
-                  value={sel.room_type_id}
-                  onValueChange={(value) => updateRoomSelection(sel.id, { room_type_id: value })}
-                >
-                  <SelectTrigger className="h-10 text-sm">
-                    <SelectValue placeholder="選擇房型" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roomTypes.map((rt) => (
-                      <SelectItem key={rt.id} value={rt.id}>
-                        {rt.name} (最多{rt.capacity}人)
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+        {/* Exclusive mode: show package selector */}
+        {bookingMode === "exclusive" && (
+          <div className="space-y-3">
+            {roomTypes.filter(r => r.is_exclusive_package).length === 0 ? (
+              <div className="p-4 border rounded-lg bg-muted/30 text-center text-sm text-muted-foreground">
+                目前沒有包區房型，請先至房型管理新增
               </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs">專案</Label>
-                {sel.filteredTemplates.length > 0 ? (
-                  <Select
-                    value={sel.template_id}
-                    onValueChange={(value) => {
-                      const template = sel.filteredTemplates.find(t => t.id === value);
-                      updateRoomSelection(sel.id, {
-                        template_id: value,
-                        template_name: template?.template_name || "",
-                      });
-                    }}
-                  >
-                    <SelectTrigger className="h-10 text-sm">
-                      <SelectValue placeholder="選擇專案" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sel.filteredTemplates.map((template) => (
-                        <SelectItem key={template.id} value={template.id}>
-                          {template.project_name || template.template_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <p className="text-xs text-muted-foreground py-2">無對應專案</p>
-                )}
-              </div>
-
-              {(() => {
-                const isExclusive = roomTypes.find(r => r.id === sel.room_type_id)?.is_exclusive_package;
-                return (
+            ) : (
+              <div className="p-3 border rounded-lg space-y-3 bg-muted/30">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <Label className="text-xs">間數</Label>
-                    {isExclusive ? (
-                      <div className="text-sm font-medium text-muted-foreground py-2">
-                        包區（佔 {MAX_TOTAL_ROOMS} 間）
-                      </div>
+                    <Label className="text-xs">包區方案 <span className="text-destructive">*</span></Label>
+                    <Select
+                      value={roomSelections[0]?.room_type_id || ""}
+                      onValueChange={(value) => {
+                        const templates = getTemplatesForRoomType(value);
+                        setRoomSelections([{
+                          id: roomSelections[0]?.id || crypto.randomUUID(),
+                          room_type_id: value,
+                          template_id: templates[0]?.id || "",
+                          template_name: templates[0]?.template_name || "",
+                          quantity: 1,
+                          roomPrice: 0,
+                          filteredTemplates: templates,
+                        }]);
+                      }}
+                    >
+                      <SelectTrigger className="h-10 text-sm">
+                        <SelectValue placeholder="選擇包區方案" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roomTypes.filter(r => r.is_exclusive_package).map((rt) => (
+                          <SelectItem key={rt.id} value={rt.id}>
+                            {rt.name} (最多{rt.capacity}人)
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">專案</Label>
+                    {(roomSelections[0]?.filteredTemplates?.length || 0) > 0 ? (
+                      <Select
+                        value={roomSelections[0]?.template_id || ""}
+                        onValueChange={(value) => {
+                          const template = roomSelections[0]?.filteredTemplates.find(t => t.id === value);
+                          if (roomSelections[0]) {
+                            setRoomSelections([{
+                              ...roomSelections[0],
+                              template_id: value,
+                              template_name: template?.template_name || "",
+                            }]);
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-10 text-sm">
+                          <SelectValue placeholder="選擇專案" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {roomSelections[0]?.filteredTemplates.map((template) => (
+                            <SelectItem key={template.id} value={template.id}>
+                              {template.project_name || template.template_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     ) : (
-                      <div className="flex items-center gap-1.5">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-10 w-10 p-0"
-                          onClick={() => changeRoomQuantity(sel.id, -1)}
-                          disabled={sel.quantity <= 1}
-                        >
-                          <Minus className="h-3.5 w-3.5" />
-                        </Button>
-                        <span className="w-8 text-center text-sm font-medium">{sel.quantity}</span>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-10 w-10 p-0"
-                          onClick={() => changeRoomQuantity(sel.id, 1)}
-                          disabled={totalRoomCount >= MAX_TOTAL_ROOMS}
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
+                      <p className="text-xs text-muted-foreground py-2">無對應專案</p>
                     )}
                   </div>
-                );
-              })()}
-            </div>
-
-            {sel.roomPrice > 0 && (
-              <div className="text-xs text-right text-muted-foreground">
-                小計：NT$ {sel.roomPrice.toLocaleString()} ({roomTypes.find(r => r.id === sel.room_type_id)?.is_exclusive_package ? '包區' : `${sel.quantity} 間`})
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  包區已鎖定 {MAX_TOTAL_ROOMS} 間房
+                </div>
+                {roomSelections[0]?.roomPrice > 0 && (
+                  <div className="text-xs text-right text-muted-foreground">
+                    小計：NT$ {roomSelections[0].roomPrice.toLocaleString()}（包區）
+                  </div>
+                )}
               </div>
             )}
           </div>
-        ))}
+        )}
 
+        {/* Normal mode: multi-room selection */}
+        {bookingMode === "normal" && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Badge variant="outline" className="text-xs">
+                共 {totalRoomCount} / {MAX_TOTAL_ROOMS} 間
+              </Badge>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addRoomSelection}
+                disabled={totalRoomCount >= MAX_TOTAL_ROOMS || roomTypes.filter(r => !r.is_exclusive_package).length === 0}
+                className="h-8 gap-1"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                新增房間
+              </Button>
+            </div>
+
+            {roomSelections.length === 0 && (
+              <div className="p-4 border rounded-lg bg-muted/30 text-center text-sm text-muted-foreground">
+                請點擊「新增房間」加入房型
+              </div>
+            )}
+
+            {roomSelections.map((sel, index) => (
+              <div key={sel.id} className="p-3 border rounded-lg space-y-3 bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">房間 {index + 1}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeRoomSelection(sel.id)}
+                    className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">房型 <span className="text-destructive">*</span></Label>
+                    <Select
+                      value={sel.room_type_id}
+                      onValueChange={(value) => updateRoomSelection(sel.id, { room_type_id: value })}
+                    >
+                      <SelectTrigger className="h-10 text-sm">
+                        <SelectValue placeholder="選擇房型" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roomTypes.filter(r => !r.is_exclusive_package).map((rt) => (
+                          <SelectItem key={rt.id} value={rt.id}>
+                            {rt.name} (最多{rt.capacity}人)
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">專案</Label>
+                    {sel.filteredTemplates.length > 0 ? (
+                      <Select
+                        value={sel.template_id}
+                        onValueChange={(value) => {
+                          const template = sel.filteredTemplates.find(t => t.id === value);
+                          updateRoomSelection(sel.id, {
+                            template_id: value,
+                            template_name: template?.template_name || "",
+                          });
+                        }}
+                      >
+                        <SelectTrigger className="h-10 text-sm">
+                          <SelectValue placeholder="選擇專案" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {sel.filteredTemplates.map((template) => (
+                            <SelectItem key={template.id} value={template.id}>
+                              {template.project_name || template.template_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <p className="text-xs text-muted-foreground py-2">無對應專案</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">間數</Label>
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-10 w-10 p-0"
+                        onClick={() => changeRoomQuantity(sel.id, -1)}
+                        disabled={sel.quantity <= 1}
+                      >
+                        <Minus className="h-3.5 w-3.5" />
+                      </Button>
+                      <span className="w-8 text-center text-sm font-medium">{sel.quantity}</span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-10 w-10 p-0"
+                        onClick={() => changeRoomQuantity(sel.id, 1)}
+                        disabled={totalRoomCount >= MAX_TOTAL_ROOMS}
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {sel.roomPrice > 0 && (
+                  <div className="text-xs text-right text-muted-foreground">
+                    小計：NT$ {sel.roomPrice.toLocaleString()} ({sel.quantity} 間)
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
         {/* Guest count */}
         <div className="p-3 border rounded-lg bg-muted/30">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
