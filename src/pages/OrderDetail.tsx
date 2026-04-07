@@ -351,12 +351,14 @@ const OrderDetailPage = () => {
 
   useEffect(() => {
     if (searchParams.get("editing") === "true" && order && !isEditing) {
+      // Wait for orderRooms to be loaded before starting edit
+      // orderRooms are fetched alongside order, so once order is set they should follow
       startEditing();
       const next = new URLSearchParams(searchParams);
       next.delete("editing");
       setSearchParams(next, { replace: true });
     }
-  }, [searchParams, order]);
+  }, [searchParams, order, orderRooms]);
 
   const cancelEditing = () => {
     setIsEditing(false);
