@@ -389,6 +389,7 @@ function App() {
               </Routes>
             </ChunkErrorBoundary>
           </PageTransition>
+        </BookingDomainRedirect>
         </HQDomainRedirect>
       </AccommodationProvider>
     </BrowserRouter>
