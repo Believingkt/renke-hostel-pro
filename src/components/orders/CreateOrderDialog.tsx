@@ -429,102 +429,52 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     return appliedDiscount.value;
   };
 
-  // Check inventory and calculate price
+  // Check inventory warnings (for all room selections)
   useEffect(() => {
-    const checkInventoryAndPrice = async () => {
-      if (!form.room_type_id || !form.check_in_date || !form.check_out_date || !currentAccommodationId) {
-        setRoomPrice(0);
+    const checkInventory = async () => {
+      if (roomSelections.length === 0 || !form.check_in_date || !form.check_out_date || !currentAccommodationId) {
         setInventoryWarnings([]);
         return;
       }
-
       setIsCheckingInventory(true);
-      
       try {
         const nights = calculateNights();
-        if (nights === 0) {
-          setRoomPrice(0);
-          setInventoryWarnings([]);
-          return;
-        }
-
+        if (nights === 0) { setInventoryWarnings([]); return; }
         const dates: string[] = [];
         const start = new Date(form.check_in_date);
         for (let i = 0; i < nights; i++) {
-          const currentDate = new Date(start);
-          currentDate.setDate(start.getDate() + i);
-          dates.push(format(currentDate, "yyyy-MM-dd"));
+          const d = new Date(start);
+          d.setDate(start.getDate() + i);
+          dates.push(format(d, "yyyy-MM-dd"));
         }
-
-        // Check inventory
-        const { data: inventoryData } = await supabase.rpc(
-          'get_adjusted_room_inventory_batch',
-          {
-            p_room_type_id: form.room_type_id,
-            p_dates: dates,
-            p_accommodation_id: currentAccommodationId
-          }
-        );
-
         const warnings: typeof inventoryWarnings = [];
-        if (inventoryData) {
-          for (const item of inventoryData) {
-            if (item.is_blocked) {
-              warnings.push({
-                date: item.date_value,
-                available: 0,
-                blocked: true,
-                blockedBy: item.blocked_by_room_name,
-              });
-            } else if (item.available_rooms < 1) {
-              warnings.push({
-                date: item.date_value,
-                available: item.available_rooms,
-              });
+        const checkedTypes = new Set<string>();
+        for (const sel of roomSelections) {
+          if (checkedTypes.has(sel.room_type_id)) continue;
+          checkedTypes.add(sel.room_type_id);
+          const { data: inventoryData } = await supabase.rpc(
+            'get_adjusted_room_inventory_batch',
+            { p_room_type_id: sel.room_type_id, p_dates: dates, p_accommodation_id: currentAccommodationId }
+          );
+          if (inventoryData) {
+            const roomName = roomTypes.find(r => r.id === sel.room_type_id)?.name || '';
+            for (const item of inventoryData) {
+              const neededQty = roomSelections.filter(s => s.room_type_id === sel.room_type_id).reduce((sum, s) => sum + s.quantity, 0);
+              if (item.is_blocked) {
+                warnings.push({ date: item.date_value, available: 0, blocked: true, blockedBy: item.blocked_by_room_name || roomName });
+              } else if (item.available_rooms < neededQty) {
+                warnings.push({ date: item.date_value, available: item.available_rooms });
+              }
             }
           }
         }
         setInventoryWarnings(warnings);
-
-        // Calculate price using selected template's price directly
-        const selectedTemplate = pricingTemplates.find(t => t.id === selectedTemplateId) 
-          || filteredTemplates.find(t => t.id === selectedTemplateId);
-        
-        if (selectedTemplate && selectedTemplate.price != null && selectedTemplate.price > 0) {
-          // Use template price directly × nights
-          setRoomPrice(selectedTemplate.price * nights);
-        } else {
-          // Fallback: sum inventory prices
-          let priceColumn = 'price';
-          if (selectedTemplate) {
-            const name = selectedTemplate.template_name || selectedTemplate.project_name || '';
-            if (name.includes('三食') || name.includes('3食')) priceColumn = 'price_3_meals';
-            else if (name.includes('二食') || name.includes('2食') || name.includes('兩食')) priceColumn = 'price_2_meals';
-          }
-          
-          let total = 0;
-          for (const dateStr of dates) {
-            const { data: priceData } = await supabase
-              .from("room_inventory_pricing")
-              .select("price, price_2_meals, price_3_meals")
-              .eq("room_type_id", form.room_type_id)
-              .eq("date", dateStr)
-              .maybeSingle();
-            
-            if (priceData) {
-              const selectedPrice = (priceData as any)[priceColumn];
-              total += (selectedPrice != null && selectedPrice > 0) ? selectedPrice : (priceData.price ?? 0);
-            }
-          }
-          setRoomPrice(total);
-        }
       } finally {
         setIsCheckingInventory(false);
       }
     };
-
-    checkInventoryAndPrice();
-  }, [form.check_in_date, form.check_out_date, form.room_type_id, selectedTemplateId, currentAccommodationId, pricingTemplates, publicHolidays]);
+    checkInventory();
+  }, [form.check_in_date, form.check_out_date, roomSelections.length, currentAccommodationId, roomTypes]);
 
   const handleApplyDiscount = async () => {
     if (!discountCode.trim() || !currentAccommodationId) {
