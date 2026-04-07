@@ -969,7 +969,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               variant="outline"
               size="sm"
               onClick={addRoomSelection}
-              disabled={totalRoomCount >= MAX_TOTAL_ROOMS || roomTypes.length === 0}
+              disabled={totalRoomCount >= MAX_TOTAL_ROOMS || roomTypes.length === 0 || hasExclusivePackage}
               className="h-8 gap-1"
             >
               <Plus className="h-3.5 w-3.5" />
