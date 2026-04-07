@@ -252,7 +252,13 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   }, [form.room_type_id, pricingTemplates, getTemplatesForRoomType]);
 
   // Multi-room helpers
-  const totalRoomCount = roomSelections.reduce((sum, s) => sum + s.quantity, 0);
+  // 包區(Exclusive Package) 佔用全部 6 間額度
+  const getEffectiveQuantity = useCallback((sel: RoomSelection) => {
+    const rt = roomTypes.find(r => r.id === sel.room_type_id);
+    return rt?.is_exclusive_package ? MAX_TOTAL_ROOMS : sel.quantity;
+  }, [roomTypes]);
+  const totalRoomCount = roomSelections.reduce((sum, s) => sum + getEffectiveQuantity(s), 0);
+  const hasExclusivePackage = roomSelections.some(s => roomTypes.find(r => r.id === s.room_type_id)?.is_exclusive_package);
 
   const addRoomSelection = useCallback(() => {
     if (totalRoomCount >= MAX_TOTAL_ROOMS) return;
