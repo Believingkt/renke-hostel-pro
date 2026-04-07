@@ -53,6 +53,16 @@ interface PricingTemplate {
   weekend_price: number | null;
 }
 
+interface RoomSelection {
+  id: string;
+  room_type_id: string;
+  template_id: string;
+  template_name: string;
+  quantity: number;
+  roomPrice: number;
+  filteredTemplates: PricingTemplate[];
+}
+
 interface CreateOrderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
