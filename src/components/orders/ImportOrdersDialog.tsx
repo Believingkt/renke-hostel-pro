@@ -15,11 +15,19 @@ interface RoomType {
   name: string;
 }
 
+interface Member {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+}
+
 interface ParsedOrder {
   originalOrderNumber: string;
   orderDate: string;
   guestName: string;
   guestPhone: string;
+  guestEmail: string;
   checkInDate: string;
   checkOutDate: string;
   guestCount: number;
@@ -30,6 +38,8 @@ interface ParsedOrder {
   notes: string;
   roomTypeName: string;
   matchedRoomTypeId: string | null;
+  matchedMemberId: string | null;
+  matchedMemberName: string | null;
   isDuplicate: boolean;
 }
 
