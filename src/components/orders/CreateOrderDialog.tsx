@@ -283,18 +283,35 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   }, []);
 
   const updateRoomSelection = useCallback((selId: string, updates: Partial<RoomSelection>) => {
-    setRoomSelections(prev => prev.map(s => {
-      if (s.id !== selId) return s;
-      const updated = { ...s, ...updates };
-      // If room type changed, refresh templates
-      if (updates.room_type_id && updates.room_type_id !== s.room_type_id) {
-        const templates = getTemplatesForRoomType(updates.room_type_id);
-        updated.filteredTemplates = templates;
-        updated.template_id = templates[0]?.id || "";
-        updated.template_name = templates[0]?.template_name || "";
+    setRoomSelections(prev => {
+      // If changing to an exclusive package, remove all other selections
+      if (updates.room_type_id) {
+        const newRt = roomTypes.find(r => r.id === updates.room_type_id);
+        if (newRt?.is_exclusive_package) {
+          const templates = getTemplatesForRoomType(updates.room_type_id);
+          const sel = prev.find(s => s.id === selId);
+          return [{
+            ...(sel || prev[0]),
+            ...updates,
+            quantity: 1,
+            filteredTemplates: templates,
+            template_id: templates[0]?.id || "",
+            template_name: templates[0]?.template_name || "",
+          }];
+        }
       }
-      return updated;
-    }));
+      return prev.map(s => {
+        if (s.id !== selId) return s;
+        const updated = { ...s, ...updates };
+        if (updates.room_type_id && updates.room_type_id !== s.room_type_id) {
+          const templates = getTemplatesForRoomType(updates.room_type_id);
+          updated.filteredTemplates = templates;
+          updated.template_id = templates[0]?.id || "";
+          updated.template_name = templates[0]?.template_name || "";
+        }
+        return updated;
+      });
+    });
   }, [getTemplatesForRoomType]);
 
   const changeRoomQuantity = useCallback((selId: string, delta: number) => {
